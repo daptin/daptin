@@ -61,6 +61,14 @@ func (dr *DbResource) IsUserActionAllowedWithTransaction(userReferenceId string,
 func (dr *DbResource) GetActionByName(typeName string, actionName string, transaction *sqlx.Tx) (Action, error) {
 	var a ActionRow
 
+	cacheKey := fmt.Sprintf("action-%v-%v", typeName, actionName)
+	if OlricCache != nil {
+		value, err := OlricCache.Get(cacheKey)
+		if err == nil && value != nil {
+			return value.(Action), err
+		}
+	}
+
 	var action Action
 
 	sql, args, err := statementbuilder.Squirrel.Select(
@@ -109,7 +117,13 @@ func (dr *DbResource) GetActionByName(typeName string, actionName string, transa
 	action.ReferenceId = a.ReferenceId
 	action.OnType = a.OnType
 
-	return action, err
+	if OlricCache != nil {
+		err = OlricCache.PutIfEx(cacheKey, action, 1*time.Minute, olric.IfNotFound)
+		CheckErr(err, "Failed to set action in olric cache")
+	}
+
+
+		return action, err
 }
 
 // GetActionsByType Gets the list of all actions defined on type `typeName`
@@ -1918,7 +1932,7 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 		return nil, err
 	}
 	if OlricCache != nil {
-		OlricCache.PutEx(key, m[0], 1*time.Minute)
+		OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
 	}
 
 	return m[0], err
@@ -1988,7 +2002,7 @@ func (dr *DbResource) GetIdToObjectWithTransaction(typeName string, id int64, tr
 		return nil, fmt.Errorf("no such item %v-%v", typeName, id)
 	}
 	if OlricCache != nil {
-		OlricCache.PutEx(key, m[0], 1*time.Minute)
+		OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
 	}
 
 	return m[0], err

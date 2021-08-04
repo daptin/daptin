@@ -230,7 +230,7 @@ func (dr *DbResource) GetAdminReferenceId() map[string]bool {
 	}
 
 	if OlricCache != nil && userRefId != nil {
-		err = OlricCache.PutEx("administrator_reference_id", adminMap, 60*time.Minute)
+		err = OlricCache.PutIfEx("administrator_reference_id", adminMap, 60*time.Minute, olric.IfNotFound)
 		CheckErr(err, "Failed to cache admin reference ids")
 	}
 	return adminMap
@@ -253,7 +253,7 @@ func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[string]bool {
 	}
 
 	if OlricCache != nil && userRefId != nil {
-		err = OlricCache.PutEx("administrator_reference_id", adminMap, 60*time.Minute)
+		err = OlricCache.PutIfEx("administrator_reference_id", adminMap, 60*time.Minute, olric.IfNotFound)
 		CheckErr(err, "Failed to cache admin reference ids")
 	}
 	return adminMap
@@ -280,7 +280,7 @@ func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 	_, ok := admins[userReferenceId]
 	if ok {
 		if OlricCache != nil {
-			err := OlricCache.PutEx(key, true, 5*time.Minute)
+			err := OlricCache.PutIfEx(key, true, 5*time.Minute, olric.IfNotFound)
 			if err != nil {
 				log.Errorf("Failed to cached admin value: %v", err)
 			}
@@ -289,7 +289,7 @@ func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 		log.Infof("IsAdmin NotCached[true]: %v", duration)
 		return true
 	}
-	err := OlricCache.PutEx(key, false, 5*time.Minute)
+	err := OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
 	if err != nil {
 		log.Errorf("Failed to cached admin value: %v", err)
 	}
@@ -319,7 +319,7 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 	_, ok := admins[userReferenceId]
 	if ok {
 		if OlricCache != nil {
-			err := OlricCache.PutEx(key, true, 5*time.Minute)
+			err := OlricCache.PutIfEx(key, true, 5*time.Minute, olric.IfNotFound)
 			if err != nil {
 				log.Errorf("Failed to cached admin value: %v", err)
 			}
@@ -328,7 +328,7 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 		log.Infof("IsAdmin NotCached[true]: %v", duration)
 		return true
 	}
-	err := OlricCache.PutEx(key, false, 5*time.Minute)
+	err := OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
 	if err != nil {
 		log.Errorf("Failed to cached admin value: %v", err)
 	}
