@@ -209,7 +209,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		return nil, api2go.NewHTTPError(err, "no such action", 400)
 	}
 
-	isAdmin := db.IsAdmin(sessionUser.UserReferenceId)
+	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
 
 	subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
 	if ok {
@@ -245,7 +245,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		}
 	}
 
-	if !isAdmin && !db.IsUserActionAllowed(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action) {
+	if !isAdmin && !db.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
 		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr,"failed to rollback")
@@ -383,7 +383,7 @@ OutFields:
 
 		requestContext := req.PlainRequest.Context()
 		var adminUserReferenceId string
-		adminUserReferenceIds := db.GetAdminReferenceId()
+		adminUserReferenceIds := GetAdminReferenceIdWithTransaction(transaction)
 		for id := range adminUserReferenceIds {
 			adminUserReferenceId = id
 			break

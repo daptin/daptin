@@ -236,6 +236,29 @@ func (dr *DbResource) GetAdminReferenceId() map[string]bool {
 	return adminMap
 }
 
+
+func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[string]bool {
+	var err error
+	var cacheValue interface{}
+	adminMap := make(map[string]bool)
+	if OlricCache != nil {
+		cacheValue, err = OlricCache.Get("administrator_reference_id")
+		if err == nil && cacheValue != nil {
+			return cacheValue.(map[string]bool)
+		}
+	}
+	userRefId := GetUserMembersByGroupNameWithTransaction("administrators", transaction)
+	for _, id := range userRefId {
+		adminMap[id] = true
+	}
+
+	if OlricCache != nil && userRefId != nil {
+		err = OlricCache.PutEx("administrator_reference_id", adminMap, 60*time.Minute)
+		CheckErr(err, "Failed to cache admin reference ids")
+	}
+	return adminMap
+}
+
 func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 	start := time.Now()
 	key := "admin." + userReferenceId
@@ -254,6 +277,45 @@ func (dr *DbResource) IsAdmin(userReferenceId string) bool {
 		}
 	}
 	admins := dr.GetAdminReferenceId()
+	_, ok := admins[userReferenceId]
+	if ok {
+		if OlricCache != nil {
+			err := OlricCache.PutEx(key, true, 5*time.Minute)
+			if err != nil {
+				log.Errorf("Failed to cached admin value: %v", err)
+			}
+		}
+		duration := time.Since(start)
+		log.Infof("IsAdmin NotCached[true]: %v", duration)
+		return true
+	}
+	err := OlricCache.PutEx(key, false, 5*time.Minute)
+	if err != nil {
+		log.Errorf("Failed to cached admin value: %v", err)
+	}
+	duration := time.Since(start)
+	log.Infof("IsAdmin NotCached[true]: %v", duration)
+	return false
+
+}
+func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
+	start := time.Now()
+	key := "admin." + userReferenceId
+	if OlricCache != nil {
+		value, err := OlricCache.Get(key)
+		if err == nil && value != nil {
+			if value.(bool) == true {
+				duration := time.Since(start)
+				log.Infof("IsAdmin Cached[true]: %v", duration)
+				return true
+			} else {
+				duration := time.Since(start)
+				log.Infof("IsAdmin Cached[false]: %v", duration)
+				return false
+			}
+		}
+	}
+	admins := GetAdminReferenceIdWithTransaction(transaction)
 	_, ok := admins[userReferenceId]
 	if ok {
 		if OlricCache != nil {

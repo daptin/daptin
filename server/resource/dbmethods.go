@@ -42,6 +42,20 @@ func (dr *DbResource) IsUserActionAllowed(userReferenceId string, userGroups []a
 
 }
 
+func (dr *DbResource) IsUserActionAllowedWithTransaction(userReferenceId string,
+	userGroups []auth.GroupPermission, typeName string, actionName string, transaction *sqlx.Tx) bool {
+
+	permission := dr.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", typeName, transaction)
+
+	actionPermission := dr.GetObjectPermissionByWhereClauseWithTransaction("action", "action_name", actionName, transaction)
+
+	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups)
+	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups)
+
+	return canExecuteOnType && canExecuteAction
+
+}
+
 // GetActionByName Gets an Action instance by `typeName` and `actionName`
 // Check Action instance for usage
 func (dr *DbResource) GetActionByName(typeName string, actionName string, transaction *sqlx.Tx) (Action, error) {
@@ -514,6 +528,70 @@ func (dr *DbResource) GetObjectPermissionByWhereClause(objectType string, colNam
 	}
 
 	perm.UserGroupId = dr.GetObjectGroupsByObjectId(objectType, m["id"].(int64))
+
+	perm.Permission = auth.AuthPermission(m["permission"].(int64))
+
+	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
+
+	if OlricCache != nil {
+		_ = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
+	}
+	return perm
+}
+
+func (dr *DbResource) GetObjectPermissionByWhereClauseWithTransaction(objectType string, colName string, colValue string, transaction *sqlx.Tx) PermissionInstance {
+	if OlricCache == nil {
+		OlricCache, _ = dr.OlricDb.NewDMap("default-cache")
+	}
+
+	cacheKey := ""
+	if OlricCache != nil {
+		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
+		cachedPermission, err := OlricCache.Get(cacheKey)
+		if cachedPermission != nil && err == nil {
+			return cachedPermission.(PermissionInstance)
+		}
+	}
+
+	var perm PermissionInstance
+	s, q, err := statementbuilder.Squirrel.Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Where(goqu.Ex{colName: colValue}).ToSQL()
+	if err != nil {
+		log.Errorf("Failed to create sql: %v", err)
+		return perm
+	}
+
+	stmt, err := transaction.Preparex(s)
+	if err != nil {
+		log.Errorf("[355] failed to prepare statment: %v", err)
+		return perm
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	m := make(map[string]interface{})
+	err = stmt.QueryRowx(q...).MapScan(m)
+
+	if err != nil {
+
+		log.Errorf("Failed to scan permission: %v", err)
+		return perm
+	}
+
+	//log.Printf("permi map: %v", m)
+	if m["user_account_id"] != nil {
+
+		user, err := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, m[USER_ACCOUNT_ID_COLUMN].(int64), transaction)
+		if err == nil {
+			perm.UserId = user
+		}
+
+	}
+
+	perm.UserGroupId = GetObjectGroupsByObjectIdWithTransaction(objectType, m["id"].(int64), transaction)
 
 	perm.Permission = auth.AuthPermission(m["permission"].(int64))
 
@@ -1365,6 +1443,56 @@ func (dr *DbResource) GetUserMembersByGroupName(groupName string) []string {
 	refIds := make([]string, 0)
 
 	stmt1, err := dr.Connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[936] failed to prepare statment: %v", err)
+		return nil
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
+	if err != nil {
+		log.Errorf("Failed to create sql query 757: %v", err)
+		return []string{}
+	}
+	for rows.Next() {
+		var refId string
+		err = rows.Scan(&refId)
+		CheckErr(err, "failed to scan ref id")
+		refIds = append(refIds, refId)
+	}
+
+	return refIds
+
+}
+
+func GetUserMembersByGroupNameWithTransaction(groupName string, transaction *sqlx.Tx) []string {
+
+	s, q, err := statementbuilder.Squirrel.
+		Select("u.reference_id").
+		From(goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uu")).
+		LeftJoin(
+			goqu.T("user_account").As("u"), goqu.On(goqu.Ex{
+				"uu.user_account_id": goqu.I("u.id"),
+			})).
+		LeftJoin(
+			goqu.T("usergroup").As("g"), goqu.On(goqu.Ex{
+				"uu.usergroup_id": goqu.I("g.id"),
+			})).
+		Where(goqu.Ex{"g.name": groupName}).
+		Order(goqu.I("uu.created_at").Asc()).ToSQL()
+	if err != nil {
+		log.Errorf("Failed to create sql query 749: %v", err)
+		return []string{}
+	}
+
+	refIds := make([]string, 0)
+
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[936] failed to prepare statment: %v", err)
 		return nil
