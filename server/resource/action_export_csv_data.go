@@ -36,7 +36,7 @@ func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]i
 		tableNameStr := tableName.(string)
 		log.Printf("Export data for table: %v", tableNameStr)
 
-		objects, err := d.cruds[tableNameStr].GetAllRawObjects(tableNameStr)
+		objects, err := d.cruds[tableNameStr].GetAllRawObjectsWithTransaction(tableNameStr, transaction)
 		if err != nil {
 			log.Errorf("Failed to get all objects of type [%v] : %v", tableNameStr, err)
 		}
@@ -46,7 +46,7 @@ func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]i
 	} else {
 
 		for _, tableInfo := range d.cmsConfig.Tables {
-			data, err := d.cruds[tableInfo.TableName].GetAllRawObjects(tableInfo.TableName)
+			data, err := d.cruds[tableInfo.TableName].GetAllRawObjectsWithTransaction(tableInfo.TableName, transaction)
 			if err != nil {
 				log.Errorf("Failed to export objects of type [%v]: %v", tableInfo.TableName, err)
 				continue

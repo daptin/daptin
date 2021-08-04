@@ -21,7 +21,7 @@ func (d *graphqlEnableActionPerformer) Name() string {
 // Checks CanGraphqlEnable and then invokes GraphqlEnable if true
 func (d *graphqlEnableActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
-	err := d.cruds["world"].configStore.SetConfigValueFor("graphql.enable", "true", "backend")
+	err := d.cruds["world"].configStore.SetConfigValueForWithTransaction("graphql.enable", "true", "backend", transaction)
 
 	if err != nil {
 		go restart()

@@ -54,13 +54,13 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		if !ok {
 			return nil, nil, []error{errors.New("email or mobile missing")}
 		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", phone.(string))
+		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClauseWithTransaction("user_otp_account", "mobile_number", phone.(string), transaction)
 		if err != nil || userOtpProfile == nil {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", userOtpProfile["otp_of_account"].(string), nil)
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", userOtpProfile["otp_of_account"].(string), nil, transaction)
 	} else {
-		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
+		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmailWithTransaction(email.(string), transaction)
 		if err != nil {
 			return nil, nil, []error{errors.New("invalid email")}
 		}
@@ -68,7 +68,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		if !ok {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", userAccountId)
+		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClauseWithTransaction("user_otp_account", "otp_of_account", userAccountId, transaction)
 	}
 
 	if err != nil || userOtpProfile == nil {

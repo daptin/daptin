@@ -782,6 +782,24 @@ func (d *DbResource) GetUserAccountRowByEmail(email string) (map[string]interfac
 
 }
 
+// GetUserAccountRowByEmail Returns the user account row of a user by looking up on email
+func (d *DbResource) GetUserAccountRowByEmailWithTransaction(email string, transaction *sqlx.Tx) (map[string]interface{}, error) {
+
+	user, _, err := d.Cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClauseWithTransaction(
+		"user_account", nil, transaction, goqu.Ex{"email": email})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(user) > 0 {
+		return user[0], err
+	}
+
+	return nil, errors.New("no such user")
+
+}
+
 func (d *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash := ""
 
@@ -828,9 +846,39 @@ func (dr *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 	return id, err
 }
 
+// UserGroupNameToId Converts group name to the internal integer id
+func (dr *DbResource) UserGroupNameToIdWithTransaction(groupName string, transaction *sqlx.Tx) (uint64, error) {
+
+	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
+	if err != nil {
+		return 0, err
+	}
+	stmt, err := transaction.Preparex(query)
+	if err != nil {
+		log.Errorf("[592] failed to prepare statment: %v", err)
+		return 0, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res := stmt.QueryRowx(arg...)
+	if res.Err() != nil {
+		return 0, res.Err()
+	}
+
+	var id uint64
+	err = res.Scan(&id)
+
+	return id, err
+}
+
 // BecomeAdmin make user the administrator and owner of everything
 // Check CanBecomeAdmin before invoking this
-func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
+func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bool {
 	log.Printf("User: %d is going to become admin", userId)
 	if !dbResource.CanBecomeAdmin() {
 		return false
@@ -856,7 +904,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 				continue
 			}
 
-			_, err = dbResource.db.Exec(q, v...)
+			_, err = transaction.Exec(q, v...)
 			if err != nil {
 				log.Errorf("Query: %v", q)
 				log.Errorf("	Failed to execute become admin update query: %v", err)
@@ -866,7 +914,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		}
 	}
 
-	adminUsergroupId, err := dbResource.UserGroupNameToId("administrators")
+	adminUsergroupId, err := dbResource.UserGroupNameToIdWithTransaction("administrators", transaction)
 	reference_id, err := uuid.NewV4()
 
 	query, args, err := statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
@@ -874,8 +922,11 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		Vals([]interface{}{userId, adminUsergroupId, int64(auth.DEFAULT_PERMISSION), reference_id.String()}).
 		ToSQL()
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 	CheckErr(err, "Failed to add user to administrator usergroup: %v == %v", query, args)
+	if err != nil {
+		return false
+	}
 
 	query, args, err = statementbuilder.Squirrel.Update("world").
 		Set(goqu.Record{
@@ -888,11 +939,13 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create sql for updating world permissions: %v", err)
+		return false
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to update world permissions: %v", err)
+		return false
 	}
 
 	query, args, err = statementbuilder.Squirrel.Update("world").
@@ -907,7 +960,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		log.Errorf("Failed to create sql for update world audit permissions: %v", err)
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
@@ -919,7 +972,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		log.Errorf("Failed to create update action permission sql : %v", err)
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to update action permissions : %v", err)
 	}
@@ -934,7 +987,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64) bool {
 		log.Errorf("Failed to create update sign in action permission sql : %v", err)
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to world update signin action  permissions: %v", err)
 	}
@@ -2073,6 +2126,42 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 	}
 
 	stmt1, err := dr.Connection.Preparex(s)
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	if err != nil {
+		log.Errorf("[1376] failed to prepare statment [%v]: %v", s, err)
+		return nil, err
+	}
+
+	row, err := stmt1.Queryx(q...)
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1279] failed to close result after value scan in defer")
+		}
+	}(row)
+
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := RowsToMap(row, typeName)
+
+	return m, err
+}
+
+func (dr *DbResource) GetAllRawObjectsWithTransaction(typeName string, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
+	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).From(typeName).ToSQL()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt1, err := transaction.Preparex(s)
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {

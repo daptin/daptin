@@ -34,7 +34,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 		PlainRequest: httpReq,
 	}
 
-	table, err := d.cruds["world"].FindOne(worldId, *req)
+	table, err := d.cruds["world"].FindOneWithTransaction(worldId, *req, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -65,7 +65,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 				// nothing to do
 			} else {
 				// we can delete just the index or the index and the referencing column as well
-				_, err = d.cruds["world"].db.Exec("alter table " + relation.Subject + " drop column " + relation.ObjectName)
+				_, err = transaction.Exec("alter table " + relation.Subject + " drop column " + relation.ObjectName)
 				if err != nil {
 					errorsList = append(errorsList, err)
 				}
@@ -75,7 +75,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 				// nothing to do
 			} else {
 				// we can delete just the index or the index and the referencing column as well
-				_, err = d.cruds["world"].db.Exec("alter table " + relation.Subject + " drop column " + relation.ObjectName)
+				_, err = transaction.Exec("alter table " + relation.Subject + " drop column " + relation.ObjectName)
 				if err != nil {
 					errorsList = append(errorsList, err)
 				}
@@ -83,11 +83,11 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 
 		case "has_many_and_belongs_to_many":
 		case "has_many":
-			_, err = d.cruds["world"].db.Exec("drop table " + relation.GetJoinTableName())
+			_, err = transaction.Exec("drop table " + relation.GetJoinTableName())
 			if err != nil {
 				errorsList = append(errorsList, err)
 			}
-			refId, err := d.cruds["world"].GetReferenceIdByWhereClause("world", goqu.Ex{"table_name": relation.GetJoinTableName()})
+			refId, err := GetReferenceIdByWhereClauseWithTransaction("world", transaction, goqu.Ex{"table_name": relation.GetJoinTableName()})
 			if len(refId) < 1 {
 				errorsList = append(errorsList, fmt.Errorf("failed to find reference id of the join table '%s' when deleting table '%s'", relation.GetJoinTableName(), tableSchema.TableName))
 			}
@@ -103,7 +103,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 			otherTable = relation.Object
 		}
 
-		otherTableData, err := d.cruds["world"].GetObjectByWhereClause("world", "table_name", otherTable)
+		otherTableData, err := d.cruds["world"].GetObjectByWhereClauseWithTransaction("world", "table_name", otherTable, transaction)
 		if err != nil {
 			errorsList = append(errorsList, err)
 			continue

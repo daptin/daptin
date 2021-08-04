@@ -35,7 +35,7 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		PlainRequest: httpReq,
 	}
 
-	table, err := d.cruds["world"].GetObjectByWhereClause("world", "table_name", worldName)
+	table, err := d.cruds["world"].GetObjectByWhereClauseWithTransaction("world", "table_name", worldName, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -67,7 +67,7 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 
 	schemaJson, err = json.Marshal(tableSchema)
 
-	_, err = d.cruds["world"].db.Exec("alter table " + tableSchema.TableName + " drop column " + columnToDelete)
+	_, err = transaction.Exec("alter table " + tableSchema.TableName + " drop column " + columnToDelete)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -83,15 +83,7 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	_, err = d.cruds["world"].UpdateWithoutFilters(updateObj, *req, transaction)
 
 	if err != nil {
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "failed to rollback")
 		return nil, nil, []error{err}
-	} else {
-		commitErr := transaction.Commit()
-		CheckErr(commitErr, "Failed to commit")
-		if commitErr != nil {
-			return nil, nil, []error{commitErr}
-		}
 	}
 
 	restart()

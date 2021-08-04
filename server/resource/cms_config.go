@@ -351,6 +351,68 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 
 }
 
+func (c *ConfigStore) SetConfigValueForWithTransaction(key string, val interface{}, configtype string, transaction *sqlx.Tx) error {
+	var previousValue string
+
+	s, v, err := statementbuilder.Squirrel.Select("value").
+		From(settingsTableName).
+		Where(goqu.Ex{"name": key}).
+		Where(goqu.Ex{"configstate": "enabled"}).
+		Where(goqu.Ex{"configtype": configtype}).
+		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+
+	CheckErr(err, "Failed to create config select query")
+
+	stmt1, err := transaction.Preparex(s)
+	if err != nil {
+		log.Errorf("[280] failed to prepare statment: %v", err)
+		return nil
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	err = stmt1.QueryRowx(v...).Scan(&previousValue)
+
+	if err != nil {
+
+		// row doesnt exist
+		s, v, err := statementbuilder.Squirrel.
+			Insert(settingsTableName).Cols("name", "configstate", "configtype", "configenv", "value").
+			Vals([]interface{}{key, "enabled", configtype, c.defaultEnv, val}).ToSQL()
+
+		CheckErr(err, "failed to create config insert query")
+
+		_, err = transaction.Exec(s, v...)
+		CheckErr(err, "Failed to execute config insert query")
+		return err
+	} else {
+
+		// row already exists
+
+		s, v, err := statementbuilder.Squirrel.Update(settingsTableName).
+			Set(goqu.Record{
+				"value":         val,
+				"updated_at":    time.Now(),
+				"previousvalue": previousValue,
+			}).
+			Where(goqu.Ex{"name": key}).
+			Where(goqu.Ex{"configstate": "enabled"}).
+			Where(goqu.Ex{"configtype": configtype}).
+			Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+
+		CheckErr(err, "Failed to create config insert query")
+
+		_, err = transaction.Exec(s, v...)
+		CheckErr(err, "Failed to execute config update query")
+		return err
+	}
+
+}
+
 func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype string) error {
 	var previousValue string
 
