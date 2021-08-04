@@ -2171,6 +2171,10 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 
 					rows.Close()
 
+					if len(ids) < 1 {
+						continue
+					}
+
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetObject(), goqu.Ex{
 						"id": ids,
 					})
@@ -2319,6 +2323,10 @@ func (dr *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[string]a
 						ids = append(ids, includeRow)
 					}
 					rows.Close()
+
+					if len(ids) < 1 {
+						continue
+					}
 
 					includes1, err := dr.Cruds[relation.GetObject()].GetAllObjectsWithWhere(relation.GetSubject(), goqu.Ex{
 						"id": ids,
