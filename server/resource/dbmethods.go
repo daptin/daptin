@@ -851,10 +851,7 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 	//log.Printf("GetRowsByWhereClause: %v == [%v]", s)
 
 	stmt1, err := dr.connection.Preparex(s)
-	if err != nil {
-		log.Errorf("[839] failed to prepare statment: %v", err)
-		return nil, nil, err
-	}
+
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -862,16 +859,22 @@ func (dr *DbResource) GetRowsByWhereClause(typeName string, includedRelations ma
 		}
 	}(stmt1)
 
-	rows, err := stmt1.Queryx(q...)
 	if err != nil {
+		log.Errorf("[839] failed to prepare statment - [%v]: %v", s, err)
 		return nil, nil, err
 	}
+
+	rows, err := stmt1.Queryx(q...)
 	defer func(rows *sqlx.Rows) {
 		err := rows.Close()
 		if err != nil {
 			log.Errorf("[802] failed to close rows after scanning values in defer")
 		}
 	}(rows)
+
+	if err != nil {
+		return nil, nil, err
+	}
 
 	start := time.Now()
 	m1, include, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
@@ -1069,11 +1072,6 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 	stmt1, err := dr.connection.Preparex(s)
 	duration := time.Since(start)
 	log.Infof("SingleRowSelect Preparex: %v", duration)
-
-	if err != nil {
-		log.Errorf("[1011] failed to prepare statment: %v", err)
-		return nil, nil, err
-	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1081,15 +1079,15 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 		}
 	}(stmt1)
 
+	if err != nil {
+		log.Errorf("[1011] failed to prepare statment - [%v]: %v", s, err)
+		return nil, nil, err
+	}
+
 	start = time.Now()
 	rows, err := stmt1.Queryx(q...)
 	duration = time.Since(start)
 	log.Infof("SingleRowSelect Queryx: %v", duration)
-
-	if err != nil {
-		log.Errorf("[940] failed to query single row by ref id: %v", err)
-		return nil, nil, err
-	}
 
 	defer func() {
 		if rows == nil {
@@ -1099,6 +1097,12 @@ func (dr *DbResource) GetSingleRowByReferenceId(typeName string, referenceId str
 		err = rows.Close()
 		CheckErr(err, "Failed to close rows after db query [%v]", s)
 	}()
+
+	if err != nil {
+		log.Errorf("[940] failed to query single row by ref id: %v", err)
+		return nil, nil, err
+	}
+
 
 	start = time.Now()
 	resultRows, includeRows, err := dr.ResultToArrayOfMap(rows, dr.Cruds[typeName].model.GetColumnMap(), includedRelations)
@@ -1130,17 +1134,18 @@ func (dr *DbResource) GetSingleRowById(typeName string, id int64, includedRelati
 	}
 
 	stmt1, err := dr.connection.Preparex(s)
-	if err != nil {
-		log.Errorf("[1063] failed to prepare statment: %v", err)
-		return nil, nil, err
-	}
-
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
 			log.Errorf("failed to close prepared statement: %v", err)
 		}
 	}(stmt1)
+
+	if err != nil {
+		log.Errorf("[1063] failed to prepare statment - [%v]: %v", s, err)
+		return nil, nil, err
+	}
+
 
 	rows, err := stmt1.Queryx(q...)
 	defer func(rows *sqlx.Rows) {
@@ -1176,10 +1181,7 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 	}
 
 	stmt1, err := dr.connection.Preparex(s)
-	if err != nil {
-		log.Errorf("[1106] failed to prepare statment: %v", err)
-		return nil, err
-	}
+
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1187,17 +1189,22 @@ func (dr *DbResource) GetObjectByWhereClause(typeName string, column string, val
 		}
 	}(stmt1)
 
-	row, err := stmt1.Queryx(q...)
-
 	if err != nil {
+		log.Errorf("[1106] failed to prepare statment - [%v]: %v", s, err)
 		return nil, err
 	}
+
+	row, err := stmt1.Queryx(q...)
 	defer func(row *sqlx.Rows) {
 		err := row.Close()
 		if err != nil {
 			log.Errorf("[1029] failed to close result after value scan in defer")
 		}
 	}(row)
+
+	if err != nil {
+		return nil, err
+	}
 
 	start := time.Now()
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
@@ -1227,12 +1234,27 @@ func (dr *DbResource) GetIdToObject(typeName string, id int64) (map[string]inter
 	}
 
 	stmt1, err := dr.connection.Preparex(s)
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
 	if err != nil {
-		log.Errorf("[1146] failed to prepare statment: %v", err)
+		log.Errorf("[1146] failed to prepare statment - [%v]: %v", s, err)
 		return nil, err
 	}
 
 	row, err := stmt1.Queryx(q...)
+
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1029] failed to close result after value scan in defer")
+		}
+	}(row)
+
 	if err != nil {
 		return nil, err
 	}
@@ -1376,10 +1398,6 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 	}
 
 	stmt1, err := dr.connection.Preparex(s)
-	if err != nil {
-		log.Errorf("[1291] failed to prepare statment: %v", err)
-		return nil, err
-	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1387,17 +1405,22 @@ func (dr *DbResource) GetAllObjects(typeName string) ([]map[string]interface{}, 
 		}
 	}(stmt1)
 
-	row, err := stmt1.Queryx(q...)
-
 	if err != nil {
+		log.Errorf("[1291] failed to prepare statment: %v", err)
 		return nil, err
 	}
+
+	row, err := stmt1.Queryx(q...)
 	defer func(row *sqlx.Rows) {
 		err := row.Close()
 		if err != nil {
 			log.Errorf("[1204] failed to close result after value scan in defer")
 		}
 	}(row)
+
+	if err != nil {
+		return nil, err
+	}
 
 	start := time.Now()
 	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
@@ -1425,7 +1448,7 @@ func (dr *DbResource) GetAllObjectsWithWhere(typeName string, where ...goqu.Ex) 
 
 	stmt1, err := dr.connection.Preparex(s)
 	if err != nil {
-		log.Errorf("[1336] failed to prepare statment: %v", err)
+		log.Errorf("[1336] failed to prepare statment [%v]: %v", s, err)
 		if stmt1 != nil {
 			err = stmt1.Close()
 			CheckErr(err, "failed to close statement after prepare error")
@@ -1471,10 +1494,6 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 	}
 
 	stmt1, err := dr.connection.Preparex(s)
-	if err != nil {
-		log.Errorf("[1376] failed to prepare statment: %v", err)
-		return nil, err
-	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1482,17 +1501,22 @@ func (dr *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{
 		}
 	}(stmt1)
 
-	row, err := stmt1.Queryx(q...)
-
 	if err != nil {
+		log.Errorf("[1376] failed to prepare statment [%v]: %v", s, err)
 		return nil, err
 	}
+
+	row, err := stmt1.Queryx(q...)
 	defer func(row *sqlx.Rows) {
 		err := row.Close()
 		if err != nil {
 			log.Errorf("[1279] failed to close result after value scan in defer")
 		}
 	}(row)
+
+	if err != nil {
+		return nil, err
+	}
 
 	m, err := RowsToMap(row, typeName)
 
@@ -1518,10 +1542,6 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 	}
 
 	stmt1, err := dr.connection.Preparex(s)
-	if err != nil {
-		log.Errorf("[1423] failed to prepare statment: %v", err)
-		return nil, err
-	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1529,16 +1549,21 @@ func (dr *DbResource) GetReferenceIdToObject(typeName string, referenceId string
 		}
 	}(stmt1)
 
-	//log.Printf("Get object by reference id sql: %v", s)
-	row, err := stmt1.Queryx(q...)
-
 	if err != nil {
+		log.Errorf("[1423] failed to prepare statment - [%v]: %v", s, err)
 		return nil, err
 	}
+
+	//log.Printf("Get object by reference id sql: %v", s)
+	row, err := stmt1.Queryx(q...)
 	defer func() {
 		err = row.Close()
 		CheckErr(err, "[1314] Failed to close row after querying single row")
 	}()
+
+	if err != nil {
+		return nil, err
+	}
 
 	start := time.Now()
 	results, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
