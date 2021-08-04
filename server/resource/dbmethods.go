@@ -1630,17 +1630,22 @@ func (dr *DbResource) GetIdToObjectWithTransaction(typeName string, id int64, tr
 	}
 
 	start := time.Now()
-	m, _, err := dr.ResultToArrayOfMap(row, dr.Cruds[typeName].model.GetColumnMap(), nil)
+	m, _, err := dr.ResultToArrayOfMapWithTransaction(row, dr.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	if err != nil {
+		return nil, err
+	}
 	duration := time.Since(start)
 	log.Infof("GetIdToObject ResultToArray: %v", duration)
 
 	err = row.Close()
 	if err != nil {
 		log.Errorf("[1064] failed to close result after value scan in defer")
+		return nil, err
 	}
 	err = stmt1.Close()
 	if err != nil {
 		log.Errorf("failed to close prepared statement: %v", err)
+		return nil, err
 	}
 
 	if len(m) == 0 {
@@ -3164,8 +3169,8 @@ func (dr *DbResource) ResultToArrayOfMapWithTransaction(
 				if includedRelationMap != nil && (includedRelationMap[namespace] || includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]) {
 					start := time.Now()
 					obj, err := dr.GetIdToObjectWithTransaction(namespace, referenceIdInt, transaction)
-					if err != nil {
-						return nil, nil, err
+					if err != nil || obj == nil {
+						return nil, nil, fmt.Errorf("failed to get related object [%v][%v][%v]", namespace, referenceIdInt, err)
 					}
 					duration := time.Since(start)
 					log.Infof("RowsToMap IdToObject: %v", duration)

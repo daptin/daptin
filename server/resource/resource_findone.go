@@ -104,14 +104,16 @@ func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Re
 						CheckErr(rollbackErr, "Failed to rollback")
 						return nil, err
 					}
-					for colName, valName := range translatedObj {
-						if IsStandardColumn(colName) {
-							continue
+					if translatedObj != nil {
+						for colName, valName := range translatedObj {
+							if IsStandardColumn(colName) {
+								continue
+							}
+							if valName == nil {
+								continue
+							}
+							data[colName] = valName
 						}
-						if valName == nil {
-							continue
-						}
-						data[colName] = valName
 					}
 				}
 				break

@@ -113,6 +113,14 @@ const testSchemas = `Tables:
       - Name: col9
         DataType: datetime
         ColumnType: date
+Relations:
+  - Subject: table3
+    Object: table2
+    Relation: has_many
+    Columns:
+      - Name: col1
+        DataType: varchar(100)
+        ColumnType: label
 Imports:
   - FilePath: initial_data.json
     Entity: site
