@@ -725,13 +725,21 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						sessionUser = sessionUserInterface.(*auth.SessionUser)
 					}
 
-					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceId(table.TableName, referenceId, nil)
+					transaction, err := resources[table.TableName].Connection.Beginx()
 					if err != nil {
+						transaction.Rollback()
+						return nil, err
+					}
+
+
+					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceIdWithTransaction(table.TableName, referenceId, nil, transaction)
+					if err != nil {
+						transaction.Rollback()
 						return nil, err
 					}
 
 					log.Printf("Get row permission before update: %v", existingObj)
-					permission := resources[table.TableName].GetRowPermission(existingObj)
+					permission := resources[table.TableName].GetRowPermissionWithTransaction(existingObj, transaction)
 
 					if !permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
 						return nil, errors.New("unauthorized")
@@ -763,10 +771,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						PlainRequest: pr,
 					}
 
-					transaction, err := resources[table.TableName].Connection.Beginx()
-					if err != nil {
-						return nil, err
-					}
 					created, err := resources[table.TableName].UpdateWithTransaction(obj, req, transaction)
 
 					if err != nil {

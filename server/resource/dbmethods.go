@@ -2498,18 +2498,18 @@ func (dbResource *DbResource) GetReferenceIdToObject(typeName string, referenceI
 // Used internally, can be used by actions
 func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName string, referenceId string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
-	cacheKey := fmt.Sprintf("rio-%v-%v", typeName, referenceId)
-	if OlricCache != nil {
-		cachedMarshaledValue, err := OlricCache.Get(cacheKey)
-		if err == nil && cachedMarshaledValue != nil {
-			var cachedResult map[string]interface{}
-			err := json.Unmarshal(cachedMarshaledValue.([]byte), &cachedResult)
-			CheckErr(err, "Failed to unmarshal cached result")
-			if err == nil {
-				return cachedResult, nil
-			}
-		}
-	}
+	//cacheKey := fmt.Sprintf("rio-%v-%v", typeName, referenceId)
+	//if OlricCache != nil {
+	//	cachedMarshaledValue, err := OlricCache.Get(cacheKey)
+	//	if err == nil && cachedMarshaledValue != nil {
+	//		var cachedResult map[string]interface{}
+	//		err := json.Unmarshal(cachedMarshaledValue.([]byte), &cachedResult)
+	//		CheckErr(err, "Failed to unmarshal cached result")
+	//		if err == nil {
+	//			return cachedResult, nil
+	//		}
+	//	}
+	//}
 
 	//log.Printf("Get Object by reference id [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
@@ -2554,14 +2554,14 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no such object 1161 [%v][%v]", typeName, referenceId)
 	}
-	if OlricCache != nil {
-		marshalledResult, err := json.Marshal(results[0])
-		CheckErr(err, "Failed to marshal result to cache")
-		if err == nil {
-			err = OlricCache.PutIfEx(cacheKey, marshalledResult, 5*time.Second, olric.IfNotFound)
-			CheckErr(err, "[2552] Failed to set reference id to object id in olric cache")
-		}
-	}
+	//if OlricCache != nil {
+	//	marshalledResult, err := json.Marshal(results[0])
+	//	CheckErr(err, "Failed to marshal result to cache")
+	//	if err == nil {
+	//		err = OlricCache.PutIfEx(cacheKey, marshalledResult, 5*time.Second, olric.IfNotFound)
+	//		CheckErr(err, "[2552] Failed to set reference id to object id in olric cache")
+	//	}
+	//}
 
 	return results[0], err
 }
