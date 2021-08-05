@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
@@ -198,51 +197,6 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 		log.Printf("No config value set for [%v]: %v", key, err)
 		return "", err
 	}
-	return fmt.Sprintf("%s", val), err
-}
-
-func (c *ConfigStore) GetConfigValueForWithTransaction(key string, configtype string, transaction *sqlx.Tx) (string, error) {
-	var val interface{}
-
-	cacheKey := fmt.Sprintf("config-%v-%v", key, configtype)
-	if OlricCache != nil {
-		val, err := OlricCache.Get(cacheKey)
-		if err == nil && val != nil {
-			return val.(string), nil
-		}
-	}
-
-	s, v, err := statementbuilder.Squirrel.Select("value").
-		From(settingsTableName).
-		Where(goqu.Ex{"name": key}).
-		Where(goqu.Ex{"configstate": "enabled"}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).
-		Where(goqu.Ex{"configtype": configtype}).ToSQL()
-
-	CheckErr(err, "[180] failed to create config select query")
-
-	stmt1, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[185] failed to prepare statment: %v", err)
-		return "", err
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
-	err = stmt1.QueryRowx(v...).Scan(&val)
-	if err != nil {
-		log.Printf("No config value set for [%v]: %v", key, err)
-		return "", err
-	}
-	if OlricCache != nil {
-		err = OlricCache.PutIfEx(cacheKey, val, 2*time.Minute, olric.IfNotFound)
-		CheckErr(err, "Failed to push config key in cache")
-	}
-
 	return fmt.Sprintf("%s", val), err
 }
 

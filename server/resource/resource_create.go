@@ -33,8 +33,8 @@ import (
 // - 204 No Content: Resource created with a client generated ID, and no fields were modified by
 //   the server
 
-func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (map[string]interface{}, error) {
-	//log.Printf("Create object of type [%v]", dbResource.model.GetName())
+func (dr *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (map[string]interface{}, error) {
+	//log.Printf("Create object of type [%v]", dr.model.GetName())
 	data := obj.(*api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -43,11 +43,11 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, createTransaction)
+	isAdmin := dr.IsAdmin(sessionUser.UserReferenceId)
 
 	attrs := data.GetAllAsAttributes()
 
-	allColumns := dbResource.model.GetColumns()
+	allColumns := dr.model.GetColumns()
 
 	dataToInsert := make(map[string]interface{})
 	u, _ := uuid.NewV4()
@@ -74,7 +74,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			continue
 		}
 
-		if col.ColumnName == USER_ACCOUNT_ID_COLUMN && dbResource.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
+		if col.ColumnName == USER_ACCOUNT_ID_COLUMN && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 			continue
 		}
 
@@ -120,12 +120,12 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				if valString == "" {
 					uId = nil
 				} else {
-					foreignObject, err := dbResource.GetReferenceIdToObjectWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
+					foreignObject, err := dr.GetReferenceIdToObject(col.ForeignKeyData.Namespace, valString)
 					if err != nil {
 						return nil, err
 					}
 
-					foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
+					foreignObjectPermission := dr.GetObjectPermissionByReferenceId(col.ForeignKeyData.Namespace, valString)
 
 					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 						uId = foreignObject["id"]
@@ -147,7 +147,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				if ok {
 					var err error
 
-					columnAssetCache, ok := dbResource.AssetFolderCache[dbResource.tableInfo.TableName][col.ColumnName]
+					columnAssetCache, ok := dr.AssetFolderCache[dr.tableInfo.TableName][col.ColumnName]
 					if ok {
 						err = columnAssetCache.UploadFiles(files)
 					}
@@ -180,7 +180,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						files[i] = file
 					}
 
-					uploadActionPerformer, err := NewFileUploadActionPerformer(dbResource.Cruds)
+					uploadActionPerformer, err := NewFileUploadActionPerformer(dr.Cruds)
 					CheckErr(err, "Failed to create upload action performer")
 					log.Printf("created upload action performer")
 					if err != nil {
@@ -192,7 +192,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					actionRequestParameters["path"] = uploadPath
 
 					log.Printf("Get cloud store details: %v", col.ForeignKeyData.Namespace)
-					cloudStore, err := dbResource.GetCloudStoreByNameWithTransaction(col.ForeignKeyData.Namespace, createTransaction)
+					cloudStore, err := dr.GetCloudStoreByName(col.ForeignKeyData.Namespace)
 					CheckErr(err, "Failed to get cloud storage details")
 					if err != nil {
 						continue
@@ -349,7 +349,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			}
 		} else if col.ColumnType == "encrypted" {
 
-			secret, err := dbResource.configStore.GetConfigValueForWithTransaction("encryption.secret", "backend", createTransaction)
+			secret, err := dr.configStore.GetConfigValueFor("encryption.secret", "backend")
 			if err != nil {
 				log.Errorf("Failed to get secret from config: %v", err)
 				val = ""
@@ -391,7 +391,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		valsList = append(valsList, newUuid)
 	}
 	languagePreferences := make([]string, 0)
-	if dbResource.tableInfo.TranslationsEnabled {
+	if dr.tableInfo.TranslationsEnabled {
 		prefs := req.PlainRequest.Context().Value("language_preference")
 		if prefs != nil {
 			languagePreferences = prefs.([]string)
@@ -399,7 +399,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	}
 
 	colsList = append(colsList, "permission")
-	valsList = append(valsList, dbResource.model.GetDefaultPermission())
+	valsList = append(valsList, dr.model.GetDefaultPermission())
 
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
@@ -407,13 +407,13 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	colsList = append(colsList, "updated_at")
 	valsList = append(valsList, time.Now())
 
-	if sessionUser.UserId != 0 && dbResource.model.HasColumn(USER_ACCOUNT_ID_COLUMN) && dbResource.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
+	if sessionUser.UserId != 0 && dr.model.HasColumn(USER_ACCOUNT_ID_COLUMN) && dr.model.GetName() != "user_account_user_account_id_has_usergroup_usergroup_id" {
 
 		colsList = append(colsList, USER_ACCOUNT_ID_COLUMN)
 		valsList = append(valsList, sessionUser.UserId)
 	}
 
-	query, vals, err := statementbuilder.Squirrel.Insert(dbResource.model.GetName()).Cols(colsList...).Vals(valsList).ToSQL()
+	query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName()).Cols(colsList...).Vals(valsList).ToSQL()
 
 	if err != nil {
 		log.Errorf("438 Failed to create insert query: %v", err)
@@ -428,7 +428,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		//log.Errorf("%v", vals)
 		return nil, err
 	}
-	createdResource, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetName(), newUuid, createTransaction)
+	createdResource, err := dr.GetReferenceIdToObjectWithTransaction(dr.model.GetName(), newUuid, createTransaction)
 
 	if err != nil {
 		log.Errorf("[453] Failed to select the newly created entry: %v", err)
@@ -445,7 +445,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			colsList = append(colsList, "translation_reference_id")
 			valsList = append(valsList, createdResource["id"])
 
-			query, vals, err := statementbuilder.Squirrel.Insert(dbResource.model.GetName() + "_i18n").Cols(colsList...).Vals(valsList).ToSQL()
+			query, vals, err := statementbuilder.Squirrel.Insert(dr.model.GetName() + "_i18n").Cols(colsList...).Vals(valsList).ToSQL()
 			if err != nil {
 				log.Errorf("469 Failed to create insert query: %v", err)
 				return nil, err
@@ -464,27 +464,27 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	//log.Printf("Created entry: %v", createdResource)
 
-	groupsToAdd := dbResource.defaultGroups
+	groupsToAdd := dr.defaultGroups
 	for _, groupId := range groupsToAdd {
 		u, _ := uuid.NewV4()
 		nuuid := u.String()
 
 		belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
-			Insert(dbResource.model.GetName()+"_"+dbResource.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
-			Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
+			Insert(dr.model.GetName()+"_"+dr.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
+			Cols(dr.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Vals([]interface{}{createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 
 		//log.Printf("Query for default group belonging: %v", belogsToUserGroupSql)
 		_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {
-			log.Errorf("Failed to insert add user group relation for [%v]: %v", dbResource.model.GetName(), err)
+			log.Errorf("Failed to insert add user group relation for [%v]: %v", dr.model.GetName(), err)
 			return nil, err
 
 		}
 	}
 
-	if dbResource.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
+	if dr.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
 
 		//log.Printf("Associate new usergroup with user: %v", sessionUser.UserId)
 		//u, _ := uuid.NewV4()
@@ -495,18 +495,15 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		//	Cols(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "reference_id", "permission").
 		//	Vals([]interface{}{sessionUser.UserId, createdResource["id"], nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 		////log.Printf("Query: %v", belogsToUserGroupSql)
-		//_, err = dbResource.db.Exec(belogsToUserGroupSql, q...)
+		//_, err = dr.db.Exec(belogsToUserGroupSql, q...)
 		//
 		//if err != nil {
-		//	log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dbResource.model.GetName(), err)
+		//	log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 		//}
 
-	} else if dbResource.model.GetName() == USER_ACCOUNT_TABLE_NAME {
+	} else if dr.model.GetName() == USER_ACCOUNT_TABLE_NAME {
 
-		adminUserId, _, err := GetAdminUserIdAndUserGroupId(createTransaction)
-		if err != nil {
-			return nil, err
-		}
+		adminUserId, _ := GetAdminUserIdAndUserGroupId(dr.db)
 		log.Printf("Associate new user with user: %v", adminUserId)
 
 		belongsToUserGroupSql, q, err := statementbuilder.Squirrel.
@@ -518,15 +515,15 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		_, err = createTransaction.Exec(belongsToUserGroupSql, q...)
 
 		if err != nil {
-			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dbResource.model.GetName(), err)
+			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dr.model.GetName(), err)
 			return nil, err
 
 		}
 
 	}
 
-	for _, rel := range dbResource.tableInfo.Relations {
-		if rel.Relation == "has_one" && rel.Object == dbResource.tableInfo.TableName {
+	for _, rel := range dr.tableInfo.Relations {
+		if rel.Relation == "has_one" && rel.Object == dr.tableInfo.TableName {
 			log.Printf("Updating foreign key column [%s] in table %s => %v", rel.ObjectName, rel.SubjectName, createdResource["id"])
 
 			foreignObjectId, ok := attrs[rel.SubjectName]
@@ -556,20 +553,20 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	}
 
 	delete(createdResource, "id")
-	createdResource["__type"] = dbResource.model.GetName()
+	createdResource["__type"] = dr.model.GetName()
 
 	return createdResource, nil
 
 }
 
-func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+func (dr *DbResource) CreateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
 	data := obj.(*api2go.Api2GoModel)
-	//log.Printf("Create object request: [%v] %v", dbResource.model.GetTableName(), data.Data)
+	//log.Printf("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
-	for _, bf := range dbResource.ms.BeforeCreate {
-		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
-		data.Data["__type"] = dbResource.model.GetName()
-		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.Data}, transaction)
+	for _, bf := range dr.ms.BeforeCreate {
+		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
+		data.Data["__type"] = dr.model.GetName()
+		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data}, transaction)
 		if err != nil {
 			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
 			return nil, err
@@ -579,14 +576,14 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 		}
 	}
 
-	createdResource, err := dbResource.CreateWithoutFilter(obj, req, transaction)
+	createdResource, err := dr.CreateWithoutFilter(obj, req, transaction)
 	if err != nil {
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
-	for _, bf := range dbResource.ms.AfterCreate {
-		//log.Printf("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
-		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{createdResource}, transaction)
+	for _, bf := range dr.ms.AfterCreate {
+		//log.Printf("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource}, transaction)
 		if err != nil {
 			log.Errorf("Error from AfterCreate[%v] middleware: %v", bf.String(), err)
 		}
@@ -597,10 +594,10 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 		}
 	}
 
-	n1 := dbResource.model.GetName()
-	c1 := dbResource.model.GetColumns()
-	p1 := dbResource.model.GetDefaultPermission()
-	r1 := dbResource.model.GetRelations()
+	n1 := dr.model.GetName()
+	c1 := dr.model.GetColumns()
+	p1 := dr.model.GetDefaultPermission()
+	r1 := dr.model.GetRelations()
 	return NewResponse(nil,
 		api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
 		201, nil,
@@ -608,19 +605,19 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 
 }
 
-func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
+func (dr *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data := obj.(*api2go.Api2GoModel)
-	//log.Printf("Create object request: [%v] %v", dbResource.model.GetTableName(), data.Data)
+	//log.Printf("Create object request: [%v] %v", dr.model.GetTableName(), data.Data)
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dr.Connection.Beginx()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, bf := range dbResource.ms.BeforeCreate {
-		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
-		data.Data["__type"] = dbResource.model.GetName()
-		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.Data}, transaction)
+	for _, bf := range dr.ms.BeforeCreate {
+		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
+		data.Data["__type"] = dr.model.GetName()
+		responseData, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{data.Data}, transaction)
 		if err != nil {
 			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
 			return nil, err
@@ -630,7 +627,7 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 		}
 	}
 
-	createdResource, err := dbResource.CreateWithoutFilter(obj, req, transaction)
+	createdResource, err := dr.CreateWithoutFilter(obj, req, transaction)
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "failed to rollback")
@@ -642,9 +639,9 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 		}
 	}
 
-	for _, bf := range dbResource.ms.AfterCreate {
-		//log.Printf("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
-		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{createdResource}, transaction)
+	for _, bf := range dr.ms.AfterCreate {
+		//log.Printf("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dr.model.GetName())
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{createdResource}, transaction)
 		if err != nil {
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
@@ -658,10 +655,10 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 		}
 	}
 
-	n1 := dbResource.model.GetName()
-	c1 := dbResource.model.GetColumns()
-	p1 := dbResource.model.GetDefaultPermission()
-	r1 := dbResource.model.GetRelations()
+	n1 := dr.model.GetName()
+	c1 := dr.model.GetColumns()
+	p1 := dr.model.GetDefaultPermission()
+	r1 := dr.model.GetRelations()
 	return NewResponse(nil,
 		api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
 		201, nil,

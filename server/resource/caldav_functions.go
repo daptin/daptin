@@ -14,11 +14,11 @@ import (
 	"time"
 )
 
-func (dbResource *DbResource) GetRpath(userId int64) (string, error) {
+func (dr *DbResource) GetRpath(userId int64) (string, error) {
 
 	rPath := ""
 
-	cal, _, err := dbResource.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"id": userId})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"id": userId})
 	if err != nil {
 		return rPath, err
 	}
@@ -31,11 +31,11 @@ func (dbResource *DbResource) GetRpath(userId int64) (string, error) {
 	return rPath, err
 }
 
-func (dbResource *DbResource) GetCalendarId(rPath string, userId int64) (string, error) {
+func (dr *DbResource) GetCalendarId(rPath string, userId int64) (string, error) {
 
 	rowID := ""
 
-	cal, _, err := dbResource.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"user_account_id": userId}, goqu.Ex{"rpath": rPath})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"user_account_id": userId}, goqu.Ex{"rpath": rPath})
 	if err != nil {
 		return rowID, err
 	}
@@ -48,9 +48,9 @@ func (dbResource *DbResource) GetCalendarId(rPath string, userId int64) (string,
 	return rowID, err
 }
 
-func (dbResource *DbResource) DeleteCalendarEvent(UserId int64, rPath string) error {
+func (dr *DbResource) DeleteCalendarEvent(UserId int64, rPath string) error {
 
-	cal, err := dbResource.Cruds["calendar"].GetAllObjectsWithWhere("calendar",
+	cal, err := dr.Cruds["calendar"].GetAllObjectsWithWhere("calendar",
 		goqu.Ex{
 			"id":    UserId,
 			"rpath": rPath,
@@ -66,7 +66,7 @@ func (dbResource *DbResource) DeleteCalendarEvent(UserId int64, rPath string) er
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = dr.db.Exec(query, args...)
 	if err != nil {
 		return err
 	}
@@ -75,10 +75,10 @@ func (dbResource *DbResource) DeleteCalendarEvent(UserId int64, rPath string) er
 
 }
 
-func (dbResource *DbResource) GetModTime(rPath string, userId int64) (time.Time, error) {
+func (dr *DbResource) GetModTime(rPath string, userId int64) (time.Time, error) {
 	modified := time.Now()
 
-	cal, _, err := dbResource.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"id": userId}, goqu.Ex{"rpath": rPath})
+	cal, _, err := dr.Cruds["calendar"].GetRowsByWhereClause("calendar", nil, goqu.Ex{"id": userId}, goqu.Ex{"rpath": rPath})
 	if err != nil {
 		return modified, err
 	}
@@ -92,10 +92,10 @@ func (dbResource *DbResource) GetModTime(rPath string, userId int64) (time.Time,
 	return modified, err
 }
 
-func (dbResource *DbResource) GetContent(rPath string) (string, error) {
+func (dr *DbResource) GetContent(rPath string) (string, error) {
 	content := ""
 
-	cal, err := dbResource.Cruds["calendar"].GetObjectByWhereClause("calendar", "rPath", rPath)
+	cal, err := dr.Cruds["calendar"].GetObjectByWhereClause("calendar", "rPath", rPath)
 	if err != nil {
 		return content, errs.ResourceNotFoundError
 	}
@@ -106,9 +106,9 @@ func (dbResource *DbResource) GetContent(rPath string) (string, error) {
 	return string(decodedContent), err
 }
 
-func (dbResource *DbResource) UpdateResource(rPath, newContent string) error {
+func (d *DbResource) UpdateResource(rPath, newContent string) error {
 
-	cal, err := dbResource.Cruds["calendar"].GetAllObjectsWithWhere("calendar",
+	cal, err := d.Cruds["calendar"].GetAllObjectsWithWhere("calendar",
 		goqu.Ex{
 			"rpath": rPath,
 		},
@@ -125,15 +125,15 @@ func (dbResource *DbResource) UpdateResource(rPath, newContent string) error {
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = d.db.Exec(query, args...)
 
 	return err
 
 }
 
-func (dbResource *DbResource) InsertResource(rPath, content string, userId int64) error {
+func (dr *DbResource) InsertResource(rPath, content string, userId int64) error {
 	referenceId, _ := uuid.NewV4()
-	permission := dbResource.model.GetDefaultPermission()
+	permission := dr.model.GetDefaultPermission()
 
 	fmt.Println("USERID", userId)
 
@@ -146,7 +146,7 @@ func (dbResource *DbResource) InsertResource(rPath, content string, userId int64
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = dr.db.Exec(query, args...)
 	if err != nil {
 		CheckErr(err, "Failed to Insert Calendar Resource: %v == %v", query, args)
 		return err
@@ -155,7 +155,7 @@ func (dbResource *DbResource) InsertResource(rPath, content string, userId int64
 	return nil
 }
 
-func (dbResource *DbResource) GetCalendarIdByAccountId(typeName string, userId int64) (int64, error) {
+func (dr *DbResource) GetCalendarIdByAccountId(typeName string, userId int64) (int64, error) {
 
 	s, q, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"user_account_id": userId}).ToSQL()
 	if err != nil {
@@ -163,17 +163,17 @@ func (dbResource *DbResource) GetCalendarIdByAccountId(typeName string, userId i
 	}
 
 	var id int64
-	row := dbResource.db.QueryRowx(s, q...)
+	row := dr.db.QueryRowx(s, q...)
 	err = row.Scan(&id)
 	return id, err
 
 }
 
-func (dbResource *DbResource) GetUserGroupById(typename string, userID int64, referenceId string) ([]auth.GroupPermission, error) {
+func (dr *DbResource) GetUserGroupById(typename string, userID int64, referenceId string) ([]auth.GroupPermission, error) {
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.id": userID}).ToSQL()
 
-	stmt1, err := dbResource.Cruds[typename].Connection.Preparex(query)
+	stmt1, err := dr.Cruds[typename].Connection.Preparex(query)
 	if err != nil {
 		log.Errorf("[143] failed to prepare statment: %v", err)
 	}

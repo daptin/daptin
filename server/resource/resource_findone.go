@@ -15,9 +15,9 @@ import (
 
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
-func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
+func (dr *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
 
-	if referenceId == "mine" && dbResource.tableInfo.TableName == "user_account" {
+	if referenceId == "mine" && dr.tableInfo.TableName == "user_account" {
 		//log.Debugf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
 		if sessionUser != nil {
@@ -27,18 +27,18 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 		}
 	}
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dr.Connection.Beginx()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, bf := range dbResource.ms.BeforeFindOne {
-		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+	for _, bf := range dr.ms.BeforeFindOne {
+		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		start := time.Now()
-		r, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{
+		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": referenceId,
-				"__type":       dbResource.model.GetName(),
+				"__type":       dr.model.GetName(),
 			},
 		}, transaction)
 		duration := time.Since(start)
@@ -47,7 +47,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 		if err != nil {
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "Failed to rollback")
-			log.Errorf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dbResource.model.GetName(), err)
+			log.Errorf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dr.model.GetName(), err)
 			return nil, err
 		}
 		if r == nil {
@@ -57,11 +57,11 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 		}
 	}
 
-	modelName := dbResource.model.GetName()
+	modelName := dr.model.GetName()
 	//log.Debugf("Find [%s] by id [%s]", modelName, referenceId)
 
 	languagePreferences := make([]string, 0)
-	if dbResource.tableInfo.TranslationsEnabled {
+	if dr.tableInfo.TranslationsEnabled {
 		prefs := req.PlainRequest.Context().Value("language_preference")
 		if prefs != nil {
 			languagePreferences = prefs.([]string)
@@ -81,7 +81,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 	}
 
 	start := time.Now()
-	data, include, err := dbResource.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
+	data, include, err := dr.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "Failed to rollback")
@@ -92,13 +92,13 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
-			data_i18n_id, err := dbResource.GetIdByWhereClause(modelName+"_i18n", goqu.Ex{
+			data_i18n_id, err := dr.GetIdByWhereClause(modelName+"_i18n", goqu.Ex{
 				"translation_reference_id": data["id"],
 				"language_id":              lang,
 			})
 			if err == nil && len(data_i18n_id) > 0 {
 				for _, data_i18n := range data_i18n_id {
-					translatedObj, err := dbResource.GetIdToObjectWithTransaction(modelName+"_i18n", data_i18n, transaction)
+					translatedObj, err := dr.GetIdToObjectWithTransaction(modelName+"_i18n", data_i18n, transaction)
 					CheckErr(err, "Failed to fetch translated object for [%v][%v][%v]", modelName, lang, data["id"])
 					if err != nil {
 						rollbackErr := transaction.Rollback()
@@ -125,11 +125,11 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 	}
 
 	//log.Tracef("Single row result: %v", data)
-	for _, bf := range dbResource.ms.AfterFindOne {
+	for _, bf := range dr.ms.AfterFindOne {
 		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
 		start := time.Now()
-		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{data}, transaction)
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data}, transaction)
 		duration := time.Since(start)
 		log.Infof("FindOne AfterFilter [%v]: %v", bf.String(), duration)
 
@@ -145,7 +145,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 			log.Errorf("Error from AfterFindOne middleware: %v", err)
 			return nil, err
 		}
-		include, err = bf.InterceptAfter(dbResource, &req, include, transaction)
+		include, err = bf.InterceptAfter(dr, &req, include, transaction)
 
 		if err != nil {
 			rollbackErr := transaction.Rollback()
@@ -159,8 +159,8 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 	delete(data, "id")
 
-	infos := dbResource.model.GetColumns()
-	var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
+	infos := dr.model.GetColumns()
+	var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())
 	a.Data = data
 
 	for _, inc := range include {
@@ -175,7 +175,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 				p = 0
 			}
 
-			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dbResource.Cruds[incType].model.GetColumns(), int64(p), dbResource.Cruds[incType].model.GetRelations(), inc))
+			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.Cruds[incType].model.GetColumns(), int64(p), dr.Cruds[incType].model.GetRelations(), inc))
 		}
 
 	}
@@ -186,9 +186,9 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
-func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+func (dr *DbResource) FindOneWithTransaction(referenceId string, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
 
-	if referenceId == "mine" && dbResource.tableInfo.TableName == "user_account" {
+	if referenceId == "mine" && dr.tableInfo.TableName == "user_account" {
 		//log.Debugf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
 		if sessionUser != nil {
@@ -199,20 +199,20 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	}
 
 
-	for _, bf := range dbResource.ms.BeforeFindOne {
-		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+	for _, bf := range dr.ms.BeforeFindOne {
+		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dr.model.GetName())
 		start := time.Now()
-		r, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{
+		r, err := bf.InterceptBefore(dr, &req, []map[string]interface{}{
 			{
 				"reference_id": referenceId,
-				"__type":       dbResource.model.GetName(),
+				"__type":       dr.model.GetName(),
 			},
 		}, transaction)
 		duration := time.Since(start)
 		log.Infof("FindOne BeforeFilter[%v]: %v", bf.String(), duration)
 
 		if err != nil {
-			log.Errorf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dbResource.model.GetName(), err)
+			log.Errorf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dr.model.GetName(), err)
 			return nil, err
 		}
 		if r == nil {
@@ -220,11 +220,11 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 		}
 	}
 
-	modelName := dbResource.model.GetName()
+	modelName := dr.model.GetName()
 	//log.Debugf("Find [%s] by id [%s]", modelName, referenceId)
 
 	languagePreferences := make([]string, 0)
-	if dbResource.tableInfo.TranslationsEnabled {
+	if dr.tableInfo.TranslationsEnabled {
 		prefs := req.PlainRequest.Context().Value("language_preference")
 		if prefs != nil {
 			languagePreferences = prefs.([]string)
@@ -244,7 +244,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	}
 
 	start := time.Now()
-	data, include, err := dbResource.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
+	data, include, err := dr.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -253,13 +253,13 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
-			data_i18n_id, err := dbResource.GetIdByWhereClause(modelName+"_i18n", goqu.Ex{
+			data_i18n_id, err := dr.GetIdByWhereClause(modelName+"_i18n", goqu.Ex{
 				"translation_reference_id": data["id"],
 				"language_id":              lang,
 			})
 			if err == nil && len(data_i18n_id) > 0 {
 				for _, data_i18n := range data_i18n_id {
-					translatedObj, err := dbResource.GetIdToObjectWithTransaction(modelName+"_i18n", data_i18n, transaction)
+					translatedObj, err := dr.GetIdToObjectWithTransaction(modelName+"_i18n", data_i18n, transaction)
 					CheckErr(err, "Failed to fetch translated object for [%v][%v][%v]", modelName, lang, data["id"])
 					if err != nil {
 						return nil, err
@@ -284,11 +284,11 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	}
 
 	//log.Tracef("Single row result: %v", data)
-	for _, bf := range dbResource.ms.AfterFindOne {
+	for _, bf := range dr.ms.AfterFindOne {
 		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
 		start := time.Now()
-		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{data}, transaction)
+		results, err := bf.InterceptAfter(dr, &req, []map[string]interface{}{data}, transaction)
 		duration := time.Since(start)
 		log.Infof("FindOne AfterFilter [%v]: %v", bf.String(), duration)
 
@@ -302,7 +302,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 			log.Errorf("Error from AfterFindOne middleware: %v", err)
 			return nil, err
 		}
-		include, err = bf.InterceptAfter(dbResource, &req, include, transaction)
+		include, err = bf.InterceptAfter(dr, &req, include, transaction)
 
 		if err != nil {
 			log.Errorf("Error from AfterFindOne middleware: %v", err)
@@ -311,8 +311,8 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 
 	delete(data, "id")
 
-	infos := dbResource.model.GetColumns()
-	var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
+	infos := dr.model.GetColumns()
+	var a = api2go.NewApi2GoModel(dr.model.GetTableName(), infos, dr.model.GetDefaultPermission(), dr.model.GetRelations())
 	a.Data = data
 
 	for _, inc := range include {
@@ -327,7 +327,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 				p = 0
 			}
 
-			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dbResource.Cruds[incType].model.GetColumns(), int64(p), dbResource.Cruds[incType].model.GetRelations(), inc))
+			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dr.Cruds[incType].model.GetColumns(), int64(p), dr.Cruds[incType].model.GetRelations(), inc))
 		}
 
 	}
