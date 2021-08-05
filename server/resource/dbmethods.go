@@ -197,6 +197,24 @@ func (dbResource *DbResource) GetActionsByType(typeName string) ([]Action, error
 	return action, nil
 }
 
+// GetActionPermissionByName Gets permission of an action by typeId and actionName
+// Loads the owner, usergroup and guest permission of the action from the database
+// Return a PermissionInstance
+// Special utility function for actions, for other objects use GetObjectPermissionByReferenceId
+func (dbResource *DbResource) GetActionPermissionByName(worldId int64, actionName string) (PermissionInstance, error) {
+
+	refId, err := dbResource.GetReferenceIdByWhereClause("action", goqu.Ex{"action_name": actionName}, goqu.Ex{"world_id": worldId})
+	if err != nil {
+		return PermissionInstance{}, err
+	}
+
+	if refId == nil || len(refId) < 1 {
+		return PermissionInstance{}, errors.New(fmt.Sprintf("Failed to find action [%v] on [%v]", actionName, worldId))
+	}
+	permissions := dbResource.GetObjectPermissionByReferenceId("action", refId[0])
+
+	return permissions, nil
+}
 
 // GetObjectPermissionByReferenceId Gets permission of an Object by typeName and string referenceId
 // Loads the owner, usergroup and guest permission of the action from the database
@@ -888,6 +906,36 @@ func (dbResource *DbResource) GetUserPassword(email string) (string, error) {
 	passwordHash = existingUsers[0]["password"].(string)
 
 	return passwordHash, err
+}
+
+// UserGroupNameToId Converts group name to the internal integer id
+func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
+
+	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
+	if err != nil {
+		return 0, err
+	}
+	stmt, err := dbResource.Connection.Preparex(query)
+	if err != nil {
+		log.Errorf("[592] failed to prepare statment: %v", err)
+		return 0, err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res := stmt.QueryRowx(arg...)
+	if res.Err() != nil {
+		return 0, res.Err()
+	}
+
+	var id uint64
+	err = res.Scan(&id)
+
+	return id, err
 }
 
 // UserGroupNameToId Converts group name to the internal integer id
@@ -2805,6 +2853,43 @@ func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, upda
 }
 
 // Lookup an string reference id and return a internal integer id of an object of type `typeName`
+func (dbResource *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []string) (map[string]int64, error) {
+
+	idMap := make(map[string]int64)
+	s, q, err := statementbuilder.Squirrel.Select("id", "reference_id").
+		From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	if err != nil {
+		return idMap, err
+	}
+
+	stmt1, err := dbResource.Connection.Preparex(s)
+	if err != nil {
+		log.Errorf("[1694] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	rows, err := stmt1.Queryx(q...)
+	if err != nil {
+		return idMap, err
+	}
+	for rows.Next() {
+		var id1 int64
+		var id2 string
+		err = rows.Scan(&id1, &id2)
+		idMap[id2] = id1
+	}
+
+	return idMap, err
+}
+
+// Lookup an string reference id and return a internal integer id of an object of type `typeName`
 func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []string, transaction *sqlx.Tx) (map[string]int64, error) {
 
 	idMap := make(map[string]int64)
@@ -2852,44 +2937,6 @@ func (dbResource *DbResource) GetIdListToReferenceIdList(typeName string, ids []
 	}
 
 	stmt1, err := dbResource.Connection.Preparex(s)
-	if err != nil {
-		log.Errorf("[1731] failed to prepare statment: %v", err)
-		return nil, err
-	}
-
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
-	rows, err := stmt1.Queryx(q...)
-	if err != nil {
-		return idMap, err
-	}
-	for rows.Next() {
-		var id1 string
-		var id2 int64
-		err = rows.Scan(&id1, &id2)
-		CheckErr(err, "[1581] failed to scan value after query: %v[%v]", typeName, ids)
-		idMap[id2] = id1
-	}
-
-	return idMap, err
-}
-
-// GetIdListToReferenceIdList Lookups an string internal integer id and return a reference id of an object of type `typeName`
-func GetIdListToReferenceIdListWithTransaction(typeName string, ids []int64, transaction *sqlx.Tx) (map[int64]string, error) {
-
-	idMap := make(map[int64]string)
-	s, q, err := statementbuilder.Squirrel.Select("reference_id", "id").
-		From(typeName).Where(goqu.Ex{"id": ids}).ToSQL()
-	if err != nil {
-		return idMap, err
-	}
-
-	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[1731] failed to prepare statment: %v", err)
 		return nil, err

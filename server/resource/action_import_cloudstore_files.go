@@ -71,7 +71,7 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 		defaltValues["version"] = 1
 		defaltValues["created_at"] = time.Now()
 		defaltValues["permission"] = cacheFolder.CloudStore.Permission.Permission.String()
-		userId, err := GetReferenceIdToIdWithTransaction(USER_ACCOUNT_TABLE_NAME, cacheFolder.CloudStore.UserId, transaction)
+		userId, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, cacheFolder.CloudStore.UserId)
 		CheckErr(err, "Failed to get id from reference id: %v", userId)
 		defaltValues["user_account_id"] = userId
 

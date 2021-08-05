@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -33,13 +32,14 @@ func (d *becomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	responseAttrs := make(map[string]interface{})
 
 	if d.cruds["world"].BecomeAdmin(user["id"].(int64), transaction) {
-
+		commitError := transaction.Commit()
+		CheckErr(commitError, "failed to rollback")
 		responseAttrs["location"] = "/"
 		responseAttrs["window"] = "self"
 		responseAttrs["delay"] = 7000
-	} else {
-		return nil, nil, []error{fmt.Errorf("failed to become admin")}
 	}
+	rollbackError := transaction.Rollback()
+	CheckErr(rollbackError, "failed to rollback")
 
 	actionResponse := NewActionResponse("client.redirect", responseAttrs)
 	_ = OlricCache.Destroy()
