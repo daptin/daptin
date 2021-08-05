@@ -900,8 +900,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						return nil, err
 					}
 					if len(joinReference) < 1 {
-						log.Errorf("failed to find the relation row to delete - %v[%v] - %v[%v]", relationName, otherObjectId, hostRelationName, idInt)
-						return nil, fmt.Errorf("failed to find the relation row to delete - %v[%v] - %v[%v]", relationName, otherObjectId, hostRelationName, idInt)
+						log.Warnf("nothing to delete for the relation row to delete does not exist - %v[%v] - %v[%v]", relationName, otherObjectId, hostRelationName, idInt)
+						continue
 					}
 
 					joinReferenceObject := joinReference[0]
