@@ -706,6 +706,98 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhere(objectType string, colN
 	return s
 
 }
+
+// GetObjectUserGroupsByWhere Get list of group permissions for objects of typeName where colName=colValue
+// Utility method which makes a join query to load a lot of permissions quickly
+// Used by GetRowPermission
+func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectType string, transaction *sqlx.Tx, colName string, colValue interface{}) []auth.GroupPermission {
+
+	//if OlricCache == nil {
+	//	OlricCache, _ = dbResource.OlricDb.NewDMap("default-cache")
+	//}
+	//
+	//cacheKey := ""
+	//if OlricCache != nil {
+	//	cacheKey = fmt.Sprintf("groups-%s_%s_%s", objectType, colName, colValue)
+	//	cachedPermission, err := OlricCache.Get(cacheKey)
+	//	if cachedPermission != nil && err == nil {
+	//		return cachedPermission.([]auth.GroupPermission)
+	//	}
+	//}
+
+	s := make([]auth.GroupPermission, 0)
+
+	rel := api2go.TableRelation{}
+	rel.Subject = objectType
+	rel.SubjectName = objectType + "_id"
+	rel.Object = "usergroup"
+	rel.ObjectName = "usergroup_id"
+	rel.Relation = "has_many_and_belongs_to_many"
+
+	//log.Printf("Join string: %v: ", rel.GetJoinString())
+
+	sql, args, err := statementbuilder.Squirrel.Select(
+		goqu.I("usergroup_id.reference_id").As("groupreferenceid"),
+		goqu.I(rel.GetJoinTableName()+".reference_id").As("relationreferenceid"),
+		goqu.I(rel.GetJoinTableName()+".permission").As("permission"),
+	).From(goqu.T(rel.GetSubject())).
+		// rel.GetJoinString()
+		Join(goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
+			goqu.On(goqu.Ex{
+				fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetSubjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetSubject(), "id")),
+			})).
+		Join(goqu.T(rel.GetObject()).As(rel.GetObjectName()),
+			goqu.On(goqu.Ex{
+				fmt.Sprintf("%v.%v", rel.GetJoinTableName(), rel.GetObjectName()): goqu.I(fmt.Sprintf("%v.%v", rel.GetObjectName(), "id")),
+			})).
+		Where(goqu.Ex{
+			fmt.Sprintf("%s.%s", rel.Subject, colName): colValue,
+		}).ToSQL()
+	if err != nil {
+		log.Errorf("Failed to create permission select query: %v", err)
+		return s
+	}
+
+	stmt, err := transaction.Preparex(sql)
+	if err != nil {
+		log.Errorf("[436] failed to prepare statment: %v", err)
+		return nil
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	res, err := stmt.Queryx(args...)
+	//log.Printf("Group select sql: %v", sql)
+	if err != nil {
+
+		log.Errorf("Failed to get object groups by where clause: %v", err)
+		log.Errorf("Query: %s == [%v]", sql, args)
+		return s
+	}
+	defer res.Close()
+
+	for res.Next() {
+		var g auth.GroupPermission
+		err = res.StructScan(&g)
+		if err != nil {
+			log.Errorf("Failed to scan group permission 1: %v", err)
+		}
+		s = append(s, g)
+	}
+
+	//if OlricCache != nil {
+	//	_ = OlricCache.PutIfEx(cacheKey, s, 10*time.Second, olric.IfNotFound)
+	//}
+
+	return s
+
+}
+
+
 func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) []auth.GroupPermission {
 	s := make([]auth.GroupPermission, 0)
 
@@ -1225,7 +1317,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	if loc == -1 && dbResource.Cruds[rowType].model.HasMany("usergroup") {
 
-		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhere(rowType, "reference_id", refId.(string))
+		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId.(string))
 
 	} else if rowType == "usergroup" {
 		originalGroupId, _ := row["reference_id"]
@@ -1274,7 +1366,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 		perm.Permission = auth.AuthPermission(i64)
 	} else {
-		pe := dbResource.GetObjectPermissionByReferenceId(rowType, refId.(string))
+		pe := GetObjectPermissionByReferenceIdWithTransaction(rowType, refId.(string), transaction)
 		perm.Permission = pe.Permission
 	}
 	//log.Printf("Row permission: %v  ---------------- %v", perm, row)

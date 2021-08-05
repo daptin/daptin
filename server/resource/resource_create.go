@@ -43,7 +43,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	isAdmin := dbResource.IsAdmin(sessionUser.UserReferenceId)
+	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, createTransaction)
 
 	attrs := data.GetAllAsAttributes()
 
@@ -120,12 +120,12 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				if valString == "" {
 					uId = nil
 				} else {
-					foreignObject, err := dbResource.GetReferenceIdToObject(col.ForeignKeyData.Namespace, valString)
+					foreignObject, err := dbResource.GetReferenceIdToObjectWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
 					if err != nil {
 						return nil, err
 					}
 
-					foreignObjectPermission := dbResource.GetObjectPermissionByReferenceId(col.ForeignKeyData.Namespace, valString)
+					foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
 
 					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 						uId = foreignObject["id"]
@@ -192,7 +192,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					actionRequestParameters["path"] = uploadPath
 
 					log.Printf("Get cloud store details: %v", col.ForeignKeyData.Namespace)
-					cloudStore, err := dbResource.GetCloudStoreByName(col.ForeignKeyData.Namespace)
+					cloudStore, err := dbResource.GetCloudStoreByNameWithTransaction(col.ForeignKeyData.Namespace, createTransaction)
 					CheckErr(err, "Failed to get cloud storage details")
 					if err != nil {
 						continue
@@ -349,7 +349,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			}
 		} else if col.ColumnType == "encrypted" {
 
-			secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+			secret, err := dbResource.configStore.GetConfigValueForWithTransaction("encryption.secret", "backend", createTransaction)
 			if err != nil {
 				log.Errorf("Failed to get secret from config: %v", err)
 				val = ""

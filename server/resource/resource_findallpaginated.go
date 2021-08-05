@@ -169,7 +169,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	isAdmin := dbResource.IsAdmin(sessionUser.UserReferenceId)
+	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
 
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	relatedTableName := ""
@@ -495,7 +495,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 	}
 
-	queryBuilder, countQueryBuilder = dbResource.addFilters(queryBuilder, countQueryBuilder, queries, prefix)
+	queryBuilder, countQueryBuilder = dbResource.addFilters(queryBuilder, countQueryBuilder, queries, prefix, transaction)
 
 	//if len(groupings) > 0 && false {
 	//	for _, groupBy := range groupings {
@@ -1232,7 +1232,7 @@ var OperatorMap = map[string]string{
 }
 
 func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBuilder *goqu.SelectDataset,
-	queries []Query, prefix string) (*goqu.SelectDataset, *goqu.SelectDataset) {
+	queries []Query, prefix string, transaction *sqlx.Tx) (*goqu.SelectDataset, *goqu.SelectDataset) {
 
 	if len(queries) == 0 {
 		return queryBuilder, countQueryBuilder
@@ -1267,7 +1267,7 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 
 			valueIds := make(map[string]int64, len(valuesArray))
 
-			valueIds, err := dbResource.GetReferenceIdListToIdList(colInfo.ForeignKeyData.Namespace, valuesArray)
+			valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
 			if err != nil {
 				log.Printf("failed to lookup foreign key value: %v => %v", values, err)
 			} else {

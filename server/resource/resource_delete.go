@@ -34,7 +34,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 		sessionUser = user.(*auth.SessionUser)
 
 	}
-	isAdmin := dbResource.IsAdmin(sessionUser.UserReferenceId)
+	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
 
 	m := dbResource.model
 	//log.Printf("Get all resource type: %v\n", m)
@@ -72,7 +72,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 	for _, column := range dbResource.model.GetColumns() {
 		if column.IsForeignKey && column.ForeignKeyData.DataSource == "cloud_store" {
 
-			cloudStoreData, err := dbResource.GetCloudStoreByName(column.ForeignKeyData.Namespace)
+			cloudStoreData, err := dbResource.GetCloudStoreByNameWithTransaction(column.ForeignKeyData.Namespace, transaction)
 			if err != nil {
 				log.Errorf("Failed to load cloud store information %v: %v", column.ForeignKeyData.Namespace, err)
 				continue

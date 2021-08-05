@@ -38,11 +38,11 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	if dr.IsAdmin(sessionUser.UserReferenceId) {
+	if IsAdminWithTransaction(sessionUser.UserReferenceId, transaction) {
 		return results, nil
 	}
 
-	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
+	tableOwnership := dr.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", dr.model.GetName(), transaction)
 
 	//log.Printf("Row Permission for [%v] for [%v]", dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
@@ -82,14 +82,14 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	if dr.IsAdmin(sessionUser.UserReferenceId) {
+	if IsAdminWithTransaction(sessionUser.UserReferenceId, transaction) {
 		return results, nil
 	}
 
 	//log.Printf("User Id: %v", sessionUser.UserReferenceId)
 	//log.Printf("User Groups: %v", sessionUser.Groups)
 
-	tableOwnership := dr.GetObjectPermissionByWhereClause("world", "table_name", dr.model.GetName())
+	tableOwnership := dr.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", dr.model.GetName(), transaction)
 
 	//log.Printf("Table owner: %v", tableOwnership.UserId)
 	//log.Printf("Table groups: %v", tableOwnership.UserGroupId)
