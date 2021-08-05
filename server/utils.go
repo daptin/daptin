@@ -49,7 +49,10 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
 
-		res := resource.NewDbResource(model, db, ms, cruds, configStore, olricDb, table)
+		res, err := resource.NewDbResource(model, db, ms, cruds, configStore, olricDb, table)
+		if err != nil {
+			panic(err)
+		}
 
 		cruds[table.TableName] = res
 

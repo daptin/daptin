@@ -544,7 +544,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				continue
 			}
 
-			log.Printf("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
+			//log.Printf("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
 
 			switch relationName {
 			case "has_one":

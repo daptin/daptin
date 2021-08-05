@@ -1426,7 +1426,7 @@ func (dbResource *DbResource) GetRowsByWhereClause(typeName string, includedRela
 	start := time.Now()
 	m1, include, err := dbResource.ResultToArrayOfMap(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	duration := time.Since(start)
-	log.Infof("GetRowsByWhere ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetRowsByWhere ResultToArray: %v", duration)
 
 	return m1, include, err
 
@@ -1476,7 +1476,7 @@ func (dbResource *DbResource) GetRowsByWhereClauseWithTransaction(typeName strin
 	start := time.Now()
 	m1, include, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
 	duration := time.Since(start)
-	log.Infof("GetRowsByWhere ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetRowsByWhere ResultToArray: %v", duration)
 
 	return m1, include, err
 
@@ -1526,7 +1526,7 @@ func (dbResource *DbResource) GetRandomRow(typeName string, count uint) ([]map[s
 	start := time.Now()
 	m1, _, err := dbResource.ResultToArrayOfMap(rows, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
 	duration := time.Since(start)
-	log.Infof("GetRandomRow ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetRandomRow ResultToArray: %v", duration)
 
 	return m1, err
 
@@ -1716,7 +1716,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceId(typeName string, referen
 	start := time.Now()
 	stmt1, err := dbResource.Connection.Preparex(s)
 	duration := time.Since(start)
-	log.Infof("SingleRowSelect Preparex: %v", duration)
+	log.Tracef("[TIMING] SingleRowSelect Preparex: %v", duration)
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1732,7 +1732,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceId(typeName string, referen
 	start = time.Now()
 	rows, err := stmt1.Queryx(q...)
 	duration = time.Since(start)
-	log.Infof("SingleRowSelect Queryx: %v", duration)
+	log.Tracef("[TIMING] SingleRowSelect Queryx: %v", duration)
 
 	defer func() {
 		if rows == nil {
@@ -1751,7 +1751,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceId(typeName string, referen
 	start = time.Now()
 	resultRows, includeRows, err := dbResource.ResultToArrayOfMap(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	duration = time.Since(start)
-	log.Infof("GetSingleRowByReferenceId ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetSingleRowByReferenceId ResultToArray: %v", duration)
 
 	if err != nil {
 		log.Printf("failed to ResultToArrayOfMap: %v", err)
@@ -1781,7 +1781,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	start := time.Now()
 	stmt1, err := transaction.Preparex(s)
 	duration := time.Since(start)
-	log.Infof("SingleRowSelect Preparex: %v", duration)
+	log.Tracef("[TIMING] SingleRowSelect Preparex: %v", duration)
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1797,7 +1797,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	start = time.Now()
 	rows, err := stmt1.Queryx(q...)
 	duration = time.Since(start)
-	log.Infof("SingleRowSelect Queryx: %v", duration)
+	log.Tracef("[TIMING] SingleRowSelect Queryx: %v", duration)
 
 	defer func() {
 		if rows == nil {
@@ -1816,7 +1816,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	start = time.Now()
 	resultRows, includeRows, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
 	duration = time.Since(start)
-	log.Infof("GetSingleRowByReferenceId ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetSingleRowByReferenceId ResultToArray: %v", duration)
 
 	if err != nil {
 		log.Printf("failed to ResultToArrayOfMap: %v", err)
@@ -1865,7 +1865,7 @@ func (dbResource *DbResource) GetSingleRowById(typeName string, id int64, includ
 	start := time.Now()
 	resultRows, includeRows, err := dbResource.ResultToArrayOfMap(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	duration := time.Since(start)
-	log.Infof("GetSingleRowById ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetSingleRowById ResultToArray: %v", duration)
 
 	if err != nil {
 		return nil, nil, err
@@ -1917,7 +1917,7 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 	start := time.Now()
 	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
 	duration := time.Since(start)
-	log.Infof("GetObjectByWhere ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetObjectByWhere ResultToArray: %v", duration)
 
 	if len(m) == 0 {
 		log.Printf("No result found for [%v] [%v][%v]", typeName, column, val)
@@ -1962,7 +1962,7 @@ func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(typeName str
 	start := time.Now()
 	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
-	log.Infof("GetObjectByWhere ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetObjectByWhere ResultToArray: %v", duration)
 
 	if len(m) == 0 {
 		log.Printf("No result found for [%v] [%v][%v]", typeName, column, val)
@@ -2014,7 +2014,7 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64) (map[stri
 	start := time.Now()
 	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
 	duration := time.Since(start)
-	log.Infof("GetIdToObject ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetIdToObject ResultToArray: %v", duration)
 
 	err = row.Close()
 	if err != nil {
@@ -2031,7 +2031,7 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64) (map[stri
 	}
 	if OlricCache != nil {
 		err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
-		CheckErr(err, "Failed to set id to object in olric cache")
+		CheckErr(err, "[2034[ Failed to set id to object in olric cache")
 	}
 
 	return m[0], nil
@@ -2081,7 +2081,7 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 		return nil, err
 	}
 	duration := time.Since(start)
-	log.Infof("GetIdToObject ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetIdToObject ResultToArray: %v", duration)
 
 	err = row.Close()
 	if err != nil {
@@ -2245,7 +2245,7 @@ func (dbResource *DbResource) GetAllObjects(typeName string) ([]map[string]inter
 	start := time.Now()
 	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
 	duration := time.Since(start)
-	log.Infof("GetAllObjects ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetAllObjects ResultToArray: %v", duration)
 
 	return m, err
 }
@@ -2297,7 +2297,7 @@ func (dbResource *DbResource) GetAllObjectsWithWhere(typeName string, where ...g
 	start := time.Now()
 	m, _, err := dbResource.Cruds[typeName].ResultToArrayOfMap(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
 	duration := time.Since(start)
-	log.Infof("GetAllObjectWhere ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetAllObjectWhere ResultToArray: %v", duration)
 
 	return m, err
 }
@@ -2349,7 +2349,7 @@ func (dbResource *DbResource) GetAllObjectsWithWhereWithTransaction(typeName str
 	start := time.Now()
 	m, _, err := dbResource.Cruds[typeName].ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
-	log.Infof("GetAllObjectWhere ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetAllObjectWhere ResultToArray: %v", duration)
 
 	return m, err
 }
@@ -2476,7 +2476,7 @@ func (dbResource *DbResource) GetReferenceIdToObject(typeName string, referenceI
 	start := time.Now()
 	results, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
 	duration := time.Since(start)
-	log.Infof("GetReferenceIdToObject ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetReferenceIdToObject ResultToArray: %v", duration)
 
 	if err != nil {
 		return nil, err
@@ -2544,7 +2544,7 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 	start := time.Now()
 	results, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
-	log.Infof("GetReferenceIdToObject ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetReferenceIdToObject ResultToArray: %v", duration)
 
 	if err != nil {
 		return nil, err
@@ -2602,7 +2602,7 @@ func (dbResource *DbResource) GetReferenceIdToObjectColumn(typeName string, refe
 	start := time.Now()
 	results, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
 	duration := time.Since(start)
-	log.Infof("GetReferenceIdToColumn ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetReferenceIdToColumn ResultToArray: %v", duration)
 
 	if err != nil {
 		return nil, err
@@ -2653,7 +2653,7 @@ func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeNa
 	start := time.Now()
 	results, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
-	log.Infof("GetReferenceIdToColumn ResultToArray: %v", duration)
+	log.Tracef("[TIMING] GetReferenceIdToColumn ResultToArray: %v", duration)
 
 	if err != nil {
 		return nil, err
@@ -3280,7 +3280,7 @@ func (dbResource *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[
 					start := time.Now()
 					refId, err = dbResource.GetIdToReferenceId(namespace, referenceIdInt)
 					duration := time.Since(start)
-					log.Infof("RowsToMap IdToReferenceId: %v", duration)
+					log.Tracef("[TIMING] RowsToMap IdToReferenceId: %v", duration)
 
 					referenceIdCache[idCacheKey] = refId
 				}
@@ -3298,7 +3298,7 @@ func (dbResource *DbResource) ResultToArrayOfMap(rows *sqlx.Rows, columnMap map[
 						return nil, nil, err
 					}
 					duration := time.Since(start)
-					log.Infof("RowsToMap IdToObject: %v", duration)
+					log.Tracef("[TIMING] RowsToMap IdToObject: %v", duration)
 
 					obj["__type"] = namespace
 
@@ -3702,7 +3702,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					start := time.Now()
 					refId, err = GetIdToReferenceIdWithTransaction(namespace, referenceIdInt, transaction)
 					duration := time.Since(start)
-					log.Infof("RowsToMap IdToReferenceId: %v", duration)
+					log.Tracef("[TIMING] RowsToMap IdToReferenceId: %v", duration)
 
 					referenceIdCache[idCacheKey] = refId
 				}
@@ -3720,7 +3720,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 						return nil, nil, fmt.Errorf("failed to get related object [%v][%v][%v]", namespace, referenceIdInt, err)
 					}
 					duration := time.Since(start)
-					log.Infof("RowsToMap IdToObject: %v", duration)
+					log.Tracef("[TIMING] RowsToMap IdToObject: %v", duration)
 
 					obj["__type"] = namespace
 

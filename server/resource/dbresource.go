@@ -2,6 +2,7 @@ package resource
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
@@ -134,9 +135,14 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
-	olricDb *olric.Olric, tableInfo TableInfo) *DbResource {
+	olricDb *olric.Olric, tableInfo TableInfo) (*DbResource, error) {
 	if OlricCache == nil {
 		OlricCache, _ = olricDb.NewDMap("default-cache")
+	}
+
+	defaultgroupIds, err := GroupNamesToIds(db, tableInfo.DefaultGroups)
+	if err != nil {
+		return nil, err
 	}
 
 	//log.Printf("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
@@ -149,17 +155,17 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 		Cruds:              cruds,
 		tableInfo:          &tableInfo,
 		OlricDb:            olricDb,
-		defaultGroups:      GroupNamesToIds(db, tableInfo.DefaultGroups),
+		defaultGroups:      defaultgroupIds,
 		contextCache:       make(map[string]interface{}),
 		contextLock:        sync.RWMutex{},
 		AssetFolderCache:   make(map[string]map[string]*AssetFolderCache),
 		SubsiteFolderCache: make(map[string]*AssetFolderCache),
-	}
+	}, nil
 }
-func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int64 {
+func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) ([]int64, error) {
 
 	if len(groupsName) == 0 {
-		return []int64{}
+		return []int64{}, nil
 	}
 
 	query, args, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).ToSQL()
@@ -169,7 +175,7 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 	stmt1, err := db.Preparex(query)
 	if err != nil {
 		log.Errorf("[170] failed to prepare statment: %v", err)
-		return []int64{}
+		return []int64{}, fmt.Errorf("failed to prepare statment to convert usergroup name to ids for default usergroup")
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
@@ -180,6 +186,9 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 
 	rows, err := stmt1.Queryx(args...)
 	CheckErr(err, "[176] failed to query user-group names to ids")
+	if err != nil {
+		return nil, err
+	}
 
 	retInt := make([]int64, 0)
 
@@ -189,13 +198,14 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) []int6
 		err := rows.Scan(&id)
 		if err != nil {
 			log.Errorf("[185] failed to scan value after query: %v", err)
-			return nil
+			return nil, err
 		}
 		retInt = append(retInt, id)
 	}
-	rows.Close()
+	err = rows.Close()
+	CheckErr(err, "[206] Failed to close rows after default group name conversation")
 
-	return retInt
+	return retInt, nil
 
 }
 
@@ -236,7 +246,6 @@ func (dbResource *DbResource) GetAdminReferenceId() map[string]bool {
 	return adminMap
 }
 
-
 func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[string]bool {
 	var err error
 	var cacheValue interface{}
@@ -267,11 +276,11 @@ func (dbResource *DbResource) IsAdmin(userReferenceId string) bool {
 		if err == nil && value != nil {
 			if value.(bool) == true {
 				duration := time.Since(start)
-				log.Infof("[270] IsAdmin Cached[true]: %v", duration)
+				log.Tracef("[TIMING]IsAdmin Cached[true]: %v", duration)
 				return true
 			} else {
 				duration := time.Since(start)
-				log.Infof("[274] IsAdmin Cached[false]: %v", duration)
+				log.Tracef("[TIMING] IsAdmin Cached[false]: %v", duration)
 				return false
 			}
 		}
@@ -284,14 +293,14 @@ func (dbResource *DbResource) IsAdmin(userReferenceId string) bool {
 			CheckErr(err, "[285] Failed to set admin id value in olric cache")
 		}
 		duration := time.Since(start)
-		log.Infof("IsAdmin NotCached[true]: %v", duration)
+		log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
 		return true
 	}
 	err := OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
 	CheckErr(err, "[291] Failed to set admin id value in olric cache")
 
 	duration := time.Since(start)
-	log.Infof("IsAdmin NotCached[true]: %v", duration)
+	log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
 	return false
 
 }
@@ -303,11 +312,11 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 		if err == nil && value != nil {
 			if value.(bool) == true {
 				duration := time.Since(start)
-				log.Infof("[309] IsAdmin Cached[true]: %v", duration)
+				log.Tracef("[TIMING] IsAdmin Cached[true]: %v", duration)
 				return true
 			} else {
 				duration := time.Since(start)
-				log.Infof("[313] IsAdmin Cached[false]: %v", duration)
+				log.Tracef("[TIMING] IsAdmin Cached[false]: %v", duration)
 				return false
 			}
 		}
@@ -320,13 +329,13 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 			CheckErr(err, "[320] Failed to set admin id value in olric cache")
 		}
 		duration := time.Since(start)
-		log.Infof("IsAdmin NotCached[true]: %v", duration)
+		log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
 		return true
 	}
 	err := OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
 	CheckErr(err, "[327] Failed to set admin id value in olric cache")
 	duration := time.Since(start)
-	log.Infof("IsAdmin NotCached[true]: %v", duration)
+	log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
 	return false
 
 }

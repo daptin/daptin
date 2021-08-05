@@ -9,9 +9,9 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/jwt"
 	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -302,7 +302,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				var userId int64
 				var userGroups []GroupPermission
 				if err != nil || cachedUser == nil {
-					log.Errorf("cached user [%v] is nil", email)
+					//log.Errorf("cached user [%v] is nil", email)
 
 					sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
 						goqu.I("u.reference_id")).

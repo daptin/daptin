@@ -474,7 +474,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Vals([]interface{}{createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 
-		//log.Printf("Query for default group belonging: %v", belogsToUserGroupSql)
+		log.Infof("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
 		_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
 
 		if err != nil {
@@ -655,7 +655,6 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 	if commitErr != nil {
 		return nil, commitErr
 	}
-
 
 	n1 := dbResource.model.GetName()
 	c1 := dbResource.model.GetColumns()

@@ -42,7 +42,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 			},
 		}, transaction)
 		duration := time.Since(start)
-		log.Infof("FindOne BeforeFilter[%v]: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindOne BeforeFilter[%v]: %v", bf.String(), duration)
 
 		if err != nil {
 			rollbackErr := transaction.Rollback()
@@ -88,7 +88,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 		return nil, err
 	}
 	duration := time.Since(start)
-	log.Infof("FindOne: %v", duration)
+	log.Tracef("[TIMING] FindOne: %v", duration)
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
@@ -131,7 +131,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 		start := time.Now()
 		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{data}, transaction)
 		duration := time.Since(start)
-		log.Infof("FindOne AfterFilter [%v]: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindOne AfterFilter [%v]: %v", bf.String(), duration)
 
 		if len(results) != 0 {
 			data = results[0]
@@ -210,7 +210,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 			},
 		}, transaction)
 		duration := time.Since(start)
-		log.Infof("FindOne BeforeFilter[%v]: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindOne BeforeFilter[%v]: %v", bf.String(), duration)
 
 		if err != nil {
 			log.Errorf("Error from BeforeFindOne[%s][%s] middleware: %v", bf.String(), dbResource.model.GetName(), err)
@@ -250,7 +250,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 		return nil, err
 	}
 	duration := time.Since(start)
-	log.Infof("FindOne: %v", duration)
+	log.Tracef("[TIMING] FindOne: %v", duration)
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
@@ -291,7 +291,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 		start := time.Now()
 		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{data}, transaction)
 		duration := time.Since(start)
-		log.Infof("FindOne AfterFilter [%v]: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindOne AfterFilter [%v]: %v", bf.String(), duration)
 
 		if len(results) != 0 {
 			data = results[0]

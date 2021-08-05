@@ -30,7 +30,7 @@ func (dbResource *DbResource) GetTotalCount() uint64 {
 	start := time.Now()
 	stmt1, err := dbResource.Connection.Preparex(s)
 	duration := time.Since(start)
-	log.Infof("GetTotalCount PrepareX: %v", duration)
+	log.Tracef("[TIMING] GetTotalCount PrepareX: %v", duration)
 	if err != nil {
 		log.Errorf("[31] failed to prepare statment: %v", err)
 	}
@@ -44,7 +44,7 @@ func (dbResource *DbResource) GetTotalCount() uint64 {
 	start = time.Now()
 	err = stmt1.QueryRowx(v...).Scan(&count)
 	duration = time.Since(start)
-	log.Infof("GetTotalCount Scan: %v", duration)
+	log.Tracef("[TIMING] GetTotalCount Scan: %v", duration)
 
 	CheckErr(err, "Failed to execute total count query [%s] [%v]", s, v)
 	//log.Printf("Count: [%v] %v", dbResource.model.GetTableName(), count)
@@ -65,7 +65,7 @@ func (dbResource *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectD
 	start := time.Now()
 	stmt1, err := dbResource.Connection.Preparex(s)
 	duration := time.Since(start)
-	log.Infof("GetTotalCountBySelectBuilder PrepareX: %v", duration)
+	log.Tracef("[TIMING] GetTotalCountBySelectBuilder PrepareX: %v", duration)
 
 	if err != nil {
 		log.Errorf("[61] failed to prepare statment: %v", err)
@@ -80,7 +80,7 @@ func (dbResource *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectD
 	start = time.Now()
 	err = stmt1.QueryRowx(v...).Scan(&count)
 	duration = time.Since(start)
-	log.Infof("GetTotalCountBySelectBuilder QueryRowx: %v", duration)
+	log.Tracef("[TIMING] GetTotalCountBySelectBuilder QueryRowx: %v", duration)
 
 	if err != nil {
 		log.Errorf("Failed to execute count query [%v] %v", s, err)
@@ -103,7 +103,7 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 	start := time.Now()
 	stmt1, err := transaction.Preparex(s)
 	duration := time.Since(start)
-	log.Infof("GetTotalCountBySelectBuilder PrepareX: %v", duration)
+	log.Tracef("[TIMING] GetTotalCountBySelectBuilder PrepareX: %v", duration)
 
 	if err != nil {
 		log.Errorf("[61] failed to prepare statment: %v", err)
@@ -119,7 +119,7 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 	start = time.Now()
 	err = stmt1.QueryRowx(v...).Scan(&count)
 	duration = time.Since(start)
-	log.Infof("GetTotalCountBySelectBuilder QueryRowx: %v", duration)
+	log.Tracef("[TIMING] GetTotalCountBySelectBuilder QueryRowx: %v", duration)
 
 	if err != nil {
 		log.Errorf("Failed to execute count query [%v] %v", s, err)
@@ -568,12 +568,12 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 				//log.Printf("Converted ids: %v", ids)
 				if err != nil {
-					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
+					log.Errorf("[571] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
 					return nil, nil, nil, false, err
 				}
 
 				if len(refIdsToIdMap) < 1 {
-					log.Errorf("Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
+					log.Errorf("[576] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
 					return nil, nil, nil, false, err
 				}
 
@@ -931,7 +931,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	start := time.Now()
 	stmt, err := transaction.Preparex(idsListQuery)
 	duration := time.Since(start)
-	log.Infof("IdQuery Preparex: %v", duration)
+	log.Tracef("[TIMING] IdQuery Preparex: %v", duration)
 
 	if err != nil {
 		log.Errorf("Findall select query sql 738: %v == %v", idsListQuery, args)
@@ -949,7 +949,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	start = time.Now()
 	idsRow, err := stmt.Queryx(args...)
 	duration = time.Since(start)
-	log.Infof("IdQuery Queryx: %v", duration)
+	log.Tracef("[TIMING] IdQuery Queryx: %v", duration)
 
 	if err != nil {
 		log.Errorf("Findall select query sql 745: %v == %v", idsListQuery, args)
@@ -1052,7 +1052,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		start = time.Now()
 		stmt, err = transaction.Preparex(sql1)
 		duration = time.Since(start)
-		log.Infof("IdQuery Select Preparex: %v", duration)
+		log.Tracef( "[TIMING] IdQuery Select Preparex: %v", duration)
 
 		if err != nil {
 			log.Printf("Findall select query sql 762: %v == %v", sql1, args)
@@ -1066,7 +1066,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		start = time.Now()
 		rows, err := stmt.Queryx(args...)
 		duration = time.Since(start)
-		log.Infof("IdQuery Select QueryX: %v", duration)
+		log.Tracef("[TIMING] IdQuery Select QueryX: %v", duration)
 
 		if err != nil {
 			log.Printf("Error: %v", err)
@@ -1083,7 +1083,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			return nil, nil, nil, false, err
 		}
 		duration = time.Since(start)
-		log.Infof("FindAll ResultToArray: %v", duration)
+		log.Tracef("[TIMING] FindAll ResultToArray: %v", duration)
 
 	}
 	start = time.Now()
@@ -1092,7 +1092,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		return nil, nil, nil, false, err
 	}
 	duration = time.Since(start)
-	log.Infof("GetTotalCountBySelectBuilder: %v", duration)
+	log.Tracef("[TIMING] GetTotalCountBySelectBuilder: %v", duration)
 
 	//log.Printf("Found: %d results", len(results))
 	//log.Printf("Results: %v", results)
@@ -1405,7 +1405,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		start := time.Now()
 		_, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{}, transaction)
 		duration := time.Since(start)
-		log.Infof("FindBeforeFilter %v: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindBeforeFilter %v: %v", bf.String(), duration)
 
 		if err != nil {
 			log.Printf("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
@@ -1423,7 +1423,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		return 0, nil, err
 	}
 	duration := time.Since(start)
-	log.Infof("FindAllWithoutFilters %v", duration)
+	log.Tracef("[TIMING] FindAllWithoutFilters %v", duration)
 
 	for _, bf := range dbResource.ms.AfterFindAll {
 		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
@@ -1431,7 +1431,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		start := time.Now()
 		results, err = bf.InterceptAfter(dbResource, &req, results, transaction)
 		duration := time.Since(start)
-		log.Infof("FindAfterFilter %v: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindAfterFilter %v: %v", bf.String(), duration)
 
 		if err != nil {
 			//log.Errorf("Error from findall paginated create middleware: %v", err)
@@ -1535,7 +1535,7 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 		start := time.Now()
 		_, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{}, transaction)
 		duration := time.Since(start)
-		log.Infof("FindBeforeFilter %v: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindBeforeFilter %v: %v", bf.String(), duration)
 
 		if err != nil {
 			log.Printf("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
@@ -1547,7 +1547,7 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 	start := time.Now()
 	results, includes, pagination, finalResponseIsSingleObject, err := dbResource.PaginatedFindAllWithoutFilters(req, transaction)
 	duration := time.Since(start)
-	log.Infof("FindAllWithoutFilters %v", duration)
+	log.Tracef("[TIMING] FindAllWithoutFilters %v", duration)
 
 	for _, bf := range dbResource.ms.AfterFindAll {
 		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
@@ -1555,7 +1555,7 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 		start := time.Now()
 		results, err = bf.InterceptAfter(dbResource, &req, results, transaction)
 		duration := time.Since(start)
-		log.Infof("FindAfterFilter %v: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindAfterFilter %v: %v", bf.String(), duration)
 
 		if err != nil {
 			//log.Errorf("Error from findall paginated create middleware: %v", err)
