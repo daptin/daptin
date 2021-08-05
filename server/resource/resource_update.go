@@ -493,9 +493,10 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				auditCreateRequest := api2go.Request{
 					PlainRequest: pr,
 				}
-				_, err := creator.Create(auditModel, auditCreateRequest)
+				_, err := creator.CreateWithTransaction(auditModel, auditCreateRequest, updateTransaction)
 				if err != nil {
 					log.Errorf("Failed to create audit entry: %v\n%v", err, auditModel)
+					return nil, err
 				} else {
 					log.Printf("[%v][%v] Created audit record", auditModel.GetTableName(), data.GetID())
 					//log.Printf("ReferenceId for change: %v", resp.Result())

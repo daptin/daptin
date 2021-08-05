@@ -267,7 +267,7 @@ func (dbResource *DbResource) IsAdmin(userReferenceId string) bool {
 		if err == nil && value != nil {
 			if value.(bool) == true {
 				duration := time.Since(start)
-				log.Infof("IsAdmin Cached[true]: %v", duration)
+				log.Infof("[270] IsAdmin Cached[true]: %v", duration)
 				return true
 			} else {
 				duration := time.Since(start)
@@ -306,7 +306,7 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 		if err == nil && value != nil {
 			if value.(bool) == true {
 				duration := time.Since(start)
-				log.Infof("IsAdmin Cached[true]: %v", duration)
+				log.Infof("[309] IsAdmin Cached[true]: %v", duration)
 				return true
 			} else {
 				duration := time.Since(start)

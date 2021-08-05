@@ -151,6 +151,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "Failed to rollback")
 			log.Errorf("Error from AfterFindOne middleware: %v", err)
+			return nil, err
 		}
 	}
 

@@ -620,9 +620,11 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.Data}, transaction)
 		if err != nil {
 			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
+			transaction.Rollback()
 			return nil, err
 		}
 		if responseData == nil {
+			transaction.Rollback()
 			return nil, errors.New(fmt.Sprintf("No object to act upon after %v", bf.String()))
 		}
 	}
@@ -632,11 +634,6 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "failed to rollback")
 		return NewResponse(nil, nil, 500, nil), err
-	} else {
-		commitErr := transaction.Commit()
-		if commitErr != nil {
-			return nil, commitErr
-		}
 	}
 
 	for _, bf := range dbResource.ms.AfterCreate {
@@ -654,6 +651,11 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 			createdResource = results[0]
 		}
 	}
+	commitErr := transaction.Commit()
+	if commitErr != nil {
+		return nil, commitErr
+	}
+
 
 	n1 := dbResource.model.GetName()
 	c1 := dbResource.model.GetColumns()

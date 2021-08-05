@@ -1409,6 +1409,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 
 		if err != nil {
 			log.Printf("Error from BeforeFindAll middleware [%v]: %v", bf.String(), err)
+			transaction.Rollback()
 			return 0, NewResponse(nil, err, 400, nil), err
 		}
 	}
