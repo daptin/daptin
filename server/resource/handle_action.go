@@ -218,7 +218,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		req.QueryParams["included_relations"] = action.RequestSubjectRelations
 		referencedObject, err := db.FindOneWithTransaction(subjectInstanceReferenceId.(string), req, transaction)
 		if err != nil {
-			log.Warnf("failed to load subject for action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+			log.Warnf("failed to load subject for action: %v - [%v][%v]", actionRequest.Action, actionRequest.Type, subjectInstanceReferenceId)
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr,"failed to rollback")
 			return nil, api2go.NewHTTPError(err, "failed to load subject", 400)
@@ -336,7 +336,8 @@ OutFields:
 		log.Printf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceId, outcome.Type, outcome.Method)
 
 		if len(outcome.Condition) > 0 {
-			outcomeResult, err := evaluateString(outcome.Condition, inFieldMap)
+			var outcomeResult interface{}
+			outcomeResult, err = evaluateString(outcome.Condition, inFieldMap)
 			CheckErr(err, "Failed to evaluate condition, assuming false by default")
 			if err != nil {
 				continue
@@ -369,7 +370,9 @@ OutFields:
 			}
 		}
 
-		model, request, err := BuildOutcome(inFieldMap, outcome)
+		var model *api2go.Api2GoModel
+		var request api2go.Request
+		model, request, err = BuildOutcome(inFieldMap, outcome)
 		if err != nil {
 			log.Errorf("Failed to build outcome: %v", err)
 			log.Errorf("Infields - %v", toJson(inFieldMap))
@@ -581,6 +584,10 @@ OutFields:
 			}
 		}
 
+	}
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
 	}
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "Failed to commit")

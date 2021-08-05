@@ -1,6 +1,8 @@
 package jwtmiddleware
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/buraksezer/olric"
@@ -164,6 +166,17 @@ func FromFirst(extractors ...TokenExtractor) TokenExtractor {
 	}
 }
 
+func GetMD5HashString(text string) string {
+	return GetMD5Hash([]byte(text))
+}
+
+func GetMD5Hash(text []byte) string {
+	hasher := md5.New()
+	hasher.Write(text)
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+
 func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.Token, error) {
 	if !m.Options.EnableAuthOnOptions {
 		if r.Method == "OPTIONS" {
@@ -174,14 +187,18 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 	// Use the specified token extractor to extract a token from the request
 	token, err := m.Options.Extractor(r)
 
-	k := fmt.Sprintf("jwt-%v", token)
-	if TokenCache != nil {
-		tok, err := TokenCache.Get(k)
-		if err == nil {
-			cachedToken := tok.(jwt.Token)
-			return &cachedToken, nil
-		}
-	}
+	//tokenCacheKey := fmt.Sprintf("jwt-%v", GetMD5HashString(token))
+	//if TokenCache != nil {
+	//	cachedMarshaledToken, err := TokenCache.Get(tokenCacheKey)
+	//	if err == nil && cachedMarshaledToken != nil && cachedMarshaledToken != "" {
+	//		var cachedToken jwt.Token
+	//		err = json.Unmarshal(cachedMarshaledToken.([]byte), &cachedToken)
+	//		CheckErr(err, "Failed to unmarshal cached token")
+	//		if err == nil {
+	//			return &cachedToken, nil
+	//		}
+	//	}
+	//}
 
 	// If debugging is turned on, log the outcome
 	if err != nil {
@@ -244,12 +261,32 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 
 	m.logf("JWT: %v", parsedToken)
 
-	if TokenCache != nil {
-		_ = TokenCache.PutIfEx(k, *parsedToken, 5*time.Minute, olric.IfNotFound)
-	}
+	//if TokenCache != nil {
+	//	marshaledToken, err := json.Marshal(*parsedToken)
+	//	CheckErr(err, "Failed to marshal token")
+	//	if err == nil {
+	//		err = TokenCache.PutIfEx(tokenCacheKey, marshaledToken, 5*time.Minute, olric.IfNotFound)
+	//		CheckErr(err, "[250] Failed to set token in olric cache")
+	//	}
+	//}
 	// If we get here, everything worked and we can set the
 	// user property in context.
 	return parsedToken, nil
+}
+
+func CheckErr(err error, message ...interface{}) bool {
+
+	if err != nil {
+		fmtString := message[0].(string)
+		args := make([]interface{}, 0)
+		if len(message) > 1 {
+			args = message[1:]
+		}
+		args = append(args, err)
+		log.Warnf(fmtString+": %v", args...)
+		return true
+	}
+	return false
 }
 
 func (m *JWTMiddleware) CheckExtractedJWT(w http.ResponseWriter, token string) (*jwt.Token, error) {
@@ -312,7 +349,8 @@ func (m *JWTMiddleware) CheckExtractedJWT(w http.ResponseWriter, token string) (
 	m.logf("JWT: %v", parsedToken)
 
 	if TokenCache != nil {
-		_ = TokenCache.PutIfEx(k, *parsedToken, 5*time.Minute, olric.IfNotFound)
+		err = TokenCache.PutIfEx(k, *parsedToken, 5*time.Minute, olric.IfNotFound)
+		CheckErr(err, "[334] Failed to set token in olric cache")
 	}
 	// If we get here, everything worked and we can set the
 	// user property in context.

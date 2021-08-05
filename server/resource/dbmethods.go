@@ -59,17 +59,28 @@ func (dbResource *DbResource) IsUserActionAllowedWithTransaction(userReferenceId
 // GetActionByName Gets an Action instance by `typeName` and `actionName`
 // Check Action instance for usage
 func (dbResource *DbResource) GetActionByName(typeName string, actionName string, transaction *sqlx.Tx) (Action, error) {
-	var a ActionRow
+	var actionRow ActionRow
+	var action Action
 
 	cacheKey := fmt.Sprintf("action-%v-%v", typeName, actionName)
 	if OlricCache != nil {
 		value, err := OlricCache.Get(cacheKey)
 		if err == nil && value != nil {
-			return value.(Action), err
+
+			cachedActionRow := value.(ActionRow)
+
+			err = json.Unmarshal([]byte(cachedActionRow.ActionSchema), &action)
+			CheckErr(err, "failed to unmarshal infields")
+
+			if err == nil {
+				action.Name = cachedActionRow.Name
+				action.Label = cachedActionRow.Name
+				action.ReferenceId = cachedActionRow.ReferenceId
+				action.OnType = cachedActionRow.OnType
+				return action, err
+			}
 		}
 	}
-
-	var action Action
 
 	sql, args, err := statementbuilder.Squirrel.Select(
 		goqu.I("a.action_name").As("name"),
@@ -101,7 +112,7 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		}
 	}(stmt)
 
-	err = stmt.QueryRowx(args...).StructScan(&a)
+	err = stmt.QueryRowx(args...).StructScan(&actionRow)
 
 	if err != nil {
 		log.Errorf("sql: %v", sql)
@@ -109,21 +120,21 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		return action, err
 	}
 
-	err = json.Unmarshal([]byte(a.ActionSchema), &action)
+	err = json.Unmarshal([]byte(actionRow.ActionSchema), &action)
 	CheckErr(err, "failed to unmarshal infields")
 
-	action.Name = a.Name
-	action.Label = a.Name
-	action.ReferenceId = a.ReferenceId
-	action.OnType = a.OnType
+	action.Name = actionRow.Name
+	action.Label = actionRow.Name
+	action.ReferenceId = actionRow.ReferenceId
+	action.OnType = actionRow.OnType
 
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(cacheKey, action, 1*time.Minute, olric.IfNotFound)
+
+		err = OlricCache.PutIfEx(cacheKey, actionRow, 1*time.Minute, olric.IfNotFound)
 		CheckErr(err, "Failed to set action in olric cache")
 	}
 
-
-		return action, err
+	return action, nil
 }
 
 // GetActionsByType Gets the list of all actions defined on type `typeName`
@@ -548,7 +559,8 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		_ = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
+		err = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
+		CheckErr(err, "[2099] Failed to set object permission id in olric cache")
 	}
 	return perm
 }
@@ -612,7 +624,8 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		_ = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
+		err = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
+		CheckErr(err, "[617] Failed to set id to reference id in olric cache")
 	}
 	return perm
 }
@@ -796,7 +809,6 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 	return s
 
 }
-
 
 func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64) []auth.GroupPermission {
 	s := make([]auth.GroupPermission, 0)
@@ -1399,7 +1411,6 @@ func (dbResource *DbResource) GetRowsByWhereClause(typeName string, includedRela
 		}
 	}(stmt1)
 
-
 	rows, err := stmt1.Queryx(q...)
 
 	if err != nil {
@@ -1412,7 +1423,6 @@ func (dbResource *DbResource) GetRowsByWhereClause(typeName string, includedRela
 		}
 	}(rows)
 
-
 	start := time.Now()
 	m1, include, err := dbResource.ResultToArrayOfMap(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations)
 	duration := time.Since(start)
@@ -1423,7 +1433,6 @@ func (dbResource *DbResource) GetRowsByWhereClause(typeName string, includedRela
 }
 
 /////////////
-
 
 func (dbResource *DbResource) GetRowsByWhereClauseWithTransaction(typeName string,
 	includedRelations map[string]bool, transaction *sqlx.Tx, where ...goqu.Ex) (
@@ -1452,7 +1461,6 @@ func (dbResource *DbResource) GetRowsByWhereClauseWithTransaction(typeName strin
 		}
 	}(stmt1)
 
-
 	rows, err := stmt1.Queryx(q...)
 
 	if err != nil {
@@ -1465,7 +1473,6 @@ func (dbResource *DbResource) GetRowsByWhereClauseWithTransaction(typeName strin
 		}
 	}(rows)
 
-
 	start := time.Now()
 	m1, include, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
 	duration := time.Since(start)
@@ -1474,7 +1481,6 @@ func (dbResource *DbResource) GetRowsByWhereClauseWithTransaction(typeName strin
 	return m1, include, err
 
 }
-
 
 func (dbResource *DbResource) GetRandomRow(typeName string, count uint) ([]map[string]interface{}, error) {
 
@@ -2024,10 +2030,11 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64) (map[stri
 		return nil, err
 	}
 	if OlricCache != nil {
-		OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
+		err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
+		CheckErr(err, "Failed to set id to object in olric cache")
 	}
 
-	return m[0], err
+	return m[0], nil
 }
 
 func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id int64, transaction *sqlx.Tx) (map[string]interface{}, error) {
@@ -2056,7 +2063,6 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 		}
 	}(stmt1)
 
-
 	row, err := stmt1.Queryx(q...)
 
 	if err != nil {
@@ -2068,7 +2074,6 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 			log.Errorf("[1029] failed to close result after value scan in defer")
 		}
 	}(row)
-
 
 	start := time.Now()
 	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
@@ -2094,10 +2099,11 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 		return nil, fmt.Errorf("no such item %v-%v", typeName, id)
 	}
 	if OlricCache != nil {
-		OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
+		err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
+		CheckErr(err, "[2099] Failed to set id to object in olric cache")
 	}
 
-	return m[0], err
+	return m[0], nil
 }
 
 func (dbResource *DbResource) TruncateTable(typeName string, skipRelations bool) error {
@@ -2481,21 +2487,27 @@ func (dbResource *DbResource) GetReferenceIdToObject(typeName string, referenceI
 		return nil, fmt.Errorf("no such object 1161 [%v][%v]", typeName, referenceId)
 	}
 	if OlricCache != nil {
-		_ = OlricCache.PutIfEx(k, results[0], 5*time.Second, olric.IfNotFound)
+		err = OlricCache.PutIfEx(k, results[0], 5*time.Second, olric.IfNotFound)
+		CheckErr(err, "[2489] Failed to set reference id to object id in olric cache")
 	}
 
-	return results[0], err
+	return results[0], nil
 }
 
 // GetReferenceIdToObject Loads an object of type `typeName` using a reference_id
 // Used internally, can be used by actions
 func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName string, referenceId string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
-	k := fmt.Sprintf("rio-%v-%v", typeName, referenceId)
+	cacheKey := fmt.Sprintf("rio-%v-%v", typeName, referenceId)
 	if OlricCache != nil {
-		v, err := OlricCache.Get(k)
-		if err == nil {
-			return v.(map[string]interface{}), nil
+		cachedMarshaledValue, err := OlricCache.Get(cacheKey)
+		if err == nil && cachedMarshaledValue != nil {
+			var cachedResult map[string]interface{}
+			err := json.Unmarshal(cachedMarshaledValue.([]byte), &cachedResult)
+			CheckErr(err, "Failed to unmarshal cached result")
+			if err == nil {
+				return cachedResult, nil
+			}
 		}
 	}
 
@@ -2543,7 +2555,12 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 		return nil, fmt.Errorf("no such object 1161 [%v][%v]", typeName, referenceId)
 	}
 	if OlricCache != nil {
-		_ = OlricCache.PutIfEx(k, results[0], 5*time.Second, olric.IfNotFound)
+		marshalledResult, err := json.Marshal(results[0])
+		CheckErr(err, "Failed to marshal result to cache")
+		if err == nil {
+			err = OlricCache.PutIfEx(cacheKey, marshalledResult, 5*time.Second, olric.IfNotFound)
+			CheckErr(err, "[2552] Failed to set reference id to object id in olric cache")
+		}
 	}
 
 	return results[0], err
@@ -2850,7 +2867,8 @@ func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64) (str
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+		err = OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+		CheckErr(err, "[2856] Failed to set if to reference id in olric cache")
 	}
 	return str, err
 
@@ -2888,7 +2906,8 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+		err = OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+		CheckErr(err, "[2897] Failed to set id to reference id in olric cache")
 	}
 	return str, err
 
