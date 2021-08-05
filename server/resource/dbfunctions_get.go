@@ -170,10 +170,10 @@ type CloudStore struct {
 	Permission      PermissionInstance
 }
 
-func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
+func (dbResource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 	var cloudStores []CloudStore
 
-	rows, err := resource.GetAllObjects("cloud_store")
+	rows, err := dbResource.GetAllObjects("cloud_store")
 	if err != nil {
 		return cloudStores, err
 	}
@@ -198,7 +198,7 @@ func (resource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		cloudStore.Id = id
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
 		CheckErr(err, "Failed to parse permission as int in loading stores")
-		cloudStore.Permission = resource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId)
+		cloudStore.Permission = dbResource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId)
 
 		if storeMap[USER_ACCOUNT_ID_COLUMN] != nil {
 			cloudStore.UserId = storeMap[USER_ACCOUNT_ID_COLUMN].(string)
@@ -255,10 +255,10 @@ type Integration struct {
 	Enable                      bool
 }
 
-func (resource *DbResource) GetActiveIntegrations() ([]Integration, error) {
+func (dbResource *DbResource) GetActiveIntegrations() ([]Integration, error) {
 
 	integrations := make([]Integration, 0)
-	rows, _, err := resource.GetRowsByWhereClause("integration", nil)
+	rows, _, err := dbResource.GetRowsByWhereClause("integration", nil)
 	if err == nil && len(rows) > 0 {
 
 		for _, row := range rows {
@@ -297,10 +297,10 @@ func (resource *DbResource) GetActiveIntegrations() ([]Integration, error) {
 
 }
 
-func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error) {
+func (dbResource *DbResource) GetCloudStoreByName(name string) (CloudStore, error) {
 	var cloudStore CloudStore
 
-	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"name": name})
+	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"name": name})
 
 	if err == nil && len(rows) > 0 {
 		row := rows[0]
@@ -323,10 +323,10 @@ func (resource *DbResource) GetCloudStoreByName(name string) (CloudStore, error)
 
 }
 
-func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (CloudStore, error) {
+func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, transaction *sqlx.Tx) (CloudStore, error) {
 	var cloudStore CloudStore
 
-	rows, _, err := resource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"reference_id": referenceID})
+	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("cloud_store", nil, transaction, goqu.Ex{"name": name})
 
 	if err == nil && len(rows) > 0 {
 		row := rows[0]
@@ -349,7 +349,33 @@ func (resource *DbResource) GetCloudStoreByReferenceId(referenceID string) (Clou
 
 }
 
-func (resource *DbResource) GetAllTasks() ([]Task, error) {
+func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID string) (CloudStore, error) {
+	var cloudStore CloudStore
+
+	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"reference_id": referenceID})
+
+	if err == nil && len(rows) > 0 {
+		row := rows[0]
+		cloudStore.Name = row["name"].(string)
+		cloudStore.StoreType = row["store_type"].(string)
+		params := make(map[string]interface{})
+		if row["store_parameters"] != nil && row["store_parameters"].(string) != "" {
+			err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
+			CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
+		}
+		cloudStore.StoreParameters = params
+		cloudStore.RootPath = row["root_path"].(string)
+		cloudStore.StoreProvider = row["store_provider"].(string)
+		if row["oauth_token_id"] != nil {
+			cloudStore.OAutoTokenId = row["oauth_token_id"].(string)
+		}
+	}
+
+	return cloudStore, nil
+
+}
+
+func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
 
 	var tasks []Task
 
@@ -361,7 +387,7 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 		return tasks, err
 	}
 
-	stmt1, err := resource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[359] failed to prepare statment: %v", err)
 		return nil, err
@@ -402,7 +428,7 @@ func (resource *DbResource) GetAllTasks() ([]Task, error) {
 
 }
 
-func (resource *DbResource) GetAllSites() ([]SubSite, error) {
+func (dbResource *DbResource) GetAllSites() ([]SubSite, error) {
 
 	var sites []SubSite
 
@@ -417,7 +443,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		return sites, err
 	}
 
-	stmt1, err := resource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[424] failed to prepare statment: %v", err)
 		return nil, err
@@ -444,7 +470,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 		if err != nil {
 			log.Errorf("Failed to scan site from db to struct: %v", err)
 		}
-		perm := resource.GetObjectPermissionByReferenceId("site", site.ReferenceId)
+		perm := dbResource.GetObjectPermissionByReferenceId("site", site.ReferenceId)
 		site.Permission = perm
 		sites = append(sites, site)
 	}
@@ -453,7 +479,7 @@ func (resource *DbResource) GetAllSites() ([]SubSite, error) {
 
 }
 
-func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Config, error) {
+func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Config, error) {
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
@@ -470,7 +496,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 		return nil, err
 	}
 
-	stmt1, err := resource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[478] failed to prepare statment: %v", err)
 		return nil, err
@@ -488,7 +514,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 		return nil, err
 	}
 
-	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	if err != nil {
 		return nil, err
 	}
@@ -513,7 +539,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Conf
 
 }
 
-func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId string) (*oauth2.Config, error) {
+func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId string) (*oauth2.Config, error) {
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
@@ -529,7 +555,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 		return nil, err
 	}
 
-	stmt1, err := resource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[538] failed to prepare statment: %v", err)
 		return nil, err
@@ -547,7 +573,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 		return nil, err
 	}
 
-	encryptionSecret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	if err != nil {
 		return nil, err
 	}
@@ -572,7 +598,7 @@ func (resource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId st
 
 }
 
-func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oauth2.Token, *oauth2.Config, error) {
+func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oauth2.Token, *oauth2.Config, error) {
 	oauthConf := &oauth2.Config{}
 
 	var access_token, refresh_token, token_type string
@@ -585,7 +611,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 		return nil, oauthConf, err
 	}
 
-	stmt1, err := resource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[594] failed to prepare statment: %v", err)
 		return nil, nil, err
@@ -603,7 +629,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 		return nil, oauthConf, err
 	}
 
-	secret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)
@@ -618,7 +644,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 	token.Expiry = time.Unix(expires_in, 0)
 
 	// check validity and refresh if required
-	oauthConf, err = resource.GetOauthDescriptionByTokenReferenceId(referenceId)
+	oauthConf, err = dbResource.GetOauthDescriptionByTokenReferenceId(referenceId)
 	if err != nil {
 		log.Printf("Failed to get oauth token configuration for token refresh: %v", err)
 	} else {
@@ -632,7 +658,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 				return nil, oauthConf, err
 			} else {
 				token = *refreshedToken
-				err = resource.UpdateAccessTokenByTokenReferenceId(referenceId, refreshedToken.AccessToken, refreshedToken.Expiry.Unix())
+				err = dbResource.UpdateAccessTokenByTokenReferenceId(referenceId, refreshedToken.AccessToken, refreshedToken.Expiry.Unix())
 				CheckErr(err, "failed to update access token")
 			}
 		}
@@ -642,7 +668,7 @@ func (resource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oau
 
 }
 
-func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
+func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 
 	var access_token, refresh_token, token_type string
 	var expires_in int64
@@ -654,7 +680,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	stmt1, err := resource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[663] failed to prepare statment: %v", err)
 		return nil, err
@@ -672,7 +698,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	secret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)
@@ -690,7 +716,7 @@ func (resource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 
 }
 
-func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, error) {
+func (dbResource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, error) {
 
 	var access_token, refresh_token, token_type string
 	var expires_in int64
@@ -702,7 +728,7 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 		return nil, err
 	}
 
-	stmt1, err := resource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection.Preparex(s)
 	if err != nil {
 		log.Errorf("[711] failed to prepare statment: %v", err)
 		return nil, err
@@ -720,7 +746,7 @@ func (resource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, err
 		return nil, err
 	}
 
-	secret, err := resource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)

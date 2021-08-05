@@ -108,7 +108,7 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 	return conf, nil
 }
 
-func (dr *DbResource) StoreToken(token *oauth2.Token,
+func (dbResource *DbResource) StoreToken(token *oauth2.Token,
 	token_type string, oauth_connect_reference_id string,
 	user_reference_id string, transaction *sqlx.Tx) error {
 	storeToken := make(map[string]interface{})
@@ -123,7 +123,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token,
 	storeToken["token_type"] = token_type
 	storeToken["oauth_connect_id"] = oauth_connect_reference_id
 
-	userId, err := dr.GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, user_reference_id)
+	userId, err := dbResource.GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, user_reference_id)
 
 	if err != nil {
 		return err
@@ -146,7 +146,7 @@ func (dr *DbResource) StoreToken(token *oauth2.Token,
 
 	model := api2go.NewApi2GoModelWithData("oauth_token", nil, int64(auth.DEFAULT_PERMISSION), nil, storeToken)
 
-	_, err = dr.Cruds["oauth_token"].CreateWithoutFilter(model, req, transaction)
+	_, err = dbResource.Cruds["oauth_token"].CreateWithoutFilter(model, req, transaction)
 	return err
 }
 

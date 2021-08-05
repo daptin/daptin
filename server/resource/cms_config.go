@@ -164,23 +164,23 @@ var ConfigTableStructure = TableInfo{
 	},
 }
 
-func (c *ConfigStore) SetDefaultEnv(env string) {
-	c.defaultEnv = env
+func (configStore *ConfigStore) SetDefaultEnv(env string) {
+	configStore.defaultEnv = env
 }
 
-func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, error) {
+func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string) (string, error) {
 	var val interface{}
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
 		Where(goqu.Ex{"name": key}).
 		Where(goqu.Ex{"configstate": "enabled"}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).
 		Where(goqu.Ex{"configtype": configtype}).ToSQL()
 
 	CheckErr(err, "[180] failed to create config select query")
 
-	stmt1, err := c.db.Preparex(s)
+	stmt1, err := configStore.db.Preparex(s)
 	if err != nil {
 		log.Errorf("[185] failed to prepare statment: %v", err)
 		return "", err
@@ -200,19 +200,51 @@ func (c *ConfigStore) GetConfigValueFor(key string, configtype string) (string, 
 	return fmt.Sprintf("%s", val), err
 }
 
-func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, error) {
+func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, configtype string, transaction *sqlx.Tx) (string, error) {
+	var val interface{}
+
+	s, v, err := statementbuilder.Squirrel.Select("value").
+		From(settingsTableName).
+		Where(goqu.Ex{"name": key}).
+		Where(goqu.Ex{"configstate": "enabled"}).
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).
+		Where(goqu.Ex{"configtype": configtype}).ToSQL()
+
+	CheckErr(err, "[180] failed to create config select query")
+
+	stmt1, err := transaction.Preparex(s)
+	if err != nil {
+		log.Errorf("[185] failed to prepare statment: %v", err)
+		return "", err
+	}
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	err = stmt1.QueryRowx(v...).Scan(&val)
+	if err != nil {
+		log.Printf("No config value set for [%v]: %v", key, err)
+		return "", err
+	}
+	return fmt.Sprintf("%s", val), err
+}
+
+func (configStore *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, error) {
 	var val int
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
 		Where(goqu.Ex{"name": key}).
 		Where(goqu.Ex{"configstate": "enabled"}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).
 		Where(goqu.Ex{"configtype": configtype}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
-	stmt1, err := c.db.Preparex(s)
+	stmt1, err := configStore.db.Preparex(s)
 	if err != nil {
 		log.Errorf("[209] failed to prepare statment: %v", err)
 		return 0, err
@@ -231,18 +263,18 @@ func (c *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, 
 	return val, err
 }
 
-func (c *ConfigStore) GetAllConfig() map[string]string {
+func (configStore *ConfigStore) GetAllConfig() map[string]string {
 
 	s, v, err := statementbuilder.Squirrel.Select("name", "value").
 		From(settingsTableName).
 		Where(goqu.Ex{"configstate": "enabled"}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
 	retMap := make(map[string]string)
 
-	stmt1, err := c.db.Preparex(s)
+	stmt1, err := configStore.db.Preparex(s)
 	if err != nil {
 		log.Errorf("[233] failed to prepare statment: %v", err)
 		return nil
@@ -275,21 +307,21 @@ func (c *ConfigStore) GetAllConfig() map[string]string {
 
 }
 
-func (c *ConfigStore) DeleteConfigValueFor(key string, configtype string) error {
+func (configStore *ConfigStore) DeleteConfigValueFor(key string, configtype string) error {
 
 	s, v, err := statementbuilder.Squirrel.Delete(settingsTableName).
 		Where(goqu.Ex{"name": key}).
 		Where(goqu.Ex{"configtype": configtype}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config insert query")
 
-	_, err = c.db.Exec(s, v...)
+	_, err = configStore.db.Exec(s, v...)
 	CheckErr(err, "Failed to execute config insert query")
 	return err
 }
 
-func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype string) error {
+func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype string) error {
 	var previousValue string
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
@@ -297,11 +329,11 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 		Where(goqu.Ex{"name": key}).
 		Where(goqu.Ex{"configstate": "enabled"}).
 		Where(goqu.Ex{"configtype": configtype}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
-	stmt1, err := c.db.Preparex(s)
+	stmt1, err := configStore.db.Preparex(s)
 	if err != nil {
 		log.Errorf("[280] failed to prepare statment: %v", err)
 		return nil
@@ -320,11 +352,11 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 		// row doesnt exist
 		s, v, err := statementbuilder.Squirrel.
 			Insert(settingsTableName).Cols("name", "configstate", "configtype", "configenv", "value").
-			Vals([]interface{}{key, "enabled", configtype, c.defaultEnv, val}).ToSQL()
+			Vals([]interface{}{key, "enabled", configtype, configStore.defaultEnv, val}).ToSQL()
 
 		CheckErr(err, "failed to create config insert query")
 
-		_, err = c.db.Exec(s, v...)
+		_, err = configStore.db.Exec(s, v...)
 		CheckErr(err, "Failed to execute config insert query")
 		return err
 	} else {
@@ -340,18 +372,18 @@ func (c *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype 
 			Where(goqu.Ex{"name": key}).
 			Where(goqu.Ex{"configstate": "enabled"}).
 			Where(goqu.Ex{"configtype": configtype}).
-			Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+			Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
-		_, err = c.db.Exec(s, v...)
+		_, err = configStore.db.Exec(s, v...)
 		CheckErr(err, "Failed to execute config update query")
 		return err
 	}
 
 }
 
-func (c *ConfigStore) SetConfigValueForWithTransaction(key string, val interface{}, configtype string, transaction *sqlx.Tx) error {
+func (configStore *ConfigStore) SetConfigValueForWithTransaction(key string, val interface{}, configtype string, transaction *sqlx.Tx) error {
 	var previousValue string
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
@@ -359,7 +391,7 @@ func (c *ConfigStore) SetConfigValueForWithTransaction(key string, val interface
 		Where(goqu.Ex{"name": key}).
 		Where(goqu.Ex{"configstate": "enabled"}).
 		Where(goqu.Ex{"configtype": configtype}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
@@ -382,7 +414,7 @@ func (c *ConfigStore) SetConfigValueForWithTransaction(key string, val interface
 		// row doesnt exist
 		s, v, err := statementbuilder.Squirrel.
 			Insert(settingsTableName).Cols("name", "configstate", "configtype", "configenv", "value").
-			Vals([]interface{}{key, "enabled", configtype, c.defaultEnv, val}).ToSQL()
+			Vals([]interface{}{key, "enabled", configtype, configStore.defaultEnv, val}).ToSQL()
 
 		CheckErr(err, "failed to create config insert query")
 
@@ -402,7 +434,7 @@ func (c *ConfigStore) SetConfigValueForWithTransaction(key string, val interface
 			Where(goqu.Ex{"name": key}).
 			Where(goqu.Ex{"configstate": "enabled"}).
 			Where(goqu.Ex{"configtype": configtype}).
-			Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+			Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
@@ -413,7 +445,7 @@ func (c *ConfigStore) SetConfigValueForWithTransaction(key string, val interface
 
 }
 
-func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype string) error {
+func (configStore *ConfigStore) SetConfigIntValueFor(key string, val int, configtype string) error {
 	var previousValue string
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
@@ -421,11 +453,11 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 		Where(goqu.Ex{"name": key}).
 		Where(goqu.Ex{"configstate": "enabled"}).
 		Where(goqu.Ex{"configtype": configtype}).
-		Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+		Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 	CheckErr(err, "Failed to create config select query")
 
-	stmt1, err := c.db.Preparex(s)
+	stmt1, err := configStore.db.Preparex(s)
 	if err != nil {
 		log.Errorf("[336] failed to prepare statment: %v", err)
 		return nil
@@ -444,11 +476,11 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 		// row doesnt exist
 		s, v, err := statementbuilder.Squirrel.Insert(settingsTableName).
 			Cols("name", "configstate", "configtype", "configenv", "value").
-			Vals([]interface{}{key, "enabled", configtype, c.defaultEnv, val}).ToSQL()
+			Vals([]interface{}{key, "enabled", configtype, configStore.defaultEnv, val}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
-		_, err = c.db.Exec(s, v...)
+		_, err = configStore.db.Exec(s, v...)
 		CheckErr(err, "Failed to execute config insert query")
 		return err
 	} else {
@@ -464,11 +496,11 @@ func (c *ConfigStore) SetConfigIntValueFor(key string, val int, configtype strin
 			Where(goqu.Ex{"name": key}).
 			Where(goqu.Ex{"configstate": "enabled"}).
 			Where(goqu.Ex{"configtype": configtype}).
-			Where(goqu.Ex{"configenv": c.defaultEnv}).ToSQL()
+			Where(goqu.Ex{"configenv": configStore.defaultEnv}).ToSQL()
 
 		CheckErr(err, "Failed to create config insert query")
 
-		_, err = c.db.Exec(s, v...)
+		_, err = configStore.db.Exec(s, v...)
 		CheckErr(err, "Failed to execute config update query")
 		return err
 	}

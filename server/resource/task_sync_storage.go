@@ -14,11 +14,11 @@ import (
 	"strings"
 )
 
-func (res *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tempDirectoryPath string) error {
+func (dbResource *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tempDirectoryPath string) error {
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
-	token, oauthConf, err := res.GetTokenByTokenReferenceId(oauthTokenId)
+	token, oauthConf, err := dbResource.GetTokenByTokenReferenceId(oauthTokenId)
 	if err != nil && cloudStore.StoreProvider != "local" {
 		CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
 		log.Printf("Storage syncing will fail without valid token: OAuthTokenID [%v]", oauthTokenId)

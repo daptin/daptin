@@ -122,7 +122,7 @@ func (dts *DefaultTaskScheduler) AddTask(task Task) error {
 	return err
 }
 
-func (db *DbResource) NewActiveTaskInstance(task Task) *ActiveTaskInstance {
+func (dbResource *DbResource) NewActiveTaskInstance(task Task) *ActiveTaskInstance {
 	return &ActiveTaskInstance{
 		Task: task,
 		ActionRequest: ActionRequest{
@@ -130,6 +130,6 @@ func (db *DbResource) NewActiveTaskInstance(task Task) *ActiveTaskInstance {
 			Type:       task.EntityName,
 			Attributes: task.Attributes,
 		},
-		DbResource: db,
+		DbResource: dbResource,
 	}
 }
