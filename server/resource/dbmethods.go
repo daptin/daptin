@@ -2913,7 +2913,7 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 
 }
 
-// Lookup an string reference id and return a internal integer id of an object of type `typeName`
+// GetReferenceIdToId Lookup an string reference id and return a internal integer id of an object of type `typeName`
 func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId string) (int64, error) {
 
 	var id int64
@@ -2938,7 +2938,7 @@ func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId st
 
 }
 
-// Lookup an string reference id and return a internal integer id of an object of type `typeName`
+// GetReferenceIdToIdWithTransaction Looks up an string reference id and return a internal integer id of an object of type `typeName`
 func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, updateTransaction *sqlx.Tx) (int64, error) {
 
 	var id int64

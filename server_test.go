@@ -459,7 +459,7 @@ func runTests(t *testing.T) error {
 	}
 	t.Logf("Token: %v", token)
 
-	resp, err = requestClient.Get(baseAddress+"/aggregate/world?group=date(created_at)&column=date(created_at),count(*)", authTokenHeader)
+	resp, err = requestClient.Get(baseAddress+"/aggregate/world?group=is_hidden&column=is_hidden,count(*)", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
 		t.Fail()

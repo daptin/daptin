@@ -601,7 +601,14 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					//params.Args["query"].(string)
 					//aggReq.Query =
 
-					aggResponse, err := resources[table.TableName].DataStats(aggReq)
+					transaction, err := resources[table.TableName].Connection.Beginx()
+					if err != nil {
+						log.Errorf("failed to create transaction for aggregate query: %v", err)
+						return nil, err
+					}
+					aggResponse, err := resources[table.TableName].DataStats(aggReq, transaction)
+					transaction.Rollback()
+
 					return aggResponse.Data, err
 				}
 			}(table),

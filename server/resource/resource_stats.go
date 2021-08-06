@@ -109,7 +109,7 @@ func ColumnToInterfaceArray(s []column) []interface{} {
 	return r
 }
 
-func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData, error) {
+func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sqlx.Tx) (*AggregateData, error) {
 
 	sort.Strings(req.GroupBy)
 	projections := req.ProjectColumn
@@ -174,7 +174,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 				rightValParts := strings.Split(rightVal.(string), "@")
 				entityName := rightValParts[0]
 				entityReferenceId := rightValParts[1]
-				entityId, err := dbResource.GetReferenceIdToId(entityName, entityReferenceId)
+				entityId, err := GetReferenceIdToIdWithTransaction(entityName, entityReferenceId, transaction)
 				if err != nil {
 					return nil, fmt.Errorf("referenced entity in where clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
 				}
@@ -264,9 +264,11 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 	for _, join := range req.Join {
 		joinParts := strings.Split(join, "@")
 
-		joinClauseList := strings.Split(joinParts[1], "&")
+		joinTable := joinParts[0]
+		joinClause := strings.Join(joinParts[1:], "@")
+		joinClauseList := strings.Split(joinClause, "&")
 
-		joinedTables = append(joinedTables, joinParts[0])
+		joinedTables = append(joinedTables, joinTable)
 
 		joinWhereList := make([]goqu.Expression, 0)
 		for _, joinClause := range joinClauseList {
@@ -280,7 +282,18 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 				if BeginsWith(parts[3], "\"") || BeginsWith(parts[3], "'") {
 					rightValue, _ = strconv.Unquote(parts[3])
 				} else {
-					rightValue = goqu.I(parts[3])
+					if strings.Index(parts[3], "@") > -1 {
+						rightValParts := strings.Split(parts[3], "@")
+						entityName := rightValParts[0]
+						entityReferenceId := rightValParts[1]
+						entityId, err := GetReferenceIdToIdWithTransaction(entityName, entityReferenceId, transaction)
+						if err != nil {
+							return nil, fmt.Errorf("referenced entity in join clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
+						}
+						rightValue = entityId
+					} else {
+						rightValue = goqu.I(parts[3])
+					}
 				}
 
 				joinWhere, err := BuildWhereClause(parts[1], parts[2], rightValue)
@@ -291,7 +304,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 			}
 
 		}
-		builder = builder.LeftJoin(goqu.T(joinParts[0]), goqu.On(joinWhereList...))
+		builder = builder.LeftJoin(goqu.T(joinTable), goqu.On(joinWhereList...))
 
 	}
 
@@ -305,7 +318,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest) (*AggregateData,
 
 	stmt1, err := dbResource.Connection.Preparex(sql)
 	if err != nil {
-		log.Errorf("[291] failed to prepare statment: %v", err)
+		log.Errorf("[291] failed to prepare statment [%v]: %v", sql, err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {

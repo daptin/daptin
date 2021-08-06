@@ -53,6 +53,12 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 			sessionUser = user.(*auth.SessionUser)
 		}
 
+		if cruds[typeName] == nil {
+			log.Errorf("entity not found for aggregation: %v", typeName)
+			c.AbortWithStatus(404)
+			return
+		}
+
 		perm := cruds[typeName].GetObjectPermissionByWhereClause("world", "table_name", typeName)
 		if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			log.Infof("user [%v] not allowed to execute aggregate on [%v]", sessionUser, typeName)
@@ -73,7 +79,14 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		aggReq.TimeTo = c.Query("timeto")
 		aggReq.Order = c.QueryArray("order")
 
-		aggResponse, err := cruds[typeName].DataStats(aggReq)
+
+		transaction, err := cruds[typeName].Connection.Beginx()
+		if err != nil {
+			log.Errorf("failed to create new transaction: %v", err)
+			return
+		}
+		aggResponse, err := cruds[typeName].DataStats(aggReq, transaction)
+		transaction.Rollback()
 
 		if err != nil {
 			log.Errorf("failed to execute aggregation [%v] - %v", typeName, err)
