@@ -44,7 +44,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/gzip v0.0.2
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
-	github.com/gin-gonic/gin v1.6.3
+	github.com/gin-gonic/gin v1.7.0
 	github.com/go-acme/lego/v3 v3.2.0
 	github.com/go-gota/gota v0.0.0-20190402185630-1058f871be31
 	github.com/go-playground/locales v0.13.0
