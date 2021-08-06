@@ -27,13 +27,11 @@ require (
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
 	github.com/artpar/ydb v0.1.26
-	//github.com/artpar/ydb v0.0.5
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.3.6
 	github.com/corpix/uarand v0.0.0 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/doug-martin/goqu/v9 v9.11.0
@@ -81,7 +79,6 @@ require (
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/json-iterator/go v1.1.10
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/karalabe/xgo v0.0.0-20191115072854-c5ccff8648a7 // indirect
 	github.com/kniren/gota v0.10.1 // indirect
 	github.com/koofr/go-httpclient v0.0.0-20200420163713-93aa7c75b348 // indirect
 	github.com/koofr/go-koofrclient v0.0.0-20190724113126-8e5366da203a // indirect
