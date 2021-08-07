@@ -314,7 +314,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		return nil, err
 	}
 
-	log.Printf("Aggregation query: %v", sql)
+	log.Infof("Aggregation query: %v", sql)
 
 	stmt1, err := dbResource.Connection.Preparex(sql)
 	if err != nil {

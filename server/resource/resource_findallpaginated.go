@@ -907,14 +907,14 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		queryArgs = append(queryArgs, sessionUser.UserId)
 
 		queryBuilder = queryBuilder.Where(goqu.L(fmt.Sprintf("(((%s.permission & 2) = 2)"+
-			groupParameters+" ) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
+			groupParameters+" or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))",
 			tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName(),
 		), queryArgs...))
 
 		countQueryBuilder = countQueryBuilder.Where(goqu.L(fmt.Sprintf("("+
-			"((%s.permission & 2) = 2)  "+groupParameters+" ) or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256)",
+			"((%s.permission & 2) = 2)  "+groupParameters+"  or "+
+			"(%s.user_account_id = ? and (%s.permission & 256) = 256))",
 			tableModel.GetTableName(),
 			tableModel.GetTableName(), tableModel.GetTableName()),
 			queryArgs...))
@@ -1052,7 +1052,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		start = time.Now()
 		stmt, err = transaction.Preparex(sql1)
 		duration = time.Since(start)
-		log.Tracef( "[TIMING] IdQuery Select Preparex: %v", duration)
+		log.Tracef("[TIMING] IdQuery Select Preparex: %v", duration)
 
 		if err != nil {
 			log.Printf("Findall select query sql 762: %v == %v", sql1, args)
