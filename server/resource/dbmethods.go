@@ -2867,8 +2867,8 @@ func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64) (str
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
-		CheckErr(err, "[2856] Failed to set if to reference id in olric cache")
+		err1 := OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+		CheckErr(err1, "[2856] Failed to set if to reference id in olric cache")
 	}
 	return str, err
 
