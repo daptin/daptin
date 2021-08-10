@@ -587,7 +587,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
 					}
 
-					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(),  updateTransaction, goqu.Ex{
+					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,
 						rel.GetSubjectName(): subjectId,
 					})
@@ -783,23 +783,23 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						return nil, err
 					}
 
-					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
+					joinRow, err := GetObjectByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,
 						rel.GetSubjectName(): subjectId,
 					})
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
+					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, joinRow[0])
 
+					modl.SetAttributes(item)
 					pr := &http.Request{
 						Method: "POST",
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
 
-					if len(joinReferenceId) > 0 {
+					if len(joinRow) > 0 {
 
 						if hasColumns {
-							log.Infof("[804] Updating existing join table row properties: %v", joinReferenceId[0])
-							modl.Data["reference_id"] = joinReferenceId[0]
+							log.Infof("[804] Updating existing join table row properties: %v", joinRow[0]["reference_id"])
 							pr.Method = "PATCH"
 
 							_, err = dbResource.Cruds[rel.GetJoinTableName()].UpdateWithTransaction(modl, api2go.Request{
@@ -810,7 +810,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 								return nil, err
 							}
 						} else {
-							log.Infof("Relation already present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinReferenceId[0])
+							log.Infof("Relation already present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinRow[0]["reference_id"])
 						}
 
 					} else {
