@@ -33,6 +33,7 @@ type DbResource struct {
 	configStore        *ConfigStore
 	contextCache       map[string]interface{}
 	defaultGroups      []int64
+	defaultRelations   map[string][]int64
 	contextLock        sync.RWMutex
 	OlricDb            *olric.Olric
 	AssetFolderCache   map[string]map[string]*AssetFolderCache
@@ -144,6 +145,10 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 	if err != nil {
 		return nil, err
 	}
+	defaultRelationsIds, err := RelationNamesToIds(db, tableInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	//log.Printf("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
@@ -156,12 +161,81 @@ func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
 		tableInfo:          &tableInfo,
 		OlricDb:            olricDb,
 		defaultGroups:      defaultgroupIds,
+		defaultRelations:   defaultRelationsIds,
 		contextCache:       make(map[string]interface{}),
 		contextLock:        sync.RWMutex{},
 		AssetFolderCache:   make(map[string]map[string]*AssetFolderCache),
 		SubsiteFolderCache: make(map[string]*AssetFolderCache),
 	}, nil
 }
+
+func RelationNamesToIds(db database.DatabaseConnection, tableInfo TableInfo) (map[string][]int64, error) {
+
+	if len(tableInfo.DefaultRelations) == 0 {
+		return map[string][]int64{}, nil
+	}
+
+	result := make(map[string][]int64)
+
+	for relationName, values := range tableInfo.DefaultRelations {
+
+		relation, found := tableInfo.GetRelationByName(relationName)
+		if !found {
+			log.Infof("Relation [%v] not found on table [%v] skipping default values", relationName, tableInfo.TableName)
+			continue
+		}
+
+		typeName := relation.Subject
+
+		if tableInfo.TableName == relation.Subject {
+			typeName = relation.Object
+		}
+
+		query, args, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": goqu.Op{"in": values}}).ToSQL()
+		CheckErr(err, fmt.Sprintf("[165] failed to convert %v names to ids", relationName))
+		query = db.Rebind(query)
+
+		stmt1, err := db.Preparex(query)
+		if err != nil {
+			log.Errorf("[170] failed to prepare statment: %v", err)
+			return map[string][]int64{}, fmt.Errorf("failed to prepare statment to convert usergroup name to ids for default usergroup")
+		}
+		defer func(stmt1 *sqlx.Stmt) {
+			err := stmt1.Close()
+			if err != nil {
+				log.Errorf("failed to close prepared statement: %v", err)
+			}
+		}(stmt1)
+
+		rows, err := stmt1.Queryx(args...)
+		CheckErr(err, "[176] failed to query user-group names to ids")
+		if err != nil {
+			return nil, err
+		}
+
+		retInt := make([]int64, 0)
+
+		for rows.Next() {
+			//iVal, _ := strconv.ParseInt(val, 10, 64)
+			var id int64
+			err := rows.Scan(&id)
+			if err != nil {
+				log.Errorf("[185] failed to scan value after query: %v", err)
+				return nil, err
+			}
+			retInt = append(retInt, id)
+		}
+		err = rows.Close()
+		CheckErr(err, "[206] Failed to close rows after default group name conversation")
+
+		result[relationName] = retInt
+
+	}
+
+	return result, nil
+
+}
+
 func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) ([]int64, error) {
 
 	if len(groupsName) == 0 {

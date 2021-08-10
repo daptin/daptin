@@ -464,6 +464,48 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	//log.Printf("Created entry: %v", createdResource)
 
+	for relationName, values := range dbResource.defaultRelations {
+
+		if len(values) == 0 {
+			continue
+		}
+
+
+		relation, found := dbResource.tableInfo.GetRelationByName(relationName)
+		if !found {
+			log.Warnf("Relations [%v] not found on table [%v]", relationName, dbResource.tableInfo)
+			continue
+		}
+
+		typeName := relation.Subject
+		columnName := relation.SubjectName
+
+		if dbResource.tableInfo.TableName == relation.Subject {
+			typeName = relation.Object
+			columnName = relation.ObjectName
+		}
+
+
+		insertSql := statementbuilder.Squirrel.
+			Insert(relation.GetJoinTableName()).
+			Cols(dbResource.model.GetName()+"_id", columnName, "reference_id", "permission")
+
+		for _, valueToAdd := range values {
+			u, _ := uuid.NewV4()
+			nuuid := u.String()
+
+			belogsToUserGroupSql, q, _ := insertSql.Vals([]interface{}{createdResource["id"], valueToAdd, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
+
+			log.Infof("Add new object [%v][%v] to [%v] [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], typeName, valueToAdd)
+			_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
+
+			if err != nil {
+				log.Errorf("Failed to insert add [%v] [%v] relation for [%v]: %v", relationName, valueToAdd, dbResource.model.GetName(), err)
+				return nil, err
+			}
+		}
+	}
+
 	groupsToAdd := dbResource.defaultGroups
 	for _, groupId := range groupsToAdd {
 		u, _ := uuid.NewV4()

@@ -2996,13 +2996,14 @@ type TableInfo struct {
 	Relations              []api2go.TableRelation
 	IsTopLevel             bool `db:"is_top_level"`
 	Permission             auth.AuthPermission
-	UserId                 uint64   `db:"user_account_id"`
-	IsHidden               bool     `db:"is_hidden"`
-	IsJoinTable            bool     `db:"is_join_table"`
-	IsStateTrackingEnabled bool     `db:"is_state_tracking_enabled"`
-	IsAuditEnabled         bool     `db:"is_audit_enabled"`
-	TranslationsEnabled    bool     `db:"translation_enabled"`
-	DefaultGroups          []string `db:"default_groups"`
+	UserId                 uint64              `db:"user_account_id"`
+	IsHidden               bool                `db:"is_hidden"`
+	IsJoinTable            bool                `db:"is_join_table"`
+	IsStateTrackingEnabled bool                `db:"is_state_tracking_enabled"`
+	IsAuditEnabled         bool                `db:"is_audit_enabled"`
+	TranslationsEnabled    bool                `db:"translation_enabled"`
+	DefaultGroups          []string            `db:"default_groups"`
+	DefaultRelations       map[string][]string `db:"default_relations"`
 	Validations            []ColumnTag
 	Conformations          []ColumnTag
 	DefaultOrder           string
@@ -3015,6 +3016,17 @@ func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
 	for _, col := range ti.Columns {
 		if col.Name == name || col.ColumnName == name {
 			return &col, true
+		}
+	}
+
+	return nil, false
+
+}
+func (ti *TableInfo) GetRelationByName(name string) (*api2go.TableRelation, bool) {
+
+	for _, relation := range ti.Relations {
+		if relation.SubjectName == name || relation.ObjectName == name {
+			return &relation, true
 		}
 	}
 

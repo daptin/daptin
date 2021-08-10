@@ -981,6 +981,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 				}
 			}
 			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
+			existableTable.DefaultRelations = tableBeingModified.DefaultRelations
 			existableTable.DefaultOrder = tableBeingModified.DefaultOrder
 			existableTable.Conformations = tableBeingModified.Conformations
 			existableTable.Validations = tableBeingModified.Validations
