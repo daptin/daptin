@@ -305,18 +305,13 @@ func (dbResource *DbResource) IsAdmin(userReferenceId string) bool {
 
 }
 func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
-	start := time.Now()
 	key := "admin." + userReferenceId
 	if OlricCache != nil {
 		value, err := OlricCache.Get(key)
 		if err == nil && value != nil {
 			if value.(bool) == true {
-				duration := time.Since(start)
-				log.Tracef("[TIMING] IsAdmin Cached[true]: %v", duration)
 				return true
 			} else {
-				duration := time.Since(start)
-				log.Tracef("[TIMING] IsAdmin Cached[false]: %v", duration)
 				return false
 			}
 		}
@@ -328,14 +323,10 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 			err := OlricCache.PutIfEx(key, true, 5*time.Minute, olric.IfNotFound)
 			CheckErr(err, "[320] Failed to set admin id value in olric cache")
 		}
-		duration := time.Since(start)
-		log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
 		return true
 	}
 	err := OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
 	CheckErr(err, "[327] Failed to set admin id value in olric cache")
-	duration := time.Since(start)
-	log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
 	return false
 
 }

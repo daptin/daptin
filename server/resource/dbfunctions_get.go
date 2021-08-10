@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
@@ -297,34 +298,19 @@ func (dbResource *DbResource) GetActiveIntegrations() ([]Integration, error) {
 
 }
 
-func (dbResource *DbResource) GetCloudStoreByName(name string) (CloudStore, error) {
-	var cloudStore CloudStore
-
-	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"name": name})
-
-	if err == nil && len(rows) > 0 {
-		row := rows[0]
-		cloudStore.Name = row["name"].(string)
-		cloudStore.StoreType = row["store_type"].(string)
-		params := make(map[string]interface{})
-		if row["store_parameters"] != nil && row["store_parameters"].(string) != "" {
-			err = json.Unmarshal([]byte(row["store_parameters"].(string)), &params)
-			CheckInfo(err, "Failed to unmarshal store provider parameters [%v]", cloudStore.Name)
-		}
-		cloudStore.StoreParameters = params
-		cloudStore.RootPath = row["root_path"].(string)
-		cloudStore.StoreProvider = row["store_provider"].(string)
-		if row["oauth_token_id"] != nil {
-			cloudStore.OAutoTokenId = row["oauth_token_id"].(string)
-		}
-	}
-
-	return cloudStore, nil
-
-}
-
 func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, transaction *sqlx.Tx) (CloudStore, error) {
 	var cloudStore CloudStore
+
+	cacheKey := fmt.Sprintf("store-%v", name)
+	if OlricCache != nil {
+		cachedValue, err := OlricCache.Get(cacheKey)
+		if err == nil && cachedValue != "" {
+			err = json.Unmarshal(cachedValue.([]byte), cloudStore)
+			if err == nil {
+				return cloudStore, nil
+			}
+		}
+	}
 
 	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("cloud_store", nil, transaction, goqu.Ex{"name": name})
 
@@ -342,6 +328,12 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 		cloudStore.StoreProvider = row["store_provider"].(string)
 		if row["oauth_token_id"] != nil {
 			cloudStore.OAutoTokenId = row["oauth_token_id"].(string)
+		}
+
+		if OlricCache != nil {
+			asJson := toJson(cloudStore)
+			cachePutErr := OlricCache.PutIfEx(cacheKey, asJson, 10*time.Minute, olric.IfNotFound)
+			CheckErr(cachePutErr, "failed to store cloud store in cache")
 		}
 	}
 

@@ -70,7 +70,8 @@ var (
 )
 
 // Intercept before implemetation for entity level authentication check
-func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
+func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api2go.Request,
+	results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	//var err error
 	//log.Printf("context: %v", context.GetAll(req.PlainRequest))

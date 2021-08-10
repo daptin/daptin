@@ -301,6 +301,16 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 // Return a NoPermissionToAnyone if no such object exist
 func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId string, transaction *sqlx.Tx) PermissionInstance {
 
+	cacheKey := fmt.Sprintf("opject-permission-%v-%v", objectType, referenceId)
+
+	if OlricCache != nil {
+
+		cachedValue, err := OlricCache.Get(cacheKey)
+		if err == nil {
+			return cachedValue.(PermissionInstance)
+		}
+	}
+
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
@@ -357,6 +367,11 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 	perm.Permission = auth.AuthPermission(resultObject["permission"].(int64))
 	if err != nil {
 		log.Errorf("Failed to scan permission 2: %v", err)
+	}
+
+	if OlricCache != nil {
+		cachePutErr := OlricCache.PutIfEx(cacheKey, perm, 30*time.Minute, olric.IfNotFound)
+		CheckErr(cachePutErr, "failed to store cloud store in cache")
 	}
 
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
@@ -572,7 +587,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 
 	cacheKey := ""
 	if OlricCache != nil {
-		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
+		cacheKey = fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue)
 		cachedPermission, err := OlricCache.Get(cacheKey)
 		if cachedPermission != nil && err == nil {
 			return cachedPermission.(PermissionInstance)
@@ -624,7 +639,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
+		err = OlricCache.PutIfEx(cacheKey, perm, 10*time.Minute, olric.IfNotFound)
 		CheckErr(err, "[617] Failed to set id to reference id in olric cache")
 	}
 	return perm
@@ -880,15 +895,25 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 
 }
 
-func GetObjectGroupsByObjectIdWithTransaction(objType string, objectId int64, transaction *sqlx.Tx) []auth.GroupPermission {
+func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64, transaction *sqlx.Tx) []auth.GroupPermission {
 	s := make([]auth.GroupPermission, 0)
 
-	refId, err := GetIdToReferenceIdWithTransaction(objType, objectId, transaction)
+	cacheKey := fmt.Sprintf("object-groups-%v-%v", objectType, objectId)
 
-	if objType == "usergroup" {
+	if OlricCache != nil {
+
+		cachedValue, err := OlricCache.Get(cacheKey)
+		if err == nil {
+			return cachedValue.([]auth.GroupPermission)
+		}
+	}
+
+	refId, err := GetIdToReferenceIdWithTransaction(objectType, objectId, transaction)
+
+	if objectType == "usergroup" {
 
 		if err != nil {
-			log.Printf("Failed to get id to reference id [%v][%v] == %v", objType, objectId, err)
+			log.Printf("Failed to get id to reference id [%v][%v] == %v", objectType, objectId, err)
 			return s
 		}
 		s = append(s, auth.GroupPermission{
@@ -906,10 +931,10 @@ func GetObjectGroupsByObjectIdWithTransaction(objType string, objectId int64, tr
 		goqu.I("uug.permission").As("permission"),
 	).From(goqu.T("usergroup").As("ug")).
 		Join(
-			goqu.T(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", objType, objType)).As("uug"),
+			goqu.T(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", objectType, objectType)).As("uug"),
 			goqu.On(goqu.Ex{"uug.usergroup_id": goqu.I("ug.id")})).
 		Where(goqu.Ex{
-			fmt.Sprintf("uug.%s_id", objType): objectId,
+			fmt.Sprintf("uug.%s_id", objectType): objectId,
 		}).ToSQL()
 
 	stmt, err := transaction.Preparex(sql)
@@ -927,7 +952,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objType string, objectId int64, tr
 	res, err := stmt.Queryx(args...)
 
 	if err != nil {
-		log.Errorf("Failed to query object group by object id 403 [%v][%v] == %v", objType, objectId, err)
+		log.Errorf("Failed to query object group by object id 403 [%v][%v] == %v", objectType, objectId, err)
 		return s
 	}
 	defer func(res *sqlx.Rows) {
@@ -946,6 +971,12 @@ func GetObjectGroupsByObjectIdWithTransaction(objType string, objectId int64, tr
 		}
 		s = append(s, g)
 	}
+
+	if OlricCache != nil {
+		cachePutErr := OlricCache.PutIfEx(cacheKey, s, 30*time.Second, olric.IfNotFound)
+		CheckErr(cachePutErr, "failed to store config value in cache [%v]", cacheKey)
+	}
+
 	return s
 
 }
@@ -1296,6 +1327,16 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 	}
 	rowType := row["__type"].(string)
 
+	cacheKey := fmt.Sprintf("row-permission-%v-%v", rowType, refId)
+
+	if OlricCache != nil {
+
+		cachedValue, err := OlricCache.Get(cacheKey)
+		if err == nil {
+			return cachedValue.(PermissionInstance)
+		}
+	}
+
 	var perm PermissionInstance
 
 	if rowType != "usergroup" {
@@ -1382,6 +1423,12 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 		perm.Permission = pe.Permission
 	}
 	//log.Printf("Row permission: %v  ---------------- %v", perm, row)
+
+	if OlricCache != nil {
+		cachePutErr := OlricCache.PutIfEx(cacheKey, perm, 1*time.Minute, olric.IfNotFound)
+		CheckErr(cachePutErr, "failed to store object permission in cache [%v]", cacheKey)
+	}
+
 	return perm
 }
 
@@ -2498,6 +2545,8 @@ func (dbResource *DbResource) GetReferenceIdToObject(typeName string, referenceI
 // Used internally, can be used by actions
 func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName string, referenceId string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
+	// cache is converting value types from int64 -> float64
+
 	//cacheKey := fmt.Sprintf("rio-%v-%v", typeName, referenceId)
 	//if OlricCache != nil {
 	//	cachedMarshaledValue, err := OlricCache.Get(cacheKey)
@@ -2874,7 +2923,7 @@ func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64) (str
 
 }
 
-// GetIdToReferenceId Looks up an integer id and return a string reference id of an object of type `typeName`
+// GetIdToReferenceIdWithTransaction Looks up an integer id and return a string reference id of an object of type `typeName`
 func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *sqlx.Tx) (string, error) {
 
 	k := fmt.Sprintf("itr-%v-%v", typeName, id)
@@ -2906,7 +2955,7 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+		err = OlricCache.PutIfEx(k, str, 5*time.Minute, olric.IfNotFound)
 		CheckErr(err, "[2897] Failed to set id to reference id in olric cache")
 	}
 	return str, err
@@ -2915,6 +2964,16 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 
 // GetReferenceIdToId Lookup an string reference id and return a internal integer id of an object of type `typeName`
 func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId string) (int64, error) {
+
+	cacheKey := fmt.Sprintf("riti-%v-%v", typeName, referenceId)
+
+	if OlricCache != nil {
+
+		cachedValue, err := OlricCache.Get(cacheKey)
+		if err == nil {
+			return cachedValue.(int64), nil
+		}
+	}
 
 	var id int64
 	s, q, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
@@ -2934,12 +2993,28 @@ func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId st
 	}(stmt)
 
 	err = stmt.QueryRowx(q...).Scan(&id)
+
+	if OlricCache != nil {
+		cachePutErr := OlricCache.PutIfEx(cacheKey, id, 5*time.Minute, olric.IfNotFound)
+		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
+	}
+
 	return id, err
 
 }
 
-// GetReferenceIdToIdWithTransaction Looks up an string reference id and return a internal integer id of an object of type `typeName`
+// GetReferenceIdToIdWithTransaction Looks up a string reference id and return an internal integer id of an object of type `typeName`
 func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, updateTransaction *sqlx.Tx) (int64, error) {
+
+	cacheKey := fmt.Sprintf("riti-%v-%v", typeName, referenceId)
+
+	if OlricCache != nil {
+
+		cachedValue, err := OlricCache.Get(cacheKey)
+		if err == nil && cachedValue != nil && cachedValue != 0 {
+			return cachedValue.(int64), nil
+		}
+	}
 
 	var id int64
 	s, q, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
@@ -2959,6 +3034,12 @@ func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, upda
 	}(stmt)
 
 	err = stmt.QueryRowx(q...).Scan(&id)
+
+	if OlricCache != nil && err != nil {
+		cachePutErr := OlricCache.PutIfEx(cacheKey, id, 1*time.Hour, olric.IfNotFound)
+		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
+	}
+
 	return id, err
 
 }
@@ -4052,37 +4133,6 @@ func (dbResource *DbResource) ResultToArrayOfMapRaw(rows *sqlx.Rows, columnMap m
 	}
 
 	return responseArray, nil
-}
-
-// resolve a file column from data in column to actual file on a cloud store
-// returns a map containing the metadata of the file and the file contents as base64 encoded
-// can be sent to browser to invoke downloading js and data urls
-func (dbResource *DbResource) GetFileFromCloudStore(data api2go.ForeignKeyData, filesList []map[string]interface{}) (resp []map[string]interface{}, err error) {
-
-	cloudStore, err := dbResource.GetCloudStoreByName(data.Namespace)
-	if err != nil {
-		return resp, err
-	}
-
-	for _, fileItem := range filesList {
-		newFileItem := make(map[string]interface{})
-
-		for key, val := range fileItem {
-			newFileItem[key] = val
-		}
-
-		fileName := fileItem["name"].(string)
-		filePath := cloudStore.RootPath + "/" + data.KeyName + "/" + fileName
-		bytes, err := ioutil.ReadFile(filePath)
-		CheckErr(err, "Failed to read file on storage %s", filePath)
-		if err != nil {
-			continue
-		}
-		newFileItem["reference_id"] = fileItem["name"]
-		newFileItem["contents"] = base64.StdEncoding.EncodeToString(bytes)
-		resp = append(resp, newFileItem)
-	}
-	return resp, nil
 }
 
 // resolve a file column from data in column to actual file on a cloud store

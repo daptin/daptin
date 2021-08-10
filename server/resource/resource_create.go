@@ -120,7 +120,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				if valString == "" {
 					uId = nil
 				} else {
-					foreignObject, err := dbResource.GetReferenceIdToObjectWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
+					foreignObjectReferenceId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
 					if err != nil {
 						return nil, err
 					}
@@ -128,7 +128,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
 
 					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
-						uId = foreignObject["id"]
+						uId = foreignObjectReferenceId
 					} else {
 						log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, valString)
 						ok = false

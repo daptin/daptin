@@ -731,6 +731,10 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			ids, err := GetSingleColumnValueByReferenceIdWithTransaction(rel.GetSubject(), []interface{}{"id"},
 				"reference_id", queries, transaction)
 
+			if len(ids) < 1 {
+				return nil, nil, nil, false, fmt.Errorf("subject not resolved [%v][%v]", rel.GetSubject(), queries)
+			}
+
 			switch rel.Relation {
 			case "has_one":
 
@@ -1087,10 +1091,18 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 	}
 	start = time.Now()
+
+	resultCount := uint64(len(results))
+	if pageSize > resultCount {
+		total1 = resultCount
+	}  else {
 	total1, err = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
-	if err != nil {
-		return nil, nil, nil, false, err
+		if err != nil {
+			return nil, nil, nil, false, err
+		}
+
 	}
+
 	duration = time.Since(start)
 	log.Tracef("[TIMING] GetTotalCountBySelectBuilder: %v", duration)
 

@@ -92,18 +92,18 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			//err = json.Unmarshal([]byte(colData.(string)), &filesData)
 			//resource.CheckErr(err, "Failed to unmarshal file metadata")
 
-			fileToServe := ""
+			fileNameToServe := ""
 			fileType := "application/octet-stream"
 			for _, fileData := range colData.([]map[string]interface{}) {
 				//fileData := fileInterface.(map[string]interface{})
 				fileName := fileData["name"].(string)
 				if c.Query("file") == fileName || c.Query("file") == "" {
-					fileToServe = fileName
+					fileNameToServe = fileName
 
 					if fileData["path"] != nil && fileData["name"] != nil && len(fileData["path"].(string)) > 0 {
-						fileToServe = fileData["path"].(string) + "/" + fileData["name"].(string)
+						fileNameToServe = fileData["path"].(string) + "/" + fileData["name"].(string)
 					} else if fileData["name"] != nil {
-						fileToServe = fileData["name"].(string)
+						fileNameToServe = fileData["name"].(string)
 					} else {
 						log.Errorf("file name missing in metadata [%v][%v][%v]", typeName, columnName, resourceId)
 					}
@@ -113,10 +113,10 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				}
 			}
 
-			file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileToServe)
+			file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileNameToServe)
 
 			if err != nil {
-				log.Errorf("failed to get file by name [%v] => %v", fileToServe, err)
+				log.Errorf("failed to get file by name [%v] => %v", fileNameToServe, err)
 				c.AbortWithStatus(404)
 				return
 			}
@@ -460,7 +460,8 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 
 			default:
 				c.Writer.Header().Set("Content-Type", fileType)
-				c.File(cruds["world"].AssetFolderCache[typeName][columnName].LocalSyncPath + string(os.PathSeparator) + fileToServe)
+				c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", fileNameToServe))
+				c.File(cruds["world"].AssetFolderCache[typeName][columnName].LocalSyncPath + string(os.PathSeparator) + fileNameToServe)
 
 			}
 		} else if colInfo.ColumnType == "markdown" {

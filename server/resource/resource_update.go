@@ -35,8 +35,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		return nil, errors.New("invalid request")
 	}
 
-	id := data.GetID()
-	idInt, err := GetReferenceIdToIdWithTransaction(dbResource.model.GetName(), id, updateTransaction)
+	updateObjectReferenceId := data.GetID()
+	idInt, err := GetReferenceIdToIdWithTransaction(dbResource.model.GetName(), updateObjectReferenceId, updateTransaction)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	attrs := data.GetAllAsAttributes()
 
 	if !data.HasVersion() {
-		originalData, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetTableName(), id, updateTransaction)
+		originalData, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetTableName(), updateObjectReferenceId, updateTransaction)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +119,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 						valString := val.(string)
 
-						foreignObject, err := dbResource.GetReferenceIdToObjectWithTransaction(col.ForeignKeyData.Namespace, valString, updateTransaction)
+						foreignObjectId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, valString, updateTransaction)
 						if err != nil {
 							return nil, err
 						}
@@ -127,7 +127,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valString, updateTransaction)
 
 						if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
-							val = foreignObject["id"]
+							val = foreignObjectId
 						} else {
 							return nil, errors.New(fmt.Sprintf("no refer permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
 						}
@@ -408,7 +408,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			}
 			builder = builder.Set(goqu.Record(setVals))
 
-			query, vals, err := builder.Where(goqu.Ex{"reference_id": id}).Where(goqu.Ex{"version": data.GetCurrentVersion()}).ToSQL()
+			query, vals, err := builder.Where(goqu.Ex{"reference_id": updateObjectReferenceId}).Where(goqu.Ex{"version": data.GetCurrentVersion()}).ToSQL()
 			//log.Printf("Update query: %v", query)
 			if err != nil {
 				log.Errorf("Failed to create update query: %v", err)
@@ -508,11 +508,11 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		//log.Printf("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
 	}
 
-	updatedResource, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetName(), id, updateTransaction)
-	if err != nil {
-		log.Errorf("[511] Failed to select the newly created entry: %v", err)
-		return nil, err
-	}
+	//updatedResource, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetName(), updateObjectReferenceId, updateTransaction)
+	//if err != nil {
+	//	log.Errorf("[511] Failed to select the newly created entry: %v", err)
+	//	return nil, err
+	//}
 
 	for _, rel := range dbResource.model.GetRelations() {
 		relationName := rel.GetRelation()
@@ -559,7 +559,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
 					item[rel.GetObjectName()] = item["id"]
-					item[rel.GetSubjectName()] = updatedResource["reference_id"]
+					item[rel.GetSubjectName()] = updateObjectReferenceId
 					delete(item, "id")
 					delete(item, "meta")
 					delete(item, "type")
@@ -582,7 +582,13 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					}
 
 					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(string), updateTransaction)
+					if err != nil {
+						return nil, fmt.Errorf("subject not found [%v][%v]", rel.GetSubject(), item[rel.GetSubjectName()])
+					}
 					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(string), updateTransaction)
+					if err != nil {
+						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
+					}
 
 					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,
@@ -600,7 +606,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					if len(joinReferenceId) > 0 {
 
 						if hasColumns {
-							log.Infof("Updating existing join table row properties: %v", joinReferenceId[0])
+							log.Infof("[603] Updating existing join table row properties: %v", joinReferenceId[0])
 							modl.Data["reference_id"] = joinReferenceId[0]
 							pr.Method = "PATCH"
 
@@ -612,19 +618,17 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 								return nil, err
 							}
 						} else {
-							log.Infof("Relation alredy present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinReferenceId[0])
+							log.Infof("Relation already present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinReferenceId[0])
 						}
 
 					} else {
 
-						log.Infof("Creating new join table row properties: %v", rel.GetJoinTableName())
+						log.Infof("[620] Creating new join table row properties: %v", rel.GetJoinTableName())
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
-						CheckErr(err, "Failed to update and insert join table row")
+						CheckErr(err, "[624] Failed to update and insert join table row")
 						if err != nil {
-							rollbackErr := updateTransaction.Rollback()
-							CheckErr(rollbackErr, "failed to rollback")
 							return nil, err
 						}
 
@@ -644,7 +648,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			if !ok {
 				continue
 			}
-			log.Printf("Update %v on: %v", rel.String(), val)
+			log.Printf("Update %v [%v] on: %v -> %v", rel.String(), updateObjectReferenceId, rel.GetSubjectName(), val)
 
 			//var relUpdateQuery string
 			//var vars []interface{}
@@ -667,24 +671,22 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 
-					updateForeignRow := make(map[string]interface{})
+					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(string)
 
-					updateForeignRow, err = dbResource.Cruds[rel.GetSubject()].GetReferenceIdToObjectWithTransaction(rel.GetSubject(), valMap[rel.GetSubjectName()].(string), updateTransaction)
-					if err != nil {
-						log.Printf("Failed to get object by reference id: %v", err)
-						continue
+					oldRow := map[string]interface{}{
+						rel.GetObjectName(): "",
+						"reference_id":      foreignObjectReferenceId,
 					}
-					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, int64(auth.DEFAULT_PERMISSION), nil, updateForeignRow)
+
+					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, int64(auth.DEFAULT_PERMISSION), nil, oldRow)
 
 					model.SetAttributes(map[string]interface{}{
-						rel.GetObjectName(): updatedResource["reference_id"].(string),
+						rel.GetObjectName(): updateObjectReferenceId,
 					})
 
 					_, err := dbResource.Cruds[rel.GetSubject()].UpdateWithTransaction(model, req, updateTransaction)
 					if err != nil {
-						rollbackErr := updateTransaction.Rollback()
-						CheckErr(rollbackErr, "failed to rollback")
-						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updatedResource["reference_id"], err)
+						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updateObjectReferenceId, err)
 						return nil, err
 					}
 				}
@@ -723,15 +725,13 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						log.Errorf("Failed to fetch related row to update [%v] == %v", rel.GetSubject(), valMap)
 						continue
 					}
-					updateForeignRow[rel.GetSubjectName()] = updatedResource["reference_id"].(string)
+					updateForeignRow[rel.GetSubjectName()] = updateObjectReferenceId
 
 					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, int64(auth.DEFAULT_PERMISSION), nil, updateForeignRow)
 
 					_, err := dbResource.Cruds[rel.GetSubject()].UpdateWithTransaction(model, req, updateTransaction)
 					if err != nil {
-						rollbackErr := updateTransaction.Rollback()
-						CheckErr(rollbackErr, "failed to rollback")
-						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updatedResource["reference_id"], err)
+						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), updateObjectReferenceId, err)
 						return nil, err
 					}
 				}
@@ -755,7 +755,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
 					item[rel.GetSubjectName()] = item["id"]
-					item[rel.GetObjectName()] = updatedResource["reference_id"]
+					item[rel.GetObjectName()] = updateObjectReferenceId
 					delete(item, "id")
 					delete(item, "meta")
 					delete(item, "type")
@@ -801,7 +801,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					if len(joinReferenceId) > 0 {
 
 						if hasColumns {
-							log.Infof("Updating existing join table row properties: %v", joinReferenceId[0])
+							log.Infof("[804] Updating existing join table row properties: %v", joinReferenceId[0])
 							modl.Data["reference_id"] = joinReferenceId[0]
 							pr.Method = "PATCH"
 
@@ -818,14 +818,12 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					} else {
 
-						log.Infof("Creating new join table row properties: %v", rel.GetJoinTableName())
+						log.Infof("[815] Creating new join table row properties: %v", rel.GetJoinTableName())
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
-						CheckErr(err, "Failed to update and insert join table row")
+						CheckErr(err, "[825] Failed to update and insert join table row")
 						if err != nil {
-							rollbackErr := updateTransaction.Rollback()
-							CheckErr(rollbackErr, "failed to rollback")
 							return nil, err
 						}
 
@@ -953,7 +951,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		}
 	}
 
-	return updatedResource, nil
+	return nil, nil
 
 }
 

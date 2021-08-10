@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
@@ -203,6 +204,15 @@ func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string)
 func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, configtype string, transaction *sqlx.Tx) (string, error) {
 	var val interface{}
 
+	cacheKey := fmt.Sprintf("config-%v-%v", configtype, key)
+
+	if OlricCache != nil {
+		cachedValue, err := OlricCache.Get(cacheKey)
+		if err == nil {
+			return cachedValue.(string), nil
+		}
+	}
+
 	s, v, err := statementbuilder.Squirrel.Select("value").
 		From(settingsTableName).
 		Where(goqu.Ex{"name": key}).
@@ -229,7 +239,14 @@ func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, con
 		log.Printf("No config value set for [%v]: %v", key, err)
 		return "", err
 	}
-	return fmt.Sprintf("%s", val), err
+	value := fmt.Sprintf("%s", val)
+
+	if OlricCache != nil {
+		cachePutErr := OlricCache.PutIfEx(cacheKey, value, 5*time.Minute, olric.IfNotFound)
+		CheckErr(cachePutErr, "failed to store config value in cache [%v]", cacheKey)
+	}
+
+	return value, err
 }
 
 func (configStore *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, error) {

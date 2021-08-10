@@ -258,51 +258,68 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	dtopicMap := make(map[string]*olric.DTopic)
 
-	yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.temp.path", "backend")
-	if err != nil {
-		yjs_temp_directory = "/tmp"
-		configStore.SetConfigValueFor("yjs.temp.path", yjs_temp_directory, "backend")
+	enableYjs, err := configStore.GetConfigValueFor("yjs.enabled", "backend")
+	if err != nil || enableYjs == "" {
+		enableYjs = "true"
+		err = configStore.SetConfigValueFor("yjs.enabled", enableYjs, "backend")
+		resource.CheckErr(err, "failed to store default value for yjs.enabled [true]")
 	}
 
-	documentProvider := ydb.NewDiskDocumentProvider(yjs_temp_directory, 10000, ydb.DocumentListener{
-		GetDocumentInitialContent: func(documentPath string) []byte {
-			log.Printf("Get initial content for document: %v", documentPath)
-			pathParts := strings.Split(documentPath, ".")
-			typeName := pathParts[0]
-			referenceId := pathParts[1]
-			columnName := pathParts[2]
+	var documentProvider ydb.DocumentProvider
+	documentProvider = nil
 
-			object, _, _ := cruds[typeName].GetSingleRowByReferenceId(typeName, referenceId, map[string]bool{
-				columnName: true,
-			})
+	if enableYjs == "true" {
+		log.Infof("YJS endpoint is enabled in config")
+		yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.temp.path", "backend")
+		if err != nil {
+			yjs_temp_directory = "/tmp"
+			configStore.SetConfigValueFor("yjs.temp.path", yjs_temp_directory, "backend")
+		}
 
-			originalFile := object[columnName]
-			if originalFile == nil {
-				return []byte{}
-			}
-			columnValueArray := originalFile.([]map[string]interface{})
+		documentProvider = ydb.NewDiskDocumentProvider(yjs_temp_directory, 10000, ydb.DocumentListener{
+			GetDocumentInitialContent: func(documentPath string) []byte {
+				log.Printf("Get initial content for document: %v", documentPath)
+				pathParts := strings.Split(documentPath, ".")
+				typeName := pathParts[0]
+				referenceId := pathParts[1]
+				columnName := pathParts[2]
 
-			fileContentsJson := []byte{}
-			for _, file := range columnValueArray {
-				if file["type"] != "x-crdt/yjs" {
-					continue
+				object, _, _ := cruds[typeName].GetSingleRowByReferenceId(typeName, referenceId, map[string]bool{
+					columnName: true,
+				})
+
+				originalFile := object[columnName]
+				if originalFile == nil {
+					return []byte{}
+				}
+				columnValueArray := originalFile.([]map[string]interface{})
+
+				fileContentsJson := []byte{}
+				for _, file := range columnValueArray {
+					if file["type"] != "x-crdt/yjs" {
+						continue
+					}
+
+					fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
+
 				}
 
-				fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
-
-			}
-
-			return fileContentsJson
-		},
-		SetDocumentInitialContent: nil,
-	})
+				return fileContentsJson
+			},
+			SetDocumentInitialContent: nil,
+		})
+	} else {
+		log.Infof("YJS endpoint is disabled in config")
+	}
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	for key := range cruds {
 		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
 		resource.CheckErr(err, "Failed to create topic for table: %v", key)
-		err = nil
+		if err != nil {
+			log.Fatalf("failed to create olric topic for table %v - %v", key, err)
+		}
 	}
 
 	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
@@ -593,101 +610,104 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds)
 
-	var ydbInstance = ydb.InitYdb(documentProvider)
+	if enableYjs == "true" {
+		var ydbInstance = ydb.InitYdb(documentProvider)
 
-	yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
+		yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
 
-	defaultRouter.GET("/yjs/:documentName", func(ginContext *gin.Context) {
+		defaultRouter.GET("/yjs/:documentName", func(ginContext *gin.Context) {
 
-		sessionUser := ginContext.Request.Context().Value("user")
-		if sessionUser == nil {
-			ginContext.AbortWithStatus(403)
-		}
-
-		yjsConnectionHandler(ginContext.Writer, ginContext.Request)
-
-	})
-
-	for typename, crud := range cruds {
-
-		for _, columnInfo := range crud.TableInfo().Columns {
-			if !BeginsWithCheck(columnInfo.ColumnType, "file.") {
-				continue
+			sessionUser := ginContext.Request.Context().Value("user")
+			if sessionUser == nil {
+				ginContext.AbortWithStatus(403)
 			}
 
-			path := fmt.Sprintf("/live/%v/:referenceId/%v/yjs", typename, columnInfo.ColumnName)
-			log.Printf("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
-			defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
+			yjsConnectionHandler(ginContext.Writer, ginContext.Request)
 
-				dtopicMap[typename].AddListener(func(message olric.DTopicMessage) {
-					eventMessage := message.Message.(resource.EventMessage)
+		})
 
-					if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
-						referenceId := eventMessage.EventData["reference_id"].(string)
+		for typename, crud := range cruds {
 
-						object, _, _ := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, map[string]bool{
-							columnInfo.ColumnName: true,
-						})
-
-						colValue := object[columnInfo.ColumnName]
-						if colValue == nil {
-							return
-						}
-						columnValueArray, ok := colValue.([]map[string]interface{})
-						if !ok {
-							log.Warnf("value is not of type array - %v", colValue)
-							return
-						}
-
-						fileContentsJson := []byte{}
-						for _, file := range columnValueArray {
-							if file["type"] != "x-crdt/yjs" {
-								continue
-							}
-							fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
-						}
-
-						documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
-						document := documentProvider.GetDocument(ydb.YjsRoomName(documentName))
-						if document != nil {
-							document.SetInitialContent(fileContentsJson)
-						}
-
-					}
-
-				})
-
-				return func(ginContext *gin.Context) {
-
-					sessionUser := ginContext.Request.Context().Value("user")
-					if sessionUser == nil {
-						ginContext.AbortWithStatus(403)
-						return
-					}
-					user := sessionUser.(*auth.SessionUser)
-
-					referenceId := ginContext.Param("referenceId")
-
-					object, _, err := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, nil)
-					if err != nil {
-						ginContext.AbortWithStatus(404)
-						return
-					}
-
-					objectPermission := cruds[typename].GetRowPermission(object)
-
-					if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups) {
-						ginContext.AbortWithStatus(401)
-						return
-					}
-
-					roomName := fmt.Sprintf("%v%v%v%v%v", typename, ".", referenceId, ".", columnInfo.ColumnName)
-					ginContext.Request = ginContext.Request.WithContext(context.WithValue(ginContext.Request.Context(), "roomname", roomName))
-
-					yjsConnectionHandler(ginContext.Writer, ginContext.Request)
-
+			for _, columnInfo := range crud.TableInfo().Columns {
+				if !BeginsWithCheck(columnInfo.ColumnType, "file.") {
+					continue
 				}
-			}(typename, columnInfo))
+
+				path := fmt.Sprintf("/live/%v/:referenceId/%v/yjs", typename, columnInfo.ColumnName)
+				log.Printf("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
+				defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
+
+					dtopicMap[typename].AddListener(func(message olric.DTopicMessage) {
+						eventMessage := message.Message.(resource.EventMessage)
+
+						if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
+							referenceId := eventMessage.EventData["reference_id"].(string)
+
+							object, _, _ := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, map[string]bool{
+								columnInfo.ColumnName: true,
+							})
+
+							colValue := object[columnInfo.ColumnName]
+							if colValue == nil {
+								return
+							}
+							columnValueArray, ok := colValue.([]map[string]interface{})
+							if !ok {
+								log.Warnf("value is not of type array - %v", colValue)
+								return
+							}
+
+							fileContentsJson := []byte{}
+							for _, file := range columnValueArray {
+								if file["type"] != "x-crdt/yjs" {
+									continue
+								}
+								fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
+							}
+
+							documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
+							document := documentProvider.GetDocument(ydb.YjsRoomName(documentName))
+							if document != nil {
+								document.SetInitialContent(fileContentsJson)
+							}
+
+						}
+
+					})
+
+					return func(ginContext *gin.Context) {
+
+						sessionUser := ginContext.Request.Context().Value("user")
+						if sessionUser == nil {
+							ginContext.AbortWithStatus(403)
+							return
+						}
+						user := sessionUser.(*auth.SessionUser)
+
+						referenceId := ginContext.Param("referenceId")
+
+						object, _, err := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, nil)
+						if err != nil {
+							ginContext.AbortWithStatus(404)
+							return
+						}
+
+						objectPermission := cruds[typename].GetRowPermission(object)
+
+						if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups) {
+							ginContext.AbortWithStatus(401)
+							return
+						}
+
+						roomName := fmt.Sprintf("%v%v%v%v%v", typename, ".", referenceId, ".", columnInfo.ColumnName)
+						ginContext.Request = ginContext.Request.WithContext(context.WithValue(ginContext.Request.Context(), "roomname", roomName))
+
+						yjsConnectionHandler(ginContext.Writer, ginContext.Request)
+
+					}
+				}(typename, columnInfo))
+
+			}
 
 		}
 

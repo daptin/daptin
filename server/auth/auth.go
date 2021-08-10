@@ -231,7 +231,9 @@ type CachedUserAccount struct {
 var LocalUserCacheLock = sync.Mutex{}
 var olricCache *olric.DMap
 
-func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter, doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
+func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter,
+	doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
+
 	okToContinue = true
 	abortRequest = false
 
@@ -439,7 +441,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//log.Errorf("cache user account auth [%v] -> %v", len(strJ), strJ)
 					repeatCheck, err := olricCache.Get(email)
 					if err != nil || repeatCheck == nil {
-						err = olricCache.PutIfEx(email, *sessionUser, 2*time.Minute, olric.IfNotFound)
+						err = olricCache.PutIfEx(email, *sessionUser, 10*time.Minute, olric.IfNotFound)
 						CheckErr(err, "failed to put user in cache %s", email)
 					}
 					//}

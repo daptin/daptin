@@ -198,7 +198,12 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	updateEventHandler := resource.NewUpdateEventHandler(cruds, dtopicMap)
 	deleteEventHandler := resource.NewDeleteEventHandler(cruds, dtopicMap)
 
-	yhsHandler := resource.NewYJSHandlerMiddleware(documentProvider)
+	var yhsHandler resource.DatabaseRequestInterceptor
+	yhsHandler = nil
+
+	if documentProvider != nil {
+		yhsHandler = resource.NewYJSHandlerMiddleware(documentProvider)
+	}
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
@@ -239,14 +244,25 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		exchangeMiddleware,
 	}
 
-	ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
-		tablePermissionChecker,
-		objectPermissionChecker,
-		dataValidationMiddleware,
-		yhsHandler,
-		updateEventHandler,
-		exchangeMiddleware,
+	if yhsHandler != nil {
+		ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
+			tablePermissionChecker,
+			objectPermissionChecker,
+			dataValidationMiddleware,
+			yhsHandler,
+			updateEventHandler,
+			exchangeMiddleware,
+		}
+	} else {
+		ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
+			tablePermissionChecker,
+			objectPermissionChecker,
+			dataValidationMiddleware,
+			updateEventHandler,
+			exchangeMiddleware,
+		}
 	}
+
 	ms.AfterUpdate = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,

@@ -17,6 +17,7 @@ import (
 // Possible Responder success status code 200
 func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
 
+
 	if referenceId == "mine" && dbResource.tableInfo.TableName == "user_account" {
 		//log.Debugf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
@@ -158,7 +159,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "failed to commit")
 
-	delete(data, "id")
+	//delete(data, "id")
 
 	infos := dbResource.model.GetColumns()
 	var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
