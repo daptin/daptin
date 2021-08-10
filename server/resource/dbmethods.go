@@ -3035,7 +3035,7 @@ func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, upda
 
 	err = stmt.QueryRowx(q...).Scan(&id)
 
-	if OlricCache != nil && err != nil {
+	if OlricCache != nil && err == nil {
 		cachePutErr := OlricCache.PutIfEx(cacheKey, id, 1*time.Hour, olric.IfNotFound)
 		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
 	}
