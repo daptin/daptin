@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"github.com/buraksezer/olric"
 	"github.com/jmoiron/sqlx"
 	"strconv"
 	"strings"
@@ -98,6 +99,15 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 		return 0, nil
 	}
 
+	queryHash := GetMD5HashString(s)
+	cacheKey := fmt.Sprintf("count-%v", queryHash)
+	if OlricCache != nil {
+		cachedCount, err := OlricCache.Get(cacheKey)
+		if err == nil && cachedCount != 0 {
+			return cachedCount.(uint64), nil
+		}
+	}
+
 	var count uint64
 
 	start := time.Now()
@@ -126,6 +136,11 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 		return 0, err
 	}
 	//log.Printf("Count: [%v] %v", dr.model.GetTableName(), count)
+
+	if OlricCache != nil {
+		OlricCache.PutIfEx(cacheKey, count, 3*time.Second, olric.IfNotFound)
+	}
+
 	return count, nil
 }
 
@@ -1095,8 +1110,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	resultCount := uint64(len(results))
 	if pageSize > resultCount {
 		total1 = resultCount
-	}  else {
-	total1, err = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
+	} else {
+		total1, err = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
 		if err != nil {
 			return nil, nil, nil, false, err
 		}
