@@ -590,7 +590,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
 					}
 
-					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
+					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(),  updateTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,
 						rel.GetSubjectName(): subjectId,
 					})
@@ -951,7 +951,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		}
 	}
 
-	return nil, nil
+	return data.GetAllAsAttributes(), nil
 
 }
 
