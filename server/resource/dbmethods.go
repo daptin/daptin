@@ -1938,6 +1938,12 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 
 	stmt1, err := dbResource.Connection.Preparex(s)
 
+
+	if err != nil {
+		log.Errorf("[1106] failed to prepare statment - [%v]: %v", s, err)
+		return nil, err
+	}
+
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1945,12 +1951,14 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 		}
 	}(stmt1)
 
+
+	row, err := stmt1.Queryx(q...)
+
+
 	if err != nil {
-		log.Errorf("[1106] failed to prepare statment - [%v]: %v", s, err)
 		return nil, err
 	}
 
-	row, err := stmt1.Queryx(q...)
 	defer func(row *sqlx.Rows) {
 		err := row.Close()
 		if err != nil {
@@ -1958,9 +1966,6 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 		}
 	}(row)
 
-	if err != nil {
-		return nil, err
-	}
 
 	start := time.Now()
 	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil)
@@ -2148,7 +2153,7 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 	}
 	if OlricCache != nil {
 		err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
-		CheckErr(err, "[2099] Failed to set id to object in olric cache")
+		//CheckErr(err, "[2099] Failed to set id to object in olric cache")
 	}
 
 	return m[0], nil

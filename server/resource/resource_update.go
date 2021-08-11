@@ -864,7 +864,10 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 		}
 	}
-	data.SetAttributes(attrs)
+
+	for key, val := range attrs {
+		data.Data[key] = val
+	}
 	//
 
 	for relationName, deleteRelations := range data.DeleteIncludes {
