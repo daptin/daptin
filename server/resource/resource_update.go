@@ -36,9 +36,15 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	}
 
 	updateObjectReferenceId := data.GetID()
-	idInt, err := GetReferenceIdToIdWithTransaction(dbResource.model.GetName(), updateObjectReferenceId, updateTransaction)
-	if err != nil {
-		return nil, err
+
+	var err error
+	idInt := data.GetColumnOriginalValue("id")
+
+	if idInt != nil {
+		idInt, err = GetReferenceIdToIdWithTransaction(dbResource.model.GetName(), updateObjectReferenceId, updateTransaction)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	user := req.PlainRequest.Context().Value("user")
@@ -623,7 +629,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					} else {
 
-						log.Infof("[620] Creating new join table row properties: %v", rel.GetJoinTableName())
+						log.Infof("[620] Creating new join table row properties: %v -> %v", rel.GetJoinTableName(), modl.Data)
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
@@ -666,7 +672,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					if ok {
 						valMapList = MapArrayToInterfaceArray(valMap)
 					} else {
-						log.Warnf("invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+						log.Warnf("[669] invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
 					}
 				}
 
@@ -716,7 +722,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					if ok {
 						valMapList = MapArrayToInterfaceArray(valMap)
 					} else {
-						log.Warnf("invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+						log.Warnf("[719] invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
 					}
 				}
 
@@ -753,7 +759,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					if ok {
 						values = MapArrayToInterfaceArray(valMap)
 					} else {
-						log.Warnf("invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+						log.Warnf("[756] invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
 					}
 				}
 
@@ -786,7 +792,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(string), updateTransaction)
 					if err != nil {
-						return nil, err
+						return nil, fmt.Errorf("subject not found [%v][%v]", rel.GetSubject(), item[rel.GetSubjectName()])
 					}
 					objectId := data.Data["id"]
 					if err != nil {
@@ -798,12 +804,18 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						rel.GetSubjectName(): subjectId,
 					})
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, joinRow[0])
+					var modl api2go.Api2GoModel
+					if err != nil || len(joinRow) < 1 {
+						modl = api2go.NewApi2GoModel(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil)
+					} else {
+						modl = api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, joinRow[0])
+					}
 
 					modl.SetAttributes(item)
 					pr := &http.Request{
 						Method: "POST",
 					}
+
 					pr = pr.WithContext(req.PlainRequest.Context())
 
 					if len(joinRow) > 0 {
@@ -825,7 +837,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					} else {
 
-						log.Infof("[815] Creating new join table row properties: %v", rel.GetJoinTableName())
+						log.Infof("[815] Creating new join table row properties: %v - %v", rel.GetJoinTableName(), modl.Data)
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
@@ -891,7 +903,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				otherObjectId, err := GetReferenceIdToIdWithTransaction(referencedTypeName, deleteId, updateTransaction)
 
 				if err != nil {
-					log.Errorf("Referenced object not found: %v", err)
+					log.Errorf("referenced object not found: [%v][%v] - %v", referencedTypeName, deleteId, err)
 					continue
 				}
 

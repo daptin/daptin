@@ -3,6 +3,7 @@ package resource
 import (
 	"crypto/md5"
 	"encoding/base64"
+	"net/http"
 	"strconv"
 
 	"github.com/artpar/api2go"
@@ -51,7 +52,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	dataToInsert := make(map[string]interface{})
 	u, _ := uuid.NewV4()
-	newUuid := u.String()
+	newObjectReferenceId := u.String()
 
 	var colsList []interface{}
 	var valsList []interface{}
@@ -98,7 +99,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		if col.ColumnName == "reference_id" {
 			s := val.(string)
 			if len(s) > 0 {
-				newUuid = s
+				newObjectReferenceId = s
 			} else {
 				continue
 			}
@@ -122,7 +123,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				} else {
 					foreignObjectReferenceId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
 					if err != nil {
-						return nil, err
+						return nil, fmt.Errorf("foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, valString)
 					}
 
 					foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valString, createTransaction)
@@ -388,7 +389,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	if !InArray(colsList, "reference_id") {
 		colsList = append(colsList, "reference_id")
-		valsList = append(valsList, newUuid)
+		valsList = append(valsList, newObjectReferenceId)
 	}
 	languagePreferences := make([]string, 0)
 	if dbResource.tableInfo.TranslationsEnabled {
@@ -428,7 +429,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		//log.Errorf("%v", vals)
 		return nil, err
 	}
-	createdResource, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetName(), newUuid, createTransaction)
+	createdResource, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetName(), newObjectReferenceId, createTransaction)
 
 	if err != nil {
 		log.Errorf("[453] Failed to select the newly created entry: %v", err)
@@ -562,35 +563,347 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	}
 
-	for _, rel := range dbResource.tableInfo.Relations {
-		if rel.Relation == "has_one" && rel.Object == dbResource.tableInfo.TableName {
-			log.Printf("Updating foreign key column [%s] in table %s => %v", rel.ObjectName, rel.SubjectName, createdResource["id"])
+	for _, rel := range dbResource.model.GetRelations() {
+		relationName := rel.GetRelation()
 
-			foreignObjectId, ok := attrs[rel.SubjectName]
-			if !ok || foreignObjectId == nil {
+		//log.Printf("Check relation in Update: %v", rel.String())
+		if rel.GetSubject() == dbResource.model.GetName() {
+
+			if relationName == "belongs_to" || relationName == "has_one" {
 				continue
 			}
 
-			updateRelatedTable, args, err := statementbuilder.Squirrel.Update(rel.Subject).Set(goqu.Record{
-				rel.ObjectName: createdResource["id"],
-			}).Where(
-				goqu.Ex{
-					"reference_id": foreignObjectId,
-				}).ToSQL()
-
-			if err != nil {
-				log.Printf("Failed to create update foreign key sql: %s", err)
-				return nil, err
+			val11, ok := attrs[rel.GetObjectName()]
+			if !ok {
+				continue
+			}
+			returnList := make([]string, 0)
+			var valueList []interface{}
+			valueListMap, ok := val11.([]map[string]interface{})
+			if ok {
+				valueList = MapArrayToInterfaceArray(valueListMap)
+			} else {
+				valueList, ok = val11.([]interface{})
+				if !ok {
+					log.Warnf("invalue value for column [%v]", rel.GetObjectName())
+					continue
+				}
 			}
 
-			_, err = createTransaction.Exec(updateRelatedTable, args...)
-
-			if err != nil {
-				log.Printf("Zero rows were affected: %v", err)
+			if len(valueList) < 1 {
+				attrs[rel.GetObjectName()] = returnList
+				continue
 			}
+
+			//log.Printf("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
+
+			switch relationName {
+			case "has_one":
+			case "belongs_to":
+				break
+
+			case "has_many_and_belongs_to_many":
+				fallthrough
+			case "has_many":
+
+				for _, itemInterface := range valueList {
+					item := itemInterface.(map[string]interface{})
+					//obj := make(map[string]interface{})
+					item[rel.GetObjectName()] = item["id"]
+					returnList = append(returnList, item["id"].(string))
+					item[rel.GetSubjectName()] = newObjectReferenceId
+					delete(item, "id")
+					delete(item, "meta")
+					delete(item, "type")
+					delete(item, "reference_id")
+
+					attributes, ok := item["attributes"]
+					hasColumns := false
+					if ok {
+						attributesMap, mapOk := attributes.(map[string]interface{})
+						if mapOk {
+							for key, val := range attributesMap {
+								if val == nil || key == "reference_id" {
+									continue
+								}
+								item[key] = val
+								hasColumns = true
+							}
+						}
+						delete(item, "attributes")
+					}
+
+					subjectId := data.GetColumnOriginalValue("id")
+					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(string), createTransaction)
+					if err != nil {
+						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
+					}
+
+					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(), createTransaction, goqu.Ex{
+						rel.GetObjectName():  objectId,
+						rel.GetSubjectName(): subjectId,
+					})
+					CheckErr(err, "join row not found")
+
+					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
+
+					pr := &http.Request{
+						Method: "POST",
+					}
+					pr = pr.WithContext(req.PlainRequest.Context())
+
+					if len(joinReferenceId) > 0 {
+
+						if hasColumns {
+							log.Infof("[603] Updating existing join table row properties: %v", joinReferenceId[0])
+							modl.Data["reference_id"] = joinReferenceId[0]
+							pr.Method = "PATCH"
+
+							_, err = dbResource.Cruds[rel.GetJoinTableName()].UpdateWithTransaction(modl, api2go.Request{
+								PlainRequest: pr,
+							}, createTransaction)
+							if err != nil {
+								log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+								return nil, err
+							}
+						} else {
+							log.Infof("Relation already present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinReferenceId[0])
+						}
+
+					} else {
+
+						log.Infof("[620] Creating new join table row properties: %v - %v", rel.GetJoinTableName(), modl.Data)
+						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
+							PlainRequest: pr,
+						}, createTransaction)
+						CheckErr(err, "[624] Failed to update and insert join table row")
+						if err != nil {
+							return nil, err
+						}
+
+					}
+
+				}
+				attrs[rel.GetObjectName()] = returnList
+
+				break
+
+			default:
+				log.Errorf("Unknown relation: %v", relationName)
+			}
+
+		} else {
+
+			val, ok := attrs[rel.GetSubjectName()]
+			if !ok {
+				continue
+			}
+			log.Printf("Update %v [%v] on: %v -> %v", rel.String(), newObjectReferenceId, rel.GetSubjectName(), val)
+
+			returnList := make([]string, 0)
+			//var relUpdateQuery string
+			//var vars []interface{}
+			switch relationName {
+			case "has_one":
+				//intId := updatedResource["id"].(int64)
+				//log.Printf("Converted ids for [%v]: %v", rel.GetObject(), intId)
+
+				valMapList, ok := val.([]interface{})
+
+				if !ok {
+					valMap, ok := val.([]map[string]interface{})
+					if ok {
+						valMapList = MapArrayToInterfaceArray(valMap)
+					} else {
+						log.Warnf("[718] invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+					}
+				}
+
+				for _, valMapInterface := range valMapList {
+					valMap := valMapInterface.(map[string]interface{})
+
+					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(string)
+					returnList = append(returnList, foreignObjectReferenceId)
+
+					oldRow := map[string]interface{}{
+						rel.GetObjectName(): "",
+						"reference_id":      foreignObjectReferenceId,
+					}
+
+					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, int64(auth.DEFAULT_PERMISSION), nil, oldRow)
+
+					model.SetAttributes(map[string]interface{}{
+						rel.GetObjectName(): newObjectReferenceId,
+					})
+
+					_, err := dbResource.Cruds[rel.GetSubject()].UpdateWithTransaction(model, req, createTransaction)
+					if err != nil {
+						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), newObjectReferenceId, err)
+						return nil, err
+					}
+				}
+
+				//relUpdateQuery, vars, err = statementbuilder.Squirrel.Update(rel.GetSubject()).
+				//    Set(rel.GetObjectName(), intId).Where(goqu.Ex{"reference_id": val}).ToSQL()
+
+				//if err != nil {
+				//  log.Errorf("Failed to make update query: %v", err)
+				//  continue
+				//}
+
+				//log.Printf("Relation update query params: %v", vars)
+
+				break
+			case "belongs_to":
+				//intId := updatedResource["id"].(int64)
+				//log.Printf("Converted ids for [%v]: %v", rel.GetObject(), intId)
+
+				valMapList, ok := val.([]interface{})
+
+				if !ok {
+					valMap, ok := val.([]map[string]interface{})
+					if ok {
+						valMapList = MapArrayToInterfaceArray(valMap)
+					} else {
+						log.Warnf("[768] invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+					}
+				}
+
+				for _, valMapInterface := range valMapList {
+					valMap := valMapInterface.(map[string]interface{})
+					updateForeignRow := make(map[string]interface{})
+					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(string)
+					returnList = append(returnList, foreignObjectReferenceId)
+
+					updateForeignRow, err = dbResource.GetReferenceIdToObjectWithTransaction(rel.GetSubject(), foreignObjectReferenceId, createTransaction)
+					if err != nil {
+						log.Errorf("Failed to fetch related row to update [%v] == %v", rel.GetSubject(), valMap)
+						continue
+					}
+					updateForeignRow[rel.GetSubjectName()] = newObjectReferenceId
+
+					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, int64(auth.DEFAULT_PERMISSION), nil, updateForeignRow)
+
+					_, err := dbResource.Cruds[rel.GetSubject()].UpdateWithTransaction(model, req, createTransaction)
+					if err != nil {
+						log.Errorf("Failed to update [%v][%v]: %v", rel.GetObject(), newObjectReferenceId, err)
+						return nil, err
+					}
+				}
+
+				break
+
+			case "has_many_and_belongs_to_many":
+				fallthrough
+			case "has_many":
+				values, ok := val.([]interface{})
+				if !ok {
+					valMap, ok := val.([]map[string]interface{})
+					if ok {
+						values = MapArrayToInterfaceArray(valMap)
+					} else {
+						log.Warnf("[805] invalid value type for column [%v] = %v", rel.GetSubjectName(), val)
+					}
+				}
+
+				for _, itemInterface := range values {
+					item := itemInterface.(map[string]interface{})
+					//obj := make(map[string]interface{})
+					item[rel.GetSubjectName()] = item["id"]
+					returnList = append(returnList, item["id"].(string))
+					item[rel.GetObjectName()] = newObjectReferenceId
+					delete(item, "id")
+					delete(item, "meta")
+					delete(item, "type")
+					delete(item, "reference_id")
+
+					attributes, ok := item["attributes"]
+					hasColumns := false
+					if ok {
+						attributesMap, mapOk := attributes.(map[string]interface{})
+						if mapOk {
+							for key, val := range attributesMap {
+								if val == nil || key == "reference_id" {
+									continue
+								}
+								item[key] = val
+								hasColumns = true
+							}
+						}
+						delete(item, "attributes")
+					}
+
+					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(string), createTransaction)
+					if err != nil {
+						return nil, fmt.Errorf("subject not found [%v][%v]", rel.GetSubject(), item[rel.GetSubjectName()])
+					}
+					objectId := data.Data["id"]
+
+					joinRow, err := GetObjectByWhereClauseWithTransaction(rel.GetJoinTableName(), createTransaction, goqu.Ex{
+						rel.GetObjectName():  objectId,
+						rel.GetSubjectName(): subjectId,
+					})
+
+					var modl api2go.Api2GoModel
+					if err != nil || len(joinRow) < 1 {
+						modl = api2go.NewApi2GoModel(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil)
+					} else {
+						modl = api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, joinRow[0])
+					}
+
+					modl.SetAttributes(item)
+					pr := &http.Request{
+						Method: "POST",
+					}
+					pr = pr.WithContext(req.PlainRequest.Context())
+
+					if len(joinRow) > 0 {
+
+						if hasColumns {
+							log.Infof("[804] Updating existing join table row properties: %v", joinRow[0]["reference_id"])
+							pr.Method = "PATCH"
+
+							_, err = dbResource.Cruds[rel.GetJoinTableName()].UpdateWithTransaction(modl, api2go.Request{
+								PlainRequest: pr,
+							}, createTransaction)
+							if err != nil {
+								log.Errorf("Failed to insert join table data [%v] : %v", rel.GetJoinTableName(), err)
+								return nil, err
+							}
+						} else {
+							log.Infof("Relation already present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinRow[0]["reference_id"])
+						}
+
+					} else {
+
+						log.Infof("[815] Creating new join table row properties: %v - %v", rel.GetJoinTableName(), modl.Data)
+						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
+							PlainRequest: pr,
+						}, createTransaction)
+						CheckErr(err, "[825] Failed to update and insert join table row")
+						if err != nil {
+							return nil, err
+						}
+
+					}
+
+				}
+				break
+
+			default:
+				log.Errorf("Unknown relation: %v", relationName)
+			}
+
+			createdResource[rel.GetSubjectName()] = returnList
+
+			//_, err = dbResource.db.Exec(relUpdateQuery, vars...)
+			//if err != nil {
+			//  log.Errorf("Failed to execute update query for relation: %v", err)
+			//}
 
 		}
 	}
+
 
 	delete(createdResource, "id")
 	createdResource["__type"] = dbResource.model.GetName()
