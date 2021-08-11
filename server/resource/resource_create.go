@@ -35,7 +35,7 @@ import (
 
 func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (map[string]interface{}, error) {
 	//log.Printf("Create object of type [%v]", dbResource.model.GetName())
-	data := obj.(*api2go.Api2GoModel)
+	data := obj.(api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
 
@@ -470,7 +470,6 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			continue
 		}
 
-
 		relation, found := dbResource.tableInfo.GetRelationByName(relationName)
 		if !found {
 			log.Warnf("Relations [%v] not found on table [%v]", relationName, dbResource.tableInfo)
@@ -484,7 +483,6 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			typeName = relation.Object
 			columnName = relation.ObjectName
 		}
-
 
 		insertSql := statementbuilder.Squirrel.
 			Insert(relation.GetJoinTableName()).
@@ -602,7 +600,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 }
 
 func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
-	data := obj.(*api2go.Api2GoModel)
+	data := obj.(api2go.Api2GoModel)
 	//log.Printf("Create object request: [%v] %v", dbResource.model.GetTableName(), data.Data)
 
 	for _, bf := range dbResource.ms.BeforeCreate {
@@ -648,7 +646,7 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 }
 
 func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2go.Responder, error) {
-	data := obj.(*api2go.Api2GoModel)
+	data := obj.(api2go.Api2GoModel)
 	//log.Printf("Create object request: [%v] %v", dbResource.model.GetTableName(), data.Data)
 
 	transaction, err := dbResource.Connection.Beginx()

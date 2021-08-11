@@ -100,7 +100,7 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 		}
 	}
 	responder := api2go.Response{
-		Res: &api2go.Api2GoModel{
+		Res: api2go.Api2GoModel{
 			Data: map[string]interface{}{
 				"message": "Random data generated",
 			},

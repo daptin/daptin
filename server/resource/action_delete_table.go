@@ -40,7 +40,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 	}
 
 	res := table.Result()
-	tableData, ok := res.(*api2go.Api2GoModel)
+	tableData, ok := res.(api2go.Api2GoModel)
 	if !ok {
 		return nil, nil, []error{errors.New("failed to find the table")}
 	}

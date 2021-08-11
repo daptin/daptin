@@ -28,7 +28,7 @@ import (
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
 func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request, updateTransaction *sqlx.Tx) (map[string]interface{}, error) {
 
-	data, ok := obj.(*api2go.Api2GoModel)
+	data, ok := obj.(api2go.Api2GoModel)
 
 	if !ok {
 		log.Errorf("Request data is not api2go model: %v", data)
@@ -528,6 +528,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			if !ok {
 				continue
 			}
+			returnList := make([]string, 0)
 			var valueList []interface{}
 			valueListMap, ok := val11.([]map[string]interface{})
 			if ok {
@@ -541,6 +542,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			}
 
 			if len(valueList) < 1 {
+				attrs[rel.GetObjectName()] = returnList
 				continue
 			}
 
@@ -559,6 +561,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
 					item[rel.GetObjectName()] = item["id"]
+					returnList = append(returnList, item["id"].(string))
 					item[rel.GetSubjectName()] = updateObjectReferenceId
 					delete(item, "id")
 					delete(item, "meta")
@@ -581,7 +584,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						delete(item, "attributes")
 					}
 
-					subjectId := data.Data["id"]
+					subjectId := data.GetColumnOriginalValue("id")
 					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(string), updateTransaction)
 					if err != nil {
 						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
@@ -632,6 +635,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					}
 
 				}
+				attrs[rel.GetObjectName()] = returnList
 
 				break
 
@@ -647,6 +651,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			}
 			log.Printf("Update %v [%v] on: %v -> %v", rel.String(), updateObjectReferenceId, rel.GetSubjectName(), val)
 
+			returnList := make([]string, 0)
 			//var relUpdateQuery string
 			//var vars []interface{}
 			switch relationName {
@@ -669,6 +674,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					valMap := valMapInterface.(map[string]interface{})
 
 					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(string)
+					returnList = append(returnList, foreignObjectReferenceId)
 
 					oldRow := map[string]interface{}{
 						rel.GetObjectName(): "",
@@ -717,7 +723,10 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 					updateForeignRow := make(map[string]interface{})
-					updateForeignRow, err = dbResource.GetReferenceIdToObjectWithTransaction(rel.GetSubject(), valMap[rel.GetSubjectName()].(string), updateTransaction)
+					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(string)
+					returnList = append(returnList, foreignObjectReferenceId)
+
+					updateForeignRow, err = dbResource.GetReferenceIdToObjectWithTransaction(rel.GetSubject(), foreignObjectReferenceId, updateTransaction)
 					if err != nil {
 						log.Errorf("Failed to fetch related row to update [%v] == %v", rel.GetSubject(), valMap)
 						continue
@@ -752,6 +761,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
 					item[rel.GetSubjectName()] = item["id"]
+					returnList = append(returnList, item["id"].(string))
 					item[rel.GetObjectName()] = updateObjectReferenceId
 					delete(item, "id")
 					delete(item, "meta")
@@ -833,6 +843,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				log.Errorf("Unknown relation: %v", relationName)
 			}
 
+			attrs[rel.GetSubjectName()] = returnList
+
 			//_, err = dbResource.db.Exec(relUpdateQuery, vars...)
 			//if err != nil {
 			//  log.Errorf("Failed to execute update query for relation: %v", err)
@@ -840,6 +852,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 		}
 	}
+	data.SetAttributes(attrs)
 	//
 
 	for relationName, deleteRelations := range data.DeleteIncludes {
@@ -953,7 +966,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 }
 
 func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
-	data, _ := obj.(*api2go.Api2GoModel)
+	data, _ := obj.(api2go.Api2GoModel)
 	//log.Printf("Update object request: [%v][%v]", dbResource.model.GetTableName(), data.GetID())
 
 	updateRequest := &http.Request{
@@ -1031,7 +1044,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 }
 
 func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
-	data, _ := obj.(*api2go.Api2GoModel)
+	data, _ := obj.(api2go.Api2GoModel)
 	//log.Printf("Update object request: [%v][%v]", dbResource.model.GetTableName(), data.GetID())
 
 	updateRequest := &http.Request{

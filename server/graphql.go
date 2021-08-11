@@ -379,7 +379,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, fmt.Errorf("no such entity - [%v]", table.TableName)
 					}
 					items := make([]map[string]interface{}, 0)
-					results := responder.Result().([]*api2go.Api2GoModel)
+					results := responder.Result().([]api2go.Api2GoModel)
 
 					if responder.Result() == nil {
 						return results, nil
@@ -695,7 +695,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
-					return created.Result().(*api2go.Api2GoModel).Data, err
+					return created.Result().(api2go.Api2GoModel).Data, err
 				},
 			}
 
@@ -788,7 +788,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					err = transaction.Commit()
 
-					return created.Result().(*api2go.Api2GoModel).Data, err
+					return created.Result().(api2go.Api2GoModel).Data, err
 				},
 			}
 

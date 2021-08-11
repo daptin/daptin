@@ -283,7 +283,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 					return err
 				}
 
-				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
+				results := allRelatedObjects.Result().([]api2go.Api2GoModel)
 				for _, result := range results {
 					_, err := dbResource.Cruds[rel.GetSubject()].DeleteWithTransaction(result.GetID(), req, transaction)
 					CheckErr(err, "Failed to delete related object before deleting parent")
@@ -309,7 +309,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 				_, allRelatedObjects, err := dbResource.Cruds[rel.GetSubject()].PaginatedFindAllWithTransaction(subRequest, transaction)
 				CheckErr(err, "Failed to get related objects of: %v", rel.GetSubject())
 
-				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
+				results := allRelatedObjects.Result().([]api2go.Api2GoModel)
 				for _, result := range results {
 					_, err := dbResource.Cruds[rel.GetSubject()].DeleteWithTransaction(result.GetID(), req, transaction)
 					CheckErr(err, "Failed to delete related object before deleting parent")
@@ -385,7 +385,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 				_, allRelatedObjects, err := dbResource.Cruds[joinTableName].PaginatedFindAllWithTransaction(subRequest, transaction)
 				CheckErr(err, "Failed to get related objects of: %v", joinTableName)
 
-				results := allRelatedObjects.Result().([]*api2go.Api2GoModel)
+				results := allRelatedObjects.Result().([]api2go.Api2GoModel)
 				for _, result := range results {
 					_, err := dbResource.Cruds[joinTableName].DeleteWithTransaction(result.GetID(), req, transaction)
 					CheckErr(err, "Failed to delete related object before deleting parent")

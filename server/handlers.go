@@ -36,15 +36,15 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			return
 		}
 
-		objectStateMachine := objectStateMachineResponse.Result().(*api2go.Api2GoModel)
+		objectStateMachine := objectStateMachineResponse.Result().(api2go.Api2GoModel)
 
 		stateObject := objectStateMachine.Data
 
-		var subjectInstanceModel *api2go.Api2GoModel
+		var subjectInstanceModel api2go.Api2GoModel
 		//var stateMachineDescriptionInstance *api2go.Api2GoModel
 
 		for _, included := range objectStateMachine.Includes {
-			casted := included.(*api2go.Api2GoModel)
+			casted := included.(api2go.Api2GoModel)
 			if casted.GetTableName() == typename {
 				subjectInstanceModel = casted
 			}
@@ -145,7 +145,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 			return
 		}
 
-		stateMachineInstance := response.Result().(*api2go.Api2GoModel)
+		stateMachineInstance := response.Result().(api2go.Api2GoModel)
 		stateMachineInstanceProperties := stateMachineInstance.GetAttributes()
 		stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineInstance.GetAllAsAttributes())
 
@@ -159,7 +159,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 			gincontext.AbortWithError(400, err)
 			return
 		}
-		subjectInstanceModel := subjectInstanceResponse.Result().(*api2go.Api2GoModel).GetAttributes()
+		subjectInstanceModel := subjectInstanceResponse.Result().(api2go.Api2GoModel).GetAttributes()
 
 		newStateMachine := make(map[string]interface{})
 

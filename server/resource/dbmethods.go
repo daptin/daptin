@@ -1764,6 +1764,11 @@ func (dbResource *DbResource) GetSingleRowByReferenceId(typeName string, referen
 	stmt1, err := dbResource.Connection.Preparex(s)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] SingleRowSelect Preparex: %v", duration)
+	if err != nil {
+		log.Errorf("[1011] failed to prepare statment - [%v]: %v", s, err)
+		return nil, nil, err
+	}
+
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -1771,15 +1776,15 @@ func (dbResource *DbResource) GetSingleRowByReferenceId(typeName string, referen
 		}
 	}(stmt1)
 
-	if err != nil {
-		log.Errorf("[1011] failed to prepare statment - [%v]: %v", s, err)
-		return nil, nil, err
-	}
 
 	start = time.Now()
 	rows, err := stmt1.Queryx(q...)
 	duration = time.Since(start)
 	log.Tracef("[TIMING] SingleRowSelect Queryx: %v", duration)
+	if err != nil {
+		log.Errorf("[940] failed to query single row by ref id: %v", err)
+		return nil, nil, err
+	}
 
 	defer func() {
 		if rows == nil {
@@ -1790,10 +1795,6 @@ func (dbResource *DbResource) GetSingleRowByReferenceId(typeName string, referen
 		CheckErr(err, "Failed to close rows after db query [%v]", s)
 	}()
 
-	if err != nil {
-		log.Errorf("[940] failed to query single row by ref id: %v", err)
-		return nil, nil, err
-	}
 
 	start = time.Now()
 	resultRows, includeRows, err := dbResource.ResultToArrayOfMap(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations)

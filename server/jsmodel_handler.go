@@ -193,7 +193,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		if err != nil {
 			log.Printf("Failed to get world SMD: %v", err)
 		} else {
-			models := result.Result().([]*api2go.Api2GoModel)
+			models := result.Result().([]api2go.Api2GoModel)
 			for _, m := range models {
 				if m.GetAttributes()["__type"].(string) == "smd" {
 					smdList = append(smdList, m.GetAttributes())

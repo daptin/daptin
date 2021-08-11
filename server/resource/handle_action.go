@@ -191,7 +191,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	var subjectInstance *api2go.Api2GoModel
+	var subjectInstance api2go.Api2GoModel
 	var subjectInstanceMap map[string]interface{}
 
 	transaction, err := db.Connection.Beginx()
@@ -199,13 +199,12 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		return nil, err
 	}
 
-
 	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
 		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
 		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr,"failed to rollback")
+		CheckErr(rollbackErr, "failed to rollback")
 		return nil, api2go.NewHTTPError(err, "no such action", 400)
 	}
 
@@ -220,17 +219,17 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		if err != nil {
 			log.Warnf("failed to load subject for action: %v - [%v][%v]", actionRequest.Action, actionRequest.Type, subjectInstanceReferenceId)
 			rollbackErr := transaction.Rollback()
-			CheckErr(rollbackErr,"failed to rollback")
+			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(err, "failed to load subject", 400)
 		}
-		subjectInstance = referencedObject.Result().(*api2go.Api2GoModel)
+		subjectInstance = referencedObject.Result().(api2go.Api2GoModel)
 
 		subjectInstanceMap = subjectInstance.Data
 
 		if subjectInstanceMap == nil {
 			log.Warnf("subject is empty: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 			rollbackErr := transaction.Rollback()
-			CheckErr(rollbackErr,"failed to rollback")
+			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New("subject not found"), "subject not found", 400)
 		}
 
@@ -240,7 +239,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 			rollbackErr := transaction.Rollback()
-			CheckErr(rollbackErr,"failed to rollback")
+			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 		}
 	}
@@ -248,16 +247,16 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	if !isAdmin && !db.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
 		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
 		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr,"failed to rollback")
+		CheckErr(rollbackErr, "failed to rollback")
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
 	//log.Printf("Handle event for action [%v]", actionRequest.Action)
 
-	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance == nil) {
+	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance.GetID() != subjectInstanceReferenceId) {
 		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
 		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr,"failed to rollback")
+		CheckErr(rollbackErr, "failed to rollback")
 		return nil, api2go.NewHTTPError(errors.New("required reference id not provided or incorrect"), "no reference id", 400)
 	}
 
@@ -279,7 +278,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 			validationErrors := errs.(validator.ValidationErrors)
 			firstError := validationErrors[0]
 			rollbackErr := transaction.Rollback()
-			CheckErr(rollbackErr,"failed to rollback")
+			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf("invalid value for %s", validation.ColumnName)), firstError.Tag(), 400)
 		}
 	}
@@ -303,7 +302,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 	if err != nil {
 		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr,"failed to rollback")
+		CheckErr(rollbackErr, "failed to rollback")
 		return nil, api2go.NewHTTPError(err, "failed to validate fields", 400)
 	}
 
@@ -311,7 +310,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		user, err := db.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
 		if err != nil {
 			rollbackErr := transaction.Rollback()
-			CheckErr(rollbackErr,"failed to rollback")
+			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(err, "failed to identify user", 401)
 		}
 		inFieldMap["user"] = user
@@ -323,7 +322,6 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	}
 
 	responses := make([]ActionResponse, 0)
-
 
 OutFields:
 	for _, outcome := range action.OutFields {
@@ -370,9 +368,10 @@ OutFields:
 			}
 		}
 
-		var model *api2go.Api2GoModel
+		var model api2go.Api2GoModel
+		var modelPointer *api2go.Api2GoModel
 		var request api2go.Request
-		model, request, err = BuildOutcome(inFieldMap, outcome)
+		modelPointer, request, err = BuildOutcome(inFieldMap, outcome)
 		if err != nil {
 			log.Errorf("Failed to build outcome: %v", err)
 			log.Errorf("Infields - %v", toJson(inFieldMap))
@@ -383,6 +382,7 @@ OutFields:
 				return []ActionResponse{}, fmt.Errorf("invalid input for %v", outcome.Type)
 			}
 		}
+		model = *modelPointer
 
 		requestContext := req.PlainRequest.Context()
 		var adminUserReferenceId string
@@ -412,7 +412,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				createdRow := responseObjects.(api2go.Response).Result().(*api2go.Api2GoModel).Data
+				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).Data
 				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
@@ -479,7 +479,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				createdRow := responseObjects.(api2go.Response).Result().(*api2go.Api2GoModel).Data
+				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).Data
 				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
@@ -512,7 +512,7 @@ OutFields:
 					break OutFields
 				}
 				if responder != nil {
-					responseObjects = responder.Result().(*api2go.Api2GoModel).Data
+					responseObjects = responder.Result().(api2go.Api2GoModel).Data
 				}
 			}
 
@@ -562,7 +562,7 @@ OutFields:
 
 			api2goModel, ok := responseObjects.(api2go.Response)
 			if ok {
-				responseObjects = api2goModel.Result().(*api2go.Api2GoModel).Data
+				responseObjects = api2goModel.Result().(api2go.Api2GoModel).Data
 			}
 
 			singleResult, isSingleResult := responseObjects.(map[string]interface{})
@@ -761,7 +761,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 
 		log.Printf("Written all json files. Attempting restart")
 
-		return responseModel, returnRequest, nil
+		return &responseModel, returnRequest, nil
 
 	case "__download_cms_config":
 		fallthrough
@@ -774,7 +774,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		}
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
-		return model, returnRequest, nil
+		return &model, returnRequest, nil
 
 	case "action.response":
 		fallthrough
@@ -791,7 +791,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 		}
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
-		return model, returnRequest, err
+		return &model, returnRequest, err
 
 	default:
 
@@ -802,7 +802,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: outcome.Method,
 			},
 		}
-		return model, req, err
+		return &model, req, err
 
 	}
 

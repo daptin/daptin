@@ -90,11 +90,11 @@ const testSchemas = `Tables:
         ColumnType: label
       - Name: col2
         DataType: varchar(20)
-        ColumnType: label
+        ColumnType: password
         IsIndexed: true
       - Name: col3
         DataType: varchar(100)
-        ColumnType: label
+        ColumnType: encrypted
       - Name: col4
         DataType: bool
         ColumnType: truefalse
@@ -113,6 +113,15 @@ const testSchemas = `Tables:
       - Name: col9
         DataType: datetime
         ColumnType: date
+      - Name: col10
+        DataType: datetime
+        ColumnType: time
+      - Name: col11
+        DataType: datetime
+        ColumnType: datetime
+      - Name: col12
+        DataType: datetime
+        ColumnType: datetime
 Relations:
   - Subject: table3
     Object: table2
@@ -889,15 +898,18 @@ func BenchmarkCreate(m *testing.B) {
 		"data": map[string]interface{}{
 			"type": "table10cols",
 			"attributes": req.Param{
-				"col1": "value 1 value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1",
-				"col2": "value 1 value 1value 1value 1value 1value 1",
-				"col3": "value value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1 1",
-				"col4": "true",
-				"col5": 64,
-				"col6": 12731273,
-				"col7": "value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 v",
-				"col8": "{\"hello1\":\"world\",\"hello2\":\"world\",\"hello3\":\"world\",\"hello4\":\"world\",\"hello5\":\"world\",\"hello6\":\"world\"}",
-				"col9": time.Now().String(),
+				"col1":  "value 1 value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1",
+				"col2":  "value 1 value 1value 1value 1value 1value 1",
+				"col3":  "value value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1 1",
+				"col4":  "true",
+				"col5":  64,
+				"col6":  12731273,
+				"col7":  "value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 v",
+				"col8":  "{\"hello1\":\"world\",\"hello2\":\"world\",\"hello3\":\"world\",\"hello4\":\"world\",\"hello5\":\"world\",\"hello6\":\"world\"}",
+				"col9":  time.Now().String(),
+				"col10": time.Now().String(),
+				"col11": time.Now().String(),
+				"col12": time.Now().Unix(),
 			},
 		},
 	})
@@ -937,21 +949,25 @@ func BenchmarkCreate(m *testing.B) {
 			updatePayload := req.BodyJSON(map[string]interface{}{
 				"data": map[string]interface{}{
 					"type": "table10cols",
+					"id":   id,
 					"attributes": req.Param{
-						"col1": "value 1 value 1value 1valuealue 1value 1value 1value 1" + randomstring,
-						"col2": "value 1 value 1value 1value 1value 1value 1" + randomstring,
-						"col3": "value value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1 1" + randomstring,
-						"col4": "false",
-						"col5": 12333,
-						"col6": 127273,
-						"col7": "value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 v" + randomstring,
-						"col8": "{\"hello1\":\"world\",\"hello2\":\"world\",\"hello3\":\"world\",\"hello4\":\"world\",\"hello5\":\"world\",\"hello6\":\"world\"}",
-						"col9": time.Now().String(),
+						"col1":  "value 1 value 1value 1valuealue 1value 1value 1value 1" + randomstring,
+						"col2":  "value 1 value 1value 1value 1value 1value 1" + randomstring,
+						"col3":  "value value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1 1" + randomstring,
+						"col4":  "false",
+						"col5":  12333,
+						"col6":  127273,
+						"col7":  "value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 v" + randomstring,
+						"col8":  "{\"hello1\":\"world\",\"hello2\":\"world\",\"hello3\":\"world\",\"hello4\":\"world\",\"hello5\":\"world\",\"hello6\":\"world\"}",
+						"col9":  time.Now().String(),
+						"col10": time.Now().String(),
+						"col11": time.Now().String(),
+						"col12": time.Now().Unix(),
 					},
 				},
 			})
 
-			_, err := requestClient.Put(baseAddress+"/api/table10cols/"+id, updatePayload, authTokenHeader)
+			_, err := requestClient.Patch(baseAddress+"/api/table10cols/"+id, updatePayload, authTokenHeader)
 			if err != nil {
 				b.Errorf("Failed to update %v - %v", id, err)
 			}

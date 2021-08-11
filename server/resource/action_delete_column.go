@@ -72,7 +72,7 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		return nil, nil, []error{err}
 	}
 
-	updateObj := &api2go.Api2GoModel{
+	updateObj := api2go.Api2GoModel{
 		Data: tableData,
 	}
 

@@ -352,7 +352,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 							abortRequest = true
 							return okToContinue, abortRequest, req
 						}
-						referenceId = resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
+						referenceId = resp.Result().(api2go.Api2GoModel).Data["reference_id"].(string)
 
 						mapData = make(map[string]interface{})
 						mapData["name"] = "Home group of " + name
@@ -363,7 +363,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						if err != nil {
 							log.Errorf("Failed to create new user group: %v", err)
 						}
-						userGroupId := resp.Result().(*api2go.Api2GoModel).Data["reference_id"].(string)
+						userGroupId := resp.Result().(api2go.Api2GoModel).Data["reference_id"].(string)
 
 						userGroups = make([]GroupPermission, 0)
 						mapData = make(map[string]interface{})

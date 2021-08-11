@@ -78,7 +78,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			return
 		}
 
-		row := obj.Result().(*api2go.Api2GoModel)
+		row := obj.Result().(api2go.Api2GoModel)
 		colData := row.Data[columnName]
 		if colData == nil {
 			log.Errorf("column [%v] has no data ", columnName)

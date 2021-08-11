@@ -41,7 +41,7 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-	tableData := &api2go.Api2GoModel{
+	tableData := api2go.Api2GoModel{
 		Data: tableObj,
 	}
 

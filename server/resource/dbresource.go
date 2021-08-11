@@ -23,7 +23,7 @@ import (
 )
 
 type DbResource struct {
-	model              *api2go.Api2GoModel
+	model              api2go.Api2GoModel
 	db                 sqlx.Ext
 	Connection         database.DatabaseConnection
 	tableInfo          *TableInfo
@@ -134,7 +134,7 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 }
 
-func NewDbResource(model *api2go.Api2GoModel, db database.DatabaseConnection,
+func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
 	olricDb *olric.Olric, tableInfo TableInfo) (*DbResource, error) {
 	if OlricCache == nil {

@@ -236,7 +236,7 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 	base64EncodedContent := base64.StdEncoding.EncodeToString([]byte(content))
 
 	calendarName := strings.Split(rpath, "/")
-	createObj := &api2go.Api2GoModel{
+	createObj := api2go.Api2GoModel{
 		DeleteIncludes: nil,
 		Data: map[string]interface{}{
 			"rpath": rpath,
@@ -267,7 +267,7 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 		db:                  cs.cruds,
 		resourcePath:        rpath,
 		sessionUser:         cs.SessionUser,
-		data:                createdObj.Result().(*api2go.Api2GoModel).Data,
+		data:                createdObj.Result().(api2go.Api2GoModel).Data,
 		decodedCalendarData: content,
 	})
 
@@ -322,7 +322,7 @@ func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, 
 
 	base64EncodedContent := base64.StdEncoding.EncodeToString([]byte(content))
 	calendarName := strings.Split(rpath, "/")
-	objectUpdate := &api2go.Api2GoModel{
+	objectUpdate := api2go.Api2GoModel{
 		DeleteIncludes: nil,
 		Data: map[string]interface{}{
 			"rpath": rpath,
@@ -354,7 +354,7 @@ func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, 
 		db:                  cs.cruds,
 		resourcePath:        rpath,
 		sessionUser:         cs.SessionUser,
-		data:                updatedObj.Result().(*api2go.Api2GoModel).Data,
+		data:                updatedObj.Result().(api2go.Api2GoModel).Data,
 		decodedCalendarData: content,
 	})
 

@@ -115,7 +115,7 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 		return totalCount, responder, err
 	}
 
-	listOfResults := responder.Result().([]*api2go.Api2GoModel)
+	listOfResults := responder.Result().([]api2go.Api2GoModel)
 
 	items := make([]map[string]interface{}, 0)
 
@@ -201,7 +201,7 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 
 	}
 
-	newList := make([]*api2go.Api2GoModel, 0)
+	newList := make([]api2go.Api2GoModel, 0)
 
 	maps := df.Maps()
 

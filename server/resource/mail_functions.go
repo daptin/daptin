@@ -48,7 +48,7 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string, session
 	}
 
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
-	resp, err := dbResource.Cruds["mail_box"].Create(&api2go.Api2GoModel{
+	resp, err := dbResource.Cruds["mail_box"].Create(api2go.Api2GoModel{
 		Data: map[string]interface{}{
 			"name":            mailBoxName,
 			"mail_account_id": mailAccountId,
@@ -63,7 +63,7 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string, session
 		PlainRequest: httpRequest,
 	})
 
-	return resp.Result().(*api2go.Api2GoModel).Data, err
+	return resp.Result().(api2go.Api2GoModel).Data, err
 
 }
 

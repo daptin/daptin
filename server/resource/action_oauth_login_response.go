@@ -208,7 +208,7 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap
 	redirectAttrs["window"] = "self"
 	redirectResponse := NewActionResponse("client.redirect", redirectAttrs)
 
-	modelResponse := NewResponse(nil, &api2go.Api2GoModel{
+	modelResponse := NewResponse(nil, api2go.Api2GoModel{
 		Data: map[string]interface{}{
 			"access_token":  token.AccessToken,
 			"refresh_token": token.RefreshToken,

@@ -1492,7 +1492,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		return 0, nil, commitErr
 	}
 
-	result := make([]*api2go.Api2GoModel, 0)
+	result := make([]api2go.Api2GoModel, 0)
 	infos := dbResource.model.GetColumns()
 
 	for i, res := range results {
@@ -1605,7 +1605,7 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 
 	}
 
-	result := make([]*api2go.Api2GoModel, 0)
+	result := make([]api2go.Api2GoModel, 0)
 	infos := dbResource.model.GetColumns()
 
 	for i, res := range results {

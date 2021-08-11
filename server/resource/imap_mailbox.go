@@ -536,7 +536,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	//uidNext, err := txDbResource.GetMailboxNextUid(dimb.mailBoxId)
 	//log.Printf("Assign next UID: %v", uidNext)
 	//model.Data["uid"] = uidNext
-	_, err = dimb.dbResource["mail"].Create(&model, apiRequest)
+	_, err = dimb.dbResource["mail"].Create(model, apiRequest)
 	//log.Printf("UID size [%s]", len(mailBody))
 
 	//if err != nil {
@@ -685,7 +685,7 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 				mail["flags"] = strings.Join(mailFlags, ",")
 			}
 
-			_, err = dimb.dbResource["mail"].CreateWithoutFilter(&api2go.Api2GoModel{
+			_, err = dimb.dbResource["mail"].CreateWithoutFilter(api2go.Api2GoModel{
 				Data: mail,
 			}, req, transaction)
 			if err != nil {
