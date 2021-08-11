@@ -142,7 +142,7 @@ WHERE
 	}
 
 	rows, err := stmt1.Queryx()
-	CheckErr(err, "Failed to check existing indexes")
+	CheckErr(err, "Failed to check existing indexes using sql [%v][%v]", db.DriverName(), indexQuery)
 	if err == nil {
 		for rows.Next() {
 			var indexName string
@@ -189,6 +189,7 @@ func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 					log.Printf("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
 					tx.Rollback()
 					tx, errb = db.Beginx()
+					CheckErr(err, "Failed to create a new transaction after rollback.")
 				} else {
 					log.Infof("Key created [%v][%v]", keyName, table.TableName)
 				}
