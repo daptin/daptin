@@ -305,7 +305,7 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 	if OlricCache != nil {
 		cachedValue, err := OlricCache.Get(cacheKey)
 		if err == nil && cachedValue != "" {
-			err = json.Unmarshal(cachedValue.([]byte), cloudStore)
+			err = json.Unmarshal([]byte(cachedValue.(string)), cloudStore)
 			if err == nil {
 				return cloudStore, nil
 			}
