@@ -591,9 +591,9 @@ func runTests(t *testing.T) error {
 	t.Logf("Image create response id: %v", createdID)
 
 
-	t2o1 := CreateObject("table2", map[string]interface{}{
-		"title": "hello",
-	})
+	//t2o1 := CreateObject("table2", map[string]interface{}{
+	//	"title": "hello",
+	//})
 	createObjectPayload := req.BodyJSON(map[string]interface{}{
 		"data": map[string]interface{}{
 			"type": "table10cols",
