@@ -371,7 +371,7 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 
 	if OlricCache != nil {
 		cachePutErr := OlricCache.PutIfEx(cacheKey, perm, 30*time.Minute, olric.IfNotFound)
-		CheckErr(cachePutErr, "failed to store cloud store in cache")
+		CheckErr(cachePutErr, "[374] failed to store cloud store in cache")
 	}
 
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
@@ -2961,8 +2961,8 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(k, str, 5*time.Minute, olric.IfNotFound)
-		CheckErr(err, "[2897] Failed to set id to reference id in olric cache")
+		cacheErr := OlricCache.PutIfEx(k, str, 5*time.Minute, olric.IfNotFound)
+		CheckErr(cacheErr, "[2897] Failed to set id to reference id in olric cache")
 	}
 	return str, err
 
