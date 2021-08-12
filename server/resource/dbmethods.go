@@ -2026,13 +2026,13 @@ func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(typeName str
 }
 
 func (dbResource *DbResource) GetIdToObject(typeName string, id int64) (map[string]interface{}, error) {
-	key := fmt.Sprintf("ito-%v-%v", typeName, id)
-	if OlricCache != nil {
-		val, err := OlricCache.Get(key)
-		if err == nil && val != nil {
-			return val.(map[string]interface{}), nil
-		}
-	}
+	//key := fmt.Sprintf("ito-%v-%v", typeName, id)
+	//if OlricCache != nil {
+	//	val, err := OlricCache.Get(key)
+	//	if err == nil && val != nil {
+	//		return val.(map[string]interface{}), nil
+	//	}
+	//}
 	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return nil, err
@@ -2082,10 +2082,10 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64) (map[stri
 		log.Printf("No result found for [%v][%v]", typeName, id)
 		return nil, err
 	}
-	if OlricCache != nil {
-		err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
-		CheckErr(err, "[2034[ Failed to set id to object in olric cache")
-	}
+	//if OlricCache != nil {
+	//	err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
+	//	CheckErr(err, "[2034[ Failed to set id to object in olric cache")
+	//}
 
 	return m[0], nil
 }
