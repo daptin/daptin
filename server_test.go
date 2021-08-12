@@ -123,9 +123,29 @@ const testSchemas = `Tables:
         DataType: datetime
         ColumnType: datetime
 Relations:
-  - Subject: table3
-    Object: table2
+  - Subject: table2
+    SubjectName: t2hmt3s
+    Object: table3
+    ObjectName: t2hmt3o
     Relation: has_many
+    Columns:
+      - Name: col1
+        DataType: varchar(100)
+        ColumnType: label
+  - Subject: table2
+    SubjectName: t2hot3s
+    Object: table3
+    ObjectName: t2hot3o
+    Relation: has_one
+    Columns:
+      - Name: col1
+        DataType: varchar(100)
+        ColumnType: label
+  - Subject: table2
+    SubjectName: t2btt3s
+    Object: table3
+    ObjectName: t2btt3o
+    Relation: belongs_to
     Columns:
       - Name: col1
         DataType: varchar(100)
@@ -570,6 +590,52 @@ func runTests(t *testing.T) error {
 
 	t.Logf("Image create response id: %v", createdID)
 
+
+	t2o1 := CreateObject("table2", map[string]interface{}{
+		"title": "hello",
+	})
+	createObjectPayload := req.BodyJSON(map[string]interface{}{
+		"data": map[string]interface{}{
+			"type": "table10cols",
+			"attributes": req.Param{
+				"col1":  "value 1 value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1",
+				"col2":  "value 1 value 1value 1value 1value 1value 1",
+				"col3":  "value value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1value 1 1",
+				"col4":  "true",
+				"col5":  64,
+				"col6":  12731273,
+				"col7":  "value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 value 1 v",
+				"col8":  "{\"hello1\":\"world\",\"hello2\":\"world\",\"hello3\":\"world\",\"hello4\":\"world\",\"hello5\":\"world\",\"hello6\":\"world\"}",
+				"col9":  time.Now().String(),
+				"col10": time.Now().String(),
+				"col11": time.Now().String(),
+				"col12": time.Now().Unix(),
+			},
+		},
+	})
+
+	resp, err = requestClient.Post(baseAddress+"/api/table10cols", createObjectPayload)
+	if err != nil {
+		log.Printf("Failed to create %s %s", "table10cols post", err)
+		t.Fail()
+		return err
+	}
+
+	createdObjectResponse := make(map[string]interface{})
+	err = resp.ToJSON(&createdObjectResponse)
+	if err != nil {
+		log.Printf("Failed to get %s %s", "unmarshal gallery image post", err)
+		t.Fail()
+		//return fmt.Errorf("failed to unmarshal gallery image post response %v", err)
+	}
+
+
+	errrs, ok := createdObjectResponse["errors"]
+	if ok {
+		t.Errorf("errors: %v", errrs)
+		t.Fail()
+	}
+
 	resp, err = requestClient.Get(baseAddress + "/api/gallery_image/" + createdID)
 	readImageResp := make(map[string]interface{})
 	err = resp.ToJSON(&readImageResp)
@@ -814,7 +880,7 @@ func runTests(t *testing.T) error {
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
 		t.Fail()
 		t.Errorf("hostname=null] Expected string not found in response from graphql [%v] "+
-			"without auth token on certificate delete", graphqlResponse.String())
+			"with auth token on certificate delete", graphqlResponse.String())
 	}
 
 	FtpTest(t)
@@ -836,6 +902,11 @@ func runTests(t *testing.T) error {
 
 	return nil
 
+}
+
+func CreateObject(typeName string, attributes map[string]interface{}) map[string]interface{} {
+
+	return nil
 }
 
 // from fib_test.go

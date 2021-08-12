@@ -609,10 +609,10 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				for _, itemInterface := range valueList {
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
-					item[rel.GetObjectName()] = item["id"]
-					returnList = append(returnList, item["id"].(string))
+					item[rel.GetObjectName()] = item["reference_id"]
+					returnList = append(returnList, item["reference_id"].(string))
 					item[rel.GetSubjectName()] = newObjectReferenceId
-					delete(item, "id")
+					delete(item, "reference_id")
 					delete(item, "meta")
 					delete(item, "type")
 					delete(item, "reference_id")
@@ -809,10 +809,10 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				for _, itemInterface := range values {
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
-					item[rel.GetSubjectName()] = item["id"]
-					returnList = append(returnList, item["id"].(string))
+					item[rel.GetSubjectName()] = item["reference_id"]
+					returnList = append(returnList, item["reference_id"].(string))
 					item[rel.GetObjectName()] = newObjectReferenceId
-					delete(item, "id")
+					delete(item, "reference_id")
 					delete(item, "meta")
 					delete(item, "type")
 					delete(item, "reference_id")
@@ -903,7 +903,6 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 		}
 	}
-
 
 	delete(createdResource, "id")
 	createdResource["__type"] = dbResource.model.GetName()
