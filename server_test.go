@@ -590,7 +590,6 @@ func runTests(t *testing.T) error {
 
 	t.Logf("Image create response id: %v", createdID)
 
-
 	//t2o1 := CreateObject("table2", map[string]interface{}{
 	//	"title": "hello",
 	//})
@@ -628,7 +627,6 @@ func runTests(t *testing.T) error {
 		t.Fail()
 		//return fmt.Errorf("failed to unmarshal gallery image post response %v", err)
 	}
-
 
 	errrs, ok := createdObjectResponse["errors"]
 	if ok {

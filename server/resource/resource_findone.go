@@ -1,7 +1,9 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
@@ -90,6 +92,14 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 	}
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindOne: %v", duration)
+
+	if OlricCache != nil {
+		cacheKey := fmt.Sprintf("riti-%v-%v", modelName, referenceId)
+		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5 * time.Minute, olric.IfNotFound)
+		cacheKey2 := fmt.Sprintf("itr-%v-%v", modelName, data["id"])
+		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5 * time.Minute, olric.IfNotFound)
+	}
+
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
@@ -252,6 +262,12 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	}
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindOne: %v", duration)
+	if OlricCache != nil {
+		cacheKey := fmt.Sprintf("riti-%v-%v", modelName, referenceId)
+		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5 * time.Minute, olric.IfNotFound)
+		cacheKey2 := fmt.Sprintf("itr-%v-%v", modelName, data["id"])
+		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5 * time.Minute, olric.IfNotFound)
+	}
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {

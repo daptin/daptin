@@ -2922,7 +2922,7 @@ func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64) (str
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		err1 := OlricCache.PutIfEx(k, str, 1*time.Minute, olric.IfNotFound)
+		err1 := OlricCache.PutIfEx(k, str, 60*time.Minute, olric.IfNotFound)
 		CheckErr(err1, "[2856] Failed to set if to reference id in olric cache")
 	}
 	return str, err
@@ -2961,7 +2961,7 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		cacheErr := OlricCache.PutIfEx(k, str, 5*time.Minute, olric.IfNotFound)
+		cacheErr := OlricCache.PutIfEx(k, str, 30*time.Minute, olric.IfNotFound)
 		CheckErr(cacheErr, "[2897] Failed to set id to reference id in olric cache")
 	}
 	return str, err
@@ -3001,7 +3001,7 @@ func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId st
 	err = stmt.QueryRowx(q...).Scan(&id)
 
 	if OlricCache != nil {
-		cachePutErr := OlricCache.PutIfEx(cacheKey, id, 5*time.Minute, olric.IfNotFound)
+		cachePutErr := OlricCache.PutIfEx(cacheKey, id, 30*time.Minute, olric.IfNotFound)
 		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
 	}
 
@@ -3991,6 +3991,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					stmt1, err := transaction.Preparex(query)
 					if err != nil {
 						log.Errorf("[2097] failed to prepare statment: %v", err)
+						return nil, nil, err
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()
@@ -4002,7 +4003,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					includedSubject, err := stmt1.Queryx(args...)
 					if err != nil {
 						log.Printf("Failed to query 1538: %v", includedSubject.Err())
-						continue
+						return nil, nil, err
 					}
 					includedSubjectId := []int64{}
 
@@ -4065,6 +4066,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					stmt1, err := transaction.Preparex(query)
 					if err != nil {
 						log.Errorf("[2155] failed to prepare statment: %v", err)
+						return nil, nil, err
 					}
 					defer func(stmt1 *sqlx.Stmt) {
 						err := stmt1.Close()
@@ -4077,7 +4079,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					if err != nil {
 						log.Printf("Failed to query 1482: %v", err)
-						continue
+						return nil, nil, err
 					}
 
 					ids := make([]int64, 0)
@@ -4087,7 +4089,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 						err = rows.Scan(&includeRow)
 						if err != nil {
 							log.Printf("[1966] failed to scan include row: %v", err)
-							continue
+							return nil, nil, err
 						}
 						ids = append(ids, includeRow)
 					}
@@ -4100,6 +4102,10 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					includes1, err := dbResource.Cruds[relation.GetObject()].GetAllObjectsWithWhereWithTransaction(relation.GetSubject(), transaction, goqu.Ex{
 						"id": ids,
 					})
+					if err != nil {
+						log.Errorf("Failed to get objects by where clause: %v", err)
+						return nil, nil, err
+					}
 
 					_, ok := row[relation.GetSubjectName()]
 					if !ok {

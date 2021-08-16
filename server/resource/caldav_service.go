@@ -142,6 +142,18 @@ func (cs *CalDavStorage) GetResources(rpath string, withChildren bool) ([]data.R
 
 	log.Infof("Get resources: [%s] => %v", rpath, withChildren)
 
+	if rpath == "/calendars/" && !withChildren {
+		return []data.Resource{
+			data.NewResource(rpath, &PGResourceAdapter{
+				db:                  cs.cruds,
+				resourcePath:        rpath,
+				sessionUser:         cs.SessionUser,
+				data:                map[string]interface{}{},
+				decodedCalendarData: string(""),
+			}),
+		}, nil
+	}
+
 	obj, err := cs.cruds["calendar"].GetObjectByWhereClause("calendar", "rpath", rpath)
 
 	if err != nil {
@@ -227,7 +239,8 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 	if err != nil {
 		return nil, err
 	}
-	calendarTablePermission := cs.cruds["world"].GetObjectPermissionByWhereClause("world", "table_name", "calendar")
+	calendarTablePermission := cs.cruds["world"].GetObjectPermissionByWhereClauseWithTransaction(
+		"world", "table_name", "calendar", transaction)
 
 	if !calendarTablePermission.CanCreate(cs.SessionUser.UserReferenceId, cs.SessionUser.Groups) {
 		return nil, errs.ForbiddenError
@@ -289,14 +302,17 @@ func (cs *CalDavStorage) CreateResource(rpath, content string) (*data.Resource, 
 
 	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters, transaction)
 	if mailerError != nil && len(mailerError) > 0 {
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "Failed to rollback")
+		// todo: enable when caldav is ready
+		//rollbackErr := transaction.Rollback()
+		//CheckErr(rollbackErr, "Failed to rollback")
 		log.Error("Unable To Send mail", mailerError)
-		return nil, mailerError[0]
+		//return nil, mailerError[0]
 	}
 
-	log.Info("resource created ", rpath)
-	return &res, nil
+	commitErr := transaction.Commit()
+
+	log.Info("[302] resource created ", rpath)
+	return &res, commitErr
 }
 
 func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, error) {
@@ -375,11 +391,12 @@ func (cs *CalDavStorage) UpdateResource(rpath, content string) (*data.Resource, 
 
 	_, _, mailerError := cs.Mailer.DoAction(Outcome{}, actionRequestParameters, transaction)
 	if mailerError != nil && len(mailerError) > 0 {
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "failed to rollback")
+		// todo: enable when caldav is ready
+		//rollbackErr := transaction.Rollback()
+		//CheckErr(rollbackErr, "failed to rollback")
 
 		log.Error("Unable To Send mail", mailerError)
-		return nil, mailerError[0]
+		//return nil, mailerError[0]
 	}
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "Failed to commit")

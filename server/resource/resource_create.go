@@ -623,6 +623,18 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						attributesMap, mapOk := attributes.(map[string]interface{})
 						if mapOk {
 							for key, val := range attributesMap {
+								isJoinTableColumn := false
+								for _, col := range rel.Columns {
+									if col.Name == key {
+										isJoinTableColumn = true
+										break
+									}
+								}
+								if !isJoinTableColumn {
+									log.Infof("Attribute [%v] is not a join table column in [%v]", key, rel.GetJoinTableName())
+									continue
+								}
+
 								if val == nil || key == "reference_id" {
 									continue
 								}
@@ -655,7 +667,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					if len(joinReferenceId) > 0 {
 
 						if hasColumns {
-							log.Infof("[603] Updating existing join table row properties: %v", joinReferenceId[0])
+							log.Infof("[670] Updating existing join table row properties: %v", joinReferenceId[0])
 							modl.Data["reference_id"] = joinReferenceId[0]
 							pr.Method = "PATCH"
 

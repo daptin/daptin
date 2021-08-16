@@ -317,7 +317,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(finalMail))
 
-							resource.CheckErr(err, "Failed to send mail to actual destination")
+							resource.CheckErr(err, "[320] Failed to send mail to actual destination")
 							continue
 						}
 

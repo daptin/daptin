@@ -40,7 +40,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	var err error
 	idInt := data.GetColumnOriginalValue("id")
 
-	if idInt != nil {
+	if idInt == nil {
 		idInt, err = GetReferenceIdToIdWithTransaction(dbResource.model.GetName(), updateObjectReferenceId, updateTransaction)
 		if err != nil {
 			return nil, err
@@ -566,8 +566,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, itemInterface := range valueList {
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
-					item[rel.GetObjectName()] = item["id"]
 					returnList = append(returnList, item["id"].(string))
+					item[rel.GetObjectName()] = item["id"]
 					item[rel.GetSubjectName()] = updateObjectReferenceId
 					delete(item, "id")
 					delete(item, "meta")
@@ -580,6 +580,19 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						attributesMap, mapOk := attributes.(map[string]interface{})
 						if mapOk {
 							for key, val := range attributesMap {
+
+								isJoinTableColumn := false
+								for _, col := range rel.Columns {
+									if col.Name == key {
+										isJoinTableColumn = true
+										break
+									}
+								}
+								if !isJoinTableColumn {
+									log.Infof("Attribute [%v] is not a join table column in [%v]", key, rel.GetJoinTableName())
+									continue
+								}
+
 								if val == nil || key == "reference_id" {
 									continue
 								}
@@ -596,24 +609,34 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
 					}
 
-					joinReferenceId, err := GetReferenceIdByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
+					joinRow, err := GetObjectByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,
 						rel.GetSubjectName(): subjectId,
 					})
+
 					CheckErr(err, "join row not found")
 
-					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
+					var modl api2go.Api2GoModel
+					if err != nil || len(joinRow) < 1 {
+						modl = api2go.NewApi2GoModel(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil)
+					} else {
+						item[rel.GetObjectName()] = objectId
+						item[rel.GetSubjectName()] = subjectId
+						modl = api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, joinRow[0])
+					}
+
+					modl.SetAttributes(item)
 
 					pr := &http.Request{
 						Method: "POST",
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
 
-					if len(joinReferenceId) > 0 {
+					if len(joinRow) > 0 {
 
-						if hasColumns {
-							log.Infof("[603] Updating existing join table row properties: %v", joinReferenceId[0])
-							modl.Data["reference_id"] = joinReferenceId[0]
+						if hasColumns && modl.IsDirty() {
+							log.Infof("[629] Updating existing join table row properties: %v", joinRow[0]["reference_id"])
+							modl.Data["reference_id"] = joinRow[0]["reference_id"]
 							pr.Method = "PATCH"
 
 							_, err = dbResource.Cruds[rel.GetJoinTableName()].UpdateWithTransaction(modl, api2go.Request{
@@ -624,7 +647,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 								return nil, err
 							}
 						} else {
-							log.Infof("Relation already present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinReferenceId[0])
+							log.Infof("Relation already present [%s]: %v, no columns to update", rel.GetJoinTableName(), joinRow[0]["reference_id"])
 						}
 
 					} else {
@@ -804,14 +827,18 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						rel.GetSubjectName(): subjectId,
 					})
 
+
 					var modl api2go.Api2GoModel
 					if err != nil || len(joinRow) < 1 {
 						modl = api2go.NewApi2GoModel(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil)
 					} else {
+						item[rel.GetObjectName()] = objectId
+						item[rel.GetSubjectName()] = subjectId
 						modl = api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, joinRow[0])
 					}
 
 					modl.SetAttributes(item)
+
 					pr := &http.Request{
 						Method: "POST",
 					}
@@ -820,7 +847,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					if len(joinRow) > 0 {
 
-						if hasColumns {
+						if hasColumns && modl.IsDirty() {
 							log.Infof("[804] Updating existing join table row properties: %v", joinRow[0]["reference_id"])
 							pr.Method = "PATCH"
 
