@@ -592,6 +592,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 									log.Infof("Attribute [%v] is not a join table column in [%v]", key, rel.GetJoinTableName())
 									continue
 								}
+								log.Infof("Attribute [%v] is a join table column in [%v]", key, rel.GetJoinTableName())
 
 								if val == nil || key == "reference_id" {
 									continue
@@ -868,7 +869,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
-						CheckErr(err, "[825] Failed to update and insert join table row")
+						CheckErr(err, "[871] Failed to update and insert join table row")
 						if err != nil {
 							return nil, err
 						}

@@ -2152,7 +2152,7 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 		return nil, fmt.Errorf("no such item %v-%v", typeName, id)
 	}
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
+		err = OlricCache.PutIfEx(key, m[0], 5*time.Minute, olric.IfNotFound)
 		//CheckErr(err, "[2099] Failed to set id to object in olric cache")
 	}
 
