@@ -184,7 +184,11 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		sessionUser = user.(*auth.SessionUser)
 	}
 
+	start := time.Now()
 	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
+	duration := time.Since(start)
+	log.Tracef("[TIMING] FindAllIsAdminCheck %v", duration)
+
 
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	relatedTableName := ""
@@ -510,7 +514,10 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 	}
 
+	start = time.Now()
 	queryBuilder, countQueryBuilder = dbResource.addFilters(queryBuilder, countQueryBuilder, queries, prefix, transaction)
+	duration = time.Since(start)
+	log.Tracef("[TIMING] FindAllAddFilters %v", duration)
 
 	//if len(groupings) > 0 && false {
 	//	for _, groupBy := range groupings {
@@ -947,9 +954,9 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	}
 	log.Infof("Id query: [%s]", idsListQuery)
 	//log.Debugf("Id query args: %v", args)
-	start := time.Now()
+	start = time.Now()
 	stmt, err := transaction.Preparex(idsListQuery)
-	duration := time.Since(start)
+	duration = time.Since(start)
 	log.Tracef("[TIMING] IdQuery Preparex: %v", duration)
 
 	if err != nil {

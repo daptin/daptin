@@ -589,7 +589,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 									}
 								}
 								if !isJoinTableColumn {
-									log.Infof("Attribute [%v] is not a join table column in [%v]", key, rel.GetJoinTableName())
+									//log.Infof("Attribute [%v] is not a join table column in [%v]", key, rel.GetJoinTableName())
 									continue
 								}
 								log.Infof("Attribute [%v] is a join table column in [%v]", key, rel.GetJoinTableName())
