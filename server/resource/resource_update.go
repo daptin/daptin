@@ -592,7 +592,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 									//log.Infof("Attribute [%v] is not a join table column in [%v]", key, rel.GetJoinTableName())
 									continue
 								}
-								log.Infof("Attribute [%v] is a join table column in [%v]", key, rel.GetJoinTableName())
+								log.Infof("Attribute [%v] is a join table column in [%v] value change from [%v] => [%v]", key, rel.GetJoinTableName(), item[key], val)
 
 								if val == nil || key == "reference_id" {
 									continue
