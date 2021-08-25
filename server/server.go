@@ -93,7 +93,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultConfig.LogLevel = fs.LogLevelDebug
 	defaultConfig.StatsLogLevel = fs.LogLevelDebug
 
-	initialiseResources(&initConfig, db)
+	skipResourceInitialise, ok := os.LookupEnv("DAPTIN_SKIP_INITIALISE_RESOURCES")
+	if ok && skipResourceInitialise == "true" {
+		log.Infof("Skipping db resource initialise: %v", skipResourceInitialise)
+	} else {
+		log.Infof("db resource initialise: %v", skipResourceInitialise)
+		initialiseResources(&initConfig, db)
+	}
 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
@@ -524,7 +530,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
-		transaction, err := cruds["world"].Connection.Beginx();
+		transaction, err := cruds["world"].Connection.Beginx()
 		//_, err := cruds["world"].GetObjectByWhereClause("world", "table_name", "world")
 		if err != nil {
 			c.AbortWithError(500, err)
