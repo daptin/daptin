@@ -43,6 +43,16 @@ import (
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
 
+type RateConfig struct {
+	version string
+	limits  map[string]int
+}
+
+var defaultRateConfig = RateConfig{
+	version: "default",
+	limits:  map[string]int{},
+}
+
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (
 	HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
 	*server2.FtpServer, *server.Server, *olric.Olric) {
@@ -200,20 +210,35 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 	log.Printf("Limiting max connections per IP: %v", maxConnections)
 
-	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
+	rateConfigJson, err := configStore.GetConfigValueFor("limit.rate", "backend")
 	if err != nil {
-		rate1 = 100
-		err = configStore.SetConfigValueFor("limit.rate", rate1, "backend")
+		rateConfigJson = "{\"version\":\"default\"}"
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend")
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 
-	microSecondRateGap := int(1000000 / rate1)
-	log.Printf("Limiting request per second by IP/URL: %v RPS", rate1)
+	var rateConfig RateConfig
+	err = json.Unmarshal([]byte(rateConfigJson), rateConfig)
+	if err != nil || rateConfig.version == "" {
+		rateConfig = defaultRateConfig
+		rateConfigJson = "{\"version\":\"default\"}"
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend")
+		resource.CheckErr(err, "Failed to store limit.rate default value in db")
+	}
 
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
-		return c.ClientIP() + strings.Split(c.Request.RequestURI, "?")[0] // limit rate by client ip
+		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
+		return c.ClientIP() + requestPath // limit rate by client ip + url
 	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
-		return rate.NewLimiter(rate.Every(time.Duration(microSecondRateGap)*time.Microsecond), rate1), time.Minute // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
+		ratePerSecond, ok := rateConfig.limits[requestPath]
+		if !ok {
+			ratePerSecond = 1
+		}
+		microSecondRateGap := int(1000000 / ratePerSecond)
+		return rate.NewLimiter(rate.Every(time.Duration(microSecondRateGap)*time.Microsecond),
+			ratePerSecond,
+		), time.Minute // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
 	}, func(c *gin.Context) {
 		c.AbortWithStatus(429) // handle exceed rate limit request
 	}))

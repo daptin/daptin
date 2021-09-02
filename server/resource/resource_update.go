@@ -421,7 +421,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				return nil, err
 			}
 
-			log.Printf("Update query: %v", query)
+			log.Infof("Update query: %v", query)
 			_, err = updateTransaction.Exec(query, vals...)
 			if err != nil {
 				log.Errorf("Failed to execute update query [%s] [%v] 411: %v", query, vals, err)
@@ -452,7 +452,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				builder = builder.Set(updateMap)
 
 				query, vals, err := builder.Where(goqu.Ex{"translation_reference_id": idInt}).Where(goqu.Ex{"language_id": lang}).ToSQL()
-				log.Printf("Update query: %v", query)
+				log.Infof("Update query: %v", query)
 				if err != nil {
 					log.Errorf("Failed to create update query: %v", err)
 				}

@@ -632,7 +632,7 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
 
 	var data map[string]interface{}
 	err = json.Unmarshal(bytes, &data)
-	CheckErr(err, "Failed to read body as json", data)
+	//CheckErr(err, "Failed to read body as json", data)
 	for k, v := range data {
 		if k == "attributes" {
 			continue

@@ -777,7 +777,9 @@ func ImportDataFiles(imports []DataFileImport, db sqlx.Ext, cruds map[string]*Db
 		case "json":
 
 			jsonData := make(map[string][]map[string]interface{}, 0)
-			err := json.Unmarshal(fileBytes, &jsonData)
+			dec := json.NewDecoder(bytes.NewReader(fileBytes))
+			dec.UseNumber()
+			err := dec.Decode(&jsonData)
 			if err != nil {
 				log.Errorf("[713] Failed to read content as json to import: %v", err)
 				continue
