@@ -458,7 +458,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			caldavHandler := caldavStorage.CalDavHandler()
 			//caldavHandlerFunc := gin.WrapH(caldavHandler)
 
-			log.Infof("Enabling caldav at /calendars")
+			log.Infof("Enabling caldav at :8008/calendars")
 
 			caldavRouter.GET("/.well-known/caldav", func(c *gin.Context) {
 				c.Redirect(301, "/calendars/users")
@@ -760,15 +760,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	defaultRouter.NoRoute(func(c *gin.Context) {
-		resource.CheckErr(err, "Failed to open index.html")
-		if err != nil {
-			c.AbortWithStatus(500)
-			return
-		}
 		//c.Header("Content-Type", "text/html")
-		c.Data(200, "text/html; charset=UTF-8", indexFileContents)
-		//_, err = c.Writer.Write(indexFileContents)
-		//resource.CheckErr(err, "Failed to write index html")
+		if len(indexFileContents) > 0 {
+			c.Data(200, "text/html; charset=UTF-8", indexFileContents)
+		}
 	})
 
 	defaultRouter.GET("", func(c *gin.Context) {

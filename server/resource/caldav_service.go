@@ -140,7 +140,7 @@ func (cs *CalDavStorage) GetShallowResource(rpath string) (*data.Resource, bool,
 func (cs *CalDavStorage) GetResources(rpath string, withChildren bool) ([]data.Resource, error) {
 	var result []data.Resource
 
-	log.Infof("Get resources: [%s] => %v", rpath, withChildren)
+	log.Infof("[143] Get resources: [%s] => %v", rpath, withChildren)
 
 	if rpath == "/calendars/" && !withChildren {
 		return []data.Resource{
