@@ -256,6 +256,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 		if doBasicAuthCheck {
 			userJwtToken, err = a.BasicAuthCheckMiddlewareWithHttp(req, writer)
 			if err != nil || userJwtToken == nil {
+				okToContinue = false
 				CheckErr(err, "JWT middleware auth check failed")
 				CheckErr(err, "BASIC middleware auth check failed")
 			} else {

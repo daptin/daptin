@@ -1544,7 +1544,7 @@ var StandardTables = []TableInfo{
 				ForeignKeyData: api2go.ForeignKeyData{
 					DataSource: "cloud_store",
 					Namespace:  "localstore",
-					KeyName:    "calendars",
+					KeyName:    "caldav",
 				},
 			},
 			//{

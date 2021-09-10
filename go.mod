@@ -38,6 +38,7 @@ require (
 	github.com/dropbox/dropbox-sdk-go-unofficial v5.6.0+incompatible // indirect
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
+	github.com/emersion/go-webdav v0.3.1 // indirect
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
 	github.com/getkin/kin-openapi v0.34.0

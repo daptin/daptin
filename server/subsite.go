@@ -106,7 +106,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 // CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
 func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
-	configStore *resource.ConfigStore) (HostSwitch, map[string]*resource.AssetFolderCache) {
+	rateConfig RateConfig, max_connections int) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
@@ -142,8 +142,8 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 		return hs, subsiteCacheFolders
 	}
 
-	max_connections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
-	rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
+	//max_connections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
+	//rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 
 	for _, site := range sites {
 
@@ -228,9 +228,16 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 
 		hostRouter.Use(limit.MaxAllowed(max_connections))
 		hostRouter.Use(limit2.NewRateLimiter(func(c *gin.Context) string {
-			return c.ClientIP() + strings.Split(c.Request.RequestURI, "?")[0] // limit rate by client ip
+			requestPath := c.Request.Host + "/" + strings.Split(c.Request.RequestURI, "?")[0]
+			return c.ClientIP() + requestPath // limit rate by client ip
 		}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
-			return rate.NewLimiter(rate.Every(100*time.Millisecond), rate_limit), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+			requestPath := c.Request.Host + "/" + strings.Split(c.Request.RequestURI, "?")[0]
+			limitValue, ok := rateConfig.limits[requestPath]
+			if !ok {
+				limitValue = 5
+			}
+
+			return rate.NewLimiter(rate.Every(100*time.Millisecond), limitValue), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
 		}, func(c *gin.Context) {
 			c.AbortWithStatus(429) // handle exceed rate limit request
 		}))

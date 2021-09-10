@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
+	"github.com/emersion/go-webdav"
 	"github.com/sadlil/go-trigger"
 	"os"
 	"strings"
@@ -419,7 +420,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
 		imapServer.TLSConfig = tlsConfig
 
-		log.Printf("Starting IMAP server at %s: %v\n", imapListenInterface, hostname)
+		log.Printf("Starting IMAP server at %s: %v", imapListenInterface, hostname)
 
 		go func() {
 			if EndsWithCheck(imapListenInterface, ":993") {
@@ -447,35 +448,53 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to store caldav.enable in _config")
 	}
 
-	if enableCaldav == "true" {
-
-		caldavRouter := gin.Default()
-
-		caldavStorage, err := resource.NewCaldavStorage(cruds, certificateManager)
-		if err != nil {
-			resource.CheckErr(err, "Unable To Configure Caldav")
-		} else {
-			caldavHandler := caldavStorage.CalDavHandler()
-			//caldavHandlerFunc := gin.WrapH(caldavHandler)
-
-			log.Infof("Enabling caldav at :8008/calendars")
-
-			caldavRouter.GET("/.well-known/caldav", func(c *gin.Context) {
-				c.Redirect(301, "/calendars/users")
-			})
-			caldavRouter.NoRoute()
-
-			go func() {
-				log.Printf("Listening caldav at :8008")
-				http.Handle("/", caldavHandler)
-				http.ListenAndServe(":8008", nil)
-			}()
-		}
-	}
-
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, configStore)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, rateConfig, maxConnections)
+
+	if enableCaldav == "true" {
+
+		//caldavStorage, err := resource.NewCaldavStorage(cruds, certificateManager)
+		caldavHandler := webdav.Handler{
+			FileSystem: webdav.LocalFileSystem("./storage"),
+		}
+		caldavHttpHandler := func(c *gin.Context) {
+			ok, abort, modifiedRequest := authMiddleware.AuthCheckMiddlewareWithHttp(c.Request, c.Writer, true)
+			if !ok || abort {
+				c.Header("WWW-Authenticate", "Basic realm='caldav'")
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+			caldavHandler.ServeHTTP(c.Writer, modifiedRequest)
+		}
+		defaultRouter.Handle("OPTIONS", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("HEAD", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("GET", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("POST", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PUT", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PATCH", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPFIND", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("DELETE", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("COPY", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MOVE", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MKCOL", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPPATCH", "/caldav/*path", caldavHttpHandler)
+
+		defaultRouter.Handle("OPTIONS", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("HEAD", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("GET", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("POST", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PUT", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PATCH", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPFIND", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("DELETE", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("COPY", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MOVE", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MKCOL", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPPATCH", "/carddav/*path", caldavHttpHandler)
+
+		//hostSwitch.handlerMap["calendar"] = caldavHandler
+	}
 
 	for k := range cruds {
 		cruds[k].SubsiteFolderCache = subsiteCacheFolders
