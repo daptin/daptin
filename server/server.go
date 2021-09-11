@@ -234,7 +234,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
 		ratePerSecond, ok := rateConfig.limits[requestPath]
 		if !ok {
-			ratePerSecond = 5
+			ratePerSecond = 10
 		}
 		microSecondRateGap := int(1000000 / ratePerSecond)
 		return rate.NewLimiter(rate.Every(time.Duration(microSecondRateGap)*time.Microsecond),
