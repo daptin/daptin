@@ -753,7 +753,15 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 					updateForeignRow := make(map[string]interface{})
-					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(string)
+					foreignObjectReferenceId, ok := valMap[rel.GetSubjectName()].(string)
+					if !ok {
+						foreignObjectReferenceId, ok = valMap["reference_id"].(string)
+						if !ok {
+							log.Warnf("reference id not found for subject [%v] for updating [%v][%v]",
+								rel.GetSubjectName(), dbResource.tableInfo.TableName, updateObjectReferenceId)
+							continue
+						}
+					}
 					returnList = append(returnList, foreignObjectReferenceId)
 
 					updateForeignRow, err = dbResource.GetReferenceIdToObjectWithTransaction(rel.GetSubject(), foreignObjectReferenceId, updateTransaction)
@@ -827,7 +835,6 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						rel.GetObjectName():  objectId,
 						rel.GetSubjectName(): subjectId,
 					})
-
 
 					var modl api2go.Api2GoModel
 					if err != nil || len(joinRow) < 1 {
