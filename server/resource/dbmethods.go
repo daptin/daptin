@@ -1973,7 +1973,7 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 	log.Tracef("[TIMING] GetObjectByWhere ResultToArray: %v", duration)
 
 	if len(m) == 0 {
-		log.Printf("No result found for [%v] [%v][%v]", typeName, column, val)
+		log.Printf("[1976] No result found for [%v] [%v][%v]", typeName, column, val)
 		return nil, errors.New(fmt.Sprintf("no [%v=%v] object found", column, val))
 	}
 
@@ -2018,7 +2018,7 @@ func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(typeName str
 	log.Tracef("[TIMING] GetObjectByWhere ResultToArray: %v", duration)
 
 	if len(m) == 0 {
-		log.Printf("No result found for [%v] [%v][%v]", typeName, column, val)
+		log.Printf("[2021] No result found for [%v] [%v][%v]", typeName, column, val)
 		return nil, errors.New(fmt.Sprintf("no [%v=%v] object found", column, val))
 	}
 
@@ -2079,7 +2079,7 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64) (map[stri
 	}
 
 	if len(m) == 0 {
-		log.Printf("No result found for [%v][%v]", typeName, id)
+		log.Printf("[2082] No result found for [%v][%v]", typeName, id)
 		return nil, err
 	}
 	//if OlricCache != nil {
@@ -2148,7 +2148,7 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 	}
 
 	if len(m) == 0 {
-		log.Printf("No result found for [%v][%v]", typeName, id)
+		log.Printf("[2151] No result found for [%v][%v]", typeName, id)
 		return nil, fmt.Errorf("no such item %v-%v", typeName, id)
 	}
 	if OlricCache != nil {

@@ -195,7 +195,7 @@ func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string)
 
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
-		log.Printf("No config value set for [%v]: %v", key, err)
+		log.Printf("[198] No config value set for [%v]: %v", key, err)
 		return "", err
 	}
 	return fmt.Sprintf("%s", val), err
@@ -236,7 +236,7 @@ func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, con
 
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
-		log.Printf("No config value set for [%v]: %v", key, err)
+		log.Printf("[239] No config value set for [%v]: %v", key, err)
 		return "", err
 	}
 	value := fmt.Sprintf("%s", val)
@@ -275,7 +275,7 @@ func (configStore *ConfigStore) GetConfigIntValueFor(key string, configtype stri
 
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
-		log.Printf("No config value set for [%v]: %v", key, err)
+		log.Printf("[278] No config value set for [%v]: %v", key, err)
 	}
 	return val, err
 }

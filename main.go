@@ -455,7 +455,7 @@ func main() {
 			}
 		}()
 	} else {
-		log.Errorf("Not starting HTTPS server: %v: %v", hostname, err)
+		log.Warnf("Not starting HTTPS server: %v: %v", hostname, err)
 	}
 
 	log.Infof("Listening at: [%v]", portValue)

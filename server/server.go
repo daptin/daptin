@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
+	"github.com/emersion/go-webdav"
 	"github.com/sadlil/go-trigger"
 	"os"
 	"strings"
@@ -42,6 +43,16 @@ import (
 
 var TaskScheduler resource.TaskScheduler
 var Stats = stats.New()
+
+type RateConfig struct {
+	version string
+	limits  map[string]int
+}
+
+var defaultRateConfig = RateConfig{
+	version: "default",
+	limits:  map[string]int{},
+}
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (
 	HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
@@ -200,20 +211,35 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 	log.Printf("Limiting max connections per IP: %v", maxConnections)
 
-	rate1, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
+	rateConfigJson, err := configStore.GetConfigValueFor("limit.rate", "backend")
 	if err != nil {
-		rate1 = 100
-		err = configStore.SetConfigValueFor("limit.rate", rate1, "backend")
+		rateConfigJson = "{\"version\":\"default\"}"
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend")
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 
-	microSecondRateGap := int(1000000 / rate1)
-	log.Printf("Limiting request per second by IP/URL: %v RPS", rate1)
+	var rateConfig RateConfig
+	err = json.Unmarshal([]byte(rateConfigJson), rateConfig)
+	if err != nil || rateConfig.version == "" {
+		rateConfig = defaultRateConfig
+		rateConfigJson = "{\"version\":\"default\"}"
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend")
+		resource.CheckErr(err, "Failed to store limit.rate default value in db")
+	}
 
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
-		return c.ClientIP() + strings.Split(c.Request.RequestURI, "?")[0] // limit rate by client ip
+		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
+		return c.ClientIP() + requestPath // limit rate by client ip + url
 	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
-		return rate.NewLimiter(rate.Every(time.Duration(microSecondRateGap)*time.Microsecond), rate1), time.Minute // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
+		ratePerSecond, ok := rateConfig.limits[requestPath]
+		if !ok {
+			ratePerSecond = 10
+		}
+		microSecondRateGap := int(1000000 / ratePerSecond)
+		return rate.NewLimiter(rate.Every(time.Duration(microSecondRateGap)*time.Microsecond),
+			ratePerSecond,
+		), time.Minute // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
 	}, func(c *gin.Context) {
 		c.AbortWithStatus(429) // handle exceed rate limit request
 	}))
@@ -394,7 +420,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
 		imapServer.TLSConfig = tlsConfig
 
-		log.Printf("Starting IMAP server at %s: %v\n", imapListenInterface, hostname)
+		log.Printf("Starting IMAP server at %s: %v", imapListenInterface, hostname)
 
 		go func() {
 			if EndsWithCheck(imapListenInterface, ":993") {
@@ -422,35 +448,53 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to store caldav.enable in _config")
 	}
 
-	if enableCaldav == "true" {
-
-		caldavRouter := gin.Default()
-
-		caldavStorage, err := resource.NewCaldavStorage(cruds, certificateManager)
-		if err != nil {
-			resource.CheckErr(err, "Unable To Configure Caldav")
-		} else {
-			caldavHandler := caldavStorage.CalDavHandler()
-			//caldavHandlerFunc := gin.WrapH(caldavHandler)
-
-			log.Infof("Enabling caldav at /calendars")
-
-			caldavRouter.GET("/.well-known/caldav", func(c *gin.Context) {
-				c.Redirect(301, "/calendars/users")
-			})
-			caldavRouter.NoRoute()
-
-			go func() {
-				log.Printf("Listening caldav at :8008")
-				http.Handle("/", caldavHandler)
-				http.ListenAndServe(":8008", nil)
-			}()
-		}
-	}
-
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, configStore)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, rateConfig, maxConnections)
+
+	if enableCaldav == "true" {
+
+		//caldavStorage, err := resource.NewCaldavStorage(cruds, certificateManager)
+		caldavHandler := webdav.Handler{
+			FileSystem: webdav.LocalFileSystem("./storage"),
+		}
+		caldavHttpHandler := func(c *gin.Context) {
+			ok, abort, modifiedRequest := authMiddleware.AuthCheckMiddlewareWithHttp(c.Request, c.Writer, true)
+			if !ok || abort {
+				c.Header("WWW-Authenticate", "Basic realm='caldav'")
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+			caldavHandler.ServeHTTP(c.Writer, modifiedRequest)
+		}
+		defaultRouter.Handle("OPTIONS", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("HEAD", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("GET", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("POST", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PUT", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PATCH", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPFIND", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("DELETE", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("COPY", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MOVE", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MKCOL", "/caldav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPPATCH", "/caldav/*path", caldavHttpHandler)
+
+		defaultRouter.Handle("OPTIONS", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("HEAD", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("GET", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("POST", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PUT", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PATCH", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPFIND", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("DELETE", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("COPY", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MOVE", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("MKCOL", "/carddav/*path", caldavHttpHandler)
+		defaultRouter.Handle("PROPPATCH", "/carddav/*path", caldavHttpHandler)
+
+		//hostSwitch.handlerMap["calendar"] = caldavHandler
+	}
 
 	for k := range cruds {
 		cruds[k].SubsiteFolderCache = subsiteCacheFolders
@@ -735,15 +779,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	defaultRouter.NoRoute(func(c *gin.Context) {
-		resource.CheckErr(err, "Failed to open index.html")
-		if err != nil {
-			c.AbortWithStatus(500)
-			return
-		}
 		//c.Header("Content-Type", "text/html")
-		c.Data(200, "text/html; charset=UTF-8", indexFileContents)
-		//_, err = c.Writer.Write(indexFileContents)
-		//resource.CheckErr(err, "Failed to write index html")
+		if len(indexFileContents) > 0 {
+			c.Data(200, "text/html; charset=UTF-8", indexFileContents)
+		}
 	})
 
 	defaultRouter.GET("", func(c *gin.Context) {
