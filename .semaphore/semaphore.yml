@@ -12,7 +12,7 @@ blocks:
       jobs:
         - name: go test
           commands:
-            - sem-version go 1.17
+            - sem-version go 1.16
             - sem-version node 10.13.0
             - export GO111MODULE=on
             - export GOPATH=~/go
