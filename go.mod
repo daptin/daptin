@@ -38,7 +38,7 @@ require (
 	github.com/dropbox/dropbox-sdk-go-unofficial v5.6.0+incompatible // indirect
 	github.com/emersion/go-message v0.11.1
 	github.com/emersion/go-msgauth v0.4.0
-	github.com/emersion/go-webdav v0.3.1 // indirect
+	github.com/emersion/go-webdav v0.3.1
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
 	github.com/getkin/kin-openapi v0.34.0
@@ -71,7 +71,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
-	github.com/hashicorp/memberlist v0.1.5 // indirect
+	github.com/hashicorp/memberlist v0.1.5
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/imroc/req v0.2.4
@@ -99,7 +99,7 @@ require (
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
-	github.com/samedi/caldav-go v3.0.0+incompatible
+	github.com/samedi/caldav-go v3.0.0+incompatible // indirect
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/simplereach/timeutils v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
