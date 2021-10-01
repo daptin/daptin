@@ -191,8 +191,22 @@ func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 					tx, errb = db.Beginx()
 					CheckErr(err, "Failed to create a new transaction after rollback.")
 				} else {
-					log.Infof("Key created [%v][%v]", keyName, table.TableName)
+					log.Infof("Key created [%v][%v]", table.TableName, keyName)
 				}
+
+				fkIndexName := fmt.Sprintf("index_fk_%s_%s", table.TableName, column.ColumnName)
+				createFkIndex := "create index " + fkIndexName + " on " + table.TableName + " (" + column.ColumnName + ") "
+				//log.Printf("Alter table add constraint sql: %v", alterSql)
+				_, err = db.Exec(createFkIndex)
+				if err != nil {
+					log.Printf("Failed to create foreign key index [%v],  %v on column [%v][%v]", err, fkIndexName, table.TableName, column.ColumnName)
+					tx.Rollback()
+					tx, errb = db.Beginx()
+					CheckErr(err, "Failed to create a new transaction after rollback.")
+				} else {
+					log.Infof("Index on FK created [%v][%v]", table.TableName, fkIndexName)
+				}
+
 			}
 		}
 
