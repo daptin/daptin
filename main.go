@@ -2,13 +2,13 @@ package main
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
 	server2 "github.com/fclairamb/ftpserver/server"
+	"github.com/hashicorp/memberlist"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"io/ioutil"
@@ -173,6 +173,9 @@ func main() {
 	var profileDumpPath = flag.String("profile_dump_path", "./", "location for dumping cpu/heap data in profile mode")
 	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
 	var olricPeers = flag.String("olric_peers", "", "list of olric peers, comma separated in ip:port")
+	var olricBindPort = flag.Int("olric_bind_port", 0, "port for olric server")
+	var olricMembershipPort = flag.Int("olric_membership_port", 0, "port for olric membership")
+	var olricConfigEnv = flag.String("olric_env", "local", "env value for olric: local/lan/wan, default: lan")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
@@ -282,7 +285,7 @@ func main() {
 	log.Printf("Connection acquired from database [%s]", *dbType)
 
 	portValue := *port
-	portInt := int64(0)
+	portInt := int64(6336)
 	if strings.Index(portValue, ".") > -1 {
 		// port has ip and nothing to do
 		// get the port from the value, ip:port
@@ -310,32 +313,42 @@ func main() {
 			_ = os.Mkdir(*localStoragePath, 0644)
 		}
 	}
-	olricBindPort := int(portInt)
-	if olricBindPort > 2000 {
-		olricBindPort = olricBindPort - 1000
-	} else {
-		olricBindPort = olricBindPort + 1000
+	olricBindPortValue := *olricBindPort
+	if olricBindPortValue == 0 {
+		if portInt > 2000 {
+			olricBindPortValue = int(portInt - 1000)
+		} else {
+			olricBindPortValue = int(portInt + 1000)
+		}
 	}
 
-	log.Infof("Olric bind port is: %v", olricBindPort)
-	olricConfig1 := olricConfig.New("local")
-	//err = olricConfig1.SetupNetworkConfig()
-	//if err != nil {
-	//	log.Errorf("failed to find address from olric auto setup network config: %v", err)
-	//olricConfig1.BindPort = olricBindPort
-	//}
-	//olricConfig1.MemberlistConfig.Name = fmt.Sprintf("%v:%v", olricConfig1.MemberlistConfig.BindAddr, olricConfig1.BindPort)
-	olricConfigJson, _ := json.Marshal(olricConfig1)
-	log.Infof("Olric config: %v", string(olricConfigJson))
+	log.Infof("Olric bind port is: %v", olricBindPortValue)
+	olricConfigEnvValue := *olricConfigEnv
 
-	//olricConfig1.BindPort = olricConfig.DefaultPort
-	olricConfig1.LogLevel = "DEBUG"
+	olricConfig1 := olricConfig.New(olricConfigEnvValue)
+	err = olricConfig1.SetupNetworkConfig()
+
+	olricConfig1.BindPort = olricBindPortValue
+
+	olricConfig1.MemberlistConfig = memberlist.DefaultLocalConfig()
+	olricConfig1.MemberlistConfig.Name = fmt.Sprintf("%v:%v", olricConfig1.MemberlistConfig.BindAddr, olricConfig1.BindPort)
+
+	olricConfig1.LogLevel = "INFO"
 	olricConfig1.LogVerbosity = 1
-	log.Infof("olric peers: %v", *olricPeers)
-	//olricConfig1.Peers = strings.Split(*olricPeers, ",")
+	if len(*olricPeers) > 0 {
+		olricConfig1.Peers = strings.Split(*olricPeers, ",")
+	}
+	log.Infof("olric peers: %v", olricConfig1.Peers)
 	olricConfig1.LogOutput = os.Stdout
-	olricConfig1.MemberlistConfig.BindPort = olricBindPort
-	log.Infof("Olric member name: %v", olricConfig1.MemberlistConfig.Name)
+
+	olricMembershipPortValue := *olricMembershipPort
+	if olricMembershipPortValue == 0 {
+		olricMembershipPortValue = olricBindPortValue + 1
+	}
+
+	olricConfig1.MemberlistConfig.BindPort = olricMembershipPortValue
+	log.Infof("Olric member name: %v => %v", olricConfig1.MemberlistConfig.Name, olricConfig1.BindPort)
+	log.Infof("Olric membership address: %v", olricConfig1.MemberlistConfig.Name)
 
 	olricDb, err = olric.New(olricConfig1)
 	if err != nil {
@@ -347,11 +360,9 @@ func main() {
 	//}
 	//log.Infof("Olric status: %v", olricStats)
 
-
 	var membersTopic *olric.DTopic
 
 	go func() {
-
 
 		go func() {
 
@@ -363,7 +374,6 @@ func main() {
 				log.Infof("Message on _members from [%v]: %v", message.PublisherAddr, message.Message)
 			})
 			resource.CheckErr(err, "Failed to add listener to _members topic")
-
 
 			err = membersTopic.Publish(fmt.Sprintf("Joining from %v", olricConfig1.MemberlistConfig.Name))
 			resource.CheckErr(err, "Failed to publish message at _members topic")
@@ -532,7 +542,6 @@ func main() {
 	if membersTopic != nil {
 		membersTopic.Publish(fmt.Sprintf("I am shutting down: %v", olricConfig1.MemberlistConfig.Name))
 	}
-
 
 	log.Printf("Why quit now ?")
 }
