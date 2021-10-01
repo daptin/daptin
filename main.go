@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/buraksezer/olric"
@@ -171,6 +172,7 @@ func main() {
 	var logLevel = flag.String("log_level", "info", "log level : debug, trace, info, warn, error, fatal")
 	var profileDumpPath = flag.String("profile_dump_path", "./", "location for dumping cpu/heap data in profile mode")
 	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
+	var olricPeers = flag.String("olric_peers", "", "list of olric peers, comma separated in ip:port")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
@@ -279,6 +281,21 @@ func main() {
 	_ = tx.Rollback()
 	log.Printf("Connection acquired from database [%s]", *dbType)
 
+	portValue := *port
+	portInt := int64(0)
+	if strings.Index(portValue, ".") > -1 {
+		// port has ip and nothing to do
+		// get the port from the value, ip:port
+		portInt, err = strconv.ParseInt(strings.Split(portValue, ":")[1], 10, 32)
+		if err != nil {
+			portInt = 6336
+		}
+	} else if portValue[0] != ':' {
+		// port is missing :
+		portInt, err = strconv.ParseInt(portValue, 10, 32)
+		portValue = ":" + portValue
+	}
+
 	var hostSwitch server.HostSwitch
 	var mailDaemon *guerrilla.Daemon
 	var taskScheduler resource.TaskScheduler
@@ -293,20 +310,69 @@ func main() {
 			_ = os.Mkdir(*localStoragePath, 0644)
 		}
 	}
+	olricBindPort := int(portInt)
+	if olricBindPort > 2000 {
+		olricBindPort = olricBindPort - 1000
+	} else {
+		olricBindPort = olricBindPort + 1000
+	}
 
-	olricConfig1 := olricConfig.New("wan")
-	olricConfig1.LogLevel = "ERROR"
+	log.Infof("Olric bind port is: %v", olricBindPort)
+	olricConfig1 := olricConfig.New("local")
+	//err = olricConfig1.SetupNetworkConfig()
+	//if err != nil {
+	//	log.Errorf("failed to find address from olric auto setup network config: %v", err)
+	//olricConfig1.BindPort = olricBindPort
+	//}
+	//olricConfig1.MemberlistConfig.Name = fmt.Sprintf("%v:%v", olricConfig1.MemberlistConfig.BindAddr, olricConfig1.BindPort)
+	olricConfigJson, _ := json.Marshal(olricConfig1)
+	log.Infof("Olric config: %v", string(olricConfigJson))
+
+	//olricConfig1.BindPort = olricConfig.DefaultPort
+	olricConfig1.LogLevel = "DEBUG"
 	olricConfig1.LogVerbosity = 1
-	olricConfig1.LogOutput = os.Stderr
+	log.Infof("olric peers: %v", *olricPeers)
+	//olricConfig1.Peers = strings.Split(*olricPeers, ",")
+	olricConfig1.LogOutput = os.Stdout
+	olricConfig1.MemberlistConfig.BindPort = olricBindPort
+	log.Infof("Olric member name: %v", olricConfig1.MemberlistConfig.Name)
 
 	olricDb, err = olric.New(olricConfig1)
 	if err != nil {
 		log.Errorf("Failed to create olric cache: %v", err)
 	}
+	//olricStats, err := olricDb.Stats()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//log.Infof("Olric status: %v", olricStats)
+
+
+	var membersTopic *olric.DTopic
 
 	go func() {
+
+
+		go func() {
+
+			time.Sleep(5 * time.Second)
+			membersTopic, err := olricDb.NewDTopic("_members", 4, olric.UnorderedDelivery)
+			resource.CheckErr(err, "failed to listen to _members topic")
+
+			_, err = membersTopic.AddListener(func(message olric.DTopicMessage) {
+				log.Infof("Message on _members from [%v]: %v", message.PublisherAddr, message.Message)
+			})
+			resource.CheckErr(err, "Failed to add listener to _members topic")
+
+
+			err = membersTopic.Publish(fmt.Sprintf("Joining from %v", olricConfig1.MemberlistConfig.Name))
+			resource.CheckErr(err, "Failed to publish message at _members topic")
+		}()
+
 		err = olricDb.Start()
-		resource.CheckErr(err, "failed to start cache server")
+		resource.CheckErr(err, "failed to start olric server")
+		panic(err)
+
 	}()
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
@@ -350,6 +416,10 @@ func main() {
 		restartLock.Lock()
 		defer restartLock.Unlock()
 
+		if membersTopic != nil {
+			membersTopic.Publish(fmt.Sprintf("I need to restart: %v", olricConfig1.MemberlistConfig.Name))
+		}
+
 		startTime := time.Now()
 
 		log.Printf("Close down services and db connection")
@@ -381,19 +451,15 @@ func main() {
 		rhs.HostSwitch = &hostSwitch
 		err = db.Close()
 		auth.CheckErr(err, "Failed to close old db connection")
-		log.Printf("Restart complete, took %f seconds", float64(time.Now().UnixNano()-startTime.UnixNano())/float64(1000000000))
+		secondsToRestart := float64(time.Now().UnixNano()-startTime.UnixNano()) / float64(1000000000)
+		log.Printf("Restart complete, took %f seconds", secondsToRestart)
+		if membersTopic != nil {
+			membersTopic.Publish(fmt.Sprintf("I am back: %v, took me [%v] seconds to restart", olricConfig1.MemberlistConfig.Name, secondsToRestart))
+		}
 
 	})
 
 	resource.CheckErr(err, "Error while adding restart trigger function")
-
-	portValue := *port
-	if strings.Index(portValue, ".") > -1 {
-		// port has ip and nothing to do
-	} else if portValue[0] != ':' {
-		// port is missing :
-		portValue = ":" + portValue
-	}
 
 	if port_variable != nil && *port_variable != "DAPTIN_PORT" {
 		portVarString := *port_variable
@@ -463,6 +529,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if membersTopic != nil {
+		membersTopic.Publish(fmt.Sprintf("I am shutting down: %v", olricConfig1.MemberlistConfig.Name))
+	}
+
 
 	log.Printf("Why quit now ?")
 }

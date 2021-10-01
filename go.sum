@@ -515,6 +515,8 @@ github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 h1:q763qf9huN11kDQavWs
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/clbanning/x2j v0.0.0-20191024224557-825249438eec h1:EdRZT3IeKQmfCSrgo8SZ8V3MEnskuJP0wCYNpe+aiXo=
 github.com/clbanning/x2j v0.0.0-20191024224557-825249438eec/go.mod h1:jMjuTZXRI4dUb/I5gc9Hdhagfvm9+RyrPryS/auMzxE=
+github.com/cli/safeexec v1.0.0 h1:0VngyaIyqACHdcMNWfo6+KdUYnqEr2Sg+bSP1pdF+dI=
+github.com/cli/safeexec v1.0.0/go.mod h1:Z/D4tTN8Vs5gXYHDCbaM1S/anmEDnJb1iW0+EJ5zx3Q=
 github.com/client9/misspell v0.3.4 h1:ta993UF76GwbvJcIo3Y68y/M3WxlpEHPWIGDkJYwzJI=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cloudflare/cloudflare-go v0.10.2 h1:VBodKICVPnwmDxstcW3biKcDSpFIfS/RELUXsZSBYK4=
@@ -791,6 +793,8 @@ github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
 github.com/gohugoio/hugo v0.79.0 h1:NGEqGfyXbBqLCxseySJvQOkMeAt8hbnaPOX1DlLYe1w=
 github.com/gohugoio/hugo v0.79.0/go.mod h1:NPH+Gdh+9c24QA4zk4hTUplQi//noe4hC4Bh/pT45ow=
+github.com/gohugoio/hugo v0.79.1 h1:EBtD2VsgpCJJM9odcnTP2PRedHFYKDHjEI7ASvxO3l8=
+github.com/gohugoio/hugo v0.79.1/go.mod h1:5ra+aQK5MVOmK9QCzFSy+omXULD2kQG9W5+hHSxXcz0=
 github.com/gohugoio/testmodBuilder/mods v0.0.0-20190520184928-c56af20f2e95 h1:sgew0XCnZwnzpWxTt3V8LLiCO7OQi3C6dycaE67wfkU=
 github.com/gohugoio/testmodBuilder/mods v0.0.0-20190520184928-c56af20f2e95/go.mod h1:bOlVlCa1/RajcHpXkrUXPSHB/Re1UnlXxD1Qp8SKOd8=
 github.com/goji/httpauth v0.0.0-20160601135302-2da839ab0f4d h1:lBXNCxVENCipq4D1Is42JVOP4eQjlB8TQ6H69Yx5J9Q=

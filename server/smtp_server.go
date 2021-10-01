@@ -108,6 +108,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		}
 		hosts = append(hosts, hostname)
 
+		log.Infof("Setup SMTP server at [%v] for hostname [%v]", server["listen_interface"], hostname)
 		serverConfig = append(serverConfig, config)
 
 	}

@@ -373,7 +373,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname)
 
 	if err == nil {
-		err = mailDaemon.Start()
+		disableSmtp := os.Getenv("DAPTIN_DISABLE_SMTP")
+		if disableSmtp != "true" && len(mailDaemon.Config.Servers) > 0 {
+			log.Infof("Starting SMTP server at port: [%v], set DAPTIN_DISABLE_SMTP=true in environment to disable SMTP server",
+				mailDaemon.Config.Servers)
+			err = mailDaemon.Start()
+		} else {
+			log.Infof("SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers configured")
+		}
 
 		if err != nil {
 			log.Errorf("Failed to mail daemon start: %s", err)

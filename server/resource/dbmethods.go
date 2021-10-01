@@ -1765,7 +1765,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceId(typeName string, referen
 	duration := time.Since(start)
 	log.Tracef("[TIMING] SingleRowSelect Preparex: %v", duration)
 	if err != nil {
-		log.Errorf("[1011] failed to prepare statment - [%v]: %v", s, err)
+		log.Errorf("[1768] failed to prepare statment - [%v]: %v", s, err)
 		return nil, nil, err
 	}
 
@@ -1838,7 +1838,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	}(stmt1)
 
 	if err != nil {
-		log.Errorf("[1011] failed to prepare statment - [%v]: %v", s, err)
+		log.Errorf("[1841] failed to prepare statment - [%v]: %v", s, err)
 		return nil, nil, err
 	}
 
