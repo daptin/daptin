@@ -4,6 +4,7 @@ test_with_go_modules: &test_with_go_modules
   - run: wget https://golang.org/dl/go1.17.1.linux-amd64.tar.gz
   - run: sudo tar -xf go1.17.1.linux-amd64.tar.gz
   - run: sudo mv go /usr/local
+  - run: rm go1.17.1.linux-amd64.tar.gz
   - run: export GOROOT=/usr/local/go
   - run: export PATH=$GOROOT/bin:$PATH
   - checkout
