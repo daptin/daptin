@@ -216,16 +216,21 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						mailBytes := e.Data.Bytes()
-						message1, err := mail1.ReadMessage(bytes.NewReader(mailBytes))
-						message1.Header.Date()
+						_, err := mail1.ReadMessage(bytes.NewReader(mailBytes))
+						if err != nil {
+							return nil, err
+						}
 
 						parsedMail, err := mailpacket.CreateReader(bytes.NewReader(mailBytes))
 						resource.CheckErr(err, "Failed to parse mail from bytes")
+						if err != nil {
+							return nil, err
+						}
 
 						if message.IsUnknownCharset(err) {
 							log.Println("Unknown encoding:", err)
 						} else if err != nil {
-							log.Fatal(err)
+							return nil, err
 						}
 
 						log.Printf("Authorized login: %v", e.AuthorizedLogin)
@@ -254,7 +259,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								log.Errorf("Refusing to forward mail without login")
 								return nil, errors.New("no such account")
 							}
-							fmt.Printf("Original Mail: \n%s\n", string(mailBytes))
 
 							r := strings.NewReader(string(mailBytes))
 							netMessage, _ := mail1.ReadMessage(r)
@@ -263,7 +267,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
 								log.Errorf("Refusing to send mail without signing")
-								continue
+								return nil, fmt.Errorf("private key not found for signing outgoing email")
 							}
 
 							//log.Printf("Private key [%v] %v", e.MailFrom.Host, string(privateKeyPemByte))
@@ -277,6 +281,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 
 							resource.CheckErr(err, "Failed to parse private key")
+							if err != nil {
+								return nil, err
+							}
+
 
 							options := &dkim.SignOptions{
 								Selector:               "d1",

@@ -25,6 +25,10 @@ func (d *mailServersSyncActionPerformer) Name() string {
 
 func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
+	if (d.mailDaemon == nil) {
+		log.Warnf("mail daemon was not initialized, returning without any outcome")
+		return nil, []ActionResponse{}, []error{}
+	}
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
 
