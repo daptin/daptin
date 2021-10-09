@@ -19,7 +19,7 @@ import (
 type integrationInstallationPerformer struct {
 	cruds            map[string]*DbResource
 	integration      Integration
-	router           *openapi3.Swagger
+	router           *openapi3.T
 	commandMap       map[string]*openapi3.Operation
 	pathMap          map[string]string
 	methodMap        map[string]string
@@ -67,11 +67,11 @@ func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap 
 
 	}
 
-	var router *openapi3.Swagger
+	var router *openapi3.T
 
 	if integration["specification_language"] == "openapiv2" {
 
-		openapiv2Spec := openapi2.Swagger{}
+		openapiv2Spec := openapi2.T{}
 
 		err := json.Unmarshal(specBytes, &openapiv2Spec)
 
@@ -80,7 +80,7 @@ func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap 
 			return nil, nil, []error{err}
 		}
 
-		router, err = openapi2conv.ToV3Swagger(&openapiv2Spec)
+		router, err = openapi2conv.ToV3(&openapiv2Spec)
 
 		if err != nil {
 			log.Errorf("Failed to convert to openapi v3 spec: %v", err)
@@ -95,7 +95,7 @@ func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap 
 
 	if router == nil {
 
-		router, err = openapi3.NewSwaggerLoader().LoadSwaggerFromData(specBytes)
+		router, err = openapi3.NewLoader().LoadFromData(specBytes)
 	}
 
 	commandMap := make(map[string]*openapi3.Operation)

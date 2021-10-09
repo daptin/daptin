@@ -98,7 +98,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	// rclone config load
-	configfile.LoadConfig(context.Background())
+	configfile.Install()
 	defaultConfig := fs.GetConfig(nil)
 	defaultConfig.DryRun = false
 	defaultConfig.LogLevel = fs.LogLevelDebug

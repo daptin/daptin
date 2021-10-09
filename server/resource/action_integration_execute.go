@@ -35,7 +35,7 @@ const (
 type integrationActionPerformer struct {
 	cruds            map[string]*DbResource
 	integration      Integration
-	router           *openapi3.Swagger
+	router           *openapi3.T
 	commandMap       map[string]*openapi3.Operation
 	pathMap          map[string]string
 	methodMap        map[string]string
@@ -657,10 +657,10 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 
 	var err error
 	yamlBytes := []byte(integration.Specification)
-	var router *openapi3.Swagger
+	var router *openapi3.T
 
 	if integration.SpecificationLanguage == "openapiv2" {
-		openapiv2Spec := openapi2.Swagger{}
+		openapiv2Spec := openapi2.T{}
 		if integration.SpecificationFormat == "json" {
 
 			err = json.Unmarshal(yamlBytes, &openapiv2Spec)
@@ -677,7 +677,7 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 			}
 
 		}
-		router, err = openapi2conv.ToV3Swagger(&openapiv2Spec)
+		router, err = openapi2conv.ToV3(&openapiv2Spec)
 	} else if integration.SpecificationLanguage == "openapiv3" {
 		if integration.SpecificationFormat == "json" {
 
@@ -697,7 +697,7 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 		}
 	}
 
-	err = openapi3.NewSwaggerLoader().ResolveRefsIn(router, nil)
+	err = openapi3.NewLoader().ResolveRefsIn(router, nil)
 
 	if err != nil {
 		log.Errorf("Failed to load swagger spec: %v", err)

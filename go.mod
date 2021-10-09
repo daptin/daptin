@@ -5,6 +5,7 @@ go 1.14
 // +heroku goVersion go1.15
 
 require (
+	github.com/Azure/azure-amqp-common-go v1.1.4 // indirect
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
@@ -22,7 +23,7 @@ require (
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.55.4
+	github.com/artpar/rclone v1.56.1
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
@@ -41,7 +42,7 @@ require (
 	github.com/emersion/go-webdav v0.3.1
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
-	github.com/getkin/kin-openapi v0.34.0
+	github.com/getkin/kin-openapi v0.75.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/gzip v0.0.2
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
@@ -53,10 +54,10 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/envy v1.9.0 // indirect
-	github.com/gobuffalo/flect v0.1.5
+	github.com/gobuffalo/flect v0.2.3
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
-	github.com/gohugoio/hugo v0.79.1
+	github.com/gohugoio/hugo v0.88.1
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
 	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82 // indirect
@@ -77,45 +78,58 @@ require (
 	github.com/imroc/req v0.2.4
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
-	github.com/jlaffaye/ftp v0.0.0-20210302195756-c3c8c7ac6590
+	github.com/jlaffaye/ftp v0.0.0-20210307004419-5d4190119067
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
-	github.com/json-iterator/go v1.1.10
+	github.com/json-iterator/go v1.1.11
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kniren/gota v0.10.1 // indirect
 	github.com/koofr/go-httpclient v0.0.0-20200420163713-93aa7c75b348 // indirect
 	github.com/koofr/go-koofrclient v0.0.0-20190724113126-8e5366da203a // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/kyokomi/emoji v2.2.4+incompatible // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/laurent22/ical-go v0.1.0 // indirect
 	github.com/lib/pq v1.9.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
+	github.com/markbates/inflect v1.0.4 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/ncw/swift v1.0.52 // indirect
+	github.com/nicksnyder/go-i18n/v2 v2.1.1 // indirect
 	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/samedi/caldav-go v3.0.0+incompatible // indirect
+	github.com/sevlyar/go-daemon v0.1.5 // indirect
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/simplereach/timeutils v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.1
+	github.com/tidwall/pretty v0.0.0-20190325153808-1166b9ac2b65 // indirect
+	github.com/uber/jaeger-client-go v2.15.0+incompatible // indirect
+	github.com/uber/jaeger-lib v1.5.0 // indirect
+	github.com/urfave/cli v1.22.4 // indirect
+	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
+	github.com/xdg/stringprep v1.0.0 // indirect
 	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
-	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
-	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c
-	golang.org/x/text v0.3.5
-	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
+	go.mongodb.org/mongo-driver v1.0.1 // indirect
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
+	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
+	golang.org/x/text v0.3.7
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 	gonum.org/v1/gonum v0.6.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+	pack.ag/amqp v0.11.0 // indirect
 )
 
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
