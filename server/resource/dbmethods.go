@@ -639,8 +639,8 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(cacheKey, perm, 10*time.Minute, olric.IfNotFound)
-		CheckErr(err, "[617] Failed to set id to reference id in olric cache")
+		OlricCache.PutIfEx(cacheKey, perm, 10*time.Minute, olric.IfNotFound)
+		//CheckErr(err, "[617] Failed to set id to reference id in olric cache")
 	}
 	return perm
 }
@@ -2961,8 +2961,8 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		cacheErr := OlricCache.PutIfEx(k, str, 30*time.Minute, olric.IfNotFound)
-		CheckErr(cacheErr, "[2897] Failed to set id to reference id in olric cache")
+		OlricCache.PutIfEx(k, str, 30*time.Minute, olric.IfNotFound)
+		//CheckErr(cacheErr, "[2897] Failed to set id to reference id in olric cache")
 	}
 	return str, err
 

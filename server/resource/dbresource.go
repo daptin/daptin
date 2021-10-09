@@ -337,7 +337,7 @@ func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[string]bool {
 
 	if OlricCache != nil && userRefId != nil {
 		err = OlricCache.PutIfEx("administrator_reference_id", adminMap, 60*time.Minute, olric.IfNotFound)
-		CheckErr(err, "[257] Failed to cache admin reference ids")
+		//CheckErr(err, "[257] Failed to cache admin reference ids")
 	}
 	return adminMap
 }
@@ -394,13 +394,15 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 	_, ok := admins[userReferenceId]
 	if ok {
 		if OlricCache != nil {
-			err := OlricCache.PutIfEx(key, true, 5*time.Minute, olric.IfNotFound)
-			CheckErr(err, "[320] Failed to set admin id value in olric cache")
+			OlricCache.PutIfEx(key, true, 5*time.Minute, olric.IfNotFound)
+			//CheckErr(err, "[320] Failed to set admin id value in olric cache")
 		}
 		return true
 	}
-	err := OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
-	CheckErr(err, "[327] Failed to set admin id value in olric cache")
+	if OlricCache != nil {
+		OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
+	}
+	//CheckErr(err, "[327] Failed to set admin id value in olric cache")
 	return false
 
 }
