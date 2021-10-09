@@ -360,7 +360,8 @@ jobs:
 
       - name: Cross-compile daptin
         run: |
-          docker pull artpar/xgo
+          docker pull artpar/xgo:1.17
+          docker tag artpar/xgo:1.17 artpar/xgo:latest
           go get github.com/crazy-max/xgo
           go get github.com/ahmetb/govvv
           pwd
