@@ -54,7 +54,7 @@ var StandardColumns = []api2go.ColumnInfo{
 	{
 		Name:       "reference_id",
 		ColumnName: "reference_id",
-		DataType:   "varchar(40)",
+		DataType:   "char(36)",
 		IsIndexed:  true,
 		IsUnique:   true,
 		IsNullable: false,
