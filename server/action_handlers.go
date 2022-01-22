@@ -140,6 +140,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create enable graphql performer")
 	performers = append(performers, enableGraphqlPerformer)
 
+	commandExecutePerformer, err := resource.NewCommandExecuteActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create command execute performer")
+	performers = append(performers, commandExecutePerformer)
+
 	fileUploadPerformer, err := resource.NewFileUploadActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create restart performer")
 	performers = append(performers, fileUploadPerformer)
