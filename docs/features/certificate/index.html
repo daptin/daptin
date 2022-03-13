@@ -8,14 +8,14 @@
       
       
       
-        <link rel="canonical" href="https://daptin.github.io/daptin/subsite/grapes/">
+        <link rel="canonical" href="https://daptin.github.io/daptin/features/certificate/">
       
       <link rel="icon" href="../../images/theme-favicon.png">
       <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.2.4">
     
     
       
-        <title>Live editing a subsite - Daptin</title>
+        <title>SSL certificates - Daptin</title>
       
     
     
@@ -63,7 +63,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#grapesjs" class="md-skip">
+        <a href="#ssl-certificates" class="md-skip">
           Skip to content
         </a>
       
@@ -95,7 +95,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Live editing a subsite
+              SSL certificates
             
           </span>
         </div>
@@ -301,14 +301,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
       
       
       
@@ -626,7 +624,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/enable-graphql/" class="md-nav__link">
+      <a href="../enable-graphql/" class="md-nav__link">
         GraphQL
       </a>
     </li>
@@ -640,7 +638,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/enable-data-auditing/" class="md-nav__link">
+      <a href="../enable-data-auditing/" class="md-nav__link">
         Data Auditing
       </a>
     </li>
@@ -654,7 +652,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/enable-multilingual-table/" class="md-nav__link">
+      <a href="../enable-multilingual-table/" class="md-nav__link">
         Multilingual Table
       </a>
     </li>
@@ -668,7 +666,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../features/enable-smtp-imap/" class="md-nav__link">
+      <a href="../enable-smtp-imap/" class="md-nav__link">
         SMTP/IMPS server
       </a>
     </li>
@@ -900,14 +898,12 @@
               
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_15" type="checkbox" id="__nav_2_15" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_15" type="checkbox" id="__nav_2_15" >
       
       
       
@@ -930,7 +926,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../subsite/" class="md-nav__link">
+      <a href="../../subsite/subsite/" class="md-nav__link">
         Creating a subsite
       </a>
     </li>
@@ -942,21 +938,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../subsite/grapes/" class="md-nav__link">
         Live editing a subsite
       </a>
-      
     </li>
   
 
@@ -968,7 +954,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../basic_auth/" class="md-nav__link">
+      <a href="../../subsite/basic_auth/" class="md-nav__link">
         Basic Authentication
       </a>
     </li>
@@ -1098,6 +1084,35 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#self-generated" class="md-nav__link">
+    Self generated
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acme-generated" class="md-nav__link">
+    ACME generated
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#import-existing" class="md-nav__link">
+    Import existing
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1110,8 +1125,40 @@
                 
 
 
-<h1 id="grapesjs">GrapesJS</h1>
-<p>Todo: add documentation around live website editing</p>
+<h1 id="ssl-certificates">SSL certificates</h1>
+<ul>
+<li>
+<ul>
+<li>Authentication required</li>
+</ul>
+</li>
+</ul>
+<p><code>-H "Authorization: &lt;TOKEN&gt;"</code></p>
+<p>List all certificates</p>
+<div class="highlight"><pre><span></span><code>curl http://localhost:8080/api/certificate?sort<span class="o">=</span><span class="p">&amp;</span>page<span class="o">[</span>number<span class="o">]=</span><span class="m">1</span><span class="p">&amp;</span>page<span class="o">[</span>size<span class="o">]=</span><span class="m">10</span>
+</code></pre></div>
+<p>Create new certificate entry</p>
+<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:8080/api/certificate&#39;</span> -X POST <span class="se">\</span>
+    -H <span class="s1">&#39;Content-Type: application/vnd.api+json&#39;</span> <span class="se">\</span>
+    -H <span class="s1">&#39;Authorization: Bearer &lt;TOKEN&gt;&#39;</span> <span class="se">\</span>
+    --data-raw <span class="s1">&#39;{&quot;data&quot;:{&quot;type&quot;:&quot;certificate&quot;,&quot;attributes&quot;:{&quot;hostname&quot;:&quot;example.com&quot;,&quot;issuer&quot;:&quot;self&quot;}},&quot;meta&quot;:{}}&#39;</span>
+</code></pre></div>
+<p>Creates a new entry and does not generate any certificate</p>
+<h2 id="self-generated">Self generated</h2>
+<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:8080/action/certificate/generate_self_certificate&#39;</span> -X POST <span class="se">\</span>
+    -H <span class="s1">&#39;Authorization: Bearer &lt;TOKEN&gt;&#39;</span> -H <span class="s1">&#39;Content-Type: application/json;charset=utf-8&#39;</span> <span class="se">\</span>
+    --data-raw <span class="s1">&#39;{&quot;attributes&quot;:{&quot;certificate_id&quot;:&quot;8036429f-8935-4cab-9c5c-42261a451905&quot;}}&#39;</span>
+</code></pre></div>
+<p>This will create a new self-signed certificate for the selected certificate hostname</p>
+<h2 id="acme-generated">ACME generated</h2>
+<p>Make sure the domain is pointed to this instance.</p>
+<div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:8080/action/certificate/generate_acme_certificate&#39;</span> -X POST <span class="se">\</span>
+    -H <span class="s1">&#39;Authorization: Bearer &lt;TOKEN&gt;&#39;</span> -H <span class="s1">&#39;Content-Type: application/json;charset=utf-8&#39;</span> <span class="se">\</span>
+    --data-raw <span class="s1">&#39;{&quot;attributes&quot;:{&quot;certificate_id&quot;:&quot;8036429f-8935-4cab-9c5c-42261a451905&quot;,&quot;email&quot;:&quot;&lt;YOUR_EMAIL&gt;&quot;}}&#39;</span>
+</code></pre></div>
+<p>This will issue a new certificate from ACME and store the key in the database</p>
+<h2 id="import-existing">Import existing</h2>
+<p>You can directly do a PATCH on the entry and import your existing certificates and have them served.</p>
 
               
             </article>
@@ -1121,41 +1168,6 @@
       </main>
       
         <footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-        
-        <a href="../subsite/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Creating a subsite" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Creating a subsite
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="../basic_auth/" class="md-footer__link md-footer__link--next" aria-label="Next: Basic Authentication" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Basic Authentication
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">

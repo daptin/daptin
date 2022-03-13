@@ -1,6 +1,4 @@
 
-
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
@@ -9,11 +7,11 @@
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
       
+      
         <link rel="canonical" href="https://daptin.github.io/daptin/websockets/websocket/">
       
-      
-      <link rel="shortcut icon" href="../../images/theme-favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.3">
+      <link rel="icon" href="../../images/theme-favicon.png">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.2.4">
     
     
       
@@ -21,35 +19,43 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.947af8d5.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.2d9f7617.min.css">
       
-      
-    
-    
-    
-      
-        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.e6a45f82.min.css">
+        
       
     
-    
-    
-      <link rel="stylesheet" href="../../css/theme_extra.css">
     
     
       
         
-<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-114227400-1","docs.dapt.in"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview",document.location.pathname)})</script>
-<script async src="https://www.google-analytics.com/analytics.js"></script>
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
+    
+    
+      <link rel="stylesheet" href="../../css/theme_extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
     
     
   </head>
   
   
-    <body dir="ltr">
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
   
+    
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -66,47 +72,57 @@
       
     </div>
     
-      <header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid" aria-label="Header">
-    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-header-nav__button md-logo" aria-label="Daptin">
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Daptin" class="md-header__button md-logo" aria-label="Daptin" data-md-component="logo">
       
   <img src="../../images/theme-logo.png" alt="logo">
 
     </a>
-    <label class="md-header-nav__button md-icon" for="__drawer">
+    <label class="md-header__button md-icon" for="__drawer">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
     </label>
-    <div class="md-header-nav__title" data-md-component="header-title">
-      
-        <div class="md-header-nav__ellipsis">
-          <span class="md-header-nav__topic md-ellipsis">
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
             Daptin
           </span>
-          <span class="md-header-nav__topic md-ellipsis">
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
             
               Websockets
             
           </span>
         </div>
-      
+      </div>
     </div>
     
-      <label class="md-header-nav__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
       </label>
-      
-<div class="md-search" data-md-component="search" role="dialog">
+      <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
       </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
@@ -123,25 +139,30 @@
     
     
   </nav>
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
+      
         
-      
-      
+          
         
       
       <main class="md-main" data-md-component="main">
         <div class="md-main__inner md-grid">
           
             
-              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="https://daptin.github.io/daptin/" title="Daptin" class="md-nav__button md-logo" aria-label="Daptin">
+    <a href="../.." title="Daptin" class="md-nav__button md-logo" aria-label="Daptin" data-md-component="logo">
       
   <img src="../../images/theme-logo.png" alt="logo">
 
@@ -155,522 +176,123 @@
       
       
 
-
-  <li class="md-nav__item">
-    <a href="../.." title="Overview" class="md-nav__link">
-      Overview
-    </a>
-  </li>
-
+  
+  
+  
     
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_1" type="checkbox" id="__nav_1" >
       
       
       
+      
+        <label class="md-nav__link" for="__nav_1">
+          Introduction
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Introduction" data-md-level="1">
+        <label class="md-nav__title" for="__nav_1">
+          <span class="md-nav__icon md-icon"></span>
+          Introduction
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        About
+      </a>
+    </li>
+  
 
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq.md" class="md-nav__link">
+        FAQs
+      </a>
+    </li>
+  
 
-  <li class="md-nav__item">
-    <a href="../../setting-up/installation/" title="Download and Deploy" class="md-nav__link">
-      Download and Deploy
-    </a>
-  </li>
-
+            
+          
+            
+              
+  
+  
+  
     
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_1_3" type="checkbox" id="__nav_1_3" >
       
       
       
-
-
-  <li class="md-nav__item">
-    <a href="../../setting-up/settingup/" title="Accessing the web dashboard" class="md-nav__link">
-      Accessing the web dashboard
-    </a>
-  </li>
-
-    
       
+        <label class="md-nav__link" for="__nav_1_3">
+          How to use
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
-    
-    <label class="md-nav__link" for="nav-4">
-      User management
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="User management" data-md-level="1">
-      <label class="md-nav__title" for="nav-4">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        User management
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
+      <nav class="md-nav" aria-label="How to use" data-md-level="2">
+        <label class="md-nav__title" for="__nav_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          How to use
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setting-up/installation/" class="md-nav__link">
+        Download and Deploy
+      </a>
+    </li>
+  
+
+            
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setting-up/settingup/" class="md-nav__link">
+        Accessing the web dashboard
+      </a>
+    </li>
+  
+
+            
           
+        </ul>
+      </nav>
+    </li>
+  
 
-
-  <li class="md-nav__item">
-    <a href="../../user-management/new-users/" title="New User" class="md-nav__link">
-      New User
-    </a>
-  </li>
-
-        
+            
           
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../user-management/access/" title="Access Permissions" class="md-nav__link">
-      Access Permissions
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../user-management/signin/" title="Sign in API" class="md-nav__link">
-      Sign in API
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../setting-up/data_modeling/" title="Data model" class="md-nav__link">
-      Data model
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
-    
-    <label class="md-nav__link" for="nav-6">
-      HTTP JSON API
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="HTTP JSON API" data-md-level="1">
-      <label class="md-nav__title" for="nav-6">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        HTTP JSON API
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../apis/crud/" title="CRUD API" class="md-nav__link">
-      CRUD API
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../apis/crud/" title="Action API" class="md-nav__link">
-      Action API
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../apis/crud/" title="Relation API" class="md-nav__link">
-      Relation API
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../apis/crud/" title="Aggregation API" class="md-nav__link">
-      Aggregation API
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../apis/crud/" title="State machine API" class="md-nav__link">
-      State machine API
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../apis/crud/" title="Metadata API" class="md-nav__link">
-      Metadata API
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
-    
-    <label class="md-nav__link" for="nav-7">
-      Actions
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="Actions" data-md-level="1">
-      <label class="md-nav__title" for="nav-7">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        Actions
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../actions/actions/" title="What are actions" class="md-nav__link">
-      What are actions
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../actions/default_actions/" title="Actions list" class="md-nav__link">
-      Actions list
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../actions/outcomes/" title="Action OutComes" class="md-nav__link">
-      Action OutComes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../actions/examples/" title="Examples" class="md-nav__link">
-      Examples
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../features/enable-graphql/" title="GraphQL" class="md-nav__link">
-      GraphQL
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../features/enable-data-auditing/" title="Data Auditing" class="md-nav__link">
-      Data Auditing
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../features/enable-multilingual-table/" title="Multilingual Table" class="md-nav__link">
-      Multilingual Table
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../features/enable-smtp-imap/" title="SMTP/IMPS server" class="md-nav__link">
-      SMTP/IMPS server
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../state/machines/" title="State tracking" class="md-nav__link">
-      State tracking
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-13" type="checkbox" id="nav-13">
-    
-    <label class="md-nav__link" for="nav-13">
-      OAuth
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="OAuth" data-md-level="1">
-      <label class="md-nav__title" for="nav-13">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        OAuth
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../extend/oauth_connection/" title="OAuth Connections" class="md-nav__link">
-      OAuth Connections
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../extend/oauth_token/" title="OAuth Tokens" class="md-nav__link">
-      OAuth Tokens
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../integrations/overview/" title="3rd party API Integrations" class="md-nav__link">
-      3rd party API Integrations
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-15" type="checkbox" id="nav-15">
-    
-    <label class="md-nav__link" for="nav-15">
-      Cloud store
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="Cloud store" data-md-level="1">
-      <label class="md-nav__title" for="nav-15">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        Cloud store
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../cloudstore/" title="Cloud store" class="md-nav__link">
-      Cloud store
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../cloudstore/cloudstore/" title="Available cloud stores" class="md-nav__link">
-      Available cloud stores
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
-      Asset columns
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../cloudstore/cloudstore/" title="Asset columns" class="md-nav__link">
-      Asset columns
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../cloudstore/sites/" title="Sites" class="md-nav__link">
-      Sites
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../cloudstore/assetcolumns/" title="Cloud store backed asset columns" class="md-nav__link">
-      Cloud store backed asset columns
-    </a>
-  </li>
+        </ul>
+      </nav>
+    </li>
+  
 
     
       
@@ -678,36 +300,622 @@
       
 
   
-
-
-  <li class="md-nav__item md-nav__item--active">
+  
     
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+  
+  
     
-    
-      <label class="md-nav__link md-nav__link--active" for="__toc">
-        Websockets
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
-        </span>
-      </label>
-    
-    <a href="./" title="Websockets" class="md-nav__link md-nav__link--active">
-      Websockets
-    </a>
-    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2">
+          Documentation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Documentation" data-md-level="1">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Documentation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_1" type="checkbox" id="__nav_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_1">
+          User management
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="User management" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          User management
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-management/new-users/" class="md-nav__link">
+        New User
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-management/access/" class="md-nav__link">
+        Access Permissions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-management/signin/" class="md-nav__link">
+        Sign in API
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setting-up/data_modeling/" class="md-nav__link">
+        Data model
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3" type="checkbox" id="__nav_2_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_3">
+          HTTP JSON API
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="HTTP JSON API" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          HTTP JSON API
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apis/crud/" class="md-nav__link">
+        CRUD API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apis/crud/" class="md-nav__link">
+        Action API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apis/crud/" class="md-nav__link">
+        Relation API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apis/crud/" class="md-nav__link">
+        Aggregation API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apis/crud/" class="md-nav__link">
+        State machine API
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apis/crud/" class="md-nav__link">
+        Metadata API
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_4" type="checkbox" id="__nav_2_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_4">
+          Actions
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Actions" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          Actions
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../actions/actions/" class="md-nav__link">
+        What are actions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../actions/default_actions/" class="md-nav__link">
+        Actions list
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../actions/outcomes/" class="md-nav__link">
+        Action OutComes
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../actions/examples/" class="md-nav__link">
+        Examples
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/enable-graphql/" class="md-nav__link">
+        GraphQL
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/enable-data-auditing/" class="md-nav__link">
+        Data Auditing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/enable-multilingual-table/" class="md-nav__link">
+        Multilingual Table
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/enable-smtp-imap/" class="md-nav__link">
+        SMTP/IMPS server
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../state/machines/" class="md-nav__link">
+        State tracking
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_10" type="checkbox" id="__nav_2_10" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_10">
+          OAuth
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="OAuth" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_10">
+          <span class="md-nav__icon md-icon"></span>
+          OAuth
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../extend/oauth_connection/" class="md-nav__link">
+        OAuth Connections
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../extend/oauth_token/" class="md-nav__link">
+        OAuth Tokens
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/overview/" class="md-nav__link">
+        3rd party API Integrations
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_12" type="checkbox" id="__nav_2_12" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_12">
+          Cloud store
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Cloud store" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_12">
+          <span class="md-nav__icon md-icon"></span>
+          Cloud store
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cloudstore/" class="md-nav__link">
+        Cloud store
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cloudstore/cloudstore/" class="md-nav__link">
+        Available cloud stores
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cloudstore/cloudstore/" class="md-nav__link">
+        Asset columns
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cloudstore/cloudstore/" class="md-nav__link">
+        Asset columns
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cloudstore/sites/" class="md-nav__link">
+        Sites
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cloudstore/assetcolumns/" class="md-nav__link">
+        Cloud store backed asset columns
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Websockets
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Websockets
+      </a>
+      
+        
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
   
+  
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
-    <ul class="md-nav__list" data-md-scrollfix>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
   <a href="#websockets" class="md-nav__link">
@@ -787,152 +995,180 @@
     </ul>
   
 </nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
     
-  </li>
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_15" type="checkbox" id="__nav_2_15" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_15">
+          Sub-sites
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Sub-sites" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_15">
+          <span class="md-nav__icon md-icon"></span>
+          Sub-sites
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsite/subsite/" class="md-nav__link">
+        Creating a subsite
+      </a>
+    </li>
+  
 
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsite/grapes/" class="md-nav__link">
+        Live editing a subsite
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../subsite/basic_auth/" class="md-nav__link">
+        Basic Authentication
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
     
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_16" type="checkbox" id="__nav_2_16" >
       
       
       
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-18" type="checkbox" id="nav-18">
-    
-    <label class="md-nav__link" for="nav-18">
-      Sub-sites
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="Sub-sites" data-md-level="1">
-      <label class="md-nav__title" for="nav-18">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        Sub-sites
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../subsite/subsite/" title="Creating a subsite" class="md-nav__link">
-      Creating a subsite
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../subsite/grapes/" title="Live editing a subsite" class="md-nav__link">
-      Live editing a subsite
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../subsite/basic_auth/" title="Basic Authentication" class="md-nav__link">
-      Basic Authentication
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
       
+        <label class="md-nav__link" for="__nav_2_16">
+          Internal Documents
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-19" type="checkbox" id="nav-19">
-    
-    <label class="md-nav__link" for="nav-19">
-      Internal Reference Documents
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="Internal Reference Documents" data-md-level="1">
-      <label class="md-nav__title" for="nav-19">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        Internal Reference Documents
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
+      <nav class="md-nav" aria-label="Internal Documents" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_16">
+          <span class="md-nav__icon md-icon"></span>
+          Internal Documents
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-modeling/data_storage/" class="md-nav__link">
+        Data store format
+      </a>
+    </li>
+  
+
+            
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../extend/data_exchange/" class="md-nav__link">
+        Data exchange and sync
+      </a>
+    </li>
+  
+
+            
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../streams/streams/" class="md-nav__link">
+        Data streams
+      </a>
+    </li>
+  
 
-
-  <li class="md-nav__item">
-    <a href="../../data-modeling/data_storage/" title="Data store format" class="md-nav__link">
-      Data store format
-    </a>
-  </li>
-
-        
+            
           
+        </ul>
+      </nav>
+    </li>
+  
+
+            
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../setting-up/configurations/" class="md-nav__link">
+        Global Configuration
+      </a>
+    </li>
+  
+
+            
           
-
-
-  <li class="md-nav__item">
-    <a href="../../extend/data_exchange/" title="Data exchange and sync" class="md-nav__link">
-      Data exchange and sync
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../streams/streams/" title="Data streams" class="md-nav__link">
-      Data streams
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../setting-up/configurations/" title="Global Configuration" class="md-nav__link">
-      Global Configuration
-    </a>
-  </li>
+        </ul>
+      </nav>
+    </li>
+  
 
     
   </ul>
@@ -942,21 +1178,22 @@
               </div>
             
             
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
   
+  
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
-    <ul class="md-nav__list" data-md-scrollfix>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
   <a href="#websockets" class="md-nav__link">
@@ -1041,310 +1278,285 @@
               </div>
             
           
-          <div class="md-content">
+          <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
               
                 
-                
-                  
-                
-                
-                  <h1>Websockets</h1>
-                
-                <h2 id="websockets">Websockets<a class="headerlink" href="#websockets" title="Permanent link">Link</a></h2>
+
+
+  <h1>Websockets</h1>
+
+<h2 id="websockets">Websockets</h2>
 <p>Clients can connect to a websocket endpoint</p>
 <p>Endpoint</p>
 <p><code>ws://localhost:6336/live?token=&lt;auth_token&gt;</code></p>
 <p>!note WSS 
     Use wss:// if you have enabled SSL</p>
 <p>Client request payload structure</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-  <span class="err">//</span> <span class="err">one</span> <span class="err">of</span> <span class="err">list-topic,</span> <span class="err">create-topic,</span> <span class="err">destroy-topic,</span> <span class="err">subscribe,</span> <span class="err">unsubscribe,</span> <span class="err">new-message</span>
-  <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-  <span class="err">//</span> <span class="err">required</span> <span class="err">when</span> <span class="err">method</span> <span class="err">is</span> <span class="err">subscribe</span>
-  <span class="nt">&quot;payload&quot;</span><span class="p">:</span> <span class="p">{}</span>
-  <span class="err">//</span> <span class="err">attributes</span> <span class="err">depending</span> <span class="err">on</span> <span class="err">the</span> <span class="err">method</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="err">//</span><span class="w"> </span><span class="err">o</span><span class="kc">ne</span><span class="w"> </span><span class="err">o</span><span class="kc">f</span><span class="w"> </span><span class="err">lis</span><span class="kc">t</span><span class="mi">-</span><span class="kc">t</span><span class="err">opic</span><span class="p">,</span><span class="w"> </span><span class="err">crea</span><span class="kc">te</span><span class="mi">-</span><span class="kc">t</span><span class="err">opic</span><span class="p">,</span><span class="w"> </span><span class="err">des</span><span class="kc">tr</span><span class="err">oy</span><span class="mi">-</span><span class="kc">t</span><span class="err">opic</span><span class="p">,</span><span class="w"> </span><span class="err">subscribe</span><span class="p">,</span><span class="w"> </span><span class="err">u</span><span class="kc">nsu</span><span class="err">bscribe</span><span class="p">,</span><span class="w"> </span><span class="kc">ne</span><span class="err">w</span><span class="mi">-</span><span class="err">message</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="err">//</span><span class="w"> </span><span class="err">required</span><span class="w"> </span><span class="err">whe</span><span class="kc">n</span><span class="w"> </span><span class="err">me</span><span class="kc">t</span><span class="err">hod</span><span class="w"> </span><span class="err">is</span><span class="w"> </span><span class="err">subscribe</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span><span class="w"></span>
+<span class="w">  </span><span class="err">//</span><span class="w"> </span><span class="err">a</span><span class="kc">ttr</span><span class="err">ibu</span><span class="kc">tes</span><span class="w"> </span><span class="err">depe</span><span class="kc">n</span><span class="err">di</span><span class="kc">n</span><span class="err">g</span><span class="w"> </span><span class="err">o</span><span class="kc">n</span><span class="w"> </span><span class="kc">t</span><span class="err">he</span><span class="w"> </span><span class="err">me</span><span class="kc">t</span><span class="err">hod</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div>
-
-<h3 id="websocket-requests">Websocket requests<a class="headerlink" href="#websocket-requests" title="Permanent link">Link</a></h3>
-<h4 id="list-topics">List topics<a class="headerlink" href="#list-topics" title="Permanent link">Link</a></h4>
+<h3 id="websocket-requests">Websocket requests</h3>
+<h4 id="list-topics">List topics</h4>
 <p>List all the available topics - System topics - User created topics</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;list-topic&quot;</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;list-topic&quot;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div>
-
 <p>Sample Response</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;MessageSource&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;EventType&quot;</span><span class="p">:</span> <span class="s2">&quot;response&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;ObjectType&quot;</span><span class="p">:</span> <span class="s2">&quot;topic-list&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;EventData&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;topics&quot;</span><span class="p">:</span> <span class="p">[</span>
-      <span class="s2">&quot;task_task_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;timeline&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;application&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;json_schema_json_schema_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;plan_plan_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail_account&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;stream&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;user_otp_account&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;outbox_outbox_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;oauth_token_oauth_token_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;stream_stream_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;deployment_deployment_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;feed_feed_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;smd_smd_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;site_site_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;timeline_timeline_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;tab_eygurbe&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;screen_screen_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail_server&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;certificate&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;data_exchange&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;document_document_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;oauth_token&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;calendar_calendar_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;tab_nuqymzy&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;outbox&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;screen&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;integration_integration_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;oauth_connect&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;user_payment_user_payment_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;world&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail_account_mail_account_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail_box&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;world_world_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;user_account_user_account_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;tab_nuqymzy_tab_nuqymzy_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;calendar&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;smd&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;user_payment&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;action&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;task&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;site&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;integration&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;starter_app_starter_app_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;plan&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;usergroup&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;tab_eygurbe_tab_eygurbe_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;deployment&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;starter_app&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;json_schema&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;user_otp_account_user_otp_account_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;feed&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;cloud_store_cloud_store_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;world_world_id_has_smd_smd_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;certificate_certificate_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail_mail_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;action_action_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;data_exchange_data_exchange_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;application_application_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;document&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;oauth_connect_oauth_connect_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;cloud_store&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail_server_mail_server_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;mail_box_mail_box_id_has_usergroup_usergroup_id&quot;</span>
-    <span class="p">]</span>
-  <span class="p">}</span>
-<span class="p">}</span>    
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;MessageSource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;system&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;EventType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;response&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;ObjectType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;topic-list&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;EventData&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;topics&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;task_task_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;timeline&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;application&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;json_schema_json_schema_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;plan_plan_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;stream&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;user_otp_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;outbox_outbox_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;oauth_token_oauth_token_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;stream_stream_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;deployment_deployment_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;feed_feed_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;smd_smd_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;site_site_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;timeline_timeline_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;tab_eygurbe&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;screen_screen_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail_server&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;certificate&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;data_exchange&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;document_document_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;oauth_token&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;calendar_calendar_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;tab_nuqymzy&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;outbox&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;screen&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;integration_integration_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;oauth_connect&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;user_payment_user_payment_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;world&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail_account_mail_account_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail_box&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;world_world_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;user_account_user_account_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;tab_nuqymzy_tab_nuqymzy_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;calendar&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;smd&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;user_payment&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;action&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;task&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;site&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;integration&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;starter_app_starter_app_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;plan&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;usergroup&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;tab_eygurbe_tab_eygurbe_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;deployment&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;starter_app&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;json_schema&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;user_otp_account_user_otp_account_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;feed&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;cloud_store_cloud_store_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;world_world_id_has_smd_smd_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;certificate_certificate_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail_mail_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;action_action_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;data_exchange_data_exchange_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;application_application_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;document&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;oauth_connect_oauth_connect_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;cloud_store&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail_server_mail_server_id_has_usergroup_usergroup_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="s2">&quot;mail_box_mail_box_id_has_usergroup_usergroup_id&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w">    </span>
 </code></pre></div>
-
-<h4 id="create-topic">Create topic<a class="headerlink" href="#create-topic" title="Permanent link">Link</a></h4>
+<h4 id="create-topic">Create topic</h4>
 <p>Create a new topic</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;create-topic&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;new_topic_name&gt;&quot;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;create-topic&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;new_topic_name&gt;&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div>
-
-<h4 id="destroy-topic">Destroy topic<a class="headerlink" href="#destroy-topic" title="Permanent link">Link</a></h4>
+<h4 id="destroy-topic">Destroy topic</h4>
 <p>Delete a user created topic</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;destroy-topic&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;topic_name&gt;&quot;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;destroy-topic&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;topic_name&gt;&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div>
-
-<h4 id="subscribe-topic">Subscribe topic<a class="headerlink" href="#subscribe-topic" title="Permanent link">Link</a></h4>
+<h4 id="subscribe-topic">Subscribe topic</h4>
 <p>Listen to create/update/delete events in any table</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;topic&quot;</span><span class="p">:</span> <span class="s2">&quot;user_account&quot;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;subscribe&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;topic&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_account&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div>
-
 <p>Create event sample payload</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;MessageSource&quot;</span><span class="p">:</span> <span class="s2">&quot;database&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;EventType&quot;</span><span class="p">:</span> <span class="s2">&quot;create&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;ObjectType&quot;</span><span class="p">:</span> <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;EventData&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;__type&quot;</span><span class="p">:</span> <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;confirmed&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
-    <span class="nt">&quot;created_at&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-03-13T13:47:07.954634Z&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;email&quot;</span><span class="p">:</span> <span class="s2">&quot;asdf@asfd.cm&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;asdf&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;password&quot;</span><span class="p">:</span> <span class="s2">&quot;$2a$11$HbH5o1s6ThsMJ9ft/.uljO9.T.od/tR0RFtep50Ef5mzymI6kNlW.&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;permission&quot;</span><span class="p">:</span> <span class="mi">2097057</span><span class="p">,</span>
-    <span class="nt">&quot;reference_id&quot;</span><span class="p">:</span> <span class="s2">&quot;004cc6b6-8b9b-4d51-936a-128133b21d04&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;updated_at&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
-    <span class="nt">&quot;user_account_id&quot;</span><span class="p">:</span> <span class="s2">&quot;ee655e01-98a5-4761-bc93-b7a15e2b5847&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span>
-  <span class="p">}</span>
-<span class="p">}</span>    
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;MessageSource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;database&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;EventType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;create&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;ObjectType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;EventData&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;__type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;confirmed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-03-13T13:47:07.954634Z&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asdf@asfd.cm&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asdf&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;$2a$11$HbH5o1s6ThsMJ9ft/.uljO9.T.od/tR0RFtep50Ef5mzymI6kNlW.&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;permission&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2097057</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;reference_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;004cc6b6-8b9b-4d51-936a-128133b21d04&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;user_account_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ee655e01-98a5-4761-bc93-b7a15e2b5847&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w">    </span>
 </code></pre></div>
-
 <p>Update event sample payload</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;MessageSource&quot;</span><span class="p">:</span> <span class="s2">&quot;database&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;EventType&quot;</span><span class="p">:</span> <span class="s2">&quot;update&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;ObjectType&quot;</span><span class="p">:</span> <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;EventData&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;__type&quot;</span><span class="p">:</span> <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;confirmed&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
-    <span class="nt">&quot;created_at&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-03-13T13:47:07.954634Z&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;email&quot;</span><span class="p">:</span> <span class="s2">&quot;asdf@asfd.cm&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;asdf&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;password&quot;</span><span class="p">:</span> <span class="s2">&quot;$2a$11$U83vQU5A3Xq2Gcphb52XOej8H9p1GbFKerpkoSesbx674qZfBjJdu&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;permission&quot;</span><span class="p">:</span> <span class="mi">2097057</span><span class="p">,</span>
-    <span class="nt">&quot;reference_id&quot;</span><span class="p">:</span> <span class="s2">&quot;004cc6b6-8b9b-4d51-936a-128133b21d04&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;updated_at&quot;</span><span class="p">:</span> <span class="s2">&quot;2021-03-13T13:48:21.258962Z&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;user_account_id&quot;</span><span class="p">:</span> <span class="s2">&quot;ee655e01-98a5-4761-bc93-b7a15e2b5847&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="mi">2</span>
-  <span class="p">}</span>
-<span class="p">}</span>    
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;MessageSource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;database&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;EventType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;ObjectType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;EventData&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;__type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;confirmed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-03-13T13:47:07.954634Z&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asdf@asfd.cm&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;asdf&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;$2a$11$U83vQU5A3Xq2Gcphb52XOej8H9p1GbFKerpkoSesbx674qZfBjJdu&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;permission&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2097057</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;reference_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;004cc6b6-8b9b-4d51-936a-128133b21d04&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2021-03-13T13:48:21.258962Z&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;user_account_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ee655e01-98a5-4761-bc93-b7a15e2b5847&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w">    </span>
 </code></pre></div>
-
-<h4 id="subscribe-with-filters">Subscribe with filters<a class="headerlink" href="#subscribe-with-filters" title="Permanent link">Link</a></h4>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;topic&quot;</span><span class="p">:</span> <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;filters&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="err">//</span> <span class="err">filter</span> <span class="err">on</span> <span class="err">type</span> <span class="err">of</span> <span class="err">event:</span> <span class="err">create/update/delete</span>
-      <span class="nt">&quot;EventType&quot;</span><span class="p">:</span> <span class="s2">&quot;update&quot;</span><span class="p">,</span>
-      <span class="err">//</span> <span class="err">filter</span> <span class="err">on</span> <span class="err">column</span> <span class="err">data,</span> <span class="err">rows</span> <span class="err">with</span> <span class="err">unmatched</span> <span class="err">column</span> <span class="err">value</span> <span class="err">will</span> <span class="err">not</span> <span class="err">be</span> <span class="err">sent</span>
-      <span class="nt">&quot;&lt;column_name&gt;&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;filter_value&gt;&quot;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>    
+<h4 id="subscribe-with-filters">Subscribe with filters</h4>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;subscribe&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;topic&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_account&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;filters&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="err">//</span><span class="w"> </span><span class="kc">f</span><span class="err">il</span><span class="kc">ter</span><span class="w"> </span><span class="err">o</span><span class="kc">n</span><span class="w"> </span><span class="kc">t</span><span class="err">ype</span><span class="w"> </span><span class="err">o</span><span class="kc">f</span><span class="w"> </span><span class="err">eve</span><span class="kc">nt</span><span class="p">:</span><span class="w"> </span><span class="err">crea</span><span class="kc">te</span><span class="err">/upda</span><span class="kc">te</span><span class="err">/dele</span><span class="kc">te</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;EventType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="err">//</span><span class="w"> </span><span class="kc">f</span><span class="err">il</span><span class="kc">ter</span><span class="w"> </span><span class="err">o</span><span class="kc">n</span><span class="w"> </span><span class="err">colum</span><span class="kc">n</span><span class="w"> </span><span class="err">da</span><span class="kc">ta</span><span class="p">,</span><span class="w"> </span><span class="err">rows</span><span class="w"> </span><span class="err">wi</span><span class="kc">t</span><span class="err">h</span><span class="w"> </span><span class="err">u</span><span class="kc">n</span><span class="err">ma</span><span class="kc">t</span><span class="err">ched</span><span class="w"> </span><span class="err">colum</span><span class="kc">n</span><span class="w"> </span><span class="err">value</span><span class="w"> </span><span class="err">will</span><span class="w"> </span><span class="kc">n</span><span class="err">o</span><span class="kc">t</span><span class="w"> </span><span class="err">be</span><span class="w"> </span><span class="err">se</span><span class="kc">nt</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;&lt;column_name&gt;&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;filter_value&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w">    </span>
 </code></pre></div>
-
-<h4 id="unsubscribe-topic">Unsubscribe topic<a class="headerlink" href="#unsubscribe-topic" title="Permanent link">Link</a></h4>
+<h4 id="unsubscribe-topic">Unsubscribe topic</h4>
 <p>Unsubscribe to an subscribed topic (this is required if you want to subscribe with new filters)</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;topic&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;topic_name&gt;&quot;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;topic&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;topic_name&gt;&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div>
-
-<h4 id="new-message-for-a-user-created-topic">New message for a user-created topic<a class="headerlink" href="#new-message-for-a-user-created-topic" title="Permanent link">Link</a></h4>
+<h4 id="new-message-for-a-user-created-topic">New message for a user-created topic</h4>
 <p>Send a message on a user created topic, broad-casted to all subscribers of this topic</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;new-message&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;attributes&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;topic&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;hello&quot;</span><span class="p">:</span> <span class="s2">&quot;world&quot;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>   
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;new-message&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;topic&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;test&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;hello&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w">   </span>
 </code></pre></div>
-                
-              
-              
-                
-
-
-  <h2 id="__comments">Comments</h2>
-  <div id="disqus_thread"></div>
-  <script>var disqus_config=function(){this.page.url="https://daptin.github.io/daptin/websockets/websocket/",this.page.identifier="websockets/websocket/"};!function(){var e=document,i=e.createElement("script");i.src="//daptin-documentation.disqus.com/embed.js",i.setAttribute("data-timestamp",+new Date),(e.head||e.body).appendChild(i)}()</script>
 
               
             </article>
           </div>
         </div>
+        
       </main>
       
-        
-<footer class="md-footer">
+        <footer class="md-footer">
   
-    <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
         
-          <a href="../../cloudstore/assetcolumns/" title="Cloud store backed asset columns" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        <a href="../../cloudstore/assetcolumns/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Cloud store backed asset columns" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Cloud store backed asset columns
             </div>
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Previous
-                </span>
-                Cloud store backed asset columns
-              </div>
-            </div>
-          </a>
+          </div>
+        </a>
+      
+      
         
-        
-          <a href="../../subsite/subsite/" title="Creating a subsite" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Next
-                </span>
-                Creating a subsite
-              </div>
+        <a href="../../subsite/subsite/" class="md-footer__link md-footer__link--next" aria-label="Next: Creating a subsite" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Creating a subsite
             </div>
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-            </div>
-          </a>
-        
-      </nav>
-    </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
-      <div class="md-footer-copyright">
-        
-        Made with
-        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
-          Material for MkDocs
-        </a>
-      </div>
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
       
     </div>
   </div>
 </footer>
       
     </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../../assets/javascripts/workers/search.bd0b6b67.min.js"}</script>
     
-      <script src="../../assets/javascripts/vendor.c3dc8c49.min.js"></script>
-      <script src="../../assets/javascripts/bundle.f9edbbd5.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
-      
-      <script>
-        app = initialize({
-          base: "../..",
-          features: [],
-          search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.8e2cddea.min.js"
-          }, typeof search !== "undefined" && search)
-        })
-      </script>
+    
+      <script src="../../assets/javascripts/bundle.5413a266.min.js"></script>
       
     
   </body>
