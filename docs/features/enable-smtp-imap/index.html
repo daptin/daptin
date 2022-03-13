@@ -1151,7 +1151,26 @@ curl --location --request POST <span class="s1">&#39;localhost:6336/_config/back
 <p>Make sure you have a SSL certificate created against the addresses you want to send mail from</p>
 <p>Check the <a href="../certificate/">certificate page</a>.</p>
 <p>DKIM Selector is: <em>d1</em></p>
-<p>Daptin will sign all external mails from the SMTP server using the key against the </p>
+<p>DKIM DNS record example</p>
+<p><selector(s=)._domainkey.domain(d=)>.   TXT v=DKIM1; p=<public key></p>
+<div class="codehilite"><pre><span></span><code>s= indicates the selector record name used with the domain to locate the public key in DNS. The value is a name or number created by the sender. s= is included in the DKIM signature.
+d= indicates the domain used with the selector record (s=) to locate the public key. The value is a domain name owned by the sender. d= is included in the DKIM signature.
+p= indicates the public key used by a mailbox provider to match to the DKIM signature.
+</code></pre></div>
+
+<p>Here is what the full DNS DKIM record looks like for Returnpath.com:</p>
+<p>d1._domainkey.returnpath.com. 600 IN TXT "v=DKIM1\; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1TaNgLlSyQMNWVLNLvyY/neDgaL2oqQE8T5illKqCgDtFHc8eHVAU+nlcaGmrKmDMw9dbgiGk1ocgZ56NR4ycfUHwQhvQPMUZw0cveel/8EAGoi/UyPmqfcPibytH81NFtTMAxUeM4Op8A6iHkvAMj5qLf4YRNsTkKAV;"</p>
+<div class="codehilite"><pre><span></span><code>The selector (s=): d1
+The domain (d=): returnpath.com
+The version (v=): DKIM1
+The public key (p=): MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1TaNgLlSyQMNWVLNLvyY/neDgaL2oqQE8T5illKqCgDtFHc8eHVAU+nlcaGmrKmDMw9dbgiGk1ocgZ56NR4ycfUHwQhvQPMUZw0cveel/8EAGoi/UyPmqfcPibytH81NFtTMAxUeM4Op8A6iHkvAMj5qLf4YRNsTkKAV
+</code></pre></div>
+
+<p>Required tag</p>
+<div class="codehilite"><pre><span></span><code>p= is the public key used by a mailbox provider to match to the DKIM signature generated using the private key. The value is a string of characters representing the public key. It is generated along with its corresponding private key during the DKIM set-up process.
+</code></pre></div>
+
+<p>Daptin will (try to) sign all external mails from the SMTP server using the key against the FromMail hostname</p>
 <h1 id="restart">Restart</h1>
 <p>Restart the server to start/update listening to as the SMTP server/IMAP server</p>
 <div class="highlight"><pre><span></span><code>curl <span class="s1">&#39;http://localhost:8080/action/world/restart_daptin&#39;</span> -X POST <span class="se">\</span>
