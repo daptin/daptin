@@ -62,6 +62,7 @@ require (
 	github.com/gobuffalo/flect v0.2.3
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/gohugoio/hugo v0.88.1
 	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
@@ -103,6 +104,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/naoina/toml v0.1.1
+	github.com/nats-io/jwt/v2 v2.2.0 // indirect
 	github.com/ncw/swift v1.0.52 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.1.1 // indirect
 	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
