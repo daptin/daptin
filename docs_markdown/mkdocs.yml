@@ -29,6 +29,7 @@ pages:
   - GraphQL: features/enable-graphql.md
   - Data Auditing: features/enable-data-auditing.md
   - Multilingual Table: features/enable-multilingual-table.md
+  - SSL Certificates: features/certificate.md
   - SMTP/IMPS server: features/enable-smtp-imap.md
   - State tracking: state/machines.md
   - OAuth:

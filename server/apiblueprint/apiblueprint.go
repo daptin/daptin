@@ -94,7 +94,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 		"contact": map[string]interface{}{
 			"name":  "Parth",
 			"url":   "https://dapt.in",
-			"email": "artpar@gmamil.com",
+			"email": "artpar@gmail.com",
 		},
 		"description": "Daptin API server",
 	}
@@ -574,6 +574,10 @@ func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]in
 					"data": map[string]interface{}{
 						"type": "object",
 						"properties": map[string]interface{}{
+							"type": map[string]interface{}{
+								"type": "string",
+								"value": tableInfo.TableName,
+							},
 							"attributes": map[string]interface{}{
 								"$ref": "#/components/schemas/New" + strcase.ToCamel(tableInfo.TableName),
 							},

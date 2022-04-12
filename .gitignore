@@ -33,3 +33,5 @@ daptin
 *.prof
 *.dbdocs_markdown/site
 docs_markdown/site/*
+daptinweb/
+

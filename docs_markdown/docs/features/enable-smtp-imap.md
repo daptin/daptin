@@ -76,7 +76,10 @@ DKIM DNS record example
 
 Here is what the full DNS DKIM record looks like for example.com:
 
+```
 d1._domainkey.example.com. 600 IN TXT "v=DKIM1\; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1TaNgLlSyQMNWVLNLvyY/neDgaL2oqQE8T5illKqCgDtFHc8eHVAU+nlcaGmrKmDMw9dbgiGk1ocgZ56NR4ycfUHwQhvQPMUZw0cveel/8EAGoi/UyPmqfcPibytH81NFtTMAxUeM4Op8A6iHkvAMj5qLf4YRNsTkKAV;"
+```
+
 
     The selector (s=): d1
     The domain (d=): example.com
