@@ -88,7 +88,7 @@ require (
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/frankban/quicktest v1.13.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.0 // indirect
-	github.com/getkin/kin-openapi v0.9.0
+	github.com/getkin/kin-openapi v0.31.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/gzip v0.0.2
 	github.com/gin-contrib/static v0.0.0-20181225054800-cf5e10bbd933
@@ -109,7 +109,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/gohugoio/hugo v0.73.0
+	github.com/gohugoio/hugo v0.79.1
 	github.com/gohugoio/localescompressed v0.14.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -188,7 +188,7 @@ require (
 	github.com/ncw/go-acd v0.0.0-20201019170801-fe55f33415b1 // indirect
 	github.com/ncw/swift v1.0.52 // indirect
 	github.com/ncw/swift/v2 v2.0.1 // indirect
-	github.com/nicksnyder/go-i18n/v2 v2.0.4 // indirect
+	github.com/nicksnyder/go-i18n v1.10.0 // indirect
 	github.com/niklasfasching/go-org v1.5.0 // indirect
 	github.com/nsf/termbox-go v1.1.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
@@ -260,7 +260,6 @@ require (
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 	pack.ag/amqp v0.11.0 // indirect
 	storj.io/drpc v0.0.29 // indirect
 	storj.io/uplink v1.5.0-rc.1 // indirect
