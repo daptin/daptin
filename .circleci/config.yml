@@ -9,7 +9,6 @@ test_with_go_modules: &test_with_go_modules
   - run: export PATH=$GOROOT/bin:$PATH
   - checkout
   - run: export GO111MODULE=on
-  - run: git clone https://github.com/daptin/dadadash builddaptinweb && cd builddaptinweb && npm install @quasar/cli && npm install && npm run build && ls -lah dist/spa && printf "Dashboard build complete" && cd .. && mv builddaptinweb/dist/spa ./daptinweb && rm -rf builddaptinweb &&      ls -lah ./daptinweb
   - run: go get
   - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
   - run: ls -lah
