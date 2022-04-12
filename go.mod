@@ -46,7 +46,7 @@ require (
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.57.2
+	github.com/artpar/rclone v1.57.3
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
@@ -199,6 +199,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.5-0.20211228200725-31aac3e1878d // indirect
 	github.com/pquerna/otp v1.2.0
+	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/putdotio/go-putio/putio v0.0.0-20200123120452-16d982cac2b8 // indirect
 	github.com/rclone/ftp v1.0.0-210902h // indirect
