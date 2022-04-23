@@ -8,17 +8,17 @@ blocks:
   - name: Test
     task:
       secrets:
-      - name: docker-hub
+        - name: docker-hub
       jobs:
         - name: go test
           commands:
-            - sem-version go 1.16
+            - sem-version go 1.18
             - sem-version node 10.13.0
             - export GO111MODULE=on
             - export GOPATH=~/go
             - 'export PATH=/home/semaphore/go/bin:$PATH'
             - checkout
-            - git clone https://github.com/daptin/dadadash builddaptinweb && cd builddaptinweb
+            - 'git clone https://github.com/daptin/dadadash builddaptinweb && cd builddaptinweb'
             - npm install @quasar/cli
             - npm install
             - npm run build
@@ -34,6 +34,6 @@ blocks:
             - go build -o main
             - rm -rf docker_dir && mkdir docker_dir
             - cd docker_dir && cp ../main ./main && cp ../Dockerfile ./Dockerfile
-            - docker build -t daptin/daptin:semaphoreci .
+            - 'docker build -t daptin/daptin:semaphoreci .'
             - echo $DOCKER_PASSWORD | docker login --username "$DOCKER_USERNAME" --password-stdin
-            - docker push daptin/daptin:semaphoreci
+            - 'docker push daptin/daptin:semaphoreci'
