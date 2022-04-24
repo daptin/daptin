@@ -11,12 +11,6 @@ test_with_go_modules: &test_with_go_modules
   - run: export GO111MODULE=on
   - run: go get
   - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
-  - run: ls -lah
-  - run: mkdir docker_dir
-  - run: cp main docker_dir/main
-  - run: cp Dockerfile docker_dir/Dockerfile
-  - run: cd docker_dir
-  - run: docker build -t daptin/daptin:circleci .
   - run: cd ..
   - store_artifacts:
       path: main
@@ -34,7 +28,7 @@ test_without_go_modules: &test_without_go_modules
       path: /go/src/github.com/daptin/daptin/main
       destination: daptin
 
-defaults: &defaults
+defaults: &defaultssssss
   <<: *test_with_go_modules
 
 version: 2
