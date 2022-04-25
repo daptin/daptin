@@ -28,7 +28,7 @@ test_without_go_modules: &test_without_go_modules
       path: /go/src/github.com/daptin/daptin/main
       destination: daptin
 
-defaults: &defaultssssss
+defaults: &defaults
   <<: *test_with_go_modules
 
 version: 2
