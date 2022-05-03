@@ -7,7 +7,7 @@ test_with_go_modules: &test_with_go_modules
   - run: rm go1.18.linux-amd64.tar.gz
   - run: export GOROOT=/usr/local/go
   - run: export PATH=$GOROOT/bin:$PATH
-  - checkoutk
+  - checkout
   - run: export GO111MODULE=on
   - run: go get
   - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
