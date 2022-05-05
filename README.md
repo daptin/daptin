@@ -1,11 +1,73 @@
 
-<h1 align="center">
-  <br>
-  <a href="https://daptin.github.io/daptin"><img width="100" height="100" src="https://github.com/daptin/daptin/raw/master/images/daptin-22-transparent-background-colored.png" alt="Daptin" title="Daptin" /></a>
-  <br>
-  Daptin
+<h1 align="left">
+  Daptin - Headless CMS for the 100x Developers
   <br>
 </h1>
+
+Take the API overhead out of your brain with Daptin. Complete granular access to your data over the network. A single binary to power up your application.
+
+```
+                ┌──────────────────┐         ┌──────────────────┐        ┌────────────────┐
+                │                  │         │                  │        │                │
+                │ OpenAPI 2/3      │         │  Database        │        │  Cloudstore    │
+                │                  │         │                  │        │                │
+                └────────▲─────────┘         └───────▲──────────┘        └───────▲────────┘
+                         │                           │                           │
+                         │                           │                           │
+                         │                           │                           │
+                         │                           │                           │
+                         │                           │                           │
+                         │                           │                           │
+                         │                           │                           │
+                         └─────────────────────────┬─┴───────────────────────────┘
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                        ┌──────────┴───────────┐
+  ┌─────────────────┐                   │                      │                     ┌────────────────┐
+  │                 │                   │                      │                     │                │
+  │  Actions        ◄───────────────────┤    Daptin            ├─────────────────────► SMTP/IMAP      │
+  │                 │                   │                      │                     │                │
+  └─────────────────┘                   │                      │                     └────────────────┘
+                                        └──────────┬───────────┘
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+                                                   │
+          ┌─────────────────────────┬──────────────┼──────────────────┬──────────────────────────────┐
+          │                         │              │                  │                              │
+          │                         │              │                  │                              │
+          │                         │              │                  │                              │
+          │                         │              │                  │                              │
+┌─────────▼────────┐        ┌───────▼───────┐      │         ┌────────▼───────┐             ┌────────▼─────────┐
+│                  │        │               │      │         │                │             │                  │
+│  YJS Live Collab │        │  JSONAPI.org  │      │         │ GraphQL        │             │  WebSocket       │
+│                  │        │               │      │         │                │             │                  │
+└──────────────────┘        └───────────────┘      │         └────────────────┘             └──────────────────┘
+                                                   │
+                                                   │
+                                                   │
+                                         ┌─────────▼────────┐
+                                         │                  │
+                                         │     Static site  │
+                                         │                  │
+                                         └──────────────────┘
+
+```
+
+### Quick start with a generic web dashboard
+- Dadadash : https://github.com/daptin/dadadash/
+  - `docker run -p 8080:8080 daptin/dadadash`
 
 
 
@@ -26,29 +88,6 @@
 <p align="center">
      <a href="https://discord.gg/t564q8SQVk"><img src="https://img.shields.io/badge/JOIN-ON%20DISCORD-blue&?style=for-the-badge&logo=discord" /> <a/> 
 </p>
-
-
-Daptin is a server exposing HTTP APIs for web and application developers providing to talk to database and persistent storage.
-
-- Consistent API with authentication and authorization for database table and metadata
-- User management and user group management API with row and table level ownership
-- Stateless and easily scalable
-
-
-
-- Dadadash : https://github.com/daptin/dadadash/
-  - `docker run -p 8080:8080 daptin/dadadash`
-
-
-
-|      |    |
-|------------------------------------------------|------------------------------------------------------|
-| ![ new workspace](https://github.com/daptin/daptin/raw/master/images/workspace-create.png)     | ![ worksapce view](https://github.com/daptin/dadadash/raw/master/assets/workspaceView.png)         |
-| ![ new base](https://github.com/daptin/daptin/raw/master/images/admin-dashboard-home.png)               | ![ new app item menu](https://github.com/daptin/dadadash/raw/master/assets/newAppItemMenu.png)     |
-| ![ document editor](https://github.com/daptin/dadadash/raw/master/assets/documentEditor.png) | ![ spreadsheet editor](https://github.com/daptin/dadadash/raw/master/assets/spreadsheetEditor.png) |
-| ![ data tables](https://github.com/daptin/dadadash/raw/master/assets/dataTable.png)          | ![ file browser](https://github.com/daptin/dadadash/raw/master/assets/fileBrowser.png)             |
-| ![ calendar](https://github.com/daptin/dadadash/raw/master/assets/newCalendarEvent.png)      | ![ File browser](https://github.com/daptin/dadadash/raw/master/assets/7.png)                       |
-
 
 
 <p align="center">
