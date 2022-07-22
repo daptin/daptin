@@ -10,9 +10,7 @@ require (
 	code.gitea.io/sdk/gitea v0.14.0 // indirect
 	contrib.go.opencensus.io/resource v0.1.1 // indirect
 	github.com/Azure/azure-amqp-common-go v1.1.4 // indirect
-	github.com/Azure/azure-storage-blob-go v0.14.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Masterminds/goutils v1.1.0 // indirect
@@ -46,7 +44,7 @@ require (
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.58.0
+	github.com/artpar/rclone v1.59.1
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5
@@ -54,7 +52,6 @@ require (
 	github.com/artyom/mtab v1.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
-	github.com/aws/aws-sdk-go v1.43.30 // indirect
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/bep/golibsass v1.0.0 // indirect
 	github.com/bep/gowebp v0.1.0 // indirect
@@ -147,7 +144,7 @@ require (
 	github.com/jarcoal/httpmock v1.0.8 // indirect
 	github.com/jdkato/prose v1.2.1 // indirect
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
-	github.com/jlaffaye/ftp v0.0.0-20210307004419-5d4190119067
+	github.com/jlaffaye/ftp v0.0.0-20220524001917-dfa1e758f3af
 	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12
@@ -155,7 +152,6 @@ require (
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
-	github.com/klauspost/compress v1.15.1 // indirect
 	github.com/kniren/gota v0.10.1 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/koofr/go-httpclient v0.0.0-20200420163713-93aa7c75b348 // indirect
@@ -199,7 +195,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.5-0.20211228200725-31aac3e1878d // indirect
 	github.com/pquerna/otp v1.2.0
-	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/putdotio/go-putio/putio v0.0.0-20200123120452-16d982cac2b8 // indirect
 	github.com/rclone/ftp v1.0.0-210902h // indirect
@@ -209,7 +204,6 @@ require (
 	github.com/samedi/caldav-go v3.0.0+incompatible // indirect
 	github.com/sassoftware/go-rpmutils v0.0.0-20190420191620-a8f1baeba37b // indirect
 	github.com/sevlyar/go-daemon v0.1.5 // indirect
-	github.com/shirou/gopsutil/v3 v3.22.3 // indirect
 	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/simplereach/timeutils v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
@@ -244,20 +238,17 @@ require (
 	go.uber.org/zap v1.19.0 // indirect
 	gocloud.dev v0.22.0 // indirect
 	goftp.io/server v0.4.1 // indirect
-	golang.org/x/crypto v0.0.0-20220331220935-ae2d96664a29
-	golang.org/x/net v0.0.0-20220325170049-de3da57026de
-	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
-	golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f // indirect
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
+	golang.org/x/net v0.0.0-20220607020251-c690dde0001d
+	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
 	golang.org/x/text v0.3.7
-	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
+	golang.org/x/time v0.0.0-20220411224347-583f2d630306
 	gonum.org/v1/gonum v0.6.2 // indirect
-	google.golang.org/api v0.74.0 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	pack.ag/amqp v0.11.0 // indirect
-	storj.io/drpc v0.0.29 // indirect
 )
 
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
