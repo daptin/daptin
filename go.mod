@@ -7,6 +7,7 @@ go 1.14
 require (
 	cloud.google.com/go/iam v0.3.0 // indirect
 	github.com/GeertJohan/go.rice v1.0.0
+	github.com/RoaringBitmap/roaring v1.2.1 // indirect
 	github.com/advance512/yaml v0.0.0-20141213031416-e401b2b02685
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
 	github.com/anthonynsimon/bild v0.10.0
@@ -27,7 +28,8 @@ require (
 	github.com/artpar/ydb v0.1.26
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
-	github.com/buraksezer/olric v0.3.0-beta.4
+	github.com/buraksezer/olric v0.4.10
+	github.com/buraksezer/pool v3.0.0+incompatible // indirect
 	github.com/corpix/uarand v0.0.0 // indirect
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
@@ -46,6 +48,7 @@ require (
 	github.com/go-gota/gota v0.0.0-20190402185630-1058f871be31
 	github.com/go-playground/locales v0.13.0
 	github.com/go-playground/universal-translator v0.17.0
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/flect v0.2.4
@@ -65,7 +68,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
-	github.com/hashicorp/memberlist v0.1.5
+	github.com/hashicorp/memberlist v0.5.0
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/imroc/req v0.2.4
@@ -81,6 +84,7 @@ require (
 	github.com/lib/pq v1.9.0
 	github.com/looplab/fsm v0.0.0-20180515091235-f980bdb68a89
 	github.com/mattn/go-sqlite3 v1.11.0
+	github.com/miekg/dns v1.1.45 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
@@ -92,6 +96,9 @@ require (
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	github.com/spf13/cobra v1.4.0
+	github.com/tidwall/redcon v1.6.0 // indirect
+	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
+	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	gocloud.dev v0.22.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
