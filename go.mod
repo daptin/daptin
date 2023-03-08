@@ -96,9 +96,9 @@ require (
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	gocloud.dev v0.22.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
-	golang.org/x/net v0.0.0-20220607020251-c690dde0001d
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
-	golang.org/x/text v0.3.7
+	golang.org/x/text v0.7.0
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306
 	gonum.org/v1/gonum v0.6.2 // indirect
 	gopkg.in/go-playground/validator.v9 v9.30.0
