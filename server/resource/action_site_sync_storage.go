@@ -34,7 +34,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	cloudStoreId := inFields["cloud_store_id"].(string)
 	siteId := inFields["site_id"].(string)
 	path := inFields["path"].(string)
-	cloudStore, err := d.cruds["cloud_store"].GetCloudStoreByReferenceId(cloudStoreId)
+	cloudStore, err := d.cruds["cloud_store"].GetCloudStoreByReferenceId(cloudStoreId, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -50,7 +50,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	var oauthConf *oauth2.Config
 
 	if cloudStore.StoreProvider != "local" {
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		//CheckErr(err, "Failed to get oauth2 token for storage sync")
 	}
 

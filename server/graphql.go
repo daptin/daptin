@@ -543,7 +543,14 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						sessionUser = user.(*auth.SessionUser)
 					}
 
-					perm := resources[table.TableName].GetObjectPermissionByWhereClause("world", "table_name", table.TableName)
+					transaction, err := resources[table.TableName].Connection.Beginx()
+					if err != nil {
+						resource.CheckErr(err, "Failed to begin transaction [548]")
+						return nil, err
+					}
+
+					defer transaction.Commit()
+					perm := resources[table.TableName].GetObjectPermissionByWhereClause("world", "table_name", table.TableName, transaction)
 					if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 						return nil, errors.New("unauthorized")
 					}
@@ -601,13 +608,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					//params.Args["query"].(string)
 					//aggReq.Query =
 
-					transaction, err := resources[table.TableName].Connection.Beginx()
-					if err != nil {
-						log.Errorf("failed to create transaction for aggregate query: %v", err)
-						return nil, err
-					}
 					aggResponse, err := resources[table.TableName].DataStats(aggReq, transaction)
-					transaction.Rollback()
 
 					return aggResponse.Data, err
 				}
@@ -738,8 +739,8 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
-
 					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceIdWithTransaction(table.TableName, referenceId, nil, transaction)
+					log.Tracef("Completed mutationFields GetSingleRowByReferenceIdWithTransaction")
 					if err != nil {
 						transaction.Rollback()
 						return nil, err
@@ -884,7 +885,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						Attributes: params.Args,
 					}
 
-					response, err := resources[action.OnType].HandleActionRequest(actionRequest, req)
+					response, err := resources[action.OnType].HandleActionRequest(actionRequest, req, nil)
 
 					return response, err
 				},

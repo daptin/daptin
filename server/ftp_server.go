@@ -46,7 +46,8 @@ type DaptinFtpServerSettings struct {
 }
 
 // NewDaptinFtpDriver creates a new driver
-func NewDaptinFtpDriver(cruds map[string]*resource.DbResource, certManager *resource.CertificateManager, ftp_interface string, sites []SubSiteAssetCache) (*DaptinFtpDriver, error) {
+func NewDaptinFtpDriver(cruds map[string]*resource.DbResource,
+	certManager *resource.CertificateManager, ftp_interface string, sites []SubSiteAssetCache) (*DaptinFtpDriver, error) {
 
 	siteMap := make(map[string]SubSiteAssetCache)
 	for _, site := range sites {
@@ -128,7 +129,14 @@ func (driver *DaptinFtpDriver) GetTLSConfig() (*tls.Config, error) {
 		break
 	}
 
-	tls1, _, _, _, _, err := driver.CertManager.GetTLSConfig(driver.Sites[firstSite].Hostname, true)
+	transaction, err := driver.cruds["world"].Connection.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [134]")
+		return nil, err
+	}
+
+	tls1, _, _, _, _, err := driver.CertManager.GetTLSConfig(driver.Sites[firstSite].Hostname, true, transaction)
+	transaction.Rollback()
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +169,14 @@ func (driver *DaptinFtpDriver) WelcomeUser(cc server.ClientContext) (string, err
 // AuthUser authenticates the user and selects an handling driver
 func (driver *DaptinFtpDriver) AuthUser(cc server.ClientContext, user, pass string) (server.ClientHandlingDriver, error) {
 
-	userAccount, err := driver.cruds["user_account"].GetUserAccountRowByEmail(user)
+	transaction, err := driver.cruds["user_account"].Connection.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [174]")
+		return nil, err
+	}
+
+	defer transaction.Rollback()
+	userAccount, err := driver.cruds["user_account"].GetUserAccountRowByEmail(user, transaction)
 	if err != nil {
 		return nil, err
 	}

@@ -17,27 +17,27 @@ type ActionExchangeHandler struct {
 	exchangeContract ExchangeContract
 }
 
-func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error) {
+func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
 	log.Printf("Execute action exchange on: %v - %v", row["__type"], row["reference_id"])
 
-	targetType, ok := g.exchangeContract.TargetAttributes["type"]
+	targetType, ok := exchangeHandler.exchangeContract.TargetAttributes["type"]
 	if !ok {
-		log.Warnf("target type value not present in action exchange: %v", g.exchangeContract.Name)
+		log.Warnf("target type value not present in action exchange: %v", exchangeHandler.exchangeContract.Name)
 	}
 	tableName := targetType.(string)
-	targetAttributes := g.exchangeContract.TargetAttributes["attributes"]
+	targetAttributes := exchangeHandler.exchangeContract.TargetAttributes["attributes"]
 	if targetAttributes == nil {
 		targetAttributes = make(map[string]interface{})
 	}
 	request := ActionRequest{
 		Type:       tableName,
-		Action:     g.exchangeContract.TargetAttributes["action"].(string),
+		Action:     exchangeHandler.exchangeContract.TargetAttributes["action"].(string),
 		Attributes: targetAttributes.(map[string]interface{}),
 	}
 	//
-	//if g.exchangeContract.SourceType == row["__type"] {
-	//	request.Attributes[g.exchangeContract.SourceType+"_id"] = row["reference_id"]
+	//if exchangeHandler.exchangeContract.SourceType == row["__type"] {
+	//	request.Attributes[exchangeHandler.exchangeContract.SourceType+"_id"] = row["reference_id"]
 	//}
 
 	req := api2go.Request{
@@ -46,15 +46,15 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 		},
 	}
 
-	userRow, _, err := g.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowById(USER_ACCOUNT_TABLE_NAME, g.exchangeContract.AsUserId, nil)
+	userRow, _, err := exchangeHandler.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowById(USER_ACCOUNT_TABLE_NAME, exchangeHandler.exchangeContract.AsUserId, nil, transaction)
 	if err != nil {
 		return nil, errors.New("user account not found to execute data exchange with action")
 	}
 	userReferenceId := userRow["reference_id"].(string)
 
-	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": g.exchangeContract.AsUserId}).ToSQL()
+	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": exchangeHandler.exchangeContract.AsUserId}).ToSQL()
 
-	stmt1, err := g.cruds[USER_ACCOUNT_TABLE_NAME].Connection.Preparex(query)
+	stmt1, err := transaction.Preparex(query)
 	if err != nil {
 		log.Errorf("[59] failed to prepare statment: %v", err)
 	}
@@ -89,7 +89,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 	}
 
 	sessionUser := auth.SessionUser{
-		UserId:          g.exchangeContract.AsUserId,
+		UserId:          exchangeHandler.exchangeContract.AsUserId,
 		UserReferenceId: userReferenceId,
 		Groups:          userGroups,
 	}
@@ -98,7 +98,7 @@ func (g *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}) (map[s
 
 	request.Attributes["subject"] = row
 	request.Attributes[tableName+"_id"] = row["reference_id"]
-	response, err := g.cruds[tableName].HandleActionRequest(request, req)
+	response, err := exchangeHandler.cruds[tableName].HandleActionRequest(request, req, transaction)
 
 	log.Printf("Response from action exchange execution: %v", response)
 	CheckErr(err, "Error from action exchange execution: %v")

@@ -8,17 +8,19 @@ import (
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/artpar/rclone/lib/pacer"
+	"github.com/jmoiron/sqlx"
+
 	//hugoCommand "github.com/gohugoio/hugo/commands"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strings"
 )
 
-func (dbResource *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tempDirectoryPath string) error {
+func (dbResource *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tempDirectoryPath string, transaction *sqlx.Tx) error {
 
 	oauthTokenId := cloudStore.OAutoTokenId
 
-	token, oauthConf, err := dbResource.GetTokenByTokenReferenceId(oauthTokenId)
+	token, oauthConf, err := dbResource.GetTokenByTokenReferenceId(oauthTokenId, transaction)
 	if err != nil && cloudStore.StoreProvider != "local" {
 		CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
 		log.Printf("Storage syncing will fail without valid token: OAuthTokenID [%v]", oauthTokenId)

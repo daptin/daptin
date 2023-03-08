@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/resty"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -44,7 +45,7 @@ type RestExternalExchange struct {
 	exchangeInformation *RestExchange
 }
 
-func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error) {
+func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
 	log.Printf("Execute rest external exchange")
 

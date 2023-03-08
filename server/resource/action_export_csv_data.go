@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -58,7 +59,8 @@ func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]i
 
 	currentDate := time.Now()
 	prefix := currentDate.Format("2006-01-02-15-04-05")
-	csvFile, err := ioutil.TempFile("", prefix)
+	csvFile, err := os.CreateTemp("", prefix)
+	defer csvFile.Close()
 
 	for outTableName, contents := range result {
 
@@ -91,8 +93,6 @@ func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]i
 		}
 		csvFile.WriteString("\n")
 	}
-
-	csvFile.Close()
 
 	csvFileName := csvFile.Name()
 	csvFileContents, err := ioutil.ReadFile(csvFileName)

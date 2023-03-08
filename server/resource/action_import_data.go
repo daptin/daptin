@@ -99,11 +99,11 @@ func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]inte
 
 			if !ok {
 				log.Printf("Wanted to truncate table, but no instance yet: %v", tableName)
-				d.cruds["world"].TruncateTable(tableName, false)
+				d.cruds["world"].TruncateTable(tableName, false, transaction)
 				continue
 			}
 
-			err := instance.TruncateTable(tableName, false)
+			err := instance.TruncateTable(tableName, false, transaction)
 			if err != nil {
 				log.Errorf("Failed to truncate table before importing data: %v", err)
 			}
@@ -123,7 +123,7 @@ func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]inte
 					data[USER_ACCOUNT_TABLE_NAME] = userIdInt
 				}
 
-				err := d.cruds[tableName].DirectInsert(tableName, data)
+				err := d.cruds[tableName].DirectInsert(tableName, data, transaction)
 				if err != nil {
 					log.Errorf("Was about to insert this: %v", data)
 					log.Errorf("Failed to direct insert into table [%v] : %v", tableName, err)

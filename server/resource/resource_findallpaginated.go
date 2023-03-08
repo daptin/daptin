@@ -189,7 +189,6 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindAllIsAdminCheck %v", duration)
 
-
 	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
 	relatedTableName := ""
 	if dbResource.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
@@ -949,10 +948,10 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 	idsListQuery, args, err := queryBuilder.Order(orders...).ToSQL()
 	if err != nil {
-		log.Infof("Id query: [%s]", err)
+		log.Tracef("Id query: [%s]", err)
 		return nil, nil, nil, false, err
 	}
-	log.Infof("Id query: [%s]", idsListQuery)
+	log.Tracef("Id query: [%s]", idsListQuery)
 	//log.Debugf("Id query args: %v", args)
 	start = time.Now()
 	stmt, err := transaction.Preparex(idsListQuery)
@@ -1432,8 +1431,10 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 
 	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
+		CheckErr(err, "Failed to begin transaction [1434]")
 		return 0, nil, err
 	}
+
 	for _, bf := range dbResource.ms.BeforeFindAll {
 		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 		start := time.Now()
@@ -1468,7 +1469,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		log.Tracef("[TIMING] FindAfterFilter %v: %v", bf.String(), duration)
 
 		if err != nil {
-			//log.Errorf("Error from findall paginated create middleware: %v", err)
+			log.Errorf("Error from findall paginated create middleware: %v", err)
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
 
@@ -1479,7 +1480,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 
 	includesNew := make([][]map[string]interface{}, 0)
 	for _, bf := range dbResource.ms.AfterFindAll {
-		//log.Printf("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+		log.Tracef("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
 		for _, include := range includes {
 			include, err = bf.InterceptAfter(dbResource, &req, include, transaction)
@@ -1493,6 +1494,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		}
 
 	}
+	log.Tracef("Commit transaction in PaginatedFindAll")
 	commitErr := transaction.Commit()
 	if commitErr != nil {
 		CheckErr(commitErr, "Failed to commit")

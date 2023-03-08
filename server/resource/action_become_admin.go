@@ -20,7 +20,7 @@ func (d *becomeAdminActionPerformer) Name() string {
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
 func (d *becomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
-	if !d.cruds["world"].CanBecomeAdmin() {
+	if !d.cruds["world"].CanBecomeAdmin(transaction) {
 		return nil, nil, []error{errors.New("Unauthorized")}
 	}
 	u := inFieldMap["user"]

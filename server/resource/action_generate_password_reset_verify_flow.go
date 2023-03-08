@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -26,7 +26,7 @@ func (d *generatePasswordResetVerifyActionPerformer) DoAction(request Outcome, i
 
 	email := inFieldMap["email"]
 
-	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, goqu.Ex{"email": email})
+	existingUsers, _, err := d.cruds[USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClause("user_account", nil, transaction, goqu.Ex{"email": email})
 
 	responseAttrs := make(map[string]interface{})
 	if err != nil || len(existingUsers) < 1 {
@@ -77,22 +77,28 @@ func (d *generatePasswordResetVerifyActionPerformer) DoAction(request Outcome, i
 
 func NewGeneratePasswordResetVerifyActionPerformer(configStore *ConfigStore, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
 
-	secret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
+	transaction, err := cruds["world"].Connection.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [82]")
+		return nil, err
+	}
+	defer transaction.Commit()
+	secret, _ := configStore.GetConfigValueFor("jwt.secret", "backend", transaction)
 
-	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend")
+	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend", transaction)
 	CheckErr(err, "No default jwt token life time set in configuration")
 	if err != nil {
-		err = configStore.SetConfigIntValueFor("jwt.token.life.hours", 24*3, "backend")
+		err = configStore.SetConfigIntValueFor("jwt.token.life.hours", 24*3, "backend", transaction)
 		CheckErr(err, "Failed to store default jwt token life time")
 		tokenLifeTimeHours = 24 * 3 // 3 days
 	}
 
-	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
+	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
 		uid, _ := uuid.NewV4()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
-		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
+		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}
 
 	handler := generatePasswordResetVerifyActionPerformer{

@@ -448,9 +448,11 @@ func (dbResource *DbResource) Delete(id string, req api2go.Request) (api2go.Resp
 
 	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
+		CheckErr(err, "Failed to begin transaction [451]")
 		return nil, err
 	}
-	log.Printf("Delete [%v][%v]", dbResource.model.GetTableName(), id)
+
+	log.Infof("Delete [%v][%v]", dbResource.model.GetTableName(), id)
 	for _, bf := range dbResource.ms.BeforeDelete {
 		//log.Printf("[Before][%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 		r, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{

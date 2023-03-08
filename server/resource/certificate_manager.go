@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"net"
@@ -25,9 +26,9 @@ type CertificateManager struct {
 	encryptionSecret string
 }
 
-func NewCertificateManager(cruds map[string]*DbResource, configStore *ConfigStore) (*CertificateManager, error) {
+func NewCertificateManager(cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (*CertificateManager, error) {
 
-	secret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		return nil, errors.New("no secret to decrypt key certificate")
 	}
@@ -97,7 +98,7 @@ func GenerateCertPEMWithKey(hostname string, privateKey *rsa.PrivateKey) ([]byte
 	return certBytes, err
 }
 
-func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
+func CreateNewPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 
 	reader := rand.Reader
 	bitSize := 2048
@@ -125,15 +126,15 @@ func GetPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error) {
 	return publicKeyBytes, privateKeyBytes, key, nil
 }
 
-func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool) (*tls.Config, []byte, []byte, []byte, []byte, error) {
+func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool, transaction *sqlx.Tx) (*tls.Config, []byte, []byte, []byte, []byte, error) {
 
 	log.Printf("Get certificate for [%v]: %v", hostname, createIfNotFound)
 	hostname = strings.Split(hostname, ":")[0]
-	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname)
+	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname, transaction)
 
 	if createIfNotFound && (err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "") {
 
-		publicKeyPem, privateKeyPem, key, err := GetPublicPrivateKeyPEMBytes()
+		publicKeyPem, privateKeyPem, key, err := CreateNewPublicPrivateKeyPEMBytes()
 		if err != nil {
 			log.Printf("Failed to generate key: %v", err)
 			return nil, nil, nil, nil, nil, err
@@ -158,7 +159,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 			ClientAuth:   tls.NoClientCert,
 		}
 
-		adminList := cm.cruds["certificate"].GetAdminReferenceId()
+		adminList := cm.cruds["certificate"].GetAdminReferenceId(transaction)
 
 		adminUserReferenceId := ""
 		adminId := int64(1)
@@ -199,7 +200,6 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		if certMap != nil && certMap["reference_id"] != nil {
 			data.Data["reference_id"] = certMap["reference_id"]
-			transaction, err := cm.cruds["certificate"].Connection.Beginx()
 			if err != nil {
 				return nil, nil, nil, nil, nil, err
 			}
@@ -219,7 +219,6 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		} else {
 			request.Method = "POST"
-			transaction, err := cm.cruds["certificate"].Connection.Beginx()
 			if err != nil {
 				return nil, nil, nil, nil, nil, err
 			}

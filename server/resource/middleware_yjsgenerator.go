@@ -107,7 +107,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						}
 
 						var documentName = fmt.Sprintf("%v.%v.%v", dr.tableInfo.TableName, reference_id, column.ColumnName)
-						document := pc.documentProvider.GetDocument(ydb.YjsRoomName(documentName))
+						document := pc.documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
 						if document != nil {
 							var documentHistory []byte
 							documentHistory = document.GetInitialContentBytes()

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -162,7 +163,8 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 	}
 
 	if stateMachineRunner.Can(stateMachineEvent.GetEventName()) {
-		err := stateMachineRunner.Event(stateMachineEvent.GetEventName())
+		ctx := context.TODO()
+		err := stateMachineRunner.Event(ctx, stateMachineEvent.GetEventName())
 		nextState := stateMachineRunner.Current()
 		if err == nil || err.Error() == "no transition" {
 			return nextState, nil

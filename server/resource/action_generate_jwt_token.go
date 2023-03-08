@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go.uuid"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -126,24 +126,24 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 	return nil, responses, nil
 }
 
-func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*DbResource) (ActionPerformerInterface, error) {
+func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*DbResource, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	secret, _ := configStore.GetConfigValueFor("jwt.secret", "backend")
+	secret, _ := configStore.GetConfigValueFor("jwt.secret", "backend", transaction)
 
-	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend")
+	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend", transaction)
 	CheckErr(err, "No default jwt token life time set in configuration")
 	if err != nil {
-		err = configStore.SetConfigIntValueFor("jwt.token.life.hours", 24*3, "backend")
+		err = configStore.SetConfigIntValueFor("jwt.token.life.hours", 24*3, "backend", transaction)
 		CheckErr(err, "Failed to store default jwt token life time")
 		tokenLifeTimeHours = 24 * 3 // 3 days
 	}
 
-	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
+	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
 		uid, _ := uuid.NewV4()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
-		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
+		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}
 
 	handler := generateJwtTokenActionPerformer{

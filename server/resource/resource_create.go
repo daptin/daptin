@@ -35,7 +35,7 @@ import (
 //   the server
 
 func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (map[string]interface{}, error) {
-	//log.Printf("Create object of type [%v]", dbResource.model.GetName())
+	log.Tracef("Create object of type [%v]", dbResource.model.GetName())
 	data := obj.(api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -454,7 +454,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 			_, err = createTransaction.Exec(query, vals...)
 			if err != nil {
-				log.Printf("Insert query 468: %v", query)
+				log.Infof("Insert query 468: %v", query)
 				log.Errorf("Failed to execute insert query 469: %v", err)
 				log.Errorf("%v", vals)
 				return nil, err
@@ -495,7 +495,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 			belogsToUserGroupSql, q, _ := insertSql.Vals([]interface{}{createdResource["id"], valueToAdd, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 
-			log.Infof("Add new object [%v][%v] to [%v] [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], typeName, valueToAdd)
+			log.Tracef("Add new object [%v][%v] to [%v] [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], typeName, valueToAdd)
 			_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
 
 			if err != nil {
@@ -515,8 +515,9 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").
 			Vals([]interface{}{createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
 
-		log.Infof("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
+		log.Tracef("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
 		_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
+		log.Tracef("Added new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
 
 		if err != nil {
 			log.Errorf("Failed to insert add user group relation for [%v]: %v", dbResource.model.GetName(), err)
@@ -527,7 +528,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	if dbResource.model.GetName() == "usergroup" && sessionUser.UserId != 0 {
 
-		//log.Printf("Associate new usergroup with user: %v", sessionUser.UserId)
+		log.Tracef("Associate new usergroup with user: %v", sessionUser.UserId)
 		//u, _ := uuid.NewV4()
 		//nuuid := u.String()
 		//
@@ -544,16 +545,16 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	} else if dbResource.model.GetName() == USER_ACCOUNT_TABLE_NAME {
 
-		adminUserId, _ := GetAdminUserIdAndUserGroupId(dbResource.db)
-		log.Printf("Associate new user with user: %v", adminUserId)
+		adminUserId, _ := GetAdminUserIdAndUserGroupId(createTransaction)
+		log.Tracef("Associate new user with user: %v", adminUserId)
 
 		belongsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Update(USER_ACCOUNT_TABLE_NAME).
 			Set(goqu.Record{USER_ACCOUNT_ID_COLUMN: adminUserId}).
 			Where(goqu.Ex{"id": createdResource["id"]}).ToSQL()
 
-		//log.Printf("Query: %v", belogsToUserGroupSql)
 		_, err = createTransaction.Exec(belongsToUserGroupSql, q...)
+		log.Tracef("_, err = createTransaction.Exec(belongsToUserGroupSql, q...)\n")
 
 		if err != nil {
 			log.Errorf("Failed to insert add user relation for usergroup [%v]: %v", dbResource.model.GetName(), err)
@@ -566,7 +567,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	for _, rel := range dbResource.model.GetRelations() {
 		relationName := rel.GetRelation()
 
-		//log.Printf("Check relation in Update: %v", rel.String())
+		log.Tracef("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dbResource.model.GetName() {
 
 			if relationName == "belongs_to" || relationName == "has_one" {
@@ -595,7 +596,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				continue
 			}
 
-			//log.Printf("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
+			log.Tracef("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
 
 			switch relationName {
 			case "has_one":
@@ -918,6 +919,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	delete(createdResource, "id")
 	createdResource["__type"] = dbResource.model.GetName()
+	log.Tracef("[END] Create object of type [%v]", dbResource.model.GetName())
 
 	return createdResource, nil
 
@@ -946,7 +948,7 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 	}
 
 	for _, bf := range dbResource.ms.AfterCreate {
-		//log.Printf("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
+		log.Tracef("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
 		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{createdResource}, transaction)
 		if err != nil {
 			log.Errorf("Error from AfterCreate[%v] middleware: %v", bf.String(), err)
@@ -975,6 +977,7 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 
 	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
+		CheckErr(err, "Failed to begin transaction [980]")
 		return nil, err
 	}
 
@@ -994,6 +997,7 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 	}
 
 	createdResource, err := dbResource.CreateWithoutFilter(obj, req, transaction)
+	log.Tracef("CreateWithoutFilter [%v]", dbResource.model.GetName())
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "failed to rollback")

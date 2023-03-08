@@ -23,7 +23,7 @@ func (d *selfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	log.Printf("Generate certificate for: %v", certificateSubject)
 
 	hostname := certificateSubject["hostname"].(string)
-	_, certPem, _, _, _, err := d.certificateManager.GetTLSConfig(hostname, true)
+	_, certPem, _, _, _, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
 	if err != nil {
 		return nil, []ActionResponse{}, []error{err}
 	}
@@ -35,9 +35,9 @@ func (d *selfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	}, nil
 }
 
-func NewSelfTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, certificateManager *CertificateManager) (ActionPerformerInterface, error) {
+func NewSelfTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, certificateManager *CertificateManager, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 
 	handler := selfTlsCertificateGenerateActionPerformer{
 		cruds:              cruds,

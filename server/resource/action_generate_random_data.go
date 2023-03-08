@@ -18,11 +18,11 @@ type randomDataGeneratePerformer struct {
 	tableMap  map[string][]api2go.ColumnInfo
 }
 
-func (d *randomDataGeneratePerformer) Name() string {
+func (actionPerformer *randomDataGeneratePerformer) Name() string {
 	return "generate.random.data"
 }
 
-func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
+func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
@@ -39,13 +39,13 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 
 	userIdInt, err := strconv.ParseInt(inFields[USER_ACCOUNT_ID_COLUMN].(string), 10, 32)
 
-	//userIdInt, err = d.Cruds["user"].GetReferenceIdToId("user", userReferenceId)
+	//userIdInt, err = actionPerformer.Cruds["user"].GetReferenceIdToId("user", userReferenceId)
 	if err != nil {
 		log.Errorf("Failed to get user id from user reference id: %v", err)
 	}
 	tableName := inFields["table_name"].(string)
 
-	tableResource := d.cruds[tableName]
+	tableResource := actionPerformer.cruds[tableName]
 	if tableResource == nil {
 		log.Errorf("Table [%v] is not created yet", tableName)
 		return nil, nil, []error{errors.New("table not found")}
@@ -55,12 +55,12 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 
 	rows := make([]map[string]interface{}, 0)
 	for i := 0; i < count; i++ {
-		columns := d.tableMap[tableName]
+		columns := actionPerformer.tableMap[tableName]
 		row := GetFakeRow(columns)
 		for _, column := range columns {
 			if column.IsForeignKey {
 				if column.ForeignKeyData.DataSource == "self" {
-					foreignRow, err := d.cruds[column.ForeignKeyData.Namespace].GetRandomRow(column.ForeignKeyData.Namespace, 1)
+					foreignRow, err := actionPerformer.cruds[column.ForeignKeyData.Namespace].GetRandomRow(column.ForeignKeyData.Namespace, 1, transaction)
 					if len(foreignRow) < 1 || err != nil {
 						log.Printf("no rows to select from for type %v", column.ForeignKeyData.Namespace)
 						continue
@@ -93,7 +93,7 @@ func (d *randomDataGeneratePerformer) DoAction(request Outcome, inFields map[str
 
 	for _, row := range rows {
 
-		_, err := tableResource.Create(api2go.NewApi2GoModelWithData(tableName, nil, 0, nil, row), req)
+		_, err := tableResource.CreateWithTransaction(api2go.NewApi2GoModelWithData(tableName, nil, 0, nil, row), req, transaction)
 		if err != nil {
 			log.Errorf("Was about to insert this fake object: %v", row)
 			log.Errorf("Failed to fake insert into table [%v] : %v", tableName, err)

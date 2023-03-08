@@ -64,7 +64,7 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 
 	} else {
 
-		mailServerObj, err := d.cruds["mail_server"].GetObjectByWhereClause("mail_server", "hostname", mailServer)
+		mailServerObj, err := d.cruds["mail_server"].GetObjectByWhereClause("mail_server", "hostname", mailServer, transaction)
 		if err != nil {
 			log.Errorf("Failed to get mail server details for sending as: %v", mailServer)
 			return nil, nil, []error{fmt.Errorf("failed to get mail server details for sending as: %v", mailServer)}
@@ -97,7 +97,7 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 
 		fmt.Printf("Original Mail: \n%s\n", string(mailBody))
 
-		_, _, privateKeyPemByte, _, _, err := d.certificateManager.GetTLSConfig(emailEnvelope.MailFrom.Host, false)
+		_, _, privateKeyPemByte, _, _, err := d.certificateManager.GetTLSConfig(emailEnvelope.MailFrom.Host, false, transaction)
 		if err != nil {
 			log.Errorf("Failed to get private key for domain [%v]", emailEnvelope.MailFrom.Host)
 			log.Errorf("Refusing to send mail without signing")

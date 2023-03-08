@@ -4,15 +4,14 @@ import (
 	"database/sql"
 	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath string) error {
-
+func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) error {
+	log.Tracef("CreateDefaultLocalStorage")
 	query, vars, err := statementbuilder.Squirrel.Select("reference_id").From("cloud_store").Where(goqu.Ex{
 		"name": "localstore",
 	}).ToSQL()
@@ -21,7 +20,7 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 		return err
 	}
 
-	stmt1, err := db.Preparex(query)
+	stmt1, err := transaction.Preparex(query)
 	if err != nil {
 		log.Errorf("[26] failed to prepare statment: %v", err)
 		return err
@@ -39,7 +38,7 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 	if err != nil {
 		if err == sql.ErrNoRows {
 
-			adminUserId, adminGroupId := GetAdminUserIdAndUserGroupId(db)
+			adminUserId, adminGroupId := GetAdminUserIdAndUserGroupId(transaction)
 			newUuid, _ := uuid.NewV4()
 			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store").
 				Cols("reference_id", "name", "store_type", "store_provider", "root_path", "store_parameters", "user_account_id", "permission").
@@ -49,7 +48,7 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 				return err
 			}
 
-			_, err = db.Exec(query, vars...)
+			_, err = transaction.Exec(query, vars...)
 			if err != nil {
 				return err
 			}
@@ -61,7 +60,7 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 				return err
 			}
 
-			stmt1, err := db.Preparex(query)
+			stmt1, err := transaction.Preparex(query)
 			if err != nil {
 				log.Errorf("[67] failed to prepare statment: %v", err)
 			}
@@ -91,7 +90,7 @@ func CreateDefaultLocalStorage(db database.DatabaseConnection, localStoragePath 
 				return err
 			}
 
-			_, err = db.Exec(query, vars...)
+			_, err = transaction.Exec(query, vars...)
 
 			return err
 

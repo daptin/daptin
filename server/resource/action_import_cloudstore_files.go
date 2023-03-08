@@ -79,7 +79,7 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 		oauthConf := &oauth2.Config{}
 		oauthTokenId := cacheFolder.CloudStore.OAutoTokenId
 
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 
 		jsonToken, err := json.Marshal(token)
@@ -123,7 +123,7 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 				defaltValues["reference_id"] = newUuid
 				defaltValues[colName] = string(fileData)
 
-				err = d.cruds[tableName].DirectInsert(tableName, defaltValues)
+				err = d.cruds[tableName].DirectInsert(tableName, defaltValues, transaction)
 				CheckErr(err, "Failed to insert file record [%v]: %v", defaltValues, err)
 				if err != nil {
 					countFail += 1

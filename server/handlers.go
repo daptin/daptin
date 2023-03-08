@@ -9,7 +9,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -54,7 +54,14 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 		stateMachineId := objectStateMachine.GetID()
 		eventName := gincontext.Param("eventName")
 
-		stateMachinePermission := cruds["smd"].GetRowPermission(objectStateMachine.GetAllAsAttributes())
+		transaction, err := db.Beginx()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [59]")
+			return
+		}
+
+		defer transaction.Commit()
+		stateMachinePermission := cruds["smd"].GetRowPermission(objectStateMachine.GetAllAsAttributes(), transaction)
 
 		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			gincontext.AbortWithStatus(403)
@@ -83,7 +90,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 			stateAudit.Data["source_reference_id"] = objectStateMachine.GetReferenceId()
 
-			_, err := creator.Create(stateAudit, req)
+			_, err := creator.CreateWithTransaction(stateAudit, req, transaction)
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}
 
@@ -94,7 +101,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			}).
 			Where(goqu.Ex{"reference_id": stateMachineId}).ToSQL()
 
-		_, err = db.Exec(s, v...)
+		_, err = transaction.Exec(s, v...)
 		if err != nil {
 			gincontext.AbortWithError(500, err)
 			return
@@ -117,7 +124,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 			sessionUser = user.(*auth.SessionUser)
 		}
 
-		jsBytes, err := ioutil.ReadAll(gincontext.Request.Body)
+		jsBytes, err := io.ReadAll(gincontext.Request.Body)
 		if err != nil {
 			log.Errorf("Failed to read post body: %v", err)
 			gincontext.AbortWithError(400, err)
@@ -140,6 +147,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 		}
 
 		response, err := cruds["smd"].FindOne(stateMachineId, req)
+		log.Tracef("Found one from smd")
 		if err != nil {
 			gincontext.AbortWithError(400, err)
 			return
@@ -147,14 +155,21 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 
 		stateMachineInstance := response.Result().(api2go.Api2GoModel)
 		stateMachineInstanceProperties := stateMachineInstance.GetAttributes()
-		stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineInstance.GetAllAsAttributes())
+		transaction, err := db.Beginx()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [160]")
+			return
+		}
+
+		defer transaction.Commit()
+		stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineInstance.GetAllAsAttributes(), transaction)
 
 		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			gincontext.AbortWithStatus(403)
 			return
 		}
 
-		subjectInstanceResponse, err := cruds[typename].FindOne(refId, req)
+		subjectInstanceResponse, err := cruds[typename].FindOneWithTransaction(refId, req, transaction)
 		if err != nil {
 			gincontext.AbortWithError(400, err)
 			return
@@ -170,7 +185,8 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 
 		req.PlainRequest.Method = "POST"
 
-		resp, err := cruds[typename+"_state"].Create(api2go.NewApi2GoModelWithData(typename+"_state", nil, 0, nil, newStateMachine), req)
+		resp, err := cruds[typename+"_state"].CreateWithTransaction(
+			api2go.NewApi2GoModelWithData(typename+"_state", nil, 0, nil, newStateMachine), req, transaction)
 
 		if err != nil {
 			log.Errorf("Failed to execute state insert query: %v", err)

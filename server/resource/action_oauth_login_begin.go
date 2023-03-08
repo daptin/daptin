@@ -46,7 +46,7 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap ma
 	//	redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
 	//}
 
-	conf, _, err := GetOauthConnectionDescription(authConnectorData, d.cruds["oauth_connect"])
+	conf, _, err := GetOauthConnectionDescription(authConnectorData, d.cruds["oauth_connect"], transaction)
 	CheckErr(err, "Failed to get oauth.conf from authenticator name")
 
 	// Redirect user to consent page to ask for permission
@@ -75,9 +75,10 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request Outcome, inFieldMap ma
 	return nil, []ActionResponse{setStateResponse, actionResponse}, nil
 }
 
-func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
+func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	secret, err := configStore.GetConfigValueFor("totp.secret", "backend")
+	secret, err := configStore.GetConfigValueFor("totp.secret", "backend", transaction)
+
 	if err != nil {
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "site.daptin.com",
@@ -90,7 +91,7 @@ func NewOauthLoginBeginActionPerformer(initConfig *CmsConfig, cruds map[string]*
 			log.Errorf("Failed to generate code: %v", err)
 			return nil, err
 		}
-		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend")
+		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend", transaction)
 		secret = key.Secret()
 	}
 

@@ -33,7 +33,7 @@ func CheckErr(err error, message ...interface{}) bool {
 			args = message[1:]
 		}
 		args = append(args, err)
-		log.Warnf(fmtString+": %v", args...)
+		log.Errorf(fmtString+": %v", args...)
 		return true
 	}
 	return false
@@ -296,21 +296,16 @@ func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) 
 		}
 
 		if !tableCreatedMap[table.TableName] {
-			//log.Printf("Check table %v", table.TableName)
-			tx, err := db.Beginx()
+			log.Infof("Check table %v", table.TableName)
+			transaction, err := db.Beginx()
+			err = CheckTable(&table, transaction)
 			if err != nil {
-				CheckErr(err, "Failed to start txn for create table", table.TableName)
-				continue
-			}
-			err = CheckTable(&table, db, tx)
-			if err != nil {
-				err = tx.Rollback()
+				err = transaction.Rollback()
 				CheckErr(err, "Failed to rollback create table txn after failure")
-				tx, err = db.Beginx()
-				CheckErr(err, "Failed to create new transaction create table txn after failure")
+				transaction, err = db.Beginx()
 			} else {
 				tables = append(tables, table)
-				err = tx.Commit()
+				err = transaction.Commit()
 				CheckErr(err, "Failed to commit create table txn after failure")
 				tableCreatedMap[table.TableName] = true
 			}
@@ -354,7 +349,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 	return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.Tx) error {
+func CheckTable(tableInfo *TableInfo, transaction *sqlx.Tx) error {
 
 	for i, c := range tableInfo.Columns {
 		if c.ColumnType == "truefalse" {
@@ -370,22 +365,17 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 	columnsWeWant, colInfoMap := CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo)
 
 	s := fmt.Sprintf("select * from %s limit 1", tableInfo.TableName)
-	//log.Printf("Sql: %v", s)
-	stmt1, err := db.Preparex(s)
+	log.Debugf("Sql: %v", s)
+	stmt1, err := transaction.Preparex(s)
+	log.Debugf("Prepared Sql: %v", s)
 	var columns []string
 	if err != nil {
 		// expected error, no need to log
-		//log.Printf("Failed to select * from %v: %v", tableInfo.TableName, err)
-		err = CreateTable(tableInfo, tx)
+		log.Tracef("Failed to select * from %v: %v", tableInfo.TableName, err)
+		err = CreateTable(tableInfo, transaction)
 		return err
 	} else {
-		defer func(stmt1 *sqlx.Stmt) {
-			err := stmt1.Close()
-			if err != nil {
-				log.Errorf("failed to close prepared statement: %v", err)
-			}
-		}(stmt1)
-
+		defer stmt1.Close()
 		rowx := stmt1.QueryRowx()
 		columns, err = rowx.Columns()
 
@@ -419,9 +409,9 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, tx *sqlx.T
 				//continue
 			}
 
-			query := alterTableAddColumn(tableInfo.TableName, &info, tx.DriverName())
+			query := alterTableAddColumn(tableInfo.TableName, &info, transaction.DriverName())
 			log.Printf("Alter query: %v", query)
-			_, err := tx.Exec(query)
+			_, err := transaction.Exec(query)
 			if err != nil {
 				log.Errorf("Failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)
 				return fmt.Errorf("failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)

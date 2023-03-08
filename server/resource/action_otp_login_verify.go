@@ -170,27 +170,27 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 	return nil, responses, nil
 }
 
-func NewOtpLoginVerifyActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
+func NewOtpLoginVerifyActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	configStore.GetConfigValueFor("jwt.secret", "backend")
+	configStore.GetConfigValueFor("jwt.secret", "backend", transaction)
 
-	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
-	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
+	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend", transaction)
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 
-	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend")
+	tokenLifeTimeHours, err := configStore.GetConfigIntValueFor("jwt.token.life.hours", "backend", transaction)
 	CheckErr(err, "No default jwt token life time set in configuration")
 	if err != nil {
-		err = configStore.SetConfigIntValueFor("jwt.token.life.hours", 24*3, "backend")
+		err = configStore.SetConfigIntValueFor("jwt.token.life.hours", 24*3, "backend", transaction)
 		CheckErr(err, "Failed to store default jwt token life time")
 		tokenLifeTimeHours = 24 * 3 // 3 days
 	}
 
-	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
+	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
 		uid, _ := uuid.NewV4()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
-		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
+		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}
 
 	handler := otpLoginVerifyActionPerformer{

@@ -316,7 +316,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 
 	log.Infof("Aggregation query: %v", sql)
 
-	stmt1, err := dbResource.Connection.Preparex(sql)
+	stmt1, err := transaction.Preparex(sql)
 	if err != nil {
 		log.Errorf("[291] failed to prepare statment [%v]: %v", sql, err)
 		return nil, err
@@ -385,7 +385,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 			if len(idsToConvert) == 0 {
 				continue
 			}
-			referenceIds, err := dbResource.Cruds[entityName].GetIdListToReferenceIdList(entityName, idsToConvert)
+			referenceIds, err := dbResource.Cruds[entityName].GetIdListToReferenceIdList(entityName, idsToConvert, transaction)
 			if err != nil {
 				return nil, err
 			}

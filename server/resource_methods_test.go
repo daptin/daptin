@@ -1,4 +1,5 @@
-//+build test
+//go:build test
+// +build test
 
 package server
 
@@ -72,31 +73,31 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	//AddStateMachines(&initConfig, wrapper)
 
 	tx, errb := wrapper.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CheckErr(errb, "Failed to begin transaction [76]")
 	resource.CheckAllTableStatus(&initConfig, wrapper)
 	errc := tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
 
 	tx, errb = wrapper.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CheckErr(errb, "Failed to begin transaction [82]")
 	resource.CreateRelations(&initConfig, tx)
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
 
 	tx, errb = wrapper.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CheckErr(errb, "Failed to begin transaction [88]")
 	resource.CreateUniqueConstraints(&initConfig, tx)
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
 
 	tx, errb = wrapper.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CheckErr(errb, "Failed to begin transaction [94]")
 	resource.CreateIndexes(&initConfig, wrapper)
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
 
 	tx, errb = wrapper.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
+	resource.CheckErr(errb, "Failed to begin transaction [100]")
 	resource.UpdateWorldTable(&initConfig, tx)
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
@@ -229,7 +230,7 @@ func TestGetActionsByType(t *testing.T) {
 
 	wrapper, dbResource := GetResource()
 	defer wrapper.db.Close()
-	dbResource.GetActionsByType("world")
+	dbResource.GetActionsByType("world", nil)
 
 	if !wrapper.HasExecuted("select a.action_name as name, w.table_name as ontype, a.label, action_schema as action_schema, a.instance_optional as instance_optional, a.reference_id as referenceid from action a join world w on w.id = a.world_id where w.table_name =") {
 		t.Errorf("Expected query not fired")

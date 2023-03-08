@@ -46,9 +46,12 @@ func GetDbConnection(dbType string, connectionString string) (*sqlx.DB, error) {
 	if maxOpenConnections == "" {
 		maxOpenConnections = "50"
 	}
+	if strings.Index(dbType, "sqlite") > -1 {
+		maxOpenConnections = "1"
+	}
 	maxConnectionLifetimeMinString := os.Getenv("DAPTIN_MAX_CONNECTIONS_LIFETIME")
 	if maxConnectionLifetimeMinString == "" {
-		maxConnectionLifetimeMinString = "5"
+		maxConnectionLifetimeMinString = "1"
 	}
 	maxConnectionIdleTimeMinString := os.Getenv("DAPTIN_MAX_IDLE_CONNECTIONS_TIME")
 	if maxConnectionIdleTimeMinString == "" {

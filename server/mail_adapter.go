@@ -23,7 +23,7 @@ import (
 	"github.com/emersion/go-msgauth/dkim"
 	log "github.com/sirupsen/logrus"
 	"github.com/smancke/mailck"
-	"io/ioutil"
+	"io"
 	"net/http"
 	mail1 "net/mail"
 	"strings"
@@ -97,7 +97,14 @@ func (dsa *DaptinSmtpAuthenticator) VerifyLOGIN(login, passwordBase64 string) bo
 	if err != nil {
 		return false
 	}
-	mailAccount, err := dsa.dbResource.GetUserMailAccountRowByEmail(string(username))
+	transaction, err := dsa.dbResource.Connection.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [102]")
+		return false
+	}
+
+	defer transaction.Rollback()
+	mailAccount, err := dsa.dbResource.GetUserMailAccountRowByEmail(string(username), transaction)
 	if err != nil {
 		return false
 	}
@@ -243,7 +250,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
 						pr := &http.Request{}
 
-						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String())
+						transaction, err := dbResource.Connection.Beginx()
+						if err != nil {
+							resource.CheckErr(err, "Failed to begin transaction [255]")
+							return nil, err
+						}
+						mailAccount, err := dbResource.GetUserMailAccountRowByEmail(rcpt.String(), transaction)
+						transaction.Rollback()
 
 						if err != nil {
 							log.Errorf("No such user mail account [%v] %v", rcpt.String(), err)
@@ -263,7 +276,14 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							r := strings.NewReader(string(mailBytes))
 							netMessage, _ := mail1.ReadMessage(r)
 
-							_, _, privateKeyPemByte, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false)
+							transaction, err := dbResource.Connection.Beginx()
+							if err != nil {
+								resource.CheckErr(err, "Failed to begin transaction [281]")
+								return nil, err
+							}
+
+							defer transaction.Rollback()
+							_, _, privateKeyPemByte, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false, transaction)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
 								log.Errorf("Refusing to send mail without signing")
@@ -285,7 +305,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								return nil, err
 							}
 
-
 							options := &dkim.SignOptions{
 								Selector:               "d1",
 								HeaderCanonicalization: dkim.CanonicalizationRelaxed,
@@ -294,7 +313,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								Signer:                 privateKey,
 							}
 
-							body, _ := ioutil.ReadAll(netMessage.Body)
+							body, _ := io.ReadAll(netMessage.Body)
 							newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\n", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z))
 
 							for headerName, headerValue := range e.Header {
@@ -359,12 +378,20 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 						}
 
-						user, _, err := dbResource.GetSingleRowByReferenceId("user_account", mailAccount["user_account_id"].(string), nil)
+						transaction, err = dbResource.Connection.Beginx()
+						if err != nil {
+							resource.CheckErr(err, "Failed to begin transaction [383]")
+							return nil, err
+						}
+
+						defer transaction.Commit()
+						user, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction("user_account", mailAccount["user_account_id"].(string), nil, transaction)
+						log.Tracef("Completed mailAdapter GetSingleRowByReferenceIdWithTransaction")
 
 						sessionUser := &auth.SessionUser{
 							UserId:          user["id"].(int64),
 							UserReferenceId: user["reference_id"].(string),
-							Groups:          dbResource.GetObjectUserGroupsByWhere("user_account", "id", user["id"].(int64)),
+							Groups:          dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", user["id"].(int64)),
 						}
 
 						mailboxName := "INBOX"
@@ -373,13 +400,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							mailboxName = "Spam"
 						}
 
-						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), mailboxName)
+						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), mailboxName, transaction)
 
 						if err != nil {
 							mailBox, err = dbResource.CreateMailAccountBox(
 								mailAccount["reference_id"].(string),
 								sessionUser,
-								mailboxName)
+								mailboxName, transaction)
 							if err != nil {
 								continue
 							}

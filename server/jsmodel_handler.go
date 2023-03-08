@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"image/color"
 	"net/http"
@@ -59,7 +60,15 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 			return
 		}
 
-		perm := cruds[typeName].GetObjectPermissionByWhereClause("world", "table_name", typeName)
+		transaction, err := cruds[typeName].Connection.Beginx()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [65]")
+			return
+		}
+
+		defer transaction.Rollback()
+
+		perm := cruds[typeName].GetObjectPermissionByWhereClause("world", "table_name", typeName, transaction)
 		if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
 			log.Infof("user [%v] not allowed to execute aggregate on [%v]", sessionUser, typeName)
 			c.AbortWithStatus(403)
@@ -79,14 +88,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		aggReq.TimeTo = c.Query("timeto")
 		aggReq.Order = c.QueryArray("order")
 
-
-		transaction, err := cruds[typeName].Connection.Beginx()
-		if err != nil {
-			log.Errorf("failed to create new transaction: %v", err)
-			return
-		}
 		aggResponse, err := cruds[typeName].DataStats(aggReq, transaction)
-		transaction.Rollback()
 
 		if err != nil {
 			log.Errorf("failed to execute aggregation [%v] - %v", typeName, err)
@@ -113,7 +115,7 @@ func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 	}
 }
 
-func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(*gin.Context) {
+func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, transaction *sqlx.Tx) func(*gin.Context) {
 	tableMap := make(map[string]resource.TableInfo)
 	for _, table := range initConfig.Tables {
 
@@ -127,7 +129,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		streamMap[stream.StreamName] = stream
 	}
 
-	worlds, _, err := cruds["world"].GetRowsByWhereClause("world", nil)
+	worlds, _, err := cruds["world"].GetRowsByWhereClause("world", nil, transaction)
 	if err != nil {
 		log.Errorf("Failed to get worlds list")
 	}
@@ -163,7 +165,14 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		cols := selectedTable.Columns
 
 		//log.Printf("data: %v", selectedTable.Relations)
-		actions, err := cruds["world"].GetActionsByType(typeName)
+		tx, err := cruds["world"].Connection.Beginx()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [170]")
+			return
+		}
+
+		defer tx.Rollback()
+		actions, err := cruds["world"].GetActionsByType(typeName, tx)
 
 		if err != nil {
 			log.Errorf("Failed to get actions by type: %v", err)
@@ -188,7 +197,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 		smdList := make([]map[string]interface{}, 0)
 
-		_, result, err := cruds["smd"].PaginatedFindAll(req)
+		_, result, err := cruds["smd"].PaginatedFindAllWithTransaction(req, tx)
 
 		if err != nil {
 			log.Printf("Failed to get world SMD: %v", err)

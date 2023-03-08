@@ -83,12 +83,18 @@ func (ati *ActiveTaskInstance) Run() {
 	sessionUser := &auth.SessionUser{}
 
 	if ati.Task.AsUserEmail != "" {
-		permission, err := ati.DbResource.GetObjectByWhereClause(USER_ACCOUNT_TABLE_NAME, "email", ati.Task.AsUserEmail)
+		transaction, err := ati.DbResource.Connection.Beginx()
+		if err != nil {
+			CheckErr(err, "Failed to begin transaction [88]")
+		}
+
+		defer transaction.Commit()
+		permission, err := ati.DbResource.GetObjectByWhereClause(USER_ACCOUNT_TABLE_NAME, "email", ati.Task.AsUserEmail, transaction)
 		CheckErr(err, "Failed to load user by email [%v]", ati.Task.AsUserEmail)
 		//log.Printf("Loaded user permission: %v", permission)
 		refId := permission["reference_id"]
 		if refId != nil {
-			usergroups := ati.DbResource.GetObjectUserGroupsByWhere(USER_ACCOUNT_TABLE_NAME, "reference_id", refId.(string))
+			usergroups := ati.DbResource.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "reference_id", refId.(string))
 			sessionUser.UserReferenceId = permission["reference_id"].(string)
 			sessionUser.UserId = permission["id"].(int64)
 			sessionUser.Groups = usergroups
@@ -103,7 +109,7 @@ func (ati *ActiveTaskInstance) Run() {
 	req := api2go.Request{
 		PlainRequest: pr,
 	}
-	_, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req)
+	_, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req, nil)
 
 	if err != nil {
 		log.Errorf("Errors while executing action 109: %v", err)

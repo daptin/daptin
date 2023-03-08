@@ -4,10 +4,11 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"io"
+
 	//"context"
 	"bytes"
 	"golang.org/x/oauth2"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -62,7 +63,7 @@ func GetTokensScope(tokUrl string, scope string, clientId string, clientSecret s
 	}
 
 	defer resp.Body.Close()
-	rsBody, err := ioutil.ReadAll(resp.Body)
+	rsBody, err := io.ReadAll(resp.Body)
 	bstr := string(rsBody)
 	log.Printf("oauth token exchange response: %v", bstr)
 	err = json.Unmarshal(rsBody, &dat)
@@ -83,7 +84,7 @@ func (d *ouathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map
 	authenticator := inFieldMap["authenticator"].(string)
 	token := inFieldMap["token"].(string)
 
-	conf, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"])
+	conf, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 
 	if err != nil {
 		return nil, nil, []error{err}
@@ -92,7 +93,7 @@ func (d *ouathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map
 	var oauthToken *oauth2.Token
 	token_type := inFieldMap["token_type"]
 	if token_type != nil {
-		oauthToken, err = d.cruds["oauth_token"].GetTokenByTokenName(token_type.(string))
+		oauthToken, err = d.cruds["oauth_token"].GetTokenByTokenName(token_type.(string), transaction)
 		CheckErr(err, "No existing token by name [%v]", token_type)
 	}
 	var tokenResponse map[string]interface{}
@@ -105,7 +106,7 @@ func (d *ouathProfileExchangePerformer) DoAction(request Outcome, inFieldMap map
 		log.Printf("token response: %v", tokenResponse)
 
 		if token_type != nil {
-			oauthToken, err = d.cruds["oauth_token"].GetTokenByTokenName(token_type.(string))
+			oauthToken, err = d.cruds["oauth_token"].GetTokenByTokenName(token_type.(string), transaction)
 
 			oauthToken := oauth2.Token{}
 			if tokenResponse["expires_in"] != nil {

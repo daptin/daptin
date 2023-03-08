@@ -28,9 +28,10 @@ func (d *oauthLoginResponseActionPerformer) Name() string {
 	return "oauth.login.response"
 }
 
-func GetOauthConnectionDescription(authenticator string, dbResource *DbResource) (*oauth2.Config, string, error) {
+func GetOauthConnectionDescription(authenticator string, dbResource *DbResource, transaction *sqlx.Tx) (*oauth2.Config, string, error) {
 
-	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClause("oauth_connect", nil, goqu.Ex{"name": authenticator})
+	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClauseWithTransaction("oauth_connect",
+		nil, transaction, goqu.Ex{"name": authenticator})
 
 	if err != nil {
 		log.Errorf("Failed to get oauth Connection details for in response handler  [%v]", authenticator)
@@ -43,7 +44,7 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
 		return nil, "", err
 	}
 
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		log.Errorf("Failed to get secret: %v", err)
 		return nil, "", err
@@ -52,27 +53,6 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource)
 	conf, err := mapToOauthConfig(rows[0], secret)
 	log.Printf("[%v] oauth config: %v", authenticator, conf)
 	return conf, rows[0]["reference_id"].(string), err
-
-}
-
-func GetOauthConnectionById(authenticatorId int64, dbResource *DbResource) (*oauth2.Config, string, error) {
-
-	connectDetails, err := dbResource.Cruds["oauth_connect"].GetIdToObject("oauth_connect", authenticatorId)
-
-	if err != nil {
-		log.Errorf("Failed to get oauth Connection details for in response handler  [%v]", authenticatorId)
-		return nil, "", err
-	}
-
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
-	if err != nil {
-		log.Errorf("Failed to get secret: %v", err)
-		return nil, "", err
-	}
-
-	conf, err := mapToOauthConfig(connectDetails, secret)
-
-	return conf, connectDetails["reference_id"].(string), err
 
 }
 
@@ -170,7 +150,7 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap
 	code := inFieldMap["code"].(string)
 	user_reference_id := inFieldMap["user_reference_id"].(string)
 
-	conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"])
+	conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 
 	if err != nil {
 		return nil, nil, []error{err}
@@ -219,9 +199,9 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap
 	return modelResponse, []ActionResponse{setStateResponse, actionResponse, redirectResponse}, nil
 }
 
-func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
+func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	secret, err := configStore.GetConfigValueFor("totp.secret", "backend")
+	secret, err := configStore.GetConfigValueFor("totp.secret", "backend", transaction)
 	if err != nil {
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "site.daptin.com",
@@ -234,7 +214,7 @@ func NewOauthLoginResponseActionPerformer(initConfig *CmsConfig, cruds map[strin
 			log.Errorf("Failed to generate code: %v", err)
 			return nil, err
 		}
-		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend")
+		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend", transaction)
 		secret = key.Secret()
 	}
 

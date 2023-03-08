@@ -242,12 +242,19 @@ func (diu *DaptinImapUser) CreateMailbox(name string) error {
 		return errors.New("mailbox already exists")
 	}
 
-	mailAccount, err := diu.dbResource["mail_box"].GetUserMailAccountRowByEmail(diu.username)
+	transaction, err := diu.dbResource["mail_box"].Connection.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [247]")
+		return err
+	}
+
+	defer transaction.Commit()
+	mailAccount, err := diu.dbResource["mail_box"].GetUserMailAccountRowByEmail(diu.username, transaction)
 
 	_, err = diu.dbResource["mail_box"].CreateMailAccountBox(
 		mailAccount["reference_id"].(string),
 		diu.sessionUser,
-		name)
+		name, transaction)
 
 	return err
 

@@ -421,7 +421,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				return nil, err
 			}
 
-			log.Infof("Update query: %v", query)
+			log.Infof("Update query [424]: %v", query)
 			_, err = updateTransaction.Exec(query, vals...)
 			if err != nil {
 				log.Errorf("Failed to execute update query [%s] [%v] 411: %v", query, vals, err)
@@ -452,7 +452,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				builder = builder.Set(updateMap)
 
 				query, vals, err := builder.Where(goqu.Ex{"translation_reference_id": idInt}).Where(goqu.Ex{"language_id": lang}).ToSQL()
-				log.Infof("Update query: %v", query)
+				log.Infof("Update query [455]: %v", query)
 				if err != nil {
 					log.Errorf("Failed to create update query: %v", err)
 				}
@@ -486,7 +486,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	if data.IsDirty() && dbResource.tableInfo.IsAuditEnabled {
 
 		auditModel := data.GetAuditModel()
-		log.Printf("Object [%v][%v] has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
+		log.Tracef("Object [%v][%v] has been changed, trying to audit in %v", data.GetTableName(), data.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
 			creator, ok := dbResource.Cruds[auditModel.GetTableName()]
 			if !ok {
@@ -511,7 +511,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		}
 
 	} else {
-		//log.Printf("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
+		log.Tracef("[%v][%v] Not creating an audit row", data.GetTableName(), data.GetID())
 	}
 
 	//updatedResource, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetName(), updateObjectReferenceId, updateTransaction)
@@ -523,7 +523,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	for _, rel := range dbResource.model.GetRelations() {
 		relationName := rel.GetRelation()
 
-		//log.Printf("Check relation in Update: %v", rel.String())
+		log.Tracef("Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dbResource.model.GetName() {
 
 			if relationName == "belongs_to" || relationName == "has_one" {
@@ -552,7 +552,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				continue
 			}
 
-			//log.Printf("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
+			log.Tracef("Update object for relation on [%v] : [%v]", rel.GetObjectName(), val11)
 
 			switch relationName {
 			case "has_one":
@@ -679,7 +679,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			if !ok {
 				continue
 			}
-			log.Printf("Update %v [%v] on: %v -> %v", rel.String(), updateObjectReferenceId, rel.GetSubjectName(), val)
+			log.Tracef("Update %v [%v] on: %v -> %v", rel.String(), updateObjectReferenceId, rel.GetSubjectName(), val)
 
 			returnList := make([]string, 0)
 			//var relUpdateQuery string
@@ -1026,8 +1026,10 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 
 	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
+		CheckErr(err, "Failed to begin transaction [1029]")
 		return nil, err
 	}
+
 	data.Data["__type"] = dbResource.model.GetName()
 	for _, bf := range dbResource.ms.BeforeUpdate {
 		//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
@@ -1053,6 +1055,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	}
 
 	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)
+	log.Tracef("Completed UpdateWithoutFilters")
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "Failed to rollback")
@@ -1060,7 +1063,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	}
 
 	for _, bf := range dbResource.ms.AfterUpdate {
-		//log.Printf("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+		log.Tracef("Invoke AfterUpdate [%v][%v] on Update Request", bf.String(), dbResource.model.GetName())
 
 		results, err := bf.InterceptAfter(dbResource, &api2go.Request{
 			PlainRequest: updateRequest,
@@ -1089,6 +1092,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	}
 	delete(updatedResource, "id")
 
+	log.Tracef("Completed update request [%v]", dbResource.model.GetName())
 	return NewResponse(nil, api2go.NewApi2GoModelWithData(dbResource.model.GetName(), dbResource.model.GetColumns(), dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), updatedResource), 200, nil), nil
 
 }
@@ -1126,12 +1130,14 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 	}
 
 	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)
+	log.Tracef("Completed UpdateWithoutFilters in UpdateWithTransaction")
+
 	if err != nil {
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
 	for _, bf := range dbResource.ms.AfterUpdate {
-		//log.Printf("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+		log.Tracef("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
 		results, err := bf.InterceptAfter(dbResource, &api2go.Request{
 			PlainRequest: updateRequest,

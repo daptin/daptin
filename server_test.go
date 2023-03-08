@@ -297,7 +297,7 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	name, _ := os.Hostname()
 	certManager.GetTLSConfig(name, true)
 
-	log.Printf("Listening at port: %v", *port)
+	log.Infof("Listening at port: %v", *port)
 
 	srv := &http.Server{Addr: *port, Handler: rhs.HostSwitch}
 

@@ -45,14 +45,21 @@ func (be *DaptinImapBackend) LoginMd5(conn *imap.ConnInfo, username, challenge s
 
 func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password string) (backend.User, error) {
 
-	userMailAccount, err := be.cruds[USER_ACCOUNT_TABLE_NAME].GetUserMailAccountRowByEmail(username)
+	userAccountResource := be.cruds[USER_ACCOUNT_TABLE_NAME]
+	transaction, err := userAccountResource.Connection.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [51]")
+		return nil, err
+	}
+	userMailAccount, err := userAccountResource.GetUserMailAccountRowByEmail(username, transaction)
 	if err != nil {
 		return nil, err
 	}
+	defer transaction.Commit()
 
-	userAccount, _, err := be.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowByReferenceId("user_account", userMailAccount["user_account_id"].(string), nil)
+	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account", userMailAccount["user_account_id"].(string), nil, transaction)
 	userId, _ := userAccount["id"].(int64)
-	groups := be.cruds[USER_ACCOUNT_TABLE_NAME].GetObjectUserGroupsByWhere("user_account", "id", userId)
+	groups := userAccountResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId)
 
 	sessionUser := &auth.SessionUser{
 		UserId:          userId,

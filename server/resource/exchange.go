@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/daptin/daptin/server/auth"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	//"bytes"
@@ -13,7 +14,7 @@ type ExchangeInterface interface {
 }
 
 type ExternalExchange interface {
-	ExecuteTarget(row map[string]interface{}) (map[string]interface{}, error)
+	ExecuteTarget(row map[string]interface{}, transaction *sqlx.Tx) (map[string]interface{}, error)
 }
 
 type ColumnMap struct {
@@ -59,16 +60,16 @@ type ExchangeExecution struct {
 	cruds            *map[string]*DbResource
 }
 
-func (ec *ExchangeExecution) Execute(data []map[string]interface{}) (result map[string]interface{}, err error) {
+func (exchangeExecution *ExchangeExecution) Execute(data []map[string]interface{}, transaction *sqlx.Tx) (result map[string]interface{}, err error) {
 
 	var handler ExternalExchange
 
-	switch ec.ExchangeContract.TargetType {
+	switch exchangeExecution.ExchangeContract.TargetType {
 	case "action":
-		handler = NewActionExchangeHandler(ec.ExchangeContract, *ec.cruds)
+		handler = NewActionExchangeHandler(exchangeExecution.ExchangeContract, *exchangeExecution.cruds)
 		break
 	case "rest":
-		handler, err = NewRestExchangeHandler(ec.ExchangeContract)
+		handler, err = NewRestExchangeHandler(exchangeExecution.ExchangeContract)
 		if err != nil {
 			return nil, err
 		}
@@ -78,14 +79,14 @@ func (ec *ExchangeExecution) Execute(data []map[string]interface{}) (result map[
 		return nil, errors.New("unknown target in exchange, not yet implemented")
 	}
 
-	//targetAttrs := ec.ExchangeContract.TargetAttributes
+	//targetAttrs := exchangeExecution.ExchangeContract.TargetAttributes
 	//
 	//for k, v := range targetAttrs {
 	//	inFields[k] = v
 	//}
 
 	for _, row := range data {
-		result, err = handler.ExecuteTarget(row)
+		result, err = handler.ExecuteTarget(row, transaction)
 		if err != nil {
 			log.Errorf("Failed to execute target for [%v]: %v", row["__type"], err)
 		}

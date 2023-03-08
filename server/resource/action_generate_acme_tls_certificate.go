@@ -74,7 +74,7 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	if !emailOk || !isEmailStr || len(emailString) < 4 {
 		return nil, nil, []error{errors.New("email or mobile missing")}
 	} else {
-		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(emailString)
+		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(emailString, transaction)
 		if err != nil || userAccount == nil {
 			return nil, nil, []error{errors.New("invalid email")}
 		}
@@ -96,7 +96,7 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	//	PlainRequest: httpReq,
 	//}
 
-	userPrivateKeyEncrypted, err := d.configStore.GetConfigValueFor("encryption.private_key."+email.(string), "backend")
+	userPrivateKeyEncrypted, err := d.configStore.GetConfigValueFor("encryption.private_key."+email.(string), "backend", transaction)
 
 	var myUser acmeUser
 
@@ -109,7 +109,7 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 		// no existing key, create one
 
 		// Create a user. New accounts need an email and private key to start.
-		publicKeyPem, privateKeyPem, privateKey, err := GetPublicPrivateKeyPEMBytes()
+		publicKeyPem, privateKeyPem, privateKey, err := CreateNewPublicPrivateKeyPEMBytes()
 		if err != nil {
 			return nil, []ActionResponse{}, []error{err}
 		}
@@ -124,11 +124,11 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 			return nil, []ActionResponse{}, []error{err}
 		}
 
-		err = d.configStore.SetConfigValueFor("encryption.private_key."+email.(string), encryptedPem, "backend")
+		err = d.configStore.SetConfigValueFor("encryption.private_key."+email.(string), encryptedPem, "backend", transaction)
 		if err != nil {
 			return nil, []ActionResponse{}, []error{err}
 		}
-		err = d.configStore.SetConfigValueFor("encryption.public_key."+email.(string), string(publicKeyPem), "backend")
+		err = d.configStore.SetConfigValueFor("encryption.public_key."+email.(string), string(publicKeyPem), "backend", transaction)
 		if err != nil {
 			return nil, []ActionResponse{}, []error{err}
 		}
@@ -278,9 +278,9 @@ func ParseRsaPrivateKeyFromPemStr(privPEM string) (*rsa.PrivateKey, error) {
 	return priv, err
 }
 
-func NewAcmeTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, hostSwitch *gin.Engine) (ActionPerformerInterface, error) {
+func NewAcmeTlsCertificateGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, hostSwitch *gin.Engine, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 
 	handler := acmeTlsCertificateGenerateActionPerformer{
 		cruds:            cruds,

@@ -105,7 +105,7 @@ func GetWorldTableMapBy(col string, transaction *sqlx.Tx) (map[string]map[string
 
 }
 
-func GetAdminUserIdAndUserGroupId(db sqlx.Ext) (int64, int64) {
+func GetAdminUserIdAndUserGroupId(db *sqlx.Tx) (int64, int64) {
 	var userCount int
 	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
 
@@ -136,6 +136,7 @@ func GetAdminUserIdAndUserGroupId(db sqlx.Ext) (int64, int64) {
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	}
+	log.Tracef("GetAdminUserIdAndUserGroupId [%d], [%d]", userId, userGroupId)
 	return userId, userGroupId
 
 }
@@ -171,10 +172,10 @@ type CloudStore struct {
 	Permission      PermissionInstance
 }
 
-func (dbResource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
+func (dbResource *DbResource) GetAllCloudStores(transaction *sqlx.Tx) ([]CloudStore, error) {
 	var cloudStores []CloudStore
 
-	rows, err := dbResource.GetAllObjects("cloud_store")
+	rows, err := dbResource.GetAllObjects("cloud_store", transaction)
 	if err != nil {
 		return cloudStores, err
 	}
@@ -199,7 +200,7 @@ func (dbResource *DbResource) GetAllCloudStores() ([]CloudStore, error) {
 		cloudStore.Id = id
 		cloudStore.ReferenceId = storeMap["reference_id"].(string)
 		CheckErr(err, "Failed to parse permission as int in loading stores")
-		cloudStore.Permission = dbResource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId)
+		cloudStore.Permission = dbResource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId, transaction)
 
 		if storeMap[USER_ACCOUNT_ID_COLUMN] != nil {
 			cloudStore.UserId = storeMap[USER_ACCOUNT_ID_COLUMN].(string)
@@ -256,10 +257,10 @@ type Integration struct {
 	Enable                      bool
 }
 
-func (dbResource *DbResource) GetActiveIntegrations() ([]Integration, error) {
+func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Integration, error) {
 
 	integrations := make([]Integration, 0)
-	rows, _, err := dbResource.GetRowsByWhereClause("integration", nil)
+	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("integration", nil, transaction)
 	if err == nil && len(rows) > 0 {
 
 		for _, row := range rows {
@@ -332,8 +333,8 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 
 		if OlricCache != nil {
 			asJson := toJson(cloudStore)
-			cachePutErr := OlricCache.PutIfEx(cacheKey, asJson, 10*time.Minute, olric.IfNotFound)
-			CheckErr(cachePutErr, "[336] failed to store cloud store in cache")
+			OlricCache.PutIfEx(cacheKey, asJson, 10*time.Minute, olric.IfNotFound)
+			//CheckErr(cachePutErr, "[336] failed to store cloud store in cache")
 		}
 	}
 
@@ -341,10 +342,10 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 
 }
 
-func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID string) (CloudStore, error) {
+func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID string, transaction *sqlx.Tx) (CloudStore, error) {
 	var cloudStore CloudStore
 
-	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, goqu.Ex{"reference_id": referenceID})
+	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, transaction, goqu.Ex{"reference_id": referenceID})
 
 	if err == nil && len(rows) > 0 {
 		row := rows[0]
@@ -420,7 +421,7 @@ func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
 
 }
 
-func (dbResource *DbResource) GetAllSites() ([]SubSite, error) {
+func (dbResource *DbResource) GetAllSites(transaction *sqlx.Tx) ([]SubSite, error) {
 
 	var sites []SubSite
 
@@ -435,7 +436,7 @@ func (dbResource *DbResource) GetAllSites() ([]SubSite, error) {
 		return sites, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[424] failed to prepare statment: %v", err)
 		return nil, err
@@ -462,7 +463,7 @@ func (dbResource *DbResource) GetAllSites() ([]SubSite, error) {
 		if err != nil {
 			log.Errorf("Failed to scan site from db to struct: %v", err)
 		}
-		perm := dbResource.GetObjectPermissionByReferenceId("site", site.ReferenceId)
+		perm := dbResource.GetObjectPermissionByReferenceId("site", site.ReferenceId, transaction)
 		site.Permission = perm
 		sites = append(sites, site)
 	}
@@ -471,7 +472,7 @@ func (dbResource *DbResource) GetAllSites() ([]SubSite, error) {
 
 }
 
-func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Config, error) {
+func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64, transaction *sqlx.Tx) (*oauth2.Config, error) {
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
@@ -488,7 +489,7 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Co
 		return nil, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[478] failed to prepare statment: %v", err)
 		return nil, err
@@ -506,7 +507,7 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Co
 		return nil, err
 	}
 
-	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -531,7 +532,7 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64) (*oauth2.Co
 
 }
 
-func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId string) (*oauth2.Config, error) {
+func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId string, transaction *sqlx.Tx) (*oauth2.Config, error) {
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
@@ -547,25 +548,19 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId 
 		return nil, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[538] failed to prepare statment: %v", err)
 		return nil, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
+	defer stmt1.Close()
 	err = stmt1.QueryRowx(v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
 
 	if err != nil {
 		return nil, err
 	}
 
-	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -590,7 +585,7 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId 
 
 }
 
-func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*oauth2.Token, *oauth2.Config, error) {
+func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string, transaction *sqlx.Tx) (*oauth2.Token, *oauth2.Config, error) {
 	oauthConf := &oauth2.Config{}
 
 	var access_token, refresh_token, token_type string
@@ -603,25 +598,19 @@ func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*o
 		return nil, oauthConf, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[594] failed to prepare statment: %v", err)
 		return nil, nil, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
+	defer stmt1.Close()
 	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
 
 	if err != nil {
 		return nil, oauthConf, err
 	}
 
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)
@@ -636,7 +625,7 @@ func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*o
 	token.Expiry = time.Unix(expires_in, 0)
 
 	// check validity and refresh if required
-	oauthConf, err = dbResource.GetOauthDescriptionByTokenReferenceId(referenceId)
+	oauthConf, err = dbResource.GetOauthDescriptionByTokenReferenceId(referenceId, transaction)
 	if err != nil {
 		log.Printf("Failed to get oauth token configuration for token refresh: %v", err)
 	} else {
@@ -650,7 +639,7 @@ func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*o
 				return nil, oauthConf, err
 			} else {
 				token = *refreshedToken
-				err = dbResource.UpdateAccessTokenByTokenReferenceId(referenceId, refreshedToken.AccessToken, refreshedToken.Expiry.Unix())
+				err = dbResource.UpdateAccessTokenByTokenReferenceId(referenceId, refreshedToken.AccessToken, refreshedToken.Expiry.Unix(), transaction)
 				CheckErr(err, "failed to update access token")
 			}
 		}
@@ -662,6 +651,12 @@ func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string) (*o
 
 func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 
+	transaction, err := dbResource.Connection.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [656]")
+		return nil, err
+	}
+
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
@@ -672,7 +667,7 @@ func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error)
 		return nil, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[663] failed to prepare statment: %v", err)
 		return nil, err
@@ -690,7 +685,8 @@ func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error)
 		return nil, err
 	}
 
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	transaction.Rollback()
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)
@@ -708,8 +704,7 @@ func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error)
 
 }
 
-func (dbResource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, error) {
-
+func (dbResource *DbResource) GetTokenByTokenName(name string, transaction *sqlx.Tx) (*oauth2.Token, error) {
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
@@ -738,7 +733,7 @@ func (dbResource *DbResource) GetTokenByTokenName(name string) (*oauth2.Token, e
 		return nil, err
 	}
 
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend")
+	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)

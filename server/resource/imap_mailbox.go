@@ -380,6 +380,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	log.Printf("Search query for mail: %v", searchRequest.QueryParams)
 	transaction, err := dimb.dbResource["mail"].Connection.Beginx()
 	if err != nil {
+		CheckErr(err, "Failed to begin transaction [383]")
 		return nil, err
 	}
 	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest, transaction)
@@ -527,11 +528,6 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		},
 	}
 
-	//tx, err := dimb.dbResource["mail"].Connection.Beginx()
-	//if err != nil {
-	//	return err
-	//}
-
 	//txDbResource := NewFromDbResourceWithTransaction(dimb.dbResource["mail"], tx)
 	//uidNext, err := txDbResource.GetMailboxNextUid(dimb.mailBoxId)
 	//log.Printf("Assign next UID: %v", uidNext)
@@ -643,15 +639,17 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 	var mails []map[string]interface{}
 	var err error
 
-	destinationMailBoxId, err := dimb.dbResource["mail_box"].GetMailAccountBox(dimb.mailAccountId, dest)
+	transaction, err := dimb.dbResource["mail"].Connection.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [644]")
+		return err
+	}
+
+	destinationMailBoxId, err := dimb.dbResource["mail_box"].GetMailAccountBox(dimb.mailAccountId, dest, transaction)
 	if err != nil {
 		return err
 	}
 
-	transaction, err := dimb.dbResource["mail"].Connection.Beginx()
-	if err != nil {
-		return err
-	}
 	req := api2go.Request{
 		PlainRequest: &http.Request{},
 	}

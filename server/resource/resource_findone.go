@@ -19,7 +19,6 @@ import (
 // Possible Responder success status code 200
 func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
 
-
 	if referenceId == "mine" && dbResource.tableInfo.TableName == "user_account" {
 		//log.Debugf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
@@ -32,6 +31,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
+		CheckErr(err, "Failed to begin transaction [34]")
 		return nil, err
 	}
 
@@ -85,6 +85,8 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 	start := time.Now()
 	data, include, err := dbResource.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
+	log.Tracef("Completed FindOne GetSingleRowByReferenceIdWithTransaction")
+
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "Failed to rollback")
@@ -95,15 +97,14 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 	if OlricCache != nil {
 		cacheKey := fmt.Sprintf("riti-%v-%v", modelName, referenceId)
-		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5 * time.Minute, olric.IfNotFound)
+		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5*time.Minute, olric.IfNotFound)
 		cacheKey2 := fmt.Sprintf("itr-%v-%v", modelName, data["id"])
-		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5 * time.Minute, olric.IfNotFound)
+		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5*time.Minute, olric.IfNotFound)
 	}
-
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
-			data_i18n_id, err := dbResource.GetIdByWhereClause(modelName+"_i18n", goqu.Ex{
+			data_i18n_id, err := dbResource.GetIdByWhereClause(modelName+"_i18n", transaction, goqu.Ex{
 				"translation_reference_id": data["id"],
 				"language_id":              lang,
 			})
@@ -137,12 +138,12 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 	//log.Tracef("Single row result: %v", data)
 	for _, bf := range dbResource.ms.AfterFindOne {
-		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
+		log.Tracef("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
 		start := time.Now()
 		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{data}, transaction)
 		duration := time.Since(start)
-		log.Tracef("[TIMING] FindOne AfterFilter [%v]: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindOne AfterFilter [145] [%v]: %v", bf.String(), duration)
 
 		if len(results) != 0 {
 			data = results[0]
@@ -157,6 +158,7 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 			return nil, err
 		}
 		include, err = bf.InterceptAfter(dbResource, &req, include, transaction)
+		log.Tracef("Completed all AfterFindOne includes")
 
 		if err != nil {
 			rollbackErr := transaction.Rollback()
@@ -165,11 +167,10 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 			return nil, err
 		}
 	}
+	log.Tracef("Completed all AfterFindOne middlewares")
 
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "failed to commit")
-
-	//delete(data, "id")
 
 	infos := dbResource.model.GetColumns()
 	var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
@@ -191,10 +192,9 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 		}
 
 	}
-
+	log.Tracef("Completed FindOne [194]")
 	return NewResponse(nil, a, 200, nil), commitErr
 }
-
 
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
@@ -209,7 +209,6 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 			referenceId = authUser.UserReferenceId
 		}
 	}
-
 
 	for _, bf := range dbResource.ms.BeforeFindOne {
 		//log.Debugf("Invoke BeforeFindOne [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
@@ -256,7 +255,9 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	}
 
 	start := time.Now()
+	log.Tracef("FindOneWithTransaction GetSingleRowByReferenceIdWithTransaction")
 	data, include, err := dbResource.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
+	log.Tracef("Completed FindOneWithTransaction GetSingleRowByReferenceIdWithTransaction")
 	if err != nil {
 		return nil, err
 	}
@@ -264,14 +265,14 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	log.Tracef("[TIMING] FindOne: %v", duration)
 	if OlricCache != nil {
 		cacheKey := fmt.Sprintf("riti-%v-%v", modelName, referenceId)
-		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5 * time.Minute, olric.IfNotFound)
+		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5*time.Minute, olric.IfNotFound)
 		cacheKey2 := fmt.Sprintf("itr-%v-%v", modelName, data["id"])
-		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5 * time.Minute, olric.IfNotFound)
+		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5*time.Minute, olric.IfNotFound)
 	}
 
 	if len(languagePreferences) > 0 {
 		for _, lang := range languagePreferences {
-			data_i18n_id, err := dbResource.GetIdByWhereClause(modelName+"_i18n", goqu.Ex{
+			data_i18n_id, err := dbResource.GetIdByWhereClause(modelName+"_i18n", transaction, goqu.Ex{
 				"translation_reference_id": data["id"],
 				"language_id":              lang,
 			})
@@ -303,12 +304,12 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 
 	//log.Tracef("Single row result: %v", data)
 	for _, bf := range dbResource.ms.AfterFindOne {
-		//log.Debugf("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
+		log.Tracef("Invoke AfterFindOne [%v][%v] on FindAll Request", bf.String(), modelName)
 
 		start := time.Now()
 		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{data}, transaction)
 		duration := time.Since(start)
-		log.Tracef("[TIMING] FindOne AfterFilter [%v]: %v", bf.String(), duration)
+		log.Tracef("[TIMING] FindOne AfterFilter [309] [%v]: %v", bf.String(), duration)
 
 		if len(results) != 0 {
 			data = results[0]
@@ -352,4 +353,3 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 
 	return NewResponse(nil, a, 200, nil), nil
 }
-

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/text/language"
 )
 
@@ -13,12 +14,12 @@ type LanguageMiddleware struct {
 	defaultLanguage string
 }
 
-func NewLanguageMiddleware(configStore *resource.ConfigStore) *LanguageMiddleware {
+func NewLanguageMiddleware(configStore *resource.ConfigStore, transaction *sqlx.Tx) *LanguageMiddleware {
 
-	defaultLanguage, err := configStore.GetConfigValueFor("langauge.default", "backend")
+	defaultLanguage, err := configStore.GetConfigValueFor("language.default", "backend", transaction)
 	if err != nil {
 		defaultLanguage = "en"
-		err = configStore.SetConfigValueFor("language.default", "en", "backend")
+		err = configStore.SetConfigValueFor("language.default", "en", "backend", transaction)
 		resource.CheckErr(err, "Failed to store default value for default language")
 	}
 

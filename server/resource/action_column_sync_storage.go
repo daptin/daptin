@@ -52,7 +52,7 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	var err error
 
 	if cloudStore.StoreProvider != "local" {
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for storage sync")
 	}
 

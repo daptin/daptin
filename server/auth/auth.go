@@ -65,7 +65,7 @@ func (a AuthPermission) String() string {
 
 type ResourceAdapter interface {
 	api2go.CRUD
-	GetUserPassword(email string) (string, error)
+	GetUserPassword(email string, transaction *sqlx.Tx) (string, error)
 }
 
 type AuthMiddleware struct {
@@ -163,7 +163,14 @@ func (a *AuthMiddleware) BasicAuthCheckMiddlewareWithHttp(req *http.Request, wri
 	if len(tokenValueParts) > 1 {
 		password = tokenValueParts[1]
 	}
-	existingPasswordHash, err := a.userCrud.GetUserPassword(username)
+	transaction, err := a.db.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [168]")
+		return
+	}
+
+	existingPasswordHash, err := a.userCrud.GetUserPassword(username, transaction)
+	transaction.Rollback()
 	if err != nil {
 		return
 	}
@@ -227,7 +234,7 @@ type CachedUserAccount struct {
 	Expiry  time.Time
 }
 
-//var LocalUserCacheMap = make(map[string]CachedUserAccount)
+// var LocalUserCacheMap = make(map[string]CachedUserAccount)
 var LocalUserCacheLock = sync.Mutex{}
 var olricCache *olric.DMap
 

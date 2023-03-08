@@ -52,7 +52,26 @@ func init() {
 	if err != nil {
 		goMaxProcsInt = 0
 	}
-	log.Infof("Go Max Procs: %v, Default value was [%v]", goMaxProcsInt, runtime.NumCPU())
+
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:               true,
+		DisableColors:             false,
+		ForceQuote:                false,
+		DisableQuote:              false,
+		EnvironmentOverrideColors: false,
+		DisableTimestamp:          false,
+		FullTimestamp:             true,
+		TimestampFormat:           "2006-01-02 15:04:05",
+		DisableSorting:            false,
+		SortingFunc:               nil,
+		DisableLevelTruncation:    false,
+		PadLevelText:              false,
+		QuoteEmptyFields:          false,
+		FieldMap:                  nil,
+		CallerPrettyfier:          nil,
+	})
+
+	log.Debugf("Go Max Procs: %v, Default value was [%v]", goMaxProcsInt, runtime.NumCPU())
 
 	runtime.GOMAXPROCS(int(goMaxProcsInt))
 	// manually set time zone
@@ -114,7 +133,6 @@ func init() {
 	}
 
 	mwriter := io.MultiWriter(lumberjackLogger, os.Stdout)
-
 	log.SetOutput(mwriter)
 	gin.DefaultWriter = mwriter
 	gin.DefaultErrorWriter = mwriter
@@ -280,8 +298,8 @@ func main() {
 		panic(err)
 	}
 	db.Stats()
-	tx := db.MustBegin()
-	_ = tx.Rollback()
+	transaction := db.MustBegin()
+	_ = transaction.Rollback()
 	log.Printf("Connection acquired from database [%s]", *dbType)
 
 	portValue := *port
@@ -448,6 +466,10 @@ func main() {
 				log.Printf("Failed to close imap server connections: %v", err)
 			}
 		}
+
+		err = db.Close()
+		resource.CheckErr(err, "Failed to close database connection")
+
 		log.Printf("All connections closed")
 		log.Printf("Create new connections")
 		db1, err := server.GetDbConnection(*dbType, *connectionString)
@@ -485,17 +507,20 @@ func main() {
 		}
 	}
 
-	log.Printf("[%v] Listening at port: %v", syscall.Getpid(), portValue)
+	log.Infof("[ProcessId=%v] Listening at port: %v", syscall.Getpid(), portValue)
 
-	enableHttps, err := configStore.GetConfigValueFor("enable_https", "backend")
+	transaction, err = db.Beginx()
+	resource.CheckErr(err, "Failed to begin transaction")
+	enableHttps, err := configStore.GetConfigValueFor("enable_https", "backend", transaction)
 	if err != nil {
 		enableHttps = "false"
-		_ = configStore.SetConfigValueFor("enable_https", enableHttps, "backend")
+		_ = configStore.SetConfigValueFor("enable_https", enableHttps, "backend", transaction)
 	}
 
-	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+	hostname, err := configStore.GetConfigValueFor("hostname", "backend", transaction)
 
-	_, certBytes, privateBytes, _, rootCertBytes, err := certManager.GetTLSConfig(hostname, true)
+	_, certBytes, privateBytes, _, rootCertBytes, err := certManager.GetTLSConfig(hostname, true, transaction)
+	transaction.Commit()
 
 	if err == nil && enableHttps == "true" {
 		go func() {

@@ -1,9 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore) func(*gin.Context) {
@@ -16,20 +18,30 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 			sessionUser = user.(*auth.SessionUser)
 		}
 
-		if !cruds[resource.USER_ACCOUNT_TABLE_NAME].IsAdmin(sessionUser.UserReferenceId) {
-			c.AbortWithStatus(403)
+		userAccountTableCrud := cruds[resource.USER_ACCOUNT_TABLE_NAME]
+		transaction, err := userAccountTableCrud.Connection.Beginx()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [24]")
 			return
 		}
+
+		defer transaction.Commit()
+
+		if !userAccountTableCrud.IsAdmin(sessionUser.UserReferenceId, transaction) {
+			c.AbortWithError(403, fmt.Errorf("unauthorized"))
+			return
+		}
+		log.Tracef("User [%v] has access to config", sessionUser.UserReferenceId)
 
 		if c.Request.Method == "GET" {
 
 			key := c.Param("key")
 
 			if key == "" {
-				c.AbortWithStatusJSON(200, configStore.GetAllConfig())
+				c.AbortWithStatusJSON(200, configStore.GetAllConfig(transaction))
 			} else {
 				end := c.Param("end")
-				val, err := configStore.GetConfigValueFor(key, end)
+				val, err := configStore.GetConfigValueFor(key, end, transaction)
 				if err != nil {
 					c.AbortWithStatus(404)
 					return
@@ -52,7 +64,7 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 				c.AbortWithStatus(400)
 				return
 			}
-			err = configStore.SetConfigValueFor(key, string(newVal), end)
+			err = configStore.SetConfigValueFor(key, string(newVal), end, transaction)
 			if err != nil {
 				c.AbortWithError(500, err)
 				return
@@ -73,7 +85,7 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 				c.AbortWithStatus(400)
 				return
 			}
-			err = configStore.SetConfigValueFor(key, string(newVal), end)
+			err = configStore.SetConfigValueFor(key, string(newVal), end, transaction)
 			if err != nil {
 				c.AbortWithError(500, err)
 				return
@@ -88,7 +100,7 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 				c.AbortWithStatus(400)
 				return
 			}
-			err := configStore.DeleteConfigValueFor(key, end)
+			err := configStore.DeleteConfigValueFor(key, end, transaction)
 			if err != nil {
 				c.AbortWithError(500, err)
 				return

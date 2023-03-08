@@ -116,7 +116,13 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 			actionCrudResource = cruds["world"]
 		}
 
-		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req)
+		transaction, err := cruds["world"].Connection.Beginx()
+		if err != nil {
+			CheckErr(err, "Failed to begin transaction [121]")
+		}
+
+		defer transaction.Commit()
+		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req, transaction)
 
 		responseStatus := 200
 		for _, response := range responses {
@@ -182,7 +188,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 	}
 }
 
-func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request) ([]ActionResponse, error) {
+func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request, transaction *sqlx.Tx) ([]ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -194,17 +200,11 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	var subjectInstance api2go.Api2GoModel
 	var subjectInstanceMap map[string]interface{}
 
-	transaction, err := db.Connection.Beginx()
-	if err != nil {
-		return nil, err
-	}
-
 	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
 		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "failed to rollback")
+		//CheckErr(rollbackErr, "failed to rollback")
 		return nil, api2go.NewHTTPError(err, "no such action", 400)
 	}
 
@@ -331,7 +331,7 @@ OutFields:
 		var errors1 []error
 		var actionResponse ActionResponse
 
-		log.Printf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceId, outcome.Type, outcome.Method)
+		log.Debugf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceId, outcome.Type, outcome.Method)
 
 		if len(outcome.Condition) > 0 {
 			var outcomeResult interface{}
@@ -341,7 +341,7 @@ OutFields:
 				continue
 			}
 
-			log.Printf("Evaluated condition [%v] result: %v", outcome.Condition, outcomeResult)
+			log.Tracef("Evaluated condition [%v] result: %v", outcome.Condition, outcomeResult)
 			boolValue, ok := outcomeResult.(bool)
 			if !ok {
 
@@ -363,7 +363,7 @@ OutFields:
 				}
 
 			} else if !boolValue {
-				log.Printf("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
+				log.Debugf("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
 				continue
 			}
 		}
@@ -518,7 +518,7 @@ OutFields:
 
 		case "ACTIONRESPONSE":
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
-			log.Printf("Create action response: %v", model.GetName())
+			log.Debugf("Create action response: %v", model.GetName())
 			var actionResponse ActionResponse
 			actionResponse = NewActionResponse(model.GetName(), model.Data)
 			actionResponses = append(actionResponses, actionResponse)

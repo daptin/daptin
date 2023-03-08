@@ -7,11 +7,12 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/feeds"
+	"github.com/jmoiron/sqlx"
 	"net/http"
 	"strings"
 )
 
-func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resource.StreamProcessor) func(*gin.Context) {
+func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resource.StreamProcessor, transaction *sqlx.Tx) func(*gin.Context) {
 
 	streamMap := make(map[string]*resource.StreamProcessor)
 
@@ -19,9 +20,9 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 		streamMap[stream.GetName()] = stream
 	}
 
-	feedsInfo, err := cruds["feed"].GetAllRawObjects("feed")
+	feedsInfo, err := cruds["feed"].GetAllRawObjectsWithTransaction("feed", transaction)
 	resource.CheckErr(err, "Failed to load feeds")
-	streamInfos, err := cruds["stream"].GetAllRawObjects("stream")
+	streamInfos, err := cruds["stream"].GetAllRawObjectsWithTransaction("stream", transaction)
 	resource.CheckErr(err, "Failed to load stream")
 
 	feedMap := make(map[string]map[string]interface{})

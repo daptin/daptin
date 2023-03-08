@@ -7,15 +7,16 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/jmoiron/sqlx"
 	"net/http"
 	"time"
 )
 
 // Returns the user account row of a user by looking up on email
-func (dbResource *DbResource) GetUserMailAccountRowByEmail(username string) (map[string]interface{}, error) {
+func (dbResource *DbResource) GetUserMailAccountRowByEmail(username string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
 	mailAccount, _, err := dbResource.Cruds["mail_account"].GetRowsByWhereClause("mail_account",
-		nil, goqu.Ex{"username": username})
+		nil, transaction, goqu.Ex{"username": username})
 
 	if len(mailAccount) > 0 {
 
@@ -27,9 +28,10 @@ func (dbResource *DbResource) GetUserMailAccountRowByEmail(username string) (map
 }
 
 // Returns the user mail account box row of a user
-func (dbResource *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string) (map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
-	mailAccount, _, err := dbResource.Cruds["mail_box"].GetRowsByWhereClause("mail_box", nil, goqu.Ex{"mail_account_id": mailAccountId}, goqu.Ex{"name": mailBoxName})
+	mailAccount, _, err := dbResource.Cruds["mail_box"].GetRowsByWhereClauseWithTransaction(
+		"mail_box", nil, transaction, goqu.Ex{"mail_account_id": mailAccountId}, goqu.Ex{"name": mailBoxName})
 
 	if len(mailAccount) > 0 {
 
@@ -41,14 +43,15 @@ func (dbResource *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName
 }
 
 // Returns the user mail account box row of a user
-func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string, sessionUser *auth.SessionUser, mailBoxName string) (map[string]interface{}, error) {
+func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
+	sessionUser *auth.SessionUser, mailBoxName string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
 	httpRequest := &http.Request{
 		Method: "POST",
 	}
 
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
-	resp, err := dbResource.Cruds["mail_box"].Create(api2go.Api2GoModel{
+	resp, err := dbResource.Cruds["mail_box"].CreateWithTransaction(api2go.Api2GoModel{
 		Data: map[string]interface{}{
 			"name":            mailBoxName,
 			"mail_account_id": mailAccountId,
@@ -61,7 +64,7 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string, session
 		},
 	}, api2go.Request{
 		PlainRequest: httpRequest,
-	})
+	}, transaction)
 
 	return resp.Result().(api2go.Api2GoModel).Data, err
 

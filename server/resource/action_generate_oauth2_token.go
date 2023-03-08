@@ -24,7 +24,7 @@ func (d *generateOauth2TokenActionPerformer) DoAction(request Outcome, inFieldMa
 		return nil, responses, []error{errors.New("Token Reference id missing")}
 	}
 	referenceIdString := referenceId.(string)
-	token, _, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(referenceIdString)
+	token, _, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(referenceIdString, transaction)
 
 	responseObject := api2go.NewApi2GoModelWithData("oauth_token", nil, 0, nil, map[string]interface{}{
 		"access_token":  token.AccessToken,

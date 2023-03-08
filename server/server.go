@@ -7,7 +7,9 @@ import (
 	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
 	"github.com/emersion/go-webdav"
+	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
+	"io"
 	"os"
 	"strings"
 	//"sync"
@@ -115,14 +117,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
 
-	hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+	transaction, err := db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [122]")
+		panic(err)
+	}
+
+	hostname, err := configStore.GetConfigValueFor("hostname", "backend", transaction)
 	if err != nil {
 		name, e := os.Hostname()
 		if e != nil {
 			name = "localhost"
 		}
 		hostname = name
-		err = configStore.SetConfigValueFor("hostname", hostname, "backend")
+		err = configStore.SetConfigValueFor("hostname", hostname, "backend", transaction)
 		resource.CheckErr(err, "Failed to store hostname in _config")
 	}
 
@@ -130,12 +138,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	defaultRouter := gin.Default()
 
-	enableGzip, err := configStore.GetConfigValueFor("gzip.enable", "backend")
+	enableGzip, err := configStore.GetConfigValueFor("gzip.enable", "backend", transaction)
 	if err != nil {
 		enableGzip = "true"
-		err = configStore.SetConfigValueFor("gzip.enable", enableGzip, "backend")
+		err = configStore.SetConfigValueFor("gzip.enable", enableGzip, "backend", transaction)
 		resource.CheckErr(err, "Failed to store gzip.enable in _config")
 	}
+	transaction.Commit()
 
 	if enableGzip == "true" {
 		defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
@@ -200,21 +209,26 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to write favicon")
 	})
 
-	defaultRouter.Use(NewLanguageMiddleware(configStore).LanguageMiddlewareFunc)
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [214]")
+	}
 
-	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
+	defaultRouter.Use(NewLanguageMiddleware(configStore, transaction).LanguageMiddlewareFunc)
+
+	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend", transaction)
 	if err != nil {
 		maxConnections = 100
-		err = configStore.SetConfigValueFor("limit.max_connections", maxConnections, "backend")
+		err = configStore.SetConfigValueFor("limit.max_connections", maxConnections, "backend", transaction)
 		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
 	}
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 	log.Printf("Limiting max connections per IP: %v", maxConnections)
 
-	rateConfigJson, err := configStore.GetConfigValueFor("limit.rate", "backend")
+	rateConfigJson, err := configStore.GetConfigValueFor("limit.rate", "backend", transaction)
 	if err != nil {
 		rateConfigJson = "{\"version\":\"default\"}"
-		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend")
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 
@@ -223,9 +237,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	if err != nil || rateConfig.version == "" {
 		rateConfig = defaultRateConfig
 		rateConfigJson = "{\"version\":\"default\"}"
-		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend")
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
+	transaction.Commit()
 
 	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
 		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
@@ -244,18 +259,23 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		c.AbortWithStatus(429) // handle exceed rate limit request
 	}))
 
-	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend")
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [264]")
+	}
+
+	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend", transaction)
 	if err != nil {
 		u, _ := uuid.NewV4()
 		newSecret := u.String()
-		err = configStore.SetConfigValueFor("jwt.secret", newSecret, "backend")
+		err = configStore.SetConfigValueFor("jwt.secret", newSecret, "backend", transaction)
 		resource.CheckErr(err, "Failed to store secret in database")
 		jwtSecret = newSecret
 	}
 
-	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend")
+	enableGraphql, err := configStore.GetConfigValueFor("graphql.enable", "backend", transaction)
 	if err != nil {
-		err = configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend")
+		err = configStore.SetConfigValueFor("graphql.enable", fmt.Sprintf("%v", initConfig.EnableGraphQL), "backend", transaction)
 		resource.CheckErr(err, "Failed to set a default value for graphql.enable")
 	} else {
 		if enableGraphql == "true" {
@@ -265,16 +285,23 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}
 
-	err = CheckSystemSecrets(configStore)
+	err = CheckSystemSecrets(configStore, transaction)
 	resource.CheckErr(err, "Failed to initialise system secrets")
+	transaction.Commit()
 
-	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend")
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [294]")
+	}
+
+	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	resource.CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
 		uid, _ := uuid.NewV4()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
-		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend")
+		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}
+	transaction.Commit()
 	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer, olricDb)
 	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer, olricDb)
 	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
@@ -290,10 +317,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	dtopicMap := make(map[string]*olric.DTopic)
 
-	enableYjs, err := configStore.GetConfigValueFor("yjs.enabled", "backend")
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [322]")
+	}
+
+	enableYjs, err := configStore.GetConfigValueFor("yjs.enabled", "backend", transaction)
 	if err != nil || enableYjs == "" {
 		enableYjs = "true"
-		err = configStore.SetConfigValueFor("yjs.enabled", enableYjs, "backend")
+		err = configStore.SetConfigValueFor("yjs.enabled", enableYjs, "backend", transaction)
 		resource.CheckErr(err, "failed to store default value for yjs.enabled [true]")
 	}
 
@@ -302,23 +334,24 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	if enableYjs == "true" {
 		log.Infof("YJS endpoint is enabled in config")
-		yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.temp.path", "backend")
+		yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.temp.path", "backend", transaction)
 		if err != nil {
 			yjs_temp_directory = "/tmp"
-			configStore.SetConfigValueFor("yjs.temp.path", yjs_temp_directory, "backend")
+			configStore.SetConfigValueFor("yjs.temp.path", yjs_temp_directory, "backend", transaction)
 		}
 
 		documentProvider = ydb.NewDiskDocumentProvider(yjs_temp_directory, 10000, ydb.DocumentListener{
-			GetDocumentInitialContent: func(documentPath string) []byte {
-				log.Printf("Get initial content for document: %v", documentPath)
+			GetDocumentInitialContent: func(documentPath string, transaction *sqlx.Tx) []byte {
+				log.Debugf("Get initial content for document: %v", documentPath)
 				pathParts := strings.Split(documentPath, ".")
 				typeName := pathParts[0]
 				referenceId := pathParts[1]
 				columnName := pathParts[2]
 
-				object, _, _ := cruds[typeName].GetSingleRowByReferenceId(typeName, referenceId, map[string]bool{
+				object, _, _ := cruds[typeName].GetSingleRowByReferenceIdWithTransaction(typeName, referenceId, map[string]bool{
 					columnName: true,
-				})
+				}, transaction)
+				log.Tracef("Completed NewDiskDocumentProvider GetSingleRowByReferenceIdWithTransaction")
 
 				originalFile := object[columnName]
 				if originalFile == nil {
@@ -343,9 +376,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	} else {
 		log.Infof("YJS endpoint is disabled in config")
 	}
+	transaction.Commit()
 
 	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
+	log.Tracef("Created middleware set")
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
+	log.Tracef("Added ResourcesToApi2Go")
 	for key := range cruds {
 		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
 		resource.CheckErr(err, "Failed to create topic for table: %v", key)
@@ -353,14 +389,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			log.Fatalf("failed to create olric topic for table %v - %v", key, err)
 		}
 	}
+	log.Tracef("Crated olric topics")
 
-	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend")
+	transaction, err = db.Beginx()
 	if err != nil {
-		rcloneRetries = 5
-		_ = configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend")
+		resource.CheckErr(err, "Failed to begin transaction [396]")
 	}
 
-	certificateManager, err := resource.NewCertificateManager(cruds, configStore)
+	rcloneRetries, err := configStore.GetConfigIntValueFor("rclone.retries", "backend", transaction)
+	if err != nil {
+		rcloneRetries = 5
+		_ = configStore.SetConfigIntValueFor("rclone.retries", rcloneRetries, "backend", transaction)
+	}
+
+	certificateManager, err := resource.NewCertificateManager(cruds, configStore, transaction)
 	resource.CheckErr(err, "Failed to create certificate manager")
 	if err != nil {
 		panic(err)
@@ -368,9 +410,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
-	feedHandler := CreateFeedHandler(cruds, streamProcessors)
+	feedHandler := CreateFeedHandler(cruds, streamProcessors, transaction)
 
-	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname)
+	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname, transaction)
+	transaction.Commit()
 
 	if err == nil {
 		disableSmtp := os.Getenv("DAPTIN_DISABLE_SMTP")
@@ -394,16 +437,21 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	var imapServer *server.Server
 	imapServer = nil
 	// Create a memory backend
-	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend")
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [442]")
+	}
+
+	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend", transaction)
 	if err == nil && enableImapServer == "true" {
-		imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend")
+		imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend", transaction)
 		if err != nil {
-			err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend")
+			err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend", transaction)
 			resource.CheckErr(err, "Failed to store default imap listen interface in config")
 			imapListenInterface = ":1143"
 		}
 
-		hostname, err := configStore.GetConfigValueFor("hostname", "backend")
+		hostname, err := configStore.GetConfigValueFor("hostname", "backend", transaction)
 		hostname = "imap." + hostname
 		imapBackend := resource.NewImapServer(cruds)
 
@@ -423,7 +471,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		//	}
 		//})
 
-		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true)
+		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
 		imapServer.TLSConfig = tlsConfig
 
@@ -443,23 +491,32 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	} else {
 		if err != nil {
-			err = configStore.SetConfigValueFor("imap.enabled", "false", "backend")
+			err = configStore.SetConfigValueFor("imap.enabled", "false", "backend", transaction)
 			resource.CheckErr(err, "Failed to set default value for imap.enabled")
 		}
 	}
+	log.Tracef("Processed imps")
 
-	enableCaldav, err := configStore.GetConfigValueFor("caldav.enable", "backend")
+	enableCaldav, err := configStore.GetConfigValueFor("caldav.enable", "backend", transaction)
 	if err != nil {
 		enableCaldav = "false"
-		err = configStore.SetConfigValueFor("caldav.enable", enableCaldav, "backend")
+		err = configStore.SetConfigValueFor("caldav.enable", enableCaldav, "backend", transaction)
 		resource.CheckErr(err, "Failed to store caldav.enable in _config")
 	}
+	transaction.Commit()
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, db, cruds, authMiddleware, rateConfig, maxConnections)
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [512]")
+	}
+
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections)
+	transaction.Commit()
 
 	if enableCaldav == "true" {
+		log.Tracef("Process caldav")
 
 		//caldavStorage, err := resource.NewCaldavStorage(cruds, certificateManager)
 		caldavHandler := webdav.Handler{
@@ -502,6 +559,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 		//hostSwitch.handlerMap["calendar"] = caldavHandler
 	}
+	log.Tracef("Completed process caldav")
 
 	for k := range cruds {
 		cruds[k].SubsiteFolderCache = subsiteCacheFolders
@@ -524,25 +582,45 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		log.Info("skipping importing data from files")
 	} else {
 		log.Info("importing data from files")
-		resource.ImportDataFiles(initConfig.Imports, db, cruds)
+		transaction, err = db.Beginx()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [587]")
+		}
+
+		resource.ImportDataFiles(initConfig.Imports, transaction, cruds)
+		transaction.Commit()
 	}
 
 	if localStoragePath != ";" {
-		err = resource.CreateDefaultLocalStorage(db, localStoragePath)
+		transaction, err = db.Beginx()
+		err = resource.CreateDefaultLocalStorage(transaction, localStoragePath)
+		if err != nil {
+			transaction.Commit()
+		} else {
+			transaction.Rollback()
+		}
 		resource.CheckErr(err, "Failed to create default local storage at %v", localStoragePath)
+	}
+
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [607]")
 	}
 
 	err = TaskScheduler.AddTask(resource.Task{
 		EntityName:  "mail_server",
 		ActionName:  "sync_mail_servers",
 		Attributes:  map[string]interface{}{},
-		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
+		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction),
 		Schedule:    "@every 1h",
 	})
+	transaction.Rollback()
 
 	TaskScheduler.StartTasks()
 
-	assetColumnFolders := CreateAssetColumnSync(cruds)
+	transaction = db.MustBegin()
+	assetColumnFolders := CreateAssetColumnSync(cruds, transaction)
+	transaction.Commit()
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
@@ -553,25 +631,26 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	fsmManager := resource.NewFsmManager(db, cruds)
 
-	enableFtp, err := configStore.GetConfigValueFor("ftp.enable", "backend")
+	transaction = db.MustBegin()
+	enableFtp, err := configStore.GetConfigValueFor("ftp.enable", "backend", transaction)
 	if err != nil {
 		enableFtp = "false"
-		err = configStore.SetConfigValueFor("ftp.enable", enableFtp, "backend")
+		err = configStore.SetConfigValueFor("ftp.enable", enableFtp, "backend", transaction)
 		auth.CheckErr(err, "Failed to store default valuel for ftp.enable")
 	}
 
 	var ftpServer *server2.FtpServer
 	if enableFtp == "true" {
 
-		ftp_interface, err := configStore.GetConfigValueFor("ftp.listen_interface", "backend")
+		ftp_interface, err := configStore.GetConfigValueFor("ftp.listen_interface", "backend", transaction)
 		if err != nil {
 			ftp_interface = "0.0.0.0:2121"
-			err = configStore.SetConfigValueFor("ftp.listen_interface", ftp_interface, "backend")
+			err = configStore.SetConfigValueFor("ftp.listen_interface", ftp_interface, "backend", transaction)
 			resource.CheckErr(err, "Failed to store default value for ftp.listen_interface")
 		}
 		// ftpListener, err := net.Listen("tcp", ftp_interface)
 		// resource.CheckErr(err, "Failed to create listener for FTP")
-		ftpServer, err = CreateFtpServers(cruds, certificateManager, ftp_interface)
+		ftpServer, err = CreateFtpServers(cruds, certificateManager, ftp_interface, transaction)
 		auth.CheckErr(err, "Failed to creat FTP server")
 		go func() {
 			log.Printf("FTP server started at %v", ftp_interface)
@@ -582,16 +661,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
 		transaction, err := cruds["world"].Connection.Beginx()
-		//_, err := cruds["world"].GetObjectByWhereClause("world", "table_name", "world")
 		if err != nil {
-			c.AbortWithError(500, err)
-			return
+			resource.CheckErr(err, "Failed to begin transaction [665]")
+			c.String(500, fmt.Sprintf("%v", err))
 		}
+		//_, err := cruds["world"].GetObjectByWhereClause("world", "table_name", "world")
 		_ = transaction.Rollback()
 		c.String(200, "pong")
 	})
 
-	handler := CreateJsModelHandler(&initConfig, cruds)
+	handler := CreateJsModelHandler(&initConfig, cruds, transaction)
+	transaction.Commit()
 	metaHandler := CreateMetaHandler(&initConfig)
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
@@ -698,13 +778,23 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 					dtopicMap[typename].AddListener(func(message olric.DTopicMessage) {
 						eventMessage := message.Message.(resource.EventMessage)
+						log.Tracef("dtopicMapListener handle: [%v]", eventMessage.ObjectType)
 
 						if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
 							referenceId := eventMessage.EventData["reference_id"].(string)
 
-							object, _, _ := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, map[string]bool{
+							transaction, err := cruds[typename].Connection.Beginx()
+							if err != nil {
+								resource.CheckErr(err, "Failed to begin transaction [788]")
+								return
+							}
+
+							defer transaction.Commit()
+
+							object, _, _ := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, referenceId, map[string]bool{
 								columnInfo.ColumnName: true,
-							})
+							}, transaction)
+							log.Tracef("Completed dtopicMapListener GetSingleRowByReferenceIdWithTransaction")
 
 							colValue := object[columnInfo.ColumnName]
 							if colValue == nil {
@@ -725,7 +815,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 							}
 
 							documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
-							document := documentProvider.GetDocument(ydb.YjsRoomName(documentName))
+							document := documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
 							if document != nil {
 								document.SetInitialContent(fileContentsJson)
 							}
@@ -745,13 +835,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 						referenceId := ginContext.Param("referenceId")
 
-						object, _, err := cruds[typename].GetSingleRowByReferenceId(typename, referenceId, nil)
+						tx, err := cruds[typename].Connection.Beginx()
+						if err != nil {
+							resource.CheckErr(err, "Failed to begin transaction [840]")
+							return
+						}
+
+						defer tx.Rollback()
+						object, _, err := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, referenceId, nil, tx)
 						if err != nil {
 							ginContext.AbortWithStatus(404)
 							return
 						}
 
-						objectPermission := cruds[typename].GetRowPermission(object)
+						objectPermission := cruds[typename].GetRowPermission(object, tx)
 
 						if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups) {
 							ginContext.AbortWithStatus(401)
@@ -782,7 +879,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	var indexFileContents = []byte("")
 	if indexFile != nil && err == nil {
-		indexFileContents, err = ioutil.ReadAll(indexFile)
+		indexFileContents, err = io.ReadAll(indexFile)
 	}
 
 	defaultRouter.NoRoute(func(c *gin.Context) {
@@ -804,7 +901,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	trigger.On("clean_up_uploaded_files", func() {
 		CleanUpConfigFiles()
 	})
-	adminEmail := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId()
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [906]")
+	}
+	adminEmail := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction)
+	transaction.Rollback()
 	if adminEmail == "" {
 		adminEmail = "No one"
 	}
@@ -814,13 +916,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 }
 
-func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, ftp_interface string) (*server2.FtpServer, error) {
+func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, ftp_interface string, transaction *sqlx.Tx) (*server2.FtpServer, error) {
 
-	subsites, err := resources["site"].GetAllSites()
+	subsites, err := resources["site"].GetAllSites(transaction)
 	if err != nil {
 		return nil, err
 	}
-	cloudStores, err := resources["cloud_store"].GetAllCloudStores()
+	cloudStores, err := resources["cloud_store"].GetAllCloudStores(transaction)
 
 	if err != nil {
 		return nil, err
@@ -907,44 +1009,54 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 	resource.CheckAllTableStatus(initConfig, db)
 	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
 
-	resource.CreateRelations(initConfig, db)
-	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+	//resource.CreateRelations(initConfig, db)
+	//resource.CheckErr(errc, "Failed to commit transaction after creating relations")
 
-	tx, errb := db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
-	if tx != nil {
-		resource.CreateUniqueConstraints(initConfig, tx)
-		errc = tx.Commit()
+	transaction, err := db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [1017]")
+		return
+	}
+
+	if transaction != nil {
+		resource.CreateUniqueConstraints(initConfig, transaction)
+		errc = transaction.Commit()
 		resource.CheckErr(errc, "Failed to commit transaction after creating unique constrains")
 	}
 
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction for creating indexes")
-	if tx != nil {
-		resource.CreateIndexes(initConfig, db)
-		errc = tx.Commit()
-		resource.CheckErr(errc, "Failed to commit transaction after creating indexes")
-	}
+	resource.CreateIndexes(initConfig, db)
 
-	tx, errb = db.Beginx()
-	resource.CheckErr(errb, "Failed to begin transaction")
+	var errb error
+	transaction, err = db.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction [1031]")
 
-	if tx != nil {
-		errb = resource.UpdateWorldTable(initConfig, tx)
+	if transaction != nil {
+		errb = resource.UpdateWorldTable(initConfig, transaction)
 		resource.CheckErr(errb, "Failed to update world tables")
-		errc := tx.Commit()
+		errc := transaction.Commit()
 		resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 	}
 
-	resource.UpdateExchanges(initConfig, db)
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [1042]")
+		return
+	}
+
+	resource.UpdateExchanges(initConfig, transaction)
 	//go func() {
-	resource.UpdateStateMachineDescriptions(initConfig, db)
-	resource.UpdateStreams(initConfig, db)
+	resource.UpdateStateMachineDescriptions(initConfig, transaction)
+	resource.UpdateStreams(initConfig, transaction)
 	//resource.UpdateMarketplaces(initConfig, db)
-	err := resource.UpdateTasksData(initConfig, db)
+	err = resource.UpdateTasksData(initConfig, transaction)
 	resource.CheckErr(err, "[870] Failed to update cron jobs")
-	err = resource.UpdateActionTable(initConfig, db)
+	err = resource.UpdateActionTable(initConfig, transaction)
 	resource.CheckErr(err, "Failed to update action table")
+	if err == nil {
+		transaction.Commit()
+	} else {
+		transaction.Rollback()
+	}
 	//}()
 
 }

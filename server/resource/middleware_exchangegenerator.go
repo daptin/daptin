@@ -72,7 +72,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
-	//log.Printf("Request to intercept in middleware exchange: %v", reqmethod)
+	log.Tracef("Request to intercept in middleware exchange: %v", reqmethod)
 
 	for i, resultRow := range results {
 
@@ -112,7 +112,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 			log.Printf("executing exchange in routine: %v -> %v", exchange.SourceType, exchange.TargetType)
 			exchangeExecution := NewExchangeExecution(exchange, em.cruds)
 
-			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow})
+			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow}, transaction)
 			if err != nil {
 				log.Errorf("Failed to execute exchange: %v", err)
 				//errors = append(errors, err)
@@ -132,7 +132,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 			}
 		}
 	}
-
+	log.Tracef("Finished request to intercept in middleware exchange: %v", reqmethod)
 	return results, nil
 }
 
@@ -143,7 +143,7 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
-	//log.Printf("Request to intercept in middleware exchange: %v", reqmethod)
+	log.Tracef("Request to intercept in middleware exchange: %v", reqmethod)
 
 	for _, resultRow := range results {
 
@@ -185,7 +185,7 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 			log.Printf("executing exchange in routine: %v -> %v", exchange.SourceType, exchange.TargetType)
 			exchangeExecution := NewExchangeExecution(exchange, em.cruds)
 
-			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow})
+			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow}, transaction)
 			if err != nil {
 				log.Errorf("Failed to execute exchange: %v", err)
 				//errors = append(errors, err)
@@ -205,5 +205,6 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 		}
 	}
 
+	log.Tracef("Completed request to intercept in middleware exchange: %v", reqmethod)
 	return results, nil
 }

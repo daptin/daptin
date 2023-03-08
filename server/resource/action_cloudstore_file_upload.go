@@ -31,7 +31,7 @@ type fileUploadActionPerformer struct {
 	cruds map[string]*DbResource
 }
 
-func (d *fileUploadActionPerformer) Name() string {
+func (actionPerformer *fileUploadActionPerformer) Name() string {
 	return "cloudstore.file.upload"
 }
 
@@ -105,14 +105,14 @@ func EndsWith(str string, endsWith string) (string, bool) {
 var cleanupmux = sync2.Mutex{}
 var cleanuppath = make(map[string]bool)
 
-func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
+func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	responses := make([]ActionResponse, 0)
 
 	u, _ := uuid.NewV4()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
-	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
-	log.Printf("Temp directory for this upload fileUploadActionPerformer: %v", tempDirectoryPath)
+	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
+	log.Debugf("Temp directory for this upload fileUploadActionPerformer: %v", tempDirectoryPath)
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
@@ -189,7 +189,7 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 		log.Printf("No oauth token set for target store")
 	} else {
 		oauthTokenId := oauthTokenId1.(string)
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}
 
@@ -197,12 +197,14 @@ func (d *fileUploadActionPerformer) DoAction(request Outcome, inFields map[strin
 	CheckErr(err, "Failed to marshal access token to json")
 
 	storeProvider := inFields["store_provider"].(string)
-	config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(storeProvider, "type", storeProvider)
-	config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(storeProvider, "token", string(jsonToken))
-	config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
+	if oauthConf != nil {
+		config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
+		config.FileSet(storeProvider, "type", storeProvider)
+		config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
+		config.FileSet(storeProvider, "token", string(jsonToken))
+		config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+		config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
+	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	cobraCommand := &cobra.Command{

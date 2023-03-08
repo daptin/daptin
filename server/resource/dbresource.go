@@ -298,7 +298,7 @@ func (dbResource *DbResource) GetContext(key string) interface{} {
 	return dbResource.contextCache[key]
 }
 
-func (dbResource *DbResource) GetAdminReferenceId() map[string]bool {
+func (dbResource *DbResource) GetAdminReferenceId(transaction *sqlx.Tx) map[string]bool {
 	var err error
 	var cacheValue interface{}
 	adminMap := make(map[string]bool)
@@ -308,7 +308,7 @@ func (dbResource *DbResource) GetAdminReferenceId() map[string]bool {
 			return cacheValue.(map[string]bool)
 		}
 	}
-	userRefId := dbResource.GetUserMembersByGroupName("administrators")
+	userRefId := dbResource.GetUserMembersByGroupName("administrators", transaction)
 	for _, id := range userRefId {
 		adminMap[id] = true
 	}
@@ -342,7 +342,7 @@ func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[string]bool {
 	return adminMap
 }
 
-func (dbResource *DbResource) IsAdmin(userReferenceId string) bool {
+func (dbResource *DbResource) IsAdmin(userReferenceId string, transaction *sqlx.Tx) bool {
 	start := time.Now()
 	key := "admin." + userReferenceId
 	if OlricCache != nil {
@@ -359,7 +359,7 @@ func (dbResource *DbResource) IsAdmin(userReferenceId string) bool {
 			}
 		}
 	}
-	admins := dbResource.GetAdminReferenceId()
+	admins := dbResource.GetAdminReferenceId(transaction)
 	_, ok := admins[userReferenceId]
 	if ok {
 		if OlricCache != nil {
@@ -411,10 +411,10 @@ func (dbResource *DbResource) TableInfo() *TableInfo {
 	return dbResource.tableInfo
 }
 
-func (dbResource *DbResource) GetAdminEmailId() string {
+func (dbResource *DbResource) GetAdminEmailId(transaction *sqlx.Tx) string {
 	cacheVal := dbResource.GetContext("administrator_email_id")
 	if cacheVal == nil {
-		userRefId := dbResource.GetUserEmailIdByUsergroupId(2)
+		userRefId := dbResource.GetUserEmailIdByUsergroupId(2, transaction)
 		dbResource.PutContext("administrator_email_id", userRefId)
 		return userRefId
 	} else {
@@ -530,13 +530,10 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	if err != nil {
 		log.Errorf("[362] failed to prepare statment: %v", err)
 	}
+	defer stmt1.Close()
 
 	r4 := stmt1.QueryRowx(v4...)
 	r4.Scan(&messgeCount)
-	err = stmt1.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-	}
 
 	q1, v1, e1 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -551,13 +548,10 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	if err != nil {
 		log.Errorf("[384] failed to prepare statment: %v", err)
 	}
+	defer stmt1.Close()
 
 	r := stmt1.QueryRowx(v1...)
 	r.Scan(&unseenCount)
-	err = stmt1.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-	}
 
 	q2, v2, e2 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -572,13 +566,10 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	if err != nil {
 		log.Errorf("[405] failed to prepare statment: %v", err)
 	}
+	defer stmt1.Close()
 
 	r2 := stmt1.QueryRowx(v2...)
 	r2.Scan(&recentCount)
-	err = stmt1.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-	}
 
 	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").From("mail_box").Where(goqu.Ex{
 		"id": mailBoxId,
@@ -592,13 +583,10 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	if err != nil {
 		log.Errorf("[425] failed to prepare statment: %v", err)
 	}
+	defer stmt1.Close()
 
 	r3 := stmt1.QueryRowx(v3...)
 	r3.Scan(&uidValidity)
-	err = stmt1.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-	}
 
 	uidNext, _ = dbResource.GetMailboxNextUid(mailBoxId)
 

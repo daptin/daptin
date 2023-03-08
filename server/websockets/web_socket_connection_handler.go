@@ -57,7 +57,13 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 						permission := resource.PermissionInstance{Permission: auth.ALLOW_ALL_PERMISSIONS}
 
 						if tableExists {
-							permission = wsch.cruds["world"].GetRowPermission(eventMessage.EventData)
+							tx, err := wsch.cruds["world"].Connection.Beginx()
+							if err != nil {
+								resource.CheckErr(err, "Failed to begin transaction [62]")
+							}
+
+							defer tx.Commit()
+							permission = wsch.cruds["world"].GetRowPermission(eventMessage.EventData, tx)
 
 						}
 						if permission.CanRead(client.user.UserReferenceId, client.user.Groups) {

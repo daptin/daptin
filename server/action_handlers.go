@@ -9,6 +9,13 @@ import (
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
 	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
 	hostSwitch HostSwitch, certificateManager *resource.CertificateManager) []resource.ActionPerformerInterface {
+	log.Tracef("GetActionPerformers")
+	transaction, err := cruds["world"].Connection.Beginx()
+	resource.CheckErr(err, "Failed to begin transaction [14]")
+	if err != nil {
+		return nil
+	}
+	defer transaction.Commit()
 
 	performers := make([]resource.ActionPerformerInterface, 0)
 
@@ -20,11 +27,11 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create cloudStoreFileImportPerformer")
 	performers = append(performers, cloudStoreFileImportPerformer)
 
-	otpGenerateActionPerformer, err := resource.NewOtpGenerateActionPerformer(cruds, configStore)
+	otpGenerateActionPerformer, err := resource.NewOtpGenerateActionPerformer(cruds, configStore, transaction)
 	resource.CheckErr(err, "Failed to create otp generator")
 	performers = append(performers, otpGenerateActionPerformer)
 
-	otpLoginVerifyActionPerformer, err := resource.NewOtpLoginVerifyActionPerformer(cruds, configStore)
+	otpLoginVerifyActionPerformer, err := resource.NewOtpLoginVerifyActionPerformer(cruds, configStore, transaction)
 	resource.CheckErr(err, "Failed to create otp verify performer")
 	performers = append(performers, otpLoginVerifyActionPerformer)
 
@@ -48,11 +55,11 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create data import performer")
 	performers = append(performers, importDataPerformer)
 
-	oauth2redirect, err := resource.NewOauthLoginBeginActionPerformer(initConfig, cruds, configStore)
+	oauth2redirect, err := resource.NewOauthLoginBeginActionPerformer(initConfig, cruds, configStore, transaction)
 	resource.CheckErr(err, "Failed to create oauth2 request performer")
 	performers = append(performers, oauth2redirect)
 
-	oauth2response, err := resource.NewOauthLoginResponseActionPerformer(initConfig, cruds, configStore)
+	oauth2response, err := resource.NewOauthLoginResponseActionPerformer(initConfig, cruds, configStore, transaction)
 	resource.CheckErr(err, "Failed to create oauth2 response handler")
 	performers = append(performers, oauth2response)
 
@@ -80,7 +87,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create oauth2 profile exchange handler")
 	performers = append(performers, oauthProfileExchangePerformer)
 
-	generateJwtPerformer, err := resource.NewGenerateJwtTokenPerformer(configStore, cruds)
+	generateJwtPerformer, err := resource.NewGenerateJwtTokenPerformer(configStore, cruds, transaction)
 	resource.CheckErr(err, "Failed to create generate jwt performer")
 	performers = append(performers, generateJwtPerformer)
 
@@ -160,24 +167,24 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create cloudStoreSiteCreateActionPerformer")
 	performers = append(performers, cloudStoreSiteCreateActionPerformer)
 
-	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["api"])
+	acmeTlsCertificateGenerateActionPerformer, err := resource.NewAcmeTlsCertificateGenerateActionPerformer(cruds, configStore, hostSwitch.handlerMap["api"], transaction)
 	resource.CheckErr(err, "Failed to create acme tls certificate generator")
 	performers = append(performers, acmeTlsCertificateGenerateActionPerformer)
 
-	selfTlsCertificateGenerateActionPerformer, err := resource.NewSelfTlsCertificateGenerateActionPerformer(cruds, configStore, certificateManager)
+	selfTlsCertificateGenerateActionPerformer, err := resource.NewSelfTlsCertificateGenerateActionPerformer(cruds, configStore, certificateManager, transaction)
 	resource.CheckErr(err, "Failed to create self tls certificate generator")
 	performers = append(performers, selfTlsCertificateGenerateActionPerformer)
 
-	integrationInstallationPerformer, err := resource.NewIntegrationInstallationPerformer(initConfig, cruds, configStore)
+	integrationInstallationPerformer, err := resource.NewIntegrationInstallationPerformer(initConfig, cruds, configStore, transaction)
 	resource.CheckErr(err, "Failed to create integration installation performer")
 	performers = append(performers, integrationInstallationPerformer)
 
-	integrations, err := cruds["world"].GetActiveIntegrations()
+	integrations, err := cruds["world"].GetActiveIntegrations(transaction)
 	if err == nil {
 
 		for _, integration := range integrations {
 
-			performer, err := resource.NewIntegrationActionPerformer(integration, initConfig, cruds, configStore)
+			performer, err := resource.NewIntegrationActionPerformer(integration, initConfig, cruds, configStore, transaction)
 
 			if err != nil {
 
@@ -190,6 +197,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 		}
 
 	}
+	log.Tracef("Completed GetActionPerformers")
 
 	return performers
 }

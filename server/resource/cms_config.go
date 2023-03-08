@@ -73,7 +73,6 @@ type Config struct {
 
 type ConfigStore struct {
 	defaultEnv string
-	db         database.DatabaseConnection
 }
 
 var settingsTableName = "_config"
@@ -169,7 +168,7 @@ func (configStore *ConfigStore) SetDefaultEnv(env string) {
 	configStore.defaultEnv = env
 }
 
-func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string) (string, error) {
+func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string, transaction *sqlx.Tx) (string, error) {
 	var val interface{}
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
@@ -181,18 +180,12 @@ func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string)
 
 	CheckErr(err, "[180] failed to create config select query")
 
-	stmt1, err := configStore.db.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[185] failed to prepare statment: %v", err)
 		return "", err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
+	defer stmt1.Close()
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
 		log.Printf("[198] No config value set for [%v]: %v", key, err)
@@ -227,13 +220,7 @@ func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, con
 		log.Errorf("[185] failed to prepare statment: %v", err)
 		return "", err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
+	defer stmt1.Close()
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
 		log.Printf("[239] No config value set for [%v]: %v", key, err)
@@ -249,7 +236,7 @@ func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, con
 	return value, err
 }
 
-func (configStore *ConfigStore) GetConfigIntValueFor(key string, configtype string) (int, error) {
+func (configStore *ConfigStore) GetConfigIntValueFor(key string, configtype string, transaction *sqlx.Tx) (int, error) {
 	var val int
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
@@ -261,7 +248,7 @@ func (configStore *ConfigStore) GetConfigIntValueFor(key string, configtype stri
 
 	CheckErr(err, "Failed to create config select query")
 
-	stmt1, err := configStore.db.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[209] failed to prepare statment: %v", err)
 		return 0, err
@@ -280,7 +267,7 @@ func (configStore *ConfigStore) GetConfigIntValueFor(key string, configtype stri
 	return val, err
 }
 
-func (configStore *ConfigStore) GetAllConfig() map[string]string {
+func (configStore *ConfigStore) GetAllConfig(transaction *sqlx.Tx) map[string]string {
 
 	s, v, err := statementbuilder.Squirrel.Select("name", "value").
 		From(settingsTableName).
@@ -291,7 +278,7 @@ func (configStore *ConfigStore) GetAllConfig() map[string]string {
 
 	retMap := make(map[string]string)
 
-	stmt1, err := configStore.db.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[233] failed to prepare statment: %v", err)
 		return nil
@@ -324,7 +311,7 @@ func (configStore *ConfigStore) GetAllConfig() map[string]string {
 
 }
 
-func (configStore *ConfigStore) DeleteConfigValueFor(key string, configtype string) error {
+func (configStore *ConfigStore) DeleteConfigValueFor(key string, configtype string, transaction *sqlx.Tx) error {
 
 	s, v, err := statementbuilder.Squirrel.Delete(settingsTableName).
 		Where(goqu.Ex{"name": key}).
@@ -333,12 +320,12 @@ func (configStore *ConfigStore) DeleteConfigValueFor(key string, configtype stri
 
 	CheckErr(err, "Failed to create config insert query")
 
-	_, err = configStore.db.Exec(s, v...)
+	_, err = transaction.Exec(s, v...)
 	CheckErr(err, "Failed to execute config insert query")
 	return err
 }
 
-func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype string) error {
+func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, configtype string, transaction *sqlx.Tx) error {
 	var previousValue string
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
@@ -350,7 +337,7 @@ func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, c
 
 	CheckErr(err, "Failed to create config select query")
 
-	stmt1, err := configStore.db.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[280] failed to prepare statment: %v", err)
 		return nil
@@ -373,7 +360,7 @@ func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, c
 
 		CheckErr(err, "failed to create config insert query")
 
-		_, err = configStore.db.Exec(s, v...)
+		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to execute config insert query")
 		return err
 	} else {
@@ -393,7 +380,7 @@ func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, c
 
 		CheckErr(err, "Failed to create config insert query")
 
-		_, err = configStore.db.Exec(s, v...)
+		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to execute config update query")
 		return err
 	}
@@ -462,7 +449,7 @@ func (configStore *ConfigStore) SetConfigValueForWithTransaction(key string, val
 
 }
 
-func (configStore *ConfigStore) SetConfigIntValueFor(key string, val int, configtype string) error {
+func (configStore *ConfigStore) SetConfigIntValueFor(key string, val int, configtype string, transaction *sqlx.Tx) error {
 	var previousValue string
 
 	s, v, err := statementbuilder.Squirrel.Select("value").
@@ -474,7 +461,7 @@ func (configStore *ConfigStore) SetConfigIntValueFor(key string, val int, config
 
 	CheckErr(err, "Failed to create config select query")
 
-	stmt1, err := configStore.db.Preparex(s)
+	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[336] failed to prepare statment: %v", err)
 		return nil
@@ -497,7 +484,7 @@ func (configStore *ConfigStore) SetConfigIntValueFor(key string, val int, config
 
 		CheckErr(err, "Failed to create config insert query")
 
-		_, err = configStore.db.Exec(s, v...)
+		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to execute config insert query")
 		return err
 	} else {
@@ -517,7 +504,7 @@ func (configStore *ConfigStore) SetConfigIntValueFor(key string, val int, config
 
 		CheckErr(err, "Failed to create config insert query")
 
-		_, err = configStore.db.Exec(s, v...)
+		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to execute config update query")
 		return err
 	}
@@ -536,22 +523,20 @@ func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 
 	if err != nil {
 		//log.Printf("Count query failed. Creating table: %v", err)
-
 		createTableQuery := MakeCreateTableQuery(&ConfigTableStructure, db.DriverName())
 
-		_, err = db.Exec(createTableQuery)
+		_, err := db.Exec(createTableQuery)
 		CheckErr(err, "Failed to create config table")
 		if err != nil {
-			log.Printf("create config table query: %v", createTableQuery)
+			log.Debugf("create config table query: %v", createTableQuery)
 		}
 
 	} else {
 		stmt1.Close()
-		log.Printf("Config table alreasy exists")
+		log.Debugf("Config table already exists")
 	}
 
 	return &ConfigStore{
-		db:         db,
 		defaultEnv: "release",
 	}, nil
 

@@ -81,10 +81,17 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 }
 
 func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
-	log.Printf("Create indexes")
+	log.Infof("Create indexes")
 
-	tx := db.MustBegin()
-	existingIndexes := GetExistingIndexes(tx)
+	transaction, err := db.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [88]")
+	}
+	existingIndexes := GetExistingIndexes(transaction)
+	err = transaction.Rollback()
+	if err != nil {
+		CheckErr(err, "TX rollback failed")
+	}
 
 	for _, table := range initConfig.Tables {
 		for _, column := range table.Columns {
@@ -95,10 +102,10 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 					continue
 				}
 				alterTable := "create unique index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				//log.Printf("Create index sql: %v", alterTable)
+				log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Printf("Failed to create index on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
+					log.Infof("Failed to create index on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			} else if column.IsIndexed {
 				indexName := "i" + GetMD5HashString("index_"+table.TableName+"_"+column.ColumnName+"_index")
@@ -107,7 +114,7 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 				}
 
 				alterTable := "create index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				//log.Printf("Create index sql: %v", alterTable)
+				log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
 					log.Printf("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
@@ -136,14 +143,17 @@ WHERE
 	}
 
 	stmt1, err := db.Preparex(indexQuery)
+	log.Infof("\tstmt1, err := db.Preparex(indexQuery)\n")
 	if err != nil {
 		log.Errorf("[877] failed to prepare statment: %v", err)
 		return nil
 	}
+	defer stmt1.Close()
 
 	rows, err := stmt1.Queryx()
-	CheckErr(err, "Failed to check existing indexes using sql [%v][%v]", db.DriverName(), indexQuery)
+	CheckInfo(err, "Failed to check existing indexes using sql [%v][%v]", db.DriverName(), indexQuery)
 	if err == nil {
+		defer rows.Close()
 		for rows.Next() {
 			var indexName string
 			err = rows.Scan(&indexName)
@@ -161,10 +171,12 @@ WHERE
 func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 	log.Printf("Create relations")
 
-	tx, errb := db.Beginx()
-	CheckErr(errb, "Failed to begin transaction")
+	transaction, err := db.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [176]")
+	}
 
-	existingIndexes := GetExistingIndexes(tx)
+	existingIndexes := GetExistingIndexes(transaction)
 
 	for i, table := range initConfig.Tables {
 		if len(table.TableName) < 1 {
@@ -187,8 +199,8 @@ func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 				_, err := db.Exec(alterSql)
 				if err != nil {
 					log.Printf("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
-					tx.Rollback()
-					tx, errb = db.Beginx()
+					transaction.Rollback()
+					transaction, err = db.Beginx()
 					CheckErr(err, "Failed to create a new transaction after rollback.")
 				} else {
 					log.Infof("Key created [%v][%v]", table.TableName, keyName)
@@ -200,8 +212,8 @@ func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 				_, err = db.Exec(createFkIndex)
 				if err != nil {
 					log.Printf("Failed to create foreign key index [%v],  %v on column [%v][%v]", err, fkIndexName, table.TableName, column.ColumnName)
-					tx.Rollback()
-					tx, errb = db.Beginx()
+					transaction.Rollback()
+					transaction, err = db.Beginx()
 					CheckErr(err, "Failed to create a new transaction after rollback.")
 				} else {
 					log.Infof("Index on FK created [%v][%v]", table.TableName, fkIndexName)
@@ -725,12 +737,12 @@ func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) error {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
-	log.Printf("Create table query: %v", tableInfo.TableName)
+	log.Debugf("Create table query: %v", tableInfo.TableName)
 	if len(tableInfo.TableName) < 2 {
 		log.Printf("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
 		return nil
 	}
-	log.Println(createTableQuery)
+	log.Debugf(createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")
 	if err != nil {

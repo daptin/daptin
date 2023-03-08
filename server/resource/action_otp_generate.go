@@ -20,11 +20,11 @@ type otpGenerateActionPerformer struct {
 	encryptionSecret []byte
 }
 
-func (d *otpGenerateActionPerformer) Name() string {
+func (actionPerformer *otpGenerateActionPerformer) Name() string {
 	return "otp.generate"
 }
 
-func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
+func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	email, emailOk := inFieldMap["email"]
 	mobile, phoneOk := inFieldMap["mobile"]
@@ -35,7 +35,7 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	if !emailOk && !phoneOk {
 		return nil, nil, []error{errors.New("email or mobile missing")}
 	} else if emailOk && email != "" {
-		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmail(email.(string))
+		userAccount, err = actionPerformer.cruds["user_account"].GetUserAccountRowByEmail(email.(string), transaction)
 		if (err != nil || userAccount == nil) && !phoneOk {
 			return nil, nil, []error{errors.New("invalid email")}
 		}
@@ -43,11 +43,11 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		if i == nil {
 			return nil, nil, []error{errors.New("invalid account")}
 		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", i.(int64))
+		userOtpProfile, err = actionPerformer.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "otp_of_account", i.(int64), transaction)
 	}
 
 	if phoneOk && userAccount == nil && mobile != "" {
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", mobile)
+		userOtpProfile, err = actionPerformer.cruds["user_otp_account"].GetObjectByWhereClause("user_otp_account", "mobile_number", mobile, transaction)
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
@@ -55,7 +55,7 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		if i == nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceId("user_account", i.(string), nil)
+		userAccount, _, err = actionPerformer.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", i.(string), nil, transaction)
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
@@ -99,7 +99,7 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		}
 
 		req.PlainRequest.Method = "POST"
-		createdOtpProfile, err := d.cruds["user_otp_account"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("user_otp_account",
+		createdOtpProfile, err := actionPerformer.cruds["user_otp_account"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("user_otp_account",
 			nil, 0, nil, userOtpProfile), req, transaction)
 		if err != nil {
 			return nil, nil, []error{errors.New("failed to create otp profile")}
@@ -112,29 +112,22 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		userOtpProfile["mobile_number"] = mobile
 		userOtpProfile["verified"] = 0
 		req.PlainRequest.Method = "PUT"
-		transaction, err := d.cruds["user_otp_account"].Connection.Beginx()
 		if err != nil {
 			return nil, nil, []error{err}
 		}
-		_, err = d.cruds["user_otp_account"].UpdateWithoutFilters(
+		_, err = actionPerformer.cruds["user_otp_account"].UpdateWithoutFilters(
 			api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req, transaction)
 		if err != nil {
-			rollbackErr := transaction.Rollback()
-			CheckErr(rollbackErr, "failed to rollback")
 			return nil, nil, []error{err}
 		} else {
-			commitErr := transaction.Commit()
-			CheckErr(commitErr, "failed to commmit")
-			if commitErr != nil {
-				return nil, nil, []error{commitErr}
-			}
+			return nil, nil, nil
 		}
 	}
 
 	resp := &api2go.Response{}
 	if userOtpProfile["verified"] == 1 || phoneOk {
 
-		key, err := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
+		key, err := Decrypt(actionPerformer.encryptionSecret, userOtpProfile["otp_secret"].(string))
 		if err != nil {
 			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
 		}
@@ -161,9 +154,9 @@ func (d *otpGenerateActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	return resp, []ActionResponse{}, []error{err}
 }
 
-func NewOtpGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
+func NewOtpGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 
 	handler := otpGenerateActionPerformer{
 		cruds:            cruds,

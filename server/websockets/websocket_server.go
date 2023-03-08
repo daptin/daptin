@@ -110,7 +110,7 @@ func (s *Server) Listen(router *gin.Engine) {
 		wsHandler.ServeHTTP(ginContext.Writer, ginContext.Request)
 	})
 
-	log.Println("Created handler")
+	log.Debugf("Created websocket handler")
 
 	for {
 		select {

@@ -29,8 +29,10 @@ const (
 	ModeResponse
 )
 
-/**
-  Integration action performer
+/*
+*
+
+	Integration action performer
 */
 type integrationActionPerformer struct {
 	cruds            map[string]*DbResource
@@ -156,7 +158,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 					oauthTokenId, ok := authKeys["oauth_token_id"].(string)
 
 					if ok {
-						oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+						oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 
 						if err != nil {
 							break
@@ -169,7 +171,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 							if err != nil {
 								break
 							}
-							err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+							err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix(), transaction)
 							CheckErr(err, "Failed to update access token by reference id [%s]", oauthTokenId)
 						}
 
@@ -262,7 +264,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 			oauthTokenId, ok := authKeys["oauth_token_id"].(string)
 
 			if ok {
-				oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+				oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 				if err == nil {
 
 					tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
@@ -271,7 +273,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 						log.Printf("Token[%s] has expired for action [%v][%v][%v], generating new token", oauthTokenId, operation, method, d.integration.Name)
 						oauthToken, err = tokenSource.Token()
 						CheckErr(err, "Failed to generate token from source")
-						err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix())
+						err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix(), transaction)
 					}
 
 					arguments = append(arguments, req.Header{
@@ -653,7 +655,7 @@ func excludeFromMode(mode Mode, schema *openapi3.Schema) bool {
 }
 
 // Create a new action performer for becoming administrator action
-func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
+func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
 	var err error
 	yamlBytes := []byte(integration.Specification)
@@ -718,7 +720,7 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 	}
 	log.Printf("Registered %d actions from [%v]", count, integration.Name)
 
-	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		log.Errorf("Failed to get encryption secret from config store: %v", err)
 	}

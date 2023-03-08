@@ -7,10 +7,10 @@ import (
 	"github.com/artpar/stats"
 	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	limit2 "github.com/yangxikun/gin-limit-by-key"
@@ -32,9 +32,10 @@ type JsonApiError struct {
 	Message string
 }
 
-func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map[string]*resource.AssetFolderCache {
+func CreateAssetColumnSync(cruds map[string]*resource.DbResource, transaction *sqlx.Tx) map[string]map[string]*resource.AssetFolderCache {
+	log.Tracef("CreateAssetColumnSync")
 
-	stores, err := cruds["cloud_store"].GetAllCloudStores()
+	stores, err := cruds["cloud_store"].GetAllCloudStores(transaction)
 	assetCache := make(map[string]map[string]*resource.AssetFolderCache)
 
 	if err != nil || len(stores) == 0 {
@@ -61,7 +62,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 				tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), tableName+"_"+columnName)
 
 				if cloudStore.StoreProvider != "local" {
-					err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath)
+					err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath, nil)
 					if resource.CheckErr(err, "Failed to setup sync to path for table column [%v][%v]", tableName, column.ColumnName) {
 						continue
 					}
@@ -76,7 +77,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 				}
 
 				colCache[columnName] = assetCacheFolder
-				log.Infof("Sync table columnd [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
+				log.Infof("Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
 
 				if cloudStore.StoreProvider != "local" {
 					err = TaskScheduler.AddTask(resource.Task{
@@ -86,7 +87,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 							"table_name":  tableResource.TableInfo().TableName,
 							"column_name": columnName,
 						},
-						AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(),
+						AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction),
 						Schedule:    "@every 30m",
 					})
 				}
@@ -98,13 +99,14 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource) map[string]map
 		assetCache[tableName] = colCache
 
 	}
+	log.Tracef("Completed CreateAssetColumnSync")
 
 	return assetCache
 
 }
 
 // CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
-func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnection,
+func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
 	rateConfig RateConfig, max_connections int) (HostSwitch, map[string]*resource.AssetFolderCache) {
 
@@ -118,17 +120,17 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 	hs.authMiddleware = authMiddleware
 
 	//log.Printf("Cruds before making sub sits: %v", cruds)
-	sites, err := cruds["site"].GetAllSites()
+	sites, err := cruds["site"].GetAllSites(transaction)
 	if err != nil {
 		log.Printf("Failed to get all sites 117: %v", err)
 	}
-	stores, err := cruds["cloud_store"].GetAllCloudStores()
+	stores, err := cruds["cloud_store"].GetAllCloudStores(transaction)
 	if err != nil {
 		log.Printf("Failed to get all cloudstores 121: %v", err)
 	}
 	cloudStoreMap := make(map[int64]resource.CloudStore)
 
-	adminEmailId := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId()
+	adminEmailId := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction)
 	log.Printf("Admin email id: %s", adminEmailId)
 
 	for _, store := range stores {
@@ -179,7 +181,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, db database.DatabaseConnectio
 			continue
 		}
 
-		err = cruds["task"].SyncStorageToPath(cloudStore, site.Path, tempDirectoryPath)
+		err = cruds["task"].SyncStorageToPath(cloudStore, site.Path, tempDirectoryPath, transaction)
 		if resource.CheckErr(err, "Failed to setup sync to path for subsite [%v]", site.Name) {
 			continue
 		}

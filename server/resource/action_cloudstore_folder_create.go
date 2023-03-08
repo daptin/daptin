@@ -60,7 +60,7 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 		log.Printf("No oauth token set for target store")
 	} else {
 		oauthTokenId := oauthTokenId1.(string)
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId)
+		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}
 
@@ -91,9 +91,14 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 		ctx := context.Background()
 
 		err := operations.Mkdir(ctx, fsrc, folderPath)
-		InfoErr(err, "Failed to sync files for upload to cloud")
+		if err != nil {
+			InfoErr(err, "Failed to sync files for upload to cloud")
+			return err
+		}
 		err = os.RemoveAll(tempDirectoryPath)
-		InfoErr(err, "Failed to remove temp directory after folder create")
+		if err != nil {
+			InfoErr(err, "Failed to remove temp directory after folder create")
+		}
 		return err
 	})
 

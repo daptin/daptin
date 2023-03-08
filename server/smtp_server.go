@@ -5,16 +5,16 @@ import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 )
 
-func StartSMTPMailServer(resource *resource.DbResource, certificateManager *resource.CertificateManager, primaryHostname string) (*guerrilla.Daemon, error) {
+func StartSMTPMailServer(resource *resource.DbResource, certificateManager *resource.CertificateManager, primaryHostname string, transaction *sqlx.Tx) (*guerrilla.Daemon, error) {
 
-	servers, err := resource.GetAllObjects("mail_server")
+	servers, err := resource.GetAllObjects("mail_server", transaction)
 
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 	hosts := []string{}
 
 	sourceDirectoryName := "daptin-certs"
-	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
+	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 
 	for _, server := range servers {
 
@@ -40,7 +40,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostname := server["hostname"].(string)
-		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := certificateManager.GetTLSConfig(hostname, true)
+		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
@@ -56,16 +56,16 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		//}
 
-		err = ioutil.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes)), 0666)
+		err = os.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes)), 0666)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
-		err = ioutil.WriteFile(rootCaFile, []byte(string(rootCertBytes)), 0666)
+		err = os.WriteFile(rootCaFile, []byte(rootCertBytes), 0666)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
 
-		err = ioutil.WriteFile(privateKeyFilePath, privatePEMBytes, 0666)
+		err = os.WriteFile(privateKeyFilePath, privatePEMBytes, 0666)
 		//err = ioutil.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
 
 		if err != nil {

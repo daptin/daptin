@@ -13,8 +13,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-/**
-  Become administrator of daptin action implementation
+/*
+*
+
+	Become administrator of daptin action implementation
 */
 type integrationInstallationPerformer struct {
 	cruds            map[string]*DbResource
@@ -36,7 +38,7 @@ func (d *integrationInstallationPerformer) Name() string {
 func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
 	referenceId := inFieldMap["reference_id"].(string)
-	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceId("integration", referenceId, nil)
+	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceIdWithTransaction("integration", referenceId, nil, transaction)
 
 	spec, ok := integration["specification"]
 	if !ok || spec == "" {
@@ -228,15 +230,15 @@ func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap 
 
 	err = UpdateActionTable(&CmsConfig{
 		Actions: actions,
-	}, d.cruds["action"].Connection)
+	}, transaction)
 
 	return nil, []ActionResponse{}, []error{err}
 }
 
 // Create a new action performer for becoming administrator action
-func NewIntegrationInstallationPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) (ActionPerformerInterface, error) {
+func NewIntegrationInstallationPerformer(initConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
 
-	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		log.Errorf("Failed to get encryption secret from config store: %v", err)
 	}

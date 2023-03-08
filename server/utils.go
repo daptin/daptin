@@ -17,21 +17,21 @@ import (
 	"strings"
 )
 
-func CheckSystemSecrets(store *resource.ConfigStore) error {
-	jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend")
+func CheckSystemSecrets(store *resource.ConfigStore, transaction *sqlx.Tx) error {
+	jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend", transaction)
 	if err != nil {
 		u, _ := uuid.NewV4()
 		jwtSecret = u.String()
-		err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend")
+		err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend", transaction)
 		resource.CheckErr(err, "Failed to store jwt secret")
 	}
 
-	encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend")
+	encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend", transaction)
 
 	if err != nil || len(encryptionSecret) < 10 {
 		u, _ := uuid.NewV4()
 		newSecret := strings.Replace(u.String(), "-", "", -1)
-		err = store.SetConfigValueFor("encryption.secret", newSecret, "backend")
+		err = store.SetConfigValueFor("encryption.secret", newSecret, "backend", transaction)
 	}
 	return err
 
@@ -121,11 +121,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 		log.Printf("Failed to select from world table: %v", err)
 		return ts, err
 	}
-	defer func() {
-		err = res.Close()
-		resource.CheckErr(err, "Failed to close db result")
-	}()
-
+	defer res.Close()
 	for res.Next() {
 		var table_name string
 		var permission int64
@@ -286,7 +282,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 func CleanUpConfigFiles() {
 
 	files, _ := filepath.Glob("*_uploaded_*")
-	log.Printf("Clean up uploaded config files: %v", files)
+	log.Debugf("Clean up uploaded config files: %v", files)
 
 	for _, fileName := range files {
 		err := os.Remove(fileName)
@@ -298,7 +294,7 @@ func CleanUpConfigFiles() {
 
 	for _, fileName := range files {
 		err := os.Remove(fileName)
-		log.Printf("Deleted config files: %v", fileName)
+		log.Infof("Deleted config files: %v", fileName)
 		resource.CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
 	}
 

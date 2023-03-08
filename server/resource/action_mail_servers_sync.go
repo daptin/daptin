@@ -25,14 +25,14 @@ func (d *mailServersSyncActionPerformer) Name() string {
 
 func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
-	if (d.mailDaemon == nil || d.mailDaemon.Backend == nil) {
+	if d.mailDaemon == nil || d.mailDaemon.Backend == nil {
 		log.Warnf("mail daemon was not initialized, returning without any outcome")
 		return nil, []ActionResponse{}, []error{}
 	}
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
 
-	servers, err := d.cruds["mail_server"].GetAllObjects("mail_server")
+	servers, err := d.cruds["mail_server"].GetAllObjects("mail_server", transaction)
 
 	if err != nil {
 		return nil, []ActionResponse{}, []error{err}
@@ -57,7 +57,7 @@ func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostname := server["hostname"].(string)
-		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := d.certificateManager.GetTLSConfig(hostname, true)
+		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)

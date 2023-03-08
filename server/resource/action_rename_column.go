@@ -37,7 +37,7 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 			Method: "GET",
 		},
 	}
-	tableObj, err := d.cruds["world"].GetObjectByWhereClause("world", "table_name", worldName)
+	tableObj, err := d.cruds["world"].GetObjectByWhereClause("world", "table_name", worldName, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -70,7 +70,7 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 
 	schemaJson, err = json.Marshal(tableSchema)
 
-	_, err = d.cruds["world"].db.Exec("alter table " + tableSchema.TableName + " rename column " + columnToRename + " to " + columnToNew)
+	_, err = transaction.Exec("alter table " + tableSchema.TableName + " rename column " + columnToRename + " to " + columnToNew)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
