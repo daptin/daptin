@@ -31,6 +31,7 @@ require (
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.4.10
 	github.com/corpix/uarand v0.0.0 // indirect
+	github.com/crazy-max/xgo v0.26.0 // indirect
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
 	github.com/doug-martin/goqu/v9 v9.11.0
@@ -84,6 +85,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/klauspost/compress v1.15.12 // indirect
 	github.com/kniren/gota v0.10.1 // indirect
+	github.com/kolaente/xgo v0.0.0-20181007145344-72da7d1d3970 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/gommon v0.2.8 // indirect
 	github.com/lib/pq v1.10.4

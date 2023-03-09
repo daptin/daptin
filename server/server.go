@@ -595,11 +595,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		transaction, err = db.Beginx()
 		err = resource.CreateDefaultLocalStorage(transaction, localStoragePath)
 		if err != nil {
-			transaction.Commit()
-		} else {
+			log.Errorf("Failed to create default local storage: [%v]", err)
 			transaction.Rollback()
+		} else {
+			transaction.Commit()
 		}
 		resource.CheckErr(err, "Failed to create default local storage at %v", localStoragePath)
+	} else {
+		log.Tracef("Not creating default local storage")
 	}
 
 	transaction, err = db.Beginx()

@@ -336,6 +336,8 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 			OlricCache.PutIfEx(cacheKey, asJson, 10*time.Minute, olric.IfNotFound)
 			//CheckErr(cachePutErr, "[336] failed to store cloud store in cache")
 		}
+	} else {
+		return cloudStore, fmt.Errorf("cloud store not found [%v]", name)
 	}
 
 	return cloudStore, nil

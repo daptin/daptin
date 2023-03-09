@@ -11,7 +11,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	sync2 "sync"
 	"time"
 
@@ -148,7 +147,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 
 			os.MkdirAll(tempDirectoryPath, 0600)
 
-			err = ioutil.WriteFile(temproryFilePath, fileBytes, 0666)
+			err = os.WriteFile(temproryFilePath, fileBytes, 0666)
 			CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
 
 			if EndsWithCheck(fileName, ".zip") {
@@ -180,13 +179,13 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 		tempDirectoryPath,
 		rootPath,
 	}
-	log.Printf("Upload source target %v %v", tempDirectoryPath, rootPath)
+	log.Infof("Upload source target %v %v", tempDirectoryPath, rootPath)
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
 	oauthTokenId1 := inFields["oauth_token_id"]
 	if oauthTokenId1 == nil {
-		log.Printf("No oauth token set for target store")
+		log.Infof("No oauth token set for target store")
 	} else {
 		oauthTokenId := oauthTokenId1.(string)
 		token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)

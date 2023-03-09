@@ -3446,7 +3446,7 @@ func (dbResource *DbResource) GetFileFromLocalCloudStore(tableName string, colum
 
 	assetFolder, ok := dbResource.AssetFolderCache[tableName][columnName]
 	if !ok {
-		return nil, errors.New("not a synced folder")
+		return nil, fmt.Errorf("not a synced folder [%v][%v]", tableName, columnName)
 	}
 
 	for _, fileItem := range filesList {
