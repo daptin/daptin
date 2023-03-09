@@ -1710,7 +1710,7 @@ func (dbResource *DbResource) GetUserById(userId int64, transaction *sqlx.Tx) (m
 
 func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName string, referenceId string,
 	includedRelations map[string]bool, transaction *sqlx.Tx) (map[string]interface{}, []map[string]interface{}, error) {
-	//log.Printf("Get single row by id: [%v][%v]", typeName, referenceId)
+	log.Tracef("Get single row by id: [%v][%v]", typeName, referenceId)
 	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
 	if err != nil {
 		log.Errorf("failed to create select query by ref id: %v", referenceId)

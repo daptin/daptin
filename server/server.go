@@ -347,6 +347,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 				typeName := pathParts[0]
 				referenceId := pathParts[1]
 				columnName := pathParts[2]
+				if transaction == nil {
+					log.Tracef("start transaction for GetDocumentInitialContent")
+					transaction, err = cruds[typeName].Connection.Beginx()
+					if err != nil {
+						return nil
+					}
+					defer transaction.Rollback()
+				}
 
 				object, _, _ := cruds[typeName].GetSingleRowByReferenceIdWithTransaction(typeName, referenceId, map[string]bool{
 					columnName: true,
@@ -369,6 +377,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 				}
 
+				log.Debugf("Completed get initial content for document: %v", documentPath)
 				return fileContentsJson
 			},
 			SetDocumentInitialContent: nil,
@@ -764,6 +773,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 				ginContext.AbortWithStatus(403)
 			}
 
+			log.Tracef("Handle new YJS client")
 			yjsConnectionHandler(ginContext.Writer, ginContext.Request)
 
 		})
@@ -792,11 +802,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 								return
 							}
 
-							defer transaction.Commit()
-
 							object, _, _ := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, referenceId, map[string]bool{
 								columnInfo.ColumnName: true,
 							}, transaction)
+							transaction.Rollback()
 							log.Tracef("Completed dtopicMapListener GetSingleRowByReferenceIdWithTransaction")
 
 							colValue := object[columnInfo.ColumnName]
@@ -844,8 +853,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 							return
 						}
 
-						defer tx.Rollback()
 						object, _, err := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, referenceId, nil, tx)
+						tx.Rollback()
 						if err != nil {
 							ginContext.AbortWithStatus(404)
 							return
