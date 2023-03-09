@@ -51,11 +51,11 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		CheckErr(err, "Failed to begin transaction [51]")
 		return nil, err
 	}
+	defer transaction.Commit()
 	userMailAccount, err := userAccountResource.GetUserMailAccountRowByEmail(username, transaction)
 	if err != nil {
 		return nil, err
 	}
-	defer transaction.Commit()
 
 	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account", userMailAccount["user_account_id"].(string), nil, transaction)
 	userId, _ := userAccount["id"].(int64)

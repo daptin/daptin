@@ -259,15 +259,17 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	}()
 
 	configStore, err = resource.NewConfigStore(db)
+	transaction := db.MustBegin()
 	resource.CheckErr(err, "failed to create config store")
-	configStore.SetConfigValueFor("graphql.enable", "true", "backend")
-	configStore.SetConfigValueFor("ftp.enable", "true", "backend")
-	configStore.SetConfigValueFor("ftp.listen_interface", "0.0.0.0:2121", "backend")
-	configStore.SetConfigValueFor("imap.enabled", "true", "backend")
-	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend")
-	configStore.SetConfigValueFor("logs.enable", "true", "backend")
-	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend")
-	configStore.SetConfigValueFor("limit.rate", "5000", "backend")
+	configStore.SetConfigValueFor("graphql.enable", "true", "backend", transaction)
+	configStore.SetConfigValueFor("ftp.enable", "true", "backend", transaction)
+	configStore.SetConfigValueFor("ftp.listen_interface", "0.0.0.0:2121", "backend", transaction)
+	configStore.SetConfigValueFor("imap.enabled", "true", "backend", transaction)
+	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend", transaction)
+	configStore.SetConfigValueFor("logs.enable", "true", "backend", transaction)
+	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend", transaction)
+	configStore.SetConfigValueFor("limit.rate", "5000", "backend", transaction)
+	transaction.Commit()
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local", olricDb)
 
@@ -295,7 +297,8 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	})
 
 	name, _ := os.Hostname()
-	certManager.GetTLSConfig(name, true)
+	transaction = db.MustBegin()
+	certManager.GetTLSConfig(name, true, transaction)
 
 	log.Infof("Listening at port: %v", *port)
 

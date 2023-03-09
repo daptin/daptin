@@ -695,7 +695,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 	}
 	pr := pr1.WithContext(ctx)
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(transaction)
-	adminUser, err := cruds["world"].GetIdToObject(USER_ACCOUNT_TABLE_NAME, adminUserId)
+	adminUser, err := cruds["world"].GetIdToObject(USER_ACCOUNT_TABLE_NAME, adminUserId, transaction)
 	if err != nil {
 		log.Errorf("No admin user present")
 	} else {
@@ -770,7 +770,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 					log.Errorf("%s is not a defined entity", typeName)
 					continue
 				}
-				errs := ImportDataMapArray(data, crud, req)
+				errs := ImportDataMapArray(data, crud, req, transaction)
 				if len(errs) > 0 {
 					for _, err := range errs {
 						log.Warnf("Warning while importing json data in update 701: %v", err)
@@ -795,7 +795,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 					log.Errorf("%s is not a defined entity", typeName)
 					continue
 				}
-				errs := ImportDataMapArray(data, crud, req)
+				errs := ImportDataMapArray(data, crud, req, transaction)
 				if len(errs) > 0 {
 					for _, err := range errs {
 						log.Warnf("Warning while importing json data in update 701: %v", err)
@@ -817,7 +817,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 			}
 
 			//importSuccess = true
-			errors1 := ImportDataMapArray(data, dbResource, req)
+			errors1 := ImportDataMapArray(data, dbResource, req, transaction)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {
 					log.Errorf("Error while importing json data: %v", err)
@@ -838,7 +838,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 			for i, h := range header {
 				header[i] = SmallSnakeCaseText(h)
 			}
-			errors1 := ImportDataStringArray(data, header, importFile.Entity, dbResource, req)
+			errors1 := ImportDataStringArray(data, header, importFile.Entity, dbResource, req, transaction)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {
 					log.Warnf("Warning while importing json data: %v", err)
@@ -858,18 +858,11 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 
 }
 
-func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request) []error {
+func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request, transaction *sqlx.Tx) []error {
 	errs := make([]error, 0)
 
 	uniqueColumns := make([]api2go.ColumnInfo, 0)
 
-	transaction, err := crud.Connection.Beginx()
-	if err != nil {
-		CheckErr(err, "Failed to begin transaction [868]")
-		return []error{err}
-	}
-
-	defer transaction.Commit()
 	for _, col := range crud.TableInfo().Columns {
 
 		if col.IsUnique {
@@ -926,18 +919,11 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 	return errs
 }
 
-func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request) []error {
+func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request, transaction *sqlx.Tx) []error {
 	errs := make([]error, 0)
 
 	uniqueColumns := make([]api2go.ColumnInfo, 0)
 
-	transaction, err := crud.Connection.Beginx()
-	if err != nil {
-		CheckErr(err, "Failed to begin transaction [936]")
-		return []error{err}
-	}
-
-	defer transaction.Commit()
 	for _, col := range crud.TableInfo().Columns {
 
 		if col.IsUnique {

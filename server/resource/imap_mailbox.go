@@ -65,14 +65,18 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 	//	iMap[item] = true
 	//}
 
-	mbsCurrent, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId)
+	transaction, err := dimb.dbResource["mail_box"].Connection.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	mbsCurrent, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, transaction)
 	dimb.status = mbsCurrent
 
 	mbs := imap.NewMailboxStatus(dimb.name, items)
 	mbs.Flags = dimb.status.Flags
 	mbs.PermanentFlags = dimb.status.PermanentFlags
 
-	mbs.UnseenSeqNum = dimb.dbResource["mail_box"].GetFirstUnseenMailSequence(dimb.mailBoxId)
+	mbs.UnseenSeqNum = dimb.dbResource["mail_box"].GetFirstUnseenMailSequence(dimb.mailBoxId, transaction)
 	//vals := make([]interface{}, 0)
 	for _, item := range items {
 		switch imap.StatusItem(item) {
@@ -83,7 +87,7 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 		case imap.StatusUnseen:
 			mbs.Unseen = dimb.status.Unseen
 		case imap.StatusUidNext:
-			nextUid, _ := dimb.dbResource["mail_box"].GetMailboxNextUid(dimb.mailBoxId)
+			nextUid, _ := dimb.dbResource["mail_box"].GetMailboxNextUid(dimb.mailBoxId, transaction)
 			mbs.UidNext = nextUid
 		case imap.StatusUidValidity:
 			mbs.UidValidity = dimb.status.UidValidity
@@ -95,7 +99,11 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 // SetSubscribed adds or removes the mailbox to the server's set of "active"
 // or "subscribed" mailboxes.
 func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
-	return dimb.dbResource["mail_box"].SetMailBoxSubscribed(dimb.mailAccountId, dimb.name, subscribed)
+	transaction, err := dimb.dbResource["mail_box"].Connection.Beginx()
+	if err != nil {
+		return err
+	}
+	return dimb.dbResource["mail_box"].SetMailBoxSubscribed(dimb.mailAccountId, dimb.name, subscribed, transaction)
 }
 
 // Check requests a checkpoint of the currently selected mailbox. A checkpoint
@@ -106,7 +114,11 @@ func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
 // considerations, CHECK is equivalent to NOOP.
 func (dimb *DaptinImapMailBox) Check() error {
 
-	box, err := dimb.dbResource["mail_box"].GetAllObjectsWithWhere("mail_box",
+	transaction, err := dimb.dbResource["mail_box"].Connection.Beginx()
+	if err != nil {
+		return err
+	}
+	box, err := dimb.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
 			"mail_account_id": dimb.mailAccountId,
 			"name":            dimb.name,
@@ -122,7 +134,7 @@ func (dimb *DaptinImapMailBox) Check() error {
 		Name:       box[0]["name"].(string),
 	}
 
-	newStatus, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId)
+	newStatus, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, transaction)
 	newStatus.Name = dimb.name
 	dimb.status = newStatus
 
@@ -143,7 +155,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 		var mails []map[string]interface{}
 		var err error
 		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, nil)
 		} else {
 			startAt := seq.Start
 			stopAt := seq.Stop
@@ -162,7 +174,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 				continue
 			}
 
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, startAt, stopAt)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, startAt, stopAt, nil)
 		}
 
 		if err != nil {
@@ -385,8 +397,6 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	}
 	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest, transaction)
 
-	transaction.Commit()
-
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +405,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	log.Printf("Mail search results: %v", results)
 	for i, res := range results {
 		if uid {
-			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail", res["reference_id"].(string))
+			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail", res["reference_id"].(string), transaction)
 			if err != nil {
 				CheckErr(err, "Failed to get id from reference id")
 				continue
@@ -405,6 +415,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 			ids = append(ids, uint32(i+1))
 		}
 	}
+	transaction.Commit()
 
 	return ids, nil
 }
@@ -589,9 +600,9 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 	var err error
 	for _, seq := range seqset.Set {
 		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, nil)
 		} else {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, seq.Start, seq.Stop)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, seq.Start, seq.Stop, nil)
 		}
 
 		if err != nil {
@@ -657,9 +668,9 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 	for _, set := range seqset.Set {
 
 		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, set.Start, set.Stop)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, set.Start, set.Stop, transaction)
 		} else {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, set.Start, set.Stop)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, set.Start, set.Stop, transaction)
 		}
 
 		if err != nil {

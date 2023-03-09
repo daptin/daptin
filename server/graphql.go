@@ -689,8 +689,13 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					req := api2go.Request{
 						PlainRequest: pr,
 					}
+					transaction, err := resources[table.TableName].Connection.Beginx()
+					if err != nil {
+						return nil, err
+					}
+					defer transaction.Commit()
 
-					created, err := resources[table.TableName].Create(obj, req)
+					created, err := resources[table.TableName].CreateWithTransaction(obj, req, transaction)
 
 					if err != nil {
 						return nil, err
@@ -735,7 +740,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					transaction, err := resources[table.TableName].Connection.Beginx()
 					if err != nil {
-						transaction.Rollback()
 						return nil, err
 					}
 
@@ -814,7 +818,13 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						PlainRequest: pr,
 					}
 
-					_, err := resources[table.TableName].Delete(params.Args["reference_id"].(string), req)
+					transaction, err := resources[table.TableName].Connection.Beginx()
+					if err != nil {
+						return nil, err
+					}
+					defer transaction.Commit()
+
+					_, err = resources[table.TableName].DeleteWithTransaction(params.Args["reference_id"].(string), req, transaction)
 
 					if err != nil {
 						return nil, err
@@ -885,7 +895,12 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						Attributes: params.Args,
 					}
 
-					response, err := resources[action.OnType].HandleActionRequest(actionRequest, req, nil)
+					transaction, err := resources[action.OnType].Connection.Beginx()
+					if err != nil {
+						return nil, err
+					}
+					defer transaction.Commit()
+					response, err := resources[action.OnType].HandleActionRequest(actionRequest, req, transaction)
 
 					return response, err
 				},

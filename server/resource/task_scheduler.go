@@ -81,14 +81,14 @@ func (ati *ActiveTaskInstance) Run() {
 	log.Printf("Execute task 81 [%v][%v] as user [%v]", ati.Task.ReferenceId, ati.Task.ActionName, ati.Task.AsUserEmail)
 
 	sessionUser := &auth.SessionUser{}
+	transaction, err := ati.DbResource.Connection.Beginx()
+	if err != nil {
+		CheckErr(err, "Failed to begin transaction [88]")
+	}
 
+	defer transaction.Commit()
 	if ati.Task.AsUserEmail != "" {
-		transaction, err := ati.DbResource.Connection.Beginx()
-		if err != nil {
-			CheckErr(err, "Failed to begin transaction [88]")
-		}
 
-		defer transaction.Commit()
 		permission, err := ati.DbResource.GetObjectByWhereClause(USER_ACCOUNT_TABLE_NAME, "email", ati.Task.AsUserEmail, transaction)
 		CheckErr(err, "Failed to load user by email [%v]", ati.Task.AsUserEmail)
 		//log.Printf("Loaded user permission: %v", permission)
@@ -109,7 +109,7 @@ func (ati *ActiveTaskInstance) Run() {
 	req := api2go.Request{
 		PlainRequest: pr,
 	}
-	_, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req, nil)
+	_, err = ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req, transaction)
 
 	if err != nil {
 		log.Errorf("Errors while executing action 109: %v", err)

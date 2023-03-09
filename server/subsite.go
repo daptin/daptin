@@ -62,7 +62,7 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource, transaction *s
 				tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), tableName+"_"+columnName)
 
 				if cloudStore.StoreProvider != "local" {
-					err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath, nil)
+					err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath, transaction)
 					if resource.CheckErr(err, "Failed to setup sync to path for table column [%v][%v]", tableName, column.ColumnName) {
 						continue
 					}

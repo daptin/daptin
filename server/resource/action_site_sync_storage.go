@@ -70,7 +70,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 		tempDirectoryPath = siteCacheFolder.LocalSyncPath
 	}
 
-	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceId("site", siteId, nil)
+	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceIdWithTransaction("site", siteId, nil, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

@@ -73,7 +73,11 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 // Returns the user mail account box row of a user
 func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
 
-	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+	transaction, err := dbResource.Cruds["mail_box"].Connection.Beginx()
+	if err != nil {
+		return err
+	}
+	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
 			"mail_account_id": mailAccountId,
 			"name":            mailBoxName,
@@ -88,7 +92,7 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 	if err != nil {
 		return err
 	}
@@ -98,7 +102,7 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 
 	return err
 
@@ -107,7 +111,12 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 // Returns the user mail account box row of a user
 func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
 
-	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhere("mail_box",
+	transaction, err := dbResource.Cruds["mail_box"].Connection.Beginx()
+	if err != nil {
+		return err
+	}
+
+	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
 			"mail_account_id": mailAccountId,
 			"name":            oldBoxName,
@@ -125,14 +134,14 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 
 	return err
 
 }
 
 // Returns the user mail account box row of a user
-func (dbResource *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool) error {
+func (dbResource *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool, transaction *sqlx.Tx) error {
 
 	query, args, err := statementbuilder.Squirrel.
 		Update("mail_box").
@@ -145,7 +154,7 @@ func (dbResource *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxN
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = transaction.Exec(query, args...)
 
 	return err
 

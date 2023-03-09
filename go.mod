@@ -47,7 +47,7 @@ require (
 	github.com/go-playground/locales v0.13.0
 	github.com/go-playground/universal-translator v0.17.0
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
-	github.com/go-sql-driver/mysql v1.5.0
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobuffalo/flect v0.2.4
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
@@ -72,7 +72,7 @@ require (
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
 	github.com/jlaffaye/ftp v0.0.0-20220524001917-dfa1e758f3af
-	github.com/jmoiron/sqlx v0.0.0-20181024163419-82935fac6c1a
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/json-iterator/go v1.1.12
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kniren/gota v0.10.1 // indirect

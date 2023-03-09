@@ -422,7 +422,7 @@ func (dbResource *DbResource) GetAdminEmailId(transaction *sqlx.Tx) string {
 	}
 }
 
-func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -439,7 +439,7 @@ func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uin
 		return nil, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(query)
+	stmt1, err := transaction.Preparex(query)
 	if err != nil {
 		log.Errorf("[275] failed to prepare statment: %v", err)
 	}
@@ -456,14 +456,14 @@ func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uin
 		return nil, err
 	}
 
-	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil)
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
 	row.Close()
 
 	return m, err
 
 }
 
-func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32) ([]map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -486,7 +486,7 @@ func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, star
 		return nil, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(query)
+	stmt1, err := transaction.Preparex(query)
 	if err != nil {
 		log.Errorf("[322] failed to prepare statment: %v", err)
 	}
@@ -503,14 +503,14 @@ func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, star
 		return nil, err
 	}
 
-	m, _, err := dbResource.ResultToArrayOfMap(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil)
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
 	row.Close()
 
 	return m, err
 
 }
 
-func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64) (*imap.MailboxStatus, error) {
+func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64, transaction *sqlx.Tx) (*imap.MailboxStatus, error) {
 
 	var unseenCount uint32
 	var recentCount uint32
@@ -526,7 +526,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 		return nil, e4
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(q4)
+	stmt1, err := transaction.Preparex(q4)
 	if err != nil {
 		log.Errorf("[362] failed to prepare statment: %v", err)
 	}
@@ -544,7 +544,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 		return nil, e1
 	}
 
-	stmt1, err = dbResource.Connection.Preparex(q1)
+	stmt1, err = transaction.Preparex(q1)
 	if err != nil {
 		log.Errorf("[384] failed to prepare statment: %v", err)
 	}
@@ -562,7 +562,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 		return nil, e2
 	}
 
-	stmt1, err = dbResource.Connection.Preparex(q2)
+	stmt1, err = transaction.Preparex(q2)
 	if err != nil {
 		log.Errorf("[405] failed to prepare statment: %v", err)
 	}
@@ -579,7 +579,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 		return nil, e3
 	}
 
-	stmt1, err = dbResource.Connection.Preparex(q3)
+	stmt1, err = transaction.Preparex(q3)
 	if err != nil {
 		log.Errorf("[425] failed to prepare statment: %v", err)
 	}
@@ -588,7 +588,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	r3 := stmt1.QueryRowx(v3...)
 	r3.Scan(&uidValidity)
 
-	uidNext, _ = dbResource.GetMailboxNextUid(mailBoxId)
+	uidNext, _ = dbResource.GetMailboxNextUid(mailBoxId, transaction)
 
 	st := imap.NewMailboxStatus("", []imap.StatusItem{imap.StatusUnseen, imap.StatusMessages, imap.StatusRecent, imap.StatusUidNext, imap.StatusUidValidity})
 
@@ -603,7 +603,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	return st, err
 }
 
-func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32 {
+func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64, transaction *sqlx.Tx) uint32 {
 
 	query, args, err := statementbuilder.Squirrel.Select(goqu.L("min(id)")).From("mail").Where(
 		goqu.Ex{
@@ -616,17 +616,11 @@ func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64) uint32
 	}
 
 	var id uint32
-	stmt1, err := dbResource.Connection.Preparex(query)
+	stmt1, err := transaction.Preparex(query)
 	if err != nil {
 		log.Errorf("[465] failed to prepare statment: %v", err)
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
+	defer stmt1.Close()
 	row := stmt1.QueryRowx(args...)
 	if row.Err() != nil {
 		return 0
@@ -755,7 +749,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
 }
 
-func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error) {
+func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
 
 	var uidNext int64
 	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Where(goqu.Ex{
@@ -766,18 +760,12 @@ func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64) (uint32, error)
 		return 1, e5
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(q5)
+	stmt1, err := transaction.Preparex(q5)
 	if err != nil {
 		log.Errorf("[615] failed to prepare statment: %v", err)
 		return 0, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
+	defer stmt1.Close()
 	r5 := stmt1.QueryRowx(v5...)
 	err = r5.Scan(&uidNext)
 	return uint32(int32(uidNext) + 1), err
