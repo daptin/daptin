@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 // Get the latest release from a github project
@@ -220,7 +221,7 @@ func getAsset(project string, matchName *regexp.Regexp) (string, string) {
 // This doesn't use the API so isn't rate limited when not using GITHUB login details
 func getAssetFromReleasesPage(project string, matchName *regexp.Regexp) (assetURL string, assetName string) {
 	baseURL := "https://github.com/" + project + "/releases"
-	log.Printf("Fetching asset info for %q from %q", project, baseURL)
+	log.Printf("Fetching asset info for %q from %q matching name [%s]", project, baseURL, matchName)
 	base, err := url.Parse(baseURL)
 	if err != nil {
 		log.Fatalf("URL Parse failed: %v", err)
@@ -243,6 +244,7 @@ func getAssetFromReleasesPage(project string, matchName *regexp.Regexp) (assetUR
 		if n.Type == html.ElementNode && n.Data == "a" {
 			for _, a := range n.Attr {
 				if a.Key == "href" {
+					log.Printf("href: " + a.Val + " => " + path.Base(a.Val))
 					if name := path.Base(a.Val); matchName.MatchString(name) && isOurOsArch(name) {
 						if u, err := rest.URLJoin(base, a.Val); err == nil {
 							if assetName == "" {
@@ -279,7 +281,9 @@ func isOurOsArch(s string) bool {
 		}
 		return false
 	}
-	return check(runtime.GOARCH, archAliases) && check(runtime.GOOS, osAliases)
+	isMatch := check(runtime.GOARCH, archAliases) && check(runtime.GOOS, osAliases)
+	log.Printf("[%v][%v] vs [%v][%v] is match => %v", archAliases, osAliases, runtime.GOARCH, runtime.GOOS, isMatch)
+	return isMatch
 }
 
 // get a file for download
