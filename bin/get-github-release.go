@@ -241,6 +241,10 @@ func getAssetFromReleasesPage(project string, matchName *regexp.Regexp) (assetUR
 	}
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
+		if assetName != "" && assetURL != "" {
+			return
+		}
+
 		if n.Type == html.ElementNode && n.Data == "a" {
 			for _, a := range n.Attr {
 				if a.Key == "href" {
