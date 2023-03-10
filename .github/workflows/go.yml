@@ -110,7 +110,7 @@ jobs:
         shell: powershell
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          choco install -y winfsp zip
+          choco install -y winfsp zip wget
         if: matrix.os == 'windows-latest'
 
       - name: Print Go version and environment
@@ -368,7 +368,7 @@ jobs:
           go env
           ls -lah
           $GOPATH/bin/xgo -targets=darwin/amd64,linux/amd64,linux/arm64,windows/amd64 \
-              --tags netgo -ldflags="-linkmode external $(govvv -flags)" -dest build .
+              --tags netgo -ldflags="-linkmode external" -dest build .
 
 
       - name: List built artifacts
