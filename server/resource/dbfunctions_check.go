@@ -5,7 +5,6 @@ import (
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/database"
-	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -297,17 +296,12 @@ func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) 
 
 		if !tableCreatedMap[table.TableName] {
 			log.Tracef("Check table %v", table.TableName)
-			transaction, err := db.Beginx()
-			err = CheckTable(&table, db, transaction)
+			err := CheckTable(&table, db)
 			if err != nil {
-				err = transaction.Rollback()
-				CheckErr(err, "Failed to rollback create table txn after failure")
-				transaction, err = db.Beginx()
+				CheckErr(err, "Failed to check and create table: [%v]", table.TableName)
 			} else {
 				tables = append(tables, table)
-				err = transaction.Commit()
 				CheckErr(err, "Failed to commit create table txn after failure")
-				tableCreatedMap[table.TableName] = true
 			}
 		}
 	}
@@ -349,7 +343,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 	return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, transaction *sqlx.Tx) error {
+func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection) error {
 
 	for i, c := range tableInfo.Columns {
 		if c.ColumnType == "truefalse" {
@@ -409,7 +403,7 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection, transactio
 				//continue
 			}
 
-			query := alterTableAddColumn(tableInfo.TableName, &info, transaction.DriverName())
+			query := alterTableAddColumn(tableInfo.TableName, &info, db.DriverName())
 			log.Printf("Alter query: %v", query)
 			_, err := db.Exec(query)
 			if err != nil {
