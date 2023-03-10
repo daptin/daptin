@@ -222,6 +222,9 @@ func getAsset(project string, matchName *regexp.Regexp) (string, string) {
 func getAssetFromReleasesPage(project string, matchName *regexp.Regexp) (assetURL string, assetName string) {
 	baseURL := "https://github.com/" + project + "/releases"
 	log.Printf("Fetching asset info for %q from %q matching name [%s]", project, baseURL, matchName)
+	if project == "github-release/github-release" {
+		return "https://github.com/github-release/github-release/releases/download/v0.10.0/linux-amd64-github-release.bz2", "linux-amd64-github-release.bz2"
+	}
 	base, err := url.Parse(baseURL)
 	if err != nil {
 		log.Fatalf("URL Parse failed: %v", err)

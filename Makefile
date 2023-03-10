@@ -90,7 +90,7 @@ build_dep:
 # Get the release dependencies
 release_dep:
 	go run bin/get-github-release.go -extract nfpm goreleaser/nfpm 'nfpm_.*_Linux_x86_64.tar.gz'
-	go run bin/get-github-release.go -extract github-release aktau/github-release 'linux-amd64-github-release.tar.bz2'
+	go run bin/get-github-release.go -extract github-release github-release/github-release 'linux-amd64-github-release.bz2'
 
 # Update dependencies
 update:
@@ -194,14 +194,8 @@ endif
 	@echo Beta release ready at $(BETA_URL)/testbuilds
 
 travis_beta:
-ifeq (linux,$(filter linux,$(subst Linux,linux,$(TRAVIS_OS_NAME) $(AGENT_OS))))
-	go run bin/get-github-release.go -extract nfpm goreleaser/nfpm 'nfpm_.*\.tar.gz'
-endif
 	git log $(LAST_TAG).. > /tmp/git-log.txt
 	go run bin/cross-compile.go -release beta-latest -git-log /tmp/git-log.txt $(BUILD_FLAGS) $(BUILDTAGS) $(TAG)
-ifndef BRANCH_PATH
-endif
-	@echo Beta release ready at $(BETA_URL)
 
 # Fetch the binary builds from travis and appveyor
 fetch_binaries:
