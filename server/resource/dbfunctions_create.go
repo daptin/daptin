@@ -733,13 +733,13 @@ func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriver
 	return sq
 }
 
-func CreateTable(tableInfo *TableInfo, db *sqlx.Tx) error {
+func CreateTable(tableInfo *TableInfo, db database.DatabaseConnection) error {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
 	log.Debugf("Create table query: %v", tableInfo.TableName)
 	if len(tableInfo.TableName) < 2 {
-		log.Printf("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
+		log.Tracef("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
 		return nil
 	}
 	log.Debugf(createTableQuery)
