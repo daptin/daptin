@@ -29,7 +29,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/artpar/rclone/lib/rest"
 	"golang.org/x/net/html"
 	"golang.org/x/sys/unix"
 )
@@ -246,10 +245,15 @@ func getAssetFromReleasesPage(project string, matchName *regexp.Regexp) (assetUR
 				if a.Key == "href" {
 					log.Printf("href: " + a.Val + " => " + path.Base(a.Val))
 					if name := path.Base(a.Val); matchName.MatchString(name) && isOurOsArch(name) {
-						if u, err := rest.URLJoin(base, a.Val); err == nil {
+						u, err := rest.URLJoin(base, a.Val)
+						if err != nil {
+							log.Printf("Failed to make url: " + err)
+						}
+						if err == nil {
 							if assetName == "" {
 								assetName = name
 								assetURL = u.String()
+								log.Printf("Set assetname [%v] [%v] ", assetName, assetURL)
 							}
 						}
 					}
