@@ -158,6 +158,7 @@ jobs:
           go get github.com/ahmetb/govvv
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH/bin/rice embed-go
+          go get
           ls -lah
 
       - name: Build and push docker image
@@ -182,7 +183,7 @@ jobs:
       - name: Build and deploy built binaries
         shell: bash
         run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
+#          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then make release_dep ; fi
           make travis_beta
           ls -lah build/
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
