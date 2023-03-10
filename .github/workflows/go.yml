@@ -158,6 +158,7 @@ jobs:
           go get github.com/ahmetb/govvv
           go install github.com/ahmetb/govvv
           go install github.com/GeertJohan/go.rice/rice
+          go install github.com/goreleaser/nfpm/cmd/nfpm@latest
           $GOPATH/bin/rice embed-go
           go get
           ls -lah
@@ -340,7 +341,7 @@ jobs:
 #          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mipsle
 #          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64
 #          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64le
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-amd64.exe
 #          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-4.0-386.exe
 
 
@@ -427,8 +428,8 @@ jobs:
       - uses: actions/upload-artifact@v1
         name: Upload windows 64 artifact
         with:
-          name: daptin-windows-4.0-amd64.exe
-          path: build/github.com/daptin/daptin-windows-4.0-amd64.exe
+          name: daptin-windows-amd64.exe
+          path: build/github.com/daptin/daptin-windows-amd64.exe
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
@@ -441,7 +442,7 @@ jobs:
             ./build/github.com/daptin/daptin-linux-amd64
             ./build/github.com/daptin/daptin-darwin-amd64
             ./build/github.com/daptin/daptin-linux-arm64
-            ./build/github.com/daptin/daptin-windows-4.0-amd64.exe
+            ./build/github.com/daptin/daptin-windows-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
