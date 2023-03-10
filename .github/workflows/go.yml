@@ -298,6 +298,8 @@ jobs:
         run: |
           echo "GOPATH=${{ runner.workspace }}" >> $GITHUB_ENV
           echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
+          go install github.com/crazy-max/xgo
+
 
 
       - name: Go module cache
@@ -361,7 +363,6 @@ jobs:
       - name: Cross-compile daptin
         run: |
           docker pull crazymax/xgo
-          go install github.com/crazy-max/xgo
           go get github.com/ahmetb/govvv
           pwd
           ls -lah /home/runner/work/daptin
