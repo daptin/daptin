@@ -37,7 +37,7 @@ jobs:
             go: '1.18.x'
             modules: 'on'
             gotags: ''  # cmount doesn't work on osx travis for some reason
-            build_flags: '-include "^darwin/amd64" -cgo'
+            build_flags: '-include "^darwin/" -cgo'
             quicktest: true
             deploy: true
 
