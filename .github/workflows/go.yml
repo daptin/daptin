@@ -359,7 +359,7 @@ jobs:
 
       - name: Cross-compile daptin
         run: |
-          docker pull crazy-max/xgo
+          docker pull crazymax/xgo
           go get github.com/crazy-max/xgo
           go get github.com/ahmetb/govvv
           pwd
