@@ -156,6 +156,7 @@ jobs:
           go get github.com/GeertJohan/go.rice
           go get github.com/GeertJohan/go.rice/rice
           go get github.com/ahmetb/govvv
+          go install github.com/ahmetb/govvv
           go install github.com/GeertJohan/go.rice/rice
           $GOPATH/bin/rice embed-go
           go get
@@ -363,6 +364,7 @@ jobs:
           go get github.com/crazy-max/xgo
           go install github.com/crazy-max/xgo
           go get github.com/ahmetb/govvv
+          go install github.com/ahmetb/govvv
           pwd
           ls -lah /home/runner/work/daptin
           pwd
