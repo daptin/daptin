@@ -359,7 +359,7 @@ jobs:
 
       - name: Cross-compile daptin
         run: |
-          docker pull artpar/xgo
+          docker pull crazy-max/xgo
           go get github.com/crazy-max/xgo
           go get github.com/ahmetb/govvv
           pwd
@@ -367,8 +367,7 @@ jobs:
           pwd
           go env
           ls -lah
-          xgo --docker-image=artpar/xgo \
-              -targets=darwin/amd64,linux/amd64,linux/arm64,windows/amd64 \
+          $GOPATH/bin/xgo -targets=darwin/amd64,linux/amd64,linux/arm64,windows/amd64 \
               --tags netgo -ldflags="-linkmode external $(govvv -flags)" -dest build .
 
 
