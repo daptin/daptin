@@ -1721,11 +1721,11 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	stmt1, err := transaction.Preparex(s)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] SingleRowSelect Preparex: %v", duration)
-	defer stmt1.Close()
 	if err != nil {
 		log.Errorf("[1841] failed to prepare statment - [%v]: %v", s, err)
 		return nil, nil, err
 	}
+	defer stmt1.Close()
 
 	start = time.Now()
 	rows, err := stmt1.Queryx(q...)

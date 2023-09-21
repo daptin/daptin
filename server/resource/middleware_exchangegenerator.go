@@ -72,7 +72,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
-	log.Tracef("Request to intercept in middleware exchange: %v", reqmethod)
+	log.Tracef("Request to intercept in middleware exchange: [%v]", reqmethod)
 
 	for i, resultRow := range results {
 

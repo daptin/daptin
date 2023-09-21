@@ -312,6 +312,7 @@ var apiPaths = map[string]bool{
 
 // Implement the ServerHTTP method on our new type
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Debugf("Serve request: %v", r.URL)
 	// Check if a http.Handler is registered for the given host.
 	// If yes, use it to handle the request.
 	hostName := strings.Split(r.Host, ":")[0]

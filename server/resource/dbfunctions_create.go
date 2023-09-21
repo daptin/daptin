@@ -794,6 +794,8 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 
 func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 
+	log.Warnf("Get column line [%v] => [%v][%v]", c.ColumnName, c.ColumnType, c.DataType)
+
 	datatype := c.DataType
 
 	if datatype == "" {

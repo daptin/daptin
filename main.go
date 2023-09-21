@@ -200,12 +200,12 @@ func main() {
 
 	printVersion()
 
-	log.Infof("Runtime is %s", *runtimeMode)
 	logLevelParsed, err := log.ParseLevel(*logLevel)
 	if err != nil {
 		log.Errorf("invalid log level: %s, setting to info", *logLevel)
 		logLevelParsed = log.InfoLevel
 	}
+	log.Infof("Runtime is [%s], logLevel: [%s]", *runtimeMode, *logLevel)
 	log.SetLevel(logLevelParsed)
 	profileDumpCount := 0
 	if *runtimeMode == "profile" {
@@ -478,11 +478,14 @@ func main() {
 			return
 		}
 
+		transaction := db1.MustBegin()
+		_ = transaction.Rollback()
+		log.Printf("Connection acquired from database [%s]", *dbType)
+
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
 			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath, olricDb)
 		rhs.HostSwitch = &hostSwitch
-		err = db.Close()
-		auth.CheckErr(err, "Failed to close old db connection")
+
 		secondsToRestart := float64(time.Now().UnixNano()-startTime.UnixNano()) / float64(1000000000)
 		log.Printf("Restart complete, took %f seconds", secondsToRestart)
 		if membersTopic != nil {

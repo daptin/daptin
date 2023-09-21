@@ -81,15 +81,15 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 		//log.Printf("Check column: %v", col.ColumnName)
 
-		val, ok := attrs[col.ColumnName]
+		columnValue, columnValueOk := attrs[col.ColumnName]
 
-		if !ok || val == nil {
+		if !columnValueOk || columnValue == nil {
 			if col.DefaultValue != "" {
 				//var err error
 				if len(col.DefaultValue) > 2 && col.DefaultValue[0] == col.DefaultValue[len(col.DefaultValue)-1] {
-					val = col.DefaultValue[1 : len(col.DefaultValue)-1]
+					columnValue = col.DefaultValue[1 : len(col.DefaultValue)-1]
 				} else {
-					val = col.DefaultValue
+					columnValue = col.DefaultValue
 				}
 			} else {
 				continue
@@ -97,7 +97,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		}
 
 		if col.ColumnName == "reference_id" {
-			s := val.(string)
+			s := columnValue.(string)
 			if len(s) > 0 {
 				newObjectReferenceId = s
 			} else {
@@ -110,10 +110,10 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			switch col.ForeignKeyData.DataSource {
 			case "self":
 
-				//log.Printf("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, val)
-				valString, ok := val.(string)
+				//log.Printf("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, columnValue)
+				valString, ok := columnValue.(string)
 				if !ok {
-					log.Errorf("Expected string in foreign key column[%v], found %v", col.ColumnName, val)
+					log.Errorf("Expected string in foreign key column[%v], found %v", col.ColumnName, columnValue)
 					return nil, errors.New("unexpected value in foreign key column")
 				}
 				var uId interface{}
@@ -139,11 +139,11 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				if err != nil {
 					return nil, err
 				}
-				val = uId
+				columnValue = uId
 
 			case "cloud_store":
 
-				files, ok := val.([]interface{})
+				files, ok := columnValue.([]interface{})
 				uploadPath := ""
 				if ok {
 					var err error
@@ -189,7 +189,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					}
 
 					actionRequestParameters := make(map[string]interface{})
-					actionRequestParameters["file"] = val
+					actionRequestParameters["file"] = columnValue
 					actionRequestParameters["path"] = uploadPath
 
 					log.Printf("Get cloud store details: %v", col.ForeignKeyData.Namespace)
@@ -216,10 +216,10 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						delete(file, "contents")
 						files[i] = file
 					}
-					val, err = json.Marshal(files)
+					columnValue, err = json.Marshal(files)
 					CheckErr(err, "Failed to marshal file data to column")
 				} else {
-					val = nil
+					columnValue = nil
 				}
 
 			default:
@@ -231,46 +231,46 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		var err error
 
 		if col.ColumnType == "password" || col.ColumnType == "bcrypt" {
-			val, err = BcryptHashString(val.(string))
+			columnValue, err = BcryptHashString(columnValue.(string))
 			if err != nil {
 				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
-				val = ""
+				columnValue = ""
 			}
 		}
 
 		if col.ColumnType == "md5-bcrypt" {
 			digest := md5.New()
-			digest.Write([]byte(val.(string)))
+			digest.Write([]byte(columnValue.(string)))
 			hash := fmt.Sprintf("%x", digest.Sum(nil))
-			val, err = BcryptHashString(hash)
+			columnValue, err = BcryptHashString(hash)
 			if err != nil {
 				log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
-				val = ""
+				columnValue = ""
 			}
 		}
 
 		if col.ColumnType == "md5" {
 			digest := md5.New()
-			digest.Write([]byte(val.(string)))
-			val = fmt.Sprintf("%x", digest.Sum(nil))
+			digest.Write([]byte(columnValue.(string)))
+			columnValue = fmt.Sprintf("%x", digest.Sum(nil))
 		}
 
 		if col.ColumnType == "datetime" {
 
 			// 2017-07-13T18:30:00.000Z
-			valString, ok := val.(string)
+			valString, ok := columnValue.(string)
 			if ok {
-				val, err = dateparse.ParseLocal(valString)
-				CheckErr(err, fmt.Sprintf("Failed to parse string as date time in create [%v] = [%v]", col.ColumnName, val))
+				columnValue, err = dateparse.ParseLocal(valString)
+				CheckErr(err, fmt.Sprintf("Failed to parse string as date time in create [%v] = [%v]", col.ColumnName, columnValue))
 			} else {
-				floatVal, ok := val.(float64)
+				floatVal, ok := columnValue.(float64)
 				if ok {
-					val = time.Unix(int64(floatVal), 0)
+					columnValue = time.Unix(int64(floatVal), 0)
 					err = nil
 				} else {
-					int64Val, ok := val.(int64)
+					int64Val, ok := columnValue.(int64)
 					if ok {
-						val = time.Unix(int64Val, 0)
+						columnValue = time.Unix(int64Val, 0)
 						err = nil
 					}
 				}
@@ -278,28 +278,28 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 		} else if col.ColumnType == "date" {
 
-			parsedTime, ok := val.(time.Time)
+			parsedTime, ok := columnValue.(time.Time)
 			if !ok {
 
-				valString, ok := val.(string)
+				valString, ok := columnValue.(string)
 				if ok {
-					val, err = dateparse.ParseLocal(valString)
-					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", val))
+					columnValue, err = dateparse.ParseLocal(valString)
+					InfoErr(err, fmt.Sprintf("Failed to parse string as date [%v]", columnValue))
 				} else {
-					floatVal, ok := val.(float64)
+					floatVal, ok := columnValue.(float64)
 					if ok {
-						val = time.Unix(int64(floatVal), 0)
+						columnValue = time.Unix(int64(floatVal), 0)
 					}
 				}
 
 			} else {
-				val = parsedTime
+				columnValue = parsedTime
 			}
 
 		} else if col.ColumnType == "enum" {
-			valString, ok := val.(string)
+			valString, ok := columnValue.(string)
 			if !ok {
-				valString = fmt.Sprintf("%v", val)
+				valString = fmt.Sprintf("%v", columnValue)
 			}
 
 			isEnumOption := false
@@ -316,36 +316,36 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				log.Printf("Provided value is not a valid enum option, reject request [%v] [%v]", valString, col.Options)
 				return nil, errors.New(fmt.Sprintf("invalid value for %s", col.Name))
 			}
-			val = valString
+			columnValue = valString
 
 		} else if col.ColumnType == "time" {
 
 			// 2017-07-13T18:30:00.000Z
-			valString, ok := val.(string)
+			valString, ok := columnValue.(string)
 			if ok {
-				val, err = time.Parse("15:04:05", valString)
+				columnValue, err = time.Parse("15:04:05", valString)
 
-				CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", val))
+				CheckErr(err, fmt.Sprintf("Failed to parse string as time [%v]", columnValue))
 			} else {
 
-				floatVal, ok := val.(float64)
+				floatVal, ok := columnValue.(float64)
 				if ok {
-					val = time.Unix(int64(floatVal), 0)
+					columnValue = time.Unix(int64(floatVal), 0)
 					err = nil
 				}
 			}
 
 		} else if col.ColumnType == "measurement" {
-			valString, ok := val.(string)
+			valString, ok := columnValue.(string)
 			if ok {
 
-				if val == "" || val == "-" || strings.ToLower(valString) == "na" {
-					val = 0
+				if columnValue == "" || columnValue == "-" || strings.ToLower(valString) == "na" {
+					columnValue = 0
 				}
 				if BeginsWith(strings.ToLower(col.DataType), "int") {
 					floatVal, _ := strconv.ParseFloat(valString, 64)
 					intVal := int(floatVal)
-					val = fmt.Sprintf("%d", intVal)
+					columnValue = fmt.Sprintf("%d", intVal)
 				}
 			}
 		} else if col.ColumnType == "encrypted" {
@@ -353,38 +353,47 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			secret, err := dbResource.configStore.GetConfigValueForWithTransaction("encryption.secret", "backend", createTransaction)
 			if err != nil {
 				log.Errorf("Failed to get secret from config: %v", err)
-				val = ""
+				columnValue = ""
 			} else {
-				val, err = Encrypt([]byte(secret), val.(string))
+				columnValue, err = Encrypt([]byte(secret), columnValue.(string))
 				if err != nil {
 					log.Errorf("Failed to convert string to encrypted value, not storing the value: %v", err)
-					val = ""
+					columnValue = ""
 				}
 			}
 		} else if col.ColumnType == "truefalse" {
-			valBoolean, ok := val.(bool)
+			valBoolean, ok := columnValue.(bool)
 			if ok {
 				if valBoolean {
-					val = true
+					columnValue = true
 				} else {
-					val = false
+					columnValue = false
 				}
 			} else {
-				valString, ok := val.(string)
+				valString, ok := columnValue.(string)
 				if ok {
 					valueClean := strings.ToLower(strings.TrimSpace(valString))
 					if valueClean == "true" || valueClean == "1" {
-						val = true
+						columnValue = true
 					} else {
-						val = false
+						columnValue = false
 					}
 				}
 			}
+			//log.Warnf("driver name in truefalse: %s", createTransaction.DriverName())
+			if createTransaction.DriverName() == "sqlite3" {
+				if columnValue.(bool) {
+					columnValue = 1
+				} else {
+					columnValue = 0
+				}
+			}
+
 		}
 
-		dataToInsert[col.ColumnName] = val
+		dataToInsert[col.ColumnName] = columnValue
 		colsList = append(colsList, col.ColumnName)
-		valsList = append(valsList, val)
+		valsList = append(valsList, columnValue)
 	}
 
 	if !InArray(colsList, "reference_id") {
