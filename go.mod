@@ -71,6 +71,7 @@ require (
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
+	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v1.6.1

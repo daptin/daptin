@@ -9,7 +9,6 @@ import (
 	"github.com/emersion/go-webdav"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
-	"io"
 	"os"
 	"strings"
 	//"sync"

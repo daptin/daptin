@@ -12,7 +12,6 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"net/url"
-	"os"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"

@@ -5,7 +5,9 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/emersion/go-webdav"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"strings"
@@ -266,11 +268,11 @@ func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, path string) 
 }
 
 // ListFiles lists the files of a directory
-func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string) ([]os.DirEntry, error) {
+func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string) ([]fs.FileInfo, error) {
 
 	var err error
 	log.Printf("List files: [%v][%v]", driver.CurrentDir, directory)
-	files := make([]os.DirEntry, 0)
+	files := make([]fs.FileInfo, 0)
 	//files, err := os.ReadDir(directory)
 
 	// We add a virtual dir
@@ -286,7 +288,28 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 	} else {
 		path := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
 			strings.Join(strings.Split(directory, "/")[2:], string(os.PathSeparator))
-		files, err = os.ReadDir(path)
+		filesDirEntries, err := os.ReadDir(path)
+		if err == nil {
+			log.Errorf("Failed to read path ["+path+"] => ", err)
+			return nil, nil
+		}
+		fileInfoEntries := make([]webdav.FileInfo, len(filesDirEntries))
+		for i, entry := range filesDirEntries {
+			entryInfo, err := entry.Info()
+			if err != nil {
+				log.Warnf("error in getting entry info ["+driver.CurrentDir+"]["+entry.Name()+"] => ", err)
+				continue
+			}
+			fileInfo := webdav.FileInfo{
+				Path:     driver.CurrentDir + string(os.PathSeparator) + entry.Name(),
+				Size:     entryInfo.Size(),
+				ModTime:  entryInfo.ModTime(),
+				IsDir:    entryInfo.IsDir(),
+				MIMEType: "",
+				ETag:     "",
+			}
+			fileInfoEntries[i] = fileInfo
+		}
 	}
 	log.Printf("list Path: %v", files)
 
@@ -387,6 +410,16 @@ type virtualFileInfo struct {
 	name string
 	size int64
 	mode os.FileMode
+}
+
+func (f virtualFileInfo) Type() fs.FileMode {
+	//TODO implement me
+	return fs.ModeDir
+}
+
+func (f virtualFileInfo) Info() (fs.FileInfo, error) {
+	//TODO implement me
+	return f, nil
 }
 
 func (f virtualFileInfo) Name() string {

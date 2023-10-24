@@ -485,8 +485,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 
 	msgId := parsedmail.MessageID
 	if len(msgId) < 1 {
-		msgIdNew, _ := uuid.NewV4()
-		msgId = msgIdNew.String()
+		msgId = uuid.NewV4().String()
 	}
 	hash := GetMD5Hash(mailBody)
 
