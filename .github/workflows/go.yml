@@ -43,7 +43,7 @@ jobs:
 
           - job_name: windows_amd64
             os: windows-latest
-            go: '1.18.x'
+            go: '1.20.x'
             modules: 'on'
             gotags: cmount
             build_flags: '-include "^windows/amd64" -cgo'
