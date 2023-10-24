@@ -3,6 +3,11 @@ package resource
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
@@ -15,11 +20,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"os"
-	"strings"
-	"sync"
-	"time"
 )
 
 type DbResource struct {
@@ -60,7 +60,7 @@ func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
 
 func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interface{}, error) {
 
-	fileInfo, err := ioutil.ReadDir(afc.LocalSyncPath + string(os.PathSeparator) + path)
+	fileInfo, err := os.ReadDir(afc.LocalSyncPath + string(os.PathSeparator) + path)
 	if err != nil {
 		return nil, err
 	}
@@ -70,11 +70,15 @@ func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interfac
 	var files []map[string]interface{}
 	for _, file := range fileInfo {
 		//files[i] = strings.Replace(file, afc.LocalSyncPath, "", 1)
+		info, err := file.Info()
+		if err != nil {
+			return nil, err
+		}
 		files = append(files, map[string]interface{}{
 			"name":     file.Name(),
 			"is_dir":   file.IsDir(),
-			"mod_time": file.ModTime(),
-			"size":     file.Size(),
+			"mod_time": info.ModTime(),
+			"size":     info.Size(),
 		})
 	}
 
@@ -121,7 +125,7 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 				localPath := afc.LocalSyncPath + string(os.PathSeparator) + filePath
 				createDirIfNotExist(localPath)
 				localFilePath := localPath + file["name"].(string)
-				err := ioutil.WriteFile(localFilePath, fileBytes, os.ModePerm)
+				err := os.WriteFile(localFilePath, fileBytes, os.ModePerm)
 				CheckErr(err, "Failed to write data to local file store asset cache folder")
 				if err != nil {
 					return errors.WithMessage(err, "Failed to write data to local file store ")

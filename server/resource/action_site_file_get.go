@@ -3,9 +3,10 @@ package resource
 import (
 	"encoding/base64"
 	"errors"
+	"io"
+
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
-	"io/ioutil"
 )
 
 type cloudStoreFileGetActionPerformer struct {
@@ -37,7 +38,7 @@ func (d *cloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields ma
 	}
 
 	contents, _ := siteCacheFolder.GetFileByName(path)
-	data, _ := ioutil.ReadAll(contents)
+	data, _ := io.ReadAll(contents)
 	dataBase64 := base64.StdEncoding.EncodeToString(data)
 	fileListResponse := NewResponse(nil, api2go.NewApi2GoModelWithData("file", nil, 0, nil, map[string]interface{}{
 		"data": dataBase64,

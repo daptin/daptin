@@ -8,7 +8,6 @@ import (
 	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	"os"
 	"time"
 )
@@ -95,7 +94,7 @@ func (d *exportCsvDataPerformer) DoAction(request Outcome, inFields map[string]i
 	}
 
 	csvFileName := csvFile.Name()
-	csvFileContents, err := ioutil.ReadFile(csvFileName)
+	csvFileContents, err := os.ReadFile(csvFileName)
 	if InfoErr(err, "Failed to read csv file to download") {
 		actionResponse := NewActionResponse("client.notify", NewClientNotification("error", "Failed to generate csv: "+err.Error(), "Failed"))
 		responses = append(responses, actionResponse)

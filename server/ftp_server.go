@@ -5,13 +5,13 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/daptin/daptin/server/resource"
 
@@ -266,12 +266,12 @@ func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, path string) 
 }
 
 // ListFiles lists the files of a directory
-func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string) ([]os.FileInfo, error) {
+func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string) ([]os.DirEntry, error) {
 
 	var err error
 	log.Printf("List files: [%v][%v]", driver.CurrentDir, directory)
-	files := make([]os.FileInfo, 0)
-	//files, err := ioutil.ReadDir(directory)
+	files := make([]os.DirEntry, 0)
+	//files, err := os.ReadDir(directory)
 
 	// We add a virtual dir
 	if directory == "/" {
@@ -286,7 +286,7 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 	} else {
 		path := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
 			strings.Join(strings.Split(directory, "/")[2:], string(os.PathSeparator))
-		files, err = ioutil.ReadDir(path)
+		files, err = os.ReadDir(path)
 	}
 	log.Printf("list Path: %v", files)
 
@@ -426,7 +426,7 @@ func externalIP() (string, error) {
 		}
 	}()
 
-	buf, err := ioutil.ReadAll(rsp.Body)
+	buf, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return "", err
 	}

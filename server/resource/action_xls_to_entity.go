@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -138,7 +137,7 @@ nextFile:
 			return nil, nil, []error{fmt.Errorf("Failed to read file: %v", err)}
 		}
 		log.Printf("File has %d sheets", len(xlsFile.Sheets))
-		err = ioutil.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+fileName, fileBytes, 0644)
+		err = os.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+fileName, fileBytes, 0644)
 		if err != nil {
 			log.Errorf("Failed to write xls file to disk: %v", err)
 		}
@@ -255,7 +254,7 @@ nextFile:
 		}
 
 		jsonFileName := fmt.Sprintf("schema_uploaded_%v_daptin.json", entityName)
-		err = ioutil.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+jsonFileName, jsonStr, 0644)
+		err = os.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+jsonFileName, jsonStr, 0644)
 		CheckErr(err, "Failed to write json to schema file [%v]", jsonFileName)
 		log.Printf("File %v written to disk for upload", jsonFileName)
 

@@ -11,7 +11,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
@@ -34,7 +33,7 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 
 	u, _ := uuid.NewV4()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
-	tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
+	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Printf("Temp directory for this upload cloudStorePathMoveActionPerformer: %v", tempDirectoryPath)
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up

@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -3466,7 +3465,7 @@ func (dbResource *DbResource) GetFileFromLocalCloudStore(tableName string, colum
 		if filePath[0] != os.PathSeparator {
 			filePath = string(os.PathSeparator) + filePath
 		}
-		bytes, err := ioutil.ReadFile(assetFolder.LocalSyncPath + filePath)
+		bytes, err := os.ReadFile(assetFolder.LocalSyncPath + filePath)
 		CheckErr(err, "Failed to read file on storage [%v]: %v", assetFolder.LocalSyncPath, filePath)
 		if err != nil {
 			continue

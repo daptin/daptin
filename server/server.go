@@ -36,7 +36,7 @@ import (
 	rateLimit "github.com/yangxikun/gin-limit-by-key"
 	"golang.org/x/time/rate"
 	//"github.com/gin-gonic/gin"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	graphqlhandler "github.com/graphql-go/handler"
@@ -183,7 +183,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			return
 		}
 
-		fileContents, err := ioutil.ReadAll(file)
+		fileContents, err := io.ReadAll(file)
 		if err != nil {
 			c.AbortWithStatus(404)
 			return
@@ -200,7 +200,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 			return
 		}
 
-		fileContents, err := ioutil.ReadAll(file)
+		fileContents, err := io.ReadAll(file)
 		if err != nil {
 			c.AbortWithStatus(404)
 			return
