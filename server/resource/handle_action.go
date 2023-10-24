@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/jmoiron/sqlx"
 
 	"github.com/artpar/api2go"
@@ -17,7 +19,6 @@ import (
 	//"io"
 	"crypto/md5"
 	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -597,7 +598,7 @@ OutFields:
 
 func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
 	params gin.Params, queryParams url.Values) (ActionRequest, error) {
-	bytes, err := ioutil.ReadAll(closer)
+	bytes, err := io.ReadAll(closer)
 	actionRequest := ActionRequest{}
 	if err != nil {
 		return actionRequest, err
@@ -751,7 +752,7 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 			}
 
 			jsonFileName := fmt.Sprintf("schema_uploaded_%v_daptin.%v", fileName, fileFormat)
-			err = ioutil.WriteFile(jsonFileName, fileBytes, 0644)
+			err = os.WriteFile(jsonFileName, fileBytes, 0644)
 			if err != nil {
 				log.Errorf("Failed to write json file: %v", jsonFileName)
 				return nil, returnRequest, err

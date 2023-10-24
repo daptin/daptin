@@ -8,7 +8,6 @@ import (
 	"github.com/gobuffalo/flect"
 	"github.com/naoina/toml"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -68,7 +67,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	for _, fileName := range files {
 		log.Printf("Process file: %v", fileName)
 
-		fileBytes, err := ioutil.ReadFile(fileName)
+		fileBytes, err := os.ReadFile(fileName)
 		if err != nil {
 			errs = append(errs, err)
 			continue

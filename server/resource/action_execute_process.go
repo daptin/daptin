@@ -1,14 +1,17 @@
 package resource
 
 import (
+	"io"
+	"os/exec"
+
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
-	"io/ioutil"
-	"os/exec"
 )
 
-/**
-  Become administrator of daptin action implementation
+/*
+*
+
+	Become administrator of daptin action implementation
 */
 type commandExecuteActionPerformer struct {
 	cruds map[string]*DbResource
@@ -35,8 +38,8 @@ func (d *commandExecuteActionPerformer) DoAction(request Outcome, inFieldMap map
 
 	err = execution.Run()
 
-	errOutput, err := ioutil.ReadAll(errorBuffer)
-	output, err := ioutil.ReadAll(outBuffer)
+	errOutput, err := io.ReadAll(errorBuffer)
+	output, err := io.ReadAll(outBuffer)
 
 	if err != nil {
 		return nil, []ActionResponse{

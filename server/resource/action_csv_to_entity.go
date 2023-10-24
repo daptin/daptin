@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/artpar/api2go"
-	"github.com/daptin/daptin/server/columntypes"
+	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/csvmap"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"os"
-	"strings"
 )
 
 type uploadCsvFileToEntityPerformer struct {
@@ -80,7 +80,7 @@ func (d *uploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 			return nil, nil, []error{err}
 		}
 
-		err = ioutil.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+fileName, fileBytes, 0644)
+		err = os.WriteFile(schemaFolderDefinedByEnv+string(os.PathSeparator)+fileName, fileBytes, 0644)
 		if err != nil {
 			log.Errorf("Failed to write xls file to disk: %v", err)
 		}
@@ -193,7 +193,7 @@ func (d *uploadCsvFileToEntityPerformer) DoAction(request Outcome, inFields map[
 		}
 
 		jsonFileName := fmt.Sprintf(schemaFolderDefinedByEnv+string(os.PathSeparator)+"schema_uploaded_%v_daptin.json", entityName)
-		err = ioutil.WriteFile(jsonFileName, jsonStr, 0644)
+		err = os.WriteFile(jsonFileName, jsonStr, 0644)
 		if err != nil {
 			return nil, nil, []error{err}
 		}

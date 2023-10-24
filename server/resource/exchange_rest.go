@@ -2,12 +2,13 @@ package resource
 
 import (
 	"fmt"
+	"io"
+	"strings"
+
 	"github.com/artpar/resty"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"strings"
 )
 
 type RestExchange struct {
@@ -148,7 +149,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 	res := make(map[string]interface{})
 	res["headers"] = response.Header()
 	if err != nil {
-		bodyBytes, err := ioutil.ReadAll(response.RawBody())
+		bodyBytes, err := io.ReadAll(response.RawBody())
 		if err == nil {
 			res["bodyString"] = string(bodyBytes)
 			bodyAttrs := make(map[string]interface{})

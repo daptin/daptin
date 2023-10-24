@@ -4,22 +4,23 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"io"
+	"net/http"
+
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend/backendutil"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/parsemail"
 	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/columntypes"
+	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/textproto"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"io/ioutil"
-	"net/http"
 
 	"strings"
 	"sync"
@@ -428,7 +429,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 // via a mailbox update.
 func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, body imap.Literal) error {
 
-	mailBody, err := ioutil.ReadAll(body)
+	mailBody, err := io.ReadAll(body)
 	if err != nil {
 		return err
 	}
@@ -454,7 +455,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	}
 
 	//enve, _ := backendutil.FetchEnvelope(messageEntity.Header)
-	//mailContents, err := ioutil.ReadAll(messageEntity.Body)
+	//mailContents, err := io.ReadAll(messageEntity.Body)
 	//if err != nil {
 	//	return err
 	//}

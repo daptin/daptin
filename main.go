@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/memberlist"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
@@ -533,10 +533,10 @@ func main() {
 			keyFile := certTempDir + "/" + hostname + ".key"
 			log.Printf("Temp dir for certificates: %v", certTempDir)
 			certPem := []byte(string(certBytes) + "\n" + string(rootCertBytes))
-			err = ioutil.WriteFile(certFile, certPem, 0600)
+			err = os.WriteFile(certFile, certPem, 0600)
 			resource.CheckErr(err, "Failed to write cert file")
 			keyPem := privateBytes
-			err = ioutil.WriteFile(keyFile, keyPem, 0600)
+			err = os.WriteFile(keyFile, keyPem, 0600)
 			resource.CheckErr(err, "Failed to write private key file")
 
 			cert, err := tls.X509KeyPair(certPem, keyPem)
