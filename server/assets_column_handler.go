@@ -38,7 +38,7 @@ func Etag(content []byte) (string, error) {
 func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
 	return func(c *gin.Context) {
 		var typeName = c.Param("typename")
-		resourceUuidString := c.Param("resourceid")
+		resourceUuidString := c.Param("resource_id")
 		var columnNameWithExtension = c.Param("columnname")
 		//var extension = c.Param("ext")
 

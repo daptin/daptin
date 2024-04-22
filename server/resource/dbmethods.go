@@ -2849,9 +2849,15 @@ func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []da
 	transaction *sqlx.Tx) (map[daptinid.DaptinReferenceId]int64, error) {
 	log.Tracef("GetReferenceIdListToIdListWithTransaction: [%v] => [%v]", typeName, referenceId)
 
+	var refVals [][]byte
+
+	for _, i := range referenceId {
+		refVals = append(refVals, i[:])
+	}
+
 	idMap := make(map[daptinid.DaptinReferenceId]int64)
 	s, q, err := statementbuilder.Squirrel.Select("id", "reference_id").Prepared(true).
-		From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
+		From(typeName).Where(goqu.Ex{"reference_id": refVals}).ToSQL()
 	if err != nil {
 		return idMap, err
 	}

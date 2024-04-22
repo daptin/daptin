@@ -935,10 +935,18 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 					"in": groupIds,
 				},
 			})
-			groupParameters = strings.Join(strings.Split(strings.Repeat("?", groupCount), ""), ",")
-			groupParameters = fmt.Sprintf(" or ((%s.permission & 32768) = 32768 and "+"%s.usergroup_id in ("+groupParameters+")) ",
-				joinTableName, joinTableName,
-			)
+
+			gCount := len(groupParameters)
+			if gCount > 0 {
+				gids := make([]string, gCount)
+				for _, gid := range groupIds {
+					gids = append(gids, fmt.Sprintf("%d", gid))
+				}
+				groupParameters = strings.Join(gids, ",")
+				groupParameters = fmt.Sprintf(" or ((%s.permission & 32768) = 32768 and "+"%s.usergroup_id in ("+groupParameters+")) ",
+					joinTableName, joinTableName,
+				)
+			}
 		}
 		queryArgs := make([]interface{}, 0)
 		for _, id := range groupIds {
@@ -946,15 +954,16 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 		queryArgs = append(queryArgs, sessionUser.UserId)
 
-		queryBuilder = queryBuilder.Where(goqu.L(fmt.Sprintf("(((%s.permission & 2) = 2)"+
-			groupParameters+" or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))",
-			tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName(),
-		), queryArgs...))
+		queryBuilder = queryBuilder.Where(
+			goqu.L(
+				fmt.Sprintf("(((%s.permission & 2) = 2)"+
+					groupParameters+" or "+
+					"(%s.user_account_id = "+fmt.Sprintf("%d", sessionUser.UserId)+" and (%s.permission & 256) = 256))",
+					tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName())))
 
 		countQueryBuilder = countQueryBuilder.Where(goqu.L(fmt.Sprintf("("+
 			"((%s.permission & 2) = 2)  "+groupParameters+"  or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))",
+			"(%s.user_account_id = "+fmt.Sprintf("%d", sessionUser.UserId)+" and (%s.permission & 256) = 256))",
 			tableModel.GetTableName(),
 			tableModel.GetTableName(), tableModel.GetTableName()),
 			queryArgs...))

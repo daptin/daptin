@@ -661,7 +661,7 @@ func runTests(t *testing.T) error {
 	}
 
 	imbBody, err := ioutil.ReadAll(resp.Response().Body)
-	if err != nil {
+	if err != nil || len(imbBody) == 0 {
 		log.Printf("Failed to get %s %s", "read image body gallery image get by id", err)
 		t.Fail()
 		return err
@@ -724,7 +724,7 @@ func runTests(t *testing.T) error {
 		}
 
 		imbBody, err := ioutil.ReadAll(resp.Response().Body)
-		if err != nil {
+		if err != nil || len(imbBody) == 0 {
 			log.Printf("Failed to get read image %s %s", param, err)
 			t.Fail()
 			return err
