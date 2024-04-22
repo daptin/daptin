@@ -471,7 +471,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					nuuid, _ := uuid.NewV7()
 
 					langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
-					langTableVals = append(langTableVals, lang, idInt, nuuid)
+					langTableVals = append(langTableVals, lang, idInt, nuuid[:])
 
 					insert := statementbuilder.Squirrel.Insert(dbResource.model.GetName() + "_i18n").Prepared(true)
 					insert = insert.Cols(langTableCols...)

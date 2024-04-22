@@ -119,8 +119,7 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 					},
 				})
 				u, _ := uuid.NewV7()
-				newUuid := u.String()
-				defaltValues["reference_id"] = newUuid
+				defaltValues["reference_id"] = u[:]
 				defaltValues[colName] = string(fileData)
 
 				err = d.cruds[tableName].DirectInsert(tableName, defaltValues, transaction)

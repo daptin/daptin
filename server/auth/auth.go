@@ -16,6 +16,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -312,7 +313,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			if !ok {
 
 				cachedUser, err = olricCache.Get(context.Background(), email)
-				var referenceId daptinid.DaptinReferenceId
+				var referenceIdBytes []byte
 				var userId int64
 				var userGroups []GroupPermission
 				if err != nil || cachedUser == nil {
@@ -340,7 +341,9 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					}(stmt1)
 
 					rowx := stmt1.QueryRowx(args...)
-					err = rowx.Scan(&userId, &referenceId)
+					err = rowx.Scan(&userId, &referenceIdBytes)
+					uu, _ := uuid.FromBytes(referenceIdBytes[:])
+					referenceId := daptinid.DaptinReferenceId(uu)
 
 					if err != nil {
 						// if a user logged in from third party oauth login

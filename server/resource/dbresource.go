@@ -346,12 +346,15 @@ func (a AdminMapType) UnmarshalBinary(data []byte) error {
 
 func (dbResource *DbResource) GetAdminReferenceId(transaction *sqlx.Tx) AdminMapType {
 	var err error
-	var cacheValue interface{}
 	adminMap := make(AdminMapType)
 	if OlricCache != nil {
-		cacheValue, err = OlricCache.Get(context.Background(), "administrator_reference_id")
+		cacheValue, err := OlricCache.Get(context.Background(), "administrator_reference_id")
 		if err == nil && cacheValue != nil {
-			return cacheValue.(AdminMapType)
+			var amt AdminMapType
+			err = cacheValue.Scan(&amt)
+			if err == nil {
+				return amt
+			}
 		}
 	}
 	userRefId := dbResource.GetUserMembersByGroupName("administrators", transaction)
@@ -433,7 +436,7 @@ func IsAdminWithTransaction(userReferenceId daptinid.DaptinReferenceId, transact
 	key := "admin." + string(userReferenceId[:])
 
 	if OlricCache != nil {
-		fmt.Println("IsAdminWithTransaction [" + key + "]")
+		//fmt.Println("IsAdminWithTransaction [" + key + "]")
 		value, err := OlricCache.Get(context.Background(), key)
 		if err == nil && value != nil {
 			if val, err := value.Bool(); val && err != nil {

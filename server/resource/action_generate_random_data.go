@@ -71,7 +71,7 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 		}
 
 		u, _ := uuid.NewV7()
-		row["reference_id"] = u.String()
+		row["reference_id"] = u[:]
 		row["permission"] = auth.DEFAULT_PERMISSION
 		rows = append(rows, row)
 	}

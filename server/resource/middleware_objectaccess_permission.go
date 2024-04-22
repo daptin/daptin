@@ -2,6 +2,7 @@ package resource
 
 import (
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"strings"
 
@@ -63,7 +64,12 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 		//log.Printf("Check permission for : %v", result)
 
-		referenceId := result["reference_id"].(daptinid.DaptinReferenceId)
+		referenceId, _ := result["reference_id"].(daptinid.DaptinReferenceId)
+		referenceIdUuid, isUuid := result["reference_id"].(uuid.UUID)
+		if isUuid {
+			referenceId = daptinid.DaptinReferenceId(referenceIdUuid)
+		}
+
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
 			continue
@@ -147,7 +153,16 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			returnMap = append(returnMap, result)
 			continue
 		}
-		referenceId := refIdInterface.(daptinid.DaptinReferenceId)
+		uuidVal, isUuid := refIdInterface.(uuid.UUID)
+		bytearrayVal, isByteArray := refIdInterface.([]byte)
+		var referenceId daptinid.DaptinReferenceId
+		if isUuid {
+			referenceId = daptinid.DaptinReferenceId(uuidVal)
+		} else if isByteArray {
+			referenceId = daptinid.DaptinReferenceId(bytearrayVal)
+		} else {
+			referenceId = refIdInterface.(daptinid.DaptinReferenceId)
+		}
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
 			continue

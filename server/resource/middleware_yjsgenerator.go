@@ -2,10 +2,13 @@ package resource
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -47,13 +50,31 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 	case "patch":
 
 		for _, obj := range objects {
-			reference_id := ""
+			var reference_id daptinid.DaptinReferenceId
 			if requestMethod != "post" {
 				refId := obj["reference_id"]
-				if refId == nil {
+				refIsuuid, isUUid := refId.(uuid.UUID)
+				refIsDir, isDir := refId.(daptinid.DaptinReferenceId)
+
+				if refId == daptinid.NullReferenceId {
 					continue
 				}
-				reference_id = refId.(string)
+				if isDir {
+					reference_id = refIsDir
+				} else if isUUid {
+					reference_id = daptinid.DaptinReferenceId(refIsuuid)
+				} else {
+					refIdString, isString := refId.(string)
+					if isString {
+						refIdBytes, err := uuid.Parse(refIdString)
+						if err != nil {
+							return nil, errors.New("Invalid reference_id")
+						}
+						reference_id = daptinid.DaptinReferenceId(refIdBytes)
+					} else {
+						return nil, errors.New("Invalid reference_id")
+					}
+				}
 			}
 
 			for _, column := range dr.TableInfo().Columns {

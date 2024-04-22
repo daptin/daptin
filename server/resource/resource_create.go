@@ -98,9 +98,10 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		}
 
 		if col.ColumnName == "reference_id" {
-			s := columnValue.(daptinid.DaptinReferenceId)
+			s := columnValue.(string)
 			if len(s) > 0 {
-				newObjectReferenceId = s
+				newObjectReferenceId = daptinid.DaptinReferenceId(uuid.MustParse(s))
+				columnValue = newObjectReferenceId[:]
 			} else {
 				continue
 			}
@@ -495,7 +496,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		for _, valueToAdd := range values {
 			nuuid, _ := uuid.NewV7()
 
-			belogsToUserGroupSql, q, _ := insertSql.Vals([]interface{}{createdResource["id"], valueToAdd, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
+			belogsToUserGroupSql, q, _ := insertSql.Vals([]interface{}{createdResource["id"], valueToAdd, nuuid[:], auth.DEFAULT_PERMISSION}).ToSQL()
 
 			log.Tracef("Add new object [%v][%v] to [%v] [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], typeName, valueToAdd)
 			_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
@@ -514,7 +515,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
 			Insert(dbResource.model.GetName()+"_"+dbResource.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
 			Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").Prepared(true).
-			Vals([]interface{}{createdResource["id"], groupId, nuuid, auth.DEFAULT_PERMISSION}).ToSQL()
+			Vals([]interface{}{createdResource["id"], groupId, nuuid[:], auth.DEFAULT_PERMISSION}).ToSQL()
 
 		log.Tracef("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
 		_, err = createTransaction.Exec(belogsToUserGroupSql, q...)

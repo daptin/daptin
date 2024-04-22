@@ -292,7 +292,7 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.Tx) {
 			s, v, err := statementbuilder.Squirrel.
 				Insert("stream").Prepared(true).
 				Cols("stream_name", "stream_contract", "reference_id", "permission", USER_ACCOUNT_ID_COLUMN).
-				Vals([]interface{}{stream.StreamName, schema, u, auth.DEFAULT_PERMISSION, adminUserId}).ToSQL()
+				Vals([]interface{}{stream.StreamName, schema, u[:], auth.DEFAULT_PERMISSION, adminUserId}).ToSQL()
 
 			_, err = db.Exec(s, v...)
 			log.Tracef("Executed: %s", s)
@@ -406,7 +406,7 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 					auth.DEFAULT_PERMISSION, exchange.Name,
 					sourceAttrsJson, exchange.SourceType, targetAttrsJson,
 					exchange.TargetType, attrsJson, optionsJson,
-					time.Now(), adminId, u}).
+					time.Now(), adminId, u[:]}).
 				ToSQL()
 
 			_, err = transaction.Exec(s, v...)
@@ -569,7 +569,7 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.Tx) {
 			updateMap["events"] = eventsDescription
 			updateMap[USER_ACCOUNT_ID_COLUMN] = adminUserId
 			s, v, err := statementbuilder.Squirrel.Update("smd").Prepared(true).
-				Set(updateMap).Where(goqu.Ex{"reference_id": refId}).ToSQL()
+				Set(updateMap).Where(goqu.Ex{"reference_id": refId[:]}).ToSQL()
 
 			if err != nil {
 				log.Errorf("Failed to create update smd query: %v", err)
@@ -1078,7 +1078,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 		CheckErr(err, "Failed to user group")
 		u, _ = uuid.NewV7()
-		refIf := u.String()
+		refIf := u[:]
 		s, v, err = statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").Prepared(true).
 			Cols(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").
 			Vals([]interface{}{userId, userGroupId, auth.DEFAULT_PERMISSION, refIf[:]}).ToSQL()

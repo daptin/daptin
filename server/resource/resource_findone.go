@@ -33,7 +33,9 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 			referenceId = authUser.UserReferenceId
 		}
 	} else {
-		referenceId = daptinid.DaptinReferenceId(uuid.MustParse(referenceIdString))
+		if referenceIdString != "" {
+			referenceId = daptinid.DaptinReferenceId(uuid.MustParse(referenceIdString))
+		}
 	}
 
 	transaction, err := dbResource.Connection.Beginx()

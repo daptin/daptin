@@ -213,7 +213,12 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
 
 	subjectInstanceReferenceString, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
-	subjectInstanceReferenceUuid := uuid.MustParse(subjectInstanceReferenceString.(string))
+
+	subjectInstanceReferenceUuid, isDir := subjectInstanceReferenceString.(daptinid.DaptinReferenceId)
+	subjectInstanceReferenceStringVal, isString := subjectInstanceReferenceString.(string)
+	if !isDir && isString {
+		subjectInstanceReferenceUuid = daptinid.DaptinReferenceId(uuid.MustParse(subjectInstanceReferenceStringVal))
+	}
 	if ok {
 		req.PlainRequest.Method = "GET"
 		req.QueryParams = make(map[string][]string)

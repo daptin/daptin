@@ -526,6 +526,34 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
 
+	skipImportData, skipImportValFound := os.LookupEnv("DAPTIN_SKIP_IMPORT_DATA")
+	if skipImportValFound && skipImportData == "true" {
+		log.Info("skipping importing data from files")
+	} else {
+		log.Info("importing data from files")
+		transaction, err = db.Beginx()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [587]")
+		}
+
+		resource.ImportDataFiles(initConfig.Imports, transaction, cruds)
+		transaction.Commit()
+	}
+
+	if localStoragePath != ";" {
+		transaction, err = db.Beginx()
+		err = resource.CreateDefaultLocalStorage(transaction, localStoragePath)
+		if err != nil {
+			log.Errorf("Failed to create default local storage: [%v]", err)
+			transaction.Rollback()
+		} else {
+			transaction.Commit()
+		}
+		resource.CheckErr(err, "Failed to create default local storage at %v", localStoragePath)
+	} else {
+		log.Tracef("Not creating default local storage")
+	}
+
 	transaction, err = db.Beginx()
 	if err != nil {
 		resource.CheckErr(err, "Failed to begin transaction [512]")
@@ -594,34 +622,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	actionHandlerMap := actionPerformersListToMap(actionPerformers)
 	for k := range cruds {
 		cruds[k].ActionHandlerMap = actionHandlerMap
-	}
-
-	skipImportData, skipImportValFound := os.LookupEnv("DAPTIN_SKIP_IMPORT_DATA")
-	if skipImportValFound && skipImportData == "true" {
-		log.Info("skipping importing data from files")
-	} else {
-		log.Info("importing data from files")
-		transaction, err = db.Beginx()
-		if err != nil {
-			resource.CheckErr(err, "Failed to begin transaction [587]")
-		}
-
-		resource.ImportDataFiles(initConfig.Imports, transaction, cruds)
-		transaction.Commit()
-	}
-
-	if localStoragePath != ";" {
-		transaction, err = db.Beginx()
-		err = resource.CreateDefaultLocalStorage(transaction, localStoragePath)
-		if err != nil {
-			log.Errorf("Failed to create default local storage: [%v]", err)
-			transaction.Rollback()
-		} else {
-			transaction.Commit()
-		}
-		resource.CheckErr(err, "Failed to create default local storage at %v", localStoragePath)
-	} else {
-		log.Tracef("Not creating default local storage")
 	}
 
 	transaction, err = db.Beginx()

@@ -11,6 +11,17 @@ type DaptinReferenceId [16]byte
 
 type DaptinReferenceEncoder struct{}
 
+func (dr *DaptinReferenceId) Scan(value interface{}) error {
+	asBytes, ok := value.([]uint8)
+	if !ok {
+		return errors.New("Conversion failed")
+	}
+	// Convert asBytes into the appropriate type for DaptinReferenceId
+	// You may need to interpret the bytes accordingly (e.g., converting them to a string, parsing them, etc.)
+	*dr = DaptinReferenceId(asBytes)
+	return nil
+}
+
 func (c *DaptinReferenceEncoder) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
 	src := *((*DaptinReferenceId)(ptr))
 

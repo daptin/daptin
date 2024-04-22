@@ -69,7 +69,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 	}
 
 	parentId := data["id"].(int64)
-	parentReferenceId := data["reference_id"].(string)
+	parentReferenceId := data["reference_id"].(daptinid.DaptinReferenceId)
 
 	for _, column := range dbResource.model.GetColumns() {
 		if column.IsForeignKey && column.ForeignKeyData.DataSource == "cloud_store" {
@@ -278,7 +278,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				subRequest := api2go.Request{
 					PlainRequest: pr,
 					QueryParams: map[string][]string{
-						rel.GetObject() + "_id":  {parentReferenceId},
+						rel.GetObject() + "_id":  {parentReferenceId.String()},
 						rel.GetObject() + "Name": {rel.GetSubjectName()},
 					},
 				}
@@ -308,7 +308,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				subRequest := api2go.Request{
 					PlainRequest: pr,
 					QueryParams: map[string][]string{
-						rel.GetObject() + "_id":  {parentReferenceId},
+						rel.GetObject() + "_id":  {parentReferenceId.String()},
 						rel.GetObject() + "Name": {rel.GetSubjectName()},
 					},
 				}
@@ -457,7 +457,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 }
 
 func (dbResource *DbResource) Delete(idString string, req api2go.Request) (api2go.Responder, error) {
-	id := uuid.MustParse(idString)
+	id := daptinid.DaptinReferenceId(uuid.MustParse(idString))
 
 	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
