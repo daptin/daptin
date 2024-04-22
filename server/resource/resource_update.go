@@ -2,14 +2,15 @@ package resource
 
 import (
 	"encoding/base64"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	"strings"
 
 	"github.com/artpar/api2go"
-	uuid "github.com/artpar/go.uuid"
 	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	uuid "github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	//"reflect"
@@ -35,13 +36,13 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		return nil, errors.New("invalid request")
 	}
 
-	updateObjectReferenceId := data.GetID()
+	updateObjectReferenceId := uuid.MustParse(data.GetID())
 
 	var err error
 	idInt := data.GetColumnOriginalValue("id")
 
 	if idInt == nil {
-		idInt, err = GetReferenceIdToIdWithTransaction(dbResource.model.GetName(), updateObjectReferenceId, updateTransaction)
+		idInt, err = GetReferenceIdToIdWithTransaction(dbResource.model.GetName(), daptinid.DaptinReferenceId(updateObjectReferenceId), updateTransaction)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +59,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	attrs := data.GetAllAsAttributes()
 
 	if !data.HasVersion() {
-		originalData, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetTableName(), updateObjectReferenceId, updateTransaction)
+		originalData, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetTableName(),
+			daptinid.DaptinReferenceId(updateObjectReferenceId), updateTransaction)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +125,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				case "self":
 					if val != nil && val != "" {
 
-						valString := val.(string)
+						valString := val.(daptinid.DaptinReferenceId)
 
 						foreignObjectId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, valString, updateTransaction)
 						if err != nil {
@@ -406,7 +408,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 		if len(languagePreferences) == 0 {
 
-			builder := statementbuilder.Squirrel.Update(dbResource.model.GetName())
+			builder := statementbuilder.Squirrel.Update(dbResource.model.GetName()).Prepared(true)
 
 			setVals := make(map[string]interface{})
 			for i := range colsList {
@@ -414,7 +416,9 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			}
 			builder = builder.Set(goqu.Record(setVals))
 
-			query, vals, err := builder.Where(goqu.Ex{"reference_id": updateObjectReferenceId}).Where(goqu.Ex{"version": data.GetCurrentVersion()}).ToSQL()
+			query, vals, err := builder.
+				Where(goqu.Ex{"reference_id": updateObjectReferenceId[:]}).
+				Where(goqu.Ex{"version": data.GetCurrentVersion()}).ToSQL()
 			//log.Printf("Update query: %v", query)
 			if err != nil {
 				log.Errorf("Failed to create update query: %v", err)
@@ -443,7 +447,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					langTableVals = append(langTableVals, val)
 				}
 
-				builder := statementbuilder.Squirrel.Update(dbResource.model.GetName() + "_i18n")
+				builder := statementbuilder.Squirrel.Update(dbResource.model.GetName() + "_i18n").Prepared(true)
 
 				updateMap := make(map[string]interface{})
 				for i := range langTableCols {
@@ -451,7 +455,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				}
 				builder = builder.Set(updateMap)
 
-				query, vals, err := builder.Where(goqu.Ex{"translation_reference_id": idInt}).Where(goqu.Ex{"language_id": lang}).ToSQL()
+				query, vals, err := builder.
+					Where(goqu.Ex{"translation_reference_id": idInt}).Where(goqu.Ex{"language_id": lang}).ToSQL()
 				log.Infof("Update query [455]: %v", query)
 				if err != nil {
 					log.Errorf("Failed to create update query: %v", err)
@@ -463,13 +468,12 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				if err != nil || rowsAffected == 0 {
 					log.Errorf("Failed to execute update query: %v", err)
 
-					u, _ := uuid.NewV4()
-					nuuid := u.String()
+					nuuid, _ := uuid.NewV7()
 
 					langTableCols = append(langTableCols, "language_id", "translation_reference_id", "reference_id")
 					langTableVals = append(langTableVals, lang, idInt, nuuid)
 
-					insert := statementbuilder.Squirrel.Insert(dbResource.model.GetName() + "_i18n")
+					insert := statementbuilder.Squirrel.Insert(dbResource.model.GetName() + "_i18n").Prepared(true)
 					insert = insert.Cols(langTableCols...)
 					insert = insert.Vals(langTableVals)
 					query, vals, err := insert.ToSQL()
@@ -605,7 +609,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					}
 
 					subjectId := data.GetColumnOriginalValue("id")
-					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(string), updateTransaction)
+					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(daptinid.DaptinReferenceId), updateTransaction)
 					if err != nil {
 						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
 					}
@@ -637,7 +641,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 						if hasColumns && modl.IsDirty() {
 							log.Infof("[629] Updating existing join table row properties: %v", joinRow[0]["reference_id"])
-							modl.Data["reference_id"] = joinRow[0]["reference_id"]
+							modl.SetID(string(joinRow[0]["reference_id"].([]byte)))
 							pr.Method = "PATCH"
 
 							_, err = dbResource.Cruds[rel.GetJoinTableName()].UpdateWithTransaction(modl, api2go.Request{
@@ -653,7 +657,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					} else {
 
-						log.Infof("[620] Creating new join table row properties: %v -> %v", rel.GetJoinTableName(), modl.Data)
+						log.Infof("[620] Creating new join table row properties: %v -> %v", rel.GetJoinTableName(), modl.GetAttributes())
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
@@ -681,7 +685,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			}
 			log.Tracef("Update %v [%v] on: %v -> %v", rel.String(), updateObjectReferenceId, rel.GetSubjectName(), val)
 
-			returnList := make([]string, 0)
+			returnList := make([]daptinid.DaptinReferenceId, 0)
 			//var relUpdateQuery string
 			//var vars []interface{}
 			switch relationName {
@@ -703,7 +707,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 
-					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(string)
+					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(daptinid.DaptinReferenceId)
 					returnList = append(returnList, foreignObjectReferenceId)
 
 					oldRow := map[string]interface{}{
@@ -753,9 +757,9 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 					updateForeignRow := make(map[string]interface{})
-					foreignObjectReferenceId, ok := valMap[rel.GetSubjectName()].(string)
+					foreignObjectReferenceId, ok := valMap[rel.GetSubjectName()].(daptinid.DaptinReferenceId)
 					if !ok {
-						foreignObjectReferenceId, ok = valMap["reference_id"].(string)
+						foreignObjectReferenceId, ok = valMap["reference_id"].(daptinid.DaptinReferenceId)
 						if !ok {
 							log.Warnf("reference id not found for subject [%v] for updating [%v][%v]",
 								rel.GetSubjectName(), dbResource.tableInfo.TableName, updateObjectReferenceId)
@@ -799,7 +803,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
 					item[rel.GetSubjectName()] = item["id"]
-					returnList = append(returnList, item["id"].(string))
+					returnList = append(returnList, item["id"].(daptinid.DaptinReferenceId))
 					item[rel.GetObjectName()] = updateObjectReferenceId
 					delete(item, "id")
 					delete(item, "meta")
@@ -822,11 +826,11 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						delete(item, "attributes")
 					}
 
-					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(string), updateTransaction)
+					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(daptinid.DaptinReferenceId), updateTransaction)
 					if err != nil {
 						return nil, fmt.Errorf("subject not found [%v][%v]", rel.GetSubject(), item[rel.GetSubjectName()])
 					}
-					objectId := data.Data["id"]
+					objectId := data.GetID()
 					if err != nil {
 						return nil, err
 					}
@@ -872,7 +876,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					} else {
 
-						log.Infof("[815] Creating new join table row properties: %v - %v", rel.GetJoinTableName(), modl.Data)
+						log.Infof("[815] Creating new join table row properties: %v - %v", rel.GetJoinTableName(),
+							modl.GetAttributes())
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
@@ -900,10 +905,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		}
 	}
 
-	for key, val := range attrs {
-		data.Data[key] = val
-	}
-	//
+	data.SetAttributes(attrs)
 
 	for relationName, deleteRelations := range data.DeleteIncludes {
 		referencedRelation := api2go.TableRelation{}
@@ -932,16 +934,18 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 		log.Printf("Delete [%v] relation: [%v][%v]", referencedRelation.GetRelation(), relationName, deleteRelations)
 
-		for _, deleteId := range deleteRelations {
+		for _, deleteReferneceUuidString := range deleteRelations {
 
-			otherObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(referencedTypeName, deleteId, updateTransaction)
+			delRefUUId := uuid.MustParse(deleteReferneceUuidString)
+
+			otherObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(referencedTypeName, daptinid.DaptinReferenceId(delRefUUId), updateTransaction)
 
 			if isAdmin || otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
 
-				otherObjectId, err := GetReferenceIdToIdWithTransaction(referencedTypeName, deleteId, updateTransaction)
+				otherObjectId, err := GetReferenceIdToIdWithTransaction(referencedTypeName, daptinid.DaptinReferenceId(delRefUUId), updateTransaction)
 
 				if err != nil {
-					log.Errorf("referenced object not found: [%v][%v] - %v", referencedTypeName, deleteId, err)
+					log.Errorf("referenced object not found: [%v][%v] - %v", referencedTypeName, deleteReferneceUuidString, err)
 					continue
 				}
 
@@ -963,7 +967,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					}
 
 					joinReferenceObject := joinReference[0]
-					err = dbResource.Cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(string), req, updateTransaction)
+					err = dbResource.Cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(daptinid.DaptinReferenceId), req, updateTransaction)
 					if err != nil {
 						log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
 						return nil, err
@@ -989,7 +993,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					foreignObject, err := dbResource.GetIdToObjectWithTransaction(targetTypeName, otherObjectId, updateTransaction)
 					if err != nil {
-						log.Errorf("Failed to get foreign object by reference deleteId: %v", err)
+						log.Errorf("Failed to get foreign object by reference deleteReferneceUuidString: %v", err)
 						continue
 					}
 					modelToUpdate := api2go.NewApi2GoModelWithData(referencedTypeName, nil, 0, nil, foreignObject)
@@ -1030,7 +1034,8 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 		return nil, err
 	}
 
-	data.Data["__type"] = dbResource.model.GetName()
+	data.SetType(dbResource.model.GetName())
+
 	for _, bf := range dbResource.ms.BeforeUpdate {
 		//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
@@ -1051,7 +1056,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 			return nil, fmt.Errorf("failed to updated this object because of [%v]", bf.String())
 		}
 		res := finalData[0]
-		data.Data = res
+		data.SetAttributes(res)
 	}
 
 	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)
@@ -1106,7 +1111,8 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 	}
 	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
 
-	data.Data["__type"] = dbResource.model.GetName()
+	data.SetType(dbResource.model.GetName())
+
 	for _, bf := range dbResource.ms.BeforeUpdate {
 		//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
@@ -1126,7 +1132,7 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 			return nil, fmt.Errorf("failed to updated this object because of [%v]", bf.String())
 		}
 		res := finalData[0]
-		data.Data = res
+		data.SetAttributes(res)
 	}
 
 	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)

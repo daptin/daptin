@@ -9,6 +9,8 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -49,11 +51,11 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
-	oauthTokenId1 := inFields["oauth_token_id"]
-	if oauthTokenId1 == nil {
+	oauthTokenId1, err := uuid.Parse(inFields["oauth_token_id"].(string))
+	if err != nil {
 		log.Printf("No oauth token set for target store")
 	} else {
-		oauthTokenId := oauthTokenId1.(string)
+		oauthTokenId := daptinid.DaptinReferenceId(oauthTokenId1)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}

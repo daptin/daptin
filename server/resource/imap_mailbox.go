@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"github.com/daptin/daptin/server/id"
 	"io"
 	"net/http"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/textproto"
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -406,7 +407,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	log.Printf("Mail search results: %v", results)
 	for i, res := range results {
 		if uid {
-			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail", res["reference_id"].(string), transaction)
+			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail", res["reference_id"].(daptinid.DaptinReferenceId), transaction)
 			if err != nil {
 				CheckErr(err, "Failed to get id from reference id")
 				continue
@@ -485,7 +486,8 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 
 	msgId := parsedmail.MessageID
 	if len(msgId) < 1 {
-		msgId = uuid.NewV4().String()
+		msgId3, _ := uuid.NewV7()
+		msgId = msgId3.String()
 	}
 	hash := GetMD5Hash(mailBody)
 
@@ -510,35 +512,32 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		sender = parsedmail.Sender.String()
 	}
 
-	model := api2go.Api2GoModel{
-		Data: map[string]interface{}{
-			"message_id":       parsedmail.MessageID,
-			"mail_id":          hash,
-			"from_address":     fromAddress,
-			"to_address":       toAddress,
-			"sender_address":   sender,
-			"subject":          parsedmail.Subject,
-			"body":             textBody,
-			"mail":             base64MailContents,
-			"spam_score":       0,
-			"hash":             hash,
-			"internal_date":    parsedmail.Date,
-			"content_type":     messageEntity.Header.Get("Content-Type"),
-			"reply_to_address": replyTo,
-			"recipient":        toAddress,
-			"has_attachment":   len(parsedmail.Attachments),
-			"ip_addr":          "",
-			"return_path":      "",
-			"is_tls":           false,
-			"mail_box_id":      dimb.mailBoxReferenceId,
-			"user_account_id":  dimb.sessionUser.UserId,
-			"seen":             false,
-			"recent":           true,
-			"flags":            strings.Join(flags, ","),
-			"size":             len(mailBody),
-		},
-	}
-
+	model := api2go.NewApi2GoModelWithData("mail", nil, 0, nil, map[string]interface{}{
+		"message_id":       parsedmail.MessageID,
+		"mail_id":          hash,
+		"from_address":     fromAddress,
+		"to_address":       toAddress,
+		"sender_address":   sender,
+		"subject":          parsedmail.Subject,
+		"body":             textBody,
+		"mail":             base64MailContents,
+		"spam_score":       0,
+		"hash":             hash,
+		"internal_date":    parsedmail.Date,
+		"content_type":     messageEntity.Header.Get("Content-Type"),
+		"reply_to_address": replyTo,
+		"recipient":        toAddress,
+		"has_attachment":   len(parsedmail.Attachments),
+		"ip_addr":          "",
+		"return_path":      "",
+		"is_tls":           false,
+		"mail_box_id":      dimb.mailBoxReferenceId,
+		"user_account_id":  dimb.sessionUser.UserId,
+		"seen":             false,
+		"recent":           true,
+		"flags":            strings.Join(flags, ","),
+		"size":             len(mailBody),
+	})
 	//txDbResource := NewFromDbResourceWithTransaction(dimb.dbResource["mail"], tx)
 	//uidNext, err := txDbResource.GetMailboxNextUid(dimb.mailBoxId)
 	//log.Printf("Assign next UID: %v", uidNext)
@@ -694,9 +693,8 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 				mail["flags"] = strings.Join(mailFlags, ",")
 			}
 
-			_, err = dimb.dbResource["mail"].CreateWithoutFilter(api2go.Api2GoModel{
-				Data: mail,
-			}, req, transaction)
+			_, err = dimb.dbResource["mail"].CreateWithoutFilter(api2go.NewApi2GoModelWithData(
+				"mail", nil, 0, nil, mail), req, transaction)
 			if err != nil {
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "Failed to rollback")

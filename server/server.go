@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/emersion/go-webdav"
+	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
 	"os"
@@ -15,11 +18,9 @@ import (
 	"time"
 
 	"github.com/artpar/api2go"
-	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/stats"
 	"github.com/artpar/ydb"
@@ -31,6 +32,7 @@ import (
 	server2 "github.com/fclairamb/ftpserver/server"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/icrowley/fake"
 	rateLimit "github.com/yangxikun/gin-limit-by-key"
 	"golang.org/x/time/rate"
@@ -55,9 +57,9 @@ var defaultRateConfig = RateConfig{
 	limits:  map[string]int{},
 }
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.Olric) (
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.EmbeddedClient) (
 	HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
-	*server2.FtpServer, *server.Server, *olric.Olric) {
+	*server2.FtpServer, *server.Server, *olric.EmbeddedClient) {
 
 	fmt.Print(`                                                                           
                               
@@ -176,10 +178,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	defaultRouter.GET("/favicon.ico", func(c *gin.Context) {
 
-		file, err := boxRoot.Open("static/img/favicon.png")
+		file, err := boxRoot.Open("static/img/favicon.ico")
 		if err != nil {
-			c.AbortWithStatus(404)
-			return
+			file, err = boxRoot.Open("favicon.ico")
+			if err != nil {
+				c.AbortWithStatus(404)
+				return
+			}
+
 		}
 
 		fileContents, err := io.ReadAll(file)
@@ -265,7 +271,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	jwtSecret, err := configStore.GetConfigValueFor("jwt.secret", "backend", transaction)
 	if err != nil {
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		newSecret := u.String()
 		err = configStore.SetConfigValueFor("jwt.secret", newSecret, "backend", transaction)
 		resource.CheckErr(err, "Failed to store secret in database")
@@ -296,7 +302,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	resource.CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
-		uid, _ := uuid.NewV4()
+		uid, _ := uuid.NewV7()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}
@@ -314,7 +320,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		gingonic.New(defaultRouter),
 	)
 
-	dtopicMap := make(map[string]*olric.DTopic)
+	dtopicMap := make(map[string]*olric.PubSub)
 
 	transaction, err = db.Beginx()
 	if err != nil {
@@ -355,9 +361,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 					defer transaction.Rollback()
 				}
 
-				object, _, _ := cruds[typeName].GetSingleRowByReferenceIdWithTransaction(typeName, referenceId, map[string]bool{
-					columnName: true,
-				}, transaction)
+				object, _, _ := cruds[typeName].GetSingleRowByReferenceIdWithTransaction(typeName,
+					daptinid.DaptinReferenceId(uuid.MustParse(referenceId)), map[string]bool{
+						columnName: true,
+					}, transaction)
 				log.Tracef("Completed NewDiskDocumentProvider GetSingleRowByReferenceIdWithTransaction")
 
 				originalFile := object[columnName]
@@ -390,8 +397,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	log.Tracef("Created middleware set")
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	log.Tracef("Added ResourcesToApi2Go")
+	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub()
 	for key := range cruds {
-		dtopicMap[key], err = cruds["world"].OlricDb.NewDTopic(key, 4, 1)
+		dtopicMap[key] = tablesPubSub
 		resource.CheckErr(err, "Failed to create topic for table: %v", key)
 		if err != nil {
 			log.Fatalf("failed to create olric topic for table %v - %v", key, err)
@@ -419,6 +427,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	streamProcessors := GetStreamProcessors(&initConfig, configStore, cruds)
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
 	feedHandler := CreateFeedHandler(cruds, streamProcessors, transaction)
+	api.UseMiddleware(func(contexter api2go.APIContexter, writer http.ResponseWriter, request *http.Request) {
+
+	})
 
 	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname, transaction)
 	transaction.Commit()
@@ -788,52 +799,61 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 				log.Printf("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
 				defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
 
-					dtopicMap[typename].AddListener(func(message olric.DTopicMessage) {
-						eventMessage := message.Message.(resource.EventMessage)
-						log.Tracef("dtopicMapListener handle: [%v]", eventMessage.ObjectType)
-
-						if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
-							referenceId := eventMessage.EventData["reference_id"].(string)
-
-							transaction, err := cruds[typename].Connection.Beginx()
+					redisPubSub := dtopicMap[typename].Subscribe(context.Background(), typename)
+					go func(rps *redis.PubSub) {
+						channel := rps.Channel()
+						for {
+							msg := <-channel
+							var eventMessage resource.EventMessage
+							err = json.UnmarshalFromString(msg.String(), &eventMessage)
+							log.Tracef("dtopicMapListener handle: [%v]", eventMessage.ObjectType)
 							if err != nil {
-								resource.CheckErr(err, "Failed to begin transaction [788]")
+								resource.CheckErr(err, "Failed to read message on channel "+typename)
 								return
 							}
+							if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
+								referenceId := uuid.MustParse(eventMessage.EventData["reference_id"].(string))
 
-							object, _, _ := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, referenceId, map[string]bool{
-								columnInfo.ColumnName: true,
-							}, transaction)
-							transaction.Rollback()
-							log.Tracef("Completed dtopicMapListener GetSingleRowByReferenceIdWithTransaction")
-
-							colValue := object[columnInfo.ColumnName]
-							if colValue == nil {
-								return
-							}
-							columnValueArray, ok := colValue.([]map[string]interface{})
-							if !ok {
-								log.Warnf("value is not of type array - %v", colValue)
-								return
-							}
-
-							fileContentsJson := []byte{}
-							for _, file := range columnValueArray {
-								if file["type"] != "x-crdt/yjs" {
-									continue
+								transaction, err := cruds[typename].Connection.Beginx()
+								if err != nil {
+									resource.CheckErr(err, "Failed to begin transaction [788]")
+									return
 								}
-								fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
-							}
 
-							documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
-							document := documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
-							if document != nil {
-								document.SetInitialContent(fileContentsJson)
+								object, _, _ := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, daptinid.DaptinReferenceId(referenceId), map[string]bool{
+									columnInfo.ColumnName: true,
+								}, transaction)
+								transaction.Rollback()
+								log.Tracef("Completed dtopicMapListener GetSingleRowByReferenceIdWithTransaction")
+
+								colValue := object[columnInfo.ColumnName]
+								if colValue == nil {
+									return
+								}
+								columnValueArray, ok := colValue.([]map[string]interface{})
+								if !ok {
+									log.Warnf("value is not of type array - %v", colValue)
+									return
+								}
+
+								fileContentsJson := []byte{}
+								for _, file := range columnValueArray {
+									if file["type"] != "x-crdt/yjs" {
+										continue
+									}
+									fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
+								}
+
+								documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
+								document := documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
+								if document != nil {
+									document.SetInitialContent(fileContentsJson)
+								}
+
 							}
 
 						}
-
-					})
+					}(redisPubSub)
 
 					return func(ginContext *gin.Context) {
 
@@ -852,7 +872,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 							return
 						}
 
-						object, _, err := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, referenceId, nil, tx)
+						object, _, err := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename,
+							daptinid.DaptinReferenceId(uuid.MustParse(referenceId)), nil, tx)
 						tx.Rollback()
 						if err != nil {
 							ginContext.AbortWithStatus(404)
@@ -895,6 +916,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	defaultRouter.NoRoute(func(c *gin.Context) {
 		//c.Header("Content-Type", "text/html")
+		fileExists, err := boxRoot.Open(strings.TrimLeft(c.Request.URL.Path, "/"))
+		if err == nil {
+			var fileContents = []byte("")
+			if fileExists != nil && err == nil {
+				fileContents, err = io.ReadAll(fileExists)
+				if err == nil {
+					c.Data(200, "text/html; charset=UTF-8", fileContents)
+					return
+				}
+			}
+		}
 		if len(indexFileContents) > 0 {
 			c.Data(200, "text/html; charset=UTF-8", indexFileContents)
 		}
@@ -938,9 +970,10 @@ func CreateFtpServers(resources map[string]*resource.DbResource, certManager *re
 	if err != nil {
 		return nil, err
 	}
-	cloudStoreMap := make(map[string]resource.CloudStore)
+	cloudStoreMap := make(map[uuid.UUID]resource.CloudStore)
 	for _, cloudStore := range cloudStores {
-		cloudStoreMap[cloudStore.ReferenceId] = cloudStore
+		re, _ := uuid.FromBytes(cloudStore.ReferenceId[:])
+		cloudStoreMap[re] = cloudStore
 	}
 	var driver *DaptinFtpDriver
 

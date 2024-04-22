@@ -4,10 +4,12 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -26,10 +28,10 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			QueryParams:  map[string][]string{},
 		}
 
-		objectStateMachineId := gincontext.Param("objectStateId")
+		objectStateMachineUuidString := gincontext.Param("objectStateId")
 		typename := gincontext.Param("typename")
 
-		objectStateMachineResponse, err := cruds[typename+"_state"].FindOne(objectStateMachineId, req)
+		objectStateMachineResponse, err := cruds[typename+"_state"].FindOne(objectStateMachineUuidString, req)
 		if err != nil {
 			log.Errorf("Failed to get object state machine: %v", err)
 			gincontext.AbortWithError(400, err)
@@ -38,7 +40,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 		objectStateMachine := objectStateMachineResponse.Result().(api2go.Api2GoModel)
 
-		stateObject := objectStateMachine.Data
+		stateObject := objectStateMachine.GetAttributes()
 
 		var subjectInstanceModel api2go.Api2GoModel
 		//var stateMachineDescriptionInstance *api2go.Api2GoModel
@@ -51,7 +53,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 		}
 
-		stateMachineId := objectStateMachine.GetID()
+		stateMachineId := uuid.MustParse(objectStateMachine.GetID())
 		eventName := gincontext.Param("eventName")
 
 		transaction, err := db.Beginx()
@@ -68,7 +70,8 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 			return
 		}
 
-		nextState, err := fsmManager.ApplyEvent(subjectInstanceModel.GetAllAsAttributes(), resource.NewStateMachineEvent(stateMachineId, eventName))
+		nextState, err := fsmManager.ApplyEvent(subjectInstanceModel.GetAllAsAttributes(),
+			resource.NewStateMachineEvent(daptinid.DaptinReferenceId(stateMachineId), eventName))
 		if err != nil {
 			gincontext.AbortWithError(400, err)
 			return
@@ -88,7 +91,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 				QueryParams:  map[string][]string{},
 			}
 
-			stateAudit.Data["source_reference_id"] = objectStateMachine.GetReferenceId()
+			stateAudit.Set("source_reference_id", objectStateMachine.GetReferenceId())
 
 			_, err := creator.CreateWithTransaction(stateAudit, req, transaction)
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
@@ -124,19 +127,19 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 			sessionUser = user.(*auth.SessionUser)
 		}
 
-		jsBytes, err := io.ReadAll(gincontext.Request.Body)
+		requestBodyBytes, err := io.ReadAll(gincontext.Request.Body)
 		if err != nil {
 			log.Errorf("Failed to read post body: %v", err)
 			gincontext.AbortWithError(400, err)
 			return
 		}
 
-		m := make(map[string]interface{})
-		json.Unmarshal(jsBytes, &m)
+		requestBodyMap := make(map[string]interface{})
+		json.Unmarshal(requestBodyBytes, &requestBodyMap)
 
-		typename := m["typeName"].(string)
-		refId := m["referenceId"].(string)
-		stateMachineId := gincontext.Param("stateMachineId")
+		typename := requestBodyMap["typeName"].(string)
+		refId := uuid.MustParse(requestBodyMap["referenceId"].(string))
+		stateMachineUuidString := gincontext.Param("stateMachineId")
 
 		pr := &http.Request{}
 		pr.Method = "GET"
@@ -146,7 +149,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 			QueryParams:  map[string][]string{},
 		}
 
-		response, err := cruds["smd"].FindOne(stateMachineId, req)
+		response, err := cruds["smd"].FindOne(stateMachineUuidString, req)
 		log.Tracef("Found one from smd")
 		if err != nil {
 			gincontext.AbortWithError(400, err)
@@ -169,7 +172,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 			return
 		}
 
-		subjectInstanceResponse, err := cruds[typename].FindOneWithTransaction(refId, req, transaction)
+		subjectInstanceResponse, err := cruds[typename].FindOneWithTransaction(daptinid.DaptinReferenceId(refId), req, transaction)
 		if err != nil {
 			gincontext.AbortWithError(400, err)
 			return

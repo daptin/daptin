@@ -1,16 +1,59 @@
 package resource
 
 import (
+	"encoding/binary"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 )
 
 type PermissionInstance struct {
-	UserId      string
+	UserId      daptinid.DaptinReferenceId
 	UserGroupId []auth.GroupPermission
 	Permission  auth.AuthPermission
 }
 
-func (p PermissionInstance) CanExecute(userId string, usergroupId []auth.GroupPermission) bool {
+// MarshalBinary implements encoding.BinaryMarshaler interface
+func (p PermissionInstance) MarshalBinary() (data []byte, err error) {
+	userIdBytes := p.UserId
+	permissionsBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(permissionsBytes, uint64(p.Permission))
+
+	userGroupIdBytes := make([]byte, len(p.UserGroupId)*auth.AuthGroupBinaryRepresentationSize)
+	for i, groupPermission := range p.UserGroupId {
+		groupPermissionBytes, err := groupPermission.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		copy(userGroupIdBytes[i*auth.AuthGroupBinaryRepresentationSize:], groupPermissionBytes[:])
+	}
+
+	result := append(userIdBytes[:], permissionsBytes...)
+	result = append(result, userGroupIdBytes...)
+	return result, nil
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler interface
+func (p *PermissionInstance) UnmarshalBinary(data []byte) error {
+	p.UserId = daptinid.DaptinReferenceId(data[:16])
+	p.Permission = auth.AuthPermission(binary.LittleEndian.Uint64(data[16:24]))
+
+	userGroupIdBytes := data[24:]
+	userGroupId := make([]auth.GroupPermission, len(userGroupIdBytes)/auth.AuthGroupBinaryRepresentationSize)
+	for i := 0; i < len(userGroupId); i++ {
+		groupPermission := auth.GroupPermission{}
+		err := groupPermission.UnmarshalBinary(userGroupIdBytes[(i * auth.AuthGroupBinaryRepresentationSize):16])
+		if err != nil {
+			return err
+		}
+
+		userGroupId[i] = groupPermission
+	}
+
+	p.UserGroupId = userGroupId
+	return nil
+}
+
+func (p PermissionInstance) CanExecute(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
 
 	if p.UserId == userId && (p.Permission&auth.UserExecute == auth.UserExecute) {
 		return true
@@ -31,7 +74,7 @@ func (p PermissionInstance) CanExecute(userId string, usergroupId []auth.GroupPe
 	return false
 }
 
-func (p PermissionInstance) CanCreate(userId string, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanCreate(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
 	if p.UserId == userId && (p.Permission&auth.UserCreate == auth.UserCreate) {
 		return true
 	}
@@ -51,7 +94,7 @@ func (p PermissionInstance) CanCreate(userId string, usergroupId []auth.GroupPer
 	return false
 }
 
-func (p PermissionInstance) CanUpdate(userId string, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanUpdate(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
 	if p.UserId == userId && (p.Permission&auth.UserUpdate == auth.UserUpdate) {
 		return true
 	}
@@ -71,7 +114,8 @@ func (p PermissionInstance) CanUpdate(userId string, usergroupId []auth.GroupPer
 	return false
 }
 
-func (p PermissionInstance) CanDelete(userId string, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanDelete(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+
 	if p.UserId == userId && (p.Permission&auth.UserDelete == auth.UserDelete) {
 		return true
 	}
@@ -91,7 +135,7 @@ func (p PermissionInstance) CanDelete(userId string, usergroupId []auth.GroupPer
 	return false
 }
 
-func (p PermissionInstance) CanRefer(userId string, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanRefer(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
 
 	if p.UserId == userId && (p.Permission&auth.UserRefer == auth.UserRefer) {
 		return true
@@ -112,7 +156,7 @@ func (p PermissionInstance) CanRefer(userId string, usergroupId []auth.GroupPerm
 	return false
 }
 
-func (p PermissionInstance) CanRead(userId string, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanRead(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
 	if p.UserId == userId && (p.Permission&auth.UserRead == auth.UserRead) {
 		return true
 	}
@@ -132,8 +176,9 @@ func (p PermissionInstance) CanRead(userId string, usergroupId []auth.GroupPermi
 	return false
 }
 
-func (p PermissionInstance) CanPeek(userId string, usergroupId []auth.GroupPermission) bool {
-	if (p.UserId != "" && p.UserId == userId) && (p.Permission&auth.UserPeek == auth.UserPeek) {
+func (p PermissionInstance) CanPeek(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+
+	if p.UserId == userId && (p.Permission&auth.UserPeek == auth.UserPeek) {
 		return true
 	}
 
@@ -143,7 +188,7 @@ func (p PermissionInstance) CanPeek(userId string, usergroupId []auth.GroupPermi
 
 	for _, uGroup := range usergroupId {
 		for _, oGroup := range p.UserGroupId {
-			if (oGroup.GroupReferenceId != "" && uGroup.GroupReferenceId == oGroup.GroupReferenceId) && oGroup.Permission&auth.GroupPeek == auth.GroupPeek {
+			if (uGroup.GroupReferenceId == oGroup.GroupReferenceId) && oGroup.Permission&auth.GroupPeek == auth.GroupPeek {
 				return true
 			}
 		}

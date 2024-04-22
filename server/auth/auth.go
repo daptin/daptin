@@ -1,12 +1,16 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/jwt"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
@@ -74,10 +78,10 @@ type AuthMiddleware struct {
 	userGroupCrud     ResourceAdapter
 	userUserGroupCrud ResourceAdapter
 	issuer            string
-	olricDb           *olric.Olric
+	olricDb           *olric.EmbeddedClient
 }
 
-func NewAuthMiddlewareBuilder(db database.DatabaseConnection, issuer string, olricDb *olric.Olric) *AuthMiddleware {
+func NewAuthMiddlewareBuilder(db database.DatabaseConnection, issuer string, olricDb *olric.EmbeddedClient) *AuthMiddleware {
 	return &AuthMiddleware{
 		db:      db,
 		issuer:  issuer,
@@ -99,7 +103,7 @@ func (a *AuthMiddleware) SetUserUserGroupCrud(curd ResourceAdapter) {
 
 var jwtMiddleware *jwtmiddleware.JWTMiddleware
 
-func InitJwtMiddleware(secret []byte, issuer string, db *olric.Olric) {
+func InitJwtMiddleware(secret []byte, issuer string, db *olric.EmbeddedClient) {
 	if jwtmiddleware.TokenCache == nil {
 		jwtmiddleware.TokenCache, _ = db.NewDMap("token-cache")
 	}
@@ -208,7 +212,7 @@ func CheckErr(err error, message ...interface{}) {
 var UserGroupSelectQuery = statementbuilder.Squirrel.Select(
 	goqu.I("ug.reference_id").As("groupreferenceid"),
 	goqu.I("uug.reference_id").As("relationreferenceid"),
-	goqu.I("uug.permission")).
+	goqu.I("uug.permission")).Prepared(true).
 	From(goqu.T("usergroup").As("ug")).
 	Join(goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uug"),
 		goqu.On(goqu.Ex{
@@ -219,7 +223,7 @@ func PrepareAuthQueries() {
 	UserGroupSelectQuery = statementbuilder.Squirrel.Select(
 		goqu.I("ug.reference_id").As("groupreferenceid"),
 		goqu.I("uug.reference_id").As("relationreferenceid"),
-		goqu.I("uug.permission")).
+		goqu.I("uug.permission")).Prepared(true).
 		From(goqu.T("usergroup").As("ug")).
 		Join(
 			goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uug"),
@@ -236,7 +240,7 @@ type CachedUserAccount struct {
 
 // var LocalUserCacheMap = make(map[string]CachedUserAccount)
 var LocalUserCacheLock = sync.Mutex{}
-var olricCache *olric.DMap
+var olricCache olric.DMap
 
 func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer http.ResponseWriter,
 	doBasicAuthCheck bool) (okToContinue, abortRequest bool, returnRequest *http.Request) {
@@ -307,15 +311,15 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 			if !ok {
 
-				cachedUser, err = olricCache.Get(email)
-				var referenceId string
+				cachedUser, err = olricCache.Get(context.Background(), email)
+				var referenceId daptinid.DaptinReferenceId
 				var userId int64
 				var userGroups []GroupPermission
 				if err != nil || cachedUser == nil {
 					//log.Errorf("cached user [%v] is nil", email)
 
 					sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
-						goqu.I("u.reference_id")).
+						goqu.I("u.reference_id")).Prepared(true).
 						From(goqu.T("user_account").As("u")).Where(
 						goqu.Ex{"email": email}).ToSQL()
 					if err != nil {
@@ -360,7 +364,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 							abortRequest = true
 							return okToContinue, abortRequest, req
 						}
-						referenceId = resp.Result().(api2go.Api2GoModel).Data["reference_id"].(string)
+						referenceId = daptinid.DaptinReferenceId([]byte((resp.Result().(api2go.Api2GoModel)).GetID()))
 
 						mapData = make(map[string]interface{})
 						mapData["name"] = "Home group of " + name
@@ -371,7 +375,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						if err != nil {
 							log.Errorf("Failed to create new user group: %v", err)
 						}
-						userGroupId := resp.Result().(api2go.Api2GoModel).Data["reference_id"].(string)
+						userGroupId := daptinid.DaptinReferenceId([]byte((resp.Result().(api2go.Api2GoModel)).GetID()))
 
 						userGroups = make([]GroupPermission, 0)
 						mapData = make(map[string]interface{})
@@ -447,9 +451,9 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//j, _ := json.Marshal(*sessionUser)
 					//strJ := string(j)
 					//log.Errorf("cache user account auth [%v] -> %v", len(strJ), strJ)
-					repeatCheck, err := olricCache.Get(email)
+					repeatCheck, err := olricCache.Get(context.Background(), email)
 					if err != nil || repeatCheck == nil {
-						err = olricCache.PutIfEx(email, *sessionUser, 10*time.Minute, olric.IfNotFound)
+						err = olricCache.Put(context.Background(), email, *sessionUser, olric.EX(10*time.Minute), olric.NX())
 						CheckErr(err, "failed to put user in cache %s", email)
 					}
 					//}
@@ -498,13 +502,82 @@ func (a *AuthMiddleware) AuthCheckMiddleware(c *gin.Context) {
 
 type SessionUser struct {
 	UserId          int64
-	UserReferenceId string
+	UserReferenceId daptinid.DaptinReferenceId
 	Groups          []GroupPermission
 }
 
 type GroupPermission struct {
-	GroupReferenceId    string `db:"groupreferenceid"`
-	ObjectReferenceId   string `db:"objectreferenceid"`
-	RelationReferenceId string `db:"relationreferenceid"`
+	GroupReferenceId    daptinid.DaptinReferenceId `db:"groupreferenceid"`
+	ObjectReferenceId   daptinid.DaptinReferenceId `db:"objectreferenceid"`
+	RelationReferenceId daptinid.DaptinReferenceId `db:"relationreferenceid"`
 	Permission          AuthPermission
+}
+type GroupPermissionList []GroupPermission
+
+func (g GroupPermissionList) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+	for _, gp := range g {
+		buf.Write(gp.GroupReferenceId[:])
+		buf.Write(gp.ObjectReferenceId[:])
+		buf.Write(gp.RelationReferenceId[:])
+		if err := binary.Write(&buf, binary.LittleEndian, gp.Permission); err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+func (g *GroupPermissionList) UnmarshalBinary(data []byte) error {
+	const size = 16 + 16 + 16 + 8 // Size of three DaptinReferenceIds and one AuthPermission
+	if len(data)%size != 0 {
+		return errors.New("invalid data length")
+	}
+
+	count := len(data) / size
+	*g = make([]GroupPermission, count)
+	for i := 0; i < count; i++ {
+		offset := i * size
+		(*g)[i].GroupReferenceId = *(*daptinid.DaptinReferenceId)(data[offset : offset+16])
+		offset += 16
+		(*g)[i].ObjectReferenceId = *(*daptinid.DaptinReferenceId)(data[offset : offset+16])
+		offset += 16
+		(*g)[i].RelationReferenceId = *(*daptinid.DaptinReferenceId)(data[offset : offset+16])
+		offset += 16
+		(*g)[i].Permission = AuthPermission(binary.LittleEndian.Uint64(data[offset : offset+8]))
+	}
+	return nil
+}
+
+const AuthGroupBinaryRepresentationSize = (3 * 16) + 8
+
+func (g *GroupPermission) UnmarshalBinary(data []byte) error {
+	if len(data) < (AuthGroupBinaryRepresentationSize) {
+		return fmt.Errorf("insufficient data: expected at least %d bytes, got %d bytes", 3*16+8, len(data))
+	}
+
+	// Unmarshal UUIDs
+	g.GroupReferenceId = daptinid.DaptinReferenceId(data[0:16])
+	g.ObjectReferenceId = daptinid.DaptinReferenceId(data[16:32])
+	g.RelationReferenceId = daptinid.DaptinReferenceId(data[32:48])
+
+	// Unmarshal AuthPermission
+	g.Permission = AuthPermission(binary.LittleEndian.Uint64(data[48:56]))
+
+	return nil
+}
+
+func (g GroupPermission) MarshalBinary() ([]byte, error) {
+	//TODO implement me
+	// Create a byte slice of size 3*16 (for 3 UUIDs each of 16 bytes) + 8 for the int64 AuthPermission value
+	var data = make([]byte, AuthGroupBinaryRepresentationSize)
+
+	// Copy each UUID to the byte slice
+	copy(data[0:16], g.GroupReferenceId[:])
+	copy(data[16:32], g.ObjectReferenceId[:])
+	copy(data[32:48], g.RelationReferenceId[:])
+
+	// Convert AuthPermission to bytes and copy to the byte slice
+	binary.LittleEndian.PutUint64(data[48:56], uint64(g.Permission))
+
+	return data, nil
 }

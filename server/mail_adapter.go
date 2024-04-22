@@ -16,6 +16,7 @@ import (
 	"github.com/artpar/go-guerrilla/response"
 	"github.com/artpar/go-smtp-mta"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
@@ -385,12 +386,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						defer transaction.Commit()
-						user, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction("user_account", mailAccount["user_account_id"].(string), nil, transaction)
+						user, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction("user_account",
+							mailAccount["user_account_id"].(daptinid.DaptinReferenceId), nil, transaction)
 						log.Tracef("Completed mailAdapter GetSingleRowByReferenceIdWithTransaction")
 
 						sessionUser := &auth.SessionUser{
 							UserId:          user["id"].(int64),
-							UserReferenceId: user["reference_id"].(string),
+							UserReferenceId: user["reference_id"].(daptinid.DaptinReferenceId),
 							Groups:          dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", user["id"].(int64)),
 						}
 
@@ -438,8 +440,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 						}
 
-						model := api2go.Api2GoModel{
-							Data: map[string]interface{}{
+						model := api2go.NewApi2GoModelWithData("mail",
+							nil, 0, nil, map[string]interface{}{
 								"message_id":       mid,
 								"mail_id":          hash,
 								"from_address":     trimToLimit(e.MailFrom.String(), 255),
@@ -465,8 +467,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"recent":           true,
 								"flags":            flags,
 								"size":             mailSize,
-							},
-						}
+							})
 						_, err = dbResource.Cruds["mail"].Create(&model, *req)
 						resource.CheckErr(err, "Failed to store mail")
 						//err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)

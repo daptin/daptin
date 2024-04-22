@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/daptin/daptin/server/database"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
@@ -23,11 +24,12 @@ type StateMachineInstance struct {
 	ObjectId       int64
 }
 
-func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, machineInstanceId string) (StateMachineInstance, error) {
+func (fsm *fsmManager) getStateMachineInstance(objType string, objId int64, machineInstanceId daptinid.DaptinReferenceId) (StateMachineInstance, error) {
 
-	s, v, err := statementbuilder.Squirrel.Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").
+	s, v, err := statementbuilder.Squirrel.
+		Select("current_state", objType+"_smd", "is_state_of_"+objType, "id", "created_at", "permission").Prepared(true).
 		From(objType + "_state").
-		Where(goqu.Ex{"reference_id": machineInstanceId}).
+		Where(goqu.Ex{"reference_id": machineInstanceId[:]}).
 		Where(goqu.Ex{"is_state_of_" + objType: objId}).ToSQL()
 
 	var res StateMachineInstance
@@ -92,7 +94,9 @@ type LoopbookFsmDescription struct {
 
 func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName string, machineId int64) (*loopfsm.FSM, error) {
 
-	s, v, err := statementbuilder.Squirrel.Select("initial_state", "events").From("smd").Where(goqu.Ex{"id": machineId}).ToSQL()
+	s, v, err := statementbuilder.Squirrel.
+		Select("initial_state", "events").From("smd").Prepared(true).
+		Where(goqu.Ex{"id": machineId}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +148,7 @@ func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName strin
 func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEvent StateMachineEvent) (string, error) {
 
 	objType := subject["__type"].(string)
-	objReferenceId := subject["reference_id"].(string)
+	objReferenceId := subject["reference_id"].(daptinid.DaptinReferenceId)
 
 	objectIntegerId, err := ReferenceIdToIntegerId(objType, objReferenceId, fsm.db)
 	if err != nil {
@@ -178,9 +182,10 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 	}
 
 }
-func ReferenceIdToIntegerId(typeName string, referenceId string, db database.DatabaseConnection) (int64, error) {
+func ReferenceIdToIntegerId(typeName string, referenceId daptinid.DaptinReferenceId, db database.DatabaseConnection) (int64, error) {
 
-	s, v, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, v, err := statementbuilder.Squirrel.Select("id").Prepared(true).
+		From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return 0, err
 	}

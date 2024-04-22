@@ -5,15 +5,16 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	daptinid "github.com/daptin/daptin/server/id"
 	"os"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/artpar/api2go"
-	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/dop251/goja"
 	"github.com/gin-gonic/gin"
+	uuid "github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	//"io"
@@ -211,24 +212,26 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
 
-	subjectInstanceReferenceId, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
+	subjectInstanceReferenceString, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
+	subjectInstanceReferenceUuid := uuid.MustParse(subjectInstanceReferenceString.(string))
 	if ok {
 		req.PlainRequest.Method = "GET"
 		req.QueryParams = make(map[string][]string)
 		req.QueryParams["included_relations"] = action.RequestSubjectRelations
-		referencedObject, err := db.FindOneWithTransaction(subjectInstanceReferenceId.(string), req, transaction)
+		referencedObject, err := db.FindOneWithTransaction(daptinid.DaptinReferenceId(subjectInstanceReferenceUuid), req, transaction)
 		if err != nil {
-			log.Warnf("failed to load subject for action: %v - [%v][%v]", actionRequest.Action, actionRequest.Type, subjectInstanceReferenceId)
+			log.Warnf("failed to load subject for action: %v - [%v][%v]", actionRequest.Action, actionRequest.Type, subjectInstanceReferenceString)
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(err, "failed to load subject", 400)
 		}
 		subjectInstance = referencedObject.Result().(api2go.Api2GoModel)
 
-		subjectInstanceMap = subjectInstance.Data
+		subjectInstanceMap = subjectInstance.GetAttributes()
+		subjectInstanceMap["reference_id"] = subjectInstance.GetID()
 
 		if subjectInstanceMap == nil {
-			log.Warnf("subject is empty: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+			log.Warnf("subject is empty: %v - %v", actionRequest.Action, subjectInstanceReferenceString)
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New("subject not found"), "subject not found", 400)
@@ -238,7 +241,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		permission := db.GetRowPermissionWithTransaction(subjectInstanceMap, transaction)
 
 		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
-			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceString)
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
 			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
@@ -246,7 +249,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	}
 
 	if !isAdmin && !db.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
-		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceId)
+		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceString)
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "failed to rollback")
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
@@ -254,7 +257,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 	//log.Printf("Handle event for action [%v]", actionRequest.Action)
 
-	if !action.InstanceOptional && (subjectInstanceReferenceId == "" || subjectInstance.GetID() != subjectInstanceReferenceId) {
+	if !action.InstanceOptional && (subjectInstanceReferenceString == "" || subjectInstance.GetID() != subjectInstanceReferenceString) {
 		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "failed to rollback")
@@ -307,7 +310,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		return nil, api2go.NewHTTPError(err, "failed to validate fields", 400)
 	}
 
-	if sessionUser.UserReferenceId != "" {
+	if sessionUser.UserReferenceId != daptinid.NullReferenceId {
 		user, err := db.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
 		if err != nil {
 			rollbackErr := transaction.Rollback()
@@ -332,7 +335,7 @@ OutFields:
 		var errors1 []error
 		var actionResponse ActionResponse
 
-		log.Debugf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceId, outcome.Type, outcome.Method)
+		log.Debugf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceString, outcome.Type, outcome.Method)
 
 		if len(outcome.Condition) > 0 {
 			var outcomeResult interface{}
@@ -386,14 +389,14 @@ OutFields:
 		model = *modelPointer
 
 		requestContext := req.PlainRequest.Context()
-		var adminUserReferenceId string
+		var adminUserReferenceId daptinid.DaptinReferenceId
 		adminUserReferenceIds := GetAdminReferenceIdWithTransaction(transaction)
 		for id := range adminUserReferenceIds {
-			adminUserReferenceId = id
+			adminUserReferenceId = daptinid.DaptinReferenceId(id)
 			break
 		}
 
-		if len(adminUserReferenceId) > 0 {
+		if adminUserReferenceId != daptinid.NullReferenceId {
 			requestContext = context.WithValue(requestContext, "user", &auth.SessionUser{
 				UserReferenceId: adminUserReferenceId,
 			})
@@ -413,7 +416,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).Data
+				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).GetAttributes()
 				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
@@ -421,7 +424,7 @@ OutFields:
 
 			request.QueryParams = make(map[string][]string)
 
-			for k, val := range model.Data {
+			for k, val := range model.GetAttributes() {
 				if k == "query" {
 					request.QueryParams[k] = []string{toJson(val)}
 				} else {
@@ -442,17 +445,18 @@ OutFields:
 			actionResponses = append(actionResponses, actionResponse)
 		case "GET_BY_ID":
 
-			referenceId, ok := model.Data["reference_id"]
-			if referenceId == nil || !ok {
+			referenceIdString, ok := model.GetAttributes()["reference_id"]
+			referenceIdUuid, err := uuid.Parse(referenceIdString.(string))
+			if referenceIdString == "" || !ok || err != nil {
 				err = api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
 				break OutFields
 			}
 
 			includedRelations := make(map[string]bool, 0)
-			if model.Data["included_relations"] != nil {
+			if model.GetAttributes()["included_relations"] != nil {
 				//included := req.QueryParams["included_relations"][0]
 				//includedRelationsList := strings.Split(included, ",")
-				for _, incl := range strings.Split(model.Data["included_relations"].(string), ",") {
+				for _, incl := range strings.Split(model.GetAttributes()["included_relations"].(string), ",") {
 					includedRelations[incl] = true
 				}
 
@@ -460,7 +464,7 @@ OutFields:
 				includedRelations = nil
 			}
 
-			responseObjects, _, err = dbResource.GetSingleRowByReferenceIdWithTransaction(outcome.Type, referenceId.(string), nil, transaction)
+			responseObjects, _, err = dbResource.GetSingleRowByReferenceIdWithTransaction(outcome.Type, daptinid.DaptinReferenceId(referenceIdUuid), nil, transaction)
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
@@ -480,12 +484,14 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).Data
+				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).GetAttributes()
 				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "DELETE":
-			err = dbResource.DeleteWithoutFilters(model.Data["reference_id"].(string), request, transaction)
+			idString := model.GetID()
+			idUUid := uuid.MustParse(idString)
+			err = dbResource.DeleteWithoutFilters(daptinid.DaptinReferenceId(idUUid), request, transaction)
 			CheckErr(err, "Failed to delete inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
@@ -506,14 +512,14 @@ OutFields:
 			} else {
 				var responder api2go.Responder
 				outcome.Attributes["user"] = sessionUser
-				responder, responses1, errors1 = performer.DoAction(outcome, model.Data, transaction)
+				responder, responses1, errors1 = performer.DoAction(outcome, model.GetAttributes(), transaction)
 				actionResponses = append(actionResponses, responses1...)
 				if len(errors1) > 0 {
 					err = errors1[0]
 					break OutFields
 				}
 				if responder != nil {
-					responseObjects = responder.Result().(api2go.Api2GoModel).Data
+					responseObjects = responder.Result().(api2go.Api2GoModel).GetAttributes()
 				}
 			}
 
@@ -521,7 +527,7 @@ OutFields:
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 			log.Debugf("Create action response: %v", model.GetName())
 			var actionResponse ActionResponse
-			actionResponse = NewActionResponse(model.GetName(), model.Data)
+			actionResponse = NewActionResponse(model.GetName(), model.GetAttributes())
 			actionResponses = append(actionResponses, actionResponse)
 		default:
 			handler, ok := db.ActionHandlerMap[outcome.Type]
@@ -530,7 +536,7 @@ OutFields:
 				log.Errorf("Unknown method invoked onn %v: %v", outcome.Type, outcome.Method)
 				continue
 			}
-			responder, responses1, err1 := handler.DoAction(outcome, model.Data, transaction)
+			responder, responses1, err1 := handler.DoAction(outcome, model.GetAttributes(), transaction)
 			if err1 != nil {
 				err = err1[0]
 			} else {
@@ -563,7 +569,7 @@ OutFields:
 
 			api2goModel, ok := responseObjects.(api2go.Response)
 			if ok {
-				responseObjects = api2goModel.Result().(api2go.Api2GoModel).Data
+				responseObjects = api2goModel.Result().(api2go.Api2GoModel).GetAttributes()
 			}
 
 			singleResult, isSingleResult := responseObjects.(map[string]interface{})
@@ -825,7 +831,7 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 	})
 
 	vm.Set("uuid", func() string {
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		return u.String()
 	})
 	v, err := vm.RunString(unsafe) // Here be dragons (risky code)

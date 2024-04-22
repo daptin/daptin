@@ -8,7 +8,7 @@ storage
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 docker_dir/
 npm-debug.log
-rice-box.go
+rice-box.go.backup
 build/
 projectFilesBackup/
 main

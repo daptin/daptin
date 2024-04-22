@@ -72,10 +72,7 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 		return nil, nil, []error{err}
 	}
 
-	updateObj := api2go.Api2GoModel{
-		Data: tableData,
-	}
-
+	updateObj := api2go.NewApi2GoModelWithData(tableSchema.TableName, nil, 0, nil, tableData)
 	updateObj.SetAttributes(map[string]interface{}{
 		"world_schema_json": schemaJson,
 	})

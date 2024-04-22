@@ -3,8 +3,10 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gobuffalo/flect"
+	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/relay"
 	"github.com/iancoleman/strcase"
@@ -48,7 +50,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			}
 			responder, err := resources[strings.ToLower(resolvedID.Type)].FindOne(resolvedID.ID, req)
 			if responder != nil && responder.Result() != nil {
-				return responder.Result().(api2go.Api2GoModel).Data, err
+				return responder.Result().(api2go.Api2GoModel).GetAttributes(), err
 			}
 			return nil, err
 		},
@@ -397,7 +399,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 							includedMap[included.GetID()] = included
 						}
 
-						data := r.Data
+						data := r.GetAttributes()
 
 						for key, val := range data {
 							colInfo, ok := columnMap[key]
@@ -701,7 +703,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
-					return created.Result().(api2go.Api2GoModel).Data, err
+					return created.Result().(api2go.Api2GoModel).GetAttributes(), err
 				},
 			}
 
@@ -743,7 +745,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
-					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceIdWithTransaction(table.TableName, referenceId, nil, transaction)
+					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceIdWithTransaction(table.TableName, daptinid.DaptinReferenceId(uuid.MustParse(referenceId)), nil, transaction)
 					log.Tracef("Completed mutationFields GetSingleRowByReferenceIdWithTransaction")
 					if err != nil {
 						transaction.Rollback()
@@ -793,7 +795,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					err = transaction.Commit()
 
-					return created.Result().(api2go.Api2GoModel).Data, err
+					return created.Result().(api2go.Api2GoModel).GetAttributes(), err
 				},
 			}
 
@@ -824,7 +826,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					defer transaction.Commit()
 
-					_, err = resources[table.TableName].DeleteWithTransaction(params.Args["reference_id"].(string), req, transaction)
+					_, err = resources[table.TableName].DeleteWithTransaction(daptinid.DaptinReferenceId(uuid.MustParse(params.Args["reference_id"].(string))), req, transaction)
 
 					if err != nil {
 						return nil, err

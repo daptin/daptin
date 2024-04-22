@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -118,7 +118,7 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 						"name": item.Name,
 					},
 				})
-				u, _ := uuid.NewV4()
+				u, _ := uuid.NewV7()
 				newUuid := u.String()
 				defaltValues["reference_id"] = newUuid
 				defaltValues[colName] = string(fileData)

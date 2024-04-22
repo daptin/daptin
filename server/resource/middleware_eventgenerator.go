@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
 	"github.com/jmoiron/sqlx"
@@ -9,7 +10,7 @@ import (
 )
 
 type eventHandlerMiddleware struct {
-	dtopicMap *map[string]*olric.DTopic
+	dtopicMap *map[string]*olric.PubSub
 	cruds     *map[string]*DbResource
 }
 
@@ -26,7 +27,8 @@ type EventMessage struct {
 
 func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
-	topic := (*pc.dtopicMap)[dr.model.GetTableName()]
+	tableName := dr.model.GetTableName()
+	topic := (*pc.dtopicMap)[tableName]
 	if topic == nil {
 		return results, nil
 	}
@@ -36,7 +38,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "post":
 		go func() {
-			err := topic.Publish(EventMessage{
+			_, err := topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "create",
 				ObjectType:    dr.model.GetTableName(),
@@ -47,7 +49,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "delete":
 		go func() {
-			err := topic.Publish(EventMessage{
+			_, err := topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "delete",
 				ObjectType:    dr.model.GetTableName(),
@@ -59,7 +61,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "patch":
 		go func() {
-			err := topic.Publish(EventMessage{
+			_, err := topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "update",
 				ObjectType:    dr.model.GetTableName(),

@@ -3,9 +3,9 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/golang-jwt/jwt/v4"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -63,7 +63,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.
-			u, _ := uuid.NewV4()
+			u, _ := uuid.NewV7()
 			timeNow := time.Now()
 
 			timeNow.Add(-2 * time.Minute) // allow clock skew of 2 minutes
@@ -141,7 +141,7 @@ func NewGenerateJwtTokenPerformer(configStore *ConfigStore, cruds map[string]*Db
 	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
-		uid, _ := uuid.NewV4()
+		uid, _ := uuid.NewV7()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}

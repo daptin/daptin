@@ -3,11 +3,12 @@ package resource
 import (
 	"context"
 	"fmt"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/artpar/rclone/fs/sync"
+	daptinid "github.com/daptin/daptin/server/id"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -31,7 +32,7 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 
 	responses := make([]ActionResponse, 0)
 
-	u, _ := uuid.NewV4()
+	u, _ := uuid.NewV7()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Printf("Temp directory for this upload cloudStorePathMoveActionPerformer: %v", tempDirectoryPath)
@@ -63,7 +64,7 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 	if oauthTokenId1 == nil {
 		log.Printf("No oauth token set for target store")
 	} else {
-		oauthTokenId := oauthTokenId1.(string)
+		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}

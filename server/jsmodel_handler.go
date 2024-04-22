@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/apiblueprint"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -134,10 +135,10 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		log.Errorf("Failed to get worlds list")
 	}
 
-	worldToReferenceId := make(map[string]string)
+	worldToReferenceId := make(map[string]daptinid.DaptinReferenceId)
 
 	for _, world := range worlds {
-		worldToReferenceId[world["table_name"].(string)] = world["reference_id"].(string)
+		worldToReferenceId[world["table_name"].(string)] = world["reference_id"].(daptinid.DaptinReferenceId)
 	}
 
 	return func(c *gin.Context) {
@@ -193,7 +194,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		worldRefId := worldToReferenceId[typeName]
 
 		params["worldName"] = []string{"smd_id"}
-		params["world_id"] = []string{worldRefId}
+		params["world_id"] = []string{worldRefId.String()}
 
 		smdList := make([]map[string]interface{}, 0)
 

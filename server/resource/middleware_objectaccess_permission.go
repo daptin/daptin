@@ -1,6 +1,7 @@
 package resource
 
 import (
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	"strings"
 
@@ -44,8 +45,8 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		return results, nil
 	}
 
-	notIncludedMapCache := make(map[string]bool)
-	includedMapCache := make(map[string]bool)
+	notIncludedMapCache := make(map[daptinid.DaptinReferenceId]bool)
+	includedMapCache := make(map[daptinid.DaptinReferenceId]bool)
 
 	for _, result := range results {
 		//log.Printf("Result: %v", result)
@@ -62,7 +63,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 
 		//log.Printf("Check permission for : %v", result)
 
-		referenceId := result["reference_id"].(string)
+		referenceId := result["reference_id"].(daptinid.DaptinReferenceId)
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
 			continue
@@ -129,8 +130,8 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 	returnMap := make([]map[string]interface{}, 0)
 
-	notIncludedMapCache := make(map[string]bool)
-	includedMapCache := make(map[string]bool)
+	notIncludedMapCache := make(map[daptinid.DaptinReferenceId]bool)
+	includedMapCache := make(map[daptinid.DaptinReferenceId]bool)
 
 	for _, result := range results {
 		//log.Printf("Result: %v", result)
@@ -146,7 +147,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			returnMap = append(returnMap, result)
 			continue
 		}
-		referenceId := refIdInterface.(string)
+		referenceId := refIdInterface.(daptinid.DaptinReferenceId)
 		_, ok := notIncludedMapCache[referenceId]
 		if ok {
 			continue

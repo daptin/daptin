@@ -3,8 +3,9 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
-	uuid "github.com/artpar/go.uuid"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9/exp"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"regexp"
@@ -146,7 +147,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
 	}
 
-	selectBuilder := statementbuilder.Squirrel.Select(projectionsAdded...)
+	selectBuilder := statementbuilder.Squirrel.Select(projectionsAdded...).Prepared(true)
 	builder := selectBuilder.From(req.RootEntity)
 
 	builder = builder.GroupBy(ToInterfaceArray(req.GroupBy)...)
@@ -173,8 +174,8 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 			if strings.Index(rightVal.(string), "@") > -1 {
 				rightValParts := strings.Split(rightVal.(string), "@")
 				entityName := rightValParts[0]
-				entityReferenceId := rightValParts[1]
-				entityId, err := GetReferenceIdToIdWithTransaction(entityName, entityReferenceId, transaction)
+				entityReferenceId := uuid.MustParse(rightValParts[1])
+				entityId, err := GetReferenceIdToIdWithTransaction(entityName, daptinid.DaptinReferenceId(entityReferenceId), transaction)
 				if err != nil {
 					return nil, fmt.Errorf("referenced entity in where clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
 				}
@@ -285,8 +286,8 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 					if strings.Index(parts[3], "@") > -1 {
 						rightValParts := strings.Split(parts[3], "@")
 						entityName := rightValParts[0]
-						entityReferenceId := rightValParts[1]
-						entityId, err := GetReferenceIdToIdWithTransaction(entityName, entityReferenceId, transaction)
+						entityReferenceId := uuid.MustParse(rightValParts[1])
+						entityId, err := GetReferenceIdToIdWithTransaction(entityName, daptinid.DaptinReferenceId(entityReferenceId), transaction)
 						if err != nil {
 							return nil, fmt.Errorf("referenced entity in join clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
 						}
@@ -400,7 +401,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 
 	returnRows := make([]AggregateRow, 0)
 	for _, row := range rows {
-		newId, _ := uuid.NewV4()
+		newId, _ := uuid.NewV7()
 		returnRows = append(returnRows, AggregateRow{
 			Type:       returnModelName,
 			Id:         newId.String(),

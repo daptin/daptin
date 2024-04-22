@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/gin-gonic/gin"
 	"github.com/go-acme/lego/v3/certcrypto"
 	"github.com/go-acme/lego/v3/certificate"
@@ -89,7 +90,7 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),
-		UserReferenceId: userAccount["reference_id"].(string),
+		UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
 	}
 	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", user))
 	//req := api2go.Request{

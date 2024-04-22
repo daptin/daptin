@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/getkin/kin-openapi/openapi2"
 	"github.com/getkin/kin-openapi/openapi2conv"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -37,7 +38,7 @@ func (d *integrationInstallationPerformer) Name() string {
 // Checks CanBecomeAdmin and then invokes BecomeAdmin if true
 func (d *integrationInstallationPerformer) DoAction(request Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
-	referenceId := inFieldMap["reference_id"].(string)
+	referenceId := inFieldMap["reference_id"].(daptinid.DaptinReferenceId)
 	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceIdWithTransaction("integration", referenceId, nil, transaction)
 
 	spec, ok := integration["specification"]

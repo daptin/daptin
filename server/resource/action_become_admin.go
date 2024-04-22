@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -42,7 +43,7 @@ func (d *becomeAdminActionPerformer) DoAction(request Outcome, inFieldMap map[st
 	CheckErr(rollbackError, "failed to rollback")
 
 	actionResponse := NewActionResponse("client.redirect", responseAttrs)
-	_ = OlricCache.Destroy()
+	_ = OlricCache.Destroy(context.Background())
 
 	go restart()
 

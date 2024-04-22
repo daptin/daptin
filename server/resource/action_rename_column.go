@@ -41,11 +41,9 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-	tableData := api2go.Api2GoModel{
-		Data: tableObj,
-	}
-
-	schemaJson := tableData.Data["world_schema_json"]
+	tableData := api2go.NewApi2GoModelWithData(
+		worldName, nil, 0, nil, tableObj)
+	schemaJson := tableData.GetAttributes()["world_schema_json"]
 
 	var tableSchema TableInfo
 	json.Unmarshal([]byte(schemaJson.(string)), &tableSchema)

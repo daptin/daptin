@@ -1,0 +1,119 @@
+---
+Actions:
+  - Name: mark_as_complete_by_paypal
+    Label: Update payment status
+    OnType: payment
+    InstanceOptional: true
+    InFields:
+    OutFields:
+      - Method: EXECUTE
+        Type: oauth.profile.exchange
+        Reference: token
+        SkipInResponse: true
+        Attributes:
+          authenticator: paypal
+          token: ''
+          token_type: payments_token
+          tokenInfoUrl: https://api.sandbox.paypal.com/v1/oauth2/token
+      - Method: EXECUTE
+        Type: $network.request
+        SkipInResponse: true
+        Reference: validation
+        Attributes:
+          Url: https://ipnpb.sandbox.paypal.com/cgi-bin/webscr
+          Method: POST
+          Headers:
+            Authorization: >
+              !'Bearer '  + token[0].access_token
+          FormData: >
+            !attributes['cmd'] = '_notify-validate'; attributes
+      - Method: GET_BY_ID
+        Condition: "!validation[0].body == 'VERIFIED'"
+        Type: payment
+        Reference: payment
+        Attributes:
+          reference_id: ~attributes.txn_id
+      - Method: UPDATE
+        Condition: "!validation[0].body == 'VERIFIED'"
+        Type: payment
+        Reference: payment
+        Attributes:
+          reference_id: $payment.reference_id
+          payment_source: paypal
+          status: ~attributes.payment_status
+      - Method: GET_BY_ID
+        Condition: "!validation[0].body == 'VERIFIED'"
+        Type: package
+        Reference: package
+        Attributes:
+          reference_id: $payment.package_id
+      - Method: POST
+        Condition: "!validation[0].body == 'VERIFIED'"
+        Type: deployment
+        Reference: deployment
+        Attributes:
+          sale_id: $payment.sale_id
+          package_id: $package.reference_id
+          deployment_configuration: $package.deployment_configuration
+  - Name: buy_package
+    Label: Buy Package
+    OnType: package
+    InstanceOptional: false
+    InFields:
+    OutFields:
+      - Method: EXECUTE
+        Type: oauth.profile.exchange
+        SkipInResponse: true
+        Reference: token
+        Attributes:
+          authenticator: paypal
+          token: ''
+          token_type: payments_token
+          tokenInfoUrl: https://api.sandbox.paypal.com/v1/oauth2/token
+      - Method: POST
+        Type: payment
+        SkipInResponse: true
+        Reference: payment
+        Attributes:
+          amount: $.cost
+          status: initiated
+      - Method: POST
+        Type: sale
+        SkipInResponse: true
+        Reference: sale
+        Attributes:
+          payment_id: $payment.reference_id
+          package_id: $.reference_id
+      - Method: EXECUTE
+        Type: $network.request
+        SkipInResponse: true
+        Reference: paypalPayment
+        Attributes:
+          Url: https://api.sandbox.paypal.com/v1/payments/payment
+          Method: POST
+          Headers:
+            Authorization: "!'Bearer '  + token[0].access_token"
+            Content-Type: application/json
+          Body:
+            intent: sale
+            payer:
+              payment_method: paypal
+            redirect_urls:
+              return_url: https://example.com
+              cancel_url: https://example.com
+            transactions:
+              - reference_id: $payment.reference_id
+                amount:
+                  total: $.cost
+                  currency: USD
+                item_list:
+                  items:
+                    - quantity: 1
+                      name: $.package_name
+                      price: $.cost
+                      currency: USD
+                      tax: 0
+      - Method: ACTIONRESPONSE
+        Type: client.return
+        Attributes:
+          shared_reference_id: "$paypalPayment[0].body.id"

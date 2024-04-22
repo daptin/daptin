@@ -3,9 +3,9 @@ package resource
 import (
 	"encoding/base64"
 	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/golang-jwt/jwt/v4"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -96,7 +96,7 @@ func NewGeneratePasswordResetVerifyActionPerformer(configStore *ConfigStore, cru
 	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
-		uid, _ := uuid.NewV4()
+		uid, _ := uuid.NewV7()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}

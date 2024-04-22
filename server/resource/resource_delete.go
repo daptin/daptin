@@ -2,7 +2,9 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -19,7 +21,7 @@ import (
 // - 202 Accepted: Processing is delayed, return nothing
 // - 204 No Content: Deletion was successful, return nothing
 
-func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request, transaction *sqlx.Tx) error {
+func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId, req api2go.Request, transaction *sqlx.Tx) error {
 
 	data, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetTableName(), id, transaction)
 	if err != nil {
@@ -129,7 +131,9 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id", rel.GetObjectName()).From(joinTableName).Where(goqu.Ex{rel.GetSubjectName(): parentId}).ToSQL()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.
+					Select("reference_id", rel.GetObjectName()).Prepared(true).
+					From(joinTableName).Where(goqu.Ex{rel.GetSubjectName(): parentId}).ToSQL()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -149,9 +153,9 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 					CheckErr(err, "Failed to query for join ids")
 					if err == nil {
 
-						ids := map[string]int64{}
+						ids := map[daptinid.DaptinReferenceId]int64{}
 						for res.Next() {
-							var relationReferenceId string
+							var relationReferenceId daptinid.DaptinReferenceId
 							var objectReferenceId int64
 							err = res.Scan(&relationReferenceId, &objectReferenceId)
 							CheckErr(err, "Failed to scan relation reference id")
@@ -191,7 +195,9 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(goqu.Ex{rel.GetSubjectName(): parentId}).ToSQL()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.
+					Select("reference_id").Prepared(true).
+					From(joinTableName).Where(goqu.Ex{rel.GetSubjectName(): parentId}).ToSQL()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -218,9 +224,9 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 					}(res)
 					if err == nil {
 
-						var ids []string
+						var ids []daptinid.DaptinReferenceId
 						for res.Next() {
-							var s string
+							var s daptinid.DaptinReferenceId
 							err = res.Scan(&s)
 							CheckErr(err, "Failed to scan value in delete")
 							ids = append(ids, s)
@@ -285,7 +291,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 
 				results := allRelatedObjects.Result().([]api2go.Api2GoModel)
 				for _, result := range results {
-					_, err := dbResource.Cruds[rel.GetSubject()].DeleteWithTransaction(result.GetID(), req, transaction)
+					_, err := dbResource.Cruds[rel.GetSubject()].DeleteWithTransaction(
+						daptinid.DaptinReferenceId(uuid.MustParse(result.GetID())), req, transaction)
 					CheckErr(err, "Failed to delete related object before deleting parent")
 				}
 
@@ -311,7 +318,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 
 				results := allRelatedObjects.Result().([]api2go.Api2GoModel)
 				for _, result := range results {
-					_, err := dbResource.Cruds[rel.GetSubject()].DeleteWithTransaction(result.GetID(), req, transaction)
+					_, err := dbResource.Cruds[rel.GetSubject()].DeleteWithTransaction(daptinid.DaptinReferenceId(uuid.MustParse(result.GetID())), req, transaction)
 					CheckErr(err, "Failed to delete related object before deleting parent")
 				}
 
@@ -321,7 +328,9 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 
 				//columnName := rel.GetSubjectName()
 
-				joinIdQuery, vals, err := statementbuilder.Squirrel.Select("reference_id").From(joinTableName).Where(goqu.Ex{rel.GetObjectName(): parentId}).ToSQL()
+				joinIdQuery, vals, err := statementbuilder.Squirrel.
+					Select("reference_id").Prepared(true).
+					From(joinTableName).Where(goqu.Ex{rel.GetObjectName(): parentId}).ToSQL()
 				CheckErr(err, "Failed to create query for getting join ids")
 
 				if err == nil {
@@ -347,9 +356,9 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 					}(res)
 					if err == nil {
 
-						var ids []string
+						var ids []daptinid.DaptinReferenceId
 						for res.Next() {
-							var s string
+							var s daptinid.DaptinReferenceId
 							res.Scan(&s)
 							ids = append(ids, s)
 						}
@@ -374,10 +383,11 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 
 				pr = pr.WithContext(req.PlainRequest.Context())
 
+				iii, _ := uuid.FromBytes(id[:])
 				subRequest := api2go.Request{
 					PlainRequest: pr,
 					QueryParams: map[string][]string{
-						rel.GetObject() + "_id":  {id},
+						rel.GetObject() + "_id":  {iii.String()},
 						rel.GetObject() + "Name": {rel.GetSubjectName()},
 					},
 				}
@@ -387,7 +397,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 
 				results := allRelatedObjects.Result().([]api2go.Api2GoModel)
 				for _, result := range results {
-					_, err := dbResource.Cruds[joinTableName].DeleteWithTransaction(result.GetID(), req, transaction)
+					_, err := dbResource.Cruds[joinTableName].DeleteWithTransaction(
+						daptinid.DaptinReferenceId(uuid.MustParse(result.GetID())), req, transaction)
 					CheckErr(err, "Failed to delete related object before deleting parent")
 				}
 
@@ -410,7 +421,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 		for _, lang := range languagePreferences {
 
 			queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName() + "_i18n").
-				Where(goqu.Ex{"translation_reference_id": parentId}).
+				Where(goqu.Ex{"translation_reference_id": parentId}).Prepared(true).
 				Where(goqu.Ex{"language_id": lang})
 
 			sql1, args, err := queryBuilder.ToSQL()
@@ -426,7 +437,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 		}
 	} else {
 
-		queryBuilder := statementbuilder.Squirrel.Delete(m.GetTableName()).Where(goqu.Ex{"reference_id": id})
+		queryBuilder := statementbuilder.Squirrel.
+			Delete(m.GetTableName()).Prepared(true).Where(goqu.Ex{"reference_id": id[:]})
 
 		sql1, args, err := queryBuilder.ToSQL()
 		if err != nil {
@@ -444,7 +456,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id string, req api2go.Request
 
 }
 
-func (dbResource *DbResource) Delete(id string, req api2go.Request) (api2go.Responder, error) {
+func (dbResource *DbResource) Delete(idString string, req api2go.Request) (api2go.Responder, error) {
+	id := uuid.MustParse(idString)
 
 	transaction, err := dbResource.Connection.Beginx()
 	if err != nil {
@@ -474,7 +487,7 @@ func (dbResource *DbResource) Delete(id string, req api2go.Request) (api2go.Resp
 		}
 	}
 
-	err = dbResource.DeleteWithoutFilters(id, req, transaction)
+	err = dbResource.DeleteWithoutFilters(daptinid.DaptinReferenceId(id), req, transaction)
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "Failed to rollback")
@@ -502,7 +515,7 @@ func (dbResource *DbResource) Delete(id string, req api2go.Request) (api2go.Resp
 	return NewResponse(nil, nil, 200, nil), commitErr
 }
 
-func (dbResource *DbResource) DeleteWithTransaction(id string, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+func (dbResource *DbResource) DeleteWithTransaction(id daptinid.DaptinReferenceId, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
 
 	log.Printf("Delete [%v][%v]", dbResource.model.GetTableName(), id)
 	for _, bf := range dbResource.ms.BeforeDelete {

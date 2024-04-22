@@ -120,7 +120,7 @@ func (dr *StreamProcessor) PaginatedFindAll(req api2go.Request) (totalCount uint
 	items := make([]map[string]interface{}, 0)
 
 	for _, item := range listOfResults {
-		items = append(items, item.Data)
+		items = append(items, item.GetAttributes())
 	}
 
 	df := dataframe.LoadMaps(items)

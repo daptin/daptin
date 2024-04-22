@@ -7,6 +7,8 @@ import (
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/operations"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -32,7 +34,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	responses := make([]ActionResponse, 0)
 
 	cloudStoreId := inFields["cloud_store_id"].(string)
-	siteId := inFields["site_id"].(string)
+	siteId := uuid.MustParse(inFields["site_id"].(string))
 	path := inFields["path"].(string)
 	cloudStore, err := d.cruds["cloud_store"].GetCloudStoreByReferenceId(cloudStoreId, transaction)
 	if err != nil {
@@ -40,7 +42,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	}
 
 	oauthTokenId := cloudStore.OAutoTokenId
-	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteId]
+	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[daptinid.DaptinReferenceId(siteId)]
 	if siteCacheFolder == nil {
 		log.Printf("No sub-site cache found on local")
 		return nil, nil, []error{errors.New("no site found here")}
@@ -70,7 +72,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 		tempDirectoryPath = siteCacheFolder.LocalSyncPath
 	}
 
-	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceIdWithTransaction("site", siteId, nil, transaction)
+	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceIdWithTransaction("site", daptinid.DaptinReferenceId(siteId), nil, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

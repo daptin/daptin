@@ -155,8 +155,7 @@ Imports:
     Entity: site
     FileType: json`
 
-func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore,
-	*resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.Olric) {
+func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.EmbeddedClient) {
 
 	log.SetOutput(ioutil.Discard)
 	dir := os.TempDir()
@@ -241,22 +240,23 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	//var imapServer *server2.Server
 	var ftpServer *server2.FtpServer
 	var imapServer *ImapServer.Server
-	var olricDb *olric.Olric
+	var olricDb *olric.EmbeddedClient
 
 	olricConfig1 := olricConfig.New("wan")
 	olricConfig1.LogLevel = "ERROR"
 	olricConfig1.LogVerbosity = 1
 	olricConfig1.LogOutput = os.Stderr
 
-	olricDb, err = olric.New(olricConfig1)
+	emb, err := olric.New(olricConfig1)
 	if err != nil {
 		fmt.Printf("Failed to create olric cache: %v", err)
 	}
 
 	go func() {
-		err = olricDb.Start()
+		err = emb.Start()
 		resource.CheckErr(err, "failed to start cache server")
 	}()
+	olricDb = emb.NewEmbeddedClient()
 
 	configStore, err = resource.NewConfigStore(db)
 	transaction := db.MustBegin()

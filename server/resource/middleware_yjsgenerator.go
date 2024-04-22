@@ -12,7 +12,7 @@ import (
 )
 
 type yjsHandlerMiddleware struct {
-	dtopicMap        *map[string]*olric.DTopic
+	dtopicMap        *map[string]*olric.PubSub
 	cruds            *map[string]*DbResource
 	documentProvider ydb.DocumentProvider
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/buraksezer/olric"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
@@ -17,7 +18,7 @@ import (
 func GetObjectByWhereClauseWithTransaction(objType string, transaction *sqlx.Tx, queries ...goqu.Ex) ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, 0)
 
-	builder := statementbuilder.Squirrel.Select(goqu.L("*")).From(objType)
+	builder := statementbuilder.Squirrel.Select(goqu.L("*")).Prepared(true).From(objType)
 
 	for _, q := range queries {
 		builder = builder.Where(q)
@@ -107,7 +108,7 @@ func GetWorldTableMapBy(col string, transaction *sqlx.Tx) (map[string]map[string
 
 func GetAdminUserIdAndUserGroupId(db *sqlx.Tx) (int64, int64) {
 	var userCount int
-	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
+	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From(USER_ACCOUNT_TABLE_NAME).ToSQL()
 
 	err = db.QueryRowx(s, v...).Scan(&userCount)
 	CheckErr(err, "Failed to get user count 104")
@@ -116,22 +117,25 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.Tx) (int64, int64) {
 	var userGroupId int64
 
 	if userCount < 2 {
-		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
+		s, v, err := statementbuilder.Squirrel.Select("id").Prepared(true).From(USER_ACCOUNT_TABLE_NAME).
+			Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
+		s, v, err = statementbuilder.Squirrel.Select("id").Prepared(true).
+			From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
 	} else {
-		s, v, err := statementbuilder.Squirrel.Select("id").
+		s, v, err := statementbuilder.Squirrel.Select("id").Prepared(true).
 			From(USER_ACCOUNT_TABLE_NAME).
 			Where(goqu.Ex{"email": goqu.Op{"neq": "guest@cms.go"}}).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
 		err = db.QueryRowx(s, v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
+		s, v, err = statementbuilder.Squirrel.Select("id").Prepared(true).
+			From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
 		err = db.QueryRowx(s, v...).Scan(&userGroupId)
 		CheckErr(err, "Failed to user group")
@@ -148,19 +152,19 @@ type SubSite struct {
 	Path         string
 	CloudStoreId *int64 `db:"cloud_store_id"`
 	Permission   PermissionInstance
-	SiteType     string `db:"site_type"`
-	FtpEnabled   bool   `db:"ftp_enabled"`
-	UserId       *int64 `db:"user_account_id"`
-	ReferenceId  string `db:"reference_id"`
-	Enable       bool   `db:"enable"`
+	SiteType     string                     `db:"site_type"`
+	FtpEnabled   bool                       `db:"ftp_enabled"`
+	UserId       *int64                     `db:"user_account_id"`
+	ReferenceId  daptinid.DaptinReferenceId `db:"reference_id"`
+	Enable       bool                       `db:"enable"`
 }
 
 type CloudStore struct {
 	Id              int64
 	RootPath        string
 	StoreParameters map[string]interface{}
-	UserId          string
-	OAutoTokenId    string
+	UserId          daptinid.DaptinReferenceId
+	OAutoTokenId    daptinid.DaptinReferenceId
 	Name            string
 	StoreType       string
 	StoreProvider   string
@@ -168,7 +172,7 @@ type CloudStore struct {
 	CreatedAt       *time.Time
 	UpdatedAt       *time.Time
 	DeletedAt       *time.Time
-	ReferenceId     string
+	ReferenceId     daptinid.DaptinReferenceId
 	Permission      PermissionInstance
 }
 
@@ -187,7 +191,7 @@ func (dbResource *DbResource) GetAllCloudStores(transaction *sqlx.Tx) ([]CloudSt
 		if tokenId == nil {
 			log.Printf("Token id for store [%v] is empty", storeMap["name"])
 		} else {
-			cloudStore.OAutoTokenId = tokenId.(string)
+			cloudStore.OAutoTokenId = tokenId.(daptinid.DaptinReferenceId)
 		}
 		cloudStore.Name = storeMap["name"].(string)
 
@@ -198,12 +202,12 @@ func (dbResource *DbResource) GetAllCloudStores(transaction *sqlx.Tx) ([]CloudSt
 		}
 
 		cloudStore.Id = id
-		cloudStore.ReferenceId = storeMap["reference_id"].(string)
+		cloudStore.ReferenceId = storeMap["reference_id"].(daptinid.DaptinReferenceId)
 		CheckErr(err, "Failed to parse permission as int in loading stores")
 		cloudStore.Permission = dbResource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId, transaction)
 
 		if storeMap[USER_ACCOUNT_ID_COLUMN] != nil {
-			cloudStore.UserId = storeMap[USER_ACCOUNT_ID_COLUMN].(string)
+			cloudStore.UserId = storeMap[USER_ACCOUNT_ID_COLUMN].(daptinid.DaptinReferenceId)
 		}
 
 		createdAt, ok := storeMap["created_at"].(time.Time)
@@ -304,9 +308,10 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 
 	cacheKey := fmt.Sprintf("store-%v", name)
 	if OlricCache != nil {
-		cachedValue, err := OlricCache.Get(cacheKey)
-		if err == nil && cachedValue != "" {
-			err = json.Unmarshal([]byte(cachedValue.(string)), cloudStore)
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
+		if err == nil {
+			bytes, err := cachedValue.Byte()
+			err = json.Unmarshal(bytes, cloudStore)
 			if err == nil {
 				return cloudStore, nil
 			}
@@ -328,12 +333,12 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
 		if row["oauth_token_id"] != nil {
-			cloudStore.OAutoTokenId = row["oauth_token_id"].(string)
+			cloudStore.OAutoTokenId = row["oauth_token_id"].(daptinid.DaptinReferenceId)
 		}
 
 		if OlricCache != nil {
 			asJson := toJson(cloudStore)
-			OlricCache.PutIfEx(cacheKey, asJson, 10*time.Minute, olric.IfNotFound)
+			OlricCache.Put(context.Background(), cacheKey, asJson, olric.EX(10*time.Minute), olric.NX())
 			//CheckErr(cachePutErr, "[336] failed to store cloud store in cache")
 		}
 	} else {
@@ -362,7 +367,7 @@ func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID string, tra
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
 		if row["oauth_token_id"] != nil {
-			cloudStore.OAutoTokenId = row["oauth_token_id"].(string)
+			cloudStore.OAutoTokenId = row["oauth_token_id"].(daptinid.DaptinReferenceId)
 		}
 	}
 
@@ -376,7 +381,7 @@ func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
 
 	s, v, err := statementbuilder.Squirrel.Select(goqu.I("t.name"),
 		goqu.I("t.action_name"), goqu.I("t.entity_name"), goqu.I("t.schedule"),
-		goqu.I("t.active"), goqu.I("t.attributes"), goqu.I("t.as_user_id")).
+		goqu.I("t.active"), goqu.I("t.attributes"), goqu.I("t.as_user_id")).Prepared(true).
 		From(goqu.T("task").As("t")).ToSQL()
 	if err != nil {
 		return tasks, err
@@ -432,7 +437,7 @@ func (dbResource *DbResource) GetAllSites(transaction *sqlx.Tx) ([]SubSite, erro
 		goqu.I("s.cloud_store_id"),
 		goqu.I("s."+USER_ACCOUNT_ID_COLUMN), goqu.I("s.path"),
 		goqu.I("s.reference_id"), goqu.I("s.id"), goqu.I("s.enable"),
-		goqu.I("s.site_type"), goqu.I("s.ftp_enabled")).
+		goqu.I("s.site_type"), goqu.I("s.ftp_enabled")).Prepared(true).
 		From(goqu.T("site").As("s")).ToSQL()
 	if err != nil {
 		return sites, err
@@ -481,7 +486,7 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64, transaction
 	s, v, err := statementbuilder.Squirrel.
 		Select(goqu.I("oc.client_id"), goqu.I("oc.client_secret"),
 			goqu.I("oc.redirect_uri"), goqu.I("oc.auth_url"),
-			goqu.I("oc.token_url"), goqu.I("oc.scope")).
+			goqu.I("oc.token_url"), goqu.I("oc.scope")).Prepared(true).
 		From(goqu.T("oauth_token").As("ot")).Join(goqu.T("oauth_connect").As("oc"), goqu.On(goqu.Ex{
 		"oc.id": goqu.I("ot.oauth_connect_id"),
 	})).
@@ -534,17 +539,17 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64, transaction
 
 }
 
-func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId string, transaction *sqlx.Tx) (*oauth2.Config, error) {
+func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (*oauth2.Config, error) {
 
 	var clientId, clientSecret, redirectUri, authUrl, tokenUrl, scope string
 
 	s, v, err := statementbuilder.Squirrel.
 		Select(goqu.I("oc.client_id"), goqu.I("oc.client_secret"), goqu.I("oc.redirect_uri"),
-			goqu.I("oc.auth_url"), goqu.I("oc.token_url"), goqu.I("oc.scope")).
+			goqu.I("oc.auth_url"), goqu.I("oc.token_url"), goqu.I("oc.scope")).Prepared(true).
 		From(goqu.T("oauth_token").As("ot")).Join(goqu.T("oauth_connect").As("oc"), goqu.On(goqu.Ex{
 		"oc.id": goqu.I("ot.oauth_connect_id"),
 	})).
-		Where(goqu.Ex{"ot.reference_id": referenceId}).ToSQL()
+		Where(goqu.Ex{"ot.reference_id": referenceId[:]}).ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -587,14 +592,15 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId 
 
 }
 
-func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId string, transaction *sqlx.Tx) (*oauth2.Token, *oauth2.Config, error) {
+func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (*oauth2.Token, *oauth2.Config, error) {
 	oauthConf := &oauth2.Config{}
 
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
-	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
-		Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, v, err := statementbuilder.Squirrel.
+		Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").Prepared(true).
+		Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 
 	if err != nil {
 		return nil, oauthConf, err
@@ -662,7 +668,8 @@ func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error)
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
-	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
+	s, v, err := statementbuilder.Squirrel.
+		Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").Prepared(true).
 		Where(goqu.Ex{"id": id}).ToSQL()
 
 	if err != nil {
@@ -710,7 +717,8 @@ func (dbResource *DbResource) GetTokenByTokenName(name string, transaction *sqlx
 	var access_token, refresh_token, token_type string
 	var expires_in int64
 	var token oauth2.Token
-	s, v, err := statementbuilder.Squirrel.Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").
+	s, v, err := statementbuilder.Squirrel.
+		Select("access_token", "refresh_token", "token_type", "expires_in").From("oauth_token").Prepared(true).
 		Where(goqu.Ex{"token_type": name}).Order(goqu.C("created_at").Desc()).Limit(1).ToSQL()
 
 	if err != nil {

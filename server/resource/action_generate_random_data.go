@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -28,13 +29,12 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 
 	log.Printf("Generate random data for table %s", inFields["table_name"])
 	//subjectInstance := inFields["subject"].(map[string]interface{})
-	userReferenceId := ""
-	//userIdInt := uint64(1)
+	var userReferenceId daptinid.DaptinReferenceId //userIdInt := uint64(1)
 	var err error
 	log.Printf("%v", inFields)
 
 	if inFields["user_reference_id"] != nil {
-		userReferenceId = inFields["user_reference_id"].(string)
+		userReferenceId = inFields["user_reference_id"].(daptinid.DaptinReferenceId)
 	}
 
 	userIdInt, err := strconv.ParseInt(inFields[USER_ACCOUNT_ID_COLUMN].(string), 10, 32)
@@ -70,7 +70,7 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 			}
 		}
 
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		row["reference_id"] = u.String()
 		row["permission"] = auth.DEFAULT_PERMISSION
 		rows = append(rows, row)
@@ -100,11 +100,10 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 		}
 	}
 	responder := api2go.Response{
-		Res: api2go.Api2GoModel{
-			Data: map[string]interface{}{
+		Res: api2go.NewApi2GoModelWithData(
+			"", nil, 0, nil, map[string]interface{}{
 				"message": "Random data generated",
-			},
-		},
+			}),
 		Code: 201,
 	}
 	return responder, responses, nil

@@ -1,9 +1,11 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	daptinid "github.com/daptin/daptin/server/id"
 	"os"
 	"strconv"
 	"strings"
@@ -13,11 +15,11 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/artpar/api2go"
-	uuid "github.com/artpar/go.uuid"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,7 +31,7 @@ const DATE_LAYOUT = "2006-01-02 15:04:05"
 // Checks EXECUTE on both the type and action for this user
 // The permissions can come from different groups
 func (dbResource *DbResource) IsUserActionAllowed(
-	userReferenceId string, userGroups []auth.GroupPermission, typeName string, actionName string, transaction *sqlx.Tx) bool {
+	userReferenceId daptinid.DaptinReferenceId, userGroups []auth.GroupPermission, typeName string, actionName string, transaction *sqlx.Tx) bool {
 
 	permission := dbResource.GetObjectPermissionByWhereClause("world", "table_name", typeName, transaction)
 
@@ -42,7 +44,7 @@ func (dbResource *DbResource) IsUserActionAllowed(
 
 }
 
-func (dbResource *DbResource) IsUserActionAllowedWithTransaction(userReferenceId string,
+func (dbResource *DbResource) IsUserActionAllowedWithTransaction(userReferenceId daptinid.DaptinReferenceId,
 	userGroups []auth.GroupPermission, typeName string, actionName string, transaction *sqlx.Tx) bool {
 
 	permission := dbResource.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", typeName, transaction)
@@ -64,10 +66,11 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 
 	cacheKey := fmt.Sprintf("action-%v-%v", typeName, actionName)
 	if OlricCache != nil {
-		value, err := OlricCache.Get(cacheKey)
+		value, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil && value != nil {
 
-			cachedActionRow := value.(ActionRow)
+			var cachedActionRow ActionRow
+			value.Scan(&cachedActionRow)
 
 			err = json.Unmarshal([]byte(cachedActionRow.ActionSchema), &action)
 			CheckErr(err, "failed to unmarshal infields")
@@ -88,7 +91,7 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		goqu.I("a.label").As("label"),
 		goqu.I("action_schema").As("action_schema"),
 		goqu.I("a.reference_id").As("referenceid"),
-	).From(goqu.T("action").As("a")).
+	).Prepared(true).From(goqu.T("action").As("a")).
 		Join(
 			goqu.T("world").As("w"),
 			goqu.On(goqu.Ex{
@@ -130,7 +133,7 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 
 	if OlricCache != nil {
 
-		err = OlricCache.PutIfEx(cacheKey, actionRow, 1*time.Minute, olric.IfNotFound)
+		err = OlricCache.Put(context.Background(), cacheKey, actionRow, olric.EX(1*time.Minute), olric.NX())
 		CheckErr(err, "Failed to set action in olric cache")
 	}
 
@@ -149,7 +152,7 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 		goqu.I("action_schema"),
 		goqu.I("instance_optional"),
 		goqu.I("a.reference_id").As("referenceid"),
-	).From(goqu.T("action").As("a")).Join(goqu.T("world").As("w"), goqu.On(goqu.Ex{
+	).Prepared(true).From(goqu.T("action").As("a")).Join(goqu.T("world").As("w"), goqu.On(goqu.Ex{
 		"w.id": goqu.I("a.world_id"),
 	})).Where(goqu.Ex{
 		"w.table_name": typeName,
@@ -231,7 +234,7 @@ func (dbResource *DbResource) GetActionPermissionByName(worldId int64, actionNam
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string, referenceId string, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) PermissionInstance {
 
 	var selectQuery string
 	var queryParameters []interface{}
@@ -239,12 +242,12 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 	var perm PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select("permission", "id").
-			From(objectType).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+			Select("permission", "id").Prepared(true).
+			From(objectType).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	} else {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").
-			From(objectType).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").Prepared(true).
+			From(objectType).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 
 	}
 
@@ -299,15 +302,17 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId string, transaction *sqlx.Tx) PermissionInstance {
+func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) PermissionInstance {
 
 	cacheKey := fmt.Sprintf("opject-permission-%v-%v", objectType, referenceId)
 
 	if OlricCache != nil {
 
-		cachedValue, err := OlricCache.Get(cacheKey)
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
-			return cachedValue.(PermissionInstance)
+			var pi PermissionInstance
+			cachedValue.Scan(&pi)
+			return pi
 		}
 	}
 
@@ -317,12 +322,12 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 	var perm PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select("permission", "id").
-			From(objectType).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+			Select("permission", "id").Prepared(true).
+			From(objectType).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	} else {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").
-			From(objectType).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").Prepared(true).
+			From(objectType).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 
 	}
 
@@ -370,7 +375,7 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 	}
 
 	if OlricCache != nil {
-		cachePutErr := OlricCache.PutIfEx(cacheKey, perm, 30*time.Minute, olric.IfNotFound)
+		cachePutErr := OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(30*time.Minute), olric.NX())
 		CheckErr(cachePutErr, "[374] failed to store cloud store in cache")
 	}
 
@@ -390,12 +395,12 @@ func (dbResource *DbResource) GetObjectPermissionById(objectType string, id int6
 	var perm PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select("permission", "id").
+			Select("permission", "id").Prepared(true).
 			From(objectType).Where(goqu.Ex{"id": id}).
 			ToSQL()
 	} else {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").
+			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").Prepared(true).
 			From(objectType).Where(goqu.Ex{"id": id}).
 			ToSQL()
 
@@ -455,12 +460,12 @@ func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType 
 	var perm PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select("permission", "id").
+			Select("permission", "id").Prepared(true).
 			From(objectType).Where(goqu.Ex{"id": id}).
 			ToSQL()
 	} else {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").
+			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").Prepared(true).
 			From(objectType).Where(goqu.Ex{"id": id}).
 			ToSQL()
 
@@ -508,7 +513,7 @@ func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType 
 	return perm
 }
 
-var OlricCache *olric.DMap
+var OlricCache olric.DMap
 
 // GetObjectPermissionByWhereClause Gets permission of an Object by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully
@@ -523,14 +528,20 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 	cacheKey := ""
 	if OlricCache != nil {
 		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
-		cachedPermission, err := OlricCache.Get(cacheKey)
+		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
 		if cachedPermission != nil && err == nil {
-			return cachedPermission.(PermissionInstance)
+			var perm PermissionInstance
+			err := cachedPermission.Scan(&perm)
+			if err == nil {
+				return perm
+			}
 		}
 	}
 
 	var perm PermissionInstance
-	s, q, err := statementbuilder.Squirrel.Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Where(goqu.Ex{colName: colValue}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.
+		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
+		Where(goqu.Ex{colName: colValue}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return perm
@@ -574,7 +585,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(cacheKey, perm, 10*time.Second, olric.IfNotFound)
+		err = OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(10*time.Second), olric.NX())
 		CheckErr(err, "[2099] Failed to set object permission id in olric cache")
 	}
 	return perm
@@ -588,14 +599,18 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 	cacheKey := ""
 	if OlricCache != nil {
 		cacheKey = fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue)
-		cachedPermission, err := OlricCache.Get(cacheKey)
+		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
 		if cachedPermission != nil && err == nil {
-			return cachedPermission.(PermissionInstance)
+			var pi PermissionInstance
+			cachedPermission.Scan(&pi)
+			return pi
 		}
 	}
 
 	var perm PermissionInstance
-	s, q, err := statementbuilder.Squirrel.Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Where(goqu.Ex{colName: colValue}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.
+		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
+		Where(goqu.Ex{colName: colValue}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create sql: %v", err)
 		return perm
@@ -639,7 +654,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
 
 	if OlricCache != nil {
-		OlricCache.PutIfEx(cacheKey, perm, 10*time.Minute, olric.IfNotFound)
+		OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(10*time.Minute), olric.NX())
 		//CheckErr(err, "[617] Failed to set id to reference id in olric cache")
 	}
 	return perm
@@ -728,7 +743,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 //	}
 //
 //	//if OlricCache != nil {
-//	//	_ = OlricCache.PutIfEx(cacheKey, s, 10*time.Second, olric.IfNotFound)
+//	//	_ = OlricCache.Put(cacheKey, s, olric.EX(10*time.Second), olric.NX())
 //	//}
 //
 //	return s
@@ -768,7 +783,7 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 		goqu.I("usergroup_id.reference_id").As("groupreferenceid"),
 		goqu.I(rel.GetJoinTableName()+".reference_id").As("relationreferenceid"),
 		goqu.I(rel.GetJoinTableName()+".permission").As("permission"),
-	).From(goqu.T(rel.GetSubject())).
+	).Prepared(true).From(goqu.T(rel.GetSubject())).
 		// rel.GetJoinString()
 		Join(goqu.T(rel.GetJoinTableName()).As(rel.GetJoinTableName()),
 			goqu.On(goqu.Ex{
@@ -818,7 +833,7 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 	}
 
 	//if OlricCache != nil {
-	//	_ = OlricCache.PutIfEx(cacheKey, s, 10*time.Second, olric.IfNotFound)
+	//	_ = OlricCache.Put(cacheKey, s, olric.EX(10*time.Second), olric.NX())
 	//}
 
 	return s
@@ -849,7 +864,7 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 		goqu.I("ug.reference_id").As("groupreferenceid"),
 		goqu.I("uug.reference_id").As("relationreferenceid"),
 		goqu.I("uug.permission").As("permission"),
-	).From(goqu.T("usergroup").As("ug")).
+	).Prepared(true).From(goqu.T("usergroup").As("ug")).
 		Join(
 			goqu.T(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", objType, objType)).As("uug"),
 			goqu.On(goqu.Ex{"uug.usergroup_id": goqu.I("ug.id")})).
@@ -884,10 +899,14 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 
 	for res.Next() {
 		var g auth.GroupPermission
-		err = res.StructScan(&g)
+		vals := make(map[string]interface{})
+		err := res.MapScan(vals)
+		g.GroupReferenceId = daptinid.DaptinReferenceId(vals["groupreferenceid"].([]uint8))
+		g.RelationReferenceId = daptinid.DaptinReferenceId(vals["relationreferenceid"].([]uint8))
+		g.Permission = auth.AuthPermission(vals["permission"].(int64))
 		g.ObjectReferenceId = refId
 		if err != nil {
-			log.Errorf("Failed to scan group permission 2: %v", err)
+			log.Errorf("Failed to scan group permission 3: %v", err)
 		}
 		s = append(s, g)
 	}
@@ -895,16 +914,18 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 
 }
 
-func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64, transaction *sqlx.Tx) []auth.GroupPermission {
-	s := make([]auth.GroupPermission, 0)
+func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64, transaction *sqlx.Tx) auth.GroupPermissionList {
+	s := make(auth.GroupPermissionList, 0)
 
 	cacheKey := fmt.Sprintf("object-groups-%v-%v", objectType, objectId)
 
 	if OlricCache != nil {
 
-		cachedValue, err := OlricCache.Get(cacheKey)
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
-			return cachedValue.([]auth.GroupPermission)
+			var res []auth.GroupPermission
+			cachedValue.Scan(&res)
+			return res
 		}
 	}
 
@@ -929,7 +950,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 		goqu.I("ug.reference_id").As("groupreferenceid"),
 		goqu.I("uug.reference_id").As("relationreferenceid"),
 		goqu.I("uug.permission").As("permission"),
-	).From(goqu.T("usergroup").As("ug")).
+	).Prepared(true).From(goqu.T("usergroup").As("ug")).
 		Join(
 			goqu.T(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", objectType, objectType)).As("uug"),
 			goqu.On(goqu.Ex{"uug.usergroup_id": goqu.I("ug.id")})).
@@ -961,7 +982,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 	}
 
 	if OlricCache != nil {
-		cachePutErr := OlricCache.PutIfEx(cacheKey, s, 30*time.Second, olric.IfNotFound)
+		cachePutErr := OlricCache.Put(context.Background(), cacheKey, s, olric.EX(30*time.Second), olric.NX())
 		CheckErr(cachePutErr, "failed to store config value in cache [%v]", cacheKey)
 	}
 
@@ -1035,7 +1056,8 @@ func (dbResource *DbResource) GetUserPassword(email string, transaction *sqlx.Tx
 // UserGroupNameToId Converts group name to the internal integer id
 func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error) {
 
-	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
+	query, arg, err := statementbuilder.Squirrel.
+		Select("id").From("usergroup").Prepared(true).Where(goqu.Ex{"name": groupName}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
@@ -1065,7 +1087,8 @@ func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error
 // UserGroupNameToId Converts group name to the internal integer id
 func (dbResource *DbResource) UserGroupNameToIdWithTransaction(groupName string, transaction *sqlx.Tx) (uint64, error) {
 
-	query, arg, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
+	query, arg, err := statementbuilder.Squirrel.Select("id").Prepared(true).
+		From("usergroup").Where(goqu.Ex{"name": groupName}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
@@ -1109,7 +1132,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		if crud.model.HasColumn(USER_ACCOUNT_ID_COLUMN) {
 
 			q, v, err := statementbuilder.Squirrel.
-				Update(crud.model.GetName()).
+				Update(crud.model.GetName()).Prepared(true).
 				Set(goqu.Record{
 					USER_ACCOUNT_ID_COLUMN: userId,
 					"permission":           auth.DEFAULT_PERMISSION,
@@ -1131,11 +1154,11 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	}
 
 	adminUsergroupId, err := dbResource.UserGroupNameToIdWithTransaction("administrators", transaction)
-	reference_id, err := uuid.NewV4()
+	reference_id, _ := uuid.NewV7()
 
 	query, args, err := statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
-		Cols(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").
-		Vals([]interface{}{userId, adminUsergroupId, int64(auth.DEFAULT_PERMISSION), reference_id.String()}).
+		Cols(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").Prepared(true).
+		Vals([]interface{}{userId, adminUsergroupId, int64(auth.DEFAULT_PERMISSION), reference_id[:]}).
 		ToSQL()
 
 	_, err = transaction.Exec(query, args...)
@@ -1144,7 +1167,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		return false
 	}
 
-	query, args, err = statementbuilder.Squirrel.Update("world").
+	query, args, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 		Set(goqu.Record{
 			"permission":         int64(auth.DEFAULT_PERMISSION),
 			"default_permission": int64(auth.DEFAULT_PERMISSION),
@@ -1164,7 +1187,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		return false
 	}
 
-	query, args, err = statementbuilder.Squirrel.Update("world").
+	query, args, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 		Set(goqu.Record{
 			"permission":         int64(auth.UserCreate | auth.GroupCreate),
 			"default_permission": int64(auth.UserRead | auth.GroupRead),
@@ -1181,7 +1204,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		log.Errorf("Failed to world update audit permissions: %v", err)
 	}
 
-	query, args, err = statementbuilder.Squirrel.Update("action").
+	query, args, err = statementbuilder.Squirrel.Update("action").Prepared(true).
 		Set(goqu.Record{"permission": int64(auth.UserRead | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute | auth.GroupRefer)}).
 		ToSQL()
 	if err != nil {
@@ -1193,7 +1216,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		log.Errorf("Failed to update action permissions : %v", err)
 	}
 
-	query, args, err = statementbuilder.Squirrel.Update("action").
+	query, args, err = statementbuilder.Squirrel.Update("action").Prepared(true).
 		Set(goqu.Record{"permission": int64(auth.GuestPeek | auth.GuestExecute | auth.UserRead | auth.UserExecute | auth.GroupRead | auth.GroupExecute)}).
 		Where(goqu.Ex{
 			"action_name": "signin",
@@ -1213,9 +1236,9 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 
 func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, transaction *sqlx.Tx) PermissionInstance {
 
-	refId, ok := row["reference_id"]
+	refId, ok := row["reference_id"].(daptinid.DaptinReferenceId)
 	if !ok {
-		refId = row["id"]
+		refId = row["id"].(daptinid.DaptinReferenceId)
 	}
 	rowType := row["__type"].(string)
 
@@ -1223,12 +1246,12 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 
 	if rowType != "usergroup" {
 		if row[USER_ACCOUNT_ID_COLUMN] != nil {
-			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(string)
+			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(daptinid.DaptinReferenceId)
 			perm.UserId = uid
 		} else {
-			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, refId.(string), USER_ACCOUNT_ID_COLUMN, transaction)
+			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, refId, USER_ACCOUNT_ID_COLUMN, transaction)
 			if u != nil {
-				uid, _ := u.(string)
+				uid, _ := u.(daptinid.DaptinReferenceId)
 				perm.UserId = uid
 			}
 		}
@@ -1241,9 +1264,9 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 	if BeginsWith(rowType, "file.") || rowType == "none" {
 		perm.UserGroupId = []auth.GroupPermission{
 			{
-				GroupReferenceId:    "",
-				ObjectReferenceId:   "",
-				RelationReferenceId: "",
+				GroupReferenceId:    daptinid.NullReferenceId,
+				ObjectReferenceId:   daptinid.NullReferenceId,
+				RelationReferenceId: daptinid.NullReferenceId,
 				Permission:          auth.AuthPermission(auth.GuestRead),
 			},
 		}
@@ -1252,20 +1275,20 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 
 	if loc == -1 && dbResource.Cruds[rowType].model.HasMany("usergroup") {
 
-		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId.(string))
+		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId)
 
 	} else if rowType == "usergroup" {
 		originalGroupId, _ := row["reference_id"]
-		originalGroupIdStr := refId.(string)
+		originalGroupIdStr := refId
 		if originalGroupId != nil {
-			originalGroupIdStr = originalGroupId.(string)
+			originalGroupIdStr = originalGroupId.(daptinid.DaptinReferenceId)
 		}
 
 		perm.UserGroupId = []auth.GroupPermission{
 			{
 				GroupReferenceId:    originalGroupIdStr,
-				ObjectReferenceId:   refId.(string),
-				RelationReferenceId: refId.(string),
+				ObjectReferenceId:   refId,
+				RelationReferenceId: refId,
 				Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].model.GetDefaultPermission()),
 			},
 		}
@@ -1301,7 +1324,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 
 		perm.Permission = auth.AuthPermission(i64)
 	} else {
-		pe := dbResource.GetObjectPermissionByReferenceId(rowType, refId.(string), transaction)
+		pe := dbResource.GetObjectPermissionByReferenceId(rowType, refId, transaction)
 		perm.Permission = pe.Permission
 	}
 	//log.Printf("Row permission: %v  ---------------- %v", perm, row)
@@ -1310,9 +1333,12 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 
 func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]interface{}, transaction *sqlx.Tx) PermissionInstance {
 
-	refId, ok := row["reference_id"]
+	refId, ok := row["reference_id"].(daptinid.DaptinReferenceId)
 	if !ok {
-		refId = row["id"]
+		refIdS, ok := row["id"]
+		if ok {
+			refId = refIdS.(daptinid.DaptinReferenceId)
+		}
 	}
 	rowType := row["__type"].(string)
 
@@ -1320,9 +1346,11 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	if OlricCache != nil {
 
-		cachedValue, err := OlricCache.Get(cacheKey)
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
-			return cachedValue.(PermissionInstance)
+			var cv PermissionInstance
+			cachedValue.Scan(&cv)
+			return cv
 		}
 	}
 
@@ -1330,12 +1358,12 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	if rowType != "usergroup" {
 		if row[USER_ACCOUNT_ID_COLUMN] != nil {
-			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(string)
+			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(daptinid.DaptinReferenceId)
 			perm.UserId = uid
 		} else {
-			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, refId.(string), USER_ACCOUNT_ID_COLUMN, transaction)
+			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, refId, USER_ACCOUNT_ID_COLUMN, transaction)
 			if u != nil {
-				uid, _ := u.(string)
+				uid, _ := u.(daptinid.DaptinReferenceId)
 				perm.UserId = uid
 			}
 		}
@@ -1348,10 +1376,10 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 	if BeginsWith(rowType, "file.") || rowType == "none" {
 		perm.UserGroupId = []auth.GroupPermission{
 			{
-				GroupReferenceId:    "",
-				ObjectReferenceId:   "",
-				RelationReferenceId: "",
-				Permission:          auth.AuthPermission(auth.GuestRead),
+				GroupReferenceId:    daptinid.NullReferenceId,
+				ObjectReferenceId:   daptinid.NullReferenceId,
+				RelationReferenceId: daptinid.NullReferenceId,
+				Permission:          auth.GuestRead,
 			},
 		}
 		return perm
@@ -1359,20 +1387,20 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	if loc == -1 && dbResource.Cruds[rowType].model.HasMany("usergroup") {
 
-		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId.(string))
+		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId)
 
 	} else if rowType == "usergroup" {
 		originalGroupId, _ := row["reference_id"]
-		originalGroupIdStr := refId.(string)
+		originalGroupIdStr := refId
 		if originalGroupId != nil {
-			originalGroupIdStr = originalGroupId.(string)
+			originalGroupIdStr = originalGroupId.(daptinid.DaptinReferenceId)
 		}
 
 		perm.UserGroupId = []auth.GroupPermission{
 			{
 				GroupReferenceId:    originalGroupIdStr,
-				ObjectReferenceId:   refId.(string),
-				RelationReferenceId: refId.(string),
+				ObjectReferenceId:   refId,
+				RelationReferenceId: refId,
 				Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].model.GetDefaultPermission()),
 			},
 		}
@@ -1408,13 +1436,13 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 		perm.Permission = auth.AuthPermission(i64)
 	} else {
-		pe := GetObjectPermissionByReferenceIdWithTransaction(rowType, refId.(string), transaction)
+		pe := GetObjectPermissionByReferenceIdWithTransaction(rowType, refId, transaction)
 		perm.Permission = pe.Permission
 	}
 	//log.Printf("Row permission: %v  ---------------- %v", perm, row)
 
 	if OlricCache != nil {
-		cachePutErr := OlricCache.PutIfEx(cacheKey, perm, 1*time.Minute, olric.IfNotFound)
+		cachePutErr := OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(1*time.Minute), olric.NX())
 		CheckErr(cachePutErr, "failed to store object permission in cache [%v]", cacheKey)
 	}
 
@@ -1528,7 +1556,7 @@ func (dbResource *DbResource) GetRandomRow(typeName string, count uint, transact
 
 	// select id from world where id > RANDOM() * (SELECT MAX(id) FROM world) limit 15;
 	maxSql, _, _ := goqu.Select(goqu.L("max(id)")).From(typeName).ToSQL()
-	stmt := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{
+	stmt := statementbuilder.Squirrel.Select("*").From(typeName).Prepared(true).Where(goqu.Ex{
 		"id": goqu.Op{"gte": goqu.L(randomFunc + " ( " + maxSql + " ) ")},
 	}).Limit(count)
 
@@ -1568,10 +1596,10 @@ func (dbResource *DbResource) GetRandomRow(typeName string, count uint, transact
 
 }
 
-func (dbResource *DbResource) GetUserMembersByGroupName(groupName string, transaction *sqlx.Tx) []string {
+func (dbResource *DbResource) GetUserMembersByGroupName(groupName string, transaction *sqlx.Tx) []daptinid.DaptinReferenceId {
 
 	s, q, err := statementbuilder.Squirrel.
-		Select("u.reference_id").
+		Select("u.reference_id").Prepared(true).
 		From(goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uu")).
 		LeftJoin(
 			goqu.T("user_account").As("u"), goqu.On(goqu.Ex{
@@ -1585,10 +1613,10 @@ func (dbResource *DbResource) GetUserMembersByGroupName(groupName string, transa
 		Order(goqu.I("uu.created_at").Asc()).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create sql query 749: %v", err)
-		return []string{}
+		return []daptinid.DaptinReferenceId{}
 	}
 
-	refIds := make([]string, 0)
+	refIds := make([]daptinid.DaptinReferenceId, 0)
 
 	stmt1, err := transaction.Preparex(s)
 	if err != nil {
@@ -1599,10 +1627,10 @@ func (dbResource *DbResource) GetUserMembersByGroupName(groupName string, transa
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
 		log.Errorf("Failed to create sql query 757: %v", err)
-		return []string{}
+		return []daptinid.DaptinReferenceId{}
 	}
 	for rows.Next() {
-		var refId string
+		var refId daptinid.DaptinReferenceId
 		err = rows.Scan(&refId)
 		CheckErr(err, "failed to scan ref id")
 		refIds = append(refIds, refId)
@@ -1612,10 +1640,10 @@ func (dbResource *DbResource) GetUserMembersByGroupName(groupName string, transa
 
 }
 
-func GetUserMembersByGroupNameWithTransaction(groupName string, transaction *sqlx.Tx) []string {
+func GetUserMembersByGroupNameWithTransaction(groupName string, transaction *sqlx.Tx) []daptinid.DaptinReferenceId {
 
 	s, q, err := statementbuilder.Squirrel.
-		Select("u.reference_id").
+		Select("u.reference_id").Prepared(true).
 		From(goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uu")).
 		LeftJoin(
 			goqu.T("user_account").As("u"), goqu.On(goqu.Ex{
@@ -1629,10 +1657,10 @@ func GetUserMembersByGroupNameWithTransaction(groupName string, transaction *sql
 		Order(goqu.I("uu.created_at").Asc()).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create sql query 749: %v", err)
-		return []string{}
+		return []daptinid.DaptinReferenceId{}
 	}
 
-	refIds := make([]string, 0)
+	refIds := make([]daptinid.DaptinReferenceId, 0)
 
 	stmt1, err := transaction.Preparex(s)
 	if err != nil {
@@ -1649,10 +1677,10 @@ func GetUserMembersByGroupNameWithTransaction(groupName string, transaction *sql
 	rows, err := stmt1.Queryx(q...)
 	if err != nil {
 		log.Errorf("Failed to create sql query 757: %v", err)
-		return []string{}
+		return []daptinid.DaptinReferenceId{}
 	}
 	for rows.Next() {
-		var refId string
+		var refId daptinid.DaptinReferenceId
 		err = rows.Scan(&refId)
 		CheckErr(err, "failed to scan ref id")
 		refIds = append(refIds, refId)
@@ -1670,7 +1698,7 @@ func (dbResource *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64, tra
 			goqu.On(goqu.Ex{
 				"uu." + USER_ACCOUNT_ID_COLUMN: goqu.I("u.id"),
 			}),
-		).Where(goqu.Ex{"uu.usergroup_id": usergroupId}).
+		).Prepared(true).Where(goqu.Ex{"uu.usergroup_id": usergroupId}).
 		Order(goqu.I("uu.created_at").Asc()).Limit(1).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create sql query 781: %v", err)
@@ -1707,10 +1735,11 @@ func (dbResource *DbResource) GetUserById(userId int64, transaction *sqlx.Tx) (m
 
 }
 
-func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName string, referenceId string,
+func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName string, referenceId daptinid.DaptinReferenceId,
 	includedRelations map[string]bool, transaction *sqlx.Tx) (map[string]interface{}, []map[string]interface{}, error) {
 	log.Tracef("Get single row by id: [%v][%v]", typeName, referenceId)
-	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("*").Prepared(true).
+		From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		log.Errorf("failed to create select query by ref id: %v", referenceId)
 		return nil, nil, err
@@ -1769,7 +1798,8 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 
 func (dbResource *DbResource) GetSingleRowById(typeName string, id int64, includedRelations map[string]bool, transaction *sqlx.Tx) (map[string]interface{}, []map[string]interface{}, error) {
 	//log.Printf("Get single row by id: [%v][%v]", typeName, referenceId)
-	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("*").
+		Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create select query by id: %v", id)
 		return nil, nil, err
@@ -1816,7 +1846,8 @@ func (dbResource *DbResource) GetSingleRowById(typeName string, id int64, includ
 }
 
 func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column string, val interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
-	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{column: val}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("*").
+		Prepared(true).From(typeName).Where(goqu.Ex{column: val}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -1862,7 +1893,7 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 }
 
 func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(typeName string, column string, val interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
-	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{column: val}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("*").Prepared(true).From(typeName).Where(goqu.Ex{column: val}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -1914,7 +1945,7 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64, transacti
 	//		return val.(map[string]interface{}), nil
 	//	}
 	//}
-	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -1964,7 +1995,7 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64, transacti
 		return nil, err
 	}
 	//if OlricCache != nil {
-	//	err = OlricCache.PutIfEx(key, m[0], 1*time.Minute, olric.IfNotFound)
+	//	err = OlricCache.Put(key, m[0], olric.EX(1*time.Minute), olric.NX())
 	//	CheckErr(err, "[2034[ Failed to set id to object in olric cache")
 	//}
 
@@ -1974,12 +2005,14 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64, transacti
 func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id int64, transaction *sqlx.Tx) (map[string]interface{}, error) {
 	key := fmt.Sprintf("ito-%v-%v", typeName, id)
 	if OlricCache != nil {
-		val, err := OlricCache.Get(key)
+		val, err := OlricCache.Get(context.Background(), key)
 		if err == nil && val != nil {
-			return val.(map[string]interface{}), nil
+			var res map[string]interface{}
+			err = val.Scan(res)
+			return res, err
 		}
 	}
-	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -2033,7 +2066,7 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 		return nil, fmt.Errorf("no such item %v-%v", typeName, id)
 	}
 	if OlricCache != nil {
-		err = OlricCache.PutIfEx(key, m[0], 5*time.Minute, olric.IfNotFound)
+		err = OlricCache.Put(context.Background(), key, m[0], olric.EX(5*time.Minute), olric.NX())
 		//CheckErr(err, "[2099] Failed to set id to object in olric cache")
 	}
 
@@ -2128,7 +2161,7 @@ func (dbResource *DbResource) DirectInsert(typeName string, data map[string]inte
 
 	}
 
-	sqlString, args, err := statementbuilder.Squirrel.Insert(typeName).Cols(cols...).Vals(vals).ToSQL()
+	sqlString, args, err := statementbuilder.Squirrel.Insert(typeName).Prepared(true).Cols(cols...).Vals(vals).ToSQL()
 
 	if err != nil {
 		return err
@@ -2146,7 +2179,7 @@ func (dbResource *DbResource) DirectInsert(typeName string, data map[string]inte
 // Utility method for loading all objects having low count
 // Can be used by actions
 func (dbResource *DbResource) GetAllObjects(typeName string, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
-	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).From(typeName).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).Prepared(true).From(typeName).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -2189,7 +2222,7 @@ func (dbResource *DbResource) GetAllObjects(typeName string, transaction *sqlx.T
 // Utility method for loading all objects having low count
 // Can be used by actions
 func (dbResource *DbResource) GetAllObjectsWithWhereWithTransaction(typeName string, transaction *sqlx.Tx, where ...goqu.Ex) ([]map[string]interface{}, error) {
-	query := statementbuilder.Squirrel.Select(goqu.L("*")).From(typeName)
+	query := statementbuilder.Squirrel.Select(goqu.L("*")).Prepared(true).From(typeName)
 
 	for _, w := range where {
 		query = query.Where(w)
@@ -2242,7 +2275,7 @@ func (dbResource *DbResource) GetAllObjectsWithWhereWithTransaction(typeName str
 // Utility method for loading all objects having low count
 // Can be used by actions
 func (dbResource *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{}, error) {
-	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).From(typeName).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).Prepared(true).From(typeName).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -2278,7 +2311,7 @@ func (dbResource *DbResource) GetAllRawObjects(typeName string) ([]map[string]in
 }
 
 func (dbResource *DbResource) GetAllRawObjectsWithTransaction(typeName string, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
-	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).From(typeName).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).Prepared(true).From(typeName).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -2315,7 +2348,7 @@ func (dbResource *DbResource) GetAllRawObjectsWithTransaction(typeName string, t
 
 // GetReferenceIdToObject Loads an object of type `typeName` using a reference_id
 // Used internally, can be used by actions
-func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName string, referenceId string, transaction *sqlx.Tx) (map[string]interface{}, error) {
+func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
 	// cache is converting value types from int64 -> float64
 
@@ -2333,7 +2366,8 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 	//}
 
 	//log.Printf("Get Object by reference id [%v][%v]", typeName, referenceId)
-	s, q, err := statementbuilder.Squirrel.Select("*").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("*").Prepared(true).
+		From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -2379,7 +2413,7 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 	//	marshalledResult, err := json.Marshal(results[0])
 	//	CheckErr(err, "Failed to marshal result to cache")
 	//	if err == nil {
-	//		err = OlricCache.PutIfEx(cacheKey, marshalledResult, 5*time.Second, olric.IfNotFound)
+	//		err = OlricCache.Put(cacheKey, marshalledResult, olric.EX(5*time.Second), olric.NX())
 	//		CheckErr(err, "[2552] Failed to set reference id to object id in olric cache")
 	//	}
 	//}
@@ -2389,10 +2423,11 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 
 // GetReferenceIdToObjectColumn Loads an object of type `typeName` using a reference_id
 // Used internally, can be used by actions
-func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeName string, referenceId string,
+func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeName string, referenceId daptinid.DaptinReferenceId,
 	columnToSelect string, transaction *sqlx.Tx) (interface{}, error) {
 	//log.Printf("Get Object by reference id [%v][%v]", typeName, referenceId)
-	s, q, err := statementbuilder.Squirrel.Select(columnToSelect).From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select(columnToSelect).
+		Prepared(true).From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -2441,8 +2476,8 @@ func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeNa
 // Load rows from the database of `typeName` with a where clause to filter rows
 // Converts the queries to sql and run query with where clause
 // Returns list of reference_ids
-func (dbResource *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...goqu.Ex) ([]string, error) {
-	builder := statementbuilder.Squirrel.Select("reference_id").From(typeName)
+func (dbResource *DbResource) GetReferenceIdByWhereClause(typeName string, queries ...goqu.Ex) ([]daptinid.DaptinReferenceId, error) {
+	builder := statementbuilder.Squirrel.Select("reference_id").Prepared(true).From(typeName)
 
 	for _, qu := range queries {
 		builder = builder.Where(qu)
@@ -2479,15 +2514,15 @@ func (dbResource *DbResource) GetReferenceIdByWhereClause(typeName string, queri
 		}
 	}(res)
 
-	ret := make([]string, 0)
+	ret := make([]daptinid.DaptinReferenceId, 0)
+	var sRef daptinid.DaptinReferenceId
 	for res.Next() {
-		var s string
-		err := res.Scan(&s)
+		err := res.Scan(&sRef)
 		if err != nil {
 			log.Errorf("[1305] failed to scan result into variable")
 			return nil, err
 		}
-		ret = append(ret, s)
+		ret = append(ret, sRef)
 	}
 
 	return ret, err
@@ -2497,8 +2532,8 @@ func (dbResource *DbResource) GetReferenceIdByWhereClause(typeName string, queri
 // Load rows from the database of `typeName` with a where clause to filter rows
 // Converts the queries to sql and run query with where clause
 // Returns list of reference_ids
-func GetReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sqlx.Tx, queries ...goqu.Ex) ([]string, error) {
-	builder := statementbuilder.Squirrel.Select("reference_id").From(typeName)
+func GetReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sqlx.Tx, queries ...goqu.Ex) ([]daptinid.DaptinReferenceId, error) {
+	builder := statementbuilder.Squirrel.Select("reference_id").Prepared(true).From(typeName)
 
 	for _, qu := range queries {
 		builder = builder.Where(qu)
@@ -2535,15 +2570,15 @@ func GetReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sq
 		}
 	}(res)
 
-	ret := make([]string, 0)
+	ret := make([]daptinid.DaptinReferenceId, 0)
+	var sRef daptinid.DaptinReferenceId
 	for res.Next() {
-		var s string
-		err := res.Scan(&s)
+		err := res.Scan(&sRef)
 		if err != nil {
 			log.Errorf("[1305] failed to scan result into variable")
 			return nil, err
 		}
-		ret = append(ret, s)
+		ret = append(ret, sRef)
 	}
 
 	return ret, err
@@ -2554,7 +2589,7 @@ func GetReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sq
 // Converts the queries to sql and run query with where clause
 // Returns  list of internal database integer ids
 func (dbResource *DbResource) GetIdByWhereClause(typeName string, transaction *sqlx.Tx, queries ...goqu.Ex) ([]int64, error) {
-	builder := statementbuilder.Squirrel.Select("id").From(typeName)
+	builder := statementbuilder.Squirrel.Select("id").Prepared(true).From(typeName)
 
 	for _, qu := range queries {
 		builder = builder.Where(qu)
@@ -2607,25 +2642,29 @@ func (dbResource *DbResource) GetIdByWhereClause(typeName string, transaction *s
 }
 
 // GetIdToReferenceId Looks up an integer id and return a string reference id of an object of type `typeName`
-func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64, transaction *sqlx.Tx) (string, error) {
+func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64, transaction *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
 
+	var idd daptinid.DaptinReferenceId
 	k := fmt.Sprintf("itr-%v-%v", typeName, id)
 	if OlricCache != nil {
-		v, err := OlricCache.Get(k)
+		v, err := OlricCache.Get(context.Background(), k)
 		if err == nil {
-			return v.(string), nil
+			var bytes [16]byte
+			err = v.Scan(bytes)
+			return bytes, err
 		}
 	}
 
-	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("reference_id").
+		Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
-		return "", err
+		return idd, err
 	}
 
 	stmt, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[1636] failed to prepare statment: %v", err)
-		return "", err
+		return idd, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
@@ -2634,11 +2673,11 @@ func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64, tran
 		}
 	}(stmt)
 
-	var str string
+	var str daptinid.DaptinReferenceId
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		err1 := OlricCache.PutIfEx(k, str, 60*time.Minute, olric.IfNotFound)
+		err1 := OlricCache.Put(context.Background(), k, str, olric.EX(60*time.Minute), olric.NX())
 		CheckErr(err1, "[2856] Failed to set if to reference id in olric cache")
 	}
 	return str, err
@@ -2646,53 +2685,57 @@ func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64, tran
 }
 
 // GetIdToReferenceIdWithTransaction Looks up an integer id and return a string reference id of an object of type `typeName`
-func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *sqlx.Tx) (string, error) {
+func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
 
 	k := fmt.Sprintf("itr-%v-%v", typeName, id)
 	if OlricCache != nil {
-		v, err := OlricCache.Get(k)
+		v, err := OlricCache.Get(context.Background(), k)
 		if err == nil {
-			return v.(string), nil
+			var dri daptinid.DaptinReferenceId
+			err := v.Scan(&dri)
+			return dri, err
 		}
 	}
 
-	s, q, err := statementbuilder.Squirrel.Select("reference_id").From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("reference_id").
+		Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
-		return "", err
+		return [16]byte{}, err
 	}
 
 	stmt, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[1636] failed to prepare statment: %v", err)
-		return "", err
+		return [16]byte{}, err
 	}
 	defer stmt.Close()
-	var str string
+	var str []byte
 	row := stmt.QueryRowx(q...)
 	err = row.Scan(&str)
 	if OlricCache != nil {
-		OlricCache.PutIfEx(k, str, 30*time.Minute, olric.IfNotFound)
+		OlricCache.Put(context.Background(), k, str, olric.EX(30*time.Minute), olric.NX())
 		//CheckErr(cacheErr, "[2897] Failed to set id to reference id in olric cache")
 	}
-	return str, err
+	return daptinid.DaptinReferenceId(str), err
 
 }
 
 // GetReferenceIdToId Lookup an string reference id and return a internal integer id of an object of type `typeName`
-func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId string, transaction *sqlx.Tx) (int64, error) {
+func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (int64, error) {
 
 	cacheKey := fmt.Sprintf("riti-%v-%v", typeName, referenceId)
 
 	if OlricCache != nil {
 
-		cachedValue, err := OlricCache.Get(cacheKey)
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
-			return cachedValue.(int64), nil
+			return cachedValue.Int64()
 		}
 	}
 
 	var id int64
-	s, q, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("id").
+		Prepared(true).From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
@@ -2711,7 +2754,7 @@ func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId st
 	err = stmt.QueryRowx(q...).Scan(&id)
 
 	if OlricCache != nil {
-		cachePutErr := OlricCache.PutIfEx(cacheKey, id, 30*time.Minute, olric.IfNotFound)
+		cachePutErr := OlricCache.Put(context.Background(), cacheKey, id, olric.EX(30*time.Minute), olric.NX())
 		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
 	}
 
@@ -2720,20 +2763,21 @@ func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId st
 }
 
 // GetReferenceIdToIdWithTransaction Looks up a string reference id and return an internal integer id of an object of type `typeName`
-func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, updateTransaction *sqlx.Tx) (int64, error) {
+func GetReferenceIdToIdWithTransaction(typeName string, referenceId daptinid.DaptinReferenceId, updateTransaction *sqlx.Tx) (int64, error) {
 
 	cacheKey := fmt.Sprintf("riti-%v-%v", typeName, referenceId)
 
 	if OlricCache != nil {
 
-		cachedValue, err := OlricCache.Get(cacheKey)
-		if err == nil && cachedValue != nil && cachedValue != 0 {
-			return cachedValue.(int64), nil
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
+		if err == nil && cachedValue != nil {
+			return cachedValue.Int64()
 		}
 	}
 
 	var id int64
-	s, q, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("id").
+		Prepared(true).From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
@@ -2752,7 +2796,7 @@ func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, upda
 	err = stmt.QueryRowx(q...).Scan(&id)
 
 	if OlricCache != nil && err == nil {
-		cachePutErr := OlricCache.PutIfEx(cacheKey, id, 1*time.Hour, olric.IfNotFound)
+		cachePutErr := OlricCache.Put(context.Background(), cacheKey, id, olric.EX(1*time.Hour), olric.NX())
 		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
 	}
 
@@ -2764,8 +2808,8 @@ func GetReferenceIdToIdWithTransaction(typeName string, referenceId string, upda
 func (dbResource *DbResource) GetReferenceIdListToIdList(typeName string, referenceId []string) (map[string]int64, error) {
 
 	idMap := make(map[string]int64)
-	s, q, err := statementbuilder.Squirrel.Select("id", "reference_id").
-		From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.Select("id", "reference_id").Prepared(true).
+		From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return idMap, err
 	}
@@ -2798,12 +2842,13 @@ func (dbResource *DbResource) GetReferenceIdListToIdList(typeName string, refere
 }
 
 // Lookup an string reference id and return a internal integer id of an object of type `typeName`
-func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []string, transaction *sqlx.Tx) (map[string]int64, error) {
+func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []daptinid.DaptinReferenceId,
+	transaction *sqlx.Tx) (map[daptinid.DaptinReferenceId]int64, error) {
 	log.Tracef("GetReferenceIdListToIdListWithTransaction: [%v] => [%v]", typeName, referenceId)
 
-	idMap := make(map[string]int64)
-	s, q, err := statementbuilder.Squirrel.Select("id", "reference_id").
-		From(typeName).Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+	idMap := make(map[daptinid.DaptinReferenceId]int64)
+	s, q, err := statementbuilder.Squirrel.Select("id", "reference_id").Prepared(true).
+		From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return idMap, err
 	}
@@ -2827,7 +2872,7 @@ func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []st
 	}
 	for rows.Next() {
 		var id1 int64
-		var id2 string
+		var id2 daptinid.DaptinReferenceId
 		err = rows.Scan(&id1, &id2)
 		idMap[id2] = id1
 	}
@@ -2839,7 +2884,7 @@ func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []st
 func (dbResource *DbResource) GetIdListToReferenceIdList(typeName string, ids []int64, transaction *sqlx.Tx) (map[int64]string, error) {
 
 	idMap := make(map[int64]string)
-	s, q, err := statementbuilder.Squirrel.Select("reference_id", "id").
+	s, q, err := statementbuilder.Squirrel.Select("reference_id", "id").Prepared(true).
 		From(typeName).Where(goqu.Ex{"id": ids}).ToSQL()
 	if err != nil {
 		return idMap, err
@@ -2878,7 +2923,8 @@ func (dbResource *DbResource) GetIdListToReferenceIdList(typeName string, ids []
 func (dbResource *DbResource) GetSingleColumnValueByReferenceId(
 	typeName string, selectColumn []interface{}, matchColumn string, values []string) ([]interface{}, error) {
 
-	s, q, err := statementbuilder.Squirrel.Select(selectColumn...).From(typeName).Where(goqu.Ex{matchColumn: values}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.
+		Select(selectColumn...).Prepared(true).From(typeName).Where(goqu.Ex{matchColumn: values}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -2926,7 +2972,8 @@ func (dbResource *DbResource) GetSingleColumnValueByReferenceId(
 func GetSingleColumnValueByReferenceIdWithTransaction(
 	typeName string, selectColumn []interface{}, matchColumn string, values []string, transaction *sqlx.Tx) ([]interface{}, error) {
 	log.Tracef("GetSingleColumnValueByReferenceIdWithTransaction: [%v] => [%v]", typeName, selectColumn)
-	s, q, err := statementbuilder.Squirrel.Select(selectColumn...).From(typeName).Where(goqu.Ex{matchColumn: values}).ToSQL()
+	s, q, err := statementbuilder.Squirrel.
+		Select(selectColumn...).Prepared(true).From(typeName).Where(goqu.Ex{matchColumn: values}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -3016,7 +3063,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 	}
 
 	objectCache := make(map[string]interface{})
-	referenceIdCache := make(map[string]string)
+	referenceIdCache := make(map[string]daptinid.DaptinReferenceId)
 	includes := make([][]map[string]interface{}, 0)
 
 	for _, row := range responseArray {
@@ -3102,11 +3149,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					obj["__type"] = namespace
 
-					if err != nil {
-						log.Errorf("Failed to get ref object for [%v][%v]: %v", namespace, val, err)
-					} else {
-						localInclude = append(localInclude, obj)
-					}
+					localInclude = append(localInclude, obj)
 				}
 
 			case "cloud_store":
@@ -3178,7 +3221,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					fallthrough
 				case "has_many_and_belongs_to_many":
 					query, args, err := statementbuilder.Squirrel.
-						Select(goqu.I(relation.GetObjectName()+".id")).
+						Select(goqu.I(relation.GetObjectName()+".id")).Prepared(true).
 						From(goqu.T(relation.GetSubject()).As(relation.GetSubjectName())).
 						Join(
 							goqu.T(relation.GetJoinTableName()).As(relation.GetJoinTableName()),
@@ -3263,7 +3306,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 				case "belongs_to":
 
 					query, args, err := statementbuilder.Squirrel.
-						Select(goqu.I(relation.GetSubjectName()+".id")).
+						Select(goqu.I(relation.GetSubjectName()+".id")).Prepared(true).
 						From(goqu.T(relation.GetObject()).As(relation.GetObjectName())).
 						Join(
 							goqu.T(relation.GetSubject()).As(relation.GetSubjectName()),
@@ -3333,7 +3376,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					fallthrough
 				case "has_many_and_belongs_to_many":
 					query, args, err := statementbuilder.Squirrel.
-						Select(goqu.I(relation.GetSubjectName()+".id")).
+						Select(goqu.I(relation.GetSubjectName()+".id")).Prepared(true).
 						From(goqu.T(relation.GetObject()).As(relation.GetObjectName())).
 						Join(
 							goqu.T(relation.GetJoinTableName()).As(relation.GetJoinTableName()),

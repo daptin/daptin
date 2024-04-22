@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -94,8 +95,8 @@ func (ati *ActiveTaskInstance) Run() {
 		//log.Printf("Loaded user permission: %v", permission)
 		refId := permission["reference_id"]
 		if refId != nil {
-			usergroups := ati.DbResource.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "reference_id", refId.(string))
-			sessionUser.UserReferenceId = permission["reference_id"].(string)
+			usergroups := ati.DbResource.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "reference_id", refId.(daptinid.DaptinReferenceId))
+			sessionUser.UserReferenceId = permission["reference_id"].(daptinid.DaptinReferenceId)
 			sessionUser.UserId = permission["id"].(int64)
 			sessionUser.Groups = usergroups
 		}

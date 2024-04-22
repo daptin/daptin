@@ -3,9 +3,10 @@ package resource
 import (
 	"context"
 	"fmt"
-	"github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/golang-jwt/jwt/v4"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -58,7 +59,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		if err != nil || userOtpProfile == nil {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", userOtpProfile["otp_of_account"].(string), nil, transaction)
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", userOtpProfile["otp_of_account"].(daptinid.DaptinReferenceId), nil, transaction)
 	} else {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmailWithTransaction(email.(string), transaction)
 		if err != nil {
@@ -97,7 +98,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		pr := &http.Request{}
 		user := &auth.SessionUser{
 			UserId:          userAccount["id"].(int64),
-			UserReferenceId: userAccount["reference_id"].(string),
+			UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
 		}
 		pr = pr.WithContext(context.WithValue(context.Background(), "user", user))
 		req := api2go.Request{
@@ -126,7 +127,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 
 	} else {
 
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"email":   userAccount["email"],
 			"name":    userAccount["name"],
@@ -188,7 +189,7 @@ func NewOtpLoginVerifyActionPerformer(cruds map[string]*DbResource, configStore 
 	jwtTokenIssuer, err := configStore.GetConfigValueFor("jwt.token.issuer", "backend", transaction)
 	CheckErr(err, "No default jwt token issuer set")
 	if err != nil {
-		uid, _ := uuid.NewV4()
+		uid, _ := uuid.NewV7()
 		jwtTokenIssuer = "daptin-" + uid.String()[0:6]
 		err = configStore.SetConfigValueFor("jwt.token.issuer", jwtTokenIssuer, "backend", transaction)
 	}

@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 )
 
 type DaptinImapBackend struct {
@@ -57,13 +58,13 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		return nil, err
 	}
 
-	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account", userMailAccount["user_account_id"].(string), nil, transaction)
+	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account", userMailAccount["user_account_id"].(daptinid.DaptinReferenceId), nil, transaction)
 	userId, _ := userAccount["id"].(int64)
 	groups := userAccountResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId)
 
 	sessionUser := &auth.SessionUser{
 		UserId:          userId,
-		UserReferenceId: userAccount["reference_id"].(string),
+		UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
 		Groups:          groups,
 	}
 

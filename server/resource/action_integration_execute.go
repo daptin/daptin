@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/getkin/kin-openapi/openapi2"
 	"github.com/getkin/kin-openapi/openapi2conv"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -155,7 +156,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 				case "oauth2":
 
-					oauthTokenId, ok := authKeys["oauth_token_id"].(string)
+					oauthTokenId, ok := authKeys["oauth_token_id"].(daptinid.DaptinReferenceId)
 
 					if ok {
 						oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
@@ -261,7 +262,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 		case "oauth2":
 
-			oauthTokenId, ok := authKeys["oauth_token_id"].(string)
+			oauthTokenId, ok := authKeys["oauth_token_id"].(daptinid.DaptinReferenceId)
 
 			if ok {
 				oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)

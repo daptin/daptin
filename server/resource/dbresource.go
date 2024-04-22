@@ -1,8 +1,11 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
+	daptinid "github.com/daptin/daptin/server/id"
+	uuid "github.com/google/uuid"
 	"os"
 	"strings"
 	"sync"
@@ -35,9 +38,9 @@ type DbResource struct {
 	defaultGroups      []int64
 	defaultRelations   map[string][]int64
 	contextLock        sync.RWMutex
-	OlricDb            *olric.Olric
+	OlricDb            *olric.EmbeddedClient
 	AssetFolderCache   map[string]map[string]*AssetFolderCache
-	SubsiteFolderCache map[string]*AssetFolderCache
+	SubsiteFolderCache map[daptinid.DaptinReferenceId]*AssetFolderCache
 	MailSender         func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
 }
 
@@ -140,7 +143,7 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
-	olricDb *olric.Olric, tableInfo TableInfo) (*DbResource, error) {
+	olricDb *olric.EmbeddedClient, tableInfo TableInfo) (*DbResource, error) {
 	if OlricCache == nil {
 		OlricCache, _ = olricDb.NewDMap("default-cache")
 	}
@@ -169,7 +172,7 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 		contextCache:       make(map[string]interface{}),
 		contextLock:        sync.RWMutex{},
 		AssetFolderCache:   make(map[string]map[string]*AssetFolderCache),
-		SubsiteFolderCache: make(map[string]*AssetFolderCache),
+		SubsiteFolderCache: make(map[daptinid.DaptinReferenceId]*AssetFolderCache),
 	}, nil
 }
 
@@ -195,7 +198,8 @@ func RelationNamesToIds(db database.DatabaseConnection, tableInfo TableInfo) (ma
 			typeName = relation.Object
 		}
 
-		query, args, err := statementbuilder.Squirrel.Select("id").From(typeName).Where(goqu.Ex{"reference_id": goqu.Op{"in": values}}).ToSQL()
+		query, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).
+			From(typeName).Where(goqu.Ex{"reference_id": goqu.Op{"in": values}}).ToSQL()
 		CheckErr(err, fmt.Sprintf("[165] failed to convert %v names to ids", relationName))
 		query = db.Rebind(query)
 
@@ -246,7 +250,8 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) ([]int
 		return []int64{}, nil
 	}
 
-	query, args, err := statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).ToSQL()
+	query, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).
+		From("usergroup").Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).ToSQL()
 	CheckErr(err, "[165] failed to convert usergroup names to ids")
 	query = db.Rebind(query)
 
@@ -302,57 +307,98 @@ func (dbResource *DbResource) GetContext(key string) interface{} {
 	return dbResource.contextCache[key]
 }
 
-func (dbResource *DbResource) GetAdminReferenceId(transaction *sqlx.Tx) map[string]bool {
+type AdminMapType map[uuid.UUID]bool
+
+func (a AdminMapType) MarshalBinary() (data []byte, err error) {
+	for key, value := range a {
+		// Append the UUID (16 bytes)
+		data = append(data, key[:]...) // key[:] converts uuid.UUID to []byte
+
+		// Append the boolean as a byte (1 byte)
+		if value {
+			data = append(data, 0x01)
+		} else {
+			data = append(data, 0x00)
+		}
+	}
+	return data, nil
+}
+
+func (a AdminMapType) UnmarshalBinary(data []byte) error {
+	const uuidSize = 16
+	if len(data)%(uuidSize+1) != 0 { // Each entry should be exactly 17 bytes
+		return errors.New("invalid data length")
+	}
+
+	if a == nil {
+		a = make(AdminMapType)
+	}
+
+	for i := 0; i < len(data); i += (uuidSize + 1) {
+		key := uuid.UUID{}
+		copy(key[:], data[i:i+uuidSize])  // Extract UUID from data
+		value := data[i+uuidSize] == 0x01 // Extract boolean from data
+
+		a[key] = value
+	}
+	return nil
+}
+
+func (dbResource *DbResource) GetAdminReferenceId(transaction *sqlx.Tx) AdminMapType {
 	var err error
 	var cacheValue interface{}
-	adminMap := make(map[string]bool)
+	adminMap := make(AdminMapType)
 	if OlricCache != nil {
-		cacheValue, err = OlricCache.Get("administrator_reference_id")
+		cacheValue, err = OlricCache.Get(context.Background(), "administrator_reference_id")
 		if err == nil && cacheValue != nil {
-			return cacheValue.(map[string]bool)
+			return cacheValue.(AdminMapType)
 		}
 	}
 	userRefId := dbResource.GetUserMembersByGroupName("administrators", transaction)
 	for _, id := range userRefId {
-		adminMap[id] = true
+		userUuid, _ := uuid.FromBytes(id[:])
+		adminMap[userUuid] = true
 	}
 
 	if OlricCache != nil && userRefId != nil {
-		err = OlricCache.PutIfEx("administrator_reference_id", adminMap, 60*time.Minute, olric.IfNotFound)
+		err = OlricCache.Put(context.Background(), "administrator_reference_id", adminMap, olric.EX(60*time.Minute), olric.NX())
 		CheckErr(err, "Failed to cache admin reference ids")
 	}
 	return adminMap
 }
 
-func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[string]bool {
-	var err error
-	var cacheValue interface{}
-	adminMap := make(map[string]bool)
+func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[uuid.UUID]bool {
+	adminMap := make(AdminMapType)
 	if OlricCache != nil {
-		cacheValue, err = OlricCache.Get("administrator_reference_id")
-		if err == nil && cacheValue != nil {
-			return cacheValue.(map[string]bool)
+		cacheValueGet, err := OlricCache.Get(context.Background(), "administrator_reference_id")
+
+		if err == nil {
+			cacheValueGet.Scan(&adminMap)
+			return adminMap
 		}
 	}
 	userRefId := GetUserMembersByGroupNameWithTransaction("administrators", transaction)
 	for _, id := range userRefId {
-		adminMap[id] = true
+		uuidVal, _ := uuid.FromBytes(id[:])
+		adminMap[uuidVal] = true
 	}
 
 	if OlricCache != nil && userRefId != nil {
-		err = OlricCache.PutIfEx("administrator_reference_id", adminMap, 60*time.Minute, olric.IfNotFound)
-		//CheckErr(err, "[257] Failed to cache admin reference ids")
+		err := OlricCache.Put(context.Background(), "administrator_reference_id", adminMap, olric.EX(60*time.Minute), olric.NX())
+		CheckErr(err, "[257] Failed to cache admin reference ids")
 	}
 	return adminMap
 }
 
-func (dbResource *DbResource) IsAdmin(userReferenceId string, transaction *sqlx.Tx) bool {
+func (dbResource *DbResource) IsAdmin(userReferenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) bool {
 	start := time.Now()
-	key := "admin." + userReferenceId
+	userUUid, err := uuid.FromBytes(userReferenceId[:])
+	key := "admin." + string(userReferenceId[:])
 	if OlricCache != nil {
-		value, err := OlricCache.Get(key)
+		value, err := OlricCache.Get(context.Background(), key)
 		if err == nil && value != nil {
-			if value.(bool) == true {
+			val, err := value.Bool()
+			if err != nil && val {
 				duration := time.Since(start)
 				log.Tracef("[TIMING]IsAdmin Cached[true]: %v", duration)
 				return true
@@ -364,17 +410,17 @@ func (dbResource *DbResource) IsAdmin(userReferenceId string, transaction *sqlx.
 		}
 	}
 	admins := dbResource.GetAdminReferenceId(transaction)
-	_, ok := admins[userReferenceId]
+	_, ok := admins[userUUid]
 	if ok {
 		if OlricCache != nil {
-			err := OlricCache.PutIfEx(key, true, 5*time.Minute, olric.IfNotFound)
+			err := OlricCache.Put(context.Background(), key, true, olric.EX(5*time.Minute), olric.NX())
 			CheckErr(err, "[285] Failed to set admin id value in olric cache")
 		}
 		duration := time.Since(start)
 		log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
 		return true
 	}
-	err := OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
+	err = OlricCache.Put(context.Background(), key, false, olric.EX(5*time.Minute), olric.NX())
 	CheckErr(err, "[291] Failed to set admin id value in olric cache")
 
 	duration := time.Since(start)
@@ -382,12 +428,15 @@ func (dbResource *DbResource) IsAdmin(userReferenceId string, transaction *sqlx.
 	return false
 
 }
-func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
-	key := "admin." + userReferenceId
+func IsAdminWithTransaction(userReferenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) bool {
+	userUUid, _ := uuid.FromBytes(userReferenceId[:])
+	key := "admin." + string(userReferenceId[:])
+
 	if OlricCache != nil {
-		value, err := OlricCache.Get(key)
+		fmt.Println("IsAdminWithTransaction [" + key + "]")
+		value, err := OlricCache.Get(context.Background(), key)
 		if err == nil && value != nil {
-			if value.(bool) == true {
+			if val, err := value.Bool(); val && err != nil {
 				return true
 			} else {
 				return false
@@ -395,16 +444,16 @@ func IsAdminWithTransaction(userReferenceId string, transaction *sqlx.Tx) bool {
 		}
 	}
 	admins := GetAdminReferenceIdWithTransaction(transaction)
-	_, ok := admins[userReferenceId]
+	_, ok := admins[userUUid]
 	if ok {
 		if OlricCache != nil {
-			OlricCache.PutIfEx(key, true, 5*time.Minute, olric.IfNotFound)
+			OlricCache.Put(context.Background(), key, true, olric.EX(5*time.Minute), olric.NX())
 			//CheckErr(err, "[320] Failed to set admin id value in olric cache")
 		}
 		return true
 	}
 	if OlricCache != nil {
-		OlricCache.PutIfEx(key, false, 5*time.Minute, olric.IfNotFound)
+		OlricCache.Put(context.Background(), key, false, olric.EX(5*time.Minute), olric.NX())
 	}
 	//CheckErr(err, "[327] Failed to set admin id value in olric cache")
 	return false
@@ -428,7 +477,7 @@ func (dbResource *DbResource) GetAdminEmailId(transaction *sqlx.Tx) string {
 
 func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
-	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
+	q := statementbuilder.Squirrel.Select("*").Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"deleted":     false,
 	}).Offset(uint(start - 1))
@@ -469,7 +518,7 @@ func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uin
 
 func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
-	q := statementbuilder.Squirrel.Select("*").From("mail").Where(goqu.Ex{
+	q := statementbuilder.Squirrel.Select("*").Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"deleted":     false,
 	}).Where(goqu.Ex{
@@ -522,7 +571,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	var uidNext uint32
 	var messgeCount uint32
 
-	q4, v4, e4 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
+	q4, v4, e4 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 	}).ToSQL()
 
@@ -539,7 +588,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	r4 := stmt1.QueryRowx(v4...)
 	r4.Scan(&messgeCount)
 
-	q1, v1, e1 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
+	q1, v1, e1 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"seen":        false,
 	}).ToSQL()
@@ -557,7 +606,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	r := stmt1.QueryRowx(v1...)
 	r.Scan(&unseenCount)
 
-	q2, v2, e2 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("mail").Where(goqu.Ex{
+	q2, v2, e2 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"recent":      true,
 	}).ToSQL()
@@ -575,7 +624,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	r2 := stmt1.QueryRowx(v2...)
 	r2.Scan(&recentCount)
 
-	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").From("mail_box").Where(goqu.Ex{
+	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").Prepared(true).From("mail_box").Where(goqu.Ex{
 		"id": mailBoxId,
 	}).ToSQL()
 
@@ -609,7 +658,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 
 func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64, transaction *sqlx.Tx) uint32 {
 
-	query, args, err := statementbuilder.Squirrel.Select(goqu.L("min(id)")).From("mail").Where(
+	query, args, err := statementbuilder.Squirrel.Select(goqu.L("min(id)")).Prepared(true).From("mail").Where(
 		goqu.Ex{
 			"mail_box_id": mailBoxId,
 			"seen":        false,
@@ -661,7 +710,7 @@ func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, new
 	}
 
 	query, args, err := statementbuilder.Squirrel.
-		Update("mail").
+		Update("mail").Prepared(true).
 		Set(goqu.Record{
 			"flags":   strings.Join(newFlags, ","),
 			"seen":    seen,
@@ -682,7 +731,7 @@ func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, new
 }
 func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
-	selectQuery, args, err := statementbuilder.Squirrel.Select("id").From("mail").Where(
+	selectQuery, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).From("mail").Where(
 		goqu.Ex{
 			"mail_box_id": mailBoxId,
 			"deleted":     true,
@@ -722,7 +771,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, nil
 	}
 
-	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Where(goqu.Ex{
+	query, args, err := statementbuilder.Squirrel.Delete("mail_mail_id_has_usergroup_usergroup_id").Prepared(true).Where(goqu.Ex{
 		"mail_id": ids,
 	}).ToSQL()
 
@@ -736,7 +785,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	query, args, err = statementbuilder.Squirrel.Delete("mail").Where(goqu.Ex{
+	query, args, err = statementbuilder.Squirrel.Delete("mail").Prepared(true).Where(goqu.Ex{
 		"id": ids,
 	}).ToSQL()
 	if err != nil {
@@ -756,7 +805,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
 
 	var uidNext int64
-	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Where(goqu.Ex{
+	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Prepared(true).Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 	}).ToSQL()
 
