@@ -298,7 +298,6 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 			//log.Printf("User is not nil: %v", email)
 
 			var sessionUser *SessionUser
-			var cachedUser interface{}
 
 			ok := false
 			//LocalUserCacheLock.Lock()
@@ -312,7 +311,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 			if !ok {
 
-				cachedUser, err = olricCache.Get(context.Background(), email)
+				cachedUser, err := olricCache.Get(context.Background(), email)
 				var referenceIdBytes []byte
 				var userId int64
 				var userGroups []GroupPermission
@@ -463,8 +462,11 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					LocalUserCacheLock.Unlock()
 
 				} else {
-					sessionUserValue := cachedUser.(SessionUser)
-					sessionUser = &sessionUserValue
+					var sessionUserValue SessionUser
+					err = cachedUser.Scan(&sessionUserValue)
+					if err == nil {
+						sessionUser = &sessionUserValue
+					}
 					//LocalUserCacheLock.Lock()
 					//LocalUserCacheMap[email] = CachedUserAccount{
 					//	Account: *sessionUser,
