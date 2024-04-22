@@ -1035,28 +1035,35 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	}
 
 	data.SetType(dbResource.model.GetName())
+	resourceIdUUidString := data.GetID()
+	resourceIdUUid := uuid.MustParse(resourceIdUUidString)
 
-	for _, bf := range dbResource.ms.BeforeUpdate {
-		//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+	{
 
-		finalData, err := bf.InterceptBefore(dbResource, &api2go.Request{
-			PlainRequest: updateRequest,
-			QueryParams:  req.QueryParams,
-			Header:       req.Header,
-			Pagination:   req.Pagination,
-		}, []map[string]interface{}{
-			data.GetAllAsAttributes(),
-		}, transaction)
-		if err != nil {
-			transaction.Rollback()
-			log.Errorf("Error From BeforeUpdate middleware: %v", err)
-			return nil, err
+		attributes := data.GetAllAsAttributes()
+		attributes["reference_id"] = resourceIdUUid
+		for _, bf := range dbResource.ms.BeforeUpdate {
+			//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+
+			finalData, err := bf.InterceptBefore(dbResource, &api2go.Request{
+				PlainRequest: updateRequest,
+				QueryParams:  req.QueryParams,
+				Header:       req.Header,
+				Pagination:   req.Pagination,
+			}, []map[string]interface{}{
+				attributes,
+			}, transaction)
+			if err != nil {
+				transaction.Rollback()
+				log.Errorf("Error From BeforeUpdate middleware: %v", err)
+				return nil, err
+			}
+			if len(finalData) == 0 {
+				return nil, fmt.Errorf("failed to updated this object because of [%v]", bf.String())
+			}
+			res := finalData[0]
+			data.SetAttributes(res)
 		}
-		if len(finalData) == 0 {
-			return nil, fmt.Errorf("failed to updated this object because of [%v]", bf.String())
-		}
-		res := finalData[0]
-		data.SetAttributes(res)
 	}
 
 	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)
