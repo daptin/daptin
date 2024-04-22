@@ -509,12 +509,54 @@ type SessionUser struct {
 	Groups          []GroupPermission
 }
 
+func (s SessionUser) MarshalBinary() ([]byte, error) {
+	var data []byte
+
+	userIdData := make([]byte, 8)
+	binary.LittleEndian.PutUint64(userIdData, uint64(s.UserId))
+	data = append(data, userIdData...)
+
+	userRefData, _ := s.UserReferenceId.MarshalBinary()
+	data = append(data, userRefData...)
+
+	for _, group := range s.Groups {
+		groupData, _ := group.MarshalBinary()
+		data = append(data, groupData...)
+	}
+
+	return data, nil
+}
+
+func (s *SessionUser) UnmarshalBinary(data []byte) error {
+	if len(data) < 24 { // 8 bytes + 16 bytes
+		return errors.New("insufficient data for SessionUser")
+	}
+
+	s.UserId = int64(binary.LittleEndian.Uint64(data[:8]))
+	err := s.UserReferenceId.UnmarshalBinary(data[8:24])
+	if err != nil {
+		return err
+	}
+
+	position := 24
+	for position < len(data) {
+		var group GroupPermission
+		if err := group.UnmarshalBinary(data[position:]); err != nil {
+			return err
+		}
+		s.Groups = append(s.Groups, group)
+		position += 56 // size of one GroupPermission block
+	}
+	return nil
+}
+
 type GroupPermission struct {
 	GroupReferenceId    daptinid.DaptinReferenceId `db:"groupreferenceid"`
 	ObjectReferenceId   daptinid.DaptinReferenceId `db:"objectreferenceid"`
 	RelationReferenceId daptinid.DaptinReferenceId `db:"relationreferenceid"`
 	Permission          AuthPermission
 }
+
 type GroupPermissionList []GroupPermission
 
 func (g GroupPermissionList) MarshalBinary() (data []byte, err error) {

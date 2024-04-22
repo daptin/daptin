@@ -1,10 +1,10 @@
 test_with_go_modules: &test_with_go_modules
   steps:
   - run: sudo rm -rf /usr/local/go
-  - run: wget https://go.dev/dl/go1.18.linux-amd64.tar.gz
-  - run: sudo tar -xf go1.18.linux-amd64.tar.gz
+  - run: wget https://go.dev/dl/go1.22.2.src.tar.gz
+  - run: sudo tar -xf go1.22.2.src.tar.gz
   - run: sudo mv go /usr/local
-  - run: rm go1.18.linux-amd64.tar.gz
+  - run: rm go1.22.2.src.tar.gz
   - run: export GOROOT=/usr/local/go
   - run: export PATH=$GOROOT/bin:$PATH
   - checkout
@@ -36,14 +36,14 @@ jobs:
   golang:latest:
     <<: *defaults
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.22.2
   coveralls:
     steps:
     - checkout
     - run: go get github.com/daptin/daptin
     - run: go test ./... -coverpkg github.com/daptin/daptin/... -v -cover -coverprofile=coverage.out
     docker:
-    - image: cimg/go:1.18
+    - image: cimg/go:1.22.2
 workflows:
   version: 2
   build:
