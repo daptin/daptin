@@ -398,12 +398,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	log.Tracef("Added ResourcesToApi2Go")
 	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub()
+	resource.CheckErr(err, "Failed to create topic")
+	if err != nil {
+		log.Fatalf("failed to create olric topic - %v", err)
+	}
 	for key := range cruds {
 		dtopicMap[key] = tablesPubSub
-		resource.CheckErr(err, "Failed to create topic for table: %v", key)
-		if err != nil {
-			log.Fatalf("failed to create olric topic for table %v - %v", key, err)
-		}
+
 	}
 	log.Tracef("Crated olric topics")
 

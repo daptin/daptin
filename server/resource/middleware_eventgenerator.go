@@ -25,6 +25,16 @@ type EventMessage struct {
 	EventData     map[string]interface{}
 }
 
+// UnmarshalBinary decodes the data into the struct using JSON encoding
+func (e *EventMessage) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, e)
+}
+
+// MarshalBinary encodes the struct into JSON format
+func (e *EventMessage) MarshalBinary() (data []byte, err error) {
+	return json.Marshal(e)
+}
+
 func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	tableName := dr.model.GetTableName()
