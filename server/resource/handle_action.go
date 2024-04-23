@@ -331,6 +331,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	}
 
 	responses := make([]ActionResponse, 0)
+	var restartOnCompletion = false
 
 OutFields:
 	for _, outcome := range action.OutFields {
@@ -518,6 +519,11 @@ OutFields:
 				var responder api2go.Responder
 				outcome.Attributes["user"] = sessionUser
 				responder, responses1, errors1 = performer.DoAction(outcome, model.GetAttributes(), transaction)
+				for _, res := range responses1 {
+					if res.ResponseType == "restart" {
+						restartOnCompletion = true
+					}
+				}
 				actionResponses = append(actionResponses, responses1...)
 				if len(errors1) > 0 {
 					err = errors1[0]
@@ -603,6 +609,9 @@ OutFields:
 	}
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "Failed to commit")
+	if restartOnCompletion {
+		go restart()
+	}
 
 	return responses, commitErr
 }

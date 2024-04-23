@@ -33,8 +33,8 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 
 	responses := make([]ActionResponse, 0)
 
-	cloudStoreId := inFields["cloud_store_id"].(string)
-	siteId := uuid.MustParse(inFields["site_id"].(string))
+	cloudStoreId := daptinid.DaptinReferenceId(uuid.MustParse(inFields["cloud_store_id"].(string)))
+	siteId := daptinid.DaptinReferenceId(uuid.MustParse(inFields["site_id"].(string)))
 	path := inFields["path"].(string)
 	cloudStore, err := d.cruds["cloud_store"].GetCloudStoreByReferenceId(cloudStoreId, transaction)
 	if err != nil {
@@ -42,7 +42,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	}
 
 	oauthTokenId := cloudStore.OAutoTokenId
-	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[daptinid.DaptinReferenceId(siteId)]
+	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteId]
 	if siteCacheFolder == nil {
 		log.Printf("No sub-site cache found on local")
 		return nil, nil, []error{errors.New("no site found here")}
@@ -72,7 +72,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 		tempDirectoryPath = siteCacheFolder.LocalSyncPath
 	}
 
-	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceIdWithTransaction("site", daptinid.DaptinReferenceId(siteId), nil, transaction)
+	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceIdWithTransaction("site", siteId, nil, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

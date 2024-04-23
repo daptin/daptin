@@ -34,7 +34,7 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 	log.Printf("%v", inFields)
 
 	if inFields["user_reference_id"] != nil {
-		userReferenceId = inFields["user_reference_id"].(daptinid.DaptinReferenceId)
+		userReferenceId = daptinid.DaptinReferenceId(uuid.MustParse(inFields["user_reference_id"].(string)))
 	}
 
 	userIdInt, err := strconv.ParseInt(inFields[USER_ACCOUNT_ID_COLUMN].(string), 10, 32)
@@ -65,13 +65,13 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 						log.Printf("no rows to select from for type %v", column.ForeignKeyData.Namespace)
 						continue
 					}
-					row[column.ColumnName] = foreignRow[0]["reference_id"].(string)
+					row[column.ColumnName] = foreignRow[0]["reference_id"].(daptinid.DaptinReferenceId).String()
 				}
 			}
 		}
 
 		u, _ := uuid.NewV7()
-		row["reference_id"] = u[:]
+		row["reference_id"] = u.String()
 		row["permission"] = auth.DEFAULT_PERMISSION
 		rows = append(rows, row)
 	}

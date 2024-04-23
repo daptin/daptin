@@ -806,7 +806,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 						for {
 							msg := <-channel
 							var eventMessage resource.EventMessage
-							err = json.UnmarshalFromString(msg.String(), &eventMessage)
+							err = eventMessage.UnmarshalBinary([]byte(msg.Pattern))
+							if err != nil {
+								resource.CheckErr(err, "Failed to read message on channel "+typename)
+								return
+							}
 							log.Tracef("dtopicMapListener handle: [%v]", eventMessage.ObjectType)
 							if err != nil {
 								resource.CheckErr(err, "Failed to read message on channel "+typename)
