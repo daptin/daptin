@@ -327,10 +327,6 @@ jobs:
       - name: Installl gorice on linux
         shell: bash
         run: |
-          go get github.com/GeertJohan/go.rice
-          go get github.com/GeertJohan/go.rice/rice
-          go install github.com/GeertJohan/go.rice/rice
-          $GOPATH/bin/rice embed-go
           ls -lah
 #          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-amd64
 #          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-darwin-amd64
@@ -371,7 +367,7 @@ jobs:
           pwd
           go env
           ls -lah
-          $GOPATH/bin/xgo -targets=darwin/amd64,linux/amd64,linux/arm64,windows/amd64 \
+          $GOPATH/bin/xgo -targets=darwin/amd64,darwin/arm64,linux/amd64,linux/arm64,windows/amd64 \
               --tags netgo -ldflags="-linkmode external" -dest build .
 
 
@@ -388,6 +384,14 @@ jobs:
           name: daptin-linux-amd64
           path: build/github.com/daptin/daptin-linux-amd64
         if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
+      - uses: actions/upload-artifact@v1
+        name: Upload darwin arm64 artifact
+        with:
+          name: daptin-darwin-arm64
+          path: build/github.com/daptin/daptin-darwin-arm64
+        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+
 
       - uses: actions/upload-artifact@v1
         name: Upload darwin amd64 artifact
