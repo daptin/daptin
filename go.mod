@@ -17,7 +17,6 @@ require (
 	github.com/artpar/go-imap v1.0.5
 	github.com/artpar/go-imap-idle v1.0.2
 	github.com/artpar/go-smtp-mta v0.2.0
-	github.com/artpar/go.uuid v1.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/rclone v1.66.5
 	github.com/artpar/resty v1.0.3
@@ -71,7 +70,6 @@ require (
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
-	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/smancke/mailck v0.0.0-20180319162224-be54df53c96e
 	github.com/spf13/cobra v1.8.0
