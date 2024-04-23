@@ -335,6 +335,9 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 		if row["oauth_token_id"] != nil {
 			cloudStore.OAutoTokenId = row["oauth_token_id"].(daptinid.DaptinReferenceId)
 		}
+		cloudStore.Id = row["id"].(int64)
+		cloudStore.ReferenceId = row["reference_id"].(daptinid.DaptinReferenceId)
+		cloudStore.Version = int(row["version"].(int64))
 
 		if OlricCache != nil {
 			asJson := toJson(cloudStore)

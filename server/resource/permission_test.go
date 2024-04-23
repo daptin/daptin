@@ -3,6 +3,8 @@ package resource
 import (
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 	"testing"
 )
 
@@ -35,23 +37,23 @@ func TestPermissionValues(t *testing.T) {
 func TestPermission(t *testing.T) {
 
 	pi := PermissionInstance{
-		UserId: "user1",
+		UserId: daptinid.DaptinReferenceId(uuid.New()),
 		UserGroupId: []auth.GroupPermission{
 			{
-				GroupReferenceId:    "group1",
-				ObjectReferenceId:   "",
-				RelationReferenceId: "",
+				GroupReferenceId:    daptinid.DaptinReferenceId(uuid.New()),
+				ObjectReferenceId:   daptinid.NullReferenceId,
+				RelationReferenceId: daptinid.NullReferenceId,
 				Permission:          auth.UserRead | auth.GroupCRUD | auth.GroupExecute,
 			},
 		},
 		Permission: auth.GroupCreate,
 	}
 
-	pi.CanCreate("user2", []auth.GroupPermission{
+	pi.CanCreate(daptinid.DaptinReferenceId(uuid.New()), []auth.GroupPermission{
 		{
-			GroupReferenceId:    "group1",
-			ObjectReferenceId:   "",
-			RelationReferenceId: "",
+			GroupReferenceId:    daptinid.DaptinReferenceId(uuid.New()),
+			ObjectReferenceId:   daptinid.NullReferenceId,
+			RelationReferenceId: daptinid.NullReferenceId,
 			Permission:          auth.GuestRead | auth.GroupCRUD | auth.GroupExecute,
 		},
 	})
