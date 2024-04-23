@@ -2,19 +2,20 @@ package resource
 
 import (
 	"database/sql"
-	uuid "github.com/artpar/go.uuid"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
 func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) error {
 	log.Tracef("CreateDefaultLocalStorage")
-	query, vars, err := statementbuilder.Squirrel.Select("reference_id").From("cloud_store").Where(goqu.Ex{
-		"name": "localstore",
-	}).ToSQL()
+	query, vars, err := statementbuilder.Squirrel.Select("reference_id").Prepared(true).From("cloud_store").
+		Where(goqu.Ex{
+			"name": "localstore",
+		}).ToSQL()
 
 	if err != nil {
 		return err
@@ -39,10 +40,10 @@ func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) er
 		if err == sql.ErrNoRows {
 
 			adminUserId, adminGroupId := GetAdminUserIdAndUserGroupId(transaction)
-			newUuid, _ := uuid.NewV4()
-			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store").
+			newUuid, _ := uuid.NewV7()
+			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store").Prepared(true).
 				Cols("reference_id", "name", "store_type", "store_provider", "root_path", "store_parameters", "user_account_id", "permission").
-				Vals([]interface{}{newUuid.String(), "localstore", "local", "local", localStoragePath, "", adminUserId, auth.DEFAULT_PERMISSION}).ToSQL()
+				Vals([]interface{}{newUuid[:], "localstore", "local", "local", localStoragePath, "", adminUserId, auth.DEFAULT_PERMISSION}).ToSQL()
 
 			if err != nil {
 				return err
@@ -53,9 +54,10 @@ func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) er
 				return err
 			}
 
-			query, vars, err = statementbuilder.Squirrel.Select("id").From("cloud_store").Where(goqu.Ex{
-				"reference_id": newUuid.String(),
-			}).ToSQL()
+			query, vars, err = statementbuilder.Squirrel.Select("id").From("cloud_store").Prepared(true).
+				Where(goqu.Ex{
+					"reference_id": newUuid[:],
+				}).ToSQL()
 			if err != nil {
 				return err
 			}
@@ -81,10 +83,10 @@ func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) er
 				return err
 			}
 
-			groupRefId, _ := uuid.NewV4()
-			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store_cloud_store_id_has_usergroup_usergroup_id").
+			groupRefId, _ := uuid.NewV7()
+			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store_cloud_store_id_has_usergroup_usergroup_id").Prepared(true).
 				Cols("cloud_store_id", "usergroup_id", "reference_id", "permission").
-				Vals([]interface{}{id, adminGroupId, groupRefId.String(), auth.DEFAULT_PERMISSION}).ToSQL()
+				Vals([]interface{}{id, adminGroupId, groupRefId[:], auth.DEFAULT_PERMISSION}).ToSQL()
 
 			if err != nil {
 				return err

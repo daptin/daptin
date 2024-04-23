@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/xlsx/v2"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/ghodss/yaml"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -34,7 +35,7 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken s
 		return err
 	}
 
-	s, v, err := statementbuilder.Squirrel.Update("oauth_token").
+	s, v, err := statementbuilder.Squirrel.Update("oauth_token").Prepared(true).
 		Set(goqu.Record{
 			"access_token": accessToken,
 			"expires_in":   expiresIn,
@@ -51,7 +52,7 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken s
 }
 
 func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(
-	referenceId string, accessToken string, expiresIn int64, transaction *sqlx.Tx) error {
+	referenceId daptinid.DaptinReferenceId, accessToken string, expiresIn int64, transaction *sqlx.Tx) error {
 
 	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
@@ -63,12 +64,12 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(
 		return err
 	}
 
-	s, v, err := statementbuilder.Squirrel.Update("oauth_token").
+	s, v, err := statementbuilder.Squirrel.Update("oauth_token").Prepared(true).
 		Set(goqu.Record{
 			"access_token": accessToken,
 			"expires_in":   expiresIn,
 		}).
-		Where(goqu.Ex{"reference_id": referenceId}).ToSQL()
+		Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 
 	if err != nil {
 		return err
@@ -103,7 +104,7 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		if ok {
 			log.Printf("Updating existing cron job: %v", newTask.Name)
 
-			s, v, err = statementbuilder.Squirrel.Update("task").
+			s, v, err = statementbuilder.Squirrel.Update("task").Prepared(true).
 				Set(goqu.Record{
 					"active":      newTask.Active,
 					"schedule":    newTask.Schedule,
@@ -114,16 +115,15 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 		} else {
 
-			uuidRef, err := uuid.NewV4()
 			if err != nil {
 				return err
 			}
-			refId := uuidRef.String()
-			s, v, err = statementbuilder.Squirrel.Insert("task").
+			refId, _ := uuid.NewV7()
+			s, v, err = statementbuilder.Squirrel.Insert("task").Prepared(true).
 				Cols("name", "schedule", "active",
 					"action_name", "entity_name", "reference_id", "attributes", "created_at").
 				Vals([]interface{}{newTask.Name, newTask.Schedule, newTask.Active,
-					newTask.ActionName, newTask.EntityName, refId, toJson(newTask.Attributes), time.Now()}).ToSQL()
+					newTask.ActionName, newTask.EntityName, refId[:], toJson(newTask.Attributes), time.Now()}).ToSQL()
 
 		}
 
@@ -161,7 +161,7 @@ func GetTasks(connection *sqlx.Tx) ([]Task, error) {
 		"active",
 		goqu.C("attributes").As("attributes"),
 		goqu.C("as_user_id").As("AsUserEmail"),
-	).From("task").Where(goqu.Ex{"active": true}).ToSQL()
+	).Prepared(true).From("task").Where(goqu.Ex{"active": true}).ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -203,7 +203,7 @@ func GetTasks(connection *sqlx.Tx) ([]Task, error) {
 
 func UpdateStreams(initConfig *CmsConfig, db *sqlx.Tx) {
 
-	s, v, err := statementbuilder.Squirrel.Select("stream_name", "stream_contract").From("stream").ToSQL()
+	s, v, err := statementbuilder.Squirrel.Select("stream_name", "stream_contract").Prepared(true).From("stream").ToSQL()
 
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
@@ -276,7 +276,7 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.Tx) {
 
 			log.Debugf("Stream [%v] already present in db, updating db values", stream.StreamName)
 
-			s, v, err := statementbuilder.Squirrel.Update("stream").
+			s, v, err := statementbuilder.Squirrel.Update("stream").Prepared(true).
 				Set(goqu.Record{"stream_contract": schema}).
 				Where(goqu.Ex{"stream_name": stream.StreamName}).
 				ToSQL()
@@ -288,9 +288,11 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.Tx) {
 
 			existingStreams[stream.StreamName] = stream
 
-			u, _ := uuid.NewV4()
-			s, v, err := statementbuilder.Squirrel.Insert("stream").Cols("stream_name", "stream_contract", "reference_id", "permission", USER_ACCOUNT_ID_COLUMN).
-				Vals([]interface{}{stream.StreamName, schema, u.String(), auth.DEFAULT_PERMISSION, adminUserId}).ToSQL()
+			u, _ := uuid.NewV7()
+			s, v, err := statementbuilder.Squirrel.
+				Insert("stream").Prepared(true).
+				Cols("stream_name", "stream_contract", "reference_id", "permission", USER_ACCOUNT_ID_COLUMN).
+				Vals([]interface{}{stream.StreamName, schema, u[:], auth.DEFAULT_PERMISSION, adminUserId}).ToSQL()
 
 			_, err = db.Exec(s, v...)
 			log.Tracef("Executed: %s", s)
@@ -321,7 +323,7 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 	for _, exchange := range initConfig.ExchangeContracts {
 
 		s, v, err := statementbuilder.Squirrel.
-			Select("reference_id").
+			Select("reference_id").Prepared(true).
 			From("data_exchange").
 			Where(goqu.Ex{"name": exchange.Name}).ToSQL()
 
@@ -362,7 +364,7 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 			CheckErr(err, "Failed to marshal target attrs to json")
 
 			s, v, err = statementbuilder.Squirrel.
-				Update("data_exchange").
+				Update("data_exchange").Prepared(true).
 				Set(goqu.Record{
 					"source_attributes":    sourceAttrsJson,
 					"source_type":          exchange.SourceType,
@@ -373,7 +375,7 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 					"updated_at":           time.Now(),
 					USER_ACCOUNT_ID_COLUMN: adminId,
 				}).
-				Where(goqu.Ex{"reference_id": referenceId}).
+				Where(goqu.Ex{"reference_id": referenceId[:]}).
 				ToSQL()
 
 			_, err = transaction.Exec(s, v...)
@@ -393,10 +395,10 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 
 			targetAttrsJson, err := json.Marshal(exchange.TargetAttributes)
 			CheckErr(err, "Failed to marshal target attributes to json")
-			u, _ := uuid.NewV4()
+			u, _ := uuid.NewV7()
 
 			s, v, err = statementbuilder.Squirrel.
-				Insert("data_exchange").
+				Insert("data_exchange").Prepared(true).
 				Cols("permission", "name", "source_attributes",
 					"source_type", "target_attributes", "target_type", "attributes",
 					"options", "created_at", USER_ACCOUNT_ID_COLUMN, "reference_id").
@@ -404,7 +406,7 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 					auth.DEFAULT_PERMISSION, exchange.Name,
 					sourceAttrsJson, exchange.SourceType, targetAttrsJson,
 					exchange.TargetType, attrsJson, optionsJson,
-					time.Now(), adminId, u.String()}).
+					time.Now(), adminId, u[:]}).
 				ToSQL()
 
 			_, err = transaction.Exec(s, v...)
@@ -504,13 +506,15 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.Tx) {
 	for _, smd := range initConfig.StateMachineDescriptions {
 
 		log.Tracef("Update StateMachineDescriptions: [%s]", smd.Name)
-		s, v, err := statementbuilder.Squirrel.Select("reference_id").From("smd").Where(goqu.Ex{"name": smd.Name}).ToSQL()
+		s, v, err := statementbuilder.Squirrel.
+			Select("reference_id").
+			Prepared(true).From("smd").Where(goqu.Ex{"name": smd.Name}).ToSQL()
 		if err != nil {
 			log.Errorf("Failed to create select smd query: %v", err)
 			continue
 		}
 
-		var refId string
+		var refId daptinid.DaptinReferenceId
 
 		stmt1, err := db.Preparex(s)
 		if err != nil {
@@ -527,17 +531,17 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.Tx) {
 				log.Errorf("Failed to convert to json: %v", err)
 				continue
 			}
-			u, _ := uuid.NewV4()
+			u, _ := uuid.NewV7()
 
 			insertMap := map[string]interface{}{}
 			insertMap["name"] = smd.Name
 			insertMap["label"] = smd.Label
 			insertMap["initial_state"] = smd.InitialState
 			insertMap["events"] = eventsDescription
-			insertMap["reference_id"] = u.String()
+			insertMap["reference_id"] = u[:]
 			insertMap["permission"] = auth.DEFAULT_PERMISSION
 			insertMap[USER_ACCOUNT_ID_COLUMN] = adminUserId
-			s, v, err := statementbuilder.Squirrel.Insert("smd").Rows(insertMap).ToSQL()
+			s, v, err := statementbuilder.Squirrel.Insert("smd").Prepared(true).Rows(insertMap).ToSQL()
 
 			if err != nil {
 				log.Errorf("Failed to create update smd query: %v", err)
@@ -564,7 +568,8 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.Tx) {
 			updateMap["initial_state"] = smd.InitialState
 			updateMap["events"] = eventsDescription
 			updateMap[USER_ACCOUNT_ID_COLUMN] = adminUserId
-			s, v, err := statementbuilder.Squirrel.Update("smd").Set(updateMap).Where(goqu.Ex{"reference_id": refId}).ToSQL()
+			s, v, err := statementbuilder.Squirrel.Update("smd").Prepared(true).
+				Set(updateMap).Where(goqu.Ex{"reference_id": refId[:]}).ToSQL()
 
 			if err != nil {
 				log.Errorf("Failed to create update smd query: %v", err)
@@ -626,7 +631,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
-			s, v, err := statementbuilder.Squirrel.Update("action").
+			s, v, err := statementbuilder.Squirrel.Update("action").Prepared(true).
 				Set(goqu.Record{
 					"label":             action.Label,
 					"world_id":          worldId,
@@ -646,8 +651,8 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 			actionSchema, _ := json.Marshal(action)
 
-			u, _ := uuid.NewV4()
-			s, v, err := statementbuilder.Squirrel.Insert("action").Cols(
+			u, _ := uuid.NewV7()
+			s, v, err := statementbuilder.Squirrel.Insert("action").Prepared(true).Cols(
 				"action_name",
 				"label",
 				"world_id",
@@ -662,7 +667,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				actionSchema,
 				action.InstanceOptional,
 				adminUserId,
-				u.String(),
+				u[:],
 				auth.ALLOW_ALL_PERMISSIONS}).ToSQL()
 
 			_, err = transaction.Exec(s, v...)
@@ -699,7 +704,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 	if err != nil {
 		log.Errorf("No admin user present")
 	} else {
-		adminUserRefId := adminUser["reference_id"].(string)
+		adminUserRefId := adminUser["reference_id"].(daptinid.DaptinReferenceId)
 
 		sessionUser := &auth.SessionUser{
 			UserId:          adminUserId,
@@ -1008,18 +1013,19 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	//log.Printf("Current user group")
 	if userCount < 1 {
 		systemHasNoAdmin = true
-		u, _ := uuid.NewV4()
-		u2 := u.String()
+		u, _ := uuid.NewV7()
+		u2 := u
 
-		s, v, err := statementbuilder.Squirrel.Insert(USER_ACCOUNT_TABLE_NAME).
+		s, v, err := statementbuilder.Squirrel.Insert(USER_ACCOUNT_TABLE_NAME).Prepared(true).
 			Cols("name", "email", "reference_id", "permission").
-			Vals([]interface{}{"guest", "guest@cms.go", u2, auth.DEFAULT_PERMISSION}).ToSQL()
+			Vals([]interface{}{"guest", "guest@cms.go", u2[:], auth.DEFAULT_PERMISSION}).ToSQL()
 
 		CheckErr(err, "Failed to create insert sql")
 		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to insert user: %v", s)
 
-		s, v, err = statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Where(goqu.Ex{"reference_id": u2}).ToSQL()
+		s, v, err = statementbuilder.Squirrel.Select("id").Prepared(true).From(USER_ACCOUNT_TABLE_NAME).
+			Where(goqu.Ex{"reference_id": u2[:]}).ToSQL()
 		CheckErr(err, "Failed to create select user sql ")
 
 		stmt1, err := transaction.Preparex(s)
@@ -1031,35 +1037,36 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select user for world update: %v", s)
 
-		u, _ = uuid.NewV4()
-		u1 := u.String()
-		s, v, err = statementbuilder.Squirrel.Insert("usergroup").
+		u, _ = uuid.NewV7()
+		u1 := u
+		s, v, err = statementbuilder.Squirrel.Insert("usergroup").Prepared(true).
 			Cols("name", "reference_id", "permission").
-			Vals([]interface{}{"guests", u1, auth.DEFAULT_PERMISSION}).ToSQL()
+			Vals([]interface{}{"guests", u1[:], auth.DEFAULT_PERMISSION}).ToSQL()
 
 		CheckErr(err, "Failed to create insert user-group sql for guests")
 		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group for guests: %v", s)
 
-		u, _ = uuid.NewV4()
-		u1 = u.String()
-		s, v, err = statementbuilder.Squirrel.Insert("usergroup").
+		u, _ = uuid.NewV7()
+		u1 = u
+		s, v, err = statementbuilder.Squirrel.Insert("usergroup").Prepared(true).
 			Cols("name", "reference_id", "permission").
-			Vals([]interface{}{"administrators", u1, auth.DEFAULT_PERMISSION}).ToSQL()
+			Vals([]interface{}{"administrators", u1[:], auth.DEFAULT_PERMISSION}).ToSQL()
 		CheckErr(err, "Failed to create insert user-group sql for administrators")
 		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group sql for administrators")
 
-		u, _ = uuid.NewV4()
-		u1 = u.String()
-		s, v, err = statementbuilder.Squirrel.Insert("usergroup").
+		u, _ = uuid.NewV7()
+		u1 = u
+		s, v, err = statementbuilder.Squirrel.Insert("usergroup").Prepared(true).
 			Cols("name", "reference_id", "permission").
-			Vals([]interface{}{"users", u1, auth.DEFAULT_PERMISSION}).ToSQL()
+			Vals([]interface{}{"users", u1[:], auth.DEFAULT_PERMISSION}).ToSQL()
 		CheckErr(err, "Failed to create insert user-group sql for administrators")
 		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to insert user-group sql for administrators")
 
-		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Where(goqu.Ex{"reference_id": u1}).ToSQL()
+		s, v, err = statementbuilder.Squirrel.Select("id").
+			Prepared(true).From("usergroup").Where(goqu.Ex{"reference_id": u1[:]}).ToSQL()
 		CheckErr(err, "Failed to create select usergroup sql")
 		stmt1, err = transaction.Preparex(s)
 		if err != nil {
@@ -1070,11 +1077,11 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		err = stmt1.QueryRowx(v...).Scan(&userGroupId)
 
 		CheckErr(err, "Failed to user group")
-		u, _ = uuid.NewV4()
-		refIf := u.String()
-		s, v, err = statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
+		u, _ = uuid.NewV7()
+		refIf := u[:]
+		s, v, err = statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").Prepared(true).
 			Cols(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").
-			Vals([]interface{}{userId, userGroupId, auth.DEFAULT_PERMISSION, refIf}).ToSQL()
+			Vals([]interface{}{userId, userGroupId, auth.DEFAULT_PERMISSION, refIf[:]}).ToSQL()
 		CheckErr(err, "Failed to create insert user has usergroup sql ")
 		_, err = transaction.Exec(s, v...)
 		CheckErr(err, "Failed to insert user has usergroup")
@@ -1083,7 +1090,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		//tx.Exec("update usergroup set user_id = ?, usergroup_id = ?", userId, userGroupId)
 	} else if userCount < 2 {
 		systemHasNoAdmin = true
-		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
+		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).Prepared(true).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
 		stmt1, err := transaction.Preparex(s)
 		if err != nil {
@@ -1093,7 +1100,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
+		s, v, err = statementbuilder.Squirrel.Select("id").Prepared(true).From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
 		stmt1, err = transaction.Preparex(s)
 		if err != nil {
@@ -1104,7 +1111,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		CheckErr(err, "Failed to user group")
 	} else {
 
-		s, v, err := statementbuilder.Squirrel.Select("id").From(USER_ACCOUNT_TABLE_NAME).
+		s, v, err := statementbuilder.Squirrel.Select("id").Prepared(true).From(USER_ACCOUNT_TABLE_NAME).
 			Where(goqu.Ex{"email": goqu.Op{"neq": "guest@cms.go"}}).Order(goqu.C("id").Asc()).Limit(1).ToSQL()
 		CheckErr(err, "Failed to create select user sql")
 		stmt1, err := transaction.Preparex(s)
@@ -1115,7 +1122,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 		err = stmt1.QueryRowx(v...).Scan(&userId)
 		CheckErr(err, "Failed to select existing user")
-		s, v, err = statementbuilder.Squirrel.Select("id").From("usergroup").Limit(1).ToSQL()
+		s, v, err = statementbuilder.Squirrel.Select("id").Prepared(true).From("usergroup").Limit(1).ToSQL()
 		CheckErr(err, "Failed to create user group sql")
 
 		stmt1, err = transaction.Preparex(s)
@@ -1156,9 +1163,9 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		Cells: make([][]*simpletable.Cell, 0),
 	}
 	for _, table := range initConfig.Tables {
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 
-		refId := u.String()
+		refId := u
 
 		if strings.Index(table.TableName, "_has_") > -1 {
 			table.IsJoinTable = true
@@ -1167,7 +1174,8 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		schema, err := json.Marshal(table)
 
 		var cou int
-		s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From("world").Where(goqu.Ex{"table_name": table.TableName}).ToSQL()
+		s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).
+			Prepared(true).From("world").Where(goqu.Ex{"table_name": table.TableName}).ToSQL()
 		stmt1, err := transaction.Preparex(s)
 		if err != nil {
 			log.Errorf("[1181] failed to prepare statment: %v", err)
@@ -1198,7 +1206,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			//CheckErr(err, "Failed to create select default permission sql")
 			//log.Printf("Update table data [%v] == IsTopLevel[%v], IsHidden[%v]", table.TableName, table.IsTopLevel, table.IsHidden)
 
-			s, v, err = statementbuilder.Squirrel.Update("world").
+			s, v, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 				Set(goqu.Record{
 					"world_schema_json": string(schema),
 					"is_top_level":      table.IsTopLevel,
@@ -1227,9 +1235,9 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 			log.Printf("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
 
-			s, v, err = statementbuilder.Squirrel.Insert("world").
+			s, v, err = statementbuilder.Squirrel.Insert("world").Prepared(true).
 				Cols("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order", "is_join_table").
-				Vals([]interface{}{table.TableName, string(schema), table.Permission, refId, table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder, table.IsJoinTable}).ToSQL()
+				Vals([]interface{}{table.TableName, string(schema), table.Permission, refId[:], table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder, table.IsJoinTable}).ToSQL()
 			_, err = transaction.Exec(s, v...)
 			CheckErr(err, "Failed to insert into world table about "+table.TableName)
 			//initConfig.Tables[i].DefaultPermission = defaultWorldPermission
@@ -1241,7 +1249,8 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	st.Print()
 	fmt.Println()
 
-	s, v, err = statementbuilder.Squirrel.Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table").
+	s, v, err = statementbuilder.Squirrel.
+		Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table").Prepared(true).
 		From("world").
 		ToSQL()
 

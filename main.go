@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	server2 "github.com/fclairamb/ftpserver/server"
+	"github.com/go-redis/redis/v8"
 	"github.com/hashicorp/memberlist"
+	jsoniter "github.com/json-iterator/go"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"net/url"
@@ -69,6 +73,8 @@ func init() {
 		FieldMap:                  nil,
 		CallerPrettyfier:          nil,
 	})
+
+	jsoniter.RegisterTypeEncoder("daptinid.DaptinReferenceId", &daptinid.DaptinReferenceEncoder{})
 
 	log.Debugf("Go Max Procs: %v, Default value was [%v]", goMaxProcsInt, runtime.NumCPU())
 
@@ -323,7 +329,7 @@ func main() {
 	var configStore *resource.ConfigStore
 	var ftpServer *server2.FtpServer
 	var imapServerInstance *imapServer.Server
-	var olricDb *olric.Olric
+	var olricDb *olric.EmbeddedClient
 
 	if localStoragePath != nil && *localStoragePath != "" {
 		if _, err := os.Stat(*localStoragePath); err == os.ErrNotExist {
@@ -367,38 +373,42 @@ func main() {
 	log.Infof("Olric member name: %v => %v", olricConfig1.MemberlistConfig.Name, olricConfig1.BindPort)
 	log.Infof("Olric membership address: %v", olricConfig1.MemberlistConfig.Name)
 
-	olricDb, err = olric.New(olricConfig1)
+	emb, err := olric.New(olricConfig1)
 	if err != nil {
-		log.Errorf("Failed to create olric cache: %v", err)
+		fmt.Printf("Failed to create olric cache: %v", err)
 	}
-	//olricStats, err := olricDb.Stats()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//log.Infof("Olric status: %v", olricStats)
 
-	var membersTopic *olric.DTopic
+	go func() {
+		err = emb.Start()
+		resource.CheckErr(err, "failed to start cache server")
+	}()
+	olricDb = emb.NewEmbeddedClient()
+
+	var membersTopic *olric.PubSub
 
 	go func() {
 
 		go func() {
 
 			time.Sleep(5 * time.Second)
-			membersTopic, err := olricDb.NewDTopic("_members", 4, olric.UnorderedDelivery)
+			membersTopic, err := olricDb.NewPubSub()
 			resource.CheckErr(err, "failed to listen to _members topic")
 
-			_, err = membersTopic.AddListener(func(message olric.DTopicMessage) {
-				log.Infof("Message on _members from [%v]: %v", message.PublisherAddr, message.Message)
-			})
+			sub := membersTopic.Subscribe(context.Background(), "members")
+			go func(pubsub *redis.PubSub) {
+				channel := pubsub.Channel()
+				for {
+					msg := <-channel
+					log.Printf("Member says: " + msg.String())
+				}
+			}(sub)
 			resource.CheckErr(err, "Failed to add listener to _members topic")
 
-			err = membersTopic.Publish(fmt.Sprintf("Joining from %v", olricConfig1.MemberlistConfig.Name))
+			_, err = membersTopic.Publish(context.Background(), "members",
+				fmt.Sprintf("Joining from %v", olricConfig1.MemberlistConfig.Name))
+
 			resource.CheckErr(err, "Failed to publish message at _members topic")
 		}()
-
-		err = olricDb.Start()
-		resource.CheckErr(err, "failed to start olric server")
-		panic(err)
 
 	}()
 
@@ -444,7 +454,8 @@ func main() {
 		defer restartLock.Unlock()
 
 		if membersTopic != nil {
-			membersTopic.Publish(fmt.Sprintf("I need to restart: %v", olricConfig1.MemberlistConfig.Name))
+			membersTopic.Publish(context.Background(), "members",
+				fmt.Sprintf("I need to restart: %v", olricConfig1.MemberlistConfig.Name))
 		}
 
 		startTime := time.Now()
@@ -488,7 +499,8 @@ func main() {
 		secondsToRestart := float64(time.Now().UnixNano()-startTime.UnixNano()) / float64(1000000000)
 		log.Printf("Restart complete, took %f seconds", secondsToRestart)
 		if membersTopic != nil {
-			membersTopic.Publish(fmt.Sprintf("I am back: %v, took me [%v] seconds to restart", olricConfig1.MemberlistConfig.Name, secondsToRestart))
+			membersTopic.Publish(context.Background(), "members",
+				fmt.Sprintf("I am back: %v, took me [%v] seconds to restart", olricConfig1.MemberlistConfig.Name, secondsToRestart))
 		}
 
 	})
@@ -567,7 +579,8 @@ func main() {
 		panic(err)
 	}
 	if membersTopic != nil {
-		membersTopic.Publish(fmt.Sprintf("I am shutting down: %v", olricConfig1.MemberlistConfig.Name))
+		membersTopic.Publish(context.Background(), "members",
+			fmt.Sprintf("I am shutting down: %v", olricConfig1.MemberlistConfig.Name))
 	}
 
 	log.Printf("Why quit now ?")

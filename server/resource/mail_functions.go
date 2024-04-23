@@ -51,22 +51,20 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 	}
 
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
-	resp, err := dbResource.Cruds["mail_box"].CreateWithTransaction(api2go.Api2GoModel{
-		Data: map[string]interface{}{
-			"name":            mailBoxName,
-			"mail_account_id": mailAccountId,
-			"uidvalidity":     time.Now().Unix(),
-			"nextuid":         1,
-			"subscribed":      true,
-			"attributes":      "",
-			"flags":           "\\*",
-			"permanent_flags": "\\*",
-		},
-	}, api2go.Request{
+	resp, err := dbResource.Cruds["mail_box"].CreateWithTransaction(api2go.NewApi2GoModelWithData("mail_box", nil, 0, nil, map[string]interface{}{
+		"name":            mailBoxName,
+		"mail_account_id": mailAccountId,
+		"uidvalidity":     time.Now().Unix(),
+		"nextuid":         1,
+		"subscribed":      true,
+		"attributes":      "",
+		"flags":           "\\*",
+		"permanent_flags": "\\*",
+	}), api2go.Request{
 		PlainRequest: httpRequest,
 	}, transaction)
 
-	return resp.Result().(api2go.Api2GoModel).Data, err
+	return resp.Result().(api2go.Api2GoModel).GetAttributes(), err
 
 }
 
@@ -87,7 +85,8 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 		return errors.New("mailbox does not exist")
 	}
 
-	query, args, err := statementbuilder.Squirrel.Delete("mail").Where(goqu.Ex{"mail_box_id": box[0]["id"]}).ToSQL()
+	query, args, err := statementbuilder.Squirrel.Delete("mail").Prepared(true).
+		Where(goqu.Ex{"mail_box_id": box[0]["id"]}).ToSQL()
 	if err != nil {
 		return err
 	}
@@ -97,7 +96,7 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 		return err
 	}
 
-	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
+	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Prepared(true).Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
 	if err != nil {
 		return err
 	}
@@ -127,7 +126,7 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 	}
 
 	query, args, err := statementbuilder.Squirrel.
-		Update("mail_box").
+		Update("mail_box").Prepared(true).
 		Set(goqu.Record{"name": newBoxName}).
 		Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
 	if err != nil {
@@ -144,7 +143,7 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 func (dbResource *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool, transaction *sqlx.Tx) error {
 
 	query, args, err := statementbuilder.Squirrel.
-		Update("mail_box").
+		Update("mail_box").Prepared(true).
 		Set(goqu.Record{"subscribed": subscribed}).
 		Where(goqu.Ex{
 			"mail_account_id": mailAccountId,

@@ -26,9 +26,7 @@ func (d *randomValueGeneratePerformerr) DoAction(request Outcome, inFieldMap map
 	//actionResponse := NewActionResponse("random.string", responseAttrs)
 
 	return api2go.Response{
-		Res: api2go.Api2GoModel{
-			Data: responseAttrs,
-		},
+		Res: api2go.NewApi2GoModelWithData(randomType, nil, 0, nil, responseAttrs),
 	}, []ActionResponse{}, nil
 }
 

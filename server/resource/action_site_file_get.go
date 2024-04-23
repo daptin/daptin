@@ -3,6 +3,8 @@ package resource
 import (
 	"encoding/base64"
 	"errors"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 	"io"
 
 	"github.com/artpar/api2go"
@@ -22,9 +24,9 @@ func (d *cloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields ma
 	responses := make([]ActionResponse, 0)
 
 	path := inFields["path"].(string)
-	siteReferenceId := inFields["site_id"].(string)
+	siteReferenceId := uuid.MustParse(inFields["site_id"].(string))
 
-	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[siteReferenceId]
+	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[daptinid.DaptinReferenceId(siteReferenceId)]
 	if siteCacheFolder == nil {
 
 		restartAttrs := make(map[string]interface{})

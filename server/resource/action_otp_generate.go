@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -55,7 +56,7 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inF
 		if i == nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		userAccount, _, err = actionPerformer.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", i.(string), nil, transaction)
+		userAccount, _, err = actionPerformer.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", i.(daptinid.DaptinReferenceId), nil, transaction)
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
@@ -69,7 +70,7 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inF
 	httpReq := &http.Request{}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),
-		UserReferenceId: userAccount["reference_id"].(string),
+		UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
 	}
 	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", user))
 	req := api2go.Request{

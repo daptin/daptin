@@ -1,6 +1,7 @@
 package jwtmiddleware
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
@@ -17,7 +18,7 @@ import (
 // A function called whenever an error is encountered
 type errorHandler func(w http.ResponseWriter, r *http.Request, err string)
 
-var TokenCache *olric.DMap
+var TokenCache olric.DMap
 
 // TokenExtractor is a function that takes a request as input and returns
 // either a token or an error.  An error should only be returned if an attempt
@@ -176,7 +177,6 @@ func GetMD5Hash(text []byte) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-
 func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.Token, error) {
 	if !m.Options.EnableAuthOnOptions {
 		if r.Method == "OPTIONS" {
@@ -293,9 +293,10 @@ func (m *JWTMiddleware) CheckExtractedJWT(w http.ResponseWriter, token string) (
 
 	k := fmt.Sprintf("jwt-%v", token)
 	if TokenCache != nil {
-		tok, err := TokenCache.Get(k)
+		tok, err := TokenCache.Get(context.Background(), k)
 		if err == nil {
-			cachedToken := tok.(jwt.Token)
+			var cachedToken jwt.Token
+			err = tok.Scan(&cachedToken)
 			return &cachedToken, nil
 		}
 	}
@@ -349,7 +350,7 @@ func (m *JWTMiddleware) CheckExtractedJWT(w http.ResponseWriter, token string) (
 	m.logf("JWT: %v", parsedToken)
 
 	if TokenCache != nil {
-		err = TokenCache.PutIfEx(k, *parsedToken, 5*time.Minute, olric.IfNotFound)
+		err = TokenCache.Put(context.Background(), k, *parsedToken, olric.NX(), olric.EX(5*time.Minute))
 		CheckErr(err, "[334] Failed to set token in olric cache")
 	}
 	// If we get here, everything worked and we can set the

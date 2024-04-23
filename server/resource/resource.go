@@ -2,12 +2,14 @@ package resource
 
 import (
 	"fmt"
+	daptinid "github.com/daptin/daptin/server/id"
+
 	//sq  "github.com/Masterminds/squirrel"
 	//"github.com/jmoiron/sqlx"
 	//log "github.com/sirupsen/logrus"
 	//"database/sql"
 	//"reflect"
-	//"github.com/artpar/go.uuid"
+	//uuid "github.com/google/uuid"
 	//"github.com/artpar/reflect"
 	//"time"
 	"github.com/jmoiron/sqlx"
@@ -18,8 +20,10 @@ type StatusResponse struct {
 	Message string
 }
 
-/**
-  using a map
+/*
+*
+
+	using a map
 */
 type mapStringScan struct {
 	// cp are the column pointers
@@ -90,6 +94,9 @@ func (s *mapStringScan) Update(rows *sqlx.Rows) error {
 		rb := s.cp[i]
 		if true {
 			s.row[s.colNames[i]] = ValueOf(rb)
+			if s.colNames[i] == "reference_id" {
+				s.row[s.colNames[i]] = daptinid.DaptinReferenceId([]byte(s.row[s.colNames[i]].(string)))
+			}
 			rb = nil // reset pointer to discard current value to avoid a bug
 		} else {
 			t := s.cp[i]

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -50,7 +51,7 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 	if err != nil {
 		return nil, errors.New("user account not found to execute data exchange with action")
 	}
-	userReferenceId := userRow["reference_id"].(string)
+	userReferenceId := userRow["reference_id"].(daptinid.DaptinReferenceId)
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": exchangeHandler.exchangeContract.AsUserId}).ToSQL()
 

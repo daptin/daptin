@@ -1,8 +1,11 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"github.com/buraksezer/olric"
+	daptinid "github.com/daptin/daptin/server/id"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"strconv"
 	"strings"
@@ -20,7 +23,7 @@ import (
 )
 
 func (dbResource *DbResource) GetTotalCount() uint64 {
-	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).From(dbResource.model.GetName()).ToSQL()
+	s, v, err := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From(dbResource.model.GetName()).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to generate count query for %v: %v", dbResource.model.GetName(), err)
 		return 0
@@ -102,9 +105,9 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 	queryHash := GetMD5HashString(s)
 	cacheKey := fmt.Sprintf("count-%v", queryHash)
 	if OlricCache != nil {
-		cachedCount, err := OlricCache.Get(cacheKey)
-		if err == nil && cachedCount != 0 {
-			return cachedCount.(uint64), nil
+		cachedCount, err := OlricCache.Get(context.Background(), cacheKey)
+		if err == nil {
+			return cachedCount.Uint64()
 		}
 	}
 
@@ -138,7 +141,7 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 	//log.Printf("Count: [%v] %v", dr.model.GetTableName(), count)
 
 	if OlricCache != nil {
-		OlricCache.PutIfEx(cacheKey, count, 3*time.Second, olric.IfNotFound)
+		OlricCache.Put(context.Background(), cacheKey, count, olric.EX(3*time.Second), olric.NX())
 	}
 
 	return count, nil
@@ -425,10 +428,12 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 		idQueryCols = append(idQueryCols, goqu.I(sort).As(strings.ReplaceAll(sort, ".", "_")))
 	}
-	queryBuilder := statementbuilder.Squirrel.Select(idQueryCols...).From(tableModel.GetTableName())
+	queryBuilder := statementbuilder.Squirrel.Select(idQueryCols...).Prepared(true).From(tableModel.GetTableName())
 	//queryBuilder = queryBuilder.From(tableModel.GetTableName())
 	var countQueryBuilder *goqu.SelectDataset
-	countQueryBuilder = statementbuilder.Squirrel.Select(goqu.L(fmt.Sprintf("count(distinct(%v.id))", tableModel.GetTableName()))).From(tableModel.GetTableName()).Offset(0).Limit(1)
+	countQueryBuilder = statementbuilder.Squirrel.
+		Select(goqu.L(fmt.Sprintf("count(distinct(%v.id))", tableModel.GetTableName()))).Prepared(true).
+		From(tableModel.GetTableName()).Offset(0).Limit(1)
 
 	joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", tableModel.GetTableName(), tableModel.GetTableName())
 	if !isRelatedGroupRequest && tableModel.GetTableName() != "usergroup" {
@@ -452,14 +457,16 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	}
 
 	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
-		id, err := GetReferenceIdToIdWithTransaction(dbResource.TableInfo().TableName, req.QueryParams["page[after]"][0], transaction)
+		afterRefId := uuid.MustParse(req.QueryParams["page[after]"][0])
+		id, err := GetReferenceIdToIdWithTransaction(dbResource.TableInfo().TableName, daptinid.DaptinReferenceId(afterRefId), transaction)
 		if err != nil {
 			queryBuilder = queryBuilder.Where(goqu.Ex{
 				dbResource.TableInfo().TableName + ".id": goqu.Op{"gt": id},
 			}).Limit(uint(pageSize))
 		}
 	} else if req.QueryParams["page[before]"] != nil && len(req.QueryParams["page[before]"]) > 0 {
-		id, err := GetReferenceIdToIdWithTransaction(dbResource.TableInfo().TableName, req.QueryParams["page[before]"][0], transaction)
+		beforeRefId := uuid.MustParse(req.QueryParams["page[before]"][0])
+		id, err := GetReferenceIdToIdWithTransaction(dbResource.TableInfo().TableName, daptinid.DaptinReferenceId(beforeRefId), transaction)
 		if err != nil {
 			queryBuilder = queryBuilder.Where(goqu.Ex{
 				dbResource.TableInfo().TableName + ".id": goqu.Op{"lt": id},
@@ -532,17 +539,17 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 		if rel.GetSubject() == dbResource.model.GetName() {
 
-			queries, ok := req.QueryParams[rel.GetObjectName()]
+			uuidStringQueries, ok := req.QueryParams[rel.GetObjectName()]
 			if !ok {
-				queries, ok = req.QueryParams[rel.GetObject()+"_id"]
+				uuidStringQueries, ok = req.QueryParams[rel.GetObject()+"_id"]
 			}
-			if !ok || len(queries) < 1 || (len(queries) == 1 && queries[0] == "") {
+			if !ok || len(uuidStringQueries) < 1 || (len(uuidStringQueries) == 1 && uuidStringQueries[0] == "") {
 				continue
 			}
 
-			joinTableFilters := make(map[string]goqu.Ex)
+			joinTableFilters := make(map[daptinid.DaptinReferenceId]goqu.Ex)
 
-			for i, query := range queries {
+			for i, query := range uuidStringQueries {
 				if strings.Index(query, "@") > -1 {
 					queryParts := strings.Split(query, "@")
 					joinId := queryParts[0]
@@ -555,8 +562,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 						joinWhere[parts[0]] = strings.Split(parts[1], "|")
 					}
 					//matches := joinTableFilterRegex.FindAllStringSubmatch(joinQuery, -1)
-					joinTableFilters[joinId] = joinWhere
-					queries[i] = joinId
+					joinTableFilters[daptinid.DaptinReferenceId(uuid.MustParse(joinId))] = joinWhere
+					uuidStringQueries[i] = joinId
 				}
 			}
 
@@ -578,23 +585,31 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			}
 			if ok {
 
-				//ids, err := dbResource.GetSingleColumnValueByReferenceId(rel.GetObject(), []interface{}{"id"}, "reference_id", queries)
+				//ids, err := dbResource.GetSingleColumnValueByReferenceId(rel.GetObject(), []interface{}{"id"}, "reference_id", uuidStringQueries)
 
-				if len(queries) == 0 || queries[0] == "" {
-					log.Warnf("queries for %s is empty, skipping", rel.GetObjectName())
+				if len(uuidStringQueries) == 0 || uuidStringQueries[0] == "" {
+					log.Warnf("uuidStringQueries for %s is empty, skipping", rel.GetObjectName())
 					continue
 				}
 
-				refIdsToIdMap, err := GetReferenceIdListToIdListWithTransaction(rel.GetObject(), queries, transaction)
+				var uuidByteQueries []daptinid.DaptinReferenceId
+				for _, str := range uuidStringQueries {
+					u, er := uuid.Parse(str)
+					if er != nil {
+						uuidByteQueries = append(uuidByteQueries, daptinid.DaptinReferenceId(u))
+					}
+				}
+
+				refIdsToIdMap, err := GetReferenceIdListToIdListWithTransaction(rel.GetObject(), uuidByteQueries, transaction)
 
 				//log.Printf("Converted ids: %v", ids)
 				if err != nil {
-					log.Errorf("[571] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
+					log.Errorf("[571] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), uuidStringQueries, err)
 					return nil, nil, nil, false, err
 				}
 
 				if len(refIdsToIdMap) < 1 {
-					log.Errorf("[576] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), queries, err)
+					log.Errorf("[576] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), uuidStringQueries, err)
 					return nil, nil, nil, false, err
 				}
 
@@ -900,8 +915,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 	if !isAdmin && tableModel.GetTableName() != "usergroup" {
 
-		groupReferenceIds := make([]string, 0)
-		groupIds := make(map[string]int64)
+		groupReferenceIds := make([]daptinid.DaptinReferenceId, 0)
+		groupIds := make(map[daptinid.DaptinReferenceId]int64)
 		for _, group := range sessionUser.Groups {
 			groupReferenceIds = append(groupReferenceIds, group.GroupReferenceId)
 		}
@@ -920,10 +935,18 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 					"in": groupIds,
 				},
 			})
-			groupParameters = strings.Join(strings.Split(strings.Repeat("?", groupCount), ""), ",")
-			groupParameters = fmt.Sprintf(" or ((%s.permission & 32768) = 32768 and "+"%s.usergroup_id in ("+groupParameters+")) ",
-				joinTableName, joinTableName,
-			)
+
+			gCount := len(groupParameters)
+			if gCount > 0 {
+				gids := make([]string, gCount)
+				for _, gid := range groupIds {
+					gids = append(gids, fmt.Sprintf("%d", gid))
+				}
+				groupParameters = strings.Join(gids, ",")
+				groupParameters = fmt.Sprintf(" or ((%s.permission & 32768) = 32768 and "+"%s.usergroup_id in ("+groupParameters+")) ",
+					joinTableName, joinTableName,
+				)
+			}
 		}
 		queryArgs := make([]interface{}, 0)
 		for _, id := range groupIds {
@@ -931,15 +954,16 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 		queryArgs = append(queryArgs, sessionUser.UserId)
 
-		queryBuilder = queryBuilder.Where(goqu.L(fmt.Sprintf("(((%s.permission & 2) = 2)"+
-			groupParameters+" or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))",
-			tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName(),
-		), queryArgs...))
+		queryBuilder = queryBuilder.Where(
+			goqu.L(
+				fmt.Sprintf("(((%s.permission & 2) = 2)"+
+					groupParameters+" or "+
+					"(%s.user_account_id = "+fmt.Sprintf("%d", sessionUser.UserId)+" and (%s.permission & 256) = 256))",
+					tableModel.GetTableName(), tableModel.GetTableName(), tableModel.GetTableName())))
 
 		countQueryBuilder = countQueryBuilder.Where(goqu.L(fmt.Sprintf("("+
 			"((%s.permission & 2) = 2)  "+groupParameters+"  or "+
-			"(%s.user_account_id = ? and (%s.permission & 256) = 256))",
+			"(%s.user_account_id = "+fmt.Sprintf("%d", sessionUser.UserId)+" and (%s.permission & 256) = 256))",
 			tableModel.GetTableName(),
 			tableModel.GetTableName(), tableModel.GetTableName()),
 			queryArgs...))
@@ -1004,7 +1028,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			}
 		}
 
-		queryBuilder = statementbuilder.Squirrel.Select(ColumnToInterfaceArray(finalCols)...).From(tableModel.GetTableName()).Where(goqu.Ex{
+		queryBuilder = statementbuilder.Squirrel.Select(ColumnToInterfaceArray(finalCols)...).Prepared(true).
+			From(tableModel.GetTableName()).Where(goqu.Ex{
 			idColumn: ids,
 		}).Order(orders...)
 
@@ -1039,7 +1064,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 
 		queryBuilder = statementbuilder.Squirrel.Select(ColumnToInterfaceArray(finalCols)...).
-			From(tableModel.GetTableName()).
+			From(tableModel.GetTableName()).Prepared(true).
 			LeftJoin(
 				goqu.T(translateTableName),
 				goqu.On(goqu.Ex{
@@ -1113,15 +1138,9 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	}
 	start = time.Now()
 
-	resultCount := uint64(len(results))
-	if pageSize > resultCount {
-		total1 = resultCount
-	} else {
-		total1, err = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
-		if err != nil {
-			return nil, nil, nil, false, err
-		}
-
+	total1, err = GetTotalCountBySelectBuilderWithTransaction(countQueryBuilder, transaction)
+	if err != nil {
+		return nil, nil, nil, false, err
 	}
 
 	duration = time.Since(start)
@@ -1144,7 +1163,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 }
 
-func ValuesOf(mapItem map[string]int64) []int64 {
+func ValuesOf(mapItem map[daptinid.DaptinReferenceId]int64) []int64 {
 	ret := make([]int64, 0)
 	for _, item := range mapItem {
 		ret = append(ret, item)
@@ -1285,33 +1304,28 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 
 		if colInfo.IsForeignKey {
 
-			values := filterQuery.Value
+			refernceValueString := filterQuery.Value
+			refUuid, err := uuid.Parse(refernceValueString.(string))
 
-			valueString, isString := values.(string)
-			valuesArray := []string{}
-			if !isString {
-				valuesArray, ok = values.([]string)
-				if !ok {
-					log.Printf("invalid value type in forign key column [%v] filter: %v", columnName, values)
-				}
+			valuesArray := []daptinid.DaptinReferenceId{}
+			if err != nil {
+				log.Errorf("invalid value type in forign key column [%v] filter: %v", columnName, refernceValueString)
 			} else {
-				valuesArray = append(valuesArray, valueString)
+				valuesArray = append(valuesArray, daptinid.DaptinReferenceId(refUuid))
 			}
-
-			valueIds := make(map[string]int64, len(valuesArray))
 
 			valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
 			if err != nil {
-				log.Printf("failed to lookup foreign key value: %v => %v", values, err)
+				log.Printf("failed to lookup foreign key value: %v => %v", refernceValueString, err)
 			} else {
-				values = valueIds
-				if isString {
-					values, ok = valueIds[valuesArray[0]]
+				refernceValueString = valueIds
+				if err != nil {
+					refernceValueString, ok = valueIds[valuesArray[0]]
 					if !ok {
-						values = valuesArray[0]
+						refernceValueString = valuesArray[0]
 					}
 				}
-				filterQuery.Value = values
+				filterQuery.Value = refernceValueString
 			}
 
 		}
@@ -1507,8 +1521,8 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 	for i, res := range results {
 		delete(res, "id")
 		includes := includesNew[i]
-		var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
-		a.Data = res
+		var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
+			infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), res)
 
 		for _, include := range includes {
 			delete(include, "id")
@@ -1620,8 +1634,8 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 	for i, res := range results {
 		delete(res, "id")
 		includes := includesNew[i]
-		var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
-		a.Data = res
+		var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
+			infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), res)
 
 		for _, include := range includes {
 			delete(include, "id")

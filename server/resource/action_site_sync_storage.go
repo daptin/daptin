@@ -7,6 +7,8 @@ import (
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/operations"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -31,8 +33,8 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 
 	responses := make([]ActionResponse, 0)
 
-	cloudStoreId := inFields["cloud_store_id"].(string)
-	siteId := inFields["site_id"].(string)
+	cloudStoreId := daptinid.DaptinReferenceId(uuid.MustParse(inFields["cloud_store_id"].(string)))
+	siteId := daptinid.DaptinReferenceId(uuid.MustParse(inFields["site_id"].(string)))
 	path := inFields["path"].(string)
 	cloudStore, err := d.cruds["cloud_store"].GetCloudStoreByReferenceId(cloudStoreId, transaction)
 	if err != nil {

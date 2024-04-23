@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/artpar/api2go"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -22,7 +24,8 @@ func (d *deleteWorldPerformer) Name() string {
 
 func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
-	worldId := inFields["world_id"].(string)
+	worldIdUuidString := inFields["world_id"].(string)
+	worldIdUuid := uuid.MustParse(worldIdUuidString)
 
 	sessionUser := request.Attributes["user"]
 	httpReq := &http.Request{
@@ -34,7 +37,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 		PlainRequest: httpReq,
 	}
 
-	table, err := d.cruds["world"].FindOneWithTransaction(worldId, *req, transaction)
+	table, err := d.cruds["world"].FindOneWithTransaction(daptinid.DaptinReferenceId(worldIdUuid), *req, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -45,7 +48,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 		return nil, nil, []error{errors.New("failed to find the table")}
 	}
 
-	schemaJson := tableData.Data["world_schema_json"]
+	schemaJson := tableData.GetAttributes()["world_schema_json"]
 
 	var tableSchema TableInfo
 	err = json.Unmarshal([]byte(schemaJson.(string)), &tableSchema)
@@ -54,7 +57,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 	}
 	relations := tableSchema.Relations
 
-	var tablesToRemove []string
+	var tablesToRemove []daptinid.DaptinReferenceId
 	errorsList := make([]error, 0)
 
 	for _, relation := range relations {
@@ -145,9 +148,10 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 
 	}
 
-	tablesToRemove = append(tablesToRemove, tableData.GetID())
+	uuidVal := uuid.MustParse(tableData.GetID())
+	tablesToRemove = append(tablesToRemove, daptinid.DaptinReferenceId(uuidVal))
 
-	_, err = transaction.Exec("drop table " + tableData.Data["table_name"].(string))
+	_, err = transaction.Exec("drop table " + tableData.GetAttributes()["table_name"].(string))
 	if err != nil {
 		errorsList = append(errorsList, err)
 		return nil, nil, errorsList

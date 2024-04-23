@@ -3,8 +3,10 @@ package server
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gobuffalo/flect"
+	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/relay"
 	"github.com/iancoleman/strcase"
@@ -48,7 +50,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			}
 			responder, err := resources[strings.ToLower(resolvedID.Type)].FindOne(resolvedID.ID, req)
 			if responder != nil && responder.Result() != nil {
-				return responder.Result().(api2go.Api2GoModel).Data, err
+				return responder.Result().(api2go.Api2GoModel).GetAttributes(), err
 			}
 			return nil, err
 		},
@@ -397,7 +399,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 							includedMap[included.GetID()] = included
 						}
 
-						data := r.Data
+						data := r.GetAttributes()
 
 						for key, val := range data {
 							colInfo, ok := columnMap[key]
@@ -405,13 +407,13 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 								continue
 							}
 
-							strVal, ok := val.(string)
+							strVal, ok := val.(daptinid.DaptinReferenceId)
 							if !ok {
 								continue
 							}
 
 							if colInfo.IsForeignKey {
-								fObj, ok := includedMap[strVal]
+								fObj, ok := includedMap[strVal.String()]
 
 								if ok {
 									data[key] = fObj.GetAttributes()
@@ -429,85 +431,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				}
 			}(table),
 		}
-		//
-		//rootFields["all"+Capitalize(inflector.Pluralize(table.TableName))] = &graphql.Field{
-		//	Type:        graphql.NewList(inputTypesMap[table.TableName]),
-		//	Description: "Get a list of " + inflector.Pluralize(table.TableName),
-		//	Args:        allFields,
-		//	Resolve: func(table resource.TableInfo) (func(params graphql.ResolveParams) (interface{}, error)) {
-		//
-		//		return func(params graphql.ResolveParams) (interface{}, error) {
-		//			log.Printf("Arguments: %v", params.Args)
-		//
-		//			filters := make([]resource.Query, 0)
-		//
-		//			for keyName, value := range params.Args {
-		//
-		//				if _, ok := uniqueFields[keyName]; !ok {
-		//					continue
-		//				}
-		//
-		//				query := resource.Query{
-		//					ColumnName: keyName,
-		//					Operator:   "is",
-		//					Value:      value.(string),
-		//				}
-		//				filters = append(filters, query)
-		//			}
-		//
-		//			pr := &http.Request{
-		//				Method: "GET",
-		//			}
-		//			pr = pr.WithContext(params.Context)
-		//			jsStr, err := json.Marshal(filters)
-		//			req := api2go.Request{
-		//				PlainRequest: pr,
-		//				QueryParams: map[string][]string{
-		//					"query":              {base64.StdEncoding.EncodeToString(jsStr)},
-		//					"included_relations": {"*"},
-		//				},
-		//			}
-		//
-		//			count, responder, err := resources[table.TableName].PaginatedFindAll(req)
-		//
-		//			if count == 0 {
-		//				return nil, errors.New("no such entity")
-		//			}
-		//
-		//			items := responder.Result().([]*api2go.Api2GoModel)
-		//
-		//			results := make([]map[string]interface{}, 0)
-		//			for _, item := range items {
-		//				ai := item
-		//
-		//				dataMap := ai.Data
-		//
-		//				includedMap := make(map[string]interface{})
-		//
-		//				for _, includedObject := range ai.Includes {
-		//					id := includedObject.GetID()
-		//					includedMap[id] = includedObject.GetAttributes()
-		//				}
-		//
-		//				for _, relation := range table.Relations {
-		//					columnName := relation.GetSubjectName()
-		//					if table.TableName == relation.Subject {
-		//						columnName = relation.GetObjectName()
-		//					}
-		//					referencedObjectId := dataMap[columnName]
-		//					if referencedObjectId == nil {
-		//						continue
-		//					}
-		//					dataMap[columnName] = includedMap[referencedObjectId.(string)]
-		//				}
-		//
-		//				results = append(results, dataMap)
-		//			}
-		//			return results, err
-		//		}
-		//	}(table),
-		//}
-		//
 
 		rootFields["aggregate"+strcase.ToCamel(table.TableName)] = &graphql.Field{
 			Type:        graphql.NewList(inputTypesMap[table.TableName]),
@@ -701,7 +624,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
-					return created.Result().(api2go.Api2GoModel).Data, err
+					return created.Result().(api2go.Api2GoModel).GetAttributes(), err
 				},
 			}
 
@@ -722,12 +645,10 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 
 					referenceIdInf, ok := params.Args["reference_id"]
-					referenceId := ""
-					ok1 := false
+					var referenceId daptinid.DaptinReferenceId
 					if ok {
-						referenceId, ok1 = referenceIdInf.(string)
-					}
-					if !ok || !ok1 {
+						referenceId = daptinid.DaptinReferenceId(uuid.MustParse(referenceIdInf.(string)))
+					} else {
 						log.Errorf("parameter reference_id is not a valid string")
 						return nil, errors.New("invalid parameter value for reference_id")
 					}
@@ -743,7 +664,8 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
-					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceIdWithTransaction(table.TableName, referenceId, nil, transaction)
+					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceIdWithTransaction(table.TableName,
+						referenceId, nil, transaction)
 					log.Tracef("Completed mutationFields GetSingleRowByReferenceIdWithTransaction")
 					if err != nil {
 						transaction.Rollback()
@@ -771,6 +693,8 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						delete(args, s)
 					}
 
+					delete(args, "reference_id")
+
 					obj.SetAttributes(args)
 
 					pr := &http.Request{
@@ -793,7 +717,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					err = transaction.Commit()
 
-					return created.Result().(api2go.Api2GoModel).Data, err
+					return created.Result().(api2go.Api2GoModel).GetAttributes(), err
 				},
 			}
 
@@ -824,7 +748,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					defer transaction.Commit()
 
-					_, err = resources[table.TableName].DeleteWithTransaction(params.Args["reference_id"].(string), req, transaction)
+					_, err = resources[table.TableName].DeleteWithTransaction(daptinid.DaptinReferenceId(uuid.MustParse(params.Args["reference_id"].(string))), req, transaction)
 
 					if err != nil {
 						return nil, err
@@ -909,175 +833,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 	}
 
-	//changeTodoStatusMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
-	//	Name: "ChangeTodoStatus",
-	//	InputFields: graphql.InputObjectConfigFieldMap{
-	//		"id": &graphql.InputObjectFieldConfig{
-	//			Type: graphql.NewNonNull(graphql.ID),
-	//		},
-	//		"complete": &graphql.InputObjectFieldConfig{
-	//			Type: graphql.NewNonNull(graphql.Boolean),
-	//		},
-	//	},
-	//	OutputFields: graphql.Fields{
-	//		"todo": &graphql.Field{
-	//			Type: todoType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				//payload, _ := p.Source.(map[string]interface{})
-	//				//todoId, _ := payload["todoId"].(string)
-	//				//todo := nil
-	//				return nil, nil
-	//			},
-	//		},
-	//		"viewer": &graphql.Field{
-	//			Type: userType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				return nil, nil
-	//			},
-	//		},
-	//	},
-	//	MutateAndGetPayload: func(inputMap map[string]interface{}, info graphql.ResolveInfo, ctx context.Context) (map[string]interface{}, error) {
-	//		//id, _ := inputMap["id"].(string)
-	//		//complete, _ := inputMap["complete"].(bool)
-	//		//resolvedId := relay.FromGlobalID(id)
-	//		//ChangeTodoStatus(resolvedId.ID, complete)
-	//		return map[string]interface{}{
-	//			"todoId": "todo-ref-id",
-	//		}, nil
-	//	},
-	//})
-
-	//markAllTodosMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
-	//	Name: "MarkAllTodos",
-	//	InputFields: graphql.InputObjectConfigFieldMap{
-	//		"complete": &graphql.InputObjectFieldConfig{
-	//			Type: graphql.NewNonNull(graphql.Boolean),
-	//		},
-	//	},
-	//	OutputFields: graphql.Fields{
-	//		"changedTodos": &graphql.Field{
-	//			Type: graphql.NewList(todoType),
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				//payload, _ := p.Source.(map[string]interface{})
-	//				//todoIds, _ := payload["todoIds"].([]string)
-	//				//todos := []*interface{}{}
-	//				//for _, todoId := range todoIds {
-	//				//	todo := nil
-	//				//	if todo != nil {
-	//				//		todos = append(todos, todo)
-	//				//	}
-	//				//}
-	//				return nil, nil
-	//			},
-	//		},
-	//		"viewer": &graphql.Field{
-	//			Type: userType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				return nil, nil
-	//			},
-	//		},
-	//	},
-	//	MutateAndGetPayload: func(inputMap map[string]interface{}, info graphql.ResolveInfo, ctx context.Context) (map[string]interface{}, error) {
-	//		//complete, _ := inputMap["complete"].(bool)
-	//		//todoIds := nil
-	//		return map[string]interface{}{
-	//			"todoIds": "todi-ids",
-	//		}, nil
-	//	},
-	//})
-
-	//removeCompletedTodosMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
-	//	Name: "RemoveCompletedTodos",
-	//	OutputFields: graphql.Fields{
-	//		"deletedTodoIds": &graphql.Field{
-	//			Type: graphql.NewList(graphql.String),
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				payload, _ := p.Source.(map[string]interface{})
-	//				return payload["todoIds"], nil
-	//			},
-	//		},
-	//		"viewer": &graphql.Field{
-	//			Type: userType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				return nil, nil
-	//			},
-	//		},
-	//	},
-	//	MutateAndGetPayload: func(inputMap map[string]interface{}, info graphql.ResolveInfo, ctx context.Context) (map[string]interface{}, error) {
-	//		todoIds := []string{}
-	//		return map[string]interface{}{
-	//			"todoIds": todoIds,
-	//		}, nil
-	//	},
-	//})
-
-	//removeTodoMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
-	//	Name: "RemoveTodo",
-	//	InputFields: graphql.InputObjectConfigFieldMap{
-	//		"id": &graphql.InputObjectFieldConfig{
-	//			Type: graphql.NewNonNull(graphql.ID),
-	//		},
-	//	},
-	//	OutputFields: graphql.Fields{
-	//		"deletedTodoId": &graphql.Field{
-	//			Type: graphql.ID,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				payload, _ := p.Source.(map[string]interface{})
-	//				return payload["todoId"], nil
-	//			},
-	//		},
-	//		"viewer": &graphql.Field{
-	//			Type: userType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				return nil, nil
-	//			},
-	//		},
-	//	},
-	//	MutateAndGetPayload: func(inputMap map[string]interface{}, info graphql.ResolveInfo, ctx context.Context) (map[string]interface{}, error) {
-	//		id, _ := inputMap["id"].(string)
-	//		resolvedId := relay.FromGlobalID(id)
-	//		//RemoveTodo(resolvedId.ID)
-	//		return map[string]interface{}{
-	//			"todoId": resolvedId.ID,
-	//		}, nil
-	//	},
-	//})
-	//renameTodoMutation := relay.MutationWithClientMutationID(relay.MutationConfig{
-	//	Name: "RenameTodo",
-	//	InputFields: graphql.InputObjectConfigFieldMap{
-	//		"id": &graphql.InputObjectFieldConfig{
-	//			Type: graphql.NewNonNull(graphql.ID),
-	//		},
-	//		"text": &graphql.InputObjectFieldConfig{
-	//			Type: graphql.NewNonNull(graphql.String),
-	//		},
-	//	},
-	//	OutputFields: graphql.Fields{
-	//		"todo": &graphql.Field{
-	//			Type: todoType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				//payload, _ := p.Source.(map[string]interface{})
-	//				//todoId, _ := payload["todoId"].(string)
-	//				return nil, nil
-	//			},
-	//		},
-	//		"viewer": &graphql.Field{
-	//			Type: userType,
-	//			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-	//				return nil, nil
-	//			},
-	//		},
-	//	},
-	//	MutateAndGetPayload: func(inputMap map[string]interface{}, info graphql.ResolveInfo, ctx context.Context) (map[string]interface{}, error) {
-	//		id, _ := inputMap["id"].(string)
-	//		resolvedId := relay.FromGlobalID(id)
-	//		//text, _ := inputMap["text"].(string)
-	//		//RenameTodo(resolvedId.ID, text)
-	//		return map[string]interface{}{
-	//			"todoId": resolvedId.ID,
-	//		}, nil
-	//	},
-	//})
 	mutationType := graphql.NewObject(graphql.ObjectConfig{
 		Name:   "Mutation",
 		Fields: mutationFields,

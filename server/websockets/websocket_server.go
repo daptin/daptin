@@ -23,13 +23,13 @@ type Server struct {
 	delCh     chan *Client
 	doneCh    chan bool
 	errCh     chan error
-	dtopicMap *map[string]*olric.DTopic
-	olricDb   *olric.Olric
+	dtopicMap *map[string]*olric.PubSub
+	olricDb   *olric.EmbeddedClient
 	cruds     map[string]*resource.DbResource
 }
 
 // Create new chat server.
-func NewServer(pattern string, dtopicMap *map[string]*olric.DTopic, cruds map[string]*resource.DbResource) *Server {
+func NewServer(pattern string, dtopicMap *map[string]*olric.PubSub, cruds map[string]*resource.DbResource) *Server {
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client)
 	delCh := make(chan *Client)

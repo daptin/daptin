@@ -1,6 +1,9 @@
 package resource
 
 import (
+	"bytes"
+	"context"
+	"encoding/binary"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
 	"github.com/jmoiron/sqlx"
@@ -9,7 +12,7 @@ import (
 )
 
 type eventHandlerMiddleware struct {
-	dtopicMap *map[string]*olric.DTopic
+	dtopicMap *map[string]*olric.PubSub
 	cruds     *map[string]*DbResource
 }
 
@@ -24,9 +27,97 @@ type EventMessage struct {
 	EventData     map[string]interface{}
 }
 
+// MarshalBinary encodes the struct into binary format manually
+func (e EventMessage) MarshalBinary() (data []byte, err error) {
+	buffer := new(bytes.Buffer)
+
+	// Encode MessageSource
+	if err := encodeString(buffer, e.MessageSource); err != nil {
+		return nil, err
+	}
+
+	// Encode EventType
+	if err := encodeString(buffer, e.EventType); err != nil {
+		return nil, err
+	}
+
+	// Encode ObjectType
+	if err := encodeString(buffer, e.ObjectType); err != nil {
+		return nil, err
+	}
+
+	// Simplified handling for EventData: encoding just the length (this should be replaced with actual data encoding logic)
+	if err := binary.Write(buffer, binary.BigEndian, int32(len(e.EventData))); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
+}
+
+// UnmarshalBinary decodes the data into the struct using manual binary decoding
+func (e EventMessage) UnmarshalBinary(data []byte) error {
+	buffer := bytes.NewBuffer(data)
+
+	// Decode MessageSource
+	if msgSource, err := decodeString(buffer); err != nil {
+		return err
+	} else {
+		e.MessageSource = msgSource
+	}
+
+	// Decode EventType
+	if eventType, err := decodeString(buffer); err != nil {
+		return err
+	} else {
+		e.EventType = eventType
+	}
+
+	// Decode ObjectType
+	if objectType, err := decodeString(buffer); err != nil {
+		return err
+	} else {
+		e.ObjectType = objectType
+	}
+
+	// Simplified handling for EventData (assuming only length was encoded)
+	var length int32
+	if err := binary.Read(buffer, binary.BigEndian, &length); err != nil {
+		return err
+	}
+	// Assume EventData is just the count of items (real logic needed to parse actual data)
+	e.EventData = make(map[string]interface{}, length)
+
+	return nil
+}
+
+// Helper functions to encode and decode strings
+func encodeString(buffer *bytes.Buffer, s string) error {
+	length := int32(len(s))
+	if err := binary.Write(buffer, binary.BigEndian, length); err != nil {
+		return err
+	}
+	if _, err := buffer.WriteString(s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func decodeString(buffer *bytes.Buffer) (string, error) {
+	var length int32
+	if err := binary.Read(buffer, binary.BigEndian, &length); err != nil {
+		return "", err
+	}
+	data := make([]byte, length)
+	if _, err := buffer.Read(data); err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
 func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
-	topic := (*pc.dtopicMap)[dr.model.GetTableName()]
+	tableName := dr.model.GetTableName()
+	topic := (*pc.dtopicMap)[tableName]
 	if topic == nil {
 		return results, nil
 	}
@@ -36,7 +127,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "post":
 		go func() {
-			err := topic.Publish(EventMessage{
+			_, err := topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "create",
 				ObjectType:    dr.model.GetTableName(),
@@ -47,7 +138,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "delete":
 		go func() {
-			err := topic.Publish(EventMessage{
+			_, err := topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "delete",
 				ObjectType:    dr.model.GetTableName(),
@@ -59,7 +150,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "patch":
 		go func() {
-			err := topic.Publish(EventMessage{
+			_, err := topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "update",
 				ObjectType:    dr.model.GetTableName(),

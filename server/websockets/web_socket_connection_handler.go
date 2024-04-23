@@ -1,25 +1,29 @@
 package websockets
 
 import (
+	"context"
+	"encoding/json"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/go-redis/redis/v8"
+	uuid "github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
 // WebSocketConnectionHandlerImpl : Each websocket connection has its own handler
 type WebSocketConnectionHandlerImpl struct {
-	DtopicMap        *map[string]*olric.DTopic
+	DtopicMap        *map[string]*olric.PubSub
 	subscribedTopics map[string]uint64
-	olricDb          *olric.Olric
+	olricDb          *olric.EmbeddedClient
 	cruds            map[string]*resource.DbResource
 }
 
 func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketPayload, client *Client) {
 	switch message.Method {
 	case "subscribe":
-		topics, ok := message.Payload["topic"].(string)
+		topics, ok := message.Payload["topicName"].(string)
 
 		if !ok {
 			return
@@ -44,9 +48,16 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 					eventTypeString = eventType.(string)
 					delete(filtersMap, "EventType")
 				}
-				wsch.subscribedTopics[topic], err = (*wsch.DtopicMap)[topic].AddListener(func(eventType string, filtersMap map[string]interface{}) func(olric.DTopicMessage) {
-					return func(message olric.DTopicMessage) {
-						eventMessage := message.Message.(resource.EventMessage)
+				dTopic := (*wsch.DtopicMap)[topic]
+				subscription := dTopic.Subscribe(context.Background(), topic)
+
+				go func(pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}) {
+					listenChannel := pubsub.Channel()
+
+					for {
+						msg := <-listenChannel
+						var eventMessage resource.EventMessage
+						json.Unmarshal([]byte(msg.String()), &eventMessage)
 
 						typeName, _ := eventMessage.EventData["__type"]
 						tableExists := false
@@ -91,30 +102,32 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 						}
 
 					}
-				}(eventTypeString, filtersMap))
+
+				}(subscription, eventTypeString, filtersMap)
+
 				if err != nil {
-					log.Printf("Failed to add listener to topic: %v", err)
+					log.Printf("Failed to add listener to topicName: %v", err)
 				}
 			}
 		}
-	case "create-topic":
-		topic, ok := message.Payload["name"].(string)
+	case "create-topicName":
+		topicName, ok := message.Payload["name"].(string)
 		if !ok {
 			return
 		}
 
-		_, exists := (*wsch.DtopicMap)[topic]
+		_, exists := (*wsch.DtopicMap)[topicName]
 		if exists {
-			log.Printf("topic already exists: %v", topic)
+			log.Printf("topicName already exists: %v", topicName)
 			return
 		}
 
-		newTopic, err := wsch.olricDb.NewDTopic(topic, 4, 1)
-		resource.CheckErr(err, "Failed to create new topic on client request [%v]", topic)
+		newTopic, err := wsch.olricDb.NewPubSub()
+		resource.CheckErr(err, "Failed to create new topicName on client request [%v]", topicName)
 
-		(*wsch.DtopicMap)[topic] = newTopic
+		(*wsch.DtopicMap)[topicName] = newTopic
 
-	case "list-topic":
+	case "list-topicName":
 		topics := make([]string, 0)
 		for t, _ := range *wsch.DtopicMap {
 			topics = append(topics, t)
@@ -126,13 +139,13 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			},
 			MessageSource: "system",
 			EventType:     "response",
-			ObjectType:    "topic-list",
+			ObjectType:    "topicName-list",
 		}
 
-	case "destroy-topic":
+	case "destroy-topicName":
 		topic, ok := message.Payload["name"].(string)
 		if !ok {
-			log.Printf("topic does not exist: %v", topic)
+			log.Printf("topicName does not exist: %v", topic)
 			return
 		}
 
@@ -142,46 +155,48 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			return
 		}
 
-		err := (*wsch.DtopicMap)[topic].Destroy()
-		resource.CheckErr(err, "failed to destroy topic")
+		//sub := (*wsch.DtopicMap)[topic]
+		//err := sub.Destroy()
+		//resource.CheckErr(err, "failed to destroy topicName")
 		delete(*wsch.DtopicMap, topic)
 
 	case "new-message":
 		var err error
-		var topic *olric.DTopic
-		topicName, ok := message.Payload["topic"].(string)
+		var topic *olric.PubSub
+		topicName, ok := message.Payload["topicName"].(string)
 		message, ok := message.Payload["message"].(map[string]interface{})
 
 		topic, ok = (*wsch.DtopicMap)[topicName]
 
 		if !ok {
-			log.Printf("topic does not exist: %v", topicName)
+			log.Printf("topicName does not exist: %v", topicName)
 			return
 		}
 
-		err = topic.Publish(resource.EventMessage{
-			MessageSource: client.user.UserReferenceId,
+		userRef, _ := uuid.FromBytes(client.user.UserReferenceId[:])
+		_, err = topic.Publish(context.Background(), topicName, resource.EventMessage{
+			MessageSource: userRef.String(),
 			EventType:     "new-message",
 			ObjectType:    topicName,
 			EventData:     message,
 		})
 
-		resource.CheckErr(err, "Failed to publish message on topic")
+		resource.CheckErr(err, "Failed to publish message on topicName")
 
 	case "unsubscribe":
-		topics := message.Payload["topic"].(string)
+		topics := message.Payload["topicName"].(string)
 		if len(topics) < 1 {
 			return
 		}
 		topicsList := strings.Split(topics, ",")
 		for _, topic := range topicsList {
-			subscriptionId, ok := wsch.subscribedTopics[topic]
+			_, ok := wsch.subscribedTopics[topic]
 			if ok {
-				err := (*wsch.DtopicMap)[topic].RemoveListener(subscriptionId)
+				//err := (*wsch.DtopicMap)[topic].RemoveListener(subscriptionId)
 				delete(wsch.subscribedTopics, topic)
-				if err != nil {
-					log.Printf("Failed to remove listener from topic: %v", err)
-				}
+				//if err != nil {
+				//	log.Printf("Failed to remove listener from topicName: %v", err)
+				//}
 			}
 		}
 	}

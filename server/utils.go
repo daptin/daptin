@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
@@ -10,6 +9,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -20,7 +20,7 @@ import (
 func CheckSystemSecrets(store *resource.ConfigStore, transaction *sqlx.Tx) error {
 	jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend", transaction)
 	if err != nil {
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		jwtSecret = u.String()
 		err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend", transaction)
 		resource.CheckErr(err, "Failed to store jwt secret")
@@ -29,7 +29,7 @@ func CheckSystemSecrets(store *resource.ConfigStore, transaction *sqlx.Tx) error
 	encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend", transaction)
 
 	if err != nil || len(encryptionSecret) < 10 {
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		newSecret := strings.Replace(u.String(), "-", "", -1)
 		err = store.SetConfigValueFor("encryption.secret", newSecret, "backend", transaction)
 	}
@@ -37,9 +37,7 @@ func CheckSystemSecrets(store *resource.ConfigStore, transaction *sqlx.Tx) error
 
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection,
-	ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.Olric,
-	cruds map[string]*resource.DbResource) {
+func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.EmbeddedClient, cruds map[string]*resource.DbResource) {
 	for _, table := range tables {
 
 		if table.TableName == "" {
@@ -81,7 +79,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 	sql, args, err := statementbuilder.Squirrel.
 		Select("table_name", "permission", "default_permission",
 			"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
-		).
+		).Prepared(true).
 		From("world").
 		Where(goqu.Ex{
 			"table_name": goqu.Op{
@@ -180,7 +178,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	cruds *map[string]*resource.DbResource,
 	documentProvider ydb.DocumentProvider,
-	dtopicMap *map[string]*olric.DTopic) resource.MiddlewareSet {
+	dtopicMap *map[string]*olric.PubSub) resource.MiddlewareSet {
 
 	var ms resource.MiddlewareSet
 

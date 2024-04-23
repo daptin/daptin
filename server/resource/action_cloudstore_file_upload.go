@@ -5,9 +5,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	daptinid "github.com/daptin/daptin/server/id"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -108,7 +109,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 
 	responses := make([]ActionResponse, 0)
 
-	u, _ := uuid.NewV4()
+	u, _ := uuid.NewV7()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Debugf("Temp directory for this upload fileUploadActionPerformer: %v", tempDirectoryPath)
@@ -187,7 +188,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 	if oauthTokenId1 == nil {
 		log.Infof("No oauth token set for target store")
 	} else {
-		oauthTokenId := oauthTokenId1.(string)
+		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
 		token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}

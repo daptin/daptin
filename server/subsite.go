@@ -2,14 +2,15 @@ package server
 
 import (
 	"fmt"
-	"github.com/artpar/go.uuid"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
 	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
@@ -108,13 +109,13 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource, transaction *s
 // CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
 func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
-	rateConfig RateConfig, max_connections int) (HostSwitch, map[string]*resource.AssetFolderCache) {
+	rateConfig RateConfig, max_connections int) (HostSwitch, map[daptinid.DaptinReferenceId]*resource.AssetFolderCache) {
 
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
 
 	hs := HostSwitch{}
-	subsiteCacheFolders := make(map[string]*resource.AssetFolderCache)
+	subsiteCacheFolders := make(map[daptinid.DaptinReferenceId]*resource.AssetFolderCache)
 	hs.handlerMap = make(map[string]*gin.Engine)
 	hs.siteMap = make(map[string]resource.SubSite)
 	hs.authMiddleware = authMiddleware
@@ -167,7 +168,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			continue
 		}
 
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		sourceDirectoryName := u.String()
 		tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 		if resource.CheckErr(err, "Failed to create temp directory") {
@@ -345,7 +346,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				user = userI.(*auth.SessionUser)
 			} else {
 				user = &auth.SessionUser{
-					UserReferenceId: "",
+					UserReferenceId: daptinid.NullReferenceId,
 					Groups:          []auth.GroupPermission{},
 				}
 			}
@@ -374,7 +375,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					user = userI.(*auth.SessionUser)
 				} else {
 					user = &auth.SessionUser{
-						UserReferenceId: "",
+						UserReferenceId: daptinid.NullReferenceId,
 						Groups:          []auth.GroupPermission{},
 					}
 				}

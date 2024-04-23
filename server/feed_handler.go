@@ -108,7 +108,7 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 
 		for _, rowInterface := range rows.Result().([]api2go.Api2GoModel) {
 
-			row := rowInterface.Data
+			row := rowInterface.GetAttributes()
 			createdAtTime, _, _ = fieldtypes.GetTime(row["created_at"].(string))
 			feedItems = append(feedItems, &feeds.Item{
 				Title:       row["title"].(string),

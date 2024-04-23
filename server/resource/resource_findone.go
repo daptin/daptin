@@ -1,11 +1,14 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"strings"
@@ -17,15 +20,21 @@ import (
 
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
-func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (api2go.Responder, error) {
+func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Request) (api2go.Responder, error) {
 
-	if referenceId == "mine" && dbResource.tableInfo.TableName == "user_account" {
+	var referenceId daptinid.DaptinReferenceId
+
+	if string(referenceIdString) == "mine" && dbResource.tableInfo.TableName == "user_account" {
 		//log.Debugf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
 		if sessionUser != nil {
 			authUser := sessionUser.(*auth.SessionUser)
 			//log.Debugf("Overrider reference id mine with %v", authUser.UserReferenceId)
 			referenceId = authUser.UserReferenceId
+		}
+	} else {
+		if referenceIdString != "" {
+			referenceId = daptinid.DaptinReferenceId(uuid.MustParse(referenceIdString))
 		}
 	}
 
@@ -97,9 +106,9 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 	if OlricCache != nil {
 		cacheKey := fmt.Sprintf("riti-%v-%v", modelName, referenceId)
-		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5*time.Minute, olric.IfNotFound)
+		_ = OlricCache.Put(context.Background(), cacheKey, data["id"], olric.EX(5*time.Minute), olric.NX())
 		cacheKey2 := fmt.Sprintf("itr-%v-%v", modelName, data["id"])
-		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5*time.Minute, olric.IfNotFound)
+		_ = OlricCache.Put(context.Background(), cacheKey2, data["reference_id"], olric.EX(5*time.Minute), olric.NX())
 	}
 
 	if len(languagePreferences) > 0 {
@@ -173,8 +182,8 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 	CheckErr(commitErr, "failed to commit")
 
 	infos := dbResource.model.GetColumns()
-	var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
-	a.Data = data
+	var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(), infos,
+		dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), data)
 
 	for _, inc := range include {
 		incType := inc["__type"].(string)
@@ -198,9 +207,9 @@ func (dbResource *DbResource) FindOne(referenceId string, req api2go.Request) (a
 
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
-func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.DaptinReferenceId, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
 
-	if referenceId == "mine" && dbResource.tableInfo.TableName == "user_account" {
+	if string(referenceId[0:4]) == "mine" && dbResource.tableInfo.TableName == "user_account" {
 		//log.Debugf("Request for mine")
 		sessionUser := req.PlainRequest.Context().Value("user")
 		if sessionUser != nil {
@@ -265,9 +274,9 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	log.Tracef("[TIMING] FindOne: %v", duration)
 	if OlricCache != nil {
 		cacheKey := fmt.Sprintf("riti-%v-%v", modelName, referenceId)
-		_ = OlricCache.PutIfEx(cacheKey, data["id"], 5*time.Minute, olric.IfNotFound)
+		_ = OlricCache.Put(context.Background(), cacheKey, data["id"], olric.EX(5*time.Minute), olric.NX())
 		cacheKey2 := fmt.Sprintf("itr-%v-%v", modelName, data["id"])
-		_ = OlricCache.PutIfEx(cacheKey2, data["reference_id"], 5*time.Minute, olric.IfNotFound)
+		_ = OlricCache.Put(context.Background(), cacheKey2, data["reference_id"], olric.EX(5*time.Minute), olric.NX())
 	}
 
 	if len(languagePreferences) > 0 {
@@ -331,8 +340,8 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId string, req api
 	delete(data, "id")
 
 	infos := dbResource.model.GetColumns()
-	var a = api2go.NewApi2GoModel(dbResource.model.GetTableName(), infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations())
-	a.Data = data
+	var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
+		infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), data)
 
 	for _, inc := range include {
 		incType := inc["__type"].(string)

@@ -155,8 +155,7 @@ Imports:
     Entity: site
     FileType: json`
 
-func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore,
-	*resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.Olric) {
+func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.EmbeddedClient) {
 
 	log.SetOutput(ioutil.Discard)
 	dir := os.TempDir()
@@ -241,22 +240,23 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	//var imapServer *server2.Server
 	var ftpServer *server2.FtpServer
 	var imapServer *ImapServer.Server
-	var olricDb *olric.Olric
+	var olricDb *olric.EmbeddedClient
 
 	olricConfig1 := olricConfig.New("wan")
 	olricConfig1.LogLevel = "ERROR"
 	olricConfig1.LogVerbosity = 1
 	olricConfig1.LogOutput = os.Stderr
 
-	olricDb, err = olric.New(olricConfig1)
+	emb, err := olric.New(olricConfig1)
 	if err != nil {
 		fmt.Printf("Failed to create olric cache: %v", err)
 	}
 
 	go func() {
-		err = olricDb.Start()
+		err = emb.Start()
 		resource.CheckErr(err, "failed to start cache server")
 	}()
+	olricDb = emb.NewEmbeddedClient()
 
 	configStore, err = resource.NewConfigStore(db)
 	transaction := db.MustBegin()
@@ -351,6 +351,7 @@ func runTests(t *testing.T) error {
 	const baseAddress = "http://localhost:6337"
 
 	requestClient := req.New()
+	requestClient.SetTimeout(900 * time.Second)
 
 	responseMap := make(map[string]interface{})
 
@@ -455,7 +456,10 @@ func runTests(t *testing.T) error {
 	}
 	var signUpResponse interface{}
 
-	resp.ToJSON(&signUpResponse)
+	err = resp.ToJSON(&signUpResponse)
+	if err != nil {
+		panic(err)
+	}
 
 	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
 		t.Errorf("419 Unexpected response type from sign up - %v", signUpResponse)
@@ -657,7 +661,7 @@ func runTests(t *testing.T) error {
 	}
 
 	imbBody, err := ioutil.ReadAll(resp.Response().Body)
-	if err != nil {
+	if err != nil || len(imbBody) == 0 {
 		log.Printf("Failed to get %s %s", "read image body gallery image get by id", err)
 		t.Fail()
 		return err
@@ -720,7 +724,7 @@ func runTests(t *testing.T) error {
 		}
 
 		imbBody, err := ioutil.ReadAll(resp.Response().Body)
-		if err != nil {
+		if err != nil || len(imbBody) == 0 {
 			log.Printf("Failed to get read image %s %s", param, err)
 			t.Fail()
 			return err
@@ -741,6 +745,9 @@ func runTests(t *testing.T) error {
 	}
 
 	becomeAdminResponse := resp.String()
+	if strings.Index(becomeAdminResponse, "[{\"ResponseType\":\"client.redirect\",\"Attributes\"") == -1 {
+		t.Fail()
+	}
 	t.Logf("Become admin response: [%v]", becomeAdminResponse)
 
 	t.Logf("Sleeping for 5 seconds waiting for restart")
@@ -832,7 +839,8 @@ func runTests(t *testing.T) error {
 	t.Logf("reference id from certificate: %v", certReferenceId)
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
-		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (reference_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
+		fmt.Sprintf(`{"query":"mutation {\n  updateCertificate (reference_id:\"%s\", hostname:\"hello\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`,
+			certReferenceId))
 	if err != nil {
 		log.Printf("Success in  query graphql endpoint without auth token %s %s", "updateCertificate", err)
 		t.Fail()
@@ -854,7 +862,7 @@ func runTests(t *testing.T) error {
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
 		t.Fail()
-		t.Errorf("[hostname=hello]Expected string not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
+		t.Errorf("[hostname=hello]Expected string not found in response from graphql [%v] with auth token on certificate update", graphqlResponse.String())
 		t.Errorf("graphql request was: %v", graphqlRequest)
 	}
 

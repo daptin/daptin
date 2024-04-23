@@ -5,13 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
-	"github.com/artpar/go.uuid"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	hugoCommand "github.com/gohugoio/hugo/commands"
+	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,7 +34,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 
 	responses := make([]ActionResponse, 0)
 
-	u, _ := uuid.NewV4()
+	u, _ := uuid.NewV7()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Printf("Temp directory for this upload cloudStoreSiteCreateActionPerformer: %v", tempDirectoryPath)
@@ -42,8 +43,10 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 
 	CheckErr(err, "Failed to create temp tempDirectoryPath for site create")
 	site_type, _ := inFields["site_type"].(string)
-	user_account_id, _ := inFields["user_account_id"].(string)
-	cloud_store_id, _ := inFields["cloud_store_id"].(string)
+	user_account_idStr, err := uuid.Parse(inFields["user_account_id"].(string))
+	user_account_id := user_account_idStr
+	cloud_store_idStr, err := uuid.Parse(inFields["cloud_store_id"].(string))
+	cloud_store_id := cloud_store_idStr
 
 	switch site_type {
 	case "hugo":
@@ -76,7 +79,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 	plainRequest := &http.Request{}
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "user", &auth.SessionUser{
-		UserReferenceId: user_account_id,
+		UserReferenceId: daptinid.DaptinReferenceId(user_account_id),
 	})
 	plainRequest = plainRequest.WithContext(ctx)
 	createRequest := api2go.Request{
@@ -105,7 +108,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 	if oauthTokenId1 == nil {
 		log.Printf("No oauth token set for target store")
 	} else {
-		oauthTokenId := oauthTokenId1.(string)
+		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}

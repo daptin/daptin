@@ -38,7 +38,7 @@ func Etag(content []byte) (string, error) {
 func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
 	return func(c *gin.Context) {
 		var typeName = c.Param("typename")
-		var resourceId = c.Param("resource_id")
+		resourceUuidString := c.Param("resource_id")
 		var columnNameWithExtension = c.Param("columnname")
 		//var extension = c.Param("ext")
 
@@ -72,14 +72,14 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			PlainRequest: pr,
 		}
 
-		obj, err := cruds[typeName].FindOne(resourceId, req)
+		obj, err := cruds[typeName].FindOne(resourceUuidString, req)
 		if err != nil {
 			c.AbortWithStatus(500)
 			return
 		}
 
 		row := obj.Result().(api2go.Api2GoModel)
-		colData := row.Data[columnName]
+		colData := row.GetAttributes()[columnName]
 		if colData == nil {
 			log.Errorf("column [%v] has no data ", columnName)
 			c.AbortWithStatus(404)
@@ -105,7 +105,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 					} else if fileData["name"] != nil {
 						fileNameToServe = fileData["name"].(string)
 					} else {
-						log.Errorf("file name missing in metadata [%v][%v][%v]", typeName, columnName, resourceId)
+						log.Errorf("file name missing in metadata [%v][%v][%v]", typeName, columnName, resourceUuidString)
 					}
 
 					fileType = fileData["type"].(string)

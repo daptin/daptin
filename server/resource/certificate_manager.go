@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -161,12 +162,12 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		adminList := cm.cruds["certificate"].GetAdminReferenceId(transaction)
 
-		adminUserReferenceId := ""
+		var adminUserReferenceId daptinid.DaptinReferenceId
 		adminId := int64(1)
 
 		if len(adminList) > 0 {
 			for id := range adminList {
-				adminUserReferenceId = id
+				adminUserReferenceId = daptinid.DaptinReferenceId(id)
 				break
 			}
 			adminId, err = cm.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId("user_account", adminUserReferenceId, transaction)
@@ -199,7 +200,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 		data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
 
 		if certMap != nil && certMap["reference_id"] != nil {
-			data.Data["reference_id"] = certMap["reference_id"]
+			data.SetID(certMap["reference_id"].(string))
 			if err != nil {
 				return nil, nil, nil, nil, nil, err
 			}

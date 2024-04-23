@@ -3,7 +3,7 @@ package resource
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/artpar/go.uuid"
+	uuid "github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/icrowley/fake"
 	log "github.com/sirupsen/logrus"
@@ -44,10 +44,10 @@ func (ct ColumnType) Fake() interface{} {
 
 	switch ct.Name {
 	case "id":
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		return u.String()
 	case "alias":
-		u, _ := uuid.NewV4()
+		u, _ := uuid.NewV7()
 		return u.String()
 	case "date":
 		return randomDate().Format("2006-01-02")

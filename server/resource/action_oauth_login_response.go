@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -28,31 +29,31 @@ func (d *oauthLoginResponseActionPerformer) Name() string {
 	return "oauth.login.response"
 }
 
-func GetOauthConnectionDescription(authenticator string, dbResource *DbResource, transaction *sqlx.Tx) (*oauth2.Config, string, error) {
+func GetOauthConnectionDescription(authenticator string, dbResource *DbResource, transaction *sqlx.Tx) (*oauth2.Config, daptinid.DaptinReferenceId, error) {
 
 	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClauseWithTransaction("oauth_connect",
 		nil, transaction, goqu.Ex{"name": authenticator})
 
 	if err != nil {
 		log.Errorf("Failed to get oauth Connection details for in response handler  [%v]", authenticator)
-		return nil, "", err
+		return nil, daptinid.NullReferenceId, err
 	}
 
 	if len(rows) < 1 {
 		log.Errorf("Failed to get oauth Connection details for  [%v]", authenticator)
 		err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
-		return nil, "", err
+		return nil, daptinid.NullReferenceId, err
 	}
 
 	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		log.Errorf("Failed to get secret: %v", err)
-		return nil, "", err
+		return nil, daptinid.NullReferenceId, err
 	}
 
 	conf, err := mapToOauthConfig(rows[0], secret)
 	log.Printf("[%v] oauth config: %v", authenticator, conf)
-	return conf, rows[0]["reference_id"].(string), err
+	return conf, rows[0]["reference_id"].(daptinid.DaptinReferenceId), err
 
 }
 
@@ -89,8 +90,8 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 }
 
 func (dbResource *DbResource) StoreToken(token *oauth2.Token,
-	token_type string, oauth_connect_reference_id string,
-	user_reference_id string, transaction *sqlx.Tx) error {
+	token_type string, oauth_connect_reference_id daptinid.DaptinReferenceId,
+	user_reference_id daptinid.DaptinReferenceId, transaction *sqlx.Tx) error {
 	storeToken := make(map[string]interface{})
 
 	storeToken["access_token"] = token.AccessToken
@@ -148,7 +149,7 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap
 
 	authenticator := inFieldMap["authenticator"].(string)
 	code := inFieldMap["code"].(string)
-	user_reference_id := inFieldMap["user_reference_id"].(string)
+	user_reference_id := inFieldMap["user_reference_id"].(daptinid.DaptinReferenceId)
 
 	conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 
@@ -188,13 +189,12 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap
 	redirectAttrs["window"] = "self"
 	redirectResponse := NewActionResponse("client.redirect", redirectAttrs)
 
-	modelResponse := NewResponse(nil, api2go.Api2GoModel{
-		Data: map[string]interface{}{
+	modelResponse := NewResponse(nil, api2go.NewApi2GoModelWithData(
+		"", nil, 0, nil, map[string]interface{}{
 			"access_token":  token.AccessToken,
 			"refresh_token": token.RefreshToken,
 			"expiry":        token.Expiry,
-		},
-	}, 0, nil)
+		}), 0, nil)
 
 	return modelResponse, []ActionResponse{setStateResponse, actionResponse, redirectResponse}, nil
 }
