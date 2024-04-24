@@ -285,12 +285,12 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 		mailDaemon.Shutdown()
 		ftpServer.Stop()
 		imapServer.Close()
-		err = db.Close()
-		if err != nil {
-			log.Printf("Failed to close DB connections: %v", err)
-		}
+		//err = db.Close()
+		//if err != nil {
+		//	log.Printf("Failed to close DB connections: %v", err)
+		//}
 
-		db, err = server.GetDbConnection(*dbType, *connectionString)
+		//db, err = server.GetDbConnection(*dbType, *connectionString)
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local", olricDb)
 		rhs.HostSwitch = &hostSwitch
