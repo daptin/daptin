@@ -160,7 +160,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 			ClientAuth:   tls.NoClientCert,
 		}
 
-		adminList := cm.cruds["certificate"].GetAdminReferenceId(transaction)
+		adminList := GetAdminReferenceIdWithTransaction(transaction)
 
 		var adminUserReferenceId daptinid.DaptinReferenceId
 		adminId := int64(1)

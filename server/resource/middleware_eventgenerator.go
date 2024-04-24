@@ -55,7 +55,7 @@ func (e EventMessage) MarshalBinary() (data []byte, err error) {
 }
 
 // UnmarshalBinary decodes the data into the struct using manual binary decoding
-func (e EventMessage) UnmarshalBinary(data []byte) error {
+func (e *EventMessage) UnmarshalBinary(data []byte) error {
 	buffer := bytes.NewBuffer(data)
 
 	// Decode MessageSource

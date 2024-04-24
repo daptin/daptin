@@ -344,32 +344,6 @@ func (a AdminMapType) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (dbResource *DbResource) GetAdminReferenceId(transaction *sqlx.Tx) AdminMapType {
-	var err error
-	adminMap := make(AdminMapType)
-	if OlricCache != nil {
-		cacheValue, err := OlricCache.Get(context.Background(), "administrator_reference_id")
-		if err == nil && cacheValue != nil {
-			var amt AdminMapType
-			err = cacheValue.Scan(&amt)
-			if err == nil {
-				return amt
-			}
-		}
-	}
-	userRefId := dbResource.GetUserMembersByGroupName("administrators", transaction)
-	for _, id := range userRefId {
-		userUuid, _ := uuid.FromBytes(id[:])
-		adminMap[userUuid] = true
-	}
-
-	if OlricCache != nil && userRefId != nil {
-		err = OlricCache.Put(context.Background(), "administrator_reference_id", adminMap, olric.EX(60*time.Minute), olric.NX())
-		CheckErr(err, "Failed to cache admin reference ids")
-	}
-	return adminMap
-}
-
 func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[uuid.UUID]bool {
 	adminMap := make(AdminMapType)
 	if OlricCache != nil {
@@ -393,44 +367,6 @@ func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[uuid.UUID]bool
 	return adminMap
 }
 
-func (dbResource *DbResource) IsAdmin(userReferenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) bool {
-	start := time.Now()
-	userUUid, err := uuid.FromBytes(userReferenceId[:])
-	key := "admin." + string(userReferenceId[:])
-	if OlricCache != nil {
-		value, err := OlricCache.Get(context.Background(), key)
-		if err == nil && value != nil {
-			val, err := value.Bool()
-			if err != nil && val {
-				duration := time.Since(start)
-				log.Tracef("[TIMING]IsAdmin Cached[true]: %v", duration)
-				return true
-			} else {
-				duration := time.Since(start)
-				log.Tracef("[TIMING] IsAdmin Cached[false]: %v", duration)
-				return false
-			}
-		}
-	}
-	admins := dbResource.GetAdminReferenceId(transaction)
-	_, ok := admins[userUUid]
-	if ok {
-		if OlricCache != nil {
-			err := OlricCache.Put(context.Background(), key, true, olric.EX(5*time.Minute), olric.NX())
-			CheckErr(err, "[285] Failed to set admin id value in olric cache")
-		}
-		duration := time.Since(start)
-		log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
-		return true
-	}
-	err = OlricCache.Put(context.Background(), key, false, olric.EX(5*time.Minute), olric.NX())
-	CheckErr(err, "[291] Failed to set admin id value in olric cache")
-
-	duration := time.Since(start)
-	log.Tracef("[TIMING] IsAdmin NotCached[true]: %v", duration)
-	return false
-
-}
 func IsAdminWithTransaction(userReferenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) bool {
 	userUUid, _ := uuid.FromBytes(userReferenceId[:])
 	key := "admin." + string(userReferenceId[:])
@@ -439,7 +375,7 @@ func IsAdminWithTransaction(userReferenceId daptinid.DaptinReferenceId, transact
 		//fmt.Println("IsAdminWithTransaction [" + key + "]")
 		value, err := OlricCache.Get(context.Background(), key)
 		if err == nil && value != nil {
-			if val, err := value.Bool(); val && err != nil {
+			if val, err := value.Bool(); val && err == nil {
 				return true
 			} else {
 				return false

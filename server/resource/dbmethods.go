@@ -70,10 +70,9 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		if err == nil && value != nil {
 
 			var cachedActionRow ActionRow
-			value.Scan(&cachedActionRow)
+			err = value.Scan(&cachedActionRow)
 
-			err = json.Unmarshal([]byte(cachedActionRow.ActionSchema), &action)
-			CheckErr(err, "failed to unmarshal infields")
+			CheckErr(err, "failed to unmarshal ActionSchema 76")
 
 			if err == nil {
 				action.Name = cachedActionRow.Name
@@ -90,6 +89,7 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		goqu.I("w.table_name").As("ontype"),
 		goqu.I("a.label").As("label"),
 		goqu.I("action_schema").As("action_schema"),
+		goqu.I("a.instance_optional").As("instance_optional"),
 		goqu.I("a.reference_id").As("referenceid"),
 	).Prepared(true).From(goqu.T("action").As("a")).
 		Join(
@@ -124,17 +124,18 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 	}
 
 	err = json.Unmarshal([]byte(actionRow.ActionSchema), &action)
-	CheckErr(err, "failed to unmarshal infields")
+	CheckErr(err, "failed to unmarshal ActionSchema 127")
 
 	action.Name = actionRow.Name
 	action.Label = actionRow.Name
 	action.ReferenceId = actionRow.ReferenceId
 	action.OnType = actionRow.OnType
+	action.InstanceOptional = actionRow.InstanceOptional
 
 	if OlricCache != nil {
 
 		err = OlricCache.Put(context.Background(), cacheKey, actionRow, olric.EX(1*time.Minute), olric.NX())
-		CheckErr(err, "Failed to set action in olric cache")
+		//CheckErr(err, "Failed to set action in olric cache")
 	}
 
 	return action, nil
@@ -196,7 +197,7 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 			continue
 		}
 		err = json.Unmarshal([]byte(a.ActionSchema), &act)
-		CheckErr(err, "failed to unmarshal infields")
+		CheckErr(err, "failed to unmarshal ActionSchema")
 
 		act.Name = a.Name
 		act.Label = a.Label
@@ -995,7 +996,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 // No one can become admin once we have an adminstrator
 func (dbResource *DbResource) CanBecomeAdmin(transaction *sqlx.Tx) bool {
 
-	adminRefId := dbResource.GetAdminReferenceId(transaction)
+	adminRefId := GetAdminReferenceIdWithTransaction(transaction)
 	if adminRefId == nil || len(adminRefId) == 0 {
 		return true
 	}

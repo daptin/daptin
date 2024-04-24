@@ -27,7 +27,7 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 
 		defer transaction.Commit()
 
-		if !userAccountTableCrud.IsAdmin(sessionUser.UserReferenceId, transaction) {
+		if !resource.IsAdminWithTransaction(sessionUser.UserReferenceId, transaction) {
 			c.AbortWithError(403, fmt.Errorf("unauthorized"))
 			return
 		}

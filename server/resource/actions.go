@@ -90,7 +90,7 @@ func (e ActionRow) MarshalBinary() (data []byte, err error) {
 }
 
 // UnmarshalBinary decodes the data into the struct using manual binary decoding
-func (e ActionRow) UnmarshalBinary(data []byte) error {
+func (e *ActionRow) UnmarshalBinary(data []byte) error {
 	buffer := bytes.NewBuffer(data)
 
 	// Decode Name
