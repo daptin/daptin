@@ -153,6 +153,8 @@ jobs:
       - name: Installl gorice on linux
         shell: bash
         run: |
+          go get github.com/goreleaser/nfpm/cmd/nfpm
+          go get github.com/ahmetb/govvv
           go install github.com/ahmetb/govvv
           go install github.com/goreleaser/nfpm/cmd/nfpm@latest
           go get
@@ -353,6 +355,8 @@ jobs:
       - name: Cross-compile daptin
         run: |
           docker pull crazymax/xgo
+          go get github.com/crazy-max/xgo
+          go get github.com/ahmetb/govvv
           go install github.com/crazy-max/xgo
           go install github.com/ahmetb/govvv
           pwd
