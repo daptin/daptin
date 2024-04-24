@@ -42,14 +42,16 @@ require (
 	github.com/go-gota/gota v0.0.0-20190402185630-1058f871be31
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobuffalo/flect v0.3.0
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/gohugoio/hugo v0.111.2
 	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.1.1
-	github.com/graphql-go/graphql v0.7.8
+	github.com/graphql-go/graphql v0.8.1
 	github.com/graphql-go/handler v0.2.3
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
 	github.com/hashicorp/memberlist v0.5.1
@@ -156,7 +158,6 @@ require (
 	github.com/calebcase/tmpfile v1.0.3 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/clbanning/mxj/v2 v2.5.7 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
@@ -197,7 +198,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
 	github.com/go-playground/validator/v10 v10.19.0 // indirect
-	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-resty/resty/v2 v2.11.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
@@ -220,7 +220,6 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
