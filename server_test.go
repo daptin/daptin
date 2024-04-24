@@ -268,7 +268,7 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend", transaction)
 	configStore.SetConfigValueFor("logs.enable", "true", "backend", transaction)
 	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend", transaction)
-	configStore.SetConfigValueFor("limit.rate", "5000", "backend", transaction)
+	//configStore.SetConfigValueFor("limit.rate", "5000", "backend", transaction)
 	transaction.Commit()
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, "./local", olricDb)
