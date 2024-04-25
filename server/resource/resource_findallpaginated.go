@@ -1340,6 +1340,11 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 
 		actualvalue = filterQuery.Value
 
+		if filterQuery.ColumnName == "reference_id" {
+			i := uuid.MustParse(filterQuery.Value.(string))
+			actualvalue = i[:]
+		}
+
 		if BeginsWith(opValue, "is") || BeginsWith(opValue, "not") {
 			parts := strings.Split(opValue, " ")
 			if len(parts) > 1 {
