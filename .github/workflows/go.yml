@@ -79,11 +79,6 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Install node
-        uses: actions/setup-node@v2-beta
-        with:
-          node-version: '12'
-
       - name: Set environment variables
         shell: bash
         run: |
