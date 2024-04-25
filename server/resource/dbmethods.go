@@ -71,16 +71,8 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 
 			var cachedActionRow ActionRow
 			err = value.Scan(&cachedActionRow)
-
-			CheckErr(err, "failed to unmarshal ActionSchema 76")
-
-			if err == nil {
-				action.Name = cachedActionRow.Name
-				action.Label = cachedActionRow.Name
-				action.ReferenceId = cachedActionRow.ReferenceId
-				action.OnType = cachedActionRow.OnType
-				return action, err
-			}
+			action, err = ActionFromActionRow(cachedActionRow)
+			return action, err
 		}
 	}
 
@@ -123,14 +115,7 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		return action, err
 	}
 
-	err = json.Unmarshal([]byte(actionRow.ActionSchema), &action)
-	CheckErr(err, "failed to unmarshal ActionSchema 127")
-
-	action.Name = actionRow.Name
-	action.Label = actionRow.Name
-	action.ReferenceId = actionRow.ReferenceId
-	action.OnType = actionRow.OnType
-	action.InstanceOptional = actionRow.InstanceOptional
+	action, err = ActionFromActionRow(actionRow)
 
 	if OlricCache != nil {
 
@@ -138,7 +123,20 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		//CheckErr(err, "Failed to set action in olric cache")
 	}
 
-	return action, nil
+	return action, err
+}
+
+func ActionFromActionRow(actionRow ActionRow) (Action, error) {
+	var action Action
+	err := json.Unmarshal([]byte(actionRow.ActionSchema), &action)
+	CheckErr(err, "failed to unmarshal ActionSchema 127")
+
+	action.Name = actionRow.Name
+	action.Label = actionRow.Name
+	action.ReferenceId = actionRow.ReferenceId
+	action.OnType = actionRow.OnType
+	action.InstanceOptional = actionRow.InstanceOptional
+	return action, err
 }
 
 // GetActionsByType Gets the list of all actions defined on type `typeName`

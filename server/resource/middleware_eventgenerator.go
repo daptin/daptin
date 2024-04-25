@@ -47,7 +47,8 @@ func (e EventMessage) MarshalBinary() (data []byte, err error) {
 	}
 
 	// Simplified handling for EventData: encoding just the length (this should be replaced with actual data encoding logic)
-	if err := binary.Write(buffer, binary.BigEndian, int32(len(e.EventData))); err != nil {
+	jsonStr, err := json.MarshalToString(e.EventData)
+	if err := encodeString(buffer, jsonStr); err != nil {
 		return nil, err
 	}
 
@@ -79,15 +80,13 @@ func (e *EventMessage) UnmarshalBinary(data []byte) error {
 		e.ObjectType = objectType
 	}
 
-	// Simplified handling for EventData (assuming only length was encoded)
-	var length int32
-	if err := binary.Read(buffer, binary.BigEndian, &length); err != nil {
+	// Assume EventData is just the count of items (real logic needed to parse actual data)
+	if eventDataJson, err := decodeString(buffer); err != nil {
+		return err
+	} else {
+		err = json.Unmarshal([]byte(eventDataJson), &e.EventData)
 		return err
 	}
-	// Assume EventData is just the count of items (real logic needed to parse actual data)
-	e.EventData = make(map[string]interface{}, length)
-
-	return nil
 }
 
 // Helper functions to encode and decode strings
