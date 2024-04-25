@@ -806,7 +806,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 						for {
 							msg := <-channel
 							var eventMessage resource.EventMessage
-							err = eventMessage.UnmarshalBinary([]byte(msg.Pattern))
+							err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
 							if err != nil {
 								resource.CheckErr(err, "Failed to read message on channel "+typename)
 								return

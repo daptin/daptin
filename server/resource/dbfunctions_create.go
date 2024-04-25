@@ -73,7 +73,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			//log.Printf("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
-				log.Warnf("Table[%v] Column[%v]: Failed to create unique join index: %v", table.TableName, cols, err)
+				log.Infof("Table[%v] Column[%v]: unique join index already exists: %v", table.TableName, cols, err)
 				db.Exec("COMMIT ")
 			}
 		}
@@ -102,10 +102,10 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 					continue
 				}
 				alterTable := "create unique index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				log.Infof("Create index sql: %v", alterTable)
+				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Infof("Failed to create index on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
+					log.Infof("New index not created on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			} else if column.IsIndexed {
 				indexName := "i" + GetMD5HashString("index_"+table.TableName+"_"+column.ColumnName+"_index")
@@ -114,10 +114,10 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 				}
 
 				alterTable := "create index " + indexName + " on " + table.TableName + " (" + column.ColumnName + ")"
-				log.Infof("Create index sql: %v", alterTable)
+				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Printf("Failed to create index on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+					log.Printf("New index not created on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			}
 		}
@@ -794,7 +794,7 @@ func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
 
 func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 
-	log.Warnf("Get column line [%v] => [%v][%v]", c.ColumnName, c.ColumnType, c.DataType)
+	//log.Warnf("Get column line [%v] => [%v][%v]", c.ColumnName, c.ColumnType, c.DataType)
 
 	datatype := c.DataType
 
