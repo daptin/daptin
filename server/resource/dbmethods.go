@@ -1274,7 +1274,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 
 	if loc == -1 && dbResource.Cruds[rowType].model.HasMany("usergroup") {
 
-		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId)
+		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId[:])
 
 	} else if rowType == "usergroup" {
 		originalGroupId, _ := row["reference_id"]
@@ -1389,7 +1389,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	if loc == -1 && dbResource.Cruds[rowType].model.HasMany("usergroup") {
 
-		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", referenceId)
+		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", referenceId[:])
 
 	} else if rowType == "usergroup" {
 		originalGroupId, _ := row["reference_id"]

@@ -477,23 +477,23 @@ func main() {
 			}
 		}
 
-		err = db.Close()
-		resource.CheckErr(err, "Failed to close database connection")
+		//err = db.Close()
+		//resource.CheckErr(err, "Failed to close database connection")
 
 		log.Printf("All connections closed")
 		log.Printf("Create new connections")
-		db1, err := server.GetDbConnection(*dbType, *connectionString)
-		auth.CheckErr(err, "Failed to create new db connection")
-		if err != nil {
-			return
-		}
+		//db1, err := server.GetDbConnection(*dbType, *connectionString)
+		//auth.CheckErr(err, "Failed to create new db connection")
+		//if err != nil {
+		//	return
+		//}
 
-		transaction := db1.MustBegin()
-		_ = transaction.Rollback()
+		//transaction := db1.MustBegin()
+		//_ = transaction.Rollback()
 		log.Printf("Connection acquired from database [%s]", *dbType)
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db1, *localStoragePath, olricDb)
+			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
 		rhs.HostSwitch = &hostSwitch
 
 		secondsToRestart := float64(time.Now().UnixNano()-startTime.UnixNano()) / float64(1000000000)
