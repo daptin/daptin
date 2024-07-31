@@ -239,6 +239,9 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 	var queryParameters []interface{}
 	var err error
 	var perm PermissionInstance
+	if referenceId == daptinid.NullReferenceId {
+		return perm
+	}
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").Prepared(true).
@@ -303,7 +306,7 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 // Return a NoPermissionToAnyone if no such object exist
 func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) PermissionInstance {
 
-	cacheKey := fmt.Sprintf("opject-permission-%v-%v", objectType, referenceId)
+	cacheKey := fmt.Sprintf("object-permission-%v-%v", objectType, referenceId)
 
 	if OlricCache != nil {
 
@@ -319,6 +322,10 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 	var queryParameters []interface{}
 	var err error
 	var perm PermissionInstance
+	if referenceId == daptinid.NullReferenceId {
+		return perm
+	}
+
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").Prepared(true).
