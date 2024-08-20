@@ -201,7 +201,7 @@ Get Started
 
 * [Native binary](https://daptin.github.io/daptin/setting-up/installation/#native-binary)
 * [Heroku](https://daptin.github.io/daptin/setting-up/installation/#heroku-deployment)
-* [Elestio]()
+* [Elestio](https://daptin.github.io/daptin/setting-up/installation/#elestio-deployment)
 * [Docker image](https://daptin.github.io/daptin/setting-up/installation/#docker-image)
 * [Kubernetes YAML](https://daptin.github.io/daptin/setting-up/installation/#kubernetes-deployment)
 
