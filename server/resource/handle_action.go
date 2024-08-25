@@ -306,6 +306,10 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	}
 
 	inFieldMap, err := GetValidatedInFields(actionRequest, action)
+	if err != nil {
+		log.Errorf("Action Input Validation Failed: [%v]", err)
+		return nil, err
+	}
 	inFieldMap["attributes"] = actionRequest.Attributes
 
 	if err != nil {

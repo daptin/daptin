@@ -123,6 +123,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create xls upload performer")
 	performers = append(performers, xlsUploadPerformer)
 
+	actionTransactionPerformer, err := resource.NewActionCommitTransactionPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create action Transaction Performer")
+	performers = append(performers, actionTransactionPerformer)
+
 	csvUploadPerformer, err := resource.NewUploadCsvFileToEntityPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create csv upload performer")
 	performers = append(performers, csvUploadPerformer)

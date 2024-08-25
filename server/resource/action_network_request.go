@@ -53,8 +53,8 @@ func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 	if isBody {
 		bodyMap = body.(interface{})
 	}
-	log.Printf("Request body: %v", toJson(body))
-	log.Printf("Headers: %v", toJson(headerMap))
+	log.Debugf("Request body: %v", toJson(body))
+	log.Debugf("Headers: %v", toJson(headerMap))
 
 	formData, isFormData := inFieldMap["FormData"]
 	formDataMap := make(map[string]string)

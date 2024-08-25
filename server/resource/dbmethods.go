@@ -2283,6 +2283,43 @@ func (dbResource *DbResource) GetAllObjectsWithWhereWithTransaction(typeName str
 // Returns an array of Map object, each object has the column name to value mapping
 // Utility method for loading all objects having low count
 // Can be used by actions
+func (dbResource *DbResource) GetAllRawObjectsByRawQuery(typeName string, query string, args []interface{}) ([]map[string]interface{}, error) {
+
+	stmt1, err := dbResource.Connection.Preparex(query)
+	defer func(stmt1 *sqlx.Stmt) {
+		err := stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
+	}(stmt1)
+
+	if err != nil {
+		log.Errorf("[1376] failed to prepare statment [%v]: %v", query, err)
+		return nil, err
+	}
+
+	row, err := stmt1.Queryx(args...)
+	defer func(row *sqlx.Rows) {
+		err := row.Close()
+		if err != nil {
+			log.Errorf("[1279] failed to close result after value scan in defer")
+		}
+	}(row)
+
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := RowsToMap(row, typeName)
+
+	return m, err
+}
+
+// GetAllRawObjects Get all rows from the table `typeName` without any processing of the response
+// expect no "__type" column on the returned instances
+// Returns an array of Map object, each object has the column name to value mapping
+// Utility method for loading all objects having low count
+// Can be used by actions
 func (dbResource *DbResource) GetAllRawObjects(typeName string) ([]map[string]interface{}, error) {
 	s, q, err := statementbuilder.Squirrel.Select(goqu.L("*")).Prepared(true).From(typeName).ToSQL()
 	if err != nil {
