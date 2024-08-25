@@ -79,7 +79,7 @@ type ActiveTaskInstance struct {
 }
 
 func (ati *ActiveTaskInstance) Run() {
-	log.Printf("Execute task 81 [%v][%v] as user [%v]", ati.Task.ReferenceId, ati.Task.ActionName, ati.Task.AsUserEmail)
+	log.Printf("[82] Execute task [%v][%v] as user [%v]", ati.Task.ReferenceId, ati.Task.ActionName, ati.Task.AsUserEmail)
 
 	sessionUser := &auth.SessionUser{}
 	transaction, err := ati.DbResource.Connection.Beginx()
@@ -87,7 +87,6 @@ func (ati *ActiveTaskInstance) Run() {
 		CheckErr(err, "Failed to begin transaction [88]")
 	}
 
-	defer transaction.Commit()
 	if ati.Task.AsUserEmail != "" {
 
 		permission, err := ati.DbResource.GetObjectByWhereClause(USER_ACCOUNT_TABLE_NAME, "email", ati.Task.AsUserEmail, transaction)
@@ -111,12 +110,12 @@ func (ati *ActiveTaskInstance) Run() {
 	req := api2go.Request{
 		PlainRequest: pr,
 	}
-	_, err = ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req, transaction)
+	res, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req, transaction)
 
 	if err != nil {
 		log.Errorf("Errors while executing action 109: %v", err)
 	} else {
-		//log.Printf("Response from action: %v", res)
+		log.Debugf("Response from action: %v", res)
 	}
 
 }

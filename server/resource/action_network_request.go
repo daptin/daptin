@@ -49,9 +49,9 @@ func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 	}
 
 	body, isBody := inFieldMap["Body"]
-	var bodyMap map[string]interface{}
+	var bodyMap interface{}
 	if isBody {
-		bodyMap = body.(map[string]interface{})
+		bodyMap = body.(interface{})
 	}
 	log.Printf("Request body: %v", toJson(body))
 	log.Printf("Headers: %v", toJson(headerMap))
@@ -85,7 +85,10 @@ func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 	resty.DetectContentType(false)
 
 	if isBody {
-		client.SetBody(bodyMap)
+		var bodyMapM []interface{}
+		s, _ := json.Marshal(bodyMap)
+		json.Unmarshal(s, &bodyMapM)
+		client.SetBody(bodyMapM)
 
 	}
 	if isFormData {
@@ -105,23 +108,33 @@ func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 
 	responseHeaders := response.Header()
 	responseContentType := responseHeaders.Get("Content-Type")
-	if responseContentType == "application/json" {
+	responseBody := response.Body()
+	if strings.Index(responseContentType, "application/json") > -1 {
 		m := make(map[string]interface{})
-		json.Unmarshal(response.Body(), &m)
+		err = json.Unmarshal(responseBody, &m)
+		if err != nil {
+			log.Errorf("Failed to read response body: %v: %v", err, response.String())
+		}
 		responseMap["body"] = m
 	} else {
-		responseMap["body"] = string(response.Body())
-		responseMap["base32EncodedBody"] = base64.StdEncoding.EncodeToString(response.Body())
+		responseMap["body"] = string(responseBody)
+		var m interface{}
+		err := json.Unmarshal(responseBody, &m)
+		if err == nil {
+			responseMap["body"] = m
+			responseMap["bodyPlainText"] = string(responseBody)
+		}
+		responseMap["base32EncodedBody"] = base64.StdEncoding.EncodeToString(responseBody)
 	}
 	log.Printf("Response body [%v][%v]: %v", methodString, urlString, responseMap["body"])
 	responseMap["headers"] = responseHeaders
 
 	return api2go.Response{
-			Res: responseMap,
+			Res: api2go.NewApi2GoModelWithData("$network.response", nil, 0, nil, responseMap),
 		}, []ActionResponse{{
 			ResponseType: request.Type,
 			Attributes:   responseMap,
-		}}, []error{err}
+		}}, []error{}
 }
 
 func NewNetworkRequestPerformer(initConfig *CmsConfig, cruds map[string]*DbResource) (ActionPerformerInterface, error) {

@@ -627,7 +627,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		}
 		_, ok = currentActions[worldIdString][action.Name]
 		if ok {
-			//log.Printf("Action [%v] on [%v] already present in database", action.Name, action.OnType)
+			log.Printf("Action [%v][%v] available in database", action.OnType, action.Name)
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
@@ -647,7 +647,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				return err
 			}
 		} else {
-			log.Printf("Action [%v] is new, adding action: @%v", action.Name, action.OnType)
+			log.Printf("Adding new action [%v][%v]", action.OnType, action.Name)
 
 			actionSchema, _ := json.Marshal(action)
 
@@ -681,7 +681,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	}
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "failed to commit")
-	log.Printf("Checked %d actions", actionCheckCount)
+	//log.Printf("Checked %d actions", actionCheckCount)
 
 	return commitErr
 }
@@ -772,7 +772,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 			for typeName, data := range jsonData {
 				crud := cruds[typeName]
 				if crud == nil {
-					log.Errorf("%s is not a defined entity", typeName)
+					log.Errorf("[775] [%s] is not a defined entity", typeName)
 					continue
 				}
 				errs := ImportDataMapArray(data, crud, req, transaction)
@@ -797,7 +797,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 			for typeName, data := range jsonData {
 				crud := cruds[typeName]
 				if crud == nil {
-					log.Errorf("%s is not a defined entity", typeName)
+					log.Errorf("[800] [%s] is not a defined entity", typeName)
 					continue
 				}
 				errs := ImportDataMapArray(data, crud, req, transaction)

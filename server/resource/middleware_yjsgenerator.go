@@ -50,7 +50,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 	case "patch":
 
 		for _, obj := range objects {
-			var reference_id daptinid.DaptinReferenceId
+			var referenceId daptinid.DaptinReferenceId
 			if requestMethod != "post" {
 				refId := obj["reference_id"]
 				refIsuuid, isUUid := refId.(uuid.UUID)
@@ -60,9 +60,9 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 					continue
 				}
 				if isDir {
-					reference_id = refIsDir
+					referenceId = refIsDir
 				} else if isUUid {
-					reference_id = daptinid.DaptinReferenceId(refIsuuid)
+					referenceId = daptinid.DaptinReferenceId(refIsuuid)
 				} else {
 					refIdString, isString := refId.(string)
 					if isString {
@@ -70,7 +70,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						if err != nil {
 							return nil, errors.New("Invalid reference_id")
 						}
-						reference_id = daptinid.DaptinReferenceId(refIdBytes)
+						referenceId = daptinid.DaptinReferenceId(refIdBytes)
 					} else {
 						return nil, errors.New("Invalid reference_id")
 					}
@@ -127,7 +127,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 							continue
 						}
 
-						var documentName = fmt.Sprintf("%v.%v.%v", dr.tableInfo.TableName, reference_id, column.ColumnName)
+						var documentName = fmt.Sprintf("%v.%v.%v", dr.tableInfo.TableName, referenceId, column.ColumnName)
 						document := pc.documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
 						if document != nil {
 							var documentHistory []byte

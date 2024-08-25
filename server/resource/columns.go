@@ -1230,7 +1230,7 @@ var SystemActions = []Action{
 			{
 				Type:           USER_ACCOUNT_TABLE_NAME,
 				SkipInResponse: true,
-				Method:         "UPDATE",
+				Method:         "PATCH",
 				Attributes: map[string]interface{}{
 					"reference_id": "$user[0].reference_id",
 					"password":     "!newPassword.value",

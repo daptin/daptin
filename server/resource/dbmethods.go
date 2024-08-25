@@ -1160,11 +1160,11 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	}
 
 	adminUsergroupId, err := dbResource.UserGroupNameToIdWithTransaction("administrators", transaction)
-	reference_id, _ := uuid.NewV7()
+	referenceId, _ := uuid.NewV7()
 
 	query, args, err := statementbuilder.Squirrel.Insert("user_account_user_account_id_has_usergroup_usergroup_id").
 		Cols(USER_ACCOUNT_ID_COLUMN, "usergroup_id", "permission", "reference_id").Prepared(true).
-		Vals([]interface{}{userId, adminUsergroupId, int64(auth.DEFAULT_PERMISSION), reference_id[:]}).
+		Vals([]interface{}{userId, adminUsergroupId, int64(auth.DEFAULT_PERMISSION), referenceId[:]}).
 		ToSQL()
 
 	_, err = transaction.Exec(query, args...)

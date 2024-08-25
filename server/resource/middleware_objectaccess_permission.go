@@ -154,12 +154,15 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			continue
 		}
 		uuidVal, isUuid := refIdInterface.(uuid.UUID)
+		refIdStr, isString := refIdInterface.(string)
 		bytearrayVal, isByteArray := refIdInterface.([]byte)
 		var referenceId daptinid.DaptinReferenceId
 		if isUuid {
 			referenceId = daptinid.DaptinReferenceId(uuidVal)
 		} else if isByteArray {
 			referenceId = daptinid.DaptinReferenceId(bytearrayVal)
+		} else if isString {
+			referenceId = daptinid.DaptinReferenceId(uuid.MustParse(refIdStr))
 		} else {
 			referenceId = refIdInterface.(daptinid.DaptinReferenceId)
 		}
@@ -175,7 +178,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 		originalRowReference := map[string]interface{}{
 			"__type":                result["__type"],
-			"reference_id":          result["reference_id"],
+			"reference_id":          referenceId,
 			"relation_reference_id": result["relation_reference_id"],
 		}
 		permission := dr.GetRowPermissionWithTransaction(originalRowReference, transaction)

@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/artpar/api2go"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/golang-jwt/jwt/v4"
 	uuid "github.com/google/uuid"
@@ -69,7 +70,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 			timeNow.Add(-2 * time.Minute) // allow clock skew of 2 minutes
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"email": existingUser["email"],
-				"sub":   existingUser["reference_id"],
+				"sub":   existingUser["reference_id"].(daptinid.DaptinReferenceId).String(),
 				"name":  existingUser["name"],
 				"nbf":   timeNow.Unix(),
 				"exp":   timeNow.Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),

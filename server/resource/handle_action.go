@@ -123,7 +123,6 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 			CheckErr(err, "Failed to begin transaction [121]")
 		}
 
-		defer transaction.Commit()
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req, transaction)
 
 		responseStatus := 200
@@ -260,7 +259,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
-	//log.Printf("Handle event for action [%v]", actionRequest.Action)
+	log.Debugf("Handle event for action [%v]", actionRequest.Action)
 
 	if !action.InstanceOptional && (subjectInstanceReferenceString == "" || subjectInstance.GetID() != subjectInstanceReferenceString) {
 		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
@@ -457,7 +456,6 @@ OutFields:
 				err = api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
 				break OutFields
 			}
-
 			includedRelations := make(map[string]bool, 0)
 			if model.GetAttributes()["included_relations"] != nil {
 				//included := req.QueryParams["included_relations"][0]
@@ -513,7 +511,7 @@ OutFields:
 			actionName := model.GetName()
 			performer, ok := db.ActionHandlerMap[actionName]
 			if !ok {
-				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, model.GetName())
+				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, actionName)
 				//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
 			} else {
 				var responder api2go.Responder
@@ -564,6 +562,29 @@ OutFields:
 		}
 
 		if !outcome.SkipInResponse {
+			for _, ar := range actionResponses {
+				attrs, yes := ar.Attributes.(map[string]interface{})
+				if yes {
+					for key, val := range attrs {
+						refId, isRef := val.(daptinid.DaptinReferenceId)
+						if isRef {
+							attrs[key] = refId.String()
+						}
+					}
+				} else {
+					attrsArray, yes := ar.Attributes.([]map[string]interface{})
+					if yes {
+						for _, atr := range attrsArray {
+							for key, val := range atr {
+								refId, isRef := val.(daptinid.DaptinReferenceId)
+								if isRef {
+									atr[key] = refId.String()
+								}
+							}
+						}
+					}
+				}
+			}
 			responses = append(responses, actionResponses...)
 		}
 
@@ -817,7 +838,6 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 	default:
 
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
-
 		req := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: outcome.Method,
@@ -842,6 +862,14 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 
 	vm.Set("btoa", func(data []byte) string {
 		return base64.StdEncoding.EncodeToString(data)
+	})
+
+	vm.Set("atob", func(data string) []byte {
+		b, e := base64.StdEncoding.DecodeString(data)
+		if e != nil {
+			log.Errorf("atob failed inside execution: %v", e)
+		}
+		return b
 	})
 
 	vm.Set("uuid", func() string {
@@ -921,23 +949,27 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 			outcomeKind := reflect.TypeOf(outcome).Kind()
 
-			if outcomeKind == reflect.String {
-
-				outcomeString := outcome.(string)
-
-				evtStr, err := evaluateString(outcomeString, inFieldMap)
-				if err != nil {
-					return data, err
-				}
-				outcomes = append(outcomes, evtStr)
-
-			} else if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
+			if outcomeKind == reflect.Map || outcomeKind == reflect.Array || outcomeKind == reflect.Slice {
 				outc, err := BuildActionContext(outcome, inFieldMap)
 				//log.Printf("Outcome is: %v", outc)
 				if err != nil {
 					return data, err
 				}
 				outcomes = append(outcomes, outc)
+			} else {
+
+				outcomeString, isString := outcome.(string)
+
+				if isString {
+					evtStr, err := evaluateString(outcomeString, inFieldMap)
+					if err != nil {
+						return data, err
+					}
+					outcomes = append(outcomes, evtStr)
+				} else {
+					outcomes = append(outcomes, outcome)
+				}
+
 			}
 
 		}
@@ -950,7 +982,7 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 func evaluateString(fieldString string, inFieldMap map[string]interface{}) (interface{}, error) {
 
-	var val interface{}
+	var valueToReturn interface{}
 
 	if fieldString == "" {
 		return "", nil
@@ -962,7 +994,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
-		val = res
+		valueToReturn = res
 
 	} else if len(fieldString) > 3 && BeginsWith(fieldString, "{{") && EndsWithCheck(fieldString, "}}") {
 
@@ -971,7 +1003,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
-		val = res
+		valueToReturn = res
 
 	} else if len(fieldString) > 3 && fieldString[0:3] == "js:" {
 
@@ -979,7 +1011,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
-		val = res
+		valueToReturn = res
 
 	} else if fieldString[0] == '~' {
 
@@ -1004,7 +1036,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 
 		castMap := finalValue.(map[string]interface{})
 		finalValue = castMap[fieldParts[len(fieldParts)-1]]
-		val = finalValue
+		valueToReturn = finalValue
 
 	} else {
 		//log.Printf("Get [%v] from infields: %v", fieldString, toJson(inFieldMap))
@@ -1070,19 +1102,34 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 			}
 
 			castMap, ok := finalValue.(map[string]interface{})
+			if ok {
+				lastFieldPart := fieldParts[len(fieldParts)-1]
+				finalValue = castMap[lastFieldPart]
+				fieldString = strings.Replace(fieldString, fmt.Sprintf("%v", match[0]), fmt.Sprintf("%v", finalValue), -1)
+			} else {
+				castArray, arrayOk := finalValue.([]interface{})
+				ok = arrayOk
+				if arrayOk {
+					lastFieldPart := fieldParts[len(fieldParts)-1]
+					lastFieldPartIndex, err := strconv.ParseInt(lastFieldPart, 10, 32)
+					if err != nil {
+						log.Errorf("Non-Integer access to array index: %s", lastFieldPart)
+					}
+					finalValue = castArray[lastFieldPartIndex]
+					fieldString = strings.Replace(fieldString, fmt.Sprintf("%v", match[0]), fmt.Sprintf("%v", finalValue), -1)
+				}
+			}
 			if !ok {
 				log.Errorf("Value at [%v] is %v", fieldString, castMap)
-				return val, errors.New(fmt.Sprintf("unable to evaluate value for [%v]", fieldString))
+				return valueToReturn, errors.New(fmt.Sprintf("unable to evaluate value for [%v]", fieldString))
 			}
-			finalValue = castMap[fieldParts[len(fieldParts)-1]]
-			fieldString = strings.Replace(fieldString, fmt.Sprintf("%v", match[0]), fmt.Sprintf("%v", finalValue), -1)
 		}
-		val = fieldString
+		valueToReturn = fieldString
 
 	}
-	//log.Printf("Evaluated string path [%v] => %v", fieldString, val)
+	//log.Printf("Evaluated string path [%v] => %v", fieldString, valueToReturn)
 
-	return val, nil
+	return valueToReturn, nil
 }
 
 func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[string]interface{}, error) {
@@ -1091,6 +1138,9 @@ func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[strin
 	finalDataMap := make(map[string]interface{})
 
 	for _, inField := range action.InFields {
+		if len(inField.ColumnName) == 0 && len(inField.Name) > 0 {
+			inField.ColumnName = inField.Name
+		}
 		val, ok := dataMap[inField.ColumnName]
 		if ok {
 			finalDataMap[inField.ColumnName] = val

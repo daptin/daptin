@@ -80,7 +80,27 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 		inFieldMap[key] = val
 	}
 
-	url := d.router.Servers[0].URL + path
+	if d.router.Servers == nil || len(d.router.Servers) == 0 {
+		log.Errorf("No servers found in integration spec of [" + d.integration.Name + "]")
+		return nil, nil, []error{errors.New("No servers found in integration spec of [" + d.integration.Name + "]")}
+	}
+
+	basePath := d.router.Servers[0].URL
+	// prefer https path over http paths
+	if len(d.router.Servers) > 1 && strings.Index(basePath, "https://") != 0 {
+		for _, server := range d.router.Servers[1:] {
+			if strings.HasPrefix(server.URL, "https://") {
+				basePath = server.URL
+			}
+		}
+	}
+	if basePath[len(basePath)-1] == '/' {
+		basePath = basePath[:len(basePath)-1]
+	}
+	if path[0] != '/' {
+		path = "/" + path
+	}
+	url := basePath + path
 
 	matches, err := GetParametersNames(url)
 
@@ -90,6 +110,11 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 	for _, matc := range matches {
 		value := inFieldMap[matc]
+		if value == nil {
+			log.Errorf("No value found for key: %s", matc)
+			return nil, nil, []error{fmt.Errorf("No value found for key: %s", matc)}
+		}
+
 		url = strings.Replace(url, "{"+matc+"}", value.(string), -1)
 	}
 
@@ -109,7 +134,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 			switch mediaType {
 			case "application/json":
 
-				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "", spec.Schema.Value, inFieldMap)
+				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "request", spec.Schema.Value, inFieldMap)
 				if err != nil || spec == nil {
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
@@ -117,7 +142,7 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 				}
 
 			case "application/x-www-form-urlencoded":
-				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "", spec.Schema.Value, inFieldMap)
+				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "request", spec.Schema.Value, inFieldMap)
 				if err != nil || spec == nil {
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
@@ -410,9 +435,12 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 	var res map[string]interface{}
 	err = resp.ToJSON(&res)
-	CheckErr(err, "Failed to read value as json")
+	CheckErr(err, "[432] Failed to read value as json: [%s]", resp.String())
 	if err != nil {
-		log.Printf("Action response: %v %v", resp.Response().Status, resp.String())
+		res = map[string]interface{}{
+			"body": resp.String(),
+		}
+		log.Printf("API Response [%s][%s]: %v %v", method, url, resp.Response().Status, resp.String())
 		return nil, nil, []error{err}
 	}
 	responder := NewResponse(nil, res, resp.Response().StatusCode, nil)
@@ -522,7 +550,7 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 				switch row.(type) {
 				case map[string]interface{}:
 					mapVal = append(mapVal, row.(map[string]interface{}))
-				case string:
+				default:
 					mapVal = append(mapVal, map[string]interface{}{
 						"": row,
 					})
@@ -549,7 +577,7 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 
 		return items, nil
 	case schema.Type == "object", len(schema.Properties) > 0:
-		example := map[string]interface{}{}
+		newObjectInstance := map[string]interface{}{}
 		isEmpty := true
 
 		suffix := name + "."
@@ -564,7 +592,7 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 
 			ex, err := CreateRequestBody(mode, mediaType, suffix+k, v.Value, values)
 			if err != nil {
-				return nil, fmt.Errorf("can't get example for '%s'", k)
+				return nil, fmt.Errorf("can't get newObjectInstance for '%s'", k)
 			}
 			if ex == nil {
 				continue
@@ -581,25 +609,25 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 						case map[string]interface{}:
 							mapVal := val.(map[string]interface{})
 							for subKey, subVal := range mapVal {
-								example[fmt.Sprintf("%s[][%s]", suffix+k, subKey)] = subVal
+								newObjectInstance[fmt.Sprintf("%s[][%s]", suffix+k, subKey)] = subVal
 							}
 						default:
-							example[fmt.Sprintf("%s[]", suffix+k)] = val
+							newObjectInstance[fmt.Sprintf("%s[]", suffix+k)] = val
 						}
 					}
 				} else if v.Value.Type == "object" {
 					if suffix == "" {
 						for k1, v := range ex.(map[string]interface{}) {
-							example[fmt.Sprintf("%s[%s]", k, k1)] = v
+							newObjectInstance[fmt.Sprintf("%s[%s]", k, k1)] = v
 						}
 					} else {
-						example[fmt.Sprintf("%s[%s]", suffix, k)] = v
+						newObjectInstance[fmt.Sprintf("%s[%s]", suffix, k)] = v
 					}
 				} else {
-					example[suffix+k] = ex
+					newObjectInstance[suffix+k] = ex
 				}
 			} else {
-				example[suffix+k] = ex
+				newObjectInstance[suffix+k] = ex
 			}
 
 		}
@@ -609,12 +637,21 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 
 			if !excludeFromMode(mode, addl) {
 				ex, err := CreateRequestBody(mode, mediaType, suffix+name, addl, values)
-				CheckErr(err, "can't get example for additional properties")
+				CheckErr(err, "can't get newObjectInstance for additional properties")
 				if ex != nil {
 					isEmpty = false
 					for k, v := range ex.(map[string]interface{}) {
-						example[k] = v
+						newObjectInstance[k] = v
 					}
+				}
+			}
+		}
+		if schema.AdditionalPropertiesAllowed != nil && *schema.AdditionalPropertiesAllowed {
+			valMap, ok := values[name].(map[string]interface{})
+			if ok {
+				for key, val := range valMap {
+					newObjectInstance[key] = val
+					isEmpty = false
 				}
 			}
 		}
@@ -622,7 +659,7 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 			return nil, nil
 		}
 
-		return example, nil
+		return newObjectInstance, nil
 
 	case len(schema.AnyOf) > 0:
 		for _, ofType := range schema.AnyOf {
@@ -706,6 +743,9 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 		log.Errorf("Failed to load swagger spec: %v", err)
 		return nil, err
 	}
+	if router.Servers == nil || len(router.Servers) == 0 {
+		log.Errorf("No servers found in integration spec of [" + integration.Name + "]")
+	}
 
 	commandMap := make(map[string]*openapi3.Operation)
 	pathMap := make(map[string]string)
@@ -714,9 +754,14 @@ func NewIntegrationActionPerformer(integration Integration, initConfig *CmsConfi
 	for path, pathItem := range router.Paths {
 		for method, command := range pathItem.Operations() {
 			count += 1
-			commandMap[command.OperationID] = command
-			pathMap[command.OperationID] = path
-			methodMap[command.OperationID] = method
+			operationID := command.OperationID
+			if len(operationID) == 0 {
+				operationID = method + " " + path
+			}
+			commandMap[operationID] = command
+			pathMap[operationID] = path
+			methodMap[operationID] = method
+			log.Infof("Mapping Operation [" + operationID + "] in [" + integration.Name + "] [" + command.Description + "]")
 		}
 	}
 	log.Printf("Registered %d actions from [%v]", count, integration.Name)

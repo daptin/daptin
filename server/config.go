@@ -81,12 +81,13 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			fallthrough
 		case EndsWithCheck(fileName, "yaml"):
 			jsonBytes, err := yaml2.YAMLToJSON(fileBytes)
-			log.Printf("JSON: %v", string(jsonBytes))
+			log.Debugf("YAML: %v: %v", string(jsonBytes), err)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
 			err = json1.Unmarshal(jsonBytes, &initConfig)
+			log.Debugf("JSON: %v: %v", string(jsonBytes), err)
 			//err = yaml.UnmarshalStrict(fileBytes, &initConfig)
 		case EndsWithCheck(fileName, "json"):
 			err = json1.Unmarshal(fileBytes, &initConfig)
