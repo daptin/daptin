@@ -57,7 +57,7 @@ func (d *actionTransactionPerformer) DoAction(request Outcome, inFields map[stri
 	}
 
 	if err != nil {
-		log.Error("Failed to commit transaction: [%v]", err)
+		log.Errorf("Failed to commit transaction: [%v]", err)
 		return nil, nil, []error{err}
 	}
 	return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Column deleted", "Success"))}, nil
