@@ -1319,11 +1319,9 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 				log.Printf("failed to lookup foreign key value: %v => %v", refernceValueString, err)
 			} else {
 				refernceValueString = valueIds
-				if err != nil {
-					refernceValueString, ok = valueIds[valuesArray[0]]
-					if !ok {
-						refernceValueString = valuesArray[0]
-					}
+				refernceValueString, ok = valueIds[valuesArray[0]]
+				if !ok {
+					refernceValueString = valuesArray[0]
 				}
 				filterQuery.Value = refernceValueString
 			}
