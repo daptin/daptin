@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/resty"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"reflect"
 	"strings"
 )
 
@@ -59,11 +60,9 @@ func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 	formData, isFormData := inFieldMap["FormData"]
 	formDataMap := make(map[string]string)
 	if isFormData {
-		formDataMapInterface := formData.(map[string]interface{})
-		for key, val := range formDataMapInterface {
-			formDataMap[key] = val.(string)
-		}
-		log.Printf("Form data: %v", toJson(formDataMap))
+		log.Printf("FormData: %v", formData)
+		formDataMap = ToURLQuery(formData.(map[string]interface{}))
+		log.Debugf("Form values: %v", toJson(formDataMap))
 	}
 
 	queryParams, isQueryParams := inFieldMap["Query"]
@@ -143,4 +142,54 @@ func NewNetworkRequestPerformer(initConfig *CmsConfig, cruds map[string]*DbResou
 
 	return &handler, nil
 
+}
+
+// encodeQuery is a recursive function that generates URL-encoded query strings
+func encodeQuery(key string, value interface{}, v map[string]string) {
+	rv := reflect.ValueOf(value)
+
+	switch rv.Kind() {
+	case reflect.Map:
+		for _, k := range rv.MapKeys() {
+			mapKey := fmt.Sprintf("%v", k)
+			encodeQuery(fmt.Sprintf("%s[%s]", key, mapKey), rv.MapIndex(k).Interface(), v)
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < rv.Len(); i++ {
+			encodeQuery(fmt.Sprintf("%s[%d]", key, i), rv.Index(i).Interface(), v)
+		}
+	case reflect.Struct:
+		for i := 0; i < rv.NumField(); i++ {
+			field := rv.Type().Field(i)
+			fieldName := field.Name
+			fieldValue := rv.Field(i).Interface()
+			encodeQuery(fmt.Sprintf("%s.%s", key, fieldName), fieldValue, v)
+		}
+	default:
+		v[key] = fmt.Sprintf("%v", value)
+	}
+}
+
+// ToURLQuery converts a Go object into a x-www-form-urlencoded query string
+func ToURLQuery(input interface{}) map[string]string {
+	v := map[string]string{}
+	rv := reflect.ValueOf(input)
+
+	if rv.Kind() == reflect.Map {
+		for _, k := range rv.MapKeys() {
+			mapKey := fmt.Sprintf("%v", k)
+			encodeQuery(mapKey, rv.MapIndex(k).Interface(), v)
+		}
+	} else if rv.Kind() == reflect.Struct {
+		for i := 0; i < rv.NumField(); i++ {
+			field := rv.Type().Field(i)
+			fieldName := field.Name
+			fieldValue := rv.Field(i).Interface()
+			encodeQuery(fieldName, fieldValue, v)
+		}
+	} else {
+		encodeQuery("", input, v)
+	}
+
+	return v
 }
