@@ -53,7 +53,8 @@ func (p *PermissionInstance) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (p PermissionInstance) CanExecute(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanExecute(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission,
+	adminGroupId daptinid.DaptinReferenceId) bool {
 
 	if p.UserId == userId && (p.Permission&auth.UserExecute == auth.UserExecute) {
 		return true
@@ -64,6 +65,9 @@ func (p PermissionInstance) CanExecute(userId daptinid.DaptinReferenceId, usergr
 	}
 
 	for _, uGroup := range usergroupId {
+		if uGroup.GroupReferenceId == adminGroupId {
+			return true
+		}
 		for _, oGroup := range p.UserGroupId {
 			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupExecute == auth.GroupExecute {
 				return true
@@ -74,7 +78,8 @@ func (p PermissionInstance) CanExecute(userId daptinid.DaptinReferenceId, usergr
 	return false
 }
 
-func (p PermissionInstance) CanCreate(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanCreate(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission,
+	adminGroupId daptinid.DaptinReferenceId) bool {
 	if p.UserId == userId && (p.Permission&auth.UserCreate == auth.UserCreate) {
 		return true
 	}
@@ -84,6 +89,10 @@ func (p PermissionInstance) CanCreate(userId daptinid.DaptinReferenceId, usergro
 	}
 
 	for _, uGroup := range usergroupId {
+		if uGroup.GroupReferenceId == adminGroupId {
+			return true
+		}
+
 		for _, oGroup := range p.UserGroupId {
 			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupCreate == auth.GroupCreate {
 				return true
@@ -94,7 +103,8 @@ func (p PermissionInstance) CanCreate(userId daptinid.DaptinReferenceId, usergro
 	return false
 }
 
-func (p PermissionInstance) CanUpdate(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanUpdate(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission,
+	adminGroupId daptinid.DaptinReferenceId) bool {
 	if p.UserId == userId && (p.Permission&auth.UserUpdate == auth.UserUpdate) {
 		return true
 	}
@@ -104,6 +114,10 @@ func (p PermissionInstance) CanUpdate(userId daptinid.DaptinReferenceId, usergro
 	}
 
 	for _, uGroup := range usergroupId {
+		if uGroup.GroupReferenceId == adminGroupId {
+			return true
+		}
+
 		for _, oGroup := range p.UserGroupId {
 			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupUpdate == auth.GroupUpdate {
 				return true
@@ -114,7 +128,8 @@ func (p PermissionInstance) CanUpdate(userId daptinid.DaptinReferenceId, usergro
 	return false
 }
 
-func (p PermissionInstance) CanDelete(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanDelete(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission,
+	adminGroupId daptinid.DaptinReferenceId) bool {
 
 	if p.UserId == userId && (p.Permission&auth.UserDelete == auth.UserDelete) {
 		return true
@@ -125,6 +140,10 @@ func (p PermissionInstance) CanDelete(userId daptinid.DaptinReferenceId, usergro
 	}
 
 	for _, uGroup := range usergroupId {
+		if uGroup.GroupReferenceId == adminGroupId {
+			return true
+		}
+
 		for _, oGroup := range p.UserGroupId {
 			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupDelete == auth.GroupDelete {
 				return true
@@ -135,7 +154,8 @@ func (p PermissionInstance) CanDelete(userId daptinid.DaptinReferenceId, usergro
 	return false
 }
 
-func (p PermissionInstance) CanRefer(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanRefer(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission,
+	adminGroupId daptinid.DaptinReferenceId) bool {
 
 	if p.UserId == userId && (p.Permission&auth.UserRefer == auth.UserRefer) {
 		return true
@@ -146,6 +166,9 @@ func (p PermissionInstance) CanRefer(userId daptinid.DaptinReferenceId, usergrou
 	}
 
 	for _, uGroup := range usergroupId {
+		if uGroup.GroupReferenceId == adminGroupId {
+			return true
+		}
 		for _, oGroup := range p.UserGroupId {
 			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupRefer == auth.GroupRefer {
 				return true
@@ -156,7 +179,8 @@ func (p PermissionInstance) CanRefer(userId daptinid.DaptinReferenceId, usergrou
 	return false
 }
 
-func (p PermissionInstance) CanRead(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanRead(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission,
+	adminGroupId daptinid.DaptinReferenceId) bool {
 	if p.UserId == userId && (p.Permission&auth.UserRead == auth.UserRead) {
 		return true
 	}
@@ -166,6 +190,10 @@ func (p PermissionInstance) CanRead(userId daptinid.DaptinReferenceId, usergroup
 	}
 
 	for _, uGroup := range usergroupId {
+		// user belongs to administrator group
+		if uGroup.GroupReferenceId == adminGroupId {
+			return true
+		}
 		for _, oGroup := range p.UserGroupId {
 			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupRead == auth.GroupRead {
 				return true
@@ -176,7 +204,8 @@ func (p PermissionInstance) CanRead(userId daptinid.DaptinReferenceId, usergroup
 	return false
 }
 
-func (p PermissionInstance) CanPeek(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission) bool {
+func (p PermissionInstance) CanPeek(userId daptinid.DaptinReferenceId, usergroupId []auth.GroupPermission,
+	adminGroupId daptinid.DaptinReferenceId) bool {
 
 	if p.UserId == userId && (p.Permission&auth.UserPeek == auth.UserPeek) {
 		return true
@@ -187,6 +216,10 @@ func (p PermissionInstance) CanPeek(userId daptinid.DaptinReferenceId, usergroup
 	}
 
 	for _, uGroup := range usergroupId {
+		if uGroup.GroupReferenceId == adminGroupId {
+			return true
+		}
+
 		for _, oGroup := range p.UserGroupId {
 			if (uGroup.GroupReferenceId == oGroup.GroupReferenceId) && oGroup.Permission&auth.GroupPeek == auth.GroupPeek {
 				return true

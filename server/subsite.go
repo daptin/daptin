@@ -24,9 +24,10 @@ import (
 )
 
 type HostSwitch struct {
-	handlerMap     map[string]*gin.Engine
-	siteMap        map[string]resource.SubSite
-	authMiddleware *auth.AuthMiddleware
+	handlerMap           map[string]*gin.Engine
+	siteMap              map[string]resource.SubSite
+	authMiddleware       *auth.AuthMiddleware
+	AdministratorGroupId daptinid.DaptinReferenceId
 }
 
 type JsonApiError struct {
@@ -114,7 +115,9 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	router := httprouter.New()
 	router.ServeFiles("/*filepath", http.Dir("./scripts"))
 
-	hs := HostSwitch{}
+	hs := HostSwitch{
+		AdministratorGroupId: cruds["usergroup"].AdministratorGroupId,
+	}
 	subsiteCacheFolders := make(map[daptinid.DaptinReferenceId]*resource.AssetFolderCache)
 	hs.handlerMap = make(map[string]*gin.Engine)
 	hs.siteMap = make(map[string]resource.SubSite)
@@ -191,7 +194,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			EntityName: "site",
 			ActionName: "sync_site_storage",
 			Attributes: map[string]interface{}{
-				"site_id": site.ReferenceId,
+				"site_id": site.ReferenceId.String(),
 				"path":    tempDirectoryPath,
 			},
 			AsUserEmail: adminEmailId,
@@ -351,7 +354,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			if permission.CanExecute(user.UserReferenceId, user.Groups) {
+			if permission.CanExecute(user.UserReferenceId, user.Groups, hs.AdministratorGroupId) {
 				handler.ServeHTTP(w, r)
 			} else {
 				w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
@@ -379,7 +382,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Groups:          []auth.GroupPermission{},
 					}
 				}
-				if permission.CanExecute(user.UserReferenceId, user.Groups) {
+				if permission.CanExecute(user.UserReferenceId, user.Groups, hs.AdministratorGroupId) {
 					r.URL.Path = "/" + strings.Join(pathParts[2:], "/")
 					handler := hs.handlerMap[subSite.Hostname]
 					handler.ServeHTTP(w, r)

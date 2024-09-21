@@ -126,7 +126,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 				foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, daptinid.DaptinReferenceId(valUUid), createTransaction)
 
-				if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+				if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 					uId = foreignObjectReferenceId
 				} else {
 					log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)

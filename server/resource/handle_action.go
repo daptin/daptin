@@ -189,7 +189,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 	}
 }
 
-func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request, transaction *sqlx.Tx) ([]ActionResponse, error) {
+func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request, transaction *sqlx.Tx) ([]ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -198,10 +198,16 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		sessionUser = user.(*auth.SessionUser)
 	}
 
+	var err error
+	//adminUserGroupIds, err := dbResource.GetIdByWhereClause("usergroup", transaction, goqu.Ex{
+	//	"name": "administrators",
+	//})
+	//adminUsergroupId := adminUserGroupIds[0]
+	//
 	var subjectInstance api2go.Api2GoModel
 	var subjectInstanceMap map[string]interface{}
 
-	action, err := db.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
+	action, err := dbResource.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
 		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
@@ -222,7 +228,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		req.PlainRequest.Method = "GET"
 		req.QueryParams = make(map[string][]string)
 		req.QueryParams["included_relations"] = action.RequestSubjectRelations
-		referencedObject, err := db.FindOneWithTransaction(daptinid.DaptinReferenceId(subjectInstanceReferenceUuid), req, transaction)
+		referencedObject, err := dbResource.FindOneWithTransaction(daptinid.DaptinReferenceId(subjectInstanceReferenceUuid), req, transaction)
 		if err != nil {
 			log.Warnf("failed to load subject for action: %v - [%v][%v]", actionRequest.Action, actionRequest.Type, subjectInstanceReferenceString)
 			rollbackErr := transaction.Rollback()
@@ -242,9 +248,9 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		}
 
 		subjectInstanceMap["__type"] = subjectInstance.GetName()
-		permission := db.GetRowPermissionWithTransaction(subjectInstanceMap, transaction)
+		permission := dbResource.GetRowPermissionWithTransaction(subjectInstanceMap, transaction)
 
-		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceString)
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
@@ -252,7 +258,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 		}
 	}
 
-	if !isAdmin && !db.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
+	if !isAdmin && !dbResource.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
 		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceString)
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "failed to rollback")
@@ -319,7 +325,7 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 	}
 
 	if sessionUser.UserReferenceId != daptinid.NullReferenceId {
-		user, err := db.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
+		user, err := dbResource.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
 		if err != nil {
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
@@ -335,6 +341,10 @@ func (db *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2g
 
 	responses := make([]ActionResponse, 0)
 	var restartOnCompletion = false
+
+	sessionUser.Groups = append(sessionUser.Groups, auth.GroupPermission{
+		GroupReferenceId: dbResource.AdministratorGroupId,
+	})
 
 OutFields:
 	for _, outcome := range action.OutFields {
@@ -384,7 +394,7 @@ OutFields:
 		var model api2go.Api2GoModel
 		var modelPointer *api2go.Api2GoModel
 		var request api2go.Request
-		modelPointer, request, err = BuildOutcome(inFieldMap, outcome)
+		modelPointer, request, err = BuildOutcome(inFieldMap, outcome, sessionUser)
 		if err != nil {
 			log.Errorf("Failed to build outcome: %v", err)
 			log.Errorf("Infields - %v", toJson(inFieldMap))
@@ -398,26 +408,73 @@ OutFields:
 		model = *modelPointer
 
 		requestContext := req.PlainRequest.Context()
-		var adminUserReferenceId daptinid.DaptinReferenceId
-		adminUserReferenceIds := GetAdminReferenceIdWithTransaction(transaction)
-		for id := range adminUserReferenceIds {
-			adminUserReferenceId = daptinid.DaptinReferenceId(id)
-			break
-		}
-
-		if adminUserReferenceId != daptinid.NullReferenceId {
-			requestContext = context.WithValue(requestContext, "user", &auth.SessionUser{
-				UserReferenceId: adminUserReferenceId,
-			})
-		}
-		request.PlainRequest = request.PlainRequest.WithContext(requestContext)
-		dbResource, _ := db.Cruds[outcome.Type]
+		//var adminUserReferenceId daptinid.DaptinReferenceId
+		//adminUserReferenceIds := GetAdminReferenceIdWithTransaction(transaction)
+		//for id := range adminUserReferenceIds {
+		//	adminUserReferenceId = daptinid.DaptinReferenceId(id)
+		//	break
+		//}
+		//
+		//if adminUserReferenceId != daptinid.NullReferenceId {
+		requestContext = context.WithValue(requestContext, "user", sessionUser)
+		//}
+		//request.PlainRequest = request.PlainRequest.WithContext(requestContext)
 
 		actionResponses := make([]ActionResponse, 0)
 		//log.Printf("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
 		switch outcome.Method {
+		case "SWITCH_USER":
+			attrs := model.GetAttributes()
+			var userIdAsDir daptinid.DaptinReferenceId
+			refIdAttr := attrs["user_reference_id"]
+			userIdAsDir, isDir := refIdAttr.(daptinid.DaptinReferenceId)
+			if !isDir {
+				userReferenceId, isString := refIdAttr.(string)
+				if !isString {
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("error",
+						"Failed to read user_reference_id ["+userReferenceId+"] "+err.Error(), "Failed"))
+					responses = append(responses, actionResponse)
+					break OutFields
+				}
+
+				parsedId, err := uuid.Parse(userReferenceId)
+				if err != nil {
+
+					actionResponse = NewActionResponse("client.notify", NewClientNotification("error",
+						"Failed to read user_reference_id ["+userReferenceId+"] "+err.Error(), "Failed"))
+					responses = append(responses, actionResponse)
+					break OutFields
+				}
+				userIdAsDir = daptinid.DaptinReferenceId(parsedId)
+			}
+
+			user, _, err := dbResource.Cruds["user_account"].GetSingleRowByReferenceIdWithTransaction(
+				"user_account", userIdAsDir, nil, transaction)
+
+			if err != nil {
+
+				actionResponse = NewActionResponse("client.notify", NewClientNotification("error",
+					"No such useruser_reference_id ["+fmt.Sprintf("%v", refIdAttr)+"] "+err.Error(), "Failed"))
+				responses = append(responses, actionResponse)
+				break OutFields
+			}
+
+			userGroups := dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", user["id"].(int64))
+			userGroups = append(sessionUser.Groups, auth.GroupPermission{
+				GroupReferenceId: dbResource.AdministratorGroupId,
+			})
+
+			*sessionUser = auth.SessionUser{
+				UserId:          user["id"].(int64),
+				UserReferenceId: user["reference_id"].(daptinid.DaptinReferenceId),
+				Groups:          userGroups,
+			}
+
+			updatedCtx := context.WithValue(request.PlainRequest.Context(), "user", sessionUser)
+			request.PlainRequest = request.PlainRequest.WithContext(updatedCtx)
+
 		case "POST":
-			responseObjects, err = dbResource.CreateWithTransaction(model, request, transaction)
+			responseObjects, err = dbResource.Cruds[outcome.Type].CreateWithTransaction(model, request, transaction)
 			CheckErr(err, "Failed to post from action")
 			if err != nil {
 
@@ -441,7 +498,7 @@ OutFields:
 				}
 			}
 
-			responseObjects, _, _, _, err = dbResource.PaginatedFindAllWithoutFilters(request, transaction)
+			responseObjects, _, _, _, err = dbResource.Cruds[outcome.Type].PaginatedFindAllWithoutFilters(request, transaction)
 			CheckErr(err, "Failed to get inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify",
@@ -472,7 +529,7 @@ OutFields:
 				includedRelations = nil
 			}
 
-			responseObjects, _, err = dbResource.GetSingleRowByReferenceIdWithTransaction(outcome.Type, daptinid.DaptinReferenceId(referenceIdUuid), nil, transaction)
+			responseObjects, _, err = dbResource.Cruds[outcome.Type].GetSingleRowByReferenceIdWithTransaction(outcome.Type, daptinid.DaptinReferenceId(referenceIdUuid), nil, transaction)
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
@@ -485,7 +542,7 @@ OutFields:
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "PATCH":
-			responseObjects, err = dbResource.UpdateWithTransaction(model, request, transaction)
+			responseObjects, err = dbResource.Cruds[outcome.Type].UpdateWithTransaction(model, request, transaction)
 			CheckErr(err, "Failed to update inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
@@ -499,7 +556,7 @@ OutFields:
 		case "DELETE":
 			idString := model.GetID()
 			idUUid := uuid.MustParse(idString)
-			err = dbResource.DeleteWithoutFilters(daptinid.DaptinReferenceId(idUUid), request, transaction)
+			err = dbResource.Cruds[outcome.Type].DeleteWithoutFilters(daptinid.DaptinReferenceId(idUUid), request, transaction)
 			CheckErr(err, "Failed to delete inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
@@ -513,7 +570,7 @@ OutFields:
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 
 			actionName := model.GetName()
-			performer, ok := db.ActionHandlerMap[actionName]
+			performer, ok := dbResource.ActionHandlerMap[actionName]
 			if !ok {
 				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, actionName)
 				//return ginContext.AbortWithError(500, errors.New("Invalid outcome"))
@@ -543,7 +600,7 @@ OutFields:
 			actionResponse = NewActionResponse(model.GetName(), model.GetAttributes())
 			actionResponses = append(actionResponses, actionResponse)
 		default:
-			handler, ok := db.ActionHandlerMap[outcome.Type]
+			handler, ok := dbResource.ActionHandlerMap[outcome.Type]
 
 			if !ok {
 				log.Errorf("Unknown method invoked onn %v: %v", outcome.Type, outcome.Method)
@@ -744,7 +801,7 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 
 }
 
-func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.Api2GoModel, api2go.Request, error) {
+func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome, sessionUser *auth.SessionUser) (*api2go.Api2GoModel, api2go.Request, error) {
 
 	attrInterface, err := BuildActionContext(outcome.Attributes, inFieldMap)
 	if err != nil {
@@ -818,6 +875,18 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: "EXECUTE",
 			},
 		}
+
+		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
+
+		return &model, returnRequest, nil
+	case "__as_user":
+
+		returnRequest := api2go.Request{
+			PlainRequest: &http.Request{
+				Method: "SWITCH_USER",
+			},
+		}
+
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
 		return &model, returnRequest, nil
@@ -835,6 +904,9 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 				Method: "ACTIONRESPONSE",
 			},
 		}
+		ctxWithUser := context.WithValue(returnRequest.PlainRequest.Context(), "user", sessionUser)
+		returnRequest.PlainRequest = returnRequest.PlainRequest.WithContext(ctxWithUser)
+
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 
 		return &model, returnRequest, err
@@ -842,12 +914,16 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome) (*api2go.A
 	default:
 
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
-		req := api2go.Request{
+		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: outcome.Method,
 			},
 		}
-		return &model, req, err
+
+		ctxWithUser := context.WithValue(returnRequest.PlainRequest.Context(), "user", sessionUser)
+		returnRequest.PlainRequest = returnRequest.PlainRequest.WithContext(ctxWithUser)
+
+		return &model, returnRequest, err
 
 	}
 

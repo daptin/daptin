@@ -37,8 +37,8 @@ func (dbResource *DbResource) IsUserActionAllowed(
 
 	actionPermission := dbResource.GetObjectPermissionByWhereClause("action", "action_name", actionName, transaction)
 
-	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups)
-	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups)
+	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
+	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
 
 	return canExecuteOnType && canExecuteAction
 
@@ -51,8 +51,8 @@ func (dbResource *DbResource) IsUserActionAllowedWithTransaction(userReferenceId
 
 	actionPermission := dbResource.GetObjectPermissionByWhereClauseWithTransaction("action", "action_name", actionName, transaction)
 
-	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups)
-	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups)
+	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
+	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
 
 	return canExecuteOnType && canExecuteAction
 

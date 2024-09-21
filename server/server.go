@@ -888,7 +888,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 						objectPermission := cruds[typename].GetRowPermission(object, tx)
 
-						if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups) {
+						if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups, cruds[typename].AdministratorGroupId) {
 							ginContext.AbortWithStatus(401)
 							return
 						}

@@ -65,7 +65,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 		defer transaction.Commit()
 		stateMachinePermission := cruds["smd"].GetRowPermission(objectStateMachine.GetAllAsAttributes(), transaction)
 
-		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
 			gincontext.AbortWithStatus(403)
 			return
 		}
@@ -167,7 +167,7 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 		defer transaction.Commit()
 		stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineInstance.GetAllAsAttributes(), transaction)
 
-		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
 			gincontext.AbortWithStatus(403)
 			return
 		}

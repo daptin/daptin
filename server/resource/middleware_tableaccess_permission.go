@@ -46,7 +46,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 	//log.Printf("Row Permission for [%v] for [%v]", dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
-		if tableOwnership.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if tableOwnership.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 			//returnMap = append(returnMap, result)
 			//includedMapCache[referenceId] = true
 			return results, nil
@@ -54,7 +54,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 			//notIncludedMapCache[referenceId] = true
 			return nil, api2go.NewHTTPError(ErrUnauthorized, pc.String(), 403)
 		}
-	} else if tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
+	} else if tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 		//log.Printf("[TableAccessPermissionChecker] Result not to be included: %v", result["reference_id"])
 		//returnMap = append(returnMap, result)
 		//includedMapCache[referenceId] = true
@@ -97,21 +97,21 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 
 	//log.Printf("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
-		if !tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 		}
 	} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
-		if !tableOwnership.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !tableOwnership.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 
 		}
 	} else if req.PlainRequest.Method == "POST" {
-		if !tableOwnership.CanCreate(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !tableOwnership.CanCreate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 
 		}
 	} else if req.PlainRequest.Method == "DELETE" {
-		if !tableOwnership.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups) {
+		if !tableOwnership.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 
 		}

@@ -169,7 +169,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 
 							otherObjectPermission := dbResource.GetObjectPermissionByIdWithTransaction(rel.GetObject(), objectId, transaction)
 
-							if !isAdmin && !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+							if !isAdmin && !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 								canDeleteAllIds = false
 								break
 							}
@@ -238,7 +238,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 
 							otherObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(rel.GetObject(), id, transaction)
 
-							if !isAdmin && !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+							if !isAdmin && !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 								canDeleteAllIds = false
 								break
 							}

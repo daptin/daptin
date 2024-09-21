@@ -77,7 +77,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 							permission = wsch.cruds["world"].GetRowPermission(eventMessage.EventData, tx)
 
 						}
-						if permission.CanRead(client.user.UserReferenceId, client.user.Groups) {
+						if permission.CanRead(client.user.UserReferenceId, client.user.Groups, wsch.cruds["world"].AdministratorGroupId) {
 
 							sendMessage := true
 							if filtersMap != nil {

@@ -26,22 +26,23 @@ import (
 )
 
 type DbResource struct {
-	model              api2go.Api2GoModel
-	db                 sqlx.Ext
-	Connection         database.DatabaseConnection
-	tableInfo          *TableInfo
-	Cruds              map[string]*DbResource
-	ms                 *MiddlewareSet
-	ActionHandlerMap   map[string]ActionPerformerInterface
-	configStore        *ConfigStore
-	contextCache       map[string]interface{}
-	defaultGroups      []int64
-	defaultRelations   map[string][]int64
-	contextLock        sync.RWMutex
-	OlricDb            *olric.EmbeddedClient
-	AssetFolderCache   map[string]map[string]*AssetFolderCache
-	SubsiteFolderCache map[daptinid.DaptinReferenceId]*AssetFolderCache
-	MailSender         func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
+	model                api2go.Api2GoModel
+	db                   sqlx.Ext
+	Connection           database.DatabaseConnection
+	tableInfo            *TableInfo
+	Cruds                map[string]*DbResource
+	ms                   *MiddlewareSet
+	ActionHandlerMap     map[string]ActionPerformerInterface
+	configStore          *ConfigStore
+	contextCache         map[string]interface{}
+	defaultGroups        []int64
+	AdministratorGroupId daptinid.DaptinReferenceId
+	defaultRelations     map[string][]int64
+	contextLock          sync.RWMutex
+	OlricDb              *olric.EmbeddedClient
+	AssetFolderCache     map[string]map[string]*AssetFolderCache
+	SubsiteFolderCache   map[daptinid.DaptinReferenceId]*AssetFolderCache
+	MailSender           func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
 }
 
 type AssetFolderCache struct {
@@ -147,6 +148,17 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	if OlricCache == nil {
 		OlricCache, _ = olricDb.NewDMap("default-cache")
 	}
+	tx, err := db.Beginx()
+	administratorGroupId, err := GetIdToReferenceIdWithTransaction("usergroup", 2, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Rollback()
+
+	if err != nil {
+		return nil, err
+	}
 
 	defaultgroupIds, err := GroupNamesToIds(db, tableInfo.DefaultGroups)
 	if err != nil {
@@ -159,20 +171,21 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 
 	//log.Printf("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
 	return &DbResource{
-		model:              model,
-		db:                 db,
-		Connection:         db,
-		ms:                 ms,
-		configStore:        configStore,
-		Cruds:              cruds,
-		tableInfo:          &tableInfo,
-		OlricDb:            olricDb,
-		defaultGroups:      defaultgroupIds,
-		defaultRelations:   defaultRelationsIds,
-		contextCache:       make(map[string]interface{}),
-		contextLock:        sync.RWMutex{},
-		AssetFolderCache:   make(map[string]map[string]*AssetFolderCache),
-		SubsiteFolderCache: make(map[daptinid.DaptinReferenceId]*AssetFolderCache),
+		model:                model,
+		db:                   db,
+		Connection:           db,
+		ms:                   ms,
+		configStore:          configStore,
+		Cruds:                cruds,
+		tableInfo:            &tableInfo,
+		OlricDb:              olricDb,
+		defaultGroups:        defaultgroupIds,
+		defaultRelations:     defaultRelationsIds,
+		AdministratorGroupId: administratorGroupId,
+		contextCache:         make(map[string]interface{}),
+		contextLock:          sync.RWMutex{},
+		AssetFolderCache:     make(map[string]map[string]*AssetFolderCache),
+		SubsiteFolderCache:   make(map[daptinid.DaptinReferenceId]*AssetFolderCache),
 	}, nil
 }
 

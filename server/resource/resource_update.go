@@ -134,7 +134,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 						foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valString, updateTransaction)
 
-						if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+						if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 							val = foreignObjectId
 						} else {
 							return nil, errors.New(fmt.Sprintf("no refer permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
@@ -940,7 +940,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 			otherObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(referencedTypeName, daptinid.DaptinReferenceId(delRefUUId), updateTransaction)
 
-			if isAdmin || otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if isAdmin || otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 
 				otherObjectId, err := GetReferenceIdToIdWithTransaction(referencedTypeName, daptinid.DaptinReferenceId(delRefUUId), updateTransaction)
 

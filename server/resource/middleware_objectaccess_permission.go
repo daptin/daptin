@@ -85,13 +85,13 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		//log.Printf("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
-			if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
 				notIncludedMapCache[referenceId] = true
 			}
-		} else if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
+		} else if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 			returnMap = append(returnMap, result)
 			includedMapCache[referenceId] = true
 		} else {
@@ -186,7 +186,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		//log.Printf("Row Permission for [%v] for [%v]", permission, result)
 
 		if req.PlainRequest.Method == "GET" {
-			if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
@@ -195,7 +195,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 			}
 		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
-			if permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {
@@ -203,7 +203,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 				notIncludedMapCache[referenceId] = true
 			}
 		} else if req.PlainRequest.Method == "DELETE" {
-			if permission.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups) {
+			if permission.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {

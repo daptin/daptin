@@ -474,7 +474,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					defer transaction.Commit()
 					perm := resources[table.TableName].GetObjectPermissionByWhereClause("world", "table_name", table.TableName, transaction)
-					if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups) {
+					if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, resources[table.TableName].AdministratorGroupId) {
 						return nil, errors.New("unauthorized")
 					}
 
@@ -675,7 +675,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					log.Printf("Get row permission before update: %v", existingObj)
 					permission := resources[table.TableName].GetRowPermissionWithTransaction(existingObj, transaction)
 
-					if !permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups) {
+					if !permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, resources[table.TableName].AdministratorGroupId) {
 						return nil, errors.New("unauthorized")
 					}
 
