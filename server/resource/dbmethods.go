@@ -1461,7 +1461,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 func (dbResource *DbResource) GetRowsByWhereClause(typeName string, includedRelations map[string]bool, transaction *sqlx.Tx, where ...goqu.Ex) (
 	[]map[string]interface{}, [][]map[string]interface{}, error) {
 
-	stmt := statementbuilder.Squirrel.Select("*").From(typeName)
+	stmt := statementbuilder.Squirrel.Select("*").Prepared(true).From(typeName)
 
 	for _, w := range where {
 		stmt = stmt.Where(w)
@@ -1511,7 +1511,7 @@ func (dbResource *DbResource) GetRowsByWhereClauseWithTransaction(typeName strin
 	includedRelations map[string]bool, transaction *sqlx.Tx, where ...goqu.Ex) (
 	[]map[string]interface{}, [][]map[string]interface{}, error) {
 
-	stmt := statementbuilder.Squirrel.Select("*").From(typeName)
+	stmt := statementbuilder.Squirrel.Select("*").Prepared(true).From(typeName)
 
 	for _, w := range where {
 		stmt = stmt.Where(w)
@@ -1701,7 +1701,7 @@ func GetUserMembersByGroupNameWithTransaction(groupName string, transaction *sql
 
 func (dbResource *DbResource) GetUserEmailIdByUsergroupId(usergroupId int64, transaction *sqlx.Tx) string {
 
-	s, q, err := statementbuilder.Squirrel.Select("u.email").From(goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uu")).
+	s, q, err := statementbuilder.Squirrel.Select("u.email").Prepared(true).From(goqu.T("user_account_user_account_id_has_usergroup_usergroup_id").As("uu")).
 		LeftJoin(
 			goqu.T(USER_ACCOUNT_TABLE_NAME).As("u"),
 			goqu.On(goqu.Ex{
@@ -2472,7 +2472,7 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeName string, referenceId daptinid.DaptinReferenceId,
 	columnToSelect string, transaction *sqlx.Tx) (interface{}, error) {
 	//log.Printf("Get Object by reference id [%v][%v]", typeName, referenceId)
-	s, q, err := statementbuilder.Squirrel.Select(columnToSelect).
+	s, q, err := statementbuilder.Squirrel.Select(columnToSelect).Prepared(true).
 		Prepared(true).From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return nil, err

@@ -543,9 +543,11 @@ func main() {
 			certFile := certTempDir + "/" + hostname + ".crt"
 			keyFile := certTempDir + "/" + hostname + ".key"
 			log.Printf("Temp dir for certificates: %v", certTempDir)
+
 			certPem := []byte(string(certBytes) + "\n" + string(rootCertBytes))
 			err = os.WriteFile(certFile, certPem, 0600)
 			resource.CheckErr(err, "Failed to write cert file")
+
 			keyPem := privateBytes
 			err = os.WriteFile(keyFile, keyPem, 0600)
 			resource.CheckErr(err, "Failed to write private key file")
@@ -556,14 +558,15 @@ func main() {
 				return
 			}
 
-			tlsServer := &http.Server{Addr: *httpsPort, Handler: &rhs}
-			tlsServer.TLSConfig.Certificates = []tls.Certificate{
-				{
-					Certificate: [][]byte{certBytes},
-					PrivateKey:  cert,
+			tlsServer := &http.Server{
+				Addr:    *httpsPort,
+				Handler: &rhs,
+				TLSConfig: &tls.Config{
+					Certificates: []tls.Certificate{cert}, // Use the loaded cert directly
 				},
 			}
 
+			log.Infof("TLS server listening on port %v", *httpsPort)
 			err1 := tlsServer.ListenAndServeTLS("", "")
 			if err1 != nil {
 				log.Errorf("Failed to start TLS server: %v", err1)

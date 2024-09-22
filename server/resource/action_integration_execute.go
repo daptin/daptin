@@ -181,9 +181,9 @@ func (d *integrationActionPerformer) DoAction(request Outcome, inFieldMap map[st
 
 				case "oauth2":
 
-					oauthTokenId, ok := authKeys["oauth_token_id"].(daptinid.DaptinReferenceId)
+					oauthTokenId := daptinid.InterfaceToDIR(authKeys["oauth_token_id"])
 
-					if ok {
+					if oauthTokenId != daptinid.NullReferenceId {
 						oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 
 						if err != nil {

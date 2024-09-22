@@ -20,12 +20,12 @@ func (d *generateOauth2TokenActionPerformer) DoAction(request Outcome, inFieldMa
 
 	responses := make([]ActionResponse, 0)
 
-	referenceId, ok := inFieldMap["reference_id"]
-	if !ok {
+	referenceId := daptinid.InterfaceToDIR(inFieldMap["reference_id"])
+	if referenceId == daptinid.NullReferenceId {
 		return nil, responses, []error{errors.New("Token Reference id missing")}
 	}
-	referenceIdString := referenceId.(daptinid.DaptinReferenceId)
-	token, _, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(referenceIdString, transaction)
+
+	token, _, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(referenceId, transaction)
 
 	responseObject := api2go.NewApi2GoModelWithData("oauth_token", nil, 0, nil, map[string]interface{}{
 		"access_token":  token.AccessToken,

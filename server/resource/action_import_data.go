@@ -29,7 +29,7 @@ func (d *importDataPerformer) DoAction(request Outcome, inFields map[string]inte
 	var err error
 	if isUserPresent {
 		userMap := user.(map[string]interface{})
-		userReferenceId = userMap["reference_id"].(daptinid.DaptinReferenceId)
+		userReferenceId = daptinid.InterfaceToDIR(userMap["reference_id"])
 		userIdInt, err = d.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, userReferenceId, transaction)
 		if err != nil {
 			log.Errorf("Failed to get user id from user reference id: %v", err)

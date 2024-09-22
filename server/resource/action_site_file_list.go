@@ -3,8 +3,7 @@ package resource
 import (
 	"errors"
 	"github.com/artpar/api2go"
-	daptinid "github.com/daptin/daptin/server/id"
-	"github.com/google/uuid"
+	"github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -21,9 +20,8 @@ func (d *cloudStoreFileListActionPerformer) DoAction(request Outcome, inFields m
 	responses := make([]ActionResponse, 0)
 
 	path := inFields["path"].(string)
-	siteReferenceId := uuid.MustParse(inFields["site_id"].(string))
-
-	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[daptinid.DaptinReferenceId(siteReferenceId)]
+	id := daptinid.InterfaceToDIR(inFields["site_id"])
+	siteCacheFolder := d.cruds["cloud_store"].SubsiteFolderCache[id]
 
 	if siteCacheFolder == nil {
 

@@ -149,7 +149,7 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request Outcome, inFieldMap
 
 	authenticator := inFieldMap["authenticator"].(string)
 	code := inFieldMap["code"].(string)
-	user_reference_id := inFieldMap["user_reference_id"].(daptinid.DaptinReferenceId)
+	user_reference_id := daptinid.InterfaceToDIR(inFieldMap["user_reference_id"])
 
 	conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 

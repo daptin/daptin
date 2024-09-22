@@ -185,8 +185,18 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
 	oauthTokenId1 := inFields["oauth_token_id"]
+	asStr, isStr := oauthTokenId1.(string)
 	if oauthTokenId1 == nil {
-		log.Infof("No oauth token set for target store")
+		log.Printf("No oauth token set for target store")
+	} else if isStr {
+		if asStr == "<nil>" {
+			log.Printf("No oauth token set for target store")
+		} else {
+			oauthTokenId, err := uuid.Parse(asStr)
+			token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(daptinid.DaptinReferenceId(oauthTokenId), transaction)
+			CheckErr(err, "Failed to parse token reference id")
+
+		}
 	} else {
 		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
 		token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)

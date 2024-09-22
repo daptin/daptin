@@ -24,8 +24,21 @@ func (d *deleteWorldPerformer) Name() string {
 
 func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
-	worldIdUuidString := inFields["world_id"].(string)
-	worldIdUuid := uuid.MustParse(worldIdUuidString)
+	var worldIdUuid uuid.UUID
+	worldIdUuidString := inFields["world_id"]
+	asStr, isStr := worldIdUuidString.(string)
+	if isStr {
+		if asStr == "<nil>" {
+			log.Printf("No oauth token set for target store")
+		} else {
+			worldIdUuid = uuid.MustParse(asStr)
+		}
+	} else {
+		asDir, isDir := worldIdUuidString.(daptinid.DaptinReferenceId)
+		if isDir {
+			worldIdUuid = uuid.UUID(asDir)
+		}
+	}
 
 	sessionUser := request.Attributes["user"]
 	httpReq := &http.Request{

@@ -113,18 +113,18 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			case "self":
 
 				//log.Printf("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, columnValue)
-				valUUid, err := uuid.Parse(columnValue.(string))
-				if err != nil {
+				var dir = daptinid.InterfaceToDIR(columnValue)
+				if dir == daptinid.NullReferenceId {
 					log.Errorf("Expected string in foreign key column[%v], found %v", col.ColumnName, columnValue)
 					return nil, errors.New("unexpected value in foreign key column")
 				}
 				var uId interface{}
-				foreignObjectReferenceId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, daptinid.DaptinReferenceId(valUUid), createTransaction)
+				foreignObjectReferenceId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
 				if err != nil {
-					return nil, fmt.Errorf("foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, daptinid.DaptinReferenceId(valUUid))
+					return nil, fmt.Errorf("foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, dir)
 				}
 
-				foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, daptinid.DaptinReferenceId(valUUid), createTransaction)
+				foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
 
 				if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 					uId = foreignObjectReferenceId

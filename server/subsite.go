@@ -341,7 +341,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="`+hostName+`"`)
 			w.WriteHeader(401)
 			w.Write([]byte("unauthorized"))
-		} else if ok {
+		} else {
 			userI := r.Context().Value("user")
 			var user *auth.SessionUser
 

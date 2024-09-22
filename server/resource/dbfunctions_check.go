@@ -81,33 +81,33 @@ func CheckRelations(config *CmsConfig) {
 
 	newTables := make([]TableInfo, 0)
 
-	for i, table := range config.Tables {
+	for i, _ := range config.Tables {
 
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
 
-		if table.TableName != "usergroup" &&
-			!table.IsJoinTable &&
-			!EndsWithCheck(table.TableName, "_audit") {
-			relation := api2go.NewTableRelation(table.TableName, "belongs_to", USER_ACCOUNT_TABLE_NAME)
-			relationGroup := api2go.NewTableRelation(table.TableName, "has_many", "usergroup")
+		if config.Tables[i].TableName != "usergroup" &&
+			!config.Tables[i].IsJoinTable &&
+			!EndsWithCheck(config.Tables[i].TableName, "_audit") {
+			relation := api2go.NewTableRelation(config.Tables[i].TableName, "belongs_to", USER_ACCOUNT_TABLE_NAME)
+			relationGroup := api2go.NewTableRelation(config.Tables[i].TableName, "has_many", "usergroup")
 
 			if !relationsDone[relationHash(relation)] {
 				relationsDone[relationHash(relation)] = true
-				config.Tables[i].Relations = append(config.Tables[i].Relations, relation)
+				config.Tables[i].AddRelation(relation)
 				finalRelations = append(finalRelations, relation)
 			}
 
 			if !relationsDone[relationHash(relationGroup)] {
 				relationsDone[relationHash(relationGroup)] = true
-				config.Tables[i].Relations = append(config.Tables[i].Relations, relationGroup)
+				config.Tables[i].AddRelation(relationGroup)
 				finalRelations = append(finalRelations, relationGroup)
 			}
 
 		}
 
-		userRelation := api2go.NewTableRelation(table.TableName+"_state", "belongs_to", USER_ACCOUNT_TABLE_NAME)
-		userGroupRelation := api2go.NewTableRelation(table.TableName+"_state", "has_many", "usergroup")
+		userRelation := api2go.NewTableRelation(config.Tables[i].TableName+"_state", "belongs_to", USER_ACCOUNT_TABLE_NAME)
+		userGroupRelation := api2go.NewTableRelation(config.Tables[i].TableName+"_state", "has_many", "usergroup")
 
 		if len(existingRelations) > 0 {
 			//log.Printf("Found existing %d relations from db for [%v]", len(existingRelations), config.Tables[i].TableName)
@@ -124,13 +124,13 @@ func CheckRelations(config *CmsConfig) {
 				}
 			}
 
-			if table.IsStateTrackingEnabled {
+			if config.Tables[i].IsStateTrackingEnabled {
 
 				stateRelation := api2go.TableRelation{
-					Subject:     table.TableName + "_state",
-					SubjectName: table.TableName + "_has_state",
-					Object:      table.TableName,
-					ObjectName:  "is_state_of_" + table.TableName,
+					Subject:     config.Tables[i].TableName + "_state",
+					SubjectName: config.Tables[i].TableName + "_has_state",
+					Object:      config.Tables[i].TableName,
+					ObjectName:  "is_state_of_" + config.Tables[i].TableName,
 					Relation:    "belongs_to",
 				}
 
@@ -147,7 +147,7 @@ func CheckRelations(config *CmsConfig) {
 				if !relationsDone[relationHash(stateRelation)] {
 
 					stateTable := TableInfo{
-						TableName: table.TableName + "_state",
+						TableName: config.Tables[i].TableName + "_state",
 						Columns: []api2go.ColumnInfo{
 							{
 								Name:       "current_state",
@@ -160,8 +160,8 @@ func CheckRelations(config *CmsConfig) {
 					}
 
 					stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
-					stateTableHasOneDescription.SubjectName = table.TableName + "_status"
-					stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
+					stateTableHasOneDescription.SubjectName = config.Tables[i].TableName + "_status"
+					stateTableHasOneDescription.ObjectName = config.Tables[i].TableName + "_smd"
 					finalRelations = append(finalRelations, stateTableHasOneDescription)
 					relationsDone[relationHash(stateTableHasOneDescription)] = true
 					relationsDone[relationHash(stateRelation)] = true
@@ -175,9 +175,9 @@ func CheckRelations(config *CmsConfig) {
 
 		} else {
 
-			if table.IsStateTrackingEnabled {
+			if config.Tables[i].IsStateTrackingEnabled {
 				stateTable := TableInfo{
-					TableName: table.TableName + "_state",
+					TableName: config.Tables[i].TableName + "_state",
 					Columns: []api2go.ColumnInfo{
 						{
 							Name:       "current_state",
@@ -190,16 +190,16 @@ func CheckRelations(config *CmsConfig) {
 				}
 
 				stateTableHasOneDescription := api2go.NewTableRelation(stateTable.TableName, "has_one", "smd")
-				stateTableHasOneDescription.SubjectName = table.TableName + "_status"
-				stateTableHasOneDescription.ObjectName = table.TableName + "_smd"
+				stateTableHasOneDescription.SubjectName = config.Tables[i].TableName + "_status"
+				stateTableHasOneDescription.ObjectName = config.Tables[i].TableName + "_smd"
 				finalRelations = append(finalRelations, stateTableHasOneDescription)
 				relationsDone[relationHash(stateTableHasOneDescription)] = true
 
 				stateRelation := api2go.TableRelation{
 					Subject:     stateTable.TableName,
-					SubjectName: table.TableName + "_has_state",
-					Object:      table.TableName,
-					ObjectName:  "is_state_of_" + table.TableName,
+					SubjectName: config.Tables[i].TableName + "_has_state",
+					Object:      config.Tables[i].TableName,
+					ObjectName:  "is_state_of_" + config.Tables[i].TableName,
 					Relation:    "belongs_to",
 				}
 				relationsDone[relationHash(stateRelation)] = true
@@ -214,7 +214,6 @@ func CheckRelations(config *CmsConfig) {
 			}
 
 		}
-		config.Tables[i] = table
 	}
 
 	log.Printf("%d state tables on base entities", len(newTables))
@@ -224,12 +223,40 @@ func CheckRelations(config *CmsConfig) {
 	convertRelationsToColumns(finalRelations, config)
 	convertRelationsToColumns(StandardRelations, config)
 
+	//updatedTables := make([]TableInfo, 0)
+	//for _, table := range config.Tables {
+	//	table.Relations = filterRelations(table.TableName, finalRelations, StandardRelations)
+	//	updatedTables = append(updatedTables, table)
+	//	log.Debugf("Table [%s] has relations %v", table.TableName, table.Relations)
+	//}
+	//config.Tables = updatedTables
+
 	//config.Tables[stateMachineDescriptionTableIndex] = stateMachineDescriptionTable
 
 	//for _, relation := range finalRelations {
 	//	log.Printf("All relations: %v", relation.String())
 	//}
 	PrintRelations(finalRelations)
+}
+
+func filterRelations(name string, relations []api2go.TableRelation, relations2 []api2go.TableRelation) []api2go.TableRelation {
+
+	relationList := make([]api2go.TableRelation, 0)
+
+	for _, relation := range relations {
+		if relation.Subject == name || relation.ObjectName == name {
+			relationList = append(relationList, relation)
+		}
+	}
+
+	for _, relation := range relations2 {
+		if relation.Subject == name || relation.ObjectName == name {
+			relationList = append(relationList, relation)
+		}
+	}
+
+	return relationList
+
 }
 
 func PrintRelations(relations []api2go.TableRelation) {

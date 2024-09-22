@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/json-iterator/go"
+	"github.com/sirupsen/logrus"
 	"unsafe"
 )
 
@@ -78,3 +79,24 @@ func (d *DaptinReferenceId) UnmarshalBinary(data []byte) error {
 }
 
 var NullReferenceId DaptinReferenceId
+
+func InterfaceToDIR(oauthTokenId1 interface{}) DaptinReferenceId {
+	asStr, isStr := oauthTokenId1.(string)
+	if oauthTokenId1 == nil {
+		logrus.Printf("No oauth token set for target store")
+	} else if isStr {
+		if asStr == "<nil>" {
+			logrus.Printf("No oauth token set for target store")
+		} else {
+			oauthTokenId, err := uuid.Parse(asStr)
+			if err != nil {
+				return NullReferenceId
+			}
+			return DaptinReferenceId(oauthTokenId)
+		}
+	} else {
+		oauthTokenId := oauthTokenId1.(DaptinReferenceId)
+		return oauthTokenId
+	}
+	return NullReferenceId
+}

@@ -51,15 +51,24 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
-	oauthTokenId1, err := uuid.Parse(inFields["oauth_token_id"].(string))
-	if err != nil {
+	oauthTokenId1 := inFields["oauth_token_id"]
+	asStr, isStr := oauthTokenId1.(string)
+	if oauthTokenId1 == nil {
 		log.Printf("No oauth token set for target store")
+	} else if isStr {
+		if asStr == "<nil>" {
+			log.Printf("No oauth token set for target store")
+		} else {
+			oauthTokenId, err := uuid.Parse(asStr)
+			token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(daptinid.DaptinReferenceId(oauthTokenId), transaction)
+			CheckErr(err, "Failed to parse token reference id")
+
+		}
 	} else {
-		oauthTokenId := daptinid.DaptinReferenceId(oauthTokenId1)
+		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}
-
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to marshal access token to json")
 

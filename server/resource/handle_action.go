@@ -705,9 +705,10 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
 	if err != nil {
 		return actionRequest, err
 	}
+	closer.Close()
 
 	err = json.Unmarshal(bytes, &actionRequest)
-	CheckErr(err, "Failed to read request body as json")
+	CheckErr(err, "Failed to read request body as json => "+string(bytes))
 	if err != nil {
 		values, err := url.ParseQuery(string(bytes))
 		CheckErr(err, "Failed to parse body as query values")

@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -200,7 +201,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 		data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)
 
 		if certMap != nil && certMap["reference_id"] != nil {
-			data.SetID(certMap["reference_id"].(string))
+			data.SetID(certMap["reference_id"].(fmt.Stringer).String())
 			if err != nil {
 				return nil, nil, nil, nil, nil, err
 			}

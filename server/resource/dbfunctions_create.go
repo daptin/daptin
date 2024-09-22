@@ -611,6 +611,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 						config.Tables[i].IsTopLevel = false
 						//log.Printf("Table [%v] is not top level == %v", t.TableName, targetTable)
 					}
+					config.Tables[i].AddRelation(relation)
 				}
 
 			}

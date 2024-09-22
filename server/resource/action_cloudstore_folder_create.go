@@ -56,8 +56,19 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
 	oauthTokenId1 := inFields["oauth_token_id"]
+
+	asStr, isStr := oauthTokenId1.(string)
 	if oauthTokenId1 == nil {
 		log.Printf("No oauth token set for target store")
+	} else if isStr {
+		if asStr == "<nil>" {
+			log.Printf("No oauth token set for target store")
+		} else {
+			oauthTokenId, err := uuid.Parse(asStr)
+			token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(daptinid.DaptinReferenceId(oauthTokenId), transaction)
+			CheckErr(err, "Failed to parse token reference id")
+
+		}
 	} else {
 		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)

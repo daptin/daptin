@@ -245,7 +245,7 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 		"private_key_pem":  string(certificates.PrivateKey),
 		"public_key_pem":   publicKeyBytes,
 		"root_certificate": rootCert,
-		"reference_id":     certificateSubject["reference_id"].(string),
+		"reference_id":     daptinid.InterfaceToDIR(certificateSubject["reference_id"]),
 	}
 
 	data := api2go.NewApi2GoModelWithData("certificate", nil, 0, nil, newCertificate)

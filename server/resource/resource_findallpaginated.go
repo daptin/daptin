@@ -1339,7 +1339,7 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 		actualvalue = filterQuery.Value
 
 		if filterQuery.ColumnName == "reference_id" {
-			i := uuid.MustParse(filterQuery.Value.(string))
+			i := daptinid.InterfaceToDIR(filterQuery.Value)
 			actualvalue = i[:]
 		}
 
