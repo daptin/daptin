@@ -35,17 +35,17 @@ func (c *DaptinReferenceEncoder) IsEmpty(ptr unsafe.Pointer) bool {
 	return false
 }
 
-func (d DaptinReferenceId) String() string {
+func (d *DaptinReferenceId) String() string {
 	x, _ := uuid.FromBytes(d[:])
 	return x.String()
 }
 
-func (d DaptinReferenceId) MarshalJSON() ([]byte, error) {
+func (d *DaptinReferenceId) MarshalJSON() ([]byte, error) {
 	x, _ := uuid.FromBytes(d[:])
 	return []byte("\"" + x.String() + "\""), nil
 }
 
-func (d DaptinReferenceId) UnmarshalJSON(val []byte) error {
+func (d *DaptinReferenceId) UnmarshalJSON(val []byte) error {
 	s := string(val)
 	if len(s) > 2 {
 		if s[0] == '"' && s[len(s)-1] == '"' {
@@ -63,7 +63,7 @@ func (d DaptinReferenceId) UnmarshalJSON(val []byte) error {
 	return nil
 }
 
-func (d DaptinReferenceId) MarshalBinary() (data []byte, err error) {
+func (d *DaptinReferenceId) MarshalBinary() (data []byte, err error) {
 	// Return a copy of the 16-byte array
 	return d[:], nil
 }
