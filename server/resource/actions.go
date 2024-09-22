@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/artpar/api2go"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/google/uuid"
 )
 
 // Outcome is call to a internal function with attributes as parameters
@@ -34,7 +36,7 @@ type Action struct {
 	OnType                  string
 	InstanceOptional        bool
 	RequestSubjectRelations []string
-	ReferenceId             string
+	ReferenceId             daptinid.DaptinReferenceId
 	InFields                []api2go.ColumnInfo
 	OutFields               []Outcome
 	Validations             []ColumnTag
@@ -48,7 +50,7 @@ type ActionRow struct {
 	Label            string
 	OnType           string
 	InstanceOptional bool `db:"instance_optional"`
-	ReferenceId      string
+	ReferenceId      daptinid.DaptinReferenceId
 	ActionSchema     string `db:"action_schema"`
 }
 
@@ -77,7 +79,7 @@ func (e ActionRow) MarshalBinary() (data []byte, err error) {
 	}
 
 	// Encode ReferenceId
-	if err := encodeString(buffer, e.ReferenceId); err != nil {
+	if err := encodeString(buffer, e.ReferenceId.String()); err != nil {
 		return nil, err
 	}
 
@@ -123,7 +125,7 @@ func (e *ActionRow) UnmarshalBinary(data []byte) error {
 	if referenceId, err := decodeString(buffer); err != nil {
 		return err
 	} else {
-		e.ReferenceId = referenceId
+		e.ReferenceId = daptinid.DaptinReferenceId(uuid.MustParse(referenceId))
 	}
 
 	// Decode ActionSchema

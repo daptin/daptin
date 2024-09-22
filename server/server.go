@@ -693,7 +693,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		c.String(200, "pong")
 	})
 
-	handler := CreateJsModelHandler(&initConfig, cruds, transaction)
+	jsModelHandler := CreateJsModelHandler(&initConfig, cruds, transaction)
 	transaction.Commit()
 	metaHandler := CreateMetaHandler(&initConfig)
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
@@ -749,11 +749,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		})
 	}
 
-	defaultRouter.GET("/jsmodel/:typename", handler)
+	defaultRouter.GET("/jsmodel/:typename", jsModelHandler)
 	defaultRouter.GET("/aggregate/:typename", statsHandler)
 	defaultRouter.GET("/meta", metaHandler)
 	defaultRouter.GET("/openapi.yaml", blueprintHandler)
-	defaultRouter.OPTIONS("/jsmodel/:typename", handler)
+	defaultRouter.OPTIONS("/jsmodel/:typename", jsModelHandler)
 	defaultRouter.OPTIONS("/openapi.yaml", blueprintHandler)
 
 	actionHandler := resource.CreatePostActionHandler(&initConfig, cruds, actionPerformers)

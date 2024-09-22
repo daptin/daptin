@@ -60,9 +60,11 @@ const (
 	GroupCRUD = GroupPeek | GroupRead | GroupCreate | GroupUpdate | GroupDelete | GroupRefer
 )
 
-var DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
-var DEFAULT_PERMISSION_WHEN_ON_ADMIN = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
-var ALLOW_ALL_PERMISSIONS = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
+const (
+	DEFAULT_PERMISSION               = GuestPeek | GuestExecute | UserRead | UserExecute | GroupRead | GroupExecute
+	DEFAULT_PERMISSION_WHEN_NO_ADMIN = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
+	ALLOW_ALL_PERMISSIONS            = GuestCRUD | GuestExecute | UserCRUD | UserExecute | GroupCRUD | GroupExecute
+)
 
 func (a AuthPermission) String() string {
 	return fmt.Sprintf("%d", a)

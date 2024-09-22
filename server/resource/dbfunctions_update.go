@@ -1138,7 +1138,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	defaultWorldPermission := auth.DEFAULT_PERMISSION
 
 	if systemHasNoAdmin {
-		defaultWorldPermission = auth.DEFAULT_PERMISSION_WHEN_ON_ADMIN
+		defaultWorldPermission = auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN
 	}
 
 	st := simpletable.New()

@@ -40,6 +40,29 @@ func (d DaptinReferenceId) String() string {
 	return x.String()
 }
 
+func (d DaptinReferenceId) MarshalJSON() ([]byte, error) {
+	x, _ := uuid.FromBytes(d[:])
+	return []byte("\"" + x.String() + "\""), nil
+}
+
+func (d DaptinReferenceId) UnmarshalJSON(val []byte) error {
+	s := string(val)
+	if len(s) > 2 {
+		if s[0] == '"' && s[len(s)-1] == '"' {
+			s = s[1 : len(s)-1] // unquoted s
+		}
+		if s[0] == '\'' && s[len(s)-1] == '\'' {
+			s = s[1 : len(s)-1] // unquoted s
+		}
+	}
+	x, err := uuid.Parse(s)
+	if err != nil {
+		return err
+	}
+	copy(d[:], x[:16])
+	return nil
+}
+
 func (d DaptinReferenceId) MarshalBinary() (data []byte, err error) {
 	// Return a copy of the 16-byte array
 	return d[:], nil
