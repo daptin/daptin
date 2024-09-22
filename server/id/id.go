@@ -18,11 +18,11 @@ func (dr *DaptinReferenceId) Scan(value interface{}) error {
 	}
 	// Convert asBytes into the appropriate type for DaptinReferenceId
 	// You may need to interpret the bytes accordingly (e.g., converting them to a string, parsing them, etc.)
-	*dr = DaptinReferenceId(asBytes)
+	copy(dr[:], asBytes)
 	return nil
 }
 
-func (c *DaptinReferenceEncoder) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+func (c DaptinReferenceEncoder) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
 	src := *((*DaptinReferenceId)(ptr))
 
 	//attachVal, _ := stream.Attachment.(DaptinReferenceId)
@@ -31,16 +31,16 @@ func (c *DaptinReferenceEncoder) Encode(ptr unsafe.Pointer, stream *jsoniter.Str
 	stream.WriteRaw(`"`)
 }
 
-func (c *DaptinReferenceEncoder) IsEmpty(ptr unsafe.Pointer) bool {
+func (c DaptinReferenceEncoder) IsEmpty(ptr unsafe.Pointer) bool {
 	return false
 }
 
-func (d *DaptinReferenceId) String() string {
+func (d DaptinReferenceId) String() string {
 	x, _ := uuid.FromBytes(d[:])
 	return x.String()
 }
 
-func (d *DaptinReferenceId) MarshalJSON() ([]byte, error) {
+func (d DaptinReferenceId) MarshalJSON() ([]byte, error) {
 	x, _ := uuid.FromBytes(d[:])
 	return []byte("\"" + x.String() + "\""), nil
 }
@@ -63,7 +63,7 @@ func (d *DaptinReferenceId) UnmarshalJSON(val []byte) error {
 	return nil
 }
 
-func (d *DaptinReferenceId) MarshalBinary() (data []byte, err error) {
+func (d DaptinReferenceId) MarshalBinary() (data []byte, err error) {
 	// Return a copy of the 16-byte array
 	return d[:], nil
 }
