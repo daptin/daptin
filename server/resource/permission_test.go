@@ -56,6 +56,6 @@ func TestPermission(t *testing.T) {
 			RelationReferenceId: daptinid.NullReferenceId,
 			Permission:          auth.GuestRead | auth.GroupCRUD | auth.GroupExecute,
 		},
-	})
+	}, daptinid.NullReferenceId)
 
 }
