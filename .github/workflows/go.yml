@@ -358,6 +358,13 @@ jobs:
           ls build
           find build
           file build/github.com/*
+          echo ${{ steps.get_version.outputs.version }}
+          cp ./build/github.com/daptin/daptin-linux-amd64 main
+          docker build -t daptin/daptin:${{ steps.get_version.outputs.version }} .
+          docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
+          docker push daptin/daptin:${{ steps.get_version.outputs.version }}
+          docker tag daptin/daptin:${{ steps.get_version.outputs.version }} daptin/daptin:${{ steps.get_version.outputs.version }}
+          docker push daptin/daptin:${{ steps.get_version.outputs.version }}
 
       - uses: actions/upload-artifact@v4
         name: Upload linux amd64 artifact
