@@ -439,5 +439,4 @@ jobs:
           docker push daptin/daptin:${{ steps.get_version.outputs.version }}
           docker tag daptin/daptin:${{ steps.get_version.outputs.version }} daptin/daptin:${{ steps.get_version.outputs.version }}
           docker push daptin/daptin:${{ steps.get_version.outputs.version }}
-        if: matrix.os == 'ubuntu-latest' && matrix.job_name == 'linux'
 
