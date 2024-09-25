@@ -431,9 +431,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push docker image
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           echo ${{ steps.get_version.outputs.version }}
-          GOOS=linux go build  -a -ldflags "$(govvv -flags) -extldflags '-static'" -o main
+          cp ./build/github.com/daptin/daptin-linux-amd64 main
           docker build -t daptin/daptin:${{ steps.get_version.outputs.version }} .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:${{ steps.get_version.outputs.version }}

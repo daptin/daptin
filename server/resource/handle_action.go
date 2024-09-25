@@ -191,6 +191,14 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 
 func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request, transaction *sqlx.Tx) ([]ActionResponse, error) {
 
+	envLines := os.Environ()
+	envMap := make(map[string]string)
+	for _, env := range envLines {
+		key := env[0:strings.Index(env, "=")]
+		value := env[strings.Index(env, "=")+1:]
+		envMap[key] = value
+	}
+
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
 
