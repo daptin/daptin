@@ -8,7 +8,7 @@ WORKDIR /opt/daptin
 
 COPY --from=certs /etc/ssl/certs /etc/ssl/certs
 
-COPY github.com/daptin/daptin-linux-amd64 /opt/daptin/daptin
+COPY daptin-linux-amd64 /opt/daptin/daptin
 RUN chmod +x /opt/daptin/daptin
 RUN ls -lah /opt/daptin/daptin
 
