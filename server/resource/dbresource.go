@@ -35,6 +35,7 @@ type DbResource struct {
 	ActionHandlerMap     map[string]ActionPerformerInterface
 	configStore          *ConfigStore
 	contextCache         map[string]interface{}
+	envMap               map[string]string
 	defaultGroups        []int64
 	AdministratorGroupId daptinid.DaptinReferenceId
 	defaultRelations     map[string][]int64
@@ -145,6 +146,15 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
 	olricDb *olric.EmbeddedClient, tableInfo TableInfo) (*DbResource, error) {
+
+	envLines := os.Environ()
+	envMap := make(map[string]string)
+	for _, env := range envLines {
+		key := env[0:strings.Index(env, "=")]
+		value := env[strings.Index(env, "=")+1:]
+		envMap[key] = value
+	}
+
 	if OlricCache == nil {
 		OlricCache, _ = olricDb.NewDMap("default-cache")
 	}
@@ -177,6 +187,7 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 		ms:                   ms,
 		configStore:          configStore,
 		Cruds:                cruds,
+		envMap:               envMap,
 		tableInfo:            &tableInfo,
 		OlricDb:              olricDb,
 		defaultGroups:        defaultgroupIds,
