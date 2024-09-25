@@ -395,7 +395,7 @@ OutFields:
 			if outcome.ContinueOnError {
 				continue
 			} else {
-				return []ActionResponse{}, fmt.Errorf("invalid input for %v", outcome.Type)
+				return []ActionResponse{}, fmt.Errorf("invalid input for %v => %v", outcome.Type, err)
 			}
 		}
 		model = *modelPointer
