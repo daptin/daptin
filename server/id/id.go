@@ -95,8 +95,15 @@ func InterfaceToDIR(oauthTokenId1 interface{}) DaptinReferenceId {
 			return DaptinReferenceId(oauthTokenId)
 		}
 	} else {
-		oauthTokenId := oauthTokenId1.(DaptinReferenceId)
-		return oauthTokenId
+		oauthTokenId, isDir := oauthTokenId1.(DaptinReferenceId)
+		if isDir {
+			return oauthTokenId
+		}
+		asUuid, isUuid := oauthTokenId1.(uuid.UUID)
+		if isUuid {
+			return DaptinReferenceId(asUuid)
+		}
+
 	}
 	return NullReferenceId
 }
