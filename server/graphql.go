@@ -823,7 +823,12 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					if err != nil {
 						return nil, err
 					}
+					defer transaction.Commit()
+
 					response, err := resources[action.OnType].HandleActionRequest(actionRequest, req, transaction)
+					if err != nil {
+						transaction.Rollback()
+					}
 
 					return response, err
 				},

@@ -86,6 +86,7 @@ func (ati *ActiveTaskInstance) Run() {
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [88]")
 	}
+	defer transaction.Commit()
 
 	if ati.Task.AsUserEmail != "" {
 
@@ -113,6 +114,7 @@ func (ati *ActiveTaskInstance) Run() {
 	res, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req, transaction)
 
 	if err != nil {
+		transaction.Rollback()
 		log.Errorf("Errors while executing action 109: %v", err)
 	} else {
 		log.Debugf("Response from action: %v", res)

@@ -397,9 +397,12 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		CheckErr(err, "Failed to begin transaction [383]")
 		return nil, err
 	}
+	defer transaction.Commit()
+
 	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest, transaction)
 
 	if err != nil {
+		transaction.Rollback()
 		return nil, err
 	}
 
@@ -417,7 +420,6 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 			ids = append(ids, uint32(i+1))
 		}
 	}
-	transaction.Commit()
 
 	return ids, nil
 }

@@ -596,6 +596,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 				for _, str := range uuidStringQueries {
 					u, er := uuid.Parse(str)
 					if er != nil {
+						return nil, nil, nil, false, fmt.Errorf("failed to parse value as uuid: [%s] => %v", str, er)
+					} else {
 						uuidByteQueries = append(uuidByteQueries, daptinid.DaptinReferenceId(u))
 					}
 				}
@@ -1451,6 +1453,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		CheckErr(err, "Failed to begin transaction [1434]")
 		return 0, nil, err
 	}
+	defer transaction.Commit()
 
 	for _, bf := range dbResource.ms.BeforeFindAll {
 		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
