@@ -829,7 +829,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 								object, _, _ := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, daptinid.DaptinReferenceId(referenceId), map[string]bool{
 									columnInfo.ColumnName: true,
 								}, transaction)
-								transaction.Rollback()
 								log.Tracef("Completed dtopicMapListener GetSingleRowByReferenceIdWithTransaction")
 
 								colValue := object[columnInfo.ColumnName]
@@ -852,7 +851,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 								documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
 								document := documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
-								if document != nil {
+								transaction.Rollback()
+								if document != nil && len(fileContentsJson) > 0 {
 									document.SetInitialContent(fileContentsJson)
 								}
 

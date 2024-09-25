@@ -118,10 +118,13 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 					for i, fileInterface := range fileColumnValueArray {
 
 						file := fileInterface.(map[string]interface{})
-						if file["type"] == "x-crdt/yjs" {
+						if file["type"] != "x-crdt/yjs" {
 							continue
 						}
-						filename := file["name"]
+						filename, ok := file["name"]
+						if !ok {
+							filename = column.ColumnName + "_" + referenceId.String() + ".txt"
+						}
 						filenamestring := filename.(string)
 						if stateFileExists[filenamestring] {
 							continue

@@ -222,7 +222,11 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 	subjectInstanceReferenceUuid, isDir := subjectInstanceReferenceString.(daptinid.DaptinReferenceId)
 	subjectInstanceReferenceStringVal, isString := subjectInstanceReferenceString.(string)
 	if !isDir && isString {
-		subjectInstanceReferenceUuid = daptinid.DaptinReferenceId(uuid.MustParse(subjectInstanceReferenceStringVal))
+		asUuid, err := uuid.Parse(subjectInstanceReferenceStringVal)
+		if err != nil {
+			return nil, api2go.NewHTTPError(err, "invalid reference_id ["+subjectInstanceReferenceStringVal+"]", 400)
+		}
+		subjectInstanceReferenceUuid = daptinid.DaptinReferenceId(asUuid)
 	}
 	if ok {
 		req.PlainRequest.Method = "GET"
