@@ -1,16 +1,20 @@
 FROM alpine as certs
 RUN apk update && apk add ca-certificates
 
-FROM busybox
+FROM  --platform=linux/arm64 ubuntu
 
 MAINTAINER Parth Mudgal <artpar@gmail.com>
-WORKDIR /opt/daptin
+WORKDIR /
 
 COPY --from=certs /etc/ssl/certs /etc/ssl/certs
 
-COPY github.com/daptin/daptin-linux-arm64 /opt/daptin/daptin
+COPY daptin-linux-arm64 /opt/daptin/daptin
 RUN chmod +x /opt/daptin/daptin
 RUN ls -lah /opt/daptin/daptin
+
+#COPY daptin-linux-arm64 /bin/daptin
+#RUN chmod +x /bin/daptin
+#RUN ls -lah /bin/daptin
 
 EXPOSE 8080
 ENTRYPOINT ["/opt/daptin/daptin", "-runtime", "release", "-port", ":8080"]

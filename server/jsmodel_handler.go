@@ -140,9 +140,14 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 	for _, world := range worlds {
 		worldToReferenceId[world["table_name"].(string)] = world["reference_id"].(daptinid.DaptinReferenceId)
 	}
+	cacheMap := make(map[string]string)
 
 	return func(c *gin.Context) {
 		typeName := strings.Split(c.Param("typename"), ".")[0]
+		if jsModel, ok := cacheMap[typeName]; ok {
+			c.String(200, jsModel)
+			return
+		}
 		selectedTable, isTable := tableMap[typeName]
 
 		if !isTable {
@@ -277,10 +282,16 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		}
 
 		//res["__type"] = "string"
-		c.JSON(200, jsModel)
-		if true {
+
+		resBody, err := json.Marshal(jsModel)
+		if err != nil {
+			c.Error(err)
 			return
 		}
+		asStr := string(resBody)
+		cacheMap[typeName] = asStr
+		//c.Render(200, render.Render())
+		c.String(200, asStr)
 
 		//j, _ := json.Marshal(res)
 
