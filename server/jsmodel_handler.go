@@ -144,10 +144,10 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 	return func(c *gin.Context) {
 		typeName := strings.Split(c.Param("typename"), ".")[0]
-		if jsModel, ok := cacheMap[typeName]; ok {
-			c.String(200, jsModel)
-			return
-		}
+		//if jsModel, ok := cacheMap[typeName]; ok {
+		//	c.String(200, jsModel)
+		//	return
+		//}
 		selectedTable, isTable := tableMap[typeName]
 
 		if !isTable {
