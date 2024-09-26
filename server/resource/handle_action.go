@@ -236,7 +236,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 		req.PlainRequest.Method = "GET"
 		req.QueryParams = make(map[string][]string)
 		req.QueryParams["included_relations"] = action.RequestSubjectRelations
-		referencedObject, err := dbResource.FindOneWithTransaction(daptinid.DaptinReferenceId(subjectInstanceReferenceUuid), req, transaction)
+		referencedObject, err := dbResource.FindOneWithTransaction(subjectInstanceReferenceUuid, req, transaction)
 		if err != nil {
 			log.Warnf("failed to load subject for action: %v - [%v][%v]", actionRequest.Action, actionRequest.Type, subjectInstanceReferenceString)
 			return nil, api2go.NewHTTPError(err, "failed to load subject", 400)

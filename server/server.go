@@ -758,6 +758,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	actionHandler := resource.CreatePostActionHandler(&initConfig, cruds, actionPerformers)
 	defaultRouter.POST("/action/:typename/:actionName", actionHandler)
+	defaultRouter.PATCH("/action/:typename/:actionName", actionHandler)
+	defaultRouter.PUT("/action/:typename/:actionName", actionHandler)
+	defaultRouter.DELETE("/action/:typename/:actionName", actionHandler)
 	defaultRouter.GET("/action/:typename/:actionName", actionHandler)
 
 	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))

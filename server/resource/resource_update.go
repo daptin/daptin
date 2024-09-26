@@ -205,7 +205,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						continue
 					}
 
-					log.Printf("Cloud storage: %v", cloudStore)
+					log.Printf("[208] Cloud storage: %v", cloudStore)
 
 					actionRequestParameters["oauth_token_id"] = cloudStore.OAutoTokenId
 					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
