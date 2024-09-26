@@ -2246,6 +2246,9 @@ var StandardTables = []TableInfo{
 		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Icon:          "fa-bolt",
+		CompositeKeys: [][]string{
+			{"action_name", "world_id"},
+		},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "action_name",
