@@ -359,7 +359,7 @@ jobs:
           find build
           file build/github.com/*
           echo ${{ github.ref_name }}
-          cp ./build/github.com/daptin/daptin-linux-amd64 main
+          cp ./build/github.com/daptin/daptin-linux-amd64 daptin-linux-amd64
           docker build -t daptin/daptin:${{ github.ref_name }} .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:${{ github.ref_name }}
