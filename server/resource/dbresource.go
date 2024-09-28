@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	uuid "github.com/google/uuid"
 	"os"
@@ -143,6 +144,8 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 }
 
+var CRUD_MAP = make(map[string]*DbResource)
+
 func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
 	olricDb *olric.EmbeddedClient, tableInfo TableInfo) (*DbResource, error) {
@@ -180,7 +183,7 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	}
 
 	//log.Printf("Columns [%v]: %v\n", model.GetName(), model.GetColumnNames())
-	return &DbResource{
+	tableCrud := &DbResource{
 		model:                model,
 		db:                   db,
 		Connection:           db,
@@ -197,7 +200,10 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 		contextLock:          sync.RWMutex{},
 		AssetFolderCache:     make(map[string]map[string]*AssetFolderCache),
 		SubsiteFolderCache:   make(map[daptinid.DaptinReferenceId]*AssetFolderCache),
-	}, nil
+	}
+
+	CRUD_MAP[model.GetTableName()] = tableCrud
+	return tableCrud, nil
 }
 
 func RelationNamesToIds(db database.DatabaseConnection, tableInfo TableInfo) (map[string][]int64, error) {
@@ -391,9 +397,15 @@ func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[uuid.UUID]bool
 	return adminMap
 }
 
-func IsAdminWithTransaction(userReferenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) bool {
-	userUUid, _ := uuid.FromBytes(userReferenceId[:])
-	key := "admin." + string(userReferenceId[:])
+func IsAdminWithTransaction(userReferenceId *auth.SessionUser, transaction *sqlx.Tx) bool {
+	userUUid, _ := uuid.FromBytes(userReferenceId.UserReferenceId[:])
+	key := "admin." + string(userReferenceId.UserReferenceId[:])
+	adminGroupId := CRUD_MAP[USER_ACCOUNT_TABLE_NAME].AdministratorGroupId
+	for _, ugid := range userReferenceId.Groups {
+		if ugid.GroupReferenceId == adminGroupId {
+			return true
+		}
+	}
 
 	if OlricCache != nil {
 		//fmt.Println("IsAdminWithTransaction [" + key + "]")

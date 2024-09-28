@@ -219,7 +219,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 		return nil, api2go.NewHTTPError(err, "no such action", 400)
 	}
 
-	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
+	isAdmin := IsAdminWithTransaction(sessionUser, transaction)
 
 	subjectInstanceReferenceString, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
 
@@ -499,7 +499,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
+				actionResponse = NewActionResponse(outcome.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "GET_BY_ID":
@@ -531,7 +531,7 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
-				actionResponse = NewActionResponse(actionRequest.Type, responseObjects)
+				actionResponse = NewActionResponse(outcome.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "PATCH":

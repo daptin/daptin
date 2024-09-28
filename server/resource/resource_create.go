@@ -45,7 +45,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, createTransaction)
+	isAdmin := IsAdminWithTransaction(sessionUser, createTransaction)
 
 	attrs := data.GetAllAsAttributes()
 

@@ -188,7 +188,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	}
 
 	start := time.Now()
-	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
+	isAdmin := IsAdminWithTransaction(sessionUser, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindAllIsAdminCheck %v", duration)
 

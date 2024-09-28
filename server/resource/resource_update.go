@@ -54,7 +54,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
 	}
-	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, updateTransaction)
+	isAdmin := IsAdminWithTransaction(sessionUser, updateTransaction)
 
 	attrs := data.GetAllAsAttributes()
 

@@ -38,7 +38,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	if IsAdminWithTransaction(sessionUser.UserReferenceId, transaction) {
+	if IsAdminWithTransaction(sessionUser, transaction) {
 		return results, nil
 	}
 
@@ -83,7 +83,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	if IsAdminWithTransaction(sessionUser.UserReferenceId, transaction) {
+	if IsAdminWithTransaction(sessionUser, transaction) {
 		return results, nil
 	}
 

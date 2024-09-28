@@ -36,7 +36,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 		sessionUser = user.(*auth.SessionUser)
 
 	}
-	isAdmin := IsAdminWithTransaction(sessionUser.UserReferenceId, transaction)
+	isAdmin := IsAdminWithTransaction(sessionUser, transaction)
 
 	m := dbResource.model
 	//log.Printf("Get all resource type: %v\n", m)
