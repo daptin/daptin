@@ -3024,8 +3024,17 @@ func (dbResource *DbResource) GetSingleColumnValueByReferenceId(
 func GetSingleColumnValueByReferenceIdWithTransaction(
 	typeName string, selectColumn []interface{}, matchColumn string, values []string, transaction *sqlx.Tx) ([]interface{}, error) {
 	log.Tracef("GetSingleColumnValueByReferenceIdWithTransaction: [%v] => [%v]", typeName, selectColumn)
+
+	actualValues := make([]interface{}, 0)
+	for _, val := range values {
+		asUuid, err := uuid.Parse(val)
+		if err != nil {
+			return nil, err
+		}
+		actualValues = append(actualValues, asUuid[:])
+	}
 	s, q, err := statementbuilder.Squirrel.
-		Select(selectColumn...).Prepared(true).From(typeName).Where(goqu.Ex{matchColumn: values}).ToSQL()
+		Select(selectColumn...).Prepared(true).From(typeName).Where(goqu.Ex{matchColumn: actualValues}).ToSQL()
 	if err != nil {
 		return nil, err
 	}

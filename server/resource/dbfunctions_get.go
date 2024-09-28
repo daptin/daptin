@@ -355,7 +355,9 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.DaptinReferenceId, transaction *sqlx.Tx) (CloudStore, error) {
 	var cloudStore CloudStore = CloudStore{}
 
-	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, transaction, goqu.Ex{"reference_id": referenceID[:]})
+	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, transaction, goqu.Ex{
+		"reference_id": referenceID[:],
+	})
 	if err == nil && len(rows) > 0 {
 		row := rows[0]
 		cloudStore.Name = row["name"].(string)

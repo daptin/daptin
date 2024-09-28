@@ -63,28 +63,34 @@ func relationHash(rel api2go.TableRelation) string {
 }
 
 func CheckRelations(config *CmsConfig) {
-	relations := config.Relations
+	newRelationsFromConfig := config.Relations
 	config.Relations = make([]api2go.TableRelation, 0)
 	finalRelations := make([]api2go.TableRelation, 0)
 	relationsDone := make(map[string]bool)
 
-	for _, relation := range relations {
+	for _, newRelationFromConfig := range newRelationsFromConfig {
 
-		_, ok := relationsDone[relationHash(relation)]
+		_, ok := relationsDone[relationHash(newRelationFromConfig)]
 		if ok {
 			continue
 		} else {
-			relationsDone[relationHash(relation)] = true
-			finalRelations = append(finalRelations, relation)
+			relationsDone[relationHash(newRelationFromConfig)] = true
+			finalRelations = append(finalRelations, newRelationFromConfig)
 		}
 	}
 
 	newTables := make([]TableInfo, 0)
 
-	for i, _ := range config.Tables {
+	for i, tab := range config.Tables {
 
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
+
+		for _, rel := range newRelationsFromConfig {
+			if rel.GetSubject() == tab.TableName || rel.GetObject() == tab.TableName {
+				config.Tables[i].AddRelation(rel)
+			}
+		}
 
 		if config.Tables[i].TableName != "usergroup" &&
 			!config.Tables[i].IsJoinTable &&
