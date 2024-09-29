@@ -439,7 +439,7 @@ func runTests(t *testing.T) error {
 	}
 	if resp.Response().StatusCode != 403 {
 		t.Errorf("Was able to get aggreagte without auth token")
-		t.Fail()
+		t.FailNow()
 	}
 
 	resp, err = requestClient.Post(baseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
@@ -463,7 +463,7 @@ func runTests(t *testing.T) error {
 
 	if signUpResponse.([]interface{})[0].(map[string]interface{})["ResponseType"] != "client.notify" {
 		t.Errorf("419 Unexpected response type from sign up - %v", signUpResponse)
-		t.Fail()
+		t.FailNow()
 	}
 
 	resp, err = requestClient.Post(baseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
@@ -474,7 +474,7 @@ func runTests(t *testing.T) error {
 	}))
 
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		return fmt.Errorf("failed to get signin %v", err)
 	}
 
@@ -486,7 +486,7 @@ func runTests(t *testing.T) error {
 	responseAttr := signInResponse.([]interface{})[0].(map[string]interface{})
 	if responseAttr["ResponseType"] != "client.store.set" {
 		t.Errorf("440 Unexpected response type from sign up - %v", responseAttr)
-		t.Fail()
+		t.FailNow()
 	}
 
 	token = responseAttr["Attributes"].(map[string]interface{})["value"].(string)
@@ -498,7 +498,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress+"/aggregate/world?group=is_hidden&column=is_hidden,count(*)", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed query aggregate endpoint %s %s", "world", err)
-		t.Fail()
+		t.FailNow()
 		return fmt.Errorf("failed to query aggregate endpoint - %v", err)
 	}
 	t.Logf("Aggregation response: %v", resp.String())
@@ -506,14 +506,14 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress + "/jsmodel/world.js")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "jsmodel world", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	jsModelMap := make(map[string]interface{})
 	err = resp.ToJSON(&jsModelMap)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "unmarshal jsmomdel world", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -524,28 +524,28 @@ func runTests(t *testing.T) error {
 	_, err = requestClient.Get(baseAddress + "/favicon.ico")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "favicon.ico", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
 	_, err = requestClient.Get(baseAddress + "/favicon.png")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "favicon.png", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
 	resp, err = requestClient.Get(baseAddress + "/statistics")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "statistics", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
 	resp, err = requestClient.Get(baseAddress + "/openapi.yaml")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "openapi.yaml", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -553,7 +553,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress+"/api/world", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "world with token ", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -564,14 +564,14 @@ func runTests(t *testing.T) error {
 
 	if firstRow["type"] != "world" {
 		t.Errorf("world type mismatch")
-		t.Fail()
+		t.FailNow()
 	}
 
 	resp, err = requestClient.Get(baseAddress+"/api/gallery_image?sort=reference_id,-created_at", authTokenHeader)
 
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallerty image get", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -580,7 +580,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Post(baseAddress+"/api/gallery_image", req.BodyJSON(x))
 	if err != nil {
 		log.Printf("Failed to create %s %s", "gallery image post", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -588,7 +588,7 @@ func runTests(t *testing.T) error {
 	err = resp.ToJSON(&createImageResp)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "unmarshal gallery image post", err)
-		t.Fail()
+		t.FailNow()
 		//return fmt.Errorf("failed to unmarshal gallery image post response %v", err)
 	}
 
@@ -623,7 +623,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Post(baseAddress+"/api/table10cols", createObjectPayload)
 	if err != nil {
 		log.Printf("Failed to create %s %s", "table10cols post", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -631,14 +631,14 @@ func runTests(t *testing.T) error {
 	err = resp.ToJSON(&createdObjectResponse)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "unmarshal gallery image post", err)
-		t.Fail()
+		t.FailNow()
 		//return fmt.Errorf("failed to unmarshal gallery image post response %v", err)
 	}
 
 	errrs, ok := createdObjectResponse["errors"]
 	if ok {
 		t.Errorf("errors: %v", errrs)
-		t.Fail()
+		t.FailNow()
 	}
 
 	resp, err = requestClient.Get(baseAddress + "/api/gallery_image/" + createdID)
@@ -647,7 +647,7 @@ func runTests(t *testing.T) error {
 	if err != nil {
 
 		log.Printf("Failed to get %s %s", "unmarshal gallery image get", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -656,21 +656,21 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png")
 	if err != nil {
 		log.Printf("Failed to get %s %s", "gallery image get by id", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
 	imbBody, err := ioutil.ReadAll(resp.Response().Body)
 	if err != nil || len(imbBody) == 0 {
 		log.Printf("Failed to get %s %s", "read image body gallery image get by id", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	imgLen := len(imbBody)
 	t.Logf("Image length: %v", imgLen)
 
 	if imgLen == 0 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Image length is 0")
 	}
 
@@ -719,14 +719,14 @@ func runTests(t *testing.T) error {
 		resp, err = requestClient.Get(baseAddress + "/asset/gallery_image/" + createdID + "/file.png?" + param)
 		if err != nil {
 			log.Printf("Failed to get %s %s", param, err)
-			t.Fail()
+			t.FailNow()
 			return err
 		}
 
 		imbBody, err := ioutil.ReadAll(resp.Response().Body)
 		if err != nil || len(imbBody) == 0 {
 			log.Printf("Failed to get read image %s %s", param, err)
-			t.Fail()
+			t.FailNow()
 			return err
 		}
 		t.Logf("Image length [%v]: %v", param, len(imbBody))
@@ -740,13 +740,13 @@ func runTests(t *testing.T) error {
 
 	if err != nil {
 		log.Printf("Failed to get read response %s %s", "become admin", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
 	becomeAdminResponse := resp.String()
 	if strings.Index(becomeAdminResponse, "[{\"ResponseType\":\"client.redirect\",\"Attributes\"") == -1 {
-		t.Fail()
+		t.FailNow()
 	}
 	t.Logf("Become admin response: [%v]", becomeAdminResponse)
 
@@ -757,7 +757,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname get", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -766,7 +766,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Post(baseAddress+"/_config/backend/hostname", authTokenHeader, "test")
 	if err != nil {
 		log.Printf("Failed to get read image %s %s", "config hostname post", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 
@@ -780,7 +780,7 @@ func runTests(t *testing.T) error {
 	resp, err = requestClient.Get(baseAddress+"/_config/backend/hostname", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to read %s %s", "config hostname get", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	t.Logf("Hostname from config: %v", resp.String())
@@ -793,7 +793,7 @@ func runTests(t *testing.T) error {
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"action_name": "become_an_administrator"`) == -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Expected action name not found in response from graphql [%v]", graphqlResponse.String())
 	}
 
@@ -801,11 +801,11 @@ func runTests(t *testing.T) error {
 		`{"query":"query {\n  action {\n    action_name\n  }\n}","variables":null}`)
 	if err != nil {
 		log.Printf("Failed to get action name from graphl query %s", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"action_name": "generate_acme_certificate"`) > -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Unexpected action name found in response from graphql [%v] without auth token", graphqlResponse.String())
 	}
 
@@ -814,11 +814,11 @@ func runTests(t *testing.T) error {
 	if err != nil {
 		log.Printf("Success in add graphql endpoint without token %s %s", "addCertificate", err)
 		log.Printf("body %v", graphqlResponse.String())
-		t.Fail()
+		t.FailNow()
 		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token", graphqlResponse.String())
 	}
 
@@ -827,11 +827,11 @@ func runTests(t *testing.T) error {
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to query graphql endpoint 2 %s %s", "addCertificate", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"reference_id": "`) == -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Expected 'reference_id' not found in response from graphql [%v] with auth token on certificate create", graphqlResponse.String())
 	}
 
@@ -843,11 +843,11 @@ func runTests(t *testing.T) error {
 			certReferenceId))
 	if err != nil {
 		log.Printf("Success in  query graphql endpoint without auth token %s %s", "updateCertificate", err)
-		t.Fail()
+		t.FailNow()
 		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate update", graphqlResponse.String())
 	}
 
@@ -857,11 +857,11 @@ func runTests(t *testing.T) error {
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to query graphql endpoint %s %s", "updateCertificate", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("[hostname=hello]Expected string not found in response from graphql [%v] with auth token on certificate update", graphqlResponse.String())
 		t.Errorf("graphql request was: %v", graphqlRequest)
 	}
@@ -870,11 +870,11 @@ func runTests(t *testing.T) error {
 		fmt.Sprintf(`{"query":"mutation {\n  deleteCertificate (reference_id:\"%s\") {\n    reference_id\n    hostname\n  }\n  \n}","variables":{}}`, certReferenceId))
 	if err != nil {
 		log.Printf("Success in delete graphql endpoint without auth token %s %s", "deleteCertificate", err)
-		t.Fail()
+		t.FailNow()
 		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token on certificate delete", graphqlResponse.String())
 	}
 
@@ -883,11 +883,11 @@ func runTests(t *testing.T) error {
 		authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to delete graphql endpoint %s %s", "deleteCertificate", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("hostname=null] Expected string not found in response from graphql [%v] "+
 			"with auth token on certificate delete", graphqlResponse.String())
 	}
@@ -903,7 +903,7 @@ func runTests(t *testing.T) error {
 
 	if err != nil {
 		log.Errorf("Failed to get read response %s %s", "become admin", err)
-		t.Fail()
+		t.FailNow()
 		return err
 	}
 	importResponse := resp.String()
@@ -1083,62 +1083,62 @@ func FtpTest(t *testing.T) {
 		ftp.DialWithDebugOutput(os.Stdout))
 
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		log.Fatal(err)
 	}
 
 	err = ftpClient.Login("anonymous", "anonymous")
 	if err == nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Able to login FTP as anon")
 	}
 
 	// Do something with the FTP conn
 
 	if err := ftpClient.Quit(); err != nil {
-		t.Fail()
+		t.FailNow()
 		log.Fatal(err)
 	}
 
 	ftpClient, err = ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		log.Fatal(err)
 	}
 
 	err = ftpClient.Login("test@gmail.com", "tester123")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Not able to login FTP as test@gmail.com")
 	}
 
 	err = ftpClient.ChangeDir("/")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
 	}
 
 	err = ftpClient.ChangeDir("/site.daptin.com/")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
 	}
 
 	err = ftpClient.ChangeDir("/site.daptin.com")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
 	}
 
 	files, err := ftpClient.List("/")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
 	}
 
 	files, err = ftpClient.List("/site.daptin.com/")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
 	}
 	for _, file := range files {
@@ -1147,7 +1147,7 @@ func FtpTest(t *testing.T) {
 
 	files, err = ftpClient.List(".")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
 	}
 
@@ -1156,58 +1156,58 @@ func FtpTest(t *testing.T) {
 
 	err = ftpClient.Append("image.png", ImageReader)
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("failed to upload file from FTP: %v", err)
 	}
 	size, err := ftpClient.FileSize("image.png")
 	if size == 0 || err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("size is 0 %v %v", size, err)
 	}
 
 	err = ftpClient.MakeDir("temp")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Failed to make temp %v", err)
 	}
 
 	err = ftpClient.MakeDir("/test")
 	if err == nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Was able to make /test in root dir %v", err)
 	}
 
 	err = ftpClient.Rename("image.png", "image_new.png")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("Failed to make rename %v", err)
 	}
 	size, err = ftpClient.FileSize("image_new.png")
 	if size == 0 || err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("%v %v", size, err)
 	}
 	err = ftpClient.RemoveDir("temp")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("failed to remove dir %v", err)
 	}
 
 	res, err := ftpClient.Retr("image_new.png")
 	if err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Errorf("failed to remove dir %v", err)
 	} else {
 		b := make([]byte, 100)
 		l, err := res.Read(b)
 		if l == 0 || err != nil {
-			t.Fail()
+			t.FailNow()
 			t.Errorf("failed to read file %v", err)
 		}
 	}
 
 	if err := ftpClient.Quit(); err != nil {
-		t.Fail()
+		t.FailNow()
 		t.Error(err)
 	}
 

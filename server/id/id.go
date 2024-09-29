@@ -112,7 +112,7 @@ func InterfaceToDIR(valueToConvert interface{}) DaptinReferenceId {
 		} else {
 			oauthTokenId, err := uuid.Parse(asStr)
 			if err != nil {
-				log.Error("[105] Failed to parse string as uuid [%s]: %v", asStr, err)
+				log.Errorf("[105] Failed to parse string as uuid [%s]: %v", asStr, err)
 				return NullReferenceId
 			}
 			return DaptinReferenceId(oauthTokenId)

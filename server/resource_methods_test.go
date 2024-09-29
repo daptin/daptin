@@ -145,7 +145,7 @@ func TestGetReferenceIdToObject(t *testing.T) {
 
 	if !wrapper.HasExecuted("SELECT * FROM world WHERE reference_id =") {
 		t.Errorf("Expected query not fired")
-		t.Fail()
+		t.FailNow()
 	}
 
 }
@@ -158,7 +158,7 @@ func TestUserGroupNameToId(t *testing.T) {
 
 	if !wrapper.HasExecuted("SELECT id FROM usergroup WHERE name =") {
 		t.Errorf("Expected query not fired")
-		t.Fail()
+		t.FailNow()
 	}
 
 }
@@ -196,7 +196,7 @@ func TestStoreToken(t *testing.T) {
 	users, err := dbResource.Cruds["user_account"].GetAllRawObjects("user_account")
 	if err != nil {
 		t.Errorf("Failed to get users: %v", err)
-		t.Fail()
+		t.FailNow()
 		return
 	}
 	user := users[0]
@@ -204,12 +204,12 @@ func TestStoreToken(t *testing.T) {
 
 	if !wrapper.HasExecuted("SELECT * FROM oauth_connect WHERE reference_id =") {
 		t.Errorf("Expected query not fired: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
 
 	//if !wrapper.HasExecuted("SELECT value FROM _config WHERE name = ? AND configstate = ? AND configenv = ? AND configtype = ?") {
 	//	t.Errorf("Expected query not fired")
-	//	t.Fail()
+	//	t.FailNow()
 	//}
 
 }
@@ -222,7 +222,7 @@ func TestGetIdToObject(t *testing.T) {
 
 	if !wrapper.HasExecuted("SELECT * FROM world WHERE id =") {
 		t.Errorf("Expected query not fired")
-		t.Fail()
+		t.FailNow()
 	}
 
 }
@@ -235,7 +235,7 @@ func TestGetActionsByType(t *testing.T) {
 
 	if !wrapper.HasExecuted("select a.action_name as name, w.table_name as ontype, a.label, action_schema as action_schema, a.instance_optional as instance_optional, a.reference_id as referenceid from action a join world w on w.id = a.world_id where w.table_name =") {
 		t.Errorf("Expected query not fired")
-		t.Fail()
+		t.FailNow()
 	}
 
 }
@@ -255,7 +255,7 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 
 	if !wrapper.HasExecuted("SELECT distinct(world.id) from world left join ") {
 		t.Errorf("Expected query not fired")
-		t.Fail()
+		t.FailNow()
 	}
 
 }
@@ -274,7 +274,7 @@ func TestPaginatedFindAllWithoutFilter(t *testing.T) {
 
 	if !wrapper.HasExecuted("SELECT distinct(world.id) FROM world LEFT JOIN world_world_id_") {
 		t.Errorf("Expected query not fired")
-		t.Fail()
+		t.FailNow()
 	}
 
 }
@@ -297,7 +297,7 @@ func TestDeleteWithoutFilter(t *testing.T) {
 
 	if !wrapper.HasExecuted("DELETE FROM world WHERE reference_id =") {
 		t.Errorf("Expected query not fired")
-		t.Fail()
+		t.FailNow()
 	}
 
 }
