@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 )
 
 type ActionExchangeHandler struct {
@@ -20,7 +21,8 @@ type ActionExchangeHandler struct {
 
 func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
-	log.Printf("Execute action exchange on: %v - %v", row["__type"], row["reference_id"])
+	rowType := row["__type"]
+	log.Printf("Execute action exchange on: %v - %v", rowType, row["reference_id"])
 
 	targetType, ok := exchangeHandler.exchangeContract.TargetAttributes["type"]
 	if !ok {
@@ -41,9 +43,12 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 	//	request.Attributes[exchangeHandler.exchangeContract.SourceType+"_id"] = row["reference_id"]
 	//}
 
+	ur, _ := url.Parse("/" + tableName)
+
 	req := api2go.Request{
 		PlainRequest: &http.Request{
 			Method: "POST",
+			URL:    ur,
 		},
 	}
 

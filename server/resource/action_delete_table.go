@@ -30,6 +30,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 	}
 
 	sessionUser := request.Attributes["user"]
+
 	httpReq := &http.Request{
 		Method: "GET",
 	}

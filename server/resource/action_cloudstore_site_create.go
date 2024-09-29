@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -76,7 +77,11 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 		rootPath,
 	}
 
-	plainRequest := &http.Request{}
+	ur, _ := url.Parse("/site")
+
+	plainRequest := &http.Request{
+		URL: ur,
+	}
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "user", &auth.SessionUser{
 		UserReferenceId: daptinid.DaptinReferenceId(user_account_id),

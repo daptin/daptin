@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 	"strings"
 
 	//"golang.org/x/oauth2"
@@ -96,8 +97,11 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		model.SetAttributes(map[string]interface{}{
 			"verified": 1,
 		})
+		ur, _ := url.Parse("/user_otp_account")
 
-		pr := &http.Request{}
+		pr := &http.Request{
+			URL: ur,
+		}
 		user := &auth.SessionUser{
 			UserId:          userAccount["id"].(int64),
 			UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),

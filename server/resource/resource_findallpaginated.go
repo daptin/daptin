@@ -1497,7 +1497,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "failed to rollback")
 
-			log.Errorf("Error from AfterFindAll[%v] middleware: %v", bf.String(), err)
+			log.Errorf("[1500] Error from AfterFindAll[%v] middleware: %v", bf.String(), err)
 			return 0, nil, err
 		}
 	}
@@ -1511,7 +1511,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 			if err != nil {
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "failed to rollback")
-				log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
+				log.Errorf("[1514] Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
 				return 0, nil, err
 			}
 			includesNew = append(includesNew, include)

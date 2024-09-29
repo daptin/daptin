@@ -162,7 +162,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		originalRowReference := map[string]interface{}{
 			"__type":                result["__type"],
 			"reference_id":          referenceId,
-			"relation_reference_id": result["relation_reference_id"],
+			"relation_reference_id": daptinid.InterfaceToDIR(result["relation_reference_id"]),
 		}
 		permission := dr.GetRowPermissionWithTransaction(originalRowReference, transaction)
 		//log.Printf("[ObjectAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), permission.PermissionInstance)
@@ -178,21 +178,45 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 			}
 		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
-			if permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				returnMap = append(returnMap, result)
-				includedMapCache[referenceId] = true
+			if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
+				if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+					returnMap = append(returnMap, result)
+					includedMapCache[referenceId] = true
+				} else {
+					//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+					notIncludedMapCache[referenceId] = true
+				}
 			} else {
-				//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
-				notIncludedMapCache[referenceId] = true
+				if permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+					returnMap = append(returnMap, result)
+					includedMapCache[referenceId] = true
+				} else {
+					//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+					notIncludedMapCache[referenceId] = true
+				}
+
 			}
 		} else if req.PlainRequest.Method == "DELETE" {
-			if permission.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				returnMap = append(returnMap, result)
-				includedMapCache[referenceId] = true
+			if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
+				if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+					returnMap = append(returnMap, result)
+					includedMapCache[referenceId] = true
+				} else {
+					//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+					notIncludedMapCache[referenceId] = true
+				}
+
 			} else {
-				//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
-				notIncludedMapCache[referenceId] = true
+				if permission.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+					returnMap = append(returnMap, result)
+					includedMapCache[referenceId] = true
+				} else {
+					//log.Printf("[ObjectAccessPermissionChecker] Result not to be included: %v", refIdInterface)
+					notIncludedMapCache[referenceId] = true
+				}
+
 			}
+
 		} else {
 			continue
 		}

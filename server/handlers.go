@@ -21,7 +21,9 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 		sessionUser := gincontext.Request.Context().Value("user").(*auth.SessionUser)
 
-		pr := &http.Request{}
+		pr := &http.Request{
+			URL: gincontext.Request.URL,
+		}
 		pr.Method = "GET"
 		req := api2go.Request{
 			PlainRequest: gincontext.Request,
@@ -83,6 +85,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 			newRequest := &http.Request{
 				Method: "POST",
+				URL:    gincontext.Request.URL,
 			}
 			newRequest = newRequest.WithContext(gincontext.Request.Context())
 
@@ -141,7 +144,9 @@ func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*r
 		refId := uuid.MustParse(requestBodyMap["referenceId"].(string))
 		stateMachineUuidString := gincontext.Param("stateMachineId")
 
-		pr := &http.Request{}
+		pr := &http.Request{
+			URL: gincontext.Request.URL,
+		}
 		pr.Method = "GET"
 		pr = pr.WithContext(gincontext.Request.Context())
 		req := api2go.Request{

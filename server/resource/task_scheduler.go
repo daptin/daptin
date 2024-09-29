@@ -9,6 +9,7 @@ import (
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 )
 
 type Task struct {
@@ -103,8 +104,10 @@ func (ati *ActiveTaskInstance) Run() {
 		}
 	}
 
+	ur, _ := url.Parse("/action/" + ati.ActionRequest.Type)
 	pr1 := http.Request{
 		Method: "EXECUTE",
+		URL:    ur,
 	}
 
 	pr := pr1.WithContext(context.WithValue(context.Background(), "user", sessionUser))

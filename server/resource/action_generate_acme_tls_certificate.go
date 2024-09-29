@@ -20,6 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -85,8 +86,11 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 		}
 	}
 	email = userAccount["email"].(string)
+	ur, _ := url.Parse("/certificate")
+
 	httpReq := &http.Request{
 		Method: "PUT",
+		URL:    ur,
 	}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),

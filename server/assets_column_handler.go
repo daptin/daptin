@@ -64,6 +64,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 
 		pr := &http.Request{
 			Method: "GET",
+			URL:    c.Request.URL,
 		}
 
 		pr = pr.WithContext(c.Request.Context())

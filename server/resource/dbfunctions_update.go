@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -775,6 +776,8 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 					log.Errorf("[775] [%s] is not a defined entity", typeName)
 					continue
 				}
+				ur, _ := url.Parse("/" + typeName)
+				req.PlainRequest.URL = ur
 				errs := ImportDataMapArray(data, crud, req, transaction)
 				if len(errs) > 0 {
 					for _, err := range errs {
@@ -800,6 +803,8 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 					log.Errorf("[800] [%s] is not a defined entity", typeName)
 					continue
 				}
+				ur, _ := url.Parse("/" + typeName)
+				req.PlainRequest.URL = ur
 				errs := ImportDataMapArray(data, crud, req, transaction)
 				if len(errs) > 0 {
 					for _, err := range errs {
@@ -822,6 +827,9 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 			}
 
 			//importSuccess = true
+
+			ur, _ := url.Parse("/" + dbResource.model.GetTableName())
+			req.PlainRequest.URL = ur
 			errors1 := ImportDataMapArray(data, dbResource, req, transaction)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {
@@ -843,6 +851,9 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 			for i, h := range header {
 				header[i] = SmallSnakeCaseText(h)
 			}
+			ur, _ := url.Parse("/" + importFile.Entity)
+			req.PlainRequest.URL = ur
+
 			errors1 := ImportDataStringArray(data, header, importFile.Entity, dbResource, req, transaction)
 			if len(errors1) > 0 {
 				for _, err := range errors1 {

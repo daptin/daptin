@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"net/url"
 	"os"
 
 	"fmt"
@@ -50,8 +51,11 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 			if !ok {
 				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
+				ur, _ := url.Parse("/" + auditModel.GetTableName())
+
 				pr := &http.Request{
 					Method: "POST",
+					URL:    ur,
 				}
 				pr = pr.WithContext(req.PlainRequest.Context())
 				createRequest := api2go.Request{
@@ -269,8 +273,10 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 			switch rel.Relation {
 			case "has_one":
 
+				ur, _ := url.Parse("/" + rel.GetSubject() + "/relationships/" + rel.GetObjectName())
 				pr := &http.Request{
 					Method: "GET",
+					URL:    ur,
 				}
 
 				pr = pr.WithContext(req.PlainRequest.Context())
@@ -299,7 +305,10 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				break
 			case "belongs_to":
 
+				ur, _ := url.Parse("/" + rel.GetSubject() + "/relationships/" + rel.GetObjectName())
+
 				pr := &http.Request{
+					URL:    ur,
 					Method: "GET",
 				}
 
@@ -377,7 +386,9 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				joinTableName := rel.GetJoinTableName()
 				//columnName := rel.GetSubjectName()
 
+				ur, _ := url.Parse("/" + rel.GetSubject() + "/relationships/" + rel.GetObjectName())
 				pr := &http.Request{
+					URL:    ur,
 					Method: "GET",
 				}
 

@@ -5,6 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -31,10 +32,12 @@ func (d *renameWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	if IsReservedWord(columnToNew) {
 		return nil, []ActionResponse{}, []error{errors.New(columnToNew + " is a reserved word")}
 	}
+	ur, _ := url.Parse("/world")
 
 	req := api2go.Request{
 		PlainRequest: &http.Request{
 			Method: "GET",
+			URL:    ur,
 		},
 	}
 	tableObj, err := d.cruds["world"].GetObjectByWhereClause("world", "table_name", worldName, transaction)

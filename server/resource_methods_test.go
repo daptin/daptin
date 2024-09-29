@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -244,9 +245,11 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 
 	wrapper, dbResource := GetResourceWithName("world")
 	defer wrapper.db.Close()
+	ur, _ := url.Parse("/world/:referenceId")
 	req := api2go.Request{
 		PlainRequest: &http.Request{
 			Method: "GET",
+			URL:    ur,
 		},
 		QueryParams: map[string][]string{},
 	}
@@ -263,10 +266,12 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 func TestPaginatedFindAllWithoutFilter(t *testing.T) {
 
 	wrapper, dbResource := GetResourceWithName("world")
+	ur, _ := url.Parse("/world/:referenceId")
 	defer wrapper.db.Close()
 	req := api2go.Request{
 		PlainRequest: &http.Request{
 			Method: "GET",
+			URL:    ur,
 		},
 		QueryParams: map[string][]string{},
 	}
@@ -283,9 +288,11 @@ func TestDeleteWithoutFilter(t *testing.T) {
 
 	wrapper, dbResource := GetResourceWithName("world")
 	defer wrapper.db.Close()
+	ur, _ := url.Parse("/world/:referenceId")
 	req := api2go.Request{
 		PlainRequest: &http.Request{
 			Method: "GET",
+			URL:    ur,
 		},
 		QueryParams: map[string][]string{},
 	}

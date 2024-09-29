@@ -497,6 +497,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
 				pr := &http.Request{
+					URL:    req.PlainRequest.URL,
 					Method: "POST",
 				}
 				pr = pr.WithContext(req.PlainRequest.Context())
@@ -634,6 +635,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					pr := &http.Request{
 						Method: "POST",
+						URL:    req.PlainRequest.URL,
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
 
@@ -657,7 +659,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					} else {
 
-						log.Infof("[620] Creating new join table row properties: %v -> %v", rel.GetJoinTableName(), modl.GetAttributes())
+						log.Infof("[662] Creating new join table row properties: %v -> %v", rel.GetJoinTableName(), modl.GetAttributes())
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, updateTransaction)
@@ -850,6 +852,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					pr := &http.Request{
 						Method: "POST",
+						URL:    req.PlainRequest.URL,
 					}
 
 					pr = pr.WithContext(req.PlainRequest.Context())
@@ -873,7 +876,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					} else {
 
-						log.Infof("[815] Creating new join table row properties: %v - %v", rel.GetJoinTableName(),
+						log.Infof("[879] Creating new join table row: %v - %v", rel.GetJoinTableName(),
 							modl.GetAttributes())
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
@@ -1023,6 +1026,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 
 	updateRequest := &http.Request{
 		Method: "PATCH",
+		URL:    req.PlainRequest.URL,
 	}
 	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
 
@@ -1113,6 +1117,7 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 
 	updateRequest := &http.Request{
 		Method: "PATCH",
+		URL:    req.PlainRequest.URL,
 	}
 	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
 

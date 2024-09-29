@@ -21,6 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -53,6 +54,8 @@ const (
 	GroupExecute
 	GroupRefer
 )
+
+const x = GroupPeek | GroupRefer
 
 const (
 	GuestCRUD = GuestPeek | GuestRead | GuestCreate | GuestUpdate | GuestDelete | GuestRefer
@@ -355,10 +358,12 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						mapData["email"] = email
 
 						newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
+						ur, _ := url.Parse("/user_account")
 
 						req1 := api2go.Request{
 							PlainRequest: &http.Request{
 								Method: "POST",
+								URL:    ur,
 							},
 						}
 

@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -116,8 +117,11 @@ func (dbResource *DbResource) StoreToken(token *oauth2.Token,
 		Groups:          nil,
 	}
 
+	ur, _ := url.Parse("/oauth_token")
+
 	pr := &http.Request{
 		Method: "POST",
+		URL:    ur,
 	}
 	pr = pr.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 

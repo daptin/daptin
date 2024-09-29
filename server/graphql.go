@@ -43,6 +43,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			resolvedID := relay.FromGlobalID(id)
 			pr := &http.Request{
 				Method: "GET",
+				URL:    nil,
 			}
 			pr = pr.WithContext(ctx)
 			req := api2go.Request{

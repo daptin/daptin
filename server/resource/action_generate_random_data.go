@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -75,9 +76,11 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 		row["permission"] = auth.DEFAULT_PERMISSION
 		rows = append(rows, row)
 	}
+	ur, _ := url.Parse("/" + tableName)
 
 	httpRequest := &http.Request{
 		Method: "POST",
+		URL:    ur,
 	}
 
 	sessionUser := &auth.SessionUser{

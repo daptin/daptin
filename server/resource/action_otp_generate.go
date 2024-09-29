@@ -11,6 +11,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -67,7 +68,10 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inF
 		phoneOk = true
 	}
 
-	httpReq := &http.Request{}
+	ur, _ := url.Parse("/user_otp_account")
+	httpReq := &http.Request{
+		URL: ur,
+	}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),
 		UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),

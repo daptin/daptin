@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	daptinid "github.com/daptin/daptin/server/id"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/artpar/api2go"
@@ -663,8 +664,11 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 					modl := api2go.NewApi2GoModelWithData(rel.GetJoinTableName(), nil, int64(auth.DEFAULT_PERMISSION), nil, item)
 
+					ur, _ := url.Parse("/" + rel.GetSubject() + "/relationships/" + rel.GetObjectName())
+
 					pr := &http.Request{
 						Method: "POST",
+						URL:    ur,
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
 
@@ -869,8 +873,10 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					}
 
 					modl.SetAttributes(item)
+					ur, _ := url.Parse("/" + rel.GetSubject() + "/relationships/" + rel.GetObjectName())
 					pr := &http.Request{
 						Method: "POST",
+						URL:    ur,
 					}
 					pr = pr.WithContext(req.PlainRequest.Context())
 
@@ -893,7 +899,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 					} else {
 
-						log.Infof("[815] Creating new join table row properties: %v - %v", rel.GetJoinTableName(), modl.GetAttributes())
+						log.Infof("[902] Creating new join table row properties: %v - %v", rel.GetJoinTableName(), modl.GetAttributes())
 						_, err := dbResource.Cruds[rel.GetJoinTableName()].CreateWithTransaction(modl, api2go.Request{
 							PlainRequest: pr,
 						}, createTransaction)

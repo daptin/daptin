@@ -1,4 +1,5 @@
-//+build test
+//go:build test
+// +build test
 
 package server
 
@@ -12,6 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -75,8 +77,10 @@ func TestStream(t *testing.T) {
 	cruds["test"] = dBResource
 	newStream := resource.NewStreamProcessor(streamContract, cruds)
 
+	ur, _ := url.Parse("/world/:referenceId")
 	httpPlainRequest := &http.Request{
 		Method: "GET",
+		URL:    ur,
 	}
 	httpPlainRequest = httpPlainRequest.WithContext(context.Background())
 	findRequest := api2go.Request{

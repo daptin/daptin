@@ -7,6 +7,7 @@ import (
 	"github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"net/http"
+	"net/url"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -26,14 +27,6 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	columnToDelete := inFields["column_name"].(string)
 
 	sessionUser := request.Attributes["user"]
-	httpReq := &http.Request{
-		Method: "GET",
-	}
-
-	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", sessionUser))
-	req := &api2go.Request{
-		PlainRequest: httpReq,
-	}
 
 	table, err := d.cruds["world"].GetObjectByWhereClauseWithTransaction("world", "table_name", worldName, transaction)
 	if err != nil {
@@ -48,6 +41,18 @@ func (d *deleteWorldColumnPerformer) DoAction(request Outcome, inFields map[stri
 	err = json.Unmarshal([]byte(schemaJson.(string)), &tableSchema)
 	if err != nil {
 		return nil, nil, []error{err}
+	}
+
+	ur, _ := url.Parse("/world")
+
+	httpReq := &http.Request{
+		Method: "GET",
+		URL:    ur,
+	}
+
+	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+	req := &api2go.Request{
+		PlainRequest: httpReq,
 	}
 
 	indexToDelete := -1

@@ -18,6 +18,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -186,8 +187,11 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 			"root_certificate": string(certBytesPEM),
 			"public_key_pem":   string(publicKeyPem),
 		}
+		ur, _ := url.Parse("/certificate")
+
 		request := &http.Request{
 			Method: "PUT",
+			URL:    ur,
 		}
 
 		request = request.WithContext(context.WithValue(context.Background(), "user", &auth.SessionUser{

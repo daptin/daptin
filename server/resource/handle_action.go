@@ -108,6 +108,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		req := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: "POST",
+				URL:    ginContext.Request.URL,
 			},
 		}
 
@@ -307,6 +308,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 	}
 	inFieldMap["attributes"] = actionRequest.Attributes
 	inFieldMap["env"] = dbResource.envMap
+	inFieldMap["__url"] = req.PlainRequest.URL.String()
 
 	if err != nil {
 		return nil, api2go.NewHTTPError(err, "failed to validate fields", 400)
@@ -768,7 +770,9 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 
 }
 
-func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome, sessionUser *auth.SessionUser) (*api2go.Api2GoModel, api2go.Request, error) {
+func BuildOutcome(inFieldMap map[string]interface{},
+	outcome Outcome, sessionUser *auth.SessionUser) (*api2go.Api2GoModel,
+	api2go.Request, error) {
 
 	attrInterface, err := BuildActionContext(outcome.Attributes, inFieldMap)
 	if err != nil {
@@ -778,10 +782,13 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome, sessionUse
 
 	switch outcome.Type {
 	case "system_json_schema_update":
+
+		ur, _ := url.Parse("/")
 		responseModel := api2go.NewApi2GoModel("__restart", nil, 0, nil)
 		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: "EXECUTE",
+				URL:    ur,
 			},
 		}
 
@@ -837,9 +844,11 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome, sessionUse
 		fallthrough
 	case "__become_admin":
 
+		ur, _ := url.Parse("/")
 		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: "EXECUTE",
+				URL:    ur,
 			},
 		}
 
@@ -848,9 +857,11 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome, sessionUse
 		return &model, returnRequest, nil
 	case "__as_user":
 
+		ur, _ := url.Parse("/")
 		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: "SWITCH_USER",
+				URL:    ur,
 			},
 		}
 
@@ -866,9 +877,11 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome, sessionUse
 		fallthrough
 	case "client.notify":
 		//respopnseModel := NewActionResponse(attrs["responseType"].(string), attrs)
+		ur, _ := url.Parse("/")
 		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: "ACTIONRESPONSE",
+				URL:    ur,
 			},
 		}
 		ctxWithUser := context.WithValue(returnRequest.PlainRequest.Context(), "user", sessionUser)
@@ -880,10 +893,12 @@ func BuildOutcome(inFieldMap map[string]interface{}, outcome Outcome, sessionUse
 
 	default:
 
+		ur, _ := url.Parse("/" + outcome.Type)
 		model := api2go.NewApi2GoModelWithData(outcome.Type, nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
 				Method: outcome.Method,
+				URL:    ur,
 			},
 		}
 

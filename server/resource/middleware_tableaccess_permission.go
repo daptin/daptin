@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/jmoiron/sqlx"
+	"strings"
 
 	//log "github.com/sirupsen/logrus"
 	//"github.com/Masterminds/squirrel"
@@ -46,7 +47,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 
 	//log.Printf("Row Permission for [%v] for [%v]", dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
-		if tableOwnership.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+		if tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 			//returnMap = append(returnMap, result)
 			//includedMapCache[referenceId] = true
 			return results, nil
@@ -101,19 +102,38 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 		}
 	} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
-		if !tableOwnership.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
-
+		if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
+			if !tableOwnership.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) ||
+				!tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
+			}
+		} else {
+			if !tableOwnership.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
+			}
 		}
-	} else if req.PlainRequest.Method == "POST" {
-		if !tableOwnership.CanCreate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 
+	} else if req.PlainRequest.Method == "POST" {
+		if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
+			if !tableOwnership.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) ||
+				!tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
+			}
+		} else {
+			if !tableOwnership.CanCreate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
+			}
 		}
 	} else if req.PlainRequest.Method == "DELETE" {
-		if !tableOwnership.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
-
+		if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
+			if !tableOwnership.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) ||
+				!tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
+			}
+		} else {
+			if !tableOwnership.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
+			}
 		}
 	} else {
 		return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)

@@ -1366,7 +1366,8 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	var perm PermissionInstance
 
-	if rowType != "usergroup" {
+	loc := strings.Index(rowType, "_has_")
+	if rowType != "usergroup" && loc == -1 {
 		if row[USER_ACCOUNT_ID_COLUMN] != nil {
 			perm.UserId = daptinid.InterfaceToDIR(row[USER_ACCOUNT_ID_COLUMN])
 		} else {
@@ -1376,7 +1377,6 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	}
 
-	loc := strings.Index(rowType, "_has_")
 	//log.Printf("Location [%v]: %v", dbResource.model.GetName(), loc)
 
 	if BeginsWith(rowType, "file.") || rowType == "none" {
@@ -2477,13 +2477,13 @@ func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeNa
 
 	stmt, err := transaction.Preparex(s)
 	if err != nil {
-		log.Errorf("[1473] failed to prepare statment for get object by reference id: %v", err)
+		log.Errorf("[1473] failed to prepare statment for get object by reference id[%s][%s]: %v", typeName, referenceId, err)
 		return nil, err
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
+			log.Errorf("failed to close prepared statement[%s][%s]: %v", typeName, referenceId, err)
 		}
 	}(stmt)
 

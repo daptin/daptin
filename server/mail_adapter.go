@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	mail1 "net/mail"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -249,7 +250,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						mailSize = len(mailBytes)
 						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
-						pr := &http.Request{}
+						ur, _ := url.Parse("/mail")
+						pr := &http.Request{
+							URL: ur,
+						}
 
 						transaction, err := dbResource.Connection.Beginx()
 						if err != nil {

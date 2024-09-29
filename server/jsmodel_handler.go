@@ -186,6 +186,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 		pr := &http.Request{
 			Method: "GET",
+			URL:    c.Request.URL,
 		}
 
 		pr = pr.WithContext(c.Request.Context())
