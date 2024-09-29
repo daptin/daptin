@@ -821,7 +821,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 								return
 							}
 							if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
-								referenceId := uuid.MustParse(eventMessage.EventData["reference_id"].(string))
+								eventDataMap := make(map[string]interface{})
+								err := json.Unmarshal(eventMessage.EventData, &eventDataMap)
+								resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
+								referenceId := uuid.MustParse(eventDataMap["reference_id"].(string))
 
 								transaction, err := cruds[typename].Connection.Beginx()
 								if err != nil {
@@ -1238,7 +1241,8 @@ func (spf *SubPathFs) Open(name string) (http.File, error) {
 	return spf.system.Open(spf.subPath + name)
 }
 
-func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db database.DatabaseConnection, middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
+func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db database.DatabaseConnection,
+	middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
 
 	for _, processor := range processors {
 
@@ -1250,7 +1254,8 @@ func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor,
 
 }
 
-func GetStreamProcessors(config *resource.CmsConfig, store *resource.ConfigStore, cruds map[string]*resource.DbResource) []*resource.StreamProcessor {
+func GetStreamProcessors(config *resource.CmsConfig, store *resource.ConfigStore,
+	cruds map[string]*resource.DbResource) []*resource.StreamProcessor {
 
 	allProcessors := make([]*resource.StreamProcessor, 0)
 

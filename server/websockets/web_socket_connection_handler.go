@@ -57,9 +57,14 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 					for {
 						msg := <-listenChannel
 						var eventMessage resource.EventMessage
-						json.Unmarshal([]byte(msg.String()), &eventMessage)
+						err = json.Unmarshal([]byte(msg.String()), &eventMessage)
+						resource.CheckErr(err, "Failed to unmarshal eventMessage")
 
-						typeName, _ := eventMessage.EventData["__type"]
+						eventDataMap := make(map[string]interface{})
+						err = json.Unmarshal(eventMessage.EventData, &eventDataMap)
+						resource.CheckErr(err, "Failed to unmarshal eventMessage.EventData")
+						eventData := eventDataMap
+						typeName, _ := eventData["__type"]
 						tableExists := false
 						if typeName != nil {
 							_, tableExists = wsch.cruds[typeName.(string)]
@@ -74,7 +79,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 							}
 
 							defer tx.Commit()
-							permission = wsch.cruds["world"].GetRowPermission(eventMessage.EventData, tx)
+							permission = wsch.cruds["world"].GetRowPermission(eventData, tx)
 
 						}
 						if permission.CanRead(client.user.UserReferenceId, client.user.Groups, wsch.cruds["world"].AdministratorGroupId) {
@@ -89,7 +94,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 								}
 
 								for key, val := range filtersMap {
-									if eventMessage.EventData[key] != val {
+									if eventData[key] != val {
 										sendMessage = false
 										break
 									}
@@ -133,10 +138,12 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			topics = append(topics, t)
 		}
 
+		data, _ := json.Marshal(map[string]interface{}{
+			"topics": topics,
+		})
+
 		client.ch <- resource.EventMessage{
-			EventData: map[string]interface{}{
-				"topics": topics,
-			},
+			EventData:     data,
 			MessageSource: "system",
 			EventType:     "response",
 			ObjectType:    "topicName-list",
@@ -173,15 +180,17 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			return
 		}
 
+		messageBytes, err := json.Marshal(message)
+		resource.CheckErr(err, "Failed to marshal message on topicName")
 		userRef, _ := uuid.FromBytes(client.user.UserReferenceId[:])
 		_, err = topic.Publish(context.Background(), topicName, resource.EventMessage{
 			MessageSource: userRef.String(),
 			EventType:     "new-message",
 			ObjectType:    topicName,
-			EventData:     message,
+			EventData:     messageBytes,
 		})
 
-		resource.CheckErr(err, "Failed to publish message on topicName")
+		resource.CheckErr(err, "Failed to publish message on ["+topicName+"]")
 
 	case "unsubscribe":
 		topics := message.Payload["topicName"].(string)

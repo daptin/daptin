@@ -70,7 +70,7 @@ func TestStream(t *testing.T) {
 				"$page[number]",
 			},
 			"page[size]": []string{
-				"$page[number]",
+				"$page[size]",
 			},
 		},
 	}

@@ -24,7 +24,7 @@ type EventMessage struct {
 	MessageSource string
 	EventType     string
 	ObjectType    string
-	EventData     map[string]interface{}
+	EventData     []byte
 }
 
 // MarshalBinary encodes the struct into binary format manually
@@ -47,7 +47,7 @@ func (e EventMessage) MarshalBinary() (data []byte, err error) {
 	}
 
 	// Simplified handling for EventData: encoding just the length (this should be replaced with actual data encoding logic)
-	jsonStr, err := json.MarshalToString(e.EventData)
+	jsonStr := string(e.EventData)
 	if err := encodeString(buffer, jsonStr); err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (e *EventMessage) UnmarshalBinary(data []byte) error {
 	if eventDataJson, err := decodeString(buffer); err != nil {
 		return err
 	} else {
-		err = json.Unmarshal([]byte(eventDataJson), &e.EventData)
+		e.EventData = []byte(eventDataJson)
 		return err
 	}
 }
@@ -126,22 +126,26 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "post":
 		go func() {
-			_, err := topic.Publish(context.Background(), tableName, EventMessage{
+			messageBytes, err := json.Marshal(results[0])
+			CheckErr(err, "Failed to serialize patch message")
+			_, err = topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "create",
 				ObjectType:    dr.model.GetTableName(),
-				EventData:     results[0],
+				EventData:     messageBytes,
 			})
 			CheckErr(err, "Failed to publish create message")
 		}()
 		break
 	case "delete":
 		go func() {
-			_, err := topic.Publish(context.Background(), tableName, EventMessage{
+			messageBytes, err := json.Marshal(results[0])
+			CheckErr(err, "Failed to serialize patch message")
+			_, err = topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "delete",
 				ObjectType:    dr.model.GetTableName(),
-				EventData:     results[0],
+				EventData:     messageBytes,
 			})
 			CheckErr(err, "Failed to delete create message")
 
@@ -149,11 +153,13 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "patch":
 		go func() {
-			_, err := topic.Publish(context.Background(), tableName, EventMessage{
+			messageBytes, err := json.Marshal(results[0])
+			CheckErr(err, "Failed to serialize patch message")
+			_, err = topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "update",
 				ObjectType:    dr.model.GetTableName(),
-				EventData:     results[0],
+				EventData:     messageBytes,
 			})
 			CheckErr(err, "Failed to update create message")
 		}()
