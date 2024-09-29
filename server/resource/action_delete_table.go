@@ -24,20 +24,9 @@ func (d *deleteWorldPerformer) Name() string {
 
 func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error) {
 
-	var worldIdUuid uuid.UUID
-	worldIdUuidString := inFields["world_id"]
-	asStr, isStr := worldIdUuidString.(string)
-	if isStr {
-		if asStr == "<nil>" {
-			log.Printf("No oauth token set for target store")
-		} else {
-			worldIdUuid = uuid.MustParse(asStr)
-		}
-	} else {
-		asDir, isDir := worldIdUuidString.(daptinid.DaptinReferenceId)
-		if isDir {
-			worldIdUuid = uuid.UUID(asDir)
-		}
+	worldIdAsDir := daptinid.InterfaceToDIR(inFields["world_id"])
+	if worldIdAsDir == daptinid.NullReferenceId {
+		return nil, nil, []error{fmt.Errorf("world id is a null reference")}
 	}
 
 	sessionUser := request.Attributes["user"]
@@ -50,7 +39,7 @@ func (d *deleteWorldPerformer) DoAction(request Outcome, inFields map[string]int
 		PlainRequest: httpReq,
 	}
 
-	table, err := d.cruds["world"].FindOneWithTransaction(daptinid.DaptinReferenceId(worldIdUuid), *req, transaction)
+	table, err := d.cruds["world"].FindOneWithTransaction(worldIdAsDir, *req, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

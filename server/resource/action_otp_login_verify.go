@@ -59,7 +59,8 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		if err != nil || userOtpProfile == nil {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", userOtpProfile["otp_of_account"].(daptinid.DaptinReferenceId), nil, transaction)
+		userAccount, _, err = d.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction(
+			"user_account", daptinid.InterfaceToDIR(userOtpProfile["otp_of_account"]), nil, transaction)
 	} else {
 		userAccount, err = d.cruds["user_account"].GetUserAccountRowByEmailWithTransaction(email.(string), transaction)
 		if err != nil {
@@ -69,7 +70,8 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		if !ok {
 			return nil, nil, []error{errors.New("unregistered mobile number")}
 		}
-		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClauseWithTransaction("user_otp_account", "otp_of_account", userAccountId, transaction)
+		userOtpProfile, err = d.cruds["user_otp_account"].GetObjectByWhereClauseWithTransaction(
+			"user_otp_account", "otp_of_account", userAccountId, transaction)
 	}
 
 	if err != nil || userOtpProfile == nil {
@@ -98,7 +100,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		pr := &http.Request{}
 		user := &auth.SessionUser{
 			UserId:          userAccount["id"].(int64),
-			UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
+			UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),
 		}
 		pr = pr.WithContext(context.WithValue(context.Background(), "user", user))
 		req := api2go.Request{

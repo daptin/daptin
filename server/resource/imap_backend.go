@@ -58,13 +58,14 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		return nil, err
 	}
 
-	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account", userMailAccount["user_account_id"].(daptinid.DaptinReferenceId), nil, transaction)
+	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account",
+		daptinid.InterfaceToDIR(userMailAccount["user_account_id"]), nil, transaction)
 	userId, _ := userAccount["id"].(int64)
 	groups := userAccountResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId)
 
 	sessionUser := &auth.SessionUser{
 		UserId:          userId,
-		UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
+		UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),
 		Groups:          groups,
 	}
 

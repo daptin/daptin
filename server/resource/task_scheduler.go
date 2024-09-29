@@ -95,9 +95,9 @@ func (ati *ActiveTaskInstance) Run() {
 		//log.Printf("Loaded user permission: %v", permission)
 		refId := permission["reference_id"]
 		if refId != nil {
-			dir := refId.(daptinid.DaptinReferenceId)
+			dir := daptinid.InterfaceToDIR(refId)
 			usergroups := ati.DbResource.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "reference_id", dir[:])
-			sessionUser.UserReferenceId = permission["reference_id"].(daptinid.DaptinReferenceId)
+			sessionUser.UserReferenceId = daptinid.InterfaceToDIR(permission["reference_id"])
 			sessionUser.UserId = permission["id"].(int64)
 			sessionUser.Groups = usergroups
 		}

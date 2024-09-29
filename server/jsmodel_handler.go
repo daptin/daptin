@@ -138,7 +138,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 	worldToReferenceId := make(map[string]daptinid.DaptinReferenceId)
 
 	for _, world := range worlds {
-		worldToReferenceId[world["table_name"].(string)] = world["reference_id"].(daptinid.DaptinReferenceId)
+		worldToReferenceId[world["table_name"].(string)] = daptinid.InterfaceToDIR(world["reference_id"])
 	}
 	cacheMap := make(map[string]string)
 

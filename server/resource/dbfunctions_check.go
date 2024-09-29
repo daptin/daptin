@@ -81,16 +81,10 @@ func CheckRelations(config *CmsConfig) {
 
 	newTables := make([]TableInfo, 0)
 
-	for i, tab := range config.Tables {
+	for i, _ := range config.Tables {
 
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
-
-		for _, rel := range newRelationsFromConfig {
-			if rel.GetSubject() == tab.TableName || rel.GetObject() == tab.TableName {
-				config.Tables[i].AddRelation(rel)
-			}
-		}
 
 		if config.Tables[i].TableName != "usergroup" &&
 			!config.Tables[i].IsJoinTable &&
@@ -219,6 +213,14 @@ func CheckRelations(config *CmsConfig) {
 				newTables = append(newTables, stateTable)
 			}
 
+		}
+	}
+
+	for i, tab := range config.Tables {
+		for _, rel := range finalRelations {
+			if rel.GetSubject() == tab.TableName || rel.GetObject() == tab.TableName {
+				config.Tables[i].AddRelation(rel)
+			}
 		}
 	}
 

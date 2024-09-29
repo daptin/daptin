@@ -387,12 +387,12 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						defer transaction.Commit()
 						user, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction("user_account",
-							mailAccount["user_account_id"].(daptinid.DaptinReferenceId), nil, transaction)
+							daptinid.InterfaceToDIR(mailAccount["user_account_id"]), nil, transaction)
 						log.Tracef("Completed mailAdapter GetSingleRowByReferenceIdWithTransaction")
 
 						sessionUser := &auth.SessionUser{
 							UserId:          user["id"].(int64),
-							UserReferenceId: user["reference_id"].(daptinid.DaptinReferenceId),
+							UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
 							Groups:          dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", user["id"].(int64)),
 						}
 

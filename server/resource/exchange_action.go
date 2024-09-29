@@ -51,7 +51,7 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 	if err != nil {
 		return nil, errors.New("user account not found to execute data exchange with action")
 	}
-	userReferenceId := userRow["reference_id"].(daptinid.DaptinReferenceId)
+	userReferenceId := daptinid.InterfaceToDIR(userRow["reference_id"])
 
 	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": exchangeHandler.exchangeContract.AsUserId}).ToSQL()
 

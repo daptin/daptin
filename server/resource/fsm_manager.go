@@ -148,7 +148,7 @@ func (fsm *fsmManager) stateMachineRunnerFor(currentState string, typeName strin
 func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEvent StateMachineEvent) (string, error) {
 
 	objType := subject["__type"].(string)
-	objReferenceId := subject["reference_id"].(daptinid.DaptinReferenceId)
+	objReferenceId := daptinid.InterfaceToDIR(subject["reference_id"])
 
 	objectIntegerId, err := ReferenceIdToIntegerId(objType, objReferenceId, fsm.db)
 	if err != nil {

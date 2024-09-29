@@ -1253,9 +1253,9 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 
 func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, transaction *sqlx.Tx) PermissionInstance {
 
-	refId, ok := row["reference_id"].(daptinid.DaptinReferenceId)
-	if !ok {
-		refId = row["id"].(daptinid.DaptinReferenceId)
+	refId := daptinid.InterfaceToDIR(row["reference_id"])
+	if refId == daptinid.NullReferenceId {
+		refId = daptinid.InterfaceToDIR(row["id"])
 	}
 	rowType := row["__type"].(string)
 
@@ -1263,13 +1263,11 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 
 	if rowType != "usergroup" {
 		if row[USER_ACCOUNT_ID_COLUMN] != nil {
-			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(daptinid.DaptinReferenceId)
-			perm.UserId = uid
+			perm.UserId = daptinid.InterfaceToDIR(row[USER_ACCOUNT_ID_COLUMN])
 		} else {
 			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, refId, USER_ACCOUNT_ID_COLUMN, transaction)
 			if u != nil {
-				uid, _ := u.(daptinid.DaptinReferenceId)
-				perm.UserId = uid
+				perm.UserId = daptinid.InterfaceToDIR(u)
 			}
 		}
 
@@ -1298,7 +1296,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 		originalGroupId, _ := row["reference_id"]
 		originalGroupIdStr := refId
 		if originalGroupId != nil {
-			originalGroupIdStr = originalGroupId.(daptinid.DaptinReferenceId)
+			originalGroupIdStr = daptinid.InterfaceToDIR(originalGroupId)
 		}
 
 		perm.UserGroupId = []auth.GroupPermission{
@@ -1370,14 +1368,10 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	if rowType != "usergroup" {
 		if row[USER_ACCOUNT_ID_COLUMN] != nil {
-			uid, _ := row[USER_ACCOUNT_ID_COLUMN].(daptinid.DaptinReferenceId)
-			perm.UserId = uid
+			perm.UserId = daptinid.InterfaceToDIR(row[USER_ACCOUNT_ID_COLUMN])
 		} else {
 			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, referenceId, USER_ACCOUNT_ID_COLUMN, transaction)
-			if u != nil {
-				uid, _ := u.(daptinid.DaptinReferenceId)
-				perm.UserId = uid
-			}
+			perm.UserId = daptinid.InterfaceToDIR(u)
 		}
 
 	}
@@ -1404,9 +1398,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 	} else if rowType == "usergroup" {
 		originalGroupId, _ := row["reference_id"]
 		originalGroupIdStr := referenceId
-		if originalGroupId != nil {
-			originalGroupIdStr = originalGroupId.(daptinid.DaptinReferenceId)
-		}
+		originalGroupIdStr = daptinid.InterfaceToDIR(originalGroupId)
 
 		perm.UserGroupId = []auth.GroupPermission{
 			{

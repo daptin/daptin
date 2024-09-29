@@ -125,19 +125,19 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				case "self":
 					if val != nil && val != "" {
 
-						valString := val.(daptinid.DaptinReferenceId)
+						valAsDir := daptinid.InterfaceToDIR(val)
 
-						foreignObjectId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, valString, updateTransaction)
+						foreignObjectId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, valAsDir, updateTransaction)
 						if err != nil {
 							return nil, err
 						}
 
-						foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valString, updateTransaction)
+						foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valAsDir, updateTransaction)
 
 						if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 							val = foreignObjectId
 						} else {
-							return nil, errors.New(fmt.Sprintf("no refer permission on object [%v][%v]", col.ForeignKeyData.Namespace, valString))
+							return nil, errors.New(fmt.Sprintf("no refer permission on object [%v][%v]", col.ForeignKeyData.Namespace, valAsDir))
 						}
 					} else {
 						ok = true
@@ -609,7 +609,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					}
 
 					subjectId := data.GetColumnOriginalValue("id")
-					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(daptinid.DaptinReferenceId), updateTransaction)
+					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), daptinid.InterfaceToDIR(item[rel.GetObjectName()]), updateTransaction)
 					if err != nil {
 						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
 					}
@@ -707,7 +707,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 
-					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(daptinid.DaptinReferenceId)
+					foreignObjectReferenceId := daptinid.InterfaceToDIR(valMap[rel.GetSubjectName()])
 					returnList = append(returnList, foreignObjectReferenceId)
 
 					oldRow := map[string]interface{}{
@@ -757,12 +757,12 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 					updateForeignRow := make(map[string]interface{})
-					foreignObjectReferenceId, ok := valMap[rel.GetSubjectName()].(daptinid.DaptinReferenceId)
-					if !ok {
-						foreignObjectReferenceId, ok = valMap["reference_id"].(daptinid.DaptinReferenceId)
-						if !ok {
-							log.Warnf("reference id not found for subject [%v] for updating [%v][%v]",
-								rel.GetSubjectName(), dbResource.tableInfo.TableName, updateObjectReferenceId)
+					foreignObjectReferenceId := daptinid.InterfaceToDIR(valMap[rel.GetSubjectName()])
+					if foreignObjectReferenceId == daptinid.NullReferenceId {
+						foreignObjectReferenceId = daptinid.InterfaceToDIR(valMap["reference_id"])
+						if foreignObjectReferenceId == daptinid.NullReferenceId {
+							log.Warnf("reference id not found for subject [%v][%v] for updating [%v][%v]",
+								rel.GetSubjectName(), valMap[rel.GetSubjectName()], dbResource.tableInfo.TableName, updateObjectReferenceId)
 							continue
 						}
 					}
@@ -802,8 +802,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				for _, itemInterface := range values {
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
-					item[rel.GetSubjectName()] = item["id"]
-					returnList = append(returnList, item["id"].(daptinid.DaptinReferenceId))
+					item[rel.GetSubjectName()] = daptinid.InterfaceToDIR(item["id"])
+					returnList = append(returnList, daptinid.InterfaceToDIR(item["id"]))
 					item[rel.GetObjectName()] = updateObjectReferenceId
 					delete(item, "id")
 					delete(item, "meta")
@@ -826,15 +826,12 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						delete(item, "attributes")
 					}
 
-					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(daptinid.DaptinReferenceId), updateTransaction)
+					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(),
+						daptinid.InterfaceToDIR(item[rel.GetSubjectName()]), updateTransaction)
 					if err != nil {
 						return nil, fmt.Errorf("subject not found [%v][%v]", rel.GetSubject(), item[rel.GetSubjectName()])
 					}
-					objectId := data.GetID()
-					if err != nil {
-						return nil, err
-					}
-
+					objectId := idInt
 					joinRow, err := GetObjectByWhereClauseWithTransaction(rel.GetJoinTableName(), updateTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,
 						rel.GetSubjectName(): subjectId,
@@ -967,7 +964,8 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					}
 
 					joinReferenceObject := joinReference[0]
-					err = dbResource.Cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(joinReferenceObject["reference_id"].(daptinid.DaptinReferenceId), req, updateTransaction)
+					err = dbResource.Cruds[referencedRelation.GetJoinTableName()].DeleteWithoutFilters(
+						daptinid.InterfaceToDIR(joinReferenceObject["reference_id"]), req, updateTransaction)
 					if err != nil {
 						log.Errorf("Failed to delete relation [%v][%v]: %v", referencedRelation.GetSubject(), referencedRelation.GetObjectName(), err)
 						return nil, err
@@ -1029,6 +1027,12 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
 
 	transaction, err := dbResource.Connection.Beginx()
+	defer func() {
+		err = transaction.Rollback()
+		if err != nil {
+			log.Debugf("[1035]Failed to rollback transaction: %v", err)
+		}
+	}()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [1029]")
 		return nil, err
@@ -1054,8 +1058,6 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 				attributes,
 			}, transaction)
 			if err != nil {
-				transaction.Rollback()
-				log.Errorf("Error From BeforeUpdate middleware: %v", err)
 				return nil, err
 			}
 			if len(finalData) == 0 {
@@ -1069,8 +1071,6 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)
 	log.Tracef("Completed UpdateWithoutFilters")
 	if err != nil {
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "Failed to rollback")
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
@@ -1091,10 +1091,8 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 		}
 
 		if err != nil {
-			rollbackErr := transaction.Rollback()
-			CheckErr(rollbackErr, "failed to rollback")
-			return nil, err
 			log.Errorf("Error from AfterUpdate middleware: %v", err)
+			return NewResponse(nil, nil, 500, nil), err
 		}
 	}
 	commitErr := transaction.Commit()

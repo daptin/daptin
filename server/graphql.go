@@ -663,6 +663,12 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					if err != nil {
 						return nil, err
 					}
+					defer func() {
+						err = transaction.Rollback()
+						if err != nil {
+							log.Debugf("Failed to rollback: %v", err)
+						}
+					}()
 
 					existingObj, _, err := resources[table.TableName].GetSingleRowByReferenceIdWithTransaction(table.TableName,
 						referenceId, nil, transaction)
@@ -710,8 +716,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					created, err := resources[table.TableName].UpdateWithTransaction(obj, req, transaction)
 
 					if err != nil {
-						rollbackErr := transaction.Rollback()
-						auth.CheckErr(rollbackErr, "Failed to rollback")
 						log.Printf("Failed to update resource: %v", err)
 						return nil, err
 					}

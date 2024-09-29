@@ -704,7 +704,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 	if err != nil {
 		log.Errorf("No admin user present")
 	} else {
-		adminUserRefId := adminUser["reference_id"].(daptinid.DaptinReferenceId)
+		adminUserRefId := daptinid.InterfaceToDIR(adminUser["reference_id"])
 
 		sessionUser := &auth.SessionUser{
 			UserId:          adminUserId,

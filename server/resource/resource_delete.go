@@ -69,7 +69,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 	}
 
 	parentId := data["id"].(int64)
-	parentReferenceId := data["reference_id"].(daptinid.DaptinReferenceId)
+	parentReferenceId := daptinid.InterfaceToDIR(data["reference_id"])
 
 	for _, column := range dbResource.model.GetColumns() {
 		if column.IsForeignKey && column.ForeignKeyData.DataSource == "cloud_store" {

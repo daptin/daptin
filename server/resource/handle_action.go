@@ -221,18 +221,11 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 
 	isAdmin := IsAdminWithTransaction(sessionUser, transaction)
 
-	subjectInstanceReferenceString, ok := actionRequest.Attributes[actionRequest.Type+"_id"]
+	subjectInstanceReferenceString, _ := actionRequest.Attributes[actionRequest.Type+"_id"]
 
-	subjectInstanceReferenceUuid, isDir := subjectInstanceReferenceString.(daptinid.DaptinReferenceId)
-	subjectInstanceReferenceStringVal, isString := subjectInstanceReferenceString.(string)
-	if !isDir && isString {
-		asUuid, err := uuid.Parse(subjectInstanceReferenceStringVal)
-		if err != nil {
-			return nil, api2go.NewHTTPError(err, "invalid reference_id ["+subjectInstanceReferenceStringVal+"]", 400)
-		}
-		subjectInstanceReferenceUuid = daptinid.DaptinReferenceId(asUuid)
-	}
-	if ok {
+	subjectInstanceReferenceUuid := daptinid.InterfaceToDIR(subjectInstanceReferenceString)
+
+	if subjectInstanceReferenceUuid != daptinid.NullReferenceId {
 		req.PlainRequest.Method = "GET"
 		req.QueryParams = make(map[string][]string)
 		req.QueryParams["included_relations"] = action.RequestSubjectRelations
@@ -420,25 +413,9 @@ OutFields:
 			attrs := model.GetAttributes()
 			var userIdAsDir daptinid.DaptinReferenceId
 			refIdAttr := attrs["user_reference_id"]
-			userIdAsDir, isDir := refIdAttr.(daptinid.DaptinReferenceId)
-			if !isDir {
-				userReferenceId, isString := refIdAttr.(string)
-				if !isString {
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error",
-						"Failed to read user_reference_id ["+userReferenceId+"] "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
-					break OutFields
-				}
+			userIdAsDir = daptinid.InterfaceToDIR(refIdAttr)
+			if userIdAsDir == daptinid.NullReferenceId {
 
-				parsedId, err := uuid.Parse(userReferenceId)
-				if err != nil {
-
-					actionResponse = NewActionResponse("client.notify", NewClientNotification("error",
-						"Failed to read user_reference_id ["+userReferenceId+"] "+err.Error(), "Failed"))
-					responses = append(responses, actionResponse)
-					break OutFields
-				}
-				userIdAsDir = daptinid.DaptinReferenceId(parsedId)
 			}
 
 			user, _, err := dbResource.Cruds["user_account"].GetSingleRowByReferenceIdWithTransaction(
@@ -459,7 +436,7 @@ OutFields:
 
 			*sessionUser = auth.SessionUser{
 				UserId:          user["id"].(int64),
-				UserReferenceId: user["reference_id"].(daptinid.DaptinReferenceId),
+				UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
 				Groups:          userGroups,
 			}
 

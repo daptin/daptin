@@ -53,7 +53,7 @@ func GetOauthConnectionDescription(authenticator string, dbResource *DbResource,
 
 	conf, err := mapToOauthConfig(rows[0], secret)
 	log.Printf("[%v] oauth config: %v", authenticator, conf)
-	return conf, rows[0]["reference_id"].(daptinid.DaptinReferenceId), err
+	return conf, daptinid.InterfaceToDIR(rows[0]["reference_id"]), err
 
 }
 

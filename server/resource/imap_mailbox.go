@@ -410,7 +410,8 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	log.Printf("Mail search results: %v", results)
 	for i, res := range results {
 		if uid {
-			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail", res["reference_id"].(daptinid.DaptinReferenceId), transaction)
+			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail",
+				daptinid.InterfaceToDIR(res["reference_id"]), transaction)
 			if err != nil {
 				CheckErr(err, "Failed to get id from reference id")
 				continue

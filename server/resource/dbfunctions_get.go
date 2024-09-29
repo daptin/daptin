@@ -184,62 +184,64 @@ func (dbResource *DbResource) GetAllCloudStores(transaction *sqlx.Tx) ([]CloudSt
 		return cloudStores, err
 	}
 
-	for _, storeMap := range rows {
+	for _, storeRowMap := range rows {
 		var cloudStore CloudStore
 
-		tokenId := storeMap["oauth_token_id"]
-		if tokenId == nil {
-			log.Printf("Token id for store [%v] is empty", storeMap["name"])
+		tokenId := daptinid.InterfaceToDIR(storeRowMap["oauth_token_id"])
+		if tokenId == daptinid.NullReferenceId {
+			log.Printf("Token id for store [%v] is empty", storeRowMap["name"])
 		} else {
-			cloudStore.OAutoTokenId = tokenId.(daptinid.DaptinReferenceId)
+			cloudStore.OAutoTokenId = tokenId
 		}
-		cloudStore.Name = storeMap["name"].(string)
+		cloudStore.Name = storeRowMap["name"].(string)
 
-		id, ok := storeMap["id"].(int64)
+		id, ok := storeRowMap["id"].(int64)
 		if !ok {
-			id, err = strconv.ParseInt(storeMap["id"].(string), 10, 64)
+			id, err = strconv.ParseInt(storeRowMap["id"].(string), 10, 64)
 			CheckErr(err, "Failed to parse id as int in loading stores")
 		}
 
 		cloudStore.Id = id
-		cloudStore.ReferenceId = storeMap["reference_id"].(daptinid.DaptinReferenceId)
-		CheckErr(err, "Failed to parse permission as int in loading stores")
+		cloudStore.ReferenceId = daptinid.InterfaceToDIR(storeRowMap["reference_id"])
+		if cloudStore.ReferenceId == daptinid.NullReferenceId {
+			CheckErr(err, "Failed to parse permission as int in loading stores")
+		}
 		cloudStore.Permission = dbResource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId, transaction)
 
-		if storeMap[USER_ACCOUNT_ID_COLUMN] != nil {
-			cloudStore.UserId = storeMap[USER_ACCOUNT_ID_COLUMN].(daptinid.DaptinReferenceId)
+		if storeRowMap[USER_ACCOUNT_ID_COLUMN] != nil {
+			cloudStore.UserId = daptinid.InterfaceToDIR(storeRowMap[USER_ACCOUNT_ID_COLUMN])
 		}
 
-		createdAt, ok := storeMap["created_at"].(time.Time)
+		createdAt, ok := storeRowMap["created_at"].(time.Time)
 		if !ok {
-			createdAt, _ = time.Parse(storeMap["created_at"].(string), "2006-01-02 15:04:05")
+			createdAt, _ = time.Parse(storeRowMap["created_at"].(string), "2006-01-02 15:04:05")
 		}
 
 		cloudStore.CreatedAt = &createdAt
-		if storeMap["updated_at"] != nil {
-			updatedAt, ok := storeMap["updated_at"].(time.Time)
+		if storeRowMap["updated_at"] != nil {
+			updatedAt, ok := storeRowMap["updated_at"].(time.Time)
 			if !ok {
-				updatedAt, _ = time.Parse(storeMap["updated_at"].(string), "2006-01-02 15:04:05")
+				updatedAt, _ = time.Parse(storeRowMap["updated_at"].(string), "2006-01-02 15:04:05")
 			}
 			cloudStore.UpdatedAt = &updatedAt
 		}
-		storeParameters := storeMap["store_parameters"].(string)
+		storeParameters := storeRowMap["store_parameters"].(string)
 
 		storeParamMap := make(map[string]interface{})
 
 		if len(storeParameters) > 0 {
 			err = json.Unmarshal([]byte(storeParameters), &storeParamMap)
-			CheckErr(err, "Failed to unmarshal store parameters for store %v", storeMap["name"])
+			CheckErr(err, "Failed to unmarshal store parameters for store %v", storeRowMap["name"])
 		}
 
 		cloudStore.StoreParameters = storeParamMap
-		cloudStore.StoreProvider = storeMap["store_provider"].(string)
-		cloudStore.StoreType = storeMap["store_type"].(string)
-		cloudStore.RootPath = storeMap["root_path"].(string)
+		cloudStore.StoreProvider = storeRowMap["store_provider"].(string)
+		cloudStore.StoreType = storeRowMap["store_type"].(string)
+		cloudStore.RootPath = storeRowMap["root_path"].(string)
 
-		version, ok := storeMap["version"].(int64)
+		version, ok := storeRowMap["version"].(int64)
 		if !ok {
-			version, _ = strconv.ParseInt(storeMap["version"].(string), 10, 64)
+			version, _ = strconv.ParseInt(storeRowMap["version"].(string), 10, 64)
 		}
 
 		cloudStore.Version = int(version)
@@ -332,11 +334,9 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
-		if row["oauth_token_id"] != nil {
-			cloudStore.OAutoTokenId = row["oauth_token_id"].(daptinid.DaptinReferenceId)
-		}
+		cloudStore.OAutoTokenId = daptinid.InterfaceToDIR(row["oauth_token_id"])
 		cloudStore.Id = row["id"].(int64)
-		cloudStore.ReferenceId = row["reference_id"].(daptinid.DaptinReferenceId)
+		cloudStore.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
 		cloudStore.Version = int(row["version"].(int64))
 
 		if OlricCache != nil {
@@ -372,10 +372,8 @@ func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.Da
 		cloudStore.StoreProvider = row["store_provider"].(string)
 		cloudStore.Id = row["id"].(int64)
 		cloudStore.Version = int(row["version"].(int64))
-		cloudStore.ReferenceId = row["reference_id"].(daptinid.DaptinReferenceId)
-		if row["oauth_token_id"] != nil {
-			cloudStore.OAutoTokenId = row["oauth_token_id"].(daptinid.DaptinReferenceId)
-		}
+		cloudStore.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
+		cloudStore.OAutoTokenId = daptinid.InterfaceToDIR(row["oauth_token_id"])
 	}
 
 	return cloudStore, nil

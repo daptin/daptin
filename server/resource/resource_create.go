@@ -649,7 +649,8 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					}
 
 					subjectId := data.GetColumnOriginalValue("id")
-					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(), item[rel.GetObjectName()].(daptinid.DaptinReferenceId), createTransaction)
+					objectId, err := GetReferenceIdToIdWithTransaction(rel.GetObject(),
+						daptinid.InterfaceToDIR(item[rel.GetObjectName()]), createTransaction)
 					if err != nil {
 						return nil, fmt.Errorf("object not found [%v][%v]", rel.GetObject(), item[rel.GetObjectName()])
 					}
@@ -737,7 +738,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 
-					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(daptinid.DaptinReferenceId)
+					foreignObjectReferenceId := daptinid.InterfaceToDIR(valMap[rel.GetSubjectName()])
 					returnList = append(returnList, foreignObjectReferenceId)
 
 					oldRow := map[string]interface{}{
@@ -787,7 +788,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				for _, valMapInterface := range valMapList {
 					valMap := valMapInterface.(map[string]interface{})
 					updateForeignRow := make(map[string]interface{})
-					foreignObjectReferenceId := valMap[rel.GetSubjectName()].(daptinid.DaptinReferenceId)
+					foreignObjectReferenceId := daptinid.InterfaceToDIR(valMap[rel.GetSubjectName()])
 					returnList = append(returnList, foreignObjectReferenceId)
 
 					updateForeignRow, err = dbResource.GetReferenceIdToObjectWithTransaction(rel.GetSubject(), foreignObjectReferenceId, createTransaction)
@@ -824,8 +825,8 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				for _, itemInterface := range values {
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
-					item[rel.GetSubjectName()] = item["reference_id"]
-					returnList = append(returnList, item["reference_id"].(daptinid.DaptinReferenceId))
+					item[rel.GetSubjectName()] = daptinid.InterfaceToDIR(item["reference_id"])
+					returnList = append(returnList, daptinid.InterfaceToDIR(item["reference_id"]))
 					item[rel.GetObjectName()] = newObjectReferenceId
 					delete(item, "reference_id")
 					delete(item, "meta")
@@ -848,7 +849,8 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						delete(item, "attributes")
 					}
 
-					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(), item[rel.GetSubjectName()].(daptinid.DaptinReferenceId), createTransaction)
+					subjectId, err := GetReferenceIdToIdWithTransaction(rel.GetSubject(),
+						item[rel.GetSubjectName()].(daptinid.DaptinReferenceId), createTransaction)
 					if err != nil {
 						return nil, fmt.Errorf("subject not found [%v][%v]", rel.GetSubject(), item[rel.GetSubjectName()])
 					}

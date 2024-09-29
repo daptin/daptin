@@ -90,7 +90,7 @@ func (d *acmeTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),
-		UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
+		UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),
 	}
 	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", user))
 	//req := api2go.Request{

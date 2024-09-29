@@ -52,11 +52,11 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inF
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		i := userOtpProfile["otp_of_account"]
-		if i == nil {
+		i := daptinid.InterfaceToDIR(userOtpProfile["otp_of_account"])
+		if i == daptinid.NullReferenceId {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
-		userAccount, _, err = actionPerformer.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", i.(daptinid.DaptinReferenceId), nil, transaction)
+		userAccount, _, err = actionPerformer.cruds["user_account"].GetSingleRowByReferenceIdWithTransaction("user_account", i, nil, transaction)
 		if err != nil {
 			return nil, nil, []error{errors.New("unregistered number")}
 		}
@@ -70,7 +70,7 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inF
 	httpReq := &http.Request{}
 	user := &auth.SessionUser{
 		UserId:          userAccount["id"].(int64),
-		UserReferenceId: userAccount["reference_id"].(daptinid.DaptinReferenceId),
+		UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),
 	}
 	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", user))
 	req := api2go.Request{

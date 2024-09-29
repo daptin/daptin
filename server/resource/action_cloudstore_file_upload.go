@@ -184,9 +184,9 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
-	oauthTokenId1 := inFields["oauth_token_id"]
+	oauthTokenId1, isOauthTokenPresent := inFields["oauth_token_id"]
 	asStr, isStr := oauthTokenId1.(string)
-	if oauthTokenId1 == nil {
+	if !isOauthTokenPresent {
 		log.Printf("No oauth token set for target store")
 	} else if isStr {
 		if asStr == "<nil>" {
@@ -198,7 +198,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 
 		}
 	} else {
-		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
+		oauthTokenId := daptinid.InterfaceToDIR(oauthTokenId1)
 		token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}

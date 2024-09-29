@@ -70,7 +70,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 			timeNow.Add(-2 * time.Minute) // allow clock skew of 2 minutes
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 				"email": existingUser["email"],
-				"sub":   existingUser["reference_id"].(daptinid.DaptinReferenceId).String(),
+				"sub":   daptinid.InterfaceToDIR(existingUser["reference_id"]).String(),
 				"name":  existingUser["name"],
 				"nbf":   timeNow.Unix(),
 				"exp":   timeNow.Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),

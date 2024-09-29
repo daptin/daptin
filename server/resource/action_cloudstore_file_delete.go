@@ -51,9 +51,9 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 
 	var token *oauth2.Token
 	oauthConf := &oauth2.Config{}
-	oauthTokenId1 := inFields["oauth_token_id"]
+	oauthTokenId1, isOauthTokenIdPresent := inFields["oauth_token_id"]
 	asStr, isStr := oauthTokenId1.(string)
-	if oauthTokenId1 == nil {
+	if !isOauthTokenIdPresent {
 		log.Printf("No oauth token set for target store")
 	} else if isStr {
 		if asStr == "<nil>" {
@@ -65,7 +65,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 
 		}
 	} else {
-		oauthTokenId := oauthTokenId1.(daptinid.DaptinReferenceId)
+		oauthTokenId := daptinid.InterfaceToDIR(oauthTokenId1)
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 		CheckErr(err, "Failed to get oauth2 token for store sync")
 	}

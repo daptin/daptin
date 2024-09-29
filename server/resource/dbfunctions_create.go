@@ -541,6 +541,10 @@ func CheckAuditTables(config *CmsConfig) {
 
 func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConfig) {
 	existingRelationMap := make(map[string]bool)
+	tableMap := make(map[string]*TableInfo)
+	for _, table := range config.Tables {
+		tableMap[table.TableName] = &table
+	}
 
 	for _, rel := range config.Relations {
 		existingRelationMap[rel.Hash()] = true
@@ -629,7 +633,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			fromTable := relation.GetSubject()
 			targetTable := relation.GetObject()
 
-			newTable := TableInfo{
+			newJoinTable := TableInfo{
 				TableName:   relation.GetJoinTableName(),
 				Columns:     make([]api2go.ColumnInfo, 0),
 				IsJoinTable: true,
@@ -649,7 +653,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				DataType: "int(11)",
 			}
 
-			newTable.Columns = append(newTable.Columns, col1)
+			newJoinTable.Columns = append(newJoinTable.Columns, col1)
 
 			col2 := api2go.ColumnInfo{
 				Name:         targetTable + "_id",
@@ -664,21 +668,22 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				DataType: "int(11)",
 			}
 
-			newTable.Columns = append(newTable.Columns, col2)
-			newTable.Columns = append(newTable.Columns, relation.Columns...)
-			newTable.AddRelation(relation)
-			//newTable.Relations = append(newTable.Relations, relation)
-			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
-			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
+			newJoinTable.Columns = append(newJoinTable.Columns, col2)
+			newJoinTable.Columns = append(newJoinTable.Columns, relation.Columns...)
+			tableMap[fromTable].AddRelation(relation)
+			tableMap[targetTable].AddRelation(relation)
+			//newJoinTable.Relations = append(newJoinTable.Relations, relation)
+			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newJoinTable.TableName)
+			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newJoinTable.TableName)
 
-			config.Tables = append(config.Tables, newTable)
+			config.Tables = append(config.Tables, newJoinTable)
 
 		} else if relation2 == "has_many_and_belongs_to_many" {
 
 			fromTable := relation.GetSubject()
 			targetTable := relation.GetObject()
 
-			newTable := TableInfo{
+			newJoinTable := TableInfo{
 				TableName: relation.GetJoinTableName(),
 				Columns:   make([]api2go.ColumnInfo, 0),
 			}
@@ -696,7 +701,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				DataType: "int(11)",
 			}
 
-			newTable.Columns = append(newTable.Columns, col1)
+			newJoinTable.Columns = append(newJoinTable.Columns, col1)
 
 			col2 := api2go.ColumnInfo{
 				Name:         relation.GetObject(),
@@ -711,14 +716,16 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				DataType: "int(11)",
 			}
 
-			newTable.Columns = append(newTable.Columns, col2)
-			newTable.Columns = append(newTable.Columns, relation.Columns...)
-			newTable.AddRelation(relation)
-			//newTable.Relations = append(newTable.Relations, relation)
-			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newTable.TableName)
-			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newTable.TableName)
+			newJoinTable.Columns = append(newJoinTable.Columns, col2)
+			newJoinTable.Columns = append(newJoinTable.Columns, relation.Columns...)
+			tableMap[fromTable].AddRelation(relation)
+			tableMap[targetTable].AddRelation(relation)
 
-			config.Tables = append(config.Tables, newTable)
+			//newJoinTable.Relations = append(newJoinTable.Relations, relation)
+			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newJoinTable.TableName)
+			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newJoinTable.TableName)
+
+			config.Tables = append(config.Tables, newJoinTable)
 
 		} else {
 			log.Errorf("Failed to identify relation type: %v", relation)

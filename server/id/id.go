@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"unsafe"
 )
 
@@ -90,30 +90,33 @@ func (d *DaptinReferenceId) UnmarshalBinary(data []byte) error {
 
 var NullReferenceId DaptinReferenceId
 
-func InterfaceToDIR(oauthTokenId1 interface{}) DaptinReferenceId {
-	asStr, isStr := oauthTokenId1.(string)
-	if oauthTokenId1 == nil {
-		logrus.Printf("No oauth token set for target store")
-	} else if isStr {
+func InterfaceToDIR(valueToConvert interface{}) DaptinReferenceId {
+	if valueToConvert == nil {
+		return NullReferenceId
+	}
+	valueAsDir, isDir := valueToConvert.(DaptinReferenceId)
+	if isDir {
+		return valueAsDir
+	}
+
+	asUuid, isUuid := valueToConvert.(uuid.UUID)
+	if isUuid {
+		return DaptinReferenceId(asUuid)
+	}
+
+	asStr, isStr := valueToConvert.(string)
+	if isStr {
 		if asStr == "<nil>" {
-			logrus.Printf("No oauth token set for target store")
+			log.Printf("[100] No reference id is <nil> target store")
+			return NullReferenceId
 		} else {
 			oauthTokenId, err := uuid.Parse(asStr)
 			if err != nil {
+				log.Error("[105] Failed to parse string as uuid [%s]: %v", asStr, err)
 				return NullReferenceId
 			}
 			return DaptinReferenceId(oauthTokenId)
 		}
-	} else {
-		oauthTokenId, isDir := oauthTokenId1.(DaptinReferenceId)
-		if isDir {
-			return oauthTokenId
-		}
-		asUuid, isUuid := oauthTokenId1.(uuid.UUID)
-		if isUuid {
-			return DaptinReferenceId(asUuid)
-		}
-
 	}
 	return NullReferenceId
 }
