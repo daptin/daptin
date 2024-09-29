@@ -186,6 +186,7 @@ func (driver *DaptinFtpDriver) AuthUser(cc server.ClientContext, user, pass stri
 	if !resource.BcryptCheckStringHash(pass, userAccount["password"].(string)) {
 		return nil, fmt.Errorf("could not authenticate you")
 	}
+	log.Infof("FTP Login [%s][%s][%s]", driver.BaseDir, user, cc.RemoteAddr())
 	return &ClientDriver{
 		BaseDir:    "/",
 		CurrentDir: "/",

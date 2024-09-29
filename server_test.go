@@ -902,7 +902,7 @@ func runTests(t *testing.T) error {
 	}), authTokenHeader)
 
 	if err != nil {
-		log.Printf("Failed to get read response %s %s", "become admin", err)
+		log.Errorf("Failed to get read response %s %s", "become admin", err)
 		t.Fail()
 		return err
 	}

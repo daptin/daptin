@@ -1351,15 +1351,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]interface{}, transaction *sqlx.Tx) PermissionInstance {
 
 	var referenceId daptinid.DaptinReferenceId
-	refDirVal, isDir := row["reference_id"].(daptinid.DaptinReferenceId)
-	refIdUud, isUUid := row["reference_id"].(uuid.UUID)
-	if isUUid {
-		referenceId = daptinid.DaptinReferenceId(refIdUud)
-	} else if isDir {
-		referenceId = refDirVal
-	} else {
-		return PermissionInstance{}
-	}
+	referenceId = daptinid.InterfaceToDIR(row["reference_id"])
 	rowType := row["__type"].(string)
 
 	cacheKey := fmt.Sprintf("row-permission-%v-%v", rowType, referenceId)
