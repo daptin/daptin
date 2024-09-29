@@ -654,7 +654,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 		if err == nil {
 			perm.UserId = user
 		} else {
-			log.Errorf("Failed GetIdToReferenceIdWithTransaction [%s]", m, err)
+			log.Errorf("Failed GetIdToReferenceIdWithTransaction [%v] [%v]", m, err)
 		}
 
 	}

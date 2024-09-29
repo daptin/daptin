@@ -1078,14 +1078,16 @@ func BenchmarkCreate(m *testing.B) {
 
 func FtpTest(t *testing.T) {
 
-	c, err := ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second), ftp.DialWithDebugOutput(os.Stdout))
+	ftpClient, err := ftp.Dial("0.0.0.0:2121",
+		ftp.DialWithTimeout(5*time.Second),
+		ftp.DialWithDebugOutput(os.Stdout))
 
 	if err != nil {
 		t.Fail()
 		log.Fatal(err)
 	}
 
-	err = c.Login("anonymous", "anonymous")
+	err = ftpClient.Login("anonymous", "anonymous")
 	if err == nil {
 		t.Fail()
 		t.Errorf("Able to login FTP as anon")
@@ -1093,33 +1095,48 @@ func FtpTest(t *testing.T) {
 
 	// Do something with the FTP conn
 
-	if err := c.Quit(); err != nil {
+	if err := ftpClient.Quit(); err != nil {
 		t.Fail()
 		log.Fatal(err)
 	}
 
-	c, err = ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
+	ftpClient, err = ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
 	if err != nil {
 		t.Fail()
 		log.Fatal(err)
 	}
 
-	err = c.Login("test@gmail.com", "tester123")
+	err = ftpClient.Login("test@gmail.com", "tester123")
 	if err != nil {
 		t.Fail()
 		t.Errorf("Not able to login FTP as test@gmail.com")
 	}
 
-	err = c.ChangeDir("/")
-	err = c.ChangeDir("/site.daptin.com/")
-	err = c.ChangeDir("/site.daptin.com")
+	err = ftpClient.ChangeDir("/")
 	if err != nil {
 		t.Fail()
 		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
 	}
 
-	files, err := c.List("/")
-	files, err = c.List("/site.daptin.com/")
+	err = ftpClient.ChangeDir("/site.daptin.com/")
+	if err != nil {
+		t.Fail()
+		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+	}
+
+	err = ftpClient.ChangeDir("/site.daptin.com")
+	if err != nil {
+		t.Fail()
+		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+	}
+
+	files, err := ftpClient.List("/")
+	if err != nil {
+		t.Fail()
+		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+	}
+
+	files, err = ftpClient.List("/site.daptin.com/")
 	if err != nil {
 		t.Fail()
 		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
@@ -1128,55 +1145,55 @@ func FtpTest(t *testing.T) {
 		log.Printf("FTP File [%v]", file.Name)
 	}
 
-	files, err = c.List(".")
+	files, err = ftpClient.List(".")
 	if err != nil {
 		t.Fail()
 		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
 	}
 
-	curDir, _ := c.CurrentDir()
+	curDir, _ := ftpClient.CurrentDir()
 	t.Logf("Current dir is: %v", curDir)
 
-	err = c.Append("image.png", ImageReader)
+	err = ftpClient.Append("image.png", ImageReader)
 	if err != nil {
 		t.Fail()
 		t.Errorf("failed to upload file from FTP: %v", err)
 	}
-	size, err := c.FileSize("image.png")
+	size, err := ftpClient.FileSize("image.png")
 	if size == 0 || err != nil {
 		t.Fail()
 		t.Errorf("size is 0 %v %v", size, err)
 	}
 
-	err = c.MakeDir("temp")
+	err = ftpClient.MakeDir("temp")
 	if err != nil {
 		t.Fail()
 		t.Errorf("Failed to make temp %v", err)
 	}
 
-	err = c.MakeDir("/test")
+	err = ftpClient.MakeDir("/test")
 	if err == nil {
 		t.Fail()
 		t.Errorf("Was able to make /test in root dir %v", err)
 	}
 
-	err = c.Rename("image.png", "image_new.png")
+	err = ftpClient.Rename("image.png", "image_new.png")
 	if err != nil {
 		t.Fail()
 		t.Errorf("Failed to make rename %v", err)
 	}
-	size, err = c.FileSize("image_new.png")
+	size, err = ftpClient.FileSize("image_new.png")
 	if size == 0 || err != nil {
 		t.Fail()
 		t.Errorf("%v %v", size, err)
 	}
-	err = c.RemoveDir("temp")
+	err = ftpClient.RemoveDir("temp")
 	if err != nil {
 		t.Fail()
 		t.Errorf("failed to remove dir %v", err)
 	}
 
-	res, err := c.Retr("image_new.png")
+	res, err := ftpClient.Retr("image_new.png")
 	if err != nil {
 		t.Fail()
 		t.Errorf("failed to remove dir %v", err)
@@ -1189,7 +1206,7 @@ func FtpTest(t *testing.T) {
 		}
 	}
 
-	if err := c.Quit(); err != nil {
+	if err := ftpClient.Quit(); err != nil {
 		t.Fail()
 		t.Error(err)
 	}
