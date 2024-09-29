@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"net/http"
+	"net/url"
 	"strings"
 	//	"encoding/base64"
 	"errors"
@@ -41,9 +42,11 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	nodeDefinitions = relay.NewNodeDefinitions(relay.NodeDefinitionsConfig{
 		IDFetcher: func(id string, info graphql.ResolveInfo, ctx context.Context) (interface{}, error) {
 			resolvedID := relay.FromGlobalID(id)
+
+			ur, _ := url.Parse("/api/" + resolvedID.Type)
 			pr := &http.Request{
 				Method: "GET",
-				URL:    nil,
+				URL:    ur,
 			}
 			pr = pr.WithContext(ctx)
 			req := api2go.Request{
@@ -340,8 +343,10 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						filter = ""
 					}
 
+					ur, _ := url.Parse("/api/" + table.TableName)
 					pr := &http.Request{
 						Method: "GET",
+						URL:    ur,
 					}
 					pr = pr.WithContext(params.Context)
 
@@ -604,8 +609,11 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 					obj := api2go.NewApi2GoModelWithData(table.TableName, nil, 0, nil, params.Args)
 
+					ur, _ := url.Parse("/api/" + table.TableName)
+
 					pr := &http.Request{
 						Method: "POST",
+						URL:    ur,
 					}
 
 					pr = pr.WithContext(params.Context)
@@ -703,9 +711,11 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					delete(args, "reference_id")
 
 					obj.SetAttributes(args)
+					ur, _ := url.Parse("/api/" + table.TableName)
 
 					pr := &http.Request{
 						Method: "PATCH",
+						URL:    ur,
 					}
 
 					pr = pr.WithContext(params.Context)
@@ -737,8 +747,10 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				},
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 
+					ur, _ := url.Parse("/api/" + table.TableName)
 					pr := &http.Request{
 						Method: "DELETE",
+						URL:    ur,
 					}
 
 					pr = pr.WithContext(params.Context)
@@ -808,8 +820,10 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Args:        inputFields,
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 
+					ur, _ := url.Parse("/action/" + action.OnType + "/" + action.Name)
 					pr := &http.Request{
 						Method: "EXECUTE",
+						URL:    ur,
 					}
 
 					pr = pr.WithContext(params.Context)
