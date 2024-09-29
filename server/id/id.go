@@ -2,6 +2,7 @@ package daptinid
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
@@ -15,7 +16,16 @@ type DaptinReferenceEncoder struct{}
 func (dr *DaptinReferenceId) Scan(value interface{}) error {
 	asBytes, ok := value.([]uint8)
 	if !ok {
-		return errors.New("Conversion failed")
+		asStr, isStr := value.(string)
+		if isStr {
+			asUUid, err := uuid.Parse(asStr)
+			if err != nil {
+				return err
+			}
+			asBytes = asUUid[:]
+		} else {
+			return fmt.Errorf("value couldne be parsed at []uint8 => [%v] failed", value)
+		}
 	}
 	// Convert asBytes into the appropriate type for DaptinReferenceId
 	// You may need to interpret the bytes accordingly (e.g., converting them to a string, parsing them, etc.)

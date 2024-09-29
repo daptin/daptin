@@ -44,7 +44,8 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	cruds := make(map[string]*resource.DbResource)
 
-	olricDb, _ := olric.New(olricConfig.New("local"))
+	olricDb1, _ := olric.New(olricConfig.New("local"))
+	olricDb := olricDb1.NewEmbeddedClient()
 
 	dtopicMap := make(map[string]*olric.DTopic)
 

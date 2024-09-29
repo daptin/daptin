@@ -919,6 +919,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 		groupReferenceIds := make([]daptinid.DaptinReferenceId, 0)
 		groupIds := make(map[daptinid.DaptinReferenceId]int64)
+		groupIdIntList := make([]int64, 0)
 		for _, group := range sessionUser.Groups {
 			groupReferenceIds = append(groupReferenceIds, group.GroupReferenceId)
 		}
@@ -932,15 +933,18 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		groupQueries := make([]goqu.Ex, 0)
 
 		if groupCount > 0 {
+			for _, intId := range groupIds {
+				groupIdIntList = append(groupIdIntList, intId)
+			}
 			groupQueries = append(groupQueries, goqu.Ex{
 				fmt.Sprintf("%s.usergroup_id", joinTableName): goqu.Op{
-					"in": groupIds,
+					"in": groupIdIntList,
 				},
 			})
 
-			gCount := len(groupParameters)
+			gCount := len(groupQueries)
 			if gCount > 0 {
-				gids := make([]string, gCount)
+				gids := make([]string, 0)
 				for _, gid := range groupIds {
 					gids = append(gids, fmt.Sprintf("%d", gid))
 				}

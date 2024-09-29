@@ -603,13 +603,17 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 	}
 
 	cacheKey := ""
+	cacheKey = fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue)
 	if OlricCache != nil {
-		cacheKey = fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue)
 		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
 		if cachedPermission != nil && err == nil {
 			var pi PermissionInstance
-			cachedPermission.Scan(&pi)
-			return pi
+			err = cachedPermission.Scan(&pi)
+			if err == nil {
+				return pi
+			} else {
+				log.Errorf("Failed to GetObjectPermissionByWhereClauseWithTransaction [%s][%s][%s]: %v", objectType, colName, colValue, err)
+			}
 		}
 	}
 
@@ -649,6 +653,8 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 		user, err := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, m[USER_ACCOUNT_ID_COLUMN].(int64), transaction)
 		if err == nil {
 			perm.UserId = user
+		} else {
+			log.Errorf("Failed GetIdToReferenceIdWithTransaction [%s]", m, err)
 		}
 
 	}
@@ -930,7 +936,11 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
 			var res []auth.GroupPermission
-			cachedValue.Scan(&res)
+			err = cachedValue.Scan(&res)
+			if err != nil {
+				log.Errorf("Failed to scan permission from cache: %v", err)
+				return res
+			}
 			return res
 		}
 	}
@@ -983,6 +993,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 		g.ObjectReferenceId = refId
 		if err != nil {
 			log.Errorf("Failed to scan group permission 2: %v", err)
+
 		}
 		s = append(s, g)
 	}

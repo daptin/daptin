@@ -41,7 +41,8 @@ func (p *PermissionInstance) UnmarshalBinary(data []byte) error {
 	userGroupId := make([]auth.GroupPermission, len(userGroupIdBytes)/auth.AuthGroupBinaryRepresentationSize)
 	for i := 0; i < len(userGroupId); i++ {
 		groupPermission := auth.GroupPermission{}
-		err := groupPermission.UnmarshalBinary(userGroupIdBytes[(i * auth.AuthGroupBinaryRepresentationSize):16])
+		err := groupPermission.UnmarshalBinary(
+			userGroupIdBytes[(i * auth.AuthGroupBinaryRepresentationSize):auth.AuthGroupBinaryRepresentationSize])
 		if err != nil {
 			return err
 		}
