@@ -528,7 +528,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	for _, rel := range dbResource.model.GetRelations() {
 		relationName := rel.GetRelation()
 
-		log.Tracef("Check relation in Update: %v", rel.String())
+		log.Tracef("[531] Check relation in Update: %v", rel.String())
 		if rel.GetSubject() == dbResource.model.GetName() {
 
 			if relationName == "belongs_to" || relationName == "has_one" {
@@ -1079,7 +1079,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	}
 
 	for _, bf := range dbResource.ms.AfterUpdate {
-		log.Tracef("Invoke AfterUpdate [%v][%v] on Update Request", bf.String(), dbResource.model.GetName())
+		log.Tracef("Invoke AfterUpdate [%v][%v] on Update Request [%v]", bf.String(), dbResource.model.GetName(), updatedResource)
 
 		results, err := bf.InterceptAfter(dbResource, &api2go.Request{
 			PlainRequest: updateRequest,

@@ -105,7 +105,7 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Infof("New index not created on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
+					log.Debugf("[108] New index not created on Table[%v][%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			} else if column.IsIndexed {
 				indexName := "i" + GetMD5HashString("index_"+table.TableName+"_"+column.ColumnName+"_index")
@@ -117,7 +117,7 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 				//log.Infof("Create index sql: %v", alterTable)
 				_, err := db.Exec(alterTable)
 				if err != nil {
-					log.Printf("New index not created on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
+					log.Debugf("[120] New index not created on Table[%v] Column[%v]: %v", table.TableName, column.ColumnName, err)
 				}
 			}
 		}

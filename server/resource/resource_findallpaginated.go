@@ -978,10 +978,10 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 	idsListQuery, args, err := queryBuilder.Order(orders...).ToSQL()
 	if err != nil {
-		log.Tracef("Id query: [%s]", err)
+		log.Tracef("[981] Id query: [%s]", err)
 		return nil, nil, nil, false, err
 	}
-	log.Tracef("Id query: [%s]", idsListQuery)
+	log.Tracef("[984] Id query: [%s] => %v", idsListQuery, args)
 	//log.Debugf("Id query args: %v", args)
 	start = time.Now()
 	stmt, err := transaction.Preparex(idsListQuery)

@@ -43,7 +43,7 @@ func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {
 		for _, existingRelation := range ti.Relations {
 			if existingRelation.Hash() == hash {
 				exists = true
-				log.Printf("Relation already exists: %v", relation)
+				//log.Printf("Relation already exists: %v", relation)
 				break
 			}
 		}

@@ -83,7 +83,6 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(
 
 func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
-	log.Tracef("UpdateTasksData")
 	tasks, err := GetTasks(transaction)
 	if err != nil {
 		return err
@@ -96,6 +95,7 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	newTasks := initConfig.Tasks
 
 	for _, newTask := range newTasks {
+		log.Tracef("Update TaskData: [%v]", newTask)
 
 		_, ok := taskMap[newTask.Name]
 		taskMap[newTask.Name] = newTask
@@ -628,7 +628,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		}
 		_, ok = currentActions[worldIdString][action.Name]
 		if ok {
-			log.Printf("Action [%v][%v] available in database", action.OnType, action.Name)
+			log.Debugf("Action [%v][%v] available in database", action.OnType, action.Name)
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
@@ -898,7 +898,7 @@ func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api
 
 			if len(uniqueColumns) > 0 {
 				for _, uniqueCol := range uniqueColumns {
-					log.Printf("Try to update data by unique column: %v", uniqueCol.ColumnName)
+					log.Infof("[901] Try to update data by unique column: [%v] => [%v]", uniqueCol.ColumnName, row[uniqueCol.ColumnName])
 					uniqueColumnValue, ok := row[uniqueCol.ColumnName]
 					if !ok || uniqueColumnValue == nil {
 						continue

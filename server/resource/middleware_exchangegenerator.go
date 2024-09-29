@@ -72,7 +72,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
-	log.Tracef("Request to intercept in middleware exchange: [%v]", reqmethod)
+	log.Tracef("[75] Request to intercept in middleware exchange: [%v]", reqmethod)
 
 	for i, resultRow := range results {
 
@@ -132,18 +132,19 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 			}
 		}
 	}
-	log.Tracef("Finished request to intercept in middleware exchange: %v", reqmethod)
+	log.Tracef("[135] Finished request to intercept in middleware exchange: %v => [%v]", reqmethod, results)
 	return results, nil
 }
 
 // Called after the data changes are complete, resposible for calling the external api.
-func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request, results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
+func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
+	results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	//errors := []error{}
 
 	reqmethod := req.PlainRequest.Method
 	reqmethod = strings.ToLower(reqmethod)
-	log.Tracef("Request to intercept in middleware exchange: %v", reqmethod)
+	log.Tracef("[145] Request to intercept in middleware exchange: [%v]%v", em, reqmethod)
 
 	for _, resultRow := range results {
 
@@ -205,6 +206,6 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 		}
 	}
 
-	log.Tracef("Completed request to intercept in middleware exchange: %v", reqmethod)
+	log.Tracef("[208] Completed request to intercept in middleware exchange: %v => %v", reqmethod, results)
 	return results, nil
 }

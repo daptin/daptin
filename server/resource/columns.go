@@ -3,7 +3,6 @@ package resource
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
-	log "github.com/sirupsen/logrus"
 )
 
 func IsStandardColumn(colName string) bool {
@@ -3050,7 +3049,7 @@ func (ti *TableInfo) AddRelation(relations ...api2go.TableRelation) {
 		for _, existingRelation := range ti.Relations {
 			if existingRelation.Hash() == hash {
 				exists = true
-				log.Debugf("Relation already exists: %v", relation)
+				//log.Debugf("Relation already exists: %v", relation)
 				break
 			}
 		}

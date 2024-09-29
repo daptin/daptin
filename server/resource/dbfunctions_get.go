@@ -81,7 +81,7 @@ func GetActionMapByTypeName(transaction *sqlx.Tx) (map[string]map[string]interfa
 
 		_, ok = typeActionMap[worldIdString][actioName]
 		if ok {
-			log.Printf("Action [%v][%v] already exists", worldIdString, actioName)
+			log.Debugf("Action [%v][%v] already exists", worldIdString, actioName)
 		}
 		typeActionMap[worldIdString][actioName] = action
 	}
