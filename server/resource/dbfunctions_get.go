@@ -470,7 +470,7 @@ func (dbResource *DbResource) GetAllSites(transaction *sqlx.Tx) ([]SubSite, erro
 
 	err = rows.Close()
 	if err != nil {
-		log.Errorf("Failed to close rows after getting all sites", err)
+		log.Error("Failed to close rows after getting all sites", err)
 		return nil, err
 	}
 
