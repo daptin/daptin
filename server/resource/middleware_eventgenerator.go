@@ -125,8 +125,8 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 	case "get":
 		break
 	case "post":
+		messageBytes, err := json.Marshal(results[0])
 		go func() {
-			messageBytes, err := json.Marshal(results[0])
 			CheckErr(err, "Failed to serialize patch message")
 			_, err = topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
@@ -138,8 +138,8 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		}()
 		break
 	case "delete":
+		messageBytes, err := json.Marshal(results[0])
 		go func() {
-			messageBytes, err := json.Marshal(results[0])
 			CheckErr(err, "Failed to serialize patch message")
 			_, err = topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
@@ -152,8 +152,8 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		}()
 		break
 	case "patch":
+		messageBytes, err := json.Marshal(results[0])
 		go func() {
-			messageBytes, err := json.Marshal(results[0])
 			CheckErr(err, "Failed to serialize patch message")
 			_, err = topic.Publish(context.Background(), tableName, EventMessage{
 				MessageSource: "database",
