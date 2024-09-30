@@ -100,19 +100,19 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 	//log.Printf("[TableAccessPermissionChecker] PermissionInstance check for type: [%v] on [%v] @%v", req.PlainRequest.Method, dr.model.GetName(), tableOwnership)
 	if req.PlainRequest.Method == "GET" {
 		if !tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-			log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+			log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 			return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 		}
 	} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
 		if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
 			if !tableOwnership.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) ||
 				!tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 			}
 		} else {
 			if !tableOwnership.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 			}
 		}
@@ -121,12 +121,12 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 		if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
 			if !tableOwnership.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) ||
 				!tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 			}
 		} else {
 			if !tableOwnership.CanCreate(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 			}
 		}
@@ -134,17 +134,17 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 		if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
 			if !tableOwnership.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) ||
 				!tableOwnership.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 			}
 		} else {
 			if !tableOwnership.CanDelete(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+				log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 				return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 			}
 		}
 	} else {
-		log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+		log.Tracef("TableAccessPermissionChecker.InterceptBefore[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 		return nil, api2go.NewHTTPError(fmt.Errorf(errorMsgFormat, "table", dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId), pc.String(), 403)
 	}
 
