@@ -244,7 +244,9 @@ func CheckRelations(config *CmsConfig) {
 	//for _, relation := range finalRelations {
 	//	log.Printf("All relations: %v", relation.String())
 	//}
-	PrintRelations(finalRelations)
+	if log.GetLevel() == log.DebugLevel {
+		PrintRelations(finalRelations)
+	}
 }
 
 func filterRelations(name string, relations []api2go.TableRelation, relations2 []api2go.TableRelation) []api2go.TableRelation {

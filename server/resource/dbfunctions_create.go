@@ -73,7 +73,7 @@ func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 			//log.Printf("Create unique index sql: %v", alterTable)
 			_, err := db.Exec(alterTable)
 			if err != nil {
-				log.Infof("Table[%v] Column[%v]: unique join index already exists: %v", table.TableName, cols, err)
+				log.Debugf("Table[%v] Column[%v]: unique join index already exists: %v", table.TableName, cols, err)
 				db.Exec("COMMIT ")
 			}
 		}

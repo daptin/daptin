@@ -111,7 +111,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	if ok && skipResourceInitialise == "true" {
 		log.Infof("Skipping db resource initialise: %v", skipResourceInitialise)
 	} else {
-		log.Infof("db resource initialise: %v", skipResourceInitialise)
+		log.Infof("ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value: %v", skipResourceInitialise)
 		initialiseResources(&initConfig, db)
 	}
 
@@ -1133,6 +1133,11 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 	allTables := make([]resource.TableInfo, 0)
 	existingTablesMap := make(map[string]bool)
 
+	newTableMap := make(map[string]resource.TableInfo)
+	for _, newTable := range initConfigTables {
+		newTableMap[newTable.TableName] = newTable
+	}
+
 	for j, existableTable := range existingTables {
 		existingTablesMap[existableTable.TableName] = true
 		var isBeingModified = false
@@ -1147,7 +1152,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 		}
 
 		if isBeingModified {
-			log.Printf("Table %s is being modified", existableTable.TableName)
+			log.Infof("Table from initial configuration:          %-20s", existableTable.TableName)
 			tableBeingModified := initConfigTables[indexBeingModified]
 
 			if len(tableBeingModified.Columns) > 0 {
@@ -1211,7 +1216,7 @@ func MergeTables(existingTables []resource.TableInfo, initConfigTables []resourc
 			existableTable.Icon = tableBeingModified.Icon
 			existingTables[j] = existableTable
 		} else {
-			//log.Printf("Table %s is not being modified", existableTable.TableName)
+			log.Tracef("Table %s is not being modified", existableTable.TableName)
 		}
 		allTables = append(allTables, existableTable)
 	}

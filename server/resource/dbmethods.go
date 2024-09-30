@@ -260,7 +260,7 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 
 	stmt, err := transaction.Preparex(selectQuery)
 	if err != nil {
-		log.Errorf("[219] failed to prepare statment: %v", err)
+		log.Errorf("[263] failed to prepare statment: %v", err)
 		return perm
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -344,7 +344,7 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 
 	stmt, err := transaction.Preparex(selectQuery)
 	if err != nil {
-		log.Errorf("[219] failed to prepare statment: %v", err)
+		log.Errorf("[347] failed to prepare statment: %v", err)
 		return perm
 	}
 	defer func(stmt1 *sqlx.Stmt) {

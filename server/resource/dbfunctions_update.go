@@ -1003,7 +1003,7 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 	var err error
-	log.Printf("Start table check")
+	log.Debugf("Start table check: [%d tables][%d relations]", len(initConfig.Tables), len(initConfig.Relations))
 
 	//tx.Queryx("SET FOREIGN_KEY_CHECKS=0;")
 
@@ -1257,8 +1257,10 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 	}
 	st.Body = stBody
-	st.Print()
-	fmt.Println()
+	if log.GetLevel() == log.DebugLevel {
+		st.Print()
+		fmt.Println()
+	}
 
 	s, v, err = statementbuilder.Squirrel.
 		Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table").Prepared(true).
