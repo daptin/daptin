@@ -62,7 +62,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 		return results, nil
 	}
 
-	log.Tracef("TableAccessPermissionChecker.InterceptAfter[%v] Disallowed: [%s]", tableOwnership, sessionUser)
+	log.Tracef("TableAccessPermissionChecker.InterceptAfter[%v] Disallowed: [%v]", tableOwnership, sessionUser)
 	return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf(errorMsgFormat, dr.tableInfo.TableName, req.PlainRequest.Method, sessionUser.UserReferenceId)), pc.String(), 403)
 }
 
