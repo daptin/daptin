@@ -174,6 +174,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 							otherObjectPermission := dbResource.GetObjectPermissionByIdWithTransaction(rel.GetObject(), objectId, transaction)
 
 							if !isAdmin && !otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
+								log.Tracef("CanRefer Denied by otherObjectPermission: %v on user %v", otherObjectPermission, sessionUser)
 								canDeleteAllIds = false
 								break
 							}
@@ -187,7 +188,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 								CheckErr(err, "Failed to delete join 1")
 							}
 						} else {
-							return fmt.Errorf("the request object could not be detached from all relations since the user is unauthorized")
+							return fmt.Errorf("the request object could not be detached from all relations " +
+								"since the user is unauthorized to remove one or more relations")
 						}
 
 					}

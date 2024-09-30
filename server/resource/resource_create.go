@@ -131,6 +131,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					uId = foreignObjectReferenceId
 				} else {
 					log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
+					return nil, fmt.Errorf("refer object not allowed [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
 				}
 
 				columnValue = uId
