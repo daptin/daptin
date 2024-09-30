@@ -453,21 +453,11 @@ func (dbResource *DbResource) GetAllSites(transaction *sqlx.Tx) ([]SubSite, erro
 		log.Errorf("[424] failed to prepare statment: %v", err)
 		return nil, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
 
 	rows, err := stmt1.Queryx(v...)
 	if err != nil {
 		return sites, err
 	}
-	defer func() {
-		err = rows.Close()
-		CheckErr(err, "Failed to close rows after getting all sites")
-	}()
 
 	for rows.Next() {
 		var site SubSite
@@ -475,9 +465,25 @@ func (dbResource *DbResource) GetAllSites(transaction *sqlx.Tx) ([]SubSite, erro
 		if err != nil {
 			log.Errorf("Failed to scan site from db to struct: %v", err)
 		}
+		sites = append(sites, site)
+	}
+
+	err = rows.Close()
+	if err != nil {
+		log.Errorf("Failed to close rows after getting all sites", err)
+		return nil, err
+	}
+
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+		return nil, err
+	}
+
+	for i, site := range sites {
 		perm := dbResource.GetObjectPermissionByReferenceId("site", site.ReferenceId, transaction)
 		site.Permission = perm
-		sites = append(sites, site)
+		sites[i] = site
 	}
 
 	return sites, nil
