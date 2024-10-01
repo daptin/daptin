@@ -8,16 +8,19 @@ import (
 )
 
 func TestForm(t *testing.T) {
-	val := ToURLQuery(map[string]interface{}{
-		"key1": "val1",
-		"key2": map[string]interface{}{
-			"key3": "val3",
-			"key4": map[string]interface{}{
-				"key5": "val5",
+	t.Run("Should build query from map", func(t *testing.T) {
+		val := ToURLQuery(map[string]interface{}{
+			"key1": "val1",
+			"key2": map[string]interface{}{
+				"key3": "val3",
+				"key4": map[string]interface{}{
+					"key5": "val5",
+				},
 			},
-		},
+		})
+
+		fmt.Printf("TestForm: %s", val)
 	})
-	fmt.Printf("TestForm: %s", val)
 }
 
 // encodeQuery is a recursive function that generates URL-encoded query strings

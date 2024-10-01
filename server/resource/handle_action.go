@@ -306,6 +306,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 		log.Errorf("Action Input Validation Failed: [%v]", err)
 		return nil, err
 	}
+	inFieldMap["httpRequest"] = req.PlainRequest
 	inFieldMap["attributes"] = actionRequest.Attributes
 	inFieldMap["env"] = dbResource.envMap
 	inFieldMap["__url"] = req.PlainRequest.URL.String()
@@ -922,17 +923,13 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 		vm.Set(key, val)
 	}
 
-	vm.Set("btoa", func(data []byte) string {
-		return base64.StdEncoding.EncodeToString(data)
-	})
+	for key, function := range CryptoFuncMap {
+		vm.Set(key, function)
+	}
 
-	vm.Set("atob", func(data string) []byte {
-		b, e := base64.StdEncoding.DecodeString(data)
-		if e != nil {
-			log.Errorf("atob failed inside execution: %v", e)
-		}
-		return b
-	})
+	for key, function := range EncodingFuncMap {
+		vm.Set(key, function)
+	}
 
 	vm.Set("uuid", func() string {
 		u, _ := uuid.NewV7()
