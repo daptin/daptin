@@ -311,10 +311,6 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 	inFieldMap["env"] = dbResource.envMap
 	inFieldMap["__url"] = req.PlainRequest.URL.String()
 
-	if err != nil {
-		return nil, api2go.NewHTTPError(err, "failed to validate fields", 400)
-	}
-
 	if sessionUser.UserReferenceId != daptinid.NullReferenceId {
 		user, err := dbResource.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
 		if err != nil {
