@@ -166,6 +166,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 							ids[relationReferenceId] = objectReferenceId
 						}
 						err = res.Close()
+						err = stmt1.Close()
 
 						canDeleteAllIds := true
 
@@ -238,6 +239,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 							ids = append(ids, s)
 						}
 
+						res.Close()
+						stmt1.Close()
 						canDeleteAllIds := true
 
 						for _, id := range ids {
@@ -373,6 +376,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 							res.Scan(&s)
 							ids = append(ids, s)
 						}
+						res.Close()
+						stmt1.Close()
 
 						for _, id := range ids {
 							_, err = dbResource.Cruds[joinTableName].DeleteWithTransaction(id, req, transaction)

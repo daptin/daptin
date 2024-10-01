@@ -36,6 +36,7 @@ func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) er
 	res := stmt1.QueryRow(vars...)
 	var storageReferenceId string
 	err = res.Scan(&storageReferenceId)
+	stmt1.Close()
 	if err != nil {
 		if err == sql.ErrNoRows {
 
@@ -82,6 +83,7 @@ func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) er
 			if err != nil {
 				return err
 			}
+			stmt1.Close()
 
 			groupRefId, _ := uuid.NewV7()
 			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store_cloud_store_id_has_usergroup_usergroup_id").Prepared(true).

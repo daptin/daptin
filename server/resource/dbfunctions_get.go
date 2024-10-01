@@ -30,12 +30,7 @@ func GetObjectByWhereClauseWithTransaction(objType string, transaction *sqlx.Tx,
 	}
 
 	stmt, err := transaction.Preparex(q)
-	if stmt != nil {
-		defer func() {
-			err = stmt.Close()
-			CheckErr(err, "Failed to close prepared query [%v]", objType)
-		}()
-	} else {
+	if err != nil {
 		return nil, err
 	}
 
@@ -51,12 +46,10 @@ func GetObjectByWhereClauseWithTransaction(objType string, transaction *sqlx.Tx,
 	if err != nil {
 		return result, err
 	}
-	if rows != nil {
-		defer func() {
-			err = rows.Close()
-			CheckErr(err, "Failed to close rows after get object by where clause [%s]", objType)
-		}()
-	}
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "Failed to close rows after get object by where clause [%s]", objType)
+	}()
 
 	return RowsToMap(rows, objType)
 }
@@ -512,14 +505,17 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64, transaction
 		log.Errorf("[478] failed to prepare statment: %v", err)
 		return nil, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&clientId, &clientSecret, &redirectUri, &authUrl, &tokenUrl, &scope)
+	if err != nil {
+		stmt1.Close()
+		return nil, err
+	}
+
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
 
 	if err != nil {
 		return nil, err
@@ -692,14 +688,17 @@ func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error)
 		log.Errorf("[663] failed to prepare statment: %v", err)
 		return nil, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
 
 	err = stmt1.QueryRowx(v...).Scan(&access_token, &refresh_token, &token_type, &expires_in)
+	if err != nil {
+		stmt1.Close()
+		return nil, err
+	}
+
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
 
 	if err != nil {
 		return nil, err
@@ -753,6 +752,7 @@ func (dbResource *DbResource) GetTokenByTokenName(name string, transaction *sqlx
 	if err != nil {
 		return nil, err
 	}
+	stmt1.Close()
 
 	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	CheckErr(err, "Failed to get encryption secret")

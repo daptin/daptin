@@ -329,21 +329,20 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		}
 	}(stmt1)
 
-	res, err := stmt1.Queryx(args...)
+	queryResult, err := stmt1.Queryx(args...)
 	CheckErr(err, "Failed to query stats: %v", sql)
 	if err != nil {
 		return nil, err
 	}
-	defer func(res *sqlx.Rows) {
-		err := res.Close()
-		if err != nil {
-			log.Errorf("failed to close aggregate query result - %v", err)
-		}
-	}(res)
 
 	returnModelName := "aggregate_" + req.RootEntity
-	rows, err := RowsToMap(res, returnModelName)
+	rows, err := RowsToMap(queryResult, returnModelName)
 	CheckErr(err, "Failed to scan ")
+	err = queryResult.Close()
+	if err != nil {
+		log.Errorf("failed to close aggregate query result - %v", err)
+	}
+	stmt1.Close()
 
 	for _, groupedColumn := range req.GroupBy {
 		var columnInfo *api2go.ColumnInfo

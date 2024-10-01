@@ -264,6 +264,7 @@ func RelationNamesToIds(db database.DatabaseConnection, tableInfo TableInfo) (ma
 			retInt = append(retInt, id)
 		}
 		err = rows.Close()
+		stmt1.Close()
 		CheckErr(err, "[206] Failed to close rows after default group name conversation")
 
 		result[relationName] = retInt
@@ -483,9 +484,11 @@ func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uin
 	if err != nil {
 		return nil, err
 	}
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = row.Close()
 
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
-	row.Close()
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
 
 	return m, err
 
@@ -530,9 +533,11 @@ func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, star
 	if err != nil {
 		return nil, err
 	}
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = row.Close()
 
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
-	row.Close()
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
 
 	return m, err
 
@@ -741,6 +746,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		ids = append(ids, id)
 	}
 	rows.Close()
+	stmt1.Close()
 
 	if len(ids) < 1 {
 		return 0, nil

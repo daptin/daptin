@@ -304,7 +304,10 @@ func (configStore *ConfigStore) GetAllConfig(transaction *sqlx.Tx) map[string]st
 
 	for res.Next() {
 		var name, val string
-		res.Scan(&name, &val)
+		errScan := res.Scan(&name, &val)
+		if errScan != nil {
+			log.Errorf("Failed to scan config value for [%v]: %v", name, errScan)
+		}
 		retMap[name] = val
 	}
 
@@ -343,16 +346,16 @@ func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, c
 		log.Errorf("[280] failed to prepare statment: %v", err)
 		return nil
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
 
-	err = stmt1.QueryRowx(v...).Scan(&previousValue)
+	errScan := stmt1.QueryRowx(v...).Scan(&previousValue)
 
+	err = stmt1.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+		return err
+	}
+
+	if errScan != nil {
 
 		// row doesnt exist
 		s, v, err := statementbuilder.Squirrel.
@@ -405,16 +408,16 @@ func (configStore *ConfigStore) SetConfigValueForWithTransaction(key string, val
 		log.Errorf("[280] failed to prepare statment: %v", err)
 		return nil
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
 
-	err = stmt1.QueryRowx(v...).Scan(&previousValue)
+	errScan := stmt1.QueryRowx(v...).Scan(&previousValue)
 
+	err = stmt1.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+		return err
+	}
+
+	if errScan != nil {
 
 		// row doesnt exist
 		s, v, err := statementbuilder.Squirrel.
@@ -467,16 +470,16 @@ func (configStore *ConfigStore) SetConfigIntValueFor(key string, val int, config
 		log.Errorf("[336] failed to prepare statment: %v", err)
 		return nil
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
 
-	err = stmt1.QueryRowx(v...).Scan(&previousValue)
+	errScan := stmt1.QueryRowx(v...).Scan(&previousValue)
 
+	err = stmt1.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+		return err
+	}
+
+	if errScan != nil {
 
 		// row doesnt exist
 		s, v, err := statementbuilder.Squirrel.Insert(settingsTableName).Prepared(true).

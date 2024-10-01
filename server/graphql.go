@@ -683,7 +683,6 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						referenceId, nil, transaction)
 					log.Tracef("Completed mutationFields GetSingleRowByReferenceIdWithTransaction")
 					if err != nil {
-						transaction.Rollback()
 						return nil, err
 					}
 

@@ -92,9 +92,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	var existingTables []resource.TableInfo
 	if skipValueFound && skipDbConfig == "true" {
-		log.Printf("skip loading existing tables config from database")
+		log.Printf("ENV[DAPTIN_SKIP_CONFIG_FROM_DATABASE] skip loading existing tables config from database")
 	} else {
-		log.Printf("loading existing tables config from database")
+		log.Printf("ENV[DAPTIN_SKIP_CONFIG_FROM_DATABASE] loading existing tables config from database")
 		existingTables, _ = GetTablesFromWorld(db)
 		allTables := MergeTables(existingTables, initConfig.Tables)
 		initConfig.Tables = allTables
@@ -529,9 +529,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	skipImportData, skipImportValFound := os.LookupEnv("DAPTIN_SKIP_IMPORT_DATA")
 	if skipImportValFound && skipImportData == "true" {
-		log.Info("skipping importing data from files")
+		log.Info("ENV[DAPTIN_SKIP_IMPORT_DATA] skipping importing data from files")
 	} else {
-		log.Info("importing data from files")
+		log.Info("ENV[DAPTIN_SKIP_IMPORT_DATA] importing data from files")
 		transaction, err = db.Beginx()
 		if err != nil {
 			resource.CheckErr(err, "Failed to begin transaction [587]")

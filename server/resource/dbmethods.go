@@ -100,16 +100,13 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 		log.Errorf("[72] failed to prepare statment: %v", err)
 		return action, err
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
 
-	err = stmt.QueryRowx(args...).StructScan(&actionRow)
-
+	errScan := stmt.QueryRowx(args...).StructScan(&actionRow)
+	err = stmt.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
+	if errScan != nil {
 		log.Errorf("sql: %v", sql)
 		log.Errorf("Failed to scan action 66: %v", err)
 		return action, err
@@ -129,7 +126,7 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 func ActionFromActionRow(actionRow ActionRow) (Action, error) {
 	var action Action
 	err := json.Unmarshal([]byte(actionRow.ActionSchema), &action)
-	CheckErr(err, "failed to unmarshal ActionSchema 127")
+	CheckErr(err, "[129] failed to unmarshal ActionSchema")
 
 	action.Name = actionRow.Name
 	action.Label = actionRow.Name
@@ -263,16 +260,14 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 		log.Errorf("[263] failed to prepare statment: %v", err)
 		return perm
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
 
 	resultObject := make(map[string]interface{})
-	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	errScan := stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	err = stmt.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
+	if errScan != nil {
 		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
 	}
 	//log.Printf("permi map: %v", resultObject)
@@ -347,16 +342,14 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 		log.Errorf("[347] failed to prepare statment: %v", err)
 		return perm
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
 
 	resultObject := make(map[string]interface{})
-	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	errScan := stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	err = stmt.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
+	if errScan != nil {
 		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
 	}
 	//log.Printf("permi map: %v", resultObject)
@@ -422,16 +415,14 @@ func (dbResource *DbResource) GetObjectPermissionById(objectType string, id int6
 		log.Errorf("[289] failed to prepare statment: %v", err)
 		return perm
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
 
 	resultObject := make(map[string]interface{})
-	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	errScan := stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	err = stmt.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
+	if errScan != nil {
 		log.Errorf("Failed to scan permission 3 [%v]: %v", id, err)
 	}
 	//log.Printf("permi map: %v", resultObject)
@@ -487,19 +478,18 @@ func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType 
 		log.Errorf("[289] failed to prepare statment: %v", err)
 		return perm
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
 
 	resultObject := make(map[string]interface{})
-	err = stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	errScan := stmt.QueryRowx(queryParameters...).MapScan(resultObject)
+	err = stmt.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
+
+	if errScan != nil {
 		log.Errorf("Failed to scan permission 3 [%v]: %v", id, err)
 	}
-	//log.Printf("permi map: %v", resultObject)
+	//log.Printf("permission map: %v", resultObject)
 	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
 
 		user, err := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, resultObject["user_account_id"].(int64), transaction)
@@ -549,28 +539,31 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
 		Where(goqu.Ex{colName: colValue}).ToSQL()
 	if err != nil {
-		log.Errorf("Failed to create sql: %v", err)
+		log.Errorf("[542] Failed to create sql: %v", err)
 		return perm
 	}
 
 	stmt, err := transaction.Preparex(s)
 	if err != nil {
-		log.Errorf("[355] failed to prepare statment: %v", err)
+		log.Errorf("[548] failed to prepare statment: %v", err)
 		return perm
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
+			log.Errorf("[554] failed to close prepared statement: %v", err)
 		}
 	}(stmt)
 
 	m := make(map[string]interface{})
-	err = stmt.QueryRowx(q...).MapScan(m)
-
+	errScan := stmt.QueryRowx(q...).MapScan(m)
+	err = stmt.Close()
 	if err != nil {
+		log.Errorf("failed to close prepared statement: %v", err)
+	}
+	if errScan != nil {
 
-		log.Errorf("Failed to scan permission: %v", err)
+		log.Errorf("[566] Failed to scan permission: %v", err)
 		return perm
 	}
 
@@ -622,28 +615,25 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
 		Where(goqu.Ex{colName: colValue}).ToSQL()
 	if err != nil {
-		log.Errorf("Failed to create sql: %v", err)
+		log.Errorf("[618 failed to create sql: %v", err)
 		return perm
 	}
 
 	stmt, err := transaction.Preparex(s)
 	if err != nil {
-		log.Errorf("[355] failed to prepare statment: %v", err)
+		log.Errorf("[624] failed to prepare statment: %v", err)
 		return perm
 	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
 
 	m := make(map[string]interface{})
-	err = stmt.QueryRowx(q...).MapScan(m)
-
+	errScan := stmt.QueryRowx(q...).MapScan(m)
+	err = stmt.Close()
 	if err != nil {
+		log.Errorf("[632] failed to close prepared statement: %v", err)
+	}
+	if errScan != nil {
 
-		log.Errorf("Failed to scan permission: %v", err)
+		log.Errorf("[636] failed to scan permission: %v", err)
 		return perm
 	}
 
@@ -821,7 +811,7 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
+			log.Errorf("[814] failed to close prepared statement: %v", err)
 		}
 	}(stmt)
 
@@ -829,8 +819,8 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 	//log.Printf("Group select sql: %v", sql)
 	if err != nil {
 
-		log.Errorf("Failed to get object groups by where clause: %v", err)
-		log.Errorf("Query: %s == [%v]", sql, args)
+		log.Errorf("[822] failed to get object groups by where clause: %v", err)
+		log.Errorf("[823] query: %s == [%v]", sql, args)
 		return s
 	}
 	defer res.Close()
@@ -1492,7 +1482,11 @@ func (dbResource *DbResource) GetRowsByWhereClause(typeName string, includedRela
 	}(rows)
 
 	start := time.Now()
-	m1, include, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
+	responseArray, err := RowsToMap(rows, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = rows.Close()
+
+	m1, include, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetRowsByWhere ResultToArray: %v", duration)
 
@@ -1542,7 +1536,11 @@ func (dbResource *DbResource) GetRowsByWhereClauseWithTransaction(typeName strin
 	}(rows)
 
 	start := time.Now()
-	m1, include, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
+	responseArray, err := RowsToMap(rows, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = rows.Close()
+
+	m1, include, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetRowsByWhere ResultToArray: %v", duration)
 
@@ -1592,7 +1590,11 @@ func (dbResource *DbResource) GetRandomRow(typeName string, count uint, transact
 	}(rows)
 
 	start := time.Now()
-	m1, _, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	responseArray, err := RowsToMap(rows, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = rows.Close()
+
+	m1, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetRandomRow ResultToArray: %v", duration)
 
@@ -1779,7 +1781,11 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	}
 
 	start = time.Now()
-	resultRows, includeRows, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
+	responseArray, err := RowsToMap(rows, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = rows.Close()
+
+	resultRows, includeRows, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
 	duration = time.Since(start)
 	log.Tracef("[TIMING] GetSingleRowByReferenceId ResultToArray [1843]: %v", duration)
 
@@ -1830,7 +1836,11 @@ func (dbResource *DbResource) GetSingleRowById(typeName string, id int64, includ
 		}
 	}(rows)
 	start := time.Now()
-	resultRows, includeRows, err := dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
+	responseArray, err := RowsToMap(rows, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = rows.Close()
+
+	resultRows, includeRows, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), includedRelations, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetSingleRowById ResultToArray: %v", duration)
 
@@ -1884,7 +1894,11 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 	}(row)
 
 	start := time.Now()
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = row.Close()
+
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetObjectByWhere ResultToArray [1946]: %v", duration)
 
@@ -1927,9 +1941,12 @@ func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(typeName str
 	if err != nil {
 		return nil, err
 	}
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = row.Close()
 
 	start := time.Now()
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetObjectByWhere ResultToArray [1991]: %v", duration)
 
@@ -1981,10 +1998,7 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64, transacti
 	}
 
 	start := time.Now()
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
-	duration := time.Since(start)
-	log.Tracef("[TIMING] GetIdToObject ResultToArray: %v", duration)
-
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
 	err = row.Close()
 	if err != nil {
 		log.Errorf("[1064] failed to close result after value scan in defer")
@@ -1993,6 +2007,10 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64, transacti
 	if err != nil {
 		log.Errorf("failed to close prepared statement: %v", err)
 	}
+
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	duration := time.Since(start)
+	log.Tracef("[TIMING] GetIdToObject ResultToArray: %v", duration)
 
 	if len(m) == 0 {
 		log.Printf("[2082] No result found for [%v][%v]", typeName, id)
@@ -2047,13 +2065,7 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 	}(row)
 
 	start := time.Now()
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
-	if err != nil {
-		return nil, err
-	}
-	duration := time.Since(start)
-	log.Tracef("[TIMING] GetIdToObject ResultToArray: %v", duration)
-
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
 	err = row.Close()
 	if err != nil {
 		log.Errorf("[1064] failed to close result after value scan in defer")
@@ -2064,6 +2076,12 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 		log.Errorf("failed to close prepared statement: %v", err)
 		return nil, err
 	}
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	if err != nil {
+		return nil, err
+	}
+	duration := time.Since(start)
+	log.Tracef("[TIMING] GetIdToObject ResultToArray: %v", duration)
 
 	if len(m) == 0 {
 		log.Printf("[2151] No result found for [%v][%v]", typeName, id)
@@ -2197,24 +2215,27 @@ func (dbResource *DbResource) GetAllObjects(typeName string, transaction *sqlx.T
 	}(stmt1)
 
 	if err != nil {
-		log.Errorf("[1291] failed to prepare statment: %v", err)
+		log.Errorf("[2190] failed to prepare statment: %v", err)
 		return nil, err
 	}
 
 	row, err := stmt1.Queryx(q...)
-	defer func(row *sqlx.Rows) {
-		err := row.Close()
-		if err != nil {
-			log.Errorf("[1204] failed to close result after value scan in defer")
-		}
-	}(row)
-
 	if err != nil {
 		return nil, err
 	}
 
 	start := time.Now()
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = row.Close()
+	if err != nil {
+		log.Errorf("[2203] failed to close result after value scan in defer")
+	}
+	err = stmt1.Close()
+	if err != nil {
+		log.Errorf("[2207] failed to close result after value scan in defer")
+	}
+
+	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetAllObjects ResultToArray: %v", duration)
 
@@ -2266,7 +2287,11 @@ func (dbResource *DbResource) GetAllObjectsWithWhereWithTransaction(typeName str
 	}(row)
 
 	start := time.Now()
-	m, _, err := dbResource.Cruds[typeName].ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = row.Close()
+	err = stmt1.Close()
+
+	m, _, err := dbResource.Cruds[typeName].ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetAllObjectWhere ResultToArray: %v", duration)
 
@@ -2438,7 +2463,11 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 	}
 
 	start := time.Now()
-	results, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = stmt1.Close()
+	err = row.Close()
+
+	results, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetReferenceIdToObject ResultToArray: %v", duration)
 
@@ -2498,7 +2527,11 @@ func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeNa
 	}()
 
 	start := time.Now()
-	results, _, err := dbResource.ResultToArrayOfMapWithTransaction(row, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
+	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	err = stmt.Close()
+	err = row.Close()
+
+	results, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetReferenceIdToColumn ResultToArray: %v", duration)
 
@@ -3105,7 +3138,7 @@ func RowsToMap(rows *sqlx.Rows, typeName string) ([]map[string]interface{}, erro
 // includeRelationMap can be nil to include none or map[string]bool{"*": true} to include all relations
 // can be used on any *sqlx.Rows
 func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
-	rows *sqlx.Rows, columnMap map[string]api2go.ColumnInfo,
+	responseArray []map[string]interface{}, columnMap map[string]api2go.ColumnInfo,
 	includedRelationMap map[string]bool, transaction *sqlx.Tx) ([]map[string]interface{}, [][]map[string]interface{}, error) {
 
 	//finalArray := make([]map[string]interface{}, 0)
@@ -3113,11 +3146,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 		includedRelationMap = make(map[string]bool)
 	}
 
-	responseArray, err := RowsToMap(rows, dbResource.model.GetName())
-	if err != nil {
-		return responseArray, nil, err
-	}
-
+	var err error
 	objectCache := make(map[string]interface{})
 	referenceIdCache := make(map[string]daptinid.DaptinReferenceId)
 	includes := make([][]map[string]interface{}, 0)
@@ -3329,7 +3358,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					}
 
 					rows.Close()
-
+					stmt1.Close()
 					if len(ids) < 1 {
 						continue
 					}
@@ -3390,21 +3419,22 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 						}
 					}(stmt1)
 
-					includedSubject, err := stmt1.Queryx(args...)
+					includedSubjectRow, err := stmt1.Queryx(args...)
 					if err != nil {
-						log.Printf("Failed to query 1538: %v", includedSubject.Err())
+						log.Printf("Failed to query 1538: %v", includedSubjectRow.Err())
 						return nil, nil, err
 					}
 					includedSubjectId := []int64{}
 
-					for includedSubject.Next() {
+					for includedSubjectRow.Next() {
 						var subId int64
-						err = includedSubject.Scan(&subId)
+						err = includedSubjectRow.Scan(&subId)
 						includedSubjectId = append(includedSubjectId, subId)
 					}
 					CheckErr(err, "[2133] failed to scan included subject id")
-					err = includedSubject.Close()
+					err = includedSubjectRow.Close()
 					CheckErr(err, "[2135] failed to close rows")
+					stmt1.Close()
 
 					if len(includedSubjectId) < 1 {
 						continue
@@ -3484,6 +3514,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 						ids = append(ids, includeRow)
 					}
 					rows.Close()
+					stmt1.Close()
 
 					if len(ids) < 1 {
 						continue

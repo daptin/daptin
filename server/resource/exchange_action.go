@@ -62,7 +62,7 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 
 	stmt1, err := transaction.Preparex(query)
 	if err != nil {
-		log.Errorf("[59] failed to prepare statment: %v", err)
+		return nil, fmt.Errorf("[59] failed to prepare statment: %v", err)
 	}
 
 	defer func(stmt1 *sqlx.Stmt) {
@@ -91,8 +91,10 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 			}
 			userGroups = append(userGroups, p)
 		}
+		rows.Close()
 
 	}
+	stmt1.Close()
 
 	sessionUser := auth.SessionUser{
 		UserId:          exchangeHandler.exchangeContract.AsUserId,

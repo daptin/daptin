@@ -337,16 +337,16 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						log.Errorf("[315] failed to prepare statment: %v", err)
 						return false, true, req
 					}
-					defer func(stmt1 *sqlx.Stmt) {
-						err := stmt1.Close()
-						if err != nil {
-							log.Errorf("failed to close prepared statement: %v", err)
-						}
-					}(stmt1)
 
 					rowx := stmt1.QueryRowx(args...)
 					err = rowx.Scan(&userId, &referenceIdBytes)
+					err = stmt1.Close()
+					if err != nil {
+						log.Errorf("failed to close prepared statement: %v", err)
+					}
+
 					uu, _ := uuid.FromBytes(referenceIdBytes[:])
+
 					referenceId := daptinid.DaptinReferenceId(uu)
 
 					if err != nil {

@@ -1022,6 +1022,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		ids = append(ids, row["id"].(int64))
 	}
 	idsRow.Close()
+	stmt.Close()
 
 	if len(languagePreferences) == 0 {
 
@@ -1134,7 +1135,11 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}()
 
 		start = time.Now()
-		results, includes, err = dbResource.ResultToArrayOfMapWithTransaction(rows, dbResource.model.GetColumnMap(), includedRelations, transaction)
+		responseArray, err := RowsToMap(rows, dbResource.model.GetName())
+		err = stmt.Close()
+		err = rows.Close()
+
+		results, includes, err = dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.model.GetColumnMap(), includedRelations, transaction)
 		if err != nil {
 			return nil, nil, nil, false, err
 		}

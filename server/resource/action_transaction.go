@@ -34,11 +34,13 @@ func (d *actionTransactionPerformer) DoAction(request Outcome, inFields map[stri
 		if err != nil {
 			return nil, nil, []error{err}
 		}
+		defer statement.Close()
 
 		rows, err := statement.Queryx(inFields["arguments"].([]interface{})...)
 		if err != nil {
 			return nil, nil, []error{err}
 		}
+		defer rows.Close()
 		typeName := inFields["typeName"].(string)
 		result, err := RowsToMap(rows, typeName)
 		if err != nil {

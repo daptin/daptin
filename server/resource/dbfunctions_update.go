@@ -339,20 +339,18 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 			log.Errorf("[361] failed to prepare statment: %v", err)
 			continue
 		}
-		defer func(stmt1 *sqlx.Stmt) {
-			err := stmt1.Close()
-			if err != nil {
-				log.Errorf("failed to close prepared statement: %v", err)
-			}
-		}(stmt1)
 
-		err = stmt1.QueryRowx(v...).Scan(&referenceId)
+		errScan := stmt1.QueryRowx(v...).Scan(&referenceId)
 
-		if err != nil {
+		if errScan != nil {
 			log.Printf("no existing data exchange for  [%v]", exchange.Name)
 		}
+		err = stmt1.Close()
+		if err != nil {
+			log.Errorf("failed to close prepared statement: %v", err)
+		}
 
-		if err == nil {
+		if errScan == nil {
 
 			optionsJson, err := json.Marshal(exchange.Options)
 
