@@ -288,7 +288,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							defer transaction.Rollback()
-							_, _, privateKeyPemByte, _, _, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false, transaction)
+							cert, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false, transaction)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
 								log.Errorf("Refusing to send mail without signing")
@@ -298,7 +298,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							//log.Printf("Private key [%v] %v", e.MailFrom.Host, string(privateKeyPemByte))
 							//log.Printf("Public key [%v] %v", e.MailFrom.Host, string(publicKeyBytes))
 
-							block, _ := pem.Decode([]byte(privateKeyPemByte))
+							block, _ := pem.Decode(cert.PrivatePEMDecrypted)
 							resource.CheckErr(err, "Failed to read pem bytes")
 							if err != nil {
 								continue

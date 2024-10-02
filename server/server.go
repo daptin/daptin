@@ -491,9 +491,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		//	}
 		//})
 
-		tlsConfig, _, _, _, _, err := certificateManager.GetTLSConfig(hostname, true, transaction)
+		cert, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 		resource.CheckErr(err, "Failed to get certificate for IMAP [%v]", hostname)
-		imapServer.TLSConfig = tlsConfig
+		imapServer.TLSConfig = cert.TLSConfig
 
 		log.Printf("Starting IMAP server at %s: %v", imapListenInterface, hostname)
 

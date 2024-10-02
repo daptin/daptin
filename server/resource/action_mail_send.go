@@ -97,7 +97,7 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 
 		fmt.Printf("Original Mail: \n%s\n", string(mailBody))
 
-		_, _, privateKeyPemByte, _, _, err := d.certificateManager.GetTLSConfig(emailEnvelope.MailFrom.Host, false, transaction)
+		cert, err := d.certificateManager.GetTLSConfig(emailEnvelope.MailFrom.Host, false, transaction)
 		if err != nil {
 			log.Errorf("Failed to get private key for domain [%v]", emailEnvelope.MailFrom.Host)
 			log.Errorf("Refusing to send mail without signing")
@@ -107,7 +107,7 @@ func (d *mailSendActionPerformer) DoAction(request Outcome, inFields map[string]
 		//log.Printf("Private key [%v] %v", emailEnvelope.MailFrom.Host, string(privateKeyPemByte))
 		//log.Printf("Public key [%v] %v", emailEnvelope.MailFrom.Host, string(publicKeyBytes))
 
-		block, _ := pem.Decode([]byte(privateKeyPemByte))
+		block, _ := pem.Decode([]byte(cert.PrivatePEMDecrypted))
 
 		privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 

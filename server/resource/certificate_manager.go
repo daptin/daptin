@@ -129,7 +129,38 @@ func CreateNewPublicPrivateKeyPEMBytes() ([]byte, []byte, *rsa.PrivateKey, error
 	return publicKeyBytes, privateKeyBytes, key, nil
 }
 
-func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool, transaction *sqlx.Tx) (*tls.Config, []byte, []byte, []byte, []byte, error) {
+type TLSCertificate struct {
+	TLSConfig           *tls.Config
+	CertPEM             []byte
+	PrivatePEMDecrypted []byte
+	PublicPEMDecrypted  []byte
+	RootCert            []byte
+}
+
+func (cm *CertificateManager) GetTLSForEnabledSubsites(transaction *sqlx.Tx) (map[string]*TLSCertificate, error) {
+	allSites, err := cm.cruds["site"].GetAllSites(transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	responseMap := make(map[string]*TLSCertificate)
+	for _, site := range allSites {
+		if !site.Enable {
+			continue
+		}
+		certificate, err := cm.GetTLSConfig(site.Hostname, true, transaction)
+		if err != nil {
+			log.Errorf("Failed to get TLS config for site [%s]: %s", site.Hostname, err)
+			continue
+		}
+		responseMap[site.Hostname] = certificate
+	}
+
+	return responseMap, nil
+}
+
+func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool,
+	transaction *sqlx.Tx) (*TLSCertificate, error) {
 
 	log.Printf("Get certificate for [%v]: %v", hostname, createIfNotFound)
 	hostname = strings.Split(hostname, ":")[0]
@@ -140,20 +171,20 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 		publicKeyPem, privateKeyPem, key, err := CreateNewPublicPrivateKeyPEMBytes()
 		if err != nil {
 			log.Printf("Failed to generate key: %v", err)
-			return nil, nil, nil, nil, nil, err
+			return nil, err
 		}
 
 		certBytesPEM, err := GenerateCertPEMWithKey(hostname, key)
 
 		if err != nil {
 			log.Printf("Failed to load cert bytes pem: %v", err)
-			return nil, nil, nil, nil, nil, err
+			return nil, err
 		}
 
 		cert, err := tls.X509KeyPair(certBytesPEM, privateKeyPem)
 		if err != nil {
 			log.Printf("Failed to load cert pair: %v", err)
-			return nil, nil, nil, nil, nil, err
+			return nil, err
 		}
 
 		tlsConfig := &tls.Config{
@@ -207,26 +238,26 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 		if certMap != nil && certMap["reference_id"] != nil {
 			data.SetID(certMap["reference_id"].(fmt.Stringer).String())
 			if err != nil {
-				return nil, nil, nil, nil, nil, err
+				return nil, err
 			}
 			_, err = cm.cruds["certificate"].UpdateWithoutFilters(data, req, transaction)
 			if err != nil {
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "Failed to rollback")
 				log.Printf("Failed to store locally generated certificate: %v", err)
-				return nil, nil, nil, nil, nil, err
+				return nil, err
 			} else {
 				commitErr := transaction.Commit()
 				CheckErr(commitErr, "Failed to commit")
 				if commitErr != nil {
-					return nil, nil, nil, nil, nil, commitErr
+					return nil, commitErr
 				}
 			}
 
 		} else {
 			request.Method = "POST"
 			if err != nil {
-				return nil, nil, nil, nil, nil, err
+				return nil, err
 			}
 			_, err = cm.cruds["certificate"].CreateWithoutFilter(data, req, transaction)
 
@@ -234,16 +265,24 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "Failed to rollback")
 				log.Printf("Failed to store locally generated certificate: %v", err)
-				return nil, nil, nil, nil, nil, err
+				return nil, err
 			}
 			commitErr := transaction.Commit()
 			CheckErr(commitErr, "failed to commit")
 			if commitErr != nil {
-				return nil, nil, nil, nil, nil, commitErr
+				return nil, commitErr
 			}
 		}
 
-		return tlsConfig, certBytesPEM, privateKeyPem, publicKeyPem, certBytesPEM, nil
+		tlsCertificate := &TLSCertificate{
+			TLSConfig:           tlsConfig,
+			CertPEM:             certBytesPEM,
+			PrivatePEMDecrypted: privateKeyPem,
+			PublicPEMDecrypted:  publicKeyPem,
+			RootCert:            certBytesPEM,
+		}
+
+		return tlsCertificate, nil
 	} else if certMap != nil && err == nil {
 
 		certPEM := certMap["certificate_pem"].(string)
@@ -258,7 +297,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		if err != nil {
 			log.Printf("Failed to load cert: %v", err)
-			return nil, nil, nil, nil, nil, err
+			return nil, err
 		}
 
 		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(privatePEMDecrypted))
@@ -272,10 +311,17 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 			ClientAuth:   tls.VerifyClientCertIfGiven,
 		}
 
-		return tlsConfig, []byte(certPEM), []byte(privatePEMDecrypted), []byte(publicPEMDecrypted), []byte(rootCert), nil
+		tlsCertificate := &TLSCertificate{
+			TLSConfig:           tlsConfig,
+			CertPEM:             []byte(certPEM),
+			PrivatePEMDecrypted: []byte(privatePEMDecrypted),
+			PublicPEMDecrypted:  []byte(publicPEMDecrypted),
+			RootCert:            []byte(rootCert),
+		}
 
+		return tlsCertificate, nil
 	}
-	return nil, nil, nil, nil, nil, errors.New("certificate not found")
+	return nil, errors.New("certificate not found [" + hostname + "]")
 }
 
 func AsStringOrEmpty(i interface{}) string {

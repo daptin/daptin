@@ -23,12 +23,12 @@ func (d *selfTlsCertificateGenerateActionPerformer) DoAction(request Outcome, in
 	log.Printf("Generate certificate for: %v", certificateSubject)
 
 	hostname := certificateSubject["hostname"].(string)
-	_, certPem, _, _, _, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
+	cert, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
 	if err != nil {
 		return nil, []ActionResponse{}, []error{err}
 	}
 
-	log.Printf("Cert generated: %v ", certPem)
+	log.Printf("Cert generated: %v ", cert.CertPEM)
 
 	return nil, []ActionResponse{
 		NewActionResponse("client.notify", NewClientNotification("message", "Certificate generated for "+hostname, "Success")),

@@ -57,7 +57,7 @@ func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
 		hostname := server["hostname"].(string)
-		_, certBytes, privatePEMBytes, publicKeyBytes, rootCertBytes, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
+		cert, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
 
 		if err != nil {
 			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
@@ -73,16 +73,16 @@ func (d *mailServersSyncActionPerformer) DoAction(request Outcome, inFields map[
 		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		//}
 
-		err = os.WriteFile(publicKeyFilePath, []byte(string(publicKeyBytes)+"\n"+string(certBytes)+"\n"+string(rootCertBytes)), 0666)
+		err = os.WriteFile(publicKeyFilePath, []byte(string(cert.PublicPEMDecrypted)+"\n"+string(cert.CertPEM)+"\n"+string(cert.RootCert)), 0666)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
-		err = os.WriteFile(rootCaFile, []byte(string(rootCertBytes)), 0666)
+		err = os.WriteFile(rootCaFile, []byte(string(cert.RootCert)), 0666)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
 
-		err = os.WriteFile(privateKeyFilePath, privatePEMBytes, 0666)
+		err = os.WriteFile(privateKeyFilePath, cert.PrivatePEMDecrypted, 0666)
 		//err = os.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
 
 		if err != nil {

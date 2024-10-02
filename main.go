@@ -533,36 +533,42 @@ func main() {
 
 	hostname, err := configStore.GetConfigValueFor("hostname", "backend", transaction)
 
-	_, certBytes, privateBytes, _, rootCertBytes, err := certManager.GetTLSConfig(hostname, true, transaction)
+	backendHostnameCertificate, err := certManager.GetTLSConfig(hostname, true, transaction)
+	subsitesCertificateMap, err := certManager.GetTLSForEnabledSubsites(transaction)
 	transaction.Commit()
 
 	if err == nil && enableHttps == "true" {
 		go func() {
 
-			certTempDir := os.TempDir()
-			certFile := certTempDir + "/" + hostname + ".crt"
-			keyFile := certTempDir + "/" + hostname + ".key"
-			log.Printf("Temp dir for certificates: %v", certTempDir)
+			keyPairMap := make(map[string]tls.Certificate)
 
-			certPem := []byte(string(certBytes) + "\n" + string(rootCertBytes))
-			err = os.WriteFile(certFile, certPem, 0600)
-			resource.CheckErr(err, "Failed to write cert file")
-
-			keyPem := privateBytes
-			err = os.WriteFile(keyFile, keyPem, 0600)
-			resource.CheckErr(err, "Failed to write private key file")
-
-			cert, err := tls.X509KeyPair(certPem, keyPem)
+			backendCertKeyPair, err := CreateKeyPairFromTLSCertificate(backendHostnameCertificate)
 			if err != nil {
-				log.Errorf("Failed to load cert for TLS [%v]", hostname)
-				return
+				panic(err)
+			}
+
+			keyPairMap[hostname] = backendCertKeyPair
+
+			for subsiteHostname, subsiteCertificate := range subsitesCertificateMap {
+				certKeyPair, err := CreateKeyPairFromTLSCertificate(subsiteCertificate)
+				if err != nil {
+					log.Errorf("Failed to create key pair for subsite [%v]: %v", subsiteHostname, err)
+					continue
+				}
+				keyPairMap[subsiteHostname] = certKeyPair
 			}
 
 			tlsServer := &http.Server{
 				Addr:    *httpsPort,
 				Handler: &rhs,
 				TLSConfig: &tls.Config{
-					Certificates: []tls.Certificate{cert}, // Use the loaded cert directly
+					GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
+						cert, ok := keyPairMap[info.ServerName]
+						if ok {
+							return &cert, nil
+						}
+						return nil, fmt.Errorf("certificate not found for hostname [%v]", info.ServerName)
+					},
 				},
 			}
 
@@ -587,6 +593,18 @@ func main() {
 	}
 
 	log.Printf("Why quit now ?")
+}
+
+func CreateKeyPairFromTLSCertificate(backendHostnameCertificate *resource.TLSCertificate) (tls.Certificate, error) {
+	certPem := append(backendHostnameCertificate.CertPEM, '\n')
+	certPem = append(certPem, backendHostnameCertificate.RootCert...)
+	keyPem := backendHostnameCertificate.PrivatePEMDecrypted
+
+	backendCertKeyPair, err := tls.X509KeyPair(certPem, keyPem)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	return backendCertKeyPair, nil
 }
 
 // RestartHandlerServer helps in switching the new router with old router with restart is triggered

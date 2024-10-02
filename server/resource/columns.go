@@ -2557,13 +2557,6 @@ var StandardTables = []TableInfo{
 				DefaultValue: "true",
 			},
 			{
-				Name:         "enable_https",
-				ColumnName:   "enable_https",
-				ColumnType:   "truefalse",
-				DataType:     "bool",
-				DefaultValue: "false",
-			},
-			{
 				Name:         "ftp_enabled",
 				ColumnName:   "ftp_enabled",
 				ColumnType:   "truefalse",
