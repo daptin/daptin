@@ -198,14 +198,13 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					actionRequestParameters["file"] = val
 					actionRequestParameters["path"] = uploadPath
 
-					log.Printf("Get cloud store details: %v", col.ForeignKeyData.Namespace)
 					cloudStore, err := dbResource.GetCloudStoreByNameWithTransaction(col.ForeignKeyData.Namespace, updateTransaction)
 					CheckErr(err, "Failed to get cloud storage details")
 					if err != nil {
 						continue
 					}
 
-					log.Printf("[208] Cloud storage: %v", cloudStore)
+					log.Infof("[208] Cloud storage name [%v]: %v", col.ForeignKeyData.Namespace, cloudStore)
 
 					actionRequestParameters["oauth_token_id"] = cloudStore.OAutoTokenId
 					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
@@ -425,7 +424,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				return nil, err
 			}
 
-			log.Infof("Update query [424]: %v", query)
+			log.Debugf("Update query [424]: %v", query)
 			_, err = updateTransaction.Exec(query, vals...)
 			if err != nil {
 				log.Errorf("Failed to execute update query [%s] [%v] 411: %v", query, vals, err)

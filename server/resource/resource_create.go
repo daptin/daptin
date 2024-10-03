@@ -428,16 +428,14 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	_, err = createTransaction.Exec(query, vals...)
 	if err != nil {
-		log.Errorf("Insert query 437: %v", query)
-		//log.Printf("Insert values: %v", vals)
-		log.Errorf("Failed to execute insert query 439: %v", err)
-		//log.Errorf("%v", vals)
+		log.Errorf("[431] Failed to execute insert query: %v, vals [%v]", query, vals)
 		return nil, err
 	}
 	createdResource, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.model.GetName(), newObjectReferenceId, createTransaction)
 
 	if err != nil {
-		log.Errorf("[453] Failed to select the newly created entry: %v", err)
+		log.Errorf("[453] Failed to select the newly created entry: [%v][%v] %v",
+			dbResource.model.GetName(), newObjectReferenceId, err)
 		return nil, err
 	}
 

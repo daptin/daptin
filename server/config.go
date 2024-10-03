@@ -91,8 +91,16 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			//err = yaml.UnmarshalStrict(fileBytes, &initConfig)
 		case EndsWithCheck(fileName, "json"):
 			err = json1.Unmarshal(fileBytes, &initConfig)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 		case EndsWithCheck(fileName, "toml"):
 			err = toml.Unmarshal(fileBytes, &initConfig)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 
 		}
 
@@ -140,7 +148,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
 
 		for _, action := range initConfig.Actions {
-			log.Printf("Action [%v][%v]", fileName, action.Name)
+			log.Info("Action [%v][%v]", fileName, action.Name)
 		}
 
 		for _, table := range initConfig.Tables {
@@ -161,14 +169,15 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		//}
 
 		for _, smd := range initConfig.StateMachineDescriptions {
-			log.Printf("SMD  [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
+			log.Infof("StateMachineDescriptions  [%v][%v][%v]", fileName, smd.Name, smd.InitialState)
 		}
 
 		if initConfig.EnableGraphQL {
+			log.Infof("EnableGraphQL = true")
 			globalInitConfig.EnableGraphQL = true
 		}
 
-		//log.Printf("File added to config, deleting %v", fileName)
+		log.Tracef("File added to config %v", fileName)
 
 	}
 

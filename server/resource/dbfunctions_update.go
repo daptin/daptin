@@ -646,7 +646,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				return err
 			}
 		} else {
-			log.Printf("Adding new action [%v][%v]", action.OnType, action.Name)
+			log.Printf("Adding new action [%50v][%50v]", action.OnType, action.Name)
 
 			actionSchema, _ := json.Marshal(action)
 
@@ -1242,7 +1242,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				table.DefaultPermission = defaultWorldPermission
 			}
 
-			log.Printf("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
+			log.Debugf("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
 
 			s, v, err = statementbuilder.Squirrel.Insert("world").Prepared(true).
 				Cols("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order", "is_join_table").
