@@ -298,7 +298,11 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 
 	name, _ := os.Hostname()
 	transaction = db.MustBegin()
-	certManager.GetTLSConfig(name, true, transaction)
+	_, err = certManager.GetTLSConfig(name, true, transaction)
+	if err != nil {
+		panic(err)
+	}
+	transaction.Commit()
 
 	log.Infof("Listening at port: %v", *port)
 

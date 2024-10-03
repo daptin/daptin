@@ -138,10 +138,11 @@ func (driver *DaptinFtpDriver) GetTLSConfig() (*tls.Config, error) {
 	}
 
 	cert, err := driver.CertManager.GetTLSConfig(driver.Sites[firstSite].Hostname, true, transaction)
-	transaction.Rollback()
 	if err != nil {
 		return nil, err
 	}
+
+	transaction.Commit()
 	cert.TLSConfig.NextProtos = []string{"ftp"}
 	driver.tlsConfig = cert.TLSConfig
 	return driver.tlsConfig, nil

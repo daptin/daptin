@@ -249,17 +249,17 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 		permission := dbResource.GetRowPermissionWithTransaction(subjectInstanceMap, transaction)
 
 		if !permission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
-			log.Warnf("user not allowed action on this object: %v - %v", actionRequest.Action, subjectInstanceReferenceString)
+			log.Warnf("user[%v] not allowed action on this object: %v - %v", sessionUser, actionRequest.Action, subjectInstanceReferenceString)
 			return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 		}
 	}
 
 	if !isAdmin && !dbResource.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
-		log.Warnf("user not allowed action: %v - %v", actionRequest.Action, subjectInstanceReferenceString)
+		log.Warnf("user[%v] not allowed action: %v - %v", sessionUser, actionRequest.Action, subjectInstanceReferenceString)
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
 
-	log.Debugf("Handle event for action [%v]", actionRequest.Action)
+	log.Debugf("Handle event for action [%v] by user [%v]", actionRequest.Action, sessionUser)
 
 	if !action.InstanceOptional && (subjectInstanceReferenceString == "" || subjectInstance.GetID() != subjectInstanceReferenceString) {
 		log.Warnf("subject is unidentified: %v - %v", actionRequest.Action, actionRequest.Type)
@@ -381,8 +381,8 @@ OutFields:
 		var request api2go.Request
 		modelPointer, request, err = BuildOutcome(inFieldMap, outcome, sessionUser)
 		if err != nil {
-			log.Errorf("Failed to build outcome: %v", err)
-			log.Errorf("Infields - %v", toJson(inFieldMap))
+			log.Errorf("Failed to build outcome: %v, infields: [%v] on action[%s] in outcome [%v]", err, toJson(inFieldMap),
+				action.Name, outcome)
 			responses = append(responses, NewActionResponse("error", "Failed to build outcome "+outcome.Type))
 			if outcome.ContinueOnError {
 				continue

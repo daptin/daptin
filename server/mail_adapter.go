@@ -287,7 +287,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								return nil, err
 							}
 
-							defer transaction.Rollback()
+							defer transaction.Commit()
 							cert, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false, transaction)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)

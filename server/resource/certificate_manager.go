@@ -246,12 +246,6 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 				CheckErr(rollbackErr, "Failed to rollback")
 				log.Printf("Failed to store locally generated certificate: %v", err)
 				return nil, err
-			} else {
-				commitErr := transaction.Commit()
-				CheckErr(commitErr, "Failed to commit")
-				if commitErr != nil {
-					return nil, commitErr
-				}
 			}
 
 		} else {
@@ -266,11 +260,6 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 				CheckErr(rollbackErr, "Failed to rollback")
 				log.Printf("Failed to store locally generated certificate: %v", err)
 				return nil, err
-			}
-			commitErr := transaction.Commit()
-			CheckErr(commitErr, "failed to commit")
-			if commitErr != nil {
-				return nil, commitErr
 			}
 		}
 
