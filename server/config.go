@@ -148,7 +148,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		globalInitConfig.ExchangeContracts = append(globalInitConfig.ExchangeContracts, initConfig.ExchangeContracts...)
 
 		for _, action := range initConfig.Actions {
-			log.Info("Action [%v][%v]", fileName, action.Name)
+			log.Infof("Action [%v][%v]", fileName, action.Name)
 		}
 
 		for _, table := range initConfig.Tables {
