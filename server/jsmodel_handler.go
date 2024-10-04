@@ -13,6 +13,7 @@ import (
 	"image/color"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 func CreateApiBlueprintHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(ctx *gin.Context) {
@@ -140,14 +141,15 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 	for _, world := range worlds {
 		worldToReferenceId[world["table_name"].(string)] = daptinid.InterfaceToDIR(world["reference_id"])
 	}
-	cacheMap := make(map[string]string)
+	var cacheMap sync.Map
+	//cacheMap := make(map[string]string)
 
 	return func(c *gin.Context) {
 		typeName := strings.Split(c.Param("typename"), ".")[0]
-		//if jsModel, ok := cacheMap[typeName]; ok {
-		//	c.String(200, jsModel)
-		//	return
-		//}
+		if jsModel, ok := cacheMap.Load(typeName); ok {
+			c.String(200, jsModel.(string))
+			return
+		}
 		selectedTable, isTable := tableMap[typeName]
 
 		if !isTable {
@@ -290,13 +292,8 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			return
 		}
 		asStr := string(resBody)
-		cacheMap[typeName] = asStr
-		//c.Render(200, render.Render())
+		cacheMap.Store(typeName, asStr)
 		c.String(200, asStr)
-
-		//j, _ := json.Marshal(res)
-
-		//c.String(200, "jsonApi.define('%v', %v)", typeName, string(j))
 
 	}
 }
