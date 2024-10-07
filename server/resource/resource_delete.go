@@ -86,7 +86,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 
 			deleteFileActionPerformer, err := NewCloudStoreFileDeleteActionPerformer(dbResource.Cruds)
 			CheckErr(err, "Failed to create upload action performer")
-			log.Printf("created upload action performer")
+			//log.Printf("created upload action performer")
 
 			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
 			if !ok {

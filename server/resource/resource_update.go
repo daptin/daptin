@@ -152,7 +152,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					uploadActionPerformer, err := NewFileUploadActionPerformer(dbResource.Cruds)
 					CheckErr(err, "Failed to create upload action performer")
-					log.Printf("created upload action performer")
+					//log.Printf("created upload action performer")
 					if err != nil {
 						continue
 					}
