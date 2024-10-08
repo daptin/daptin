@@ -58,10 +58,10 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 	oauthTokenId1 := daptinid.InterfaceToDIR(inFields["oauth_token_id"])
 
 	if oauthTokenId1 == daptinid.NullReferenceId {
-		log.Printf("No oauth token set for target store")
+		log.Tracef("No oauth token set for target store")
 	} else {
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId1, transaction)
-		CheckErr(err, "Failed to get oauth2 token for store sync")
+		CheckErr(err, "[64] Failed to get oauth2 token for store sync")
 	}
 
 	jsonToken, err := json.Marshal(token)

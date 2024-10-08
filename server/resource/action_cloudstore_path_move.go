@@ -66,7 +66,7 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 		log.Printf("No oauth token set for target store")
 	} else {
 		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId1, transaction)
-		CheckErr(err, "Failed to get oauth2 token for store sync")
+		CheckErr(err, "[69] Failed to get oauth2 token for store sync")
 	}
 
 	jsonToken, err := json.Marshal(token)

@@ -9,6 +9,7 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
+	daptinid "github.com/daptin/daptin/server/id"
 	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -79,8 +80,10 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 		oauthConf := &oauth2.Config{}
 		oauthTokenId := cacheFolder.CloudStore.OAutoTokenId
 
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-		CheckErr(err, "Failed to get oauth2 token for store sync")
+		if oauthTokenId != daptinid.NullReferenceId {
+			token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
+			CheckErr(err, "[83] Failed to get oauth2 token for store sync")
+		}
 
 		jsonToken, err := json.Marshal(token)
 		CheckErr(err, "Failed to marshal access token to json")

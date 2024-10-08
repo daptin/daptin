@@ -66,8 +66,10 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 		}
 	} else {
 		oauthTokenId := daptinid.InterfaceToDIR(oauthTokenId1)
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-		CheckErr(err, "Failed to get oauth2 token for store sync")
+		if oauthTokenId != daptinid.NullReferenceId {
+			token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
+			CheckErr(err, "[203] Failed to get oauth2 token for store sync")
+		}
 	}
 	jsonToken, err := json.Marshal(token)
 	CheckErr(err, "Failed to marshal access token to json")
