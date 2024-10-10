@@ -277,6 +277,11 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 			ColumnType: "hidden",
 		}
 
+		for i, action := range actions {
+			action.OutFields = nil
+			actions[i] = action
+		}
+
 		jsModel := JsModel{
 			ColumnModel:           res,
 			Actions:               actions,
