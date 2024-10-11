@@ -109,6 +109,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 			PlainRequest: &http.Request{
 				Method: "POST",
 				URL:    ginContext.Request.URL,
+				Header: ginContext.Request.Header,
 			},
 		}
 
@@ -307,6 +308,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 		return nil, err
 	}
 	inFieldMap["httpRequest"] = req.PlainRequest
+	inFieldMap["httpRequestHeaders"] = map[string][]string(req.PlainRequest.Header)
 	inFieldMap["attributes"] = actionRequest.Attributes
 	inFieldMap["env"] = dbResource.envMap
 	inFieldMap["__url"] = req.PlainRequest.URL.String()
