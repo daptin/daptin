@@ -21,6 +21,7 @@ type Outcome struct {
 	Type            string
 	Method          string // method name
 	Reference       string
+	LogToConsole    bool
 	SkipInResponse  bool
 	Condition       string
 	Attributes      map[string]interface{}

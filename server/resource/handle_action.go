@@ -587,6 +587,23 @@ OutFields:
 			}
 
 		}
+
+		if outcome.LogToConsole {
+			for i, response := range actionResponses {
+
+				attrsAsJson, _ := json.Marshal(response.Attributes)
+
+				log.Infof("[%s][%s] by user [%s] OutcomeResponse[%d]: [%s] => %s",
+					actionRequest.Type,
+					actionRequest.Action,
+					sessionUser.UserReferenceId,
+					i,
+					response.ResponseType,
+					attrsAsJson)
+			}
+
+		}
+
 		if err != nil {
 			log.Errorf("failed to execute outcome [%v] => %v", outcome.Type, err)
 			return nil, err
