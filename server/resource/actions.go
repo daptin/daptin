@@ -139,7 +139,9 @@ func (e *ActionRow) UnmarshalBinary(data []byte) error {
 }
 
 type ActionRequest struct {
-	Type       string
-	Action     string
-	Attributes map[string]interface{}
+	Type          string
+	Action        string
+	Attributes    map[string]interface{}
+	RawBodyBytes  []byte
+	RawBodyString string
 }

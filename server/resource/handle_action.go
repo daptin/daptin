@@ -312,6 +312,8 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 	inFieldMap["attributes"] = actionRequest.Attributes
 	inFieldMap["env"] = dbResource.envMap
 	inFieldMap["__url"] = req.PlainRequest.URL.String()
+	inFieldMap["rawBodyString"] = actionRequest.RawBodyString
+	inFieldMap["rawBodyBytes"] = actionRequest.RawBodyBytes
 
 	if sessionUser.UserReferenceId != daptinid.NullReferenceId {
 		user, err := dbResource.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
@@ -669,6 +671,8 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
 	params gin.Params, queryParams url.Values) (ActionRequest, error) {
 	bytes, err := io.ReadAll(closer)
 	actionRequest := ActionRequest{}
+	actionRequest.RawBodyBytes = bytes
+	actionRequest.RawBodyString = string(bytes)
 	if err != nil {
 		return actionRequest, err
 	}
