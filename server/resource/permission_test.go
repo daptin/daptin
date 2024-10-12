@@ -38,7 +38,7 @@ func TestPermission(t *testing.T) {
 
 	pi := PermissionInstance{
 		UserId: daptinid.DaptinReferenceId(uuid.New()),
-		UserGroupId: []auth.GroupPermission{
+		UserGroupId: auth.GroupPermissionList{
 			{
 				GroupReferenceId:    daptinid.DaptinReferenceId(uuid.New()),
 				ObjectReferenceId:   daptinid.NullReferenceId,
@@ -49,7 +49,7 @@ func TestPermission(t *testing.T) {
 		Permission: auth.GroupCreate,
 	}
 
-	pi.CanCreate(daptinid.DaptinReferenceId(uuid.New()), []auth.GroupPermission{
+	pi.CanCreate(daptinid.DaptinReferenceId(uuid.New()), auth.GroupPermissionList{
 		{
 			GroupReferenceId:    daptinid.DaptinReferenceId(uuid.New()),
 			ObjectReferenceId:   daptinid.NullReferenceId,

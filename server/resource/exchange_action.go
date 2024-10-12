@@ -73,7 +73,7 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 	}(stmt1)
 
 	rows, err := stmt1.Queryx(args1...)
-	userGroups := make([]auth.GroupPermission, 0)
+	userGroups := make(auth.GroupPermissionList, 0)
 
 	if err != nil {
 		log.Errorf("Failed to get user group permissions: %v", err)

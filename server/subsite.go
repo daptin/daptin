@@ -349,7 +349,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			} else {
 				user = &auth.SessionUser{
 					UserReferenceId: daptinid.NullReferenceId,
-					Groups:          []auth.GroupPermission{},
+					Groups:          auth.GroupPermissionList{},
 				}
 			}
 
@@ -378,7 +378,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				} else {
 					user = &auth.SessionUser{
 						UserReferenceId: daptinid.NullReferenceId,
-						Groups:          []auth.GroupPermission{},
+						Groups:          auth.GroupPermissionList{},
 					}
 				}
 				if permission.CanExecute(user.UserReferenceId, user.Groups, hs.AdministratorGroupId) {

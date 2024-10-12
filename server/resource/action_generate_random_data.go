@@ -86,7 +86,7 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request Outcome, in
 	sessionUser := &auth.SessionUser{
 		UserId:          userIdInt,
 		UserReferenceId: userReferenceId,
-		Groups:          []auth.GroupPermission{},
+		Groups:          auth.GroupPermissionList{},
 	}
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 

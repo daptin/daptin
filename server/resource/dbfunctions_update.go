@@ -708,7 +708,7 @@ func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[s
 		sessionUser := &auth.SessionUser{
 			UserId:          adminUserId,
 			UserReferenceId: adminUserRefId,
-			Groups:          []auth.GroupPermission{},
+			Groups:          auth.GroupPermissionList{},
 		}
 
 		pr = pr.WithContext(context.WithValue(pr.Context(), "user", sessionUser))

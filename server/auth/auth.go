@@ -515,7 +515,7 @@ func (a *AuthMiddleware) AuthCheckMiddleware(c *gin.Context) {
 type SessionUser struct {
 	UserId          int64
 	UserReferenceId daptinid.DaptinReferenceId
-	Groups          []GroupPermission
+	Groups          GroupPermissionList
 }
 
 func (s SessionUser) MarshalBinary() ([]byte, error) {

@@ -31,7 +31,7 @@ const DATE_LAYOUT = "2006-01-02 15:04:05"
 // Checks EXECUTE on both the type and action for this user
 // The permissions can come from different groups
 func (dbResource *DbResource) IsUserActionAllowed(
-	userReferenceId daptinid.DaptinReferenceId, userGroups []auth.GroupPermission, typeName string, actionName string, transaction *sqlx.Tx) bool {
+	userReferenceId daptinid.DaptinReferenceId, userGroups auth.GroupPermissionList, typeName string, actionName string, transaction *sqlx.Tx) bool {
 
 	permission := dbResource.GetObjectPermissionByWhereClause("world", "table_name", typeName, transaction)
 
@@ -45,7 +45,7 @@ func (dbResource *DbResource) IsUserActionAllowed(
 }
 
 func (dbResource *DbResource) IsUserActionAllowedWithTransaction(userReferenceId daptinid.DaptinReferenceId,
-	userGroups []auth.GroupPermission, typeName string, actionName string, transaction *sqlx.Tx) bool {
+	userGroups auth.GroupPermissionList, typeName string, actionName string, transaction *sqlx.Tx) bool {
 
 	permission := dbResource.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", typeName, transaction)
 
@@ -755,7 +755,8 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 // GetObjectUserGroupsByWhere Get list of group permissions for objects of typeName where colName=colValue
 // Utility method which makes a join query to load a lot of permissions quickly
 // Used by GetRowPermission
-func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectType string, transaction *sqlx.Tx, colName string, colValue interface{}) []auth.GroupPermission {
+func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectType string, transaction *sqlx.Tx,
+	colName string, colValue interface{}) auth.GroupPermissionList {
 
 	//if OlricCache == nil {
 	//	OlricCache, _ = dbResource.OlricDb.NewDMap("default-cache")
@@ -770,7 +771,7 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 	//	}
 	//}
 
-	s := make([]auth.GroupPermission, 0)
+	s := make(auth.GroupPermissionList, 0)
 
 	rel := api2go.TableRelation{}
 	rel.Subject = objectType
@@ -842,7 +843,7 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 
 }
 
-func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64, transaction *sqlx.Tx) []auth.GroupPermission {
+func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId int64, transaction *sqlx.Tx) auth.GroupPermissionList {
 	s := make([]auth.GroupPermission, 0)
 
 	refId, err := dbResource.GetIdToReferenceId(objType, objectId, transaction)
@@ -917,7 +918,6 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 }
 
 func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64, transaction *sqlx.Tx) auth.GroupPermissionList {
-	s := make(auth.GroupPermissionList, 0)
 
 	cacheKey := fmt.Sprintf("object-groups-%v-%v", objectType, objectId)
 
@@ -934,6 +934,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 			return res
 		}
 	}
+	groupPermissionList := make(auth.GroupPermissionList, 0)
 
 	refId, err := GetIdToReferenceIdWithTransaction(objectType, objectId, transaction)
 
@@ -941,15 +942,15 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 
 		if err != nil {
 			log.Printf("Failed to get id to reference id [%v][%v] == %v", objectType, objectId, err)
-			return s
+			return groupPermissionList
 		}
-		s = append(s, auth.GroupPermission{
+		groupPermissionList = append(groupPermissionList, auth.GroupPermission{
 			GroupReferenceId:    refId,
 			ObjectReferenceId:   refId,
 			RelationReferenceId: refId,
 			Permission:          auth.DEFAULT_PERMISSION,
 		})
-		return s
+		return groupPermissionList
 	}
 
 	sql, args, err := statementbuilder.Squirrel.Select(
@@ -974,7 +975,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 
 	if err != nil {
 		log.Errorf("Failed to query object group by object id 403 [%v][%v] == %v", objectType, objectId, err)
-		return s
+		return groupPermissionList
 	}
 	defer res.Close()
 	for res.Next() {
@@ -985,15 +986,15 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 			log.Errorf("Failed to scan group permission 2: %v", err)
 
 		}
-		s = append(s, g)
+		groupPermissionList = append(groupPermissionList, g)
 	}
 
 	if OlricCache != nil {
-		cachePutErr := OlricCache.Put(context.Background(), cacheKey, s, olric.EX(30*time.Second), olric.NX())
+		cachePutErr := OlricCache.Put(context.Background(), cacheKey, groupPermissionList, olric.EX(30*time.Second), olric.NX())
 		CheckErr(cachePutErr, "failed to store config value in cache [%v]", cacheKey)
 	}
 
-	return s
+	return groupPermissionList
 
 }
 
@@ -1267,12 +1268,12 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 	//log.Printf("Location [%v]: %v", dbResource.model.GetName(), loc)
 
 	if BeginsWith(rowType, "file.") || rowType == "none" {
-		perm.UserGroupId = []auth.GroupPermission{
+		perm.UserGroupId = auth.GroupPermissionList{
 			{
 				GroupReferenceId:    daptinid.NullReferenceId,
 				ObjectReferenceId:   daptinid.NullReferenceId,
 				RelationReferenceId: daptinid.NullReferenceId,
-				Permission:          auth.AuthPermission(auth.GuestRead),
+				Permission:          auth.GuestRead,
 			},
 		}
 		return perm
@@ -1289,7 +1290,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 			originalGroupIdStr = daptinid.InterfaceToDIR(originalGroupId)
 		}
 
-		perm.UserGroupId = []auth.GroupPermission{
+		perm.UserGroupId = auth.GroupPermissionList{
 			{
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   refId,
@@ -1370,7 +1371,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 	//log.Printf("Location [%v]: %v", dbResource.model.GetName(), loc)
 
 	if BeginsWith(rowType, "file.") || rowType == "none" {
-		perm.UserGroupId = []auth.GroupPermission{
+		perm.UserGroupId = auth.GroupPermissionList{
 			{
 				GroupReferenceId:    daptinid.NullReferenceId,
 				ObjectReferenceId:   daptinid.NullReferenceId,
@@ -1390,7 +1391,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 		originalGroupIdStr := referenceId
 		originalGroupIdStr = daptinid.InterfaceToDIR(originalGroupId)
 
-		perm.UserGroupId = []auth.GroupPermission{
+		perm.UserGroupId = auth.GroupPermissionList{
 			{
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   referenceId,
