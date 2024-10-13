@@ -146,6 +146,24 @@ var SystemActions = []Action{
 		},
 	},
 	{
+		Name:             "get_action_schema",
+		Label:            "Get Action Schema",
+		OnType:           "action",
+		InstanceOptional: false,
+		OutFields: []Outcome{
+			{
+				Type:   "client.file.download",
+				Method: "ACTIONRESPONSE",
+				Attributes: map[string]interface{}{
+					"content":     "!btoa(subject.action_schema)",
+					"name":        "!subject.action_name + '.action.json'",
+					"contentType": "application/json",
+					"message":     "!'Action Schema for ' + subject.action_name",
+				},
+			},
+		},
+	},
+	{
 		Name:             "download_public_key",
 		Label:            "Download public key",
 		OnType:           "certificate",

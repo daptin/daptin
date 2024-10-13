@@ -238,7 +238,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, r
 		}
 		subjectInstance = referencedObject.Result().(api2go.Api2GoModel)
 
-		subjectInstanceMap = subjectInstance.GetAttributes()
+		subjectInstanceMap = subjectInstance.GetAllAsAttributes()
 		subjectInstanceMap["reference_id"] = subjectInstance.GetID()
 
 		if subjectInstanceMap == nil {
