@@ -570,9 +570,6 @@ OutFields:
 			log.Debugf("Create action response: %v", model.GetName())
 			var actionResponse ActionResponse
 			actionResponse = NewActionResponse(model.GetName(), model.GetAttributes())
-			responseObjects = api2go.Response{
-				Res: model,
-			}
 			actionResponses = append(actionResponses, actionResponse)
 		default:
 			handler, ok := dbResource.ActionHandlerMap[outcome.Type]
