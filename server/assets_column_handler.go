@@ -109,8 +109,44 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 						log.Errorf("file name missing in metadata [%v][%v][%v]", typeName, columnName, resourceUuidString)
 					}
 
-					fileType = fileData["type"].(string)
-					break
+					typrFromData, ok := fileData["type"]
+					if ok {
+						typrFromDataStr, isStr := typrFromData.(string)
+						if isStr {
+							fileType = typrFromDataStr
+						} else {
+							ok = false
+						}
+					}
+					if !ok {
+						nameParts := strings.Split(fileNameToServe, ".")
+						extFromName := nameParts[len(nameParts)-1]
+						switch extFromName {
+						case ".png":
+							fileType = "image/png"
+						case ".jpeg", ".jpg":
+							fileType = "image/jpeg"
+						case ".gif":
+							fileType = "image/gif"
+						case ".html", ".htm":
+							fileType = "text/html; charset=utf-8"
+						case ".css":
+							fileType = "text/css; charset=utf-8"
+						case ".js":
+							fileType = "application/javascript"
+						case ".json":
+							fileType = "application/json"
+						case ".pdf":
+							fileType = "application/pdf"
+						case ".txt":
+							fileType = "text/plain; charset=utf-8"
+						case ".xml":
+							fileType = "application/xml"
+						// Add more cases as needed
+						default:
+							fileType = "application/octet-stream"
+						}
+					}
 				}
 			}
 
@@ -125,6 +161,9 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 
 			switch colType {
 
+			case "jpeg":
+			case "jpg":
+			case "png":
 			case "image":
 
 				bildFilters := make([]func(image.Image) image.Image, 0)
