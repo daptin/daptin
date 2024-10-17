@@ -578,7 +578,8 @@ OutFields:
 			handler, ok := dbResource.ActionHandlerMap[outcome.Type]
 
 			if !ok {
-				log.Errorf("Unknown method invoked onn %v: %v", outcome.Type, outcome.Method)
+				log.Errorf("Unknown method invoked on [%v]: [%v] by session user [%v]",
+					outcome.Type, outcome.Method, sessionUser.UserReferenceId)
 				continue
 			}
 			responder, responses1, err1 := handler.DoAction(outcome, model.GetAttributes(), transaction)

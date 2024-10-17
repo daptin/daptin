@@ -1,76 +1,8 @@
 
 <h1 align="left">
-  Daptin - Headless CMS for the 100x Developers
+  daptin
   <br>
 </h1>
-
-Take the API overhead out of your brain with Daptin. Complete granular access to your data over the network. A single binary to power up your application.
-
-```
-                ┌──────────────────┐         ┌──────────────────┐        ┌────────────────┐
-                │                  │         │                  │        │                │
-                │ OpenAPI 2/3      │         │  Database        │        │  Cloudstore    │
-                │                  │         │                  │        │                │
-                └────────▲─────────┘         └───────▲──────────┘        └───────▲────────┘
-                         │                           │                           │
-                         │                           │                           │
-                         │                           │                           │
-                         │                           │                           │
-                         │                           │                           │
-                         │                           │                           │
-                         │                           │                           │
-                         └─────────────────────────┬─┴───────────────────────────┘
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                        ┌──────────┴───────────┐
-  ┌─────────────────┐                   │                      │                     ┌────────────────┐
-  │                 │                   │                      │                     │                │
-  │  Actions        ◄───────────────────┤    Daptin            ├─────────────────────► SMTP/IMAP      │
-  │                 │                   │                      │                     │                │
-  └─────────────────┘                   │                      │                     └────────────────┘
-                                        └──────────┬───────────┘
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-                                                   │
-          ┌─────────────────────────┬──────────────┼──────────────────┬──────────────────────────────┐
-          │                         │              │                  │                              │
-          │                         │              │                  │                              │
-          │                         │              │                  │                              │
-          │                         │              │                  │                              │
-┌─────────▼────────┐        ┌───────▼───────┐      │         ┌────────▼───────┐             ┌────────▼─────────┐
-│                  │        │               │      │         │                │             │                  │
-│  YJS Live Collab │        │  JSONAPI.org  │      │         │ GraphQL        │             │  WebSocket       │
-│                  │        │               │      │         │                │             │                  │
-└──────────────────┘        └───────────────┘      │         └────────────────┘             └──────────────────┘
-                                                   │
-                                                   │
-                                                   │
-                                         ┌─────────▼────────┐
-                                         │                  │
-                                         │     Static site  │
-                                         │                  │
-                                         └──────────────────┘
-
-```
-
-### Quick start with a generic web dashboard
-- Dadadash : https://github.com/daptin/dadadash/
-  - `docker run -p 8080:8080 daptin/dadadash`
-
-
-
 
 <p align="center">
     <a href="https://travis-ci.org/daptin/daptin"><img alt="Travis" src="https://img.shields.io/travis/daptin/daptin.svg?style=flat-square"></a>
@@ -86,7 +18,7 @@ Take the API overhead out of your brain with Daptin. Complete granular access to
     <a href="https://github.com/daptin/daptin/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/daptin/daptin.svg?style=flat-square"></a>
 </p>
 <p align="center">
-     <a href="https://discord.gg/t564q8SQVk"><img src="https://img.shields.io/badge/JOIN-ON%20DISCORD-blue&?style=for-the-badge&logo=discord" /> <a/> 
+     <a href="https://discord.gg/t564q8SQVk"><img src="https://img.shields.io/badge/JOIN-ON%20DISCORD-blue&?style=for-the-badge&logo=discord"></a> 
 </p>
 
 
@@ -96,43 +28,196 @@ Take the API overhead out of your brain with Daptin. Complete granular access to
 	<a href="https://join.slack.com/t/daptin/shared_invite/enQtMzM1NTM1NTkyMDgzLTVlYzBlMmM4YjMyOTk0MDc5MWJmMzFlMTliNzQwYjcxMzc5Mjk0YzEyZDIwYTljZmE5NDU3Yjk3YzQ3MzhkMzI">Community</a>
 </p>
 
-The most powerful ready to use data and services API server.
+
+```bash
+./daptin
+.
+. // logs truncated for brevity
+.
+INFO[2024-10-16 11:08:58] Listening websocket server at ... /live
+INFO[2024-10-16 11:08:58] Our admin is [artpar@gmail.com]
+INFO[2024-10-16 11:08:58] [ProcessId=86403] Listening at port: :6336
+INFO[2024-10-16 11:08:58] Get certificate for [Parths-MacBook-Pro.local]: true
+INFO[2024-10-16 11:08:58] Listening at: [:6336]
+INFO[2024-10-16 11:08:58] TLS server listening on port :6443
+INFO[2024-10-16 11:09:03] Member says: Message<members: Joining from 192.168.0.125:5336>
+```
+
+Server is up, sqlite database is used since we did not specify mysql or postgres.
 
 
-- **Define data tables and relations from config files or API calls**
-  - Middleware for handling data normalizations and conformations 
-  - Create indexes, constraints on columns
-  - Column can be have images/video/audio/blobs attachments, stored appropriately in #cloudstore
-- **Authentication and Authorization on APIs, define auth using APIs**
-  - Add users and user groups
-  - RWX based permission system for rows and tables
-  - JWT token with configurable expiry time
-  - User sign in/sign up/password reset flows
-- **JSON API and GraphQL API**
-  - [JSONAPI.org](https://jsonapi.org) complaint endpoints
-  - GraphQL endpoint with Data/Query and Mutations available
-  - Pagination and filtering using page number or cursor based
-  - Fetch relationships in a single call
-- **Cloud storage, create storage using API**
-  - Connect to [over 30 storage providers](https://rclone.org/overview/) (localhost/HTTP/FTP/GDrive/Dropbox/S3 and many more)
-  - Manage files using daptin actions
-  - Automated 1 hour sync scheduled
-- **Static and HUGO sites**
-  - Host site on multiple domains
-  - Inbuilt HTTPS certificate generation with lets-encrypt
-  - Web file browser and FTP access (disabled by default)
-- **Action workflows & 3rd party API integration, create new integration using API calls**
-  - Supports v2/v3 openapi in yaml or json format
-  - Call any 3rd party API by importing OpenAPI Spec
-- **Email server**
-  - Enable SMTPS and IMAPS services and use daptin as your daily email provider
-  - Multi hostname mail server
-  - Multiple email accounts, database backed email storage     
+### signup, signin, user_account and usergroup
+
+## signup 
+
+call the signup "action" api to create a new user_account
+
+```bash
+curl 'http://localhost:6333/action/user_account/signup' -X POST \
+--data-raw '{"attributes":{"email":"artpar@gmail.com","password":"artpar@gmail.com","name":"artpar@gmail.com","passwordConfirm":"artpar@gmail.com"}}'
+```
+
+On a fresh instance all actions are allowed to be executed by guests, so you shouldn't see this
+
+```json
+[
+    {
+        "Attributes": {
+            "message": "http error (403) forbidden and 0 more errors, forbidden",
+            "title": "failed",
+            "type": "error"
+        },
+        "ResponseType": "client.notify"
+    }
+]
+```
+
+You should see this
+
+```json
+[
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {
+      "__type": "client.notify",
+      "message": "Sign-up successful. Redirecting to sign in",
+      "title": "Success",
+      "type": "success"
+    }
+  },
+  {
+    "ResponseType": "client.redirect",
+    "Attributes": {
+      "__type": "client.redirect",
+      "delay": 2000,
+      "location": "/auth/signin",
+      "window": "self"
+    }
+  }
+]
+```
+
+#### Sign in to get a JWT Bearer token
+
+```bash
+curl 'http://localhost:6336/action/user_account/signin' \
+--data-raw '{"attributes":{"email":"artpar@gmail.com","password":"artpar@gmail.com"}}'
+
+[
+    {
+        "Attributes": {
+            "key": "token",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhckBnbWFpbC5jb20iLCJleHAiOjE3MjkzMjExMjIsImlhdCI6MTcyOTA2MTkyMiwiaXNzIjoiZGFwdGluLTAxOTIyOCIsImp0aSI6IjAxOTI5NDFmLTI2MGUtN2I0Ni1hMWFlLWYxMGZhZTcwMDE3OSIsIm5hbWUiOiJhcnRwYXJAZ21haWwuY29tIiwibmJmIjoxNzI5MDYxOTIyLCJzdWIiOiIwMTkyMmUxYS1kNWVhLTcxYzktYmQzZS02MTZkMjM3ODBmOTMifQ.H-GLmXCT-o7RxXrjo5Of0K8Nw5mpOOw6jgoXnd5KUxo"
+        },
+        "ResponseType": "client.store.set"
+    },
+    {
+        "Attributes": {
+            "key": "token",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhckBnbWFpbC5jb20iLCJleHAiOjE3MjkzMjExMjIsImlhdCI6MTcyOTA2MTkyMiwiaXNzIjoiZGFwdGluLTAxOTIyOCIsImp0aSI6IjAxOTI5NDFmLTI2MGUtN2I0Ni1hMWFlLWYxMGZhZTcwMDE3OSIsIm5hbWUiOiJhcnRwYXJAZ21haWwuY29tIiwibmJmIjoxNzI5MDYxOTIyLCJzdWIiOiIwMTkyMmUxYS1kNWVhLTcxYzktYmQzZS02MTZkMjM3ODBmOTMifQ.H-GLmXCT-o7RxXrjo5Of0K8Nw5mpOOw6jgoXnd5KUxo; SameSite=Strict"
+        },
+        "ResponseType": "client.cookie.set"
+    },
+    {
+        "Attributes": {
+            "message": "Logged in",
+            "title": "Success",
+            "type": "success"
+        },
+        "ResponseType": "client.notify"
+    },
+    {
+        "Attributes": {
+            "delay": 2000,
+            "location": "/",
+            "window": "self"
+        },
+        "ResponseType": "client.redirect"
+    }
+]
+
+```
+
+We will use
+
+```bash
+export TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhckBnbWFpbC5jb20iLCJleHAiOjE3MjkzMjExMjIsImlhdCI6MTcyOTA2MTkyMiwiaXNzIjoiZGFwdGluLTAxOTIyOCIsImp0aSI6IjAxOTI5NDFmLTI2MGUtN2I0Ni1hMWFlLWYxMGZhZTcwMDE3OSIsIm5hbWUiOiJhcnRwYXJAZ21haWwuY29tIiwibmJmIjoxNzI5MDYxOTIyLCJzdWIiOiIwMTkyMmUxYS1kNWVhLTcxYzktYmQzZS02MTZkMjM3ODBmOTMifQ.H-GLmXCT-o7RxXrjo5Of0K8Nw5mpOOw6jgoXnd5KUxo 
+```
+
+for the rest of the api calls. This is a JWT token with following data
+
+```json
+{
+  "email": "artpar@gmail.com",                    // user email
+  "exp": 1729321122,                              // token expiry
+  "iat": 1729061922,                              // token issued at time
+  "iss": "daptin-019228",                         // token issuer (your daptin instance)
+  "jti": "0192941f-260e-7b46-a1ae-f10fae700179",  // unique identifier for this token
+  "name": "artpar@gmail.com",                     // user name
+  "nbf": 1729061922,                              // token valid not before timestamp
+  "sub": "01922e1a-d5ea-71c9-bd3e-616d23780f93"   // user reference id
+}
+```
 
 
-<br />
+---
+
+So you have an account and a token to authenticate as that account. But do you need it? No. 
+Call to fetch all user accounts works without any authorization
+
+```bash
+curl http://localhost:6333/api/user_account
+```
+
+```json
+{
+  "links": {
+    "current_page": 1,
+    "from": 0,
+    "last_page": 1,
+    "per_page": 10,
+    "to": 10,
+    "total": 1
+  },
+  "data": [
+    {
+      "type": "user_account",
+      "id": "01929429-3d8f-7e53-8f15-a663e05fb01b",
+      "attributes": {
+        "__type": "user_account",
+        "confirmed": 0,
+        "created_at": "2024-10-16T07:09:43.86360642Z",
+        "email": "artpar1@gmail.com",
+        "name": "artpar1@gmail.com",
+        "password": "",
+        "permission": 2097151,
+        "reference_id": "01929429-3d8f-7e53-8f15-a663e05fb01b",
+        "updated_at": "2024-10-16T07:09:43.863622045Z",
+        "user_account_id": "01929429-3d8f-7e53-8f15-a663e05fb01b"
+      },
+      "relationships": { /// ...}
+    }
+  ]
+}
+```
+
+And so does all the data in all other tables (eg site, cloud_store, document, usergroup). 
+And you can call update and delete APIs as well 
+(not demonstrated here, but you can try, delete the sqlite database file after you are done playing to reset it all)
 
 
+As the first user, it is an option for you to leave it open or enable the multi-tier permission and becoming the Administrator
+
+```bash
+curl 'http://localhost:6336/action/world/become_an_administrator' --compressed -X POST \
+-H "Authorization:  Bearer $TOKEN" --data-raw '{}'
+```
+
+At this point, all other apis are locked-down and only accessible by administrator, that is you. 
+You want to open up few or many of actions to guests or users.
+
+
+... Will be updated soon
 
 ## Overview
 
@@ -146,7 +231,6 @@ The most powerful ready to use data and services API server.
 - Enable [Data Auditing](https://daptin.github.io/daptin/features/enable-data-auditing/) from a single toggle
 - [Synchronous Data Exchange](https://daptin.github.io/daptin/extend/data_exchange/) with 3rd party APIs
 - [Multilingual tables](https://daptin.github.io/daptin/features/enable-multilingual-table/) support, supports Accept-Language header 
-- [Market place](https://daptin.github.io/daptin/extend/marketplacce/) API to manage and share schemas
 - [Cloud storage sync](https://daptin.github.io/daptin/cloudstore/cloudstore/) like gdrive, dropbox, b2, s3 and more
 - [Asset column](https://daptin.github.io/daptin/cloudstore/assetcolumns/) to hold file and blob data, backed by storage
 - [Multiple websites](https://daptin.github.io/daptin/subsite/subsite/) under separate sub-domain/sub-paths

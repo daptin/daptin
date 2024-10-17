@@ -299,8 +299,8 @@ jobs:
         shell: bash
         run: |
           printf "npm and qusar to build dashboard in ./daptinweb"
-          wget https://github.com/daptin/dadadash/releases/download/v0.0.2/daptinweb.zip
-          unzip daptinweb.zip
+          wget https://github.com/daptin/dadadash/releases/download/v0.2.0/web-spa.zip
+          unzip web-spa.zip
           ls -lah ./daptinweb
 
 
