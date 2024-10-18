@@ -304,26 +304,28 @@ jobs:
           wget https://github.com/daptin/dadadash/releases/download/v0.2.0/web-spa.zip
           unzip web-spa.zip -d daptinweb
           ls -lah ./daptinweb
-
-
-
-      - name: Installl gorice on linux
-        shell: bash
-        run: |
-          ls -lah
           go install github.com/GeertJohan/go.rice/rice@latest
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-amd64
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-darwin-amd64
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-5
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-6
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-7
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mipsle
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64le
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-amd64.exe
-          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-4.0-386.exe
+          $GOPATH/bin/rice embed-go
 
+
+
+#      - name: Installl gorice on linux
+#        shell: bash
+#        run: |
+#          ls -lah
+#          go install github.com/GeertJohan/go.rice/rice@latest
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-amd64
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-darwin-amd64
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-5
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-6
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-7
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mipsle
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64le
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-amd64.exe
+#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-4.0-386.exe
+#
 
       - name: Set environment variables
         shell: bash
