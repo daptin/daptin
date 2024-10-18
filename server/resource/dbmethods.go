@@ -113,14 +113,16 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 	}
 
 	action, err = ActionFromActionRow(actionRow)
-
-	if OlricCache != nil {
-
-		err = OlricCache.Put(context.Background(), cacheKey, actionRow, olric.EX(1*time.Minute), olric.NX())
-		//CheckErr(err, "Failed to set action in olric cache")
+	if err != nil {
+		return action, err
 	}
 
-	return action, err
+	if OlricCache != nil {
+		err = OlricCache.Put(context.Background(), cacheKey, actionRow, olric.EX(1*time.Minute), olric.NX())
+		CheckErr(err, "Failed to set action in olric cache")
+	}
+
+	return action, nil
 }
 
 func ActionFromActionRow(actionRow ActionRow) (Action, error) {
