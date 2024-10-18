@@ -58,6 +58,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 		responseAttrs["title"] = "Failed"
 		actionResponse := NewActionResponse("client.notify", responseAttrs)
 		responses = append(responses, actionResponse)
+		return nil, responses, []error{fmt.Errorf("Invalid username or password")}
 	} else {
 		existingUser := existingUsers[0]
 		if skipPasswordCheck || (existingUser["password"] != nil && BcryptCheckStringHash(password, existingUser["password"].(string))) {
@@ -120,6 +121,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 			responseAttrs["title"] = "Failed"
 			responseAttrs["message"] = "Invalid username or password"
 			responses = append(responses, NewActionResponse("client.notify", responseAttrs))
+			return nil, responses, []error{fmt.Errorf("Invalid username or password")}
 		}
 
 	}
