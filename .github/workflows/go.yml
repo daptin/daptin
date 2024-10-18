@@ -152,7 +152,8 @@ jobs:
           go get github.com/ahmetb/govvv
           go install github.com/ahmetb/govvv
           go install github.com/goreleaser/nfpm/cmd/nfpm@latest
-          go install github.com/GeertJohan/go.rice/rice
+          go install github.com/GeertJohan/go.rice@latest
+          go install github.com/GeertJohan/go.rice/rice@latest
           $GOPATH/bin/rice embed-go
           go get
           ls -lah
@@ -311,6 +312,8 @@ jobs:
         shell: bash
         run: |
           ls -lah
+          go install github.com/GeertJohan/go.rice@latest
+          go install github.com/GeertJohan/go.rice/rice@latest
           $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-amd64
           $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-darwin-amd64
           $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-5
