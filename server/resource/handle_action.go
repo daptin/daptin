@@ -485,8 +485,8 @@ OutFields:
 		case "GET_BY_ID":
 
 			referenceIdString, ok := model.GetAttributes()["reference_id"]
-			referenceIdUuid, err := uuid.Parse(referenceIdString.(string))
-			if referenceIdString == "" || !ok || err != nil {
+			referenceIdDir := daptinid.InterfaceToDIR(referenceIdString)
+			if referenceIdDir == daptinid.NullReferenceId || !ok {
 				err = api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
 				break OutFields
 			}
@@ -502,7 +502,7 @@ OutFields:
 				includedRelations = nil
 			}
 
-			responseObjects, _, err = dbResource.Cruds[outcome.Type].GetSingleRowByReferenceIdWithTransaction(outcome.Type, daptinid.DaptinReferenceId(referenceIdUuid), nil, transaction)
+			responseObjects, _, err = dbResource.Cruds[outcome.Type].GetSingleRowByReferenceIdWithTransaction(outcome.Type, referenceIdDir, nil, transaction)
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
