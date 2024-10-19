@@ -139,9 +139,11 @@ jobs:
         shell: bash
         run: |
           printf "npm and qusar to build dashboard in ./daptinweb"
-          wget https://github.com/daptin/dadadash/releases/download/v0.0.2/daptinweb.zip
-          unzip daptinweb.zip
+          wget https://github.com/daptin/dadadash/releases/download/v0.2.0/web-spa.zip
+          unzip web-spa.zip -d daptinweb
           ls -lah ./daptinweb
+          go install github.com/GeertJohan/go.rice/rice@latest
+          $GOPATH/bin/rice embed-go
 
 
 
@@ -152,8 +154,6 @@ jobs:
           go get github.com/ahmetb/govvv
           go install github.com/ahmetb/govvv
           go install github.com/goreleaser/nfpm/cmd/nfpm@latest
-          go install github.com/GeertJohan/go.rice/rice@latest
-          $GOPATH/bin/rice embed-go
           go get
           ls -lah
 
