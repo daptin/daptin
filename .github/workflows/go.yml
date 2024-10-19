@@ -353,8 +353,10 @@ jobs:
           pwd
           go env
           ls -lah
-          $GOPATH/bin/xgo -targets=darwin/amd64,darwin/arm64,linux/amd64,linux/arm64,windows/* \
+          $GOPATH/bin/xgo -targets=linux/amd64,linux/arm64 \
               --tags netgo -ldflags '-extldflags "-static"' -dest build .
+          $GOPATH/bin/xgo -targets='darwin/amd64,darwin/arm64,windows/*' \
+              --tags netgo -ldflags '-linkmode external' -dest build .
 
 
       - name: List built artifacts

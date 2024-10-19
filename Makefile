@@ -43,9 +43,10 @@ endif
 
 .PHONY: daptin test_all vars version
 
+#Binary was compiled with 'CGO_ENABLED=0', go-sqlite3 requires cgo to work. This is a stub
 daptin:
 	go get
-	go build -v --ldflags "-s $(govvv -flags) -X github.com/daptin/daptin.Version=$(TAG)" $(BUILDTAGS)
+	CGO_ENABLED=1 go build -v --ldflags "-s $(govvv -flags) -X github.com/daptin/daptin.Version=$(TAG)" $(BUILDTAGS)
 	mkdir -p `go env GOPATH`/bin/
 	cp -av daptin`go env GOEXE` `go env GOPATH`/bin/daptin`go env GOEXE`.new
 	mv -v `go env GOPATH`/bin/daptin`go env GOEXE`.new `go env GOPATH`/bin/daptin`go env GOEXE`
