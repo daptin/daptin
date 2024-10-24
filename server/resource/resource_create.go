@@ -116,25 +116,30 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				//log.Printf("Convert reference_id to id %v[%v]", col.ForeignKeyData.Namespace, columnValue)
 				var dir = daptinid.InterfaceToDIR(columnValue)
 				if dir == daptinid.NullReferenceId {
-					log.Errorf("Expected string in foreign key column[%v], found %v", col.ColumnName, columnValue)
-					return nil, errors.New("unexpected value in foreign key column")
-				}
-				var uId interface{}
-				foreignObjectReferenceId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
-				if err != nil {
-					return nil, fmt.Errorf("foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, dir)
-				}
-
-				foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
-
-				if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
-					uId = foreignObjectReferenceId
+					if col.IsNullable {
+						columnValue = nil
+					} else {
+						log.Errorf("Expected string in foreign key column[%v], found %v", col.ColumnName, columnValue)
+						return nil, errors.New("unexpected value in foreign key column")
+					}
 				} else {
-					log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
-					return nil, fmt.Errorf("refer object not allowed [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
-				}
+					var uId interface{}
+					foreignObjectReferenceId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
+					if err != nil {
+						return nil, fmt.Errorf("foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, dir)
+					}
 
-				columnValue = uId
+					foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
+
+					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
+						uId = foreignObjectReferenceId
+					} else {
+						log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
+						return nil, fmt.Errorf("refer object not allowed [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
+					}
+
+					columnValue = uId
+				}
 
 			case "cloud_store":
 

@@ -357,20 +357,13 @@ OutFields:
 			boolValue, ok := outcomeResult.(bool)
 			if !ok {
 
-				strVal, ok := outcomeResult.(string)
-				if ok {
-					if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
-						log.Printf("Condition is true")
-						// condition is true
-					} else {
-						// condition isn't true
-						log.Printf("Condition is false, skipping outcome")
-						continue
-					}
-
+				strVal := fmt.Sprintf("%v", outcomeResult)
+				if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
+					log.Printf("Condition is true")
+					// condition is true
 				} else {
-
-					log.Printf("Failed to convert value to bool, assuming false")
+					// condition isn't true
+					log.Printf("Condition is false, skipping outcome [" + outcome.Condition + "]")
 					continue
 				}
 
