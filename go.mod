@@ -50,7 +50,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20181213162136-af1d9380204a
 	github.com/gocraft/health v0.0.0-20170925182251-8675af27fef0
 	github.com/gohugoio/hugo v0.111.2
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.1.1
 	github.com/graphql-go/graphql v0.8.1
@@ -66,6 +66,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/json-iterator/go v1.1.12
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/labstack/gommon v0.4.2
 	github.com/lib/pq v1.10.4
 	github.com/looplab/fsm v1.0.1
 	github.com/mattn/go-sqlite3 v1.14.17
@@ -265,7 +266,6 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/kyokomi/emoji/v2 v2.2.11 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
