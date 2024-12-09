@@ -655,11 +655,11 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 
 	perm.Permission = auth.AuthPermission(m["permission"].(int64))
 
-	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
+	log.Debugf("PermissionInstance for [%v]: %v", objectType, perm)
 
 	if OlricCache != nil {
 		OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(10*time.Minute), olric.NX())
-		//CheckErr(err, "[617] Failed to set id to reference id in olric cache")
+		CheckErr(err, "[617] Failed to set id to reference id in olric cache")
 	}
 	return perm
 }

@@ -147,7 +147,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 				ObjectType:    dr.model.GetTableName(),
 				EventData:     messageBytes,
 			})
-			CheckErr(err, "Failed to delete create message")
+			CheckErr(err, "Failed to publish delete message")
 
 		}()
 		break
@@ -161,7 +161,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 				ObjectType:    dr.model.GetTableName(),
 				EventData:     messageBytes,
 			})
-			CheckErr(err, "Failed to update create message")
+			CheckErr(err, "Failed to publish update message")
 		}()
 		break
 	default:

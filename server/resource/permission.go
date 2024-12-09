@@ -2,6 +2,7 @@ package resource
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 )
@@ -24,7 +25,7 @@ func (p PermissionInstance) MarshalBinary() (data []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
-		copy(userGroupIdBytes[i*auth.AuthGroupBinaryRepresentationSize:], groupPermissionBytes[:])
+		copy(userGroupIdBytes[i*auth.AuthGroupBinaryRepresentationSize:], groupPermissionBytes)
 	}
 
 	result := append(userIdBytes[:], permissionsBytes...)
@@ -38,11 +39,17 @@ func (p *PermissionInstance) UnmarshalBinary(data []byte) error {
 	p.Permission = auth.AuthPermission(binary.LittleEndian.Uint64(data[16:24]))
 
 	userGroupIdBytes := data[24:]
-	userGroupId := make(auth.GroupPermissionList, len(userGroupIdBytes)/auth.AuthGroupBinaryRepresentationSize)
-	for i := 0; i < len(userGroupId); i++ {
+	if len(userGroupIdBytes)%auth.AuthGroupBinaryRepresentationSize != 0 {
+		return fmt.Errorf("invalid user group data length")
+	}
+
+	userGroupCount := len(userGroupIdBytes) / auth.AuthGroupBinaryRepresentationSize
+	userGroupId := make(auth.GroupPermissionList, userGroupCount)
+	for i := 0; i < userGroupCount; i++ {
+		start := i * auth.AuthGroupBinaryRepresentationSize
+		end := (i + 1) * auth.AuthGroupBinaryRepresentationSize
 		groupPermission := auth.GroupPermission{}
-		err := groupPermission.UnmarshalBinary(
-			userGroupIdBytes[(i * auth.AuthGroupBinaryRepresentationSize):auth.AuthGroupBinaryRepresentationSize])
+		err := groupPermission.UnmarshalBinary(userGroupIdBytes[start:end])
 		if err != nil {
 			return err
 		}
