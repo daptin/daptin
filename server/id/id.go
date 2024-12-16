@@ -118,5 +118,14 @@ func InterfaceToDIR(valueToConvert interface{}) DaptinReferenceId {
 			return DaptinReferenceId(oauthTokenId)
 		}
 	}
+	asUint8Array, isIntArray := valueToConvert.([]uint8)
+	if isIntArray {
+		uuidFromBytes, err := uuid.FromBytes([]byte(asUint8Array))
+		if err != nil {
+			log.Printf("[100] reference id is invalid")
+			return NullReferenceId
+		}
+		return DaptinReferenceId(uuidFromBytes)
+	}
 	return NullReferenceId
 }

@@ -2926,7 +2926,9 @@ func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []da
 	var refVals [][]byte
 
 	for _, i := range referenceId {
-		refVals = append(refVals, i[:])
+		copied := make([]uint8, len(i))
+		copy(copied, i[:])
+		refVals = append(refVals, copied)
 	}
 
 	idMap := make(map[daptinid.DaptinReferenceId]int64)
@@ -2953,14 +2955,21 @@ func GetReferenceIdListToIdListWithTransaction(typeName string, referenceId []da
 	if err != nil {
 		return idMap, err
 	}
+	rowStr := make(map[string]interface{})
+	err = rows.MapScan(rowStr)
 	for rows.Next() {
-		var id1 int64
-		var id2 daptinid.DaptinReferenceId
-		err = rows.Scan(&id1, &id2)
-		idMap[id2] = id1
+		//var id1 int64
+		//var id2 daptinid.DaptinReferenceId
+		err = rows.MapScan(rowStr)
+		idMap[daptinid.InterfaceToDIR(rowStr["reference_id"])] = rowStr["id"].(int64)
 	}
 
 	return idMap, err
+}
+
+type IdReferenceIdRow struct {
+	reference_id daptinid.DaptinReferenceId `db:"reference_id"`
+	id           int64                      `db:"id"`
 }
 
 // GetIdListToReferenceIdList Lookups an string internal integer id and return a reference id of an object of type `typeName`
