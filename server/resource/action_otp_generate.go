@@ -130,33 +130,29 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inF
 	//}
 
 	resp := &api2go.Response{}
-	if userOtpProfile["verified"] == 1 || phoneOk {
 
-		key, err := Decrypt(actionPerformer.encryptionSecret, userOtpProfile["otp_secret"].(string))
-		if err != nil {
-			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
-		}
-
-		state, err := totp.GenerateCodeCustom(key, time.Now(), totp.ValidateOpts{
-			Period:    300,
-			Skew:      1,
-			Digits:    4,
-			Algorithm: otp.AlgorithmSHA1,
-		})
-		if err != nil {
-			log.Errorf("Failed to generate code: %v", err)
-			return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
-		}
-
-		responder := api2go.NewApi2GoModelWithData("otp", nil, 0, nil, map[string]interface{}{
-			"otp": state,
-		})
-		resp.Res = responder
-	} else {
-		resp = nil
+	key, err := Decrypt(actionPerformer.encryptionSecret, userOtpProfile["otp_secret"].(string))
+	if err != nil {
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
 	}
 
-	return resp, []ActionResponse{}, []error{err}
+	state, err := totp.GenerateCodeCustom(key, time.Now(), totp.ValidateOpts{
+		Period:    300,
+		Skew:      1,
+		Digits:    4,
+		Algorithm: otp.AlgorithmSHA1,
+	})
+	if err != nil {
+		log.Errorf("Failed to generate code: %v", err)
+		return nil, []ActionResponse{NewActionResponse("client.notify", NewClientNotification("message", "Failed to generate new OTP code", "Failed"))}, []error{err}
+	}
+
+	responder := api2go.NewApi2GoModelWithData("otp", nil, 0, nil, map[string]interface{}{
+		"otp": state,
+	})
+	resp.Res = responder
+
+	return resp, []ActionResponse{}, nil
 }
 
 func NewOtpGenerateActionPerformer(cruds map[string]*DbResource, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {

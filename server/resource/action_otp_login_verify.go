@@ -140,7 +140,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 	}
 
 	responseAttrs := make(map[string]interface{})
-	responseAttrs["value"] = string(tokenString)
+	responseAttrs["value"] = tokenString
 	responseAttrs["key"] = "token"
 	actionResponse := NewActionResponse("client.store.set", responseAttrs)
 	responses = append(responses, actionResponse)

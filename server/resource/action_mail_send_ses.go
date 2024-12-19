@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,14 +28,24 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
 
-	mailTo := inFields["to"].([]string)
+	toValueInterfaceList, ok := inFields["to"].([]interface{})
+	mailTo := make([]string, 0)
+	if ok && len(toValueInterfaceList) > 0 {
+		for _, toValueInterface := range toValueInterfaceList {
+			mailTo = append(mailTo, toValueInterface.(string))
+		}
+	} else {
+		isStrArray, ok := inFields["to"].([]string)
+		if ok {
+			mailTo = isStrArray
+		}
+	}
 	subject := inFields["subject"].(string)
 	mailFrom := inFields["from"].(string)
-	mailBody := inFields["body"].(string)
 	credential_name := inFields["credential"].(string)
 
 	credentialRow, err := d.cruds["credential"].GetObjectByWhereClauseWithTransaction(
-		"credential", "credential_name", credential_name, transaction)
+		"credential", "name", credential_name, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -42,7 +53,7 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	decryptedSpec, err := Decrypt(d.encryptionSecret, credentialRow["content"].(string))
 
 	decryptedSpecMap := make(map[string]interface{})
-	err = json.Unmarshal([]byte(decryptedSpec), decryptedSpecMap)
+	err = json.Unmarshal([]byte(decryptedSpec), &decryptedSpecMap)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -74,16 +85,33 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	for _, mailToI := range mailTo {
 		toAd = append(toAd, aws.String(mailToI))
 	}
+	mailBodyText, isMailBodyText := inFields["text"].(string)
+	var awsMailBody *ses.Body = nil
+	if isMailBodyText {
+		awsMailBody = &ses.Body{
+			Text: &ses.Content{
+				Data: aws.String(mailBodyText),
+			},
+		}
+	} else {
+		mailBodyText, isMailBodyHtml := inFields["html"].(string)
+		if isMailBodyHtml {
+			awsMailBody = &ses.Body{
+				Html: &ses.Content{
+					Data: aws.String(mailBodyText),
+				},
+			}
+		}
+	}
+	if awsMailBody == nil {
+		return nil, nil, []error{fmt.Errorf("No valid mail body found")}
+	}
 	input := &ses.SendEmailInput{
 		Destination: &ses.Destination{
 			ToAddresses: toAd,
 		},
 		Message: &ses.Message{
-			Body: &ses.Body{
-				Text: &ses.Content{
-					Data: aws.String(mailBody),
-				},
-			},
+			Body: awsMailBody,
 			Subject: &ses.Content{
 				Data: aws.String(subject),
 			},

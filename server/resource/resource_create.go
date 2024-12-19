@@ -382,10 +382,18 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			}
 			//log.Warnf("driver name in truefalse: %s", createTransaction.DriverName())
 			if createTransaction.DriverName() == "sqlite3" {
-				if columnValue.(bool) {
-					columnValue = 1
-				} else {
-					columnValue = 0
+				_, isInt := columnValue.(int64)
+				if !isInt {
+					columnValueBool, isBool := columnValue.(bool)
+					if isBool {
+						if columnValueBool {
+							columnValue = 1
+						} else {
+							columnValue = 0
+						}
+					} else {
+						columnValue = 0
+					}
 				}
 			}
 
@@ -552,12 +560,12 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 	} else if dbResource.model.GetName() == USER_ACCOUNT_TABLE_NAME {
 
-		adminUserId, _ := GetAdminUserIdAndUserGroupId(createTransaction)
-		log.Tracef("Associate new user with user: %v", adminUserId)
+		//adminUserId, _ := GetAdminUserIdAndUserGroupId(createTransaction)
+		log.Tracef("Associate new user as owner of their own user_account: %v", createdResource["id"])
 
 		belongsToUserGroupSql, q, err := statementbuilder.Squirrel.
 			Update(USER_ACCOUNT_TABLE_NAME).Prepared(true).
-			Set(goqu.Record{USER_ACCOUNT_ID_COLUMN: adminUserId}).
+			Set(goqu.Record{USER_ACCOUNT_ID_COLUMN: createdResource["id"]}).
 			Where(goqu.Ex{"id": createdResource["id"]}).ToSQL()
 
 		_, err = createTransaction.Exec(belongsToUserGroupSql, q...)
