@@ -113,21 +113,21 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request Outcome, inF
 		userOtpProfile = createdOtpProfile
 	}
 
-	if userOtpProfile["verified"] == 1 && phoneOk && mobile != userOtpProfile["mobile_number"] && mobile != "" {
-		userOtpProfile["mobile_number"] = mobile
-		userOtpProfile["verified"] = 0
-		req.PlainRequest.Method = "PUT"
-		if err != nil {
-			return nil, nil, []error{err}
-		}
-		_, err = actionPerformer.cruds["user_otp_account"].UpdateWithoutFilters(
-			api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req, transaction)
-		if err != nil {
-			return nil, nil, []error{err}
-		} else {
-			return nil, nil, nil
-		}
-	}
+	//if userOtpProfile["verified"] == 1 && phoneOk && mobile != userOtpProfile["mobile_number"] && mobile != "" {
+	//	userOtpProfile["mobile_number"] = mobile
+	//	userOtpProfile["verified"] = 0
+	//	req.PlainRequest.Method = "PUT"
+	//	if err != nil {
+	//		return nil, nil, []error{err}
+	//	}
+	//	_, err = actionPerformer.cruds["user_otp_account"].UpdateWithoutFilters(
+	//		api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile), req, transaction)
+	//	if err != nil {
+	//		return nil, nil, []error{err}
+	//	} else {
+	//		return nil, nil, nil
+	//	}
+	//}
 
 	resp := &api2go.Response{}
 	if userOtpProfile["verified"] == 1 || phoneOk {

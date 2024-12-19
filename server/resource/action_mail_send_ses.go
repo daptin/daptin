@@ -1,19 +1,21 @@
 package resource
 
 import (
-	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 )
 
 type awsMailSendActionPerformer struct {
 	cruds              map[string]*DbResource
 	mailDaemon         *guerrilla.Daemon
 	certificateManager *CertificateManager
+	encryptionSecret   []byte
 }
 
 func (d *awsMailSendActionPerformer) Name() string {
@@ -29,76 +31,89 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	subject := inFields["subject"].(string)
 	mailFrom := inFields["from"].(string)
 	mailBody := inFields["body"].(string)
+	credential_name := inFields["credential"].(string)
 
-	// AWS credentials
-	accessKey := "your-access-key"
-	secretKey := "your-secret-key"
-	region := "us-east-1" // Replace with your AWS region
-
-	// Create AWS config
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(region),
-		config.WithCredentialsProvider(
-			credentials.NewStaticCredentialsProvider(accessKey, secretKey, ""),
-		),
-	)
+	credentialRow, err := d.cruds["credential"].GetObjectByWhereClauseWithTransaction(
+		"credential", "credential_name", credential_name, transaction)
 	if err != nil {
-		fmt.Printf("failed to load configuration, %v\n", err)
-		return
+		return nil, nil, []error{err}
+	}
+
+	decryptedSpec, err := Decrypt(d.encryptionSecret, credentialRow["content"].(string))
+
+	decryptedSpecMap := make(map[string]interface{})
+	err = json.Unmarshal([]byte(decryptedSpec), decryptedSpecMap)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+
+	// AWS credentials (IAM Access Key and Secret Key)
+	accessKey := decryptedSpecMap["access_key"].(string)
+	secretKey := decryptedSpecMap["secret_key"].(string)
+	region := decryptedSpecMap["region"].(string)
+	token := decryptedSpecMap["token"].(string)
+	//provider_name := decryptedSpecMap["provider_name"].(string)
+
+	// AWS Session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(region),
+		Credentials: credentials.NewStaticCredentials(
+			accessKey, secretKey, token,
+		),
+	})
+	if err != nil {
+		log.Errorf("Failed to create AWS session: %v", err)
+		return nil, nil, []error{err}
 	}
 
 	// Create SES client
-	client := ses.NewFromConfig(cfg)
+	svc := ses.New(sess)
 
-	// Define email details
-	from := "sender@example.com"
-	to := "recipient@example.com"
-	subject := "Test Email from AWS SES"
-	bodyText := "This is a test email sent from AWS SES using the Go SDK."
-	bodyHTML := "<html><body><h1>Test Email</h1><p>This is a test email sent from AWS SES using the Go SDK.</p></body></html>"
+	// Construct email
+	toAd := []*string{}
+	for _, mailToI := range mailTo {
+		toAd = append(toAd, aws.String(mailToI))
+	}
+	input := &ses.SendEmailInput{
+		Destination: &ses.Destination{
+			ToAddresses: toAd,
+		},
+		Message: &ses.Message{
+			Body: &ses.Body{
+				Text: &ses.Content{
+					Data: aws.String(mailBody),
+				},
+			},
+			Subject: &ses.Content{
+				Data: aws.String(subject),
+			},
+		},
+		Source: aws.String(mailFrom),
+	}
 
 	// Send email
-	input := &ses.SendEmailInput{
-		Destination: &types.Destination{
-			ToAddresses: []string{to},
-		},
-		Message: &types.Message{
-			Body: &types.Body{
-				Text: &types.Content{
-					Charset: aws.String("UTF-8"),
-					Data:    aws.String(bodyText),
-				},
-				Html: &types.Content{
-					Charset: aws.String("UTF-8"),
-					Data:    aws.String(bodyHTML),
-				},
-			},
-			Subject: &types.Content{
-				Charset: aws.String("UTF-8"),
-				Data:    aws.String(subject),
-			},
-		},
-		Source: aws.String(from),
-	}
-
-	// Make the SendEmail API call
-	output, err := client.SendEmail(context.TODO(), input)
+	result, err := svc.SendEmail(input)
 	if err != nil {
-		fmt.Printf("failed to send email, %v\n", err)
-		return
+		return nil, nil, []error{err}
 	}
 
-	fmt.Printf("Email sent successfully! Message ID: %s\n", *output.MessageId)
-
+	restartAttrs := make(map[string]interface{})
+	restartAttrs["type"] = "success"
+	restartAttrs["result"] = result.String()
+	restartAttrs["message"] = "email sent successfully"
+	restartAttrs["title"] = "Success"
+	actionResponse := NewActionResponse("client.notify", restartAttrs)
+	responses = append(responses, actionResponse)
 	return nil, responses, nil
 }
 
-func NewAwsMailSendActionPerformer(cruds map[string]*DbResource, mailDaemon *guerrilla.Daemon, certificateManager *CertificateManager) (ActionPerformerInterface, error) {
+func NewAwsMailSendActionPerformer(cruds map[string]*DbResource, mailDaemon *guerrilla.Daemon, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 
 	handler := awsMailSendActionPerformer{
-		cruds:              cruds,
-		mailDaemon:         mailDaemon,
-		certificateManager: certificateManager,
+		cruds:            cruds,
+		mailDaemon:       mailDaemon,
+		encryptionSecret: []byte(encryptionSecret),
 	}
 
 	return &handler, nil

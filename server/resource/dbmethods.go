@@ -1913,7 +1913,8 @@ func (dbResource *DbResource) GetObjectByWhereClause(typeName string, column str
 	return m[0], err
 }
 
-func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(typeName string, column string, val interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
+func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(
+	typeName string, column string, val interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
 	s, q, err := statementbuilder.Squirrel.Select("*").Prepared(true).From(typeName).Where(goqu.Ex{column: val}).ToSQL()
 	if err != nil {
 		return nil, err

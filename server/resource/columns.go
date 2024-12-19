@@ -282,6 +282,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"otp":    "~otp",
 					"mobile": "~mobile_number",
+					"email":  "~email",
 				},
 			},
 		},
@@ -340,6 +341,11 @@ var SystemActions = []Action{
 				ColumnName: "mobile_number",
 				ColumnType: "label",
 			},
+			{
+				Name:       "email",
+				ColumnName: "email",
+				ColumnType: "label",
+			},
 		},
 		OutFields: []Outcome{
 			{
@@ -348,6 +354,7 @@ var SystemActions = []Action{
 				Attributes: map[string]interface{}{
 					"otp":    "~otp",
 					"mobile": "~mobile_number",
+					"email":  "~email",
 				},
 			},
 		},
@@ -1690,6 +1697,30 @@ var StandardTables = []TableInfo{
 				DataType:   "text",
 				IsNullable: false,
 				IsIndexed:  true,
+			},
+		},
+	},
+	{
+		TableName:     "credential",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-key",
+		Columns: []api2go.ColumnInfo{
+			{
+				ColumnName: "name",
+				Name:       "name",
+				ColumnType: "label",
+				DataType:   "varchar(500)",
+				IsNullable: false,
+				IsIndexed:  true,
+			},
+			{
+				ColumnName: "content",
+				Name:       "content",
+				ColumnType: "encrypted",
+				DataType:   "text",
+				IsNullable: false,
+				IsIndexed:  false,
 			},
 		},
 	},
