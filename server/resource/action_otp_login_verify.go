@@ -94,7 +94,21 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
 
-	if userOtpProfile["verified"].(int64) == 0 {
+	verifiedAsInt64, isInt64 := userOtpProfile["verified"].(int64)
+	if !isInt64 {
+		vAsBool, isBool := userOtpProfile["verified"].(bool)
+		if isBool {
+			if vAsBool {
+				verifiedAsInt64 = 1
+			}
+		} else {
+			vAsStr := fmt.Sprintf("%s", userOtpProfile["verified"])
+			if vAsStr == "true" || vAsStr == "1" {
+				verifiedAsInt64 = 1
+			}
+		}
+	}
+	if verifiedAsInt64 == 0 {
 		model := api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile)
 		model.SetAttributes(map[string]interface{}{
 			"verified": 1,
