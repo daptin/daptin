@@ -1702,7 +1702,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "credential",
-		IsHidden:      true,
+		IsHidden:      false,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-key",
 		Columns: []api2go.ColumnInfo{
@@ -1726,7 +1726,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "certificate",
-		IsHidden:      true,
+		IsHidden:      false,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-certificate",
 		Columns: []api2go.ColumnInfo{
@@ -1786,7 +1786,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "feed",
-		IsHidden:      true,
+		IsHidden:      false,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-rss",
 		Columns: []api2go.ColumnInfo{
@@ -1890,7 +1890,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "integration",
-		IsHidden:      true,
+		IsHidden:      false,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-exchange-alt",
 		Columns: []api2go.ColumnInfo{
@@ -1948,7 +1948,7 @@ var StandardTables = []TableInfo{
 	},
 	{
 		TableName:     "task",
-		IsHidden:      true,
+		IsHidden:      false,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-clock",
 		Columns: []api2go.ColumnInfo{
@@ -1994,6 +1994,55 @@ var StandardTables = []TableInfo{
 				ColumnName: "job_type",
 				DataType:   "varchar(100)",
 				ColumnType: "label",
+			},
+		},
+	},
+	{
+		TableName:     "template",
+		IsHidden:      false,
+		DefaultGroups: adminsGroup,
+		Icon:          "fa-key",
+		Columns: []api2go.ColumnInfo{
+			{
+				ColumnName: "name",
+				Name:       "name",
+				ColumnType: "label",
+				DataType:   "varchar(500)",
+				IsNullable: false,
+				IsUnique:   true,
+				IsIndexed:  true,
+			},
+			{
+				ColumnName: "content",
+				Name:       "content",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: false,
+				IsIndexed:  false,
+			},
+			{
+				ColumnName: "mime_type",
+				Name:       "mime_type",
+				ColumnType: "label",
+				DataType:   "varchar(500)",
+				IsNullable: false,
+				IsIndexed:  false,
+			},
+			{
+				ColumnName: "headers",
+				Name:       "headers",
+				ColumnType: "content",
+				DataType:   "text",
+				IsNullable: true,
+				IsIndexed:  false,
+			},
+			{
+				ColumnName: "url_pattern",
+				Name:       "url_pattern",
+				ColumnType: "label",
+				DataType:   "text",
+				IsNullable: false,
+				IsIndexed:  false,
 			},
 		},
 	},

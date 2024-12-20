@@ -109,7 +109,7 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				Set(goqu.Record{
 					"active":      newTask.Active,
 					"schedule":    newTask.Schedule,
-					"attributes":  toJson(newTask.Attributes),
+					"attributes":  ToJson(newTask.Attributes),
 					"action_name": newTask.ActionName,
 					"entity_name": newTask.EntityName,
 				}).ToSQL()
@@ -124,7 +124,7 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				Cols("name", "schedule", "active",
 					"action_name", "entity_name", "reference_id", "attributes", "created_at").
 				Vals([]interface{}{newTask.Name, newTask.Schedule, newTask.Active,
-					newTask.ActionName, newTask.EntityName, refId[:], toJson(newTask.Attributes), time.Now()}).ToSQL()
+					newTask.ActionName, newTask.EntityName, refId[:], ToJson(newTask.Attributes), time.Now()}).ToSQL()
 
 		}
 

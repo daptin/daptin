@@ -35,6 +35,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create otp verify performer")
 	performers = append(performers, otpLoginVerifyActionPerformer)
 
+	renderTempalteActionPerformer, err := resource.NewRenderTemplateActionPerformer(cruds, configStore, transaction)
+	resource.CheckErr(err, "Failed to create render template performer")
+	performers = append(performers, renderTempalteActionPerformer)
+
 	makeResponsePerformer, err := resource.NewMakeResponsePerformer()
 	resource.CheckErr(err, "Failed to create make response performer")
 	performers = append(performers, makeResponsePerformer)

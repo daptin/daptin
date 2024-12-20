@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/artpar/api2go"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/artpar/stats"
 	"github.com/aviddiviner/gin-limit"
@@ -105,6 +106,62 @@ func CreateAssetColumnSync(cruds map[string]*resource.DbResource, transaction *s
 
 	return assetCache
 
+}
+
+func CreateTemplateHooks(cmsConfig *resource.CmsConfig,
+	transaction *sqlx.Tx, cruds map[string]*resource.DbResource,
+	rateConfig RateConfig, hs HostSwitch) error {
+	mainRouter := hs.handlerMap["dashboard"]
+	templateList, err := cruds["template"].GetAllObjects("template", transaction)
+	if err != nil {
+		return err
+	}
+	for _, templateRow := range templateList {
+		urlPattern := templateRow["url_pattern"].(string)
+		strArray := make([]string, 0)
+		err = json.Unmarshal([]byte(urlPattern), &strArray)
+		if err != nil {
+			return fmt.Errorf("Failed to parse url pattern ["+urlPattern+"] as string array: %s", err)
+		}
+		templateRenderHelper := func(template map[string]interface{}) func(ginContext *gin.Context) {
+			return func(ginContext *gin.Context) {
+				inFields := make(map[string]interface{})
+				inFields["template"] = template["name"].(string)
+				queryMap := make(map[string]interface{})
+				inFields["query"] = queryMap
+				var outcomeRequest resource.Outcome
+				api2goResponder, _, err := cruds["action"].ActionHandlerMap["template.render"].DoAction(
+					outcomeRequest, inFields, transaction)
+				if err != nil && len(err) > 0 {
+					_ = ginContext.AbortWithError(500, err[0])
+					return
+				}
+
+				api2GoResult := api2goResponder.Result().(api2go.Api2GoModel)
+
+				attrs := api2GoResult.GetAttributes()
+				var content = attrs["content"].(string)
+				var mimeType = attrs["mime_type"].(string)
+				var headers = attrs["headers"].(map[string]string)
+
+				ginContext.Writer.WriteHeader(http.StatusOK)
+				ginContext.Writer.Header().Set("Content-Type", mimeType)
+				for hKey, hValue := range headers {
+					ginContext.Writer.Header().Set(hKey, hValue)
+				}
+				ginContext.Writer.Flush()
+
+				// Render the rest of the DATA
+				fmt.Fprint(ginContext.Writer, resource.Atob(content))
+				ginContext.Writer.Flush()
+
+			}
+		}(templateRow)
+		for _, urlMatch := range strArray {
+			mainRouter.Any(urlMatch, templateRenderHelper)
+		}
+	}
+	return nil
 }
 
 // CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites

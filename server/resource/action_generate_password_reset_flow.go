@@ -52,13 +52,14 @@ func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inField
 		// you would like it to contain.
 		u, _ := uuid.NewV7()
 		email := existingUser["email"].(string)
+		timeNow := time.Now().UTC()
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"email": email,
 			"name":  existingUser["name"],
-			"nbf":   time.Now().Unix(),
-			"exp":   time.Now().Add(30 * time.Minute).Unix(),
+			"nbf":   timeNow.Unix(),
+			"exp":   timeNow.Add(30 * time.Minute).Unix(),
 			"iss":   d.jwtTokenIssuer,
-			"iat":   time.Now(),
+			"iat":   timeNow.Unix(),
 			"jti":   u.String(),
 		})
 
@@ -87,7 +88,7 @@ func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inField
 				Host: strings.Split(d.passwordResetEmailFrom, "@")[1],
 			},
 			Header: textproto.MIMEHeader{
-				"Date": []string{time.Now().String()},
+				"Date": []string{timeNow.String()},
 			},
 			Data: *bodyDaya,
 		}

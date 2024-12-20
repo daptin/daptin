@@ -66,7 +66,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request Outcome, inFieldMap m
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.
 			u, _ := uuid.NewV7()
-			timeNow := time.Now()
+			timeNow := time.Now().UTC()
 
 			timeNow.Add(-2 * time.Minute) // allow clock skew of 2 minutes
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{

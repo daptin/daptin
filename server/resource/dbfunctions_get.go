@@ -333,7 +333,7 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 		cloudStore.Version = int(row["version"].(int64))
 
 		if OlricCache != nil {
-			asJson := toJson(cloudStore)
+			asJson := ToJson(cloudStore)
 			OlricCache.Put(context.Background(), cacheKey, asJson, olric.EX(10*time.Minute), olric.NX())
 			//CheckErr(cachePutErr, "[336] failed to store cloud store in cache")
 		}

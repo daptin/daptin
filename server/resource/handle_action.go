@@ -6,9 +6,8 @@ import (
 	"errors"
 	"fmt"
 	daptinid "github.com/daptin/daptin/server/id"
-	"os"
-
 	"github.com/jmoiron/sqlx"
+	"os"
 
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
@@ -133,6 +132,24 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 
 		responseStatus := 200
 		for _, response := range responses {
+			if response.ResponseType == "render" {
+				attrs := response.Attributes.(map[string]interface{})
+				var content string = attrs["content"].(string)
+				var mimeType = attrs["mime_type"].(string)
+				var headers = attrs["headers"].(map[string]string)
+
+				ginContext.Writer.WriteHeader(http.StatusOK)
+				ginContext.Writer.Header().Set("Content-Type", mimeType)
+				for hKey, hValue := range headers {
+					ginContext.Writer.Header().Set(hKey, hValue)
+				}
+				ginContext.Writer.Flush()
+
+				// Render the rest of the DATA
+				ginContext.Writer.WriteString(Atob(content))
+				ginContext.Writer.Flush()
+				return
+			}
 			if response.ResponseType == "client.header.set" {
 				attrs := response.Attributes.(map[string]string)
 
@@ -195,7 +212,8 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 	}
 }
 
-func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest, req api2go.Request, transaction *sqlx.Tx) ([]ActionResponse, error) {
+func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest,
+	req api2go.Request, transaction *sqlx.Tx) ([]ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -378,7 +396,7 @@ OutFields:
 		var request api2go.Request
 		modelPointer, request, err = BuildOutcome(inFieldMap, outcome, sessionUser)
 		if err != nil {
-			log.Errorf("Failed to build outcome: %v, infields: [%v] on action[%s] in outcome [%v]", err, toJson(inFieldMap),
+			log.Errorf("Failed to build outcome: %v on action[%s] in outcome [%v]", err,
 				action.Name, outcome)
 			responses = append(responses, NewActionResponse("error", "Failed to build outcome "+outcome.Type))
 			if outcome.ContinueOnError {
@@ -458,7 +476,12 @@ OutFields:
 
 			for k, val := range model.GetAttributes() {
 				if k == "query" {
-					request.QueryParams[k] = []string{toJson(val)}
+					valStr, isStr := val.(string)
+					if isStr {
+						request.QueryParams[k] = []string{valStr}
+					} else {
+						request.QueryParams[k] = []string{ToJson(val)}
+					}
 				} else {
 					request.QueryParams[k] = []string{fmt.Sprintf("%v", val)}
 				}
@@ -543,6 +566,7 @@ OutFields:
 				var responder api2go.Responder
 				outcome.Attributes["user"] = sessionUser
 				responder, responses1, errors1 = performer.DoAction(outcome, model.GetAttributes(), transaction)
+
 				for _, res := range responses1 {
 					if res.ResponseType == "restart" {
 						restartOnCompletion = true
@@ -554,7 +578,16 @@ OutFields:
 					break OutFields
 				}
 				if responder != nil {
-					responseObjects = responder.Result().(api2go.Api2GoModel).GetAttributes()
+					api2GoResult := responder.Result().(api2go.Api2GoModel)
+					if api2GoResult.GetName() == "render" {
+						return []ActionResponse{
+							{
+								ResponseType: "render",
+								Attributes:   api2GoResult.GetAttributes(),
+							},
+						}, nil
+					}
+					responseObjects = api2GoResult.GetAttributes()
 				}
 			}
 
@@ -693,7 +726,6 @@ func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
 	closer.Close()
 
 	err = json.Unmarshal(bytes, &actionRequest)
-	CheckErr(err, "Failed to read request body as json => "+string(bytes))
 	if err != nil {
 		values, err := url.ParseQuery(string(bytes))
 		CheckErr(err, "Failed to parse body as query values")
@@ -1114,7 +1146,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		valueToReturn = finalValue
 
 	} else {
-		//log.Printf("Get [%v] from infields: %v", fieldString, toJson(inFieldMap))
+		//log.Printf("Get [%v] from infields: %v", fieldString, ToJson(inFieldMap))
 
 		rex := regexp.MustCompile(`\$([a-zA-Z0-9_\[\]]+)?(\.[a-zA-Z0-9_\[\]]+)*`)
 		matches := rex.FindAllStringSubmatch(fieldString, -1)

@@ -22,10 +22,10 @@ import (
 
 // Map of frequently used encoding/decoding functions
 var EncodingFuncMap = map[string]interface{}{
-	"btoa":         btoa,
-	"atob":         atob,
-	"fromJson":     fromJson,
-	"toJson":       toJson,
+	"btoa":         Btoa,
+	"atob":         Atob,
+	"FromJson":     FromJson,
+	"ToJson":       ToJson,
 	"HexEncode":    HexEncode,
 	"HexDecode":    HexDecode,
 	"Base64Encode": Base64Encode,
@@ -34,13 +34,13 @@ var EncodingFuncMap = map[string]interface{}{
 	"URLDecode":    URLDecode,
 }
 
-// Base64 encoding (similar to btoa in JavaScript)
-func btoa(data []byte) string {
+// Base64 encoding (similar to Btoa in JavaScript)
+func Btoa(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data)
 }
 
-// Base64 encoding (similar to btoa in JavaScript)
-func fromJson(data []byte) interface{} {
+// Base64 encoding (similar to Btoa in JavaScript)
+func FromJson(data []byte) interface{} {
 	var mapIns interface{}
 	mapIns = make(map[string]interface{})
 	if data[0] == '[' {
@@ -54,8 +54,8 @@ func fromJson(data []byte) interface{} {
 	return mapIns
 }
 
-// Base64 encoding (similar to btoa in JavaScript)
-func toJson(mapIns interface{}) string {
+// Base64 encoding (similar to Btoa in JavaScript)
+func ToJson(mapIns interface{}) string {
 	var data []byte
 
 	data, err := json.Marshal(&mapIns)
@@ -66,14 +66,14 @@ func toJson(mapIns interface{}) string {
 	return string(data)
 }
 
-// Base64 decoding (similar to atob in JavaScript)
-func atob(data string) []byte {
+// Base64 decoding (similar to Atob in JavaScript)
+func Atob(data string) string {
 	decodedData, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		log.Printf("atob failed: %v", err)
-		return nil
+		log.Printf("Atob failed: %v", err)
+		return ""
 	}
-	return decodedData
+	return string(decodedData)
 }
 
 // Hex encoding function

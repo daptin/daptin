@@ -81,14 +81,16 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 
 	key, _ := Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
 
-	ok, err = totp.ValidateCustom(state, key, time.Now().UTC(), totp.ValidateOpts{
+	timeInstance := time.Now().UTC()
+	timeInstance.Add(2 * time.Minute) // allow clock skew of 2 minutes
+	ok, err = totp.ValidateCustom(state, key, timeInstance, totp.ValidateOpts{
 		Period:    300,
 		Skew:      1,
 		Digits:    4,
 		Algorithm: otp.AlgorithmSHA1,
 	})
 	if !ok {
-		log.Errorf("Failed to validate otp key")
+		log.Errorf("Failed to validate otp key [" + userAccount["email"].(string) + "] [" + state + "]")
 		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
 
@@ -123,11 +125,11 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":   userAccount["email"],
 		"name":    userAccount["name"],
-		"nbf":     time.Now().Unix(),
-		"exp":     time.Now().Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
+		"nbf":     timeInstance.Unix(),
+		"exp":     timeInstance.Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
 		"iss":     d.jwtTokenIssuer,
 		"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5HashString(strings.ToLower(userAccount["email"].(string)))),
-		"iat":     time.Now(),
+		"iat":     timeInstance.Unix(),
 		"jti":     u.String(),
 	})
 

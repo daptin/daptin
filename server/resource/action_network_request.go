@@ -44,15 +44,15 @@ func (d *networkRequestActionPerformer) DoAction(request Outcome, inFieldMap map
 	if isBody {
 		bodyMap = body.(interface{})
 	}
-	log.Debugf("Request body: %v", toJson(body))
-	log.Debugf("Headers: %v", toJson(headerMap))
+	log.Debugf("Request body: %v", ToJson(body))
+	log.Debugf("Headers: %v", ToJson(headerMap))
 
 	formData, isFormData := inFieldMap["FormData"]
 	formDataMap := make(map[string]string)
 	if isFormData {
 		log.Printf("FormData: %v", formData)
 		formDataMap = ToURLQuery(formData.(map[string]interface{}))
-		log.Debugf("Form values: %v", toJson(formDataMap))
+		log.Debugf("Form values: %v", ToJson(formDataMap))
 	}
 
 	queryParams, isQueryParams := inFieldMap["Query"]

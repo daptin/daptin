@@ -557,7 +557,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	transaction, err = db.Beginx()
 	if err != nil {
-		resource.CheckErr(err, "Failed to begin transaction [512]")
+		resource.CheckErr(err, "Failed to begin transaction [559]")
 	}
 
 	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections)
@@ -627,7 +627,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	transaction, err = db.Beginx()
 	if err != nil {
-		resource.CheckErr(err, "Failed to begin transaction [607]")
+		resource.CheckErr(err, "Failed to begin transaction [634]")
+	}
+
+	CreateTemplateHooks(&initConfig, transaction, cruds, rateConfig, hostSwitch)
+	transaction.Commit()
+
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [642]")
 	}
 
 	err = TaskScheduler.AddTask(resource.Task{
