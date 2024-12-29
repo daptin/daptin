@@ -85,7 +85,10 @@ func (ati *ActiveTaskInstance) Run() {
 	sessionUser := &auth.SessionUser{}
 	transaction, err := ati.DbResource.Connection.Beginx()
 	if err != nil {
-		CheckErr(err, "Failed to begin transaction [88]")
+		CheckErr(err, "Failed to begin transaction for ATI.run [88]")
+	}
+	if transaction == nil {
+		return
 	}
 	defer transaction.Commit()
 

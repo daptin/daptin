@@ -57,6 +57,26 @@ var defaultRateConfig = RateConfig{
 	limits:  map[string]int{},
 }
 
+type YjsConnectionSessionFetcher struct {
+}
+
+func (y *YjsConnectionSessionFetcher) GetSessionId(r *http.Request, roomname string) uint64 {
+
+	return 0
+}
+
+// PathExistsAndIsFolder checks if a path exists and is a folder
+func PathExistsAndIsFolder(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false // Path does not exist
+	}
+	if err != nil {
+		return false // Other errors
+	}
+	return info.IsDir() // Check if it's a directory
+}
+
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.EmbeddedClient) (
 	HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
 	*server2.FtpServer, *server.Server, *olric.EmbeddedClient) {
@@ -339,10 +359,17 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	if enableYjs == "true" {
 		log.Infof("YJS endpoint is enabled in config")
-		yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.temp.path", "backend", transaction)
-		if err != nil {
-			yjs_temp_directory = "/tmp"
-			configStore.SetConfigValueFor("yjs.temp.path", yjs_temp_directory, "backend", transaction)
+		yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.storage.path", "backend", transaction)
+		//if err != nil {
+		yjs_temp_directory = localStoragePath + "/yjs-documents"
+		configStore.SetConfigValueFor("yjs.storage.path", yjs_temp_directory, "backend", transaction)
+		//}
+
+		if !PathExistsAndIsFolder(yjs_temp_directory) {
+			err = os.Mkdir(yjs_temp_directory, 0777)
+			if err != nil {
+				resource.CheckErr(err, "Failed to create yjs storage directory")
+			}
 		}
 
 		documentProvider = ydb.NewDiskDocumentProvider(yjs_temp_directory, 10000, ydb.DocumentListener{
@@ -784,6 +811,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds)
 
 	if enableYjs == "true" {
+		//var sessionFetcher *YjsConnectionSessionFetcher
+		//sessionFetcher = &YjsConnectionSessionFetcher{}
 		var ydbInstance = ydb.InitYdb(documentProvider)
 
 		yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
@@ -900,7 +929,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 							return
 						}
 
+						tx, err = cruds[typename].Connection.Beginx()
 						objectPermission := cruds[typename].GetRowPermission(object, tx)
+						tx.Rollback()
+						if err != nil {
+							ginContext.AbortWithStatus(500)
+							return
+						}
 
 						if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups, cruds[typename].AdministratorGroupId) {
 							ginContext.AbortWithStatus(401)

@@ -717,7 +717,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 //
 //	stmt, err := dbResource.Connection.Preparex(sql)
 //	if err != nil {
-//		log.Errorf("[436] failed to prepare statment: %v", err)
+//		log.Errorf("[720] failed to prepare statment: %v", err)
 //		return nil
 //	}
 //	defer func(stmt1 *sqlx.Stmt) {
@@ -808,7 +808,7 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 
 	stmt, err := transaction.Preparex(sql)
 	if err != nil {
-		log.Errorf("[436] failed to prepare statment: %v", err)
+		log.Errorf("[811] failed to prepare statment: %v", err)
 		return nil
 	}
 	defer func(stmt1 *sqlx.Stmt) {
@@ -993,7 +993,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 
 	if OlricCache != nil {
 		cachePutErr := OlricCache.Put(context.Background(), cacheKey, groupPermissionList, olric.EX(30*time.Second), olric.NX())
-		CheckErr(cachePutErr, "failed to store config value in cache [%v]", cacheKey)
+		CheckErr(cachePutErr, "[996] failed to store config value in cache [%v]", cacheKey)
 	}
 
 	return groupPermissionList

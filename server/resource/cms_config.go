@@ -231,7 +231,7 @@ func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, con
 
 	if OlricCache != nil {
 		cachePutErr := OlricCache.Put(context.Background(), cacheKey, value, olric.EX(5*time.Minute), olric.NX())
-		CheckErr(cachePutErr, "failed to store config value in cache [%v]", cacheKey)
+		CheckErr(cachePutErr, "[234] failed to store config value in cache [%v]", cacheKey)
 	}
 
 	return value, err

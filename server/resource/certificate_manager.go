@@ -162,11 +162,12 @@ func (cm *CertificateManager) GetTLSForEnabledSubsites(transaction *sqlx.Tx) (ma
 func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool,
 	transaction *sqlx.Tx) (*TLSCertificate, error) {
 
-	log.Printf("Get certificate for [%v]: %v", hostname, createIfNotFound)
+	log.Printf("Get certificate for [%v]: createIfNotFound[%v]", hostname, createIfNotFound)
 	hostname = strings.Split(hostname, ":")[0]
 	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname, transaction)
 
 	if createIfNotFound && (err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "") {
+		log.Infof("Creating new certificate for [%s]", certMap["hostname"])
 
 		publicKeyPem, privateKeyPem, key, err := CreateNewPublicPrivateKeyPEMBytes()
 		if err != nil {
@@ -273,7 +274,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 
 		return tlsCertificate, nil
 	} else if certMap != nil && err == nil {
-
+		log.Infof("Certificate exists for [%s]", certMap["hostname"])
 		certPEM := certMap["certificate_pem"].(string)
 
 		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])

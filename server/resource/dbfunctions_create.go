@@ -85,7 +85,7 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 
 	transaction, err := db.Beginx()
 	if err != nil {
-		CheckErr(err, "Failed to begin transaction [88]")
+		CheckErr(err, "Failed to begin transaction for CreateIndexes [88]")
 	}
 	existingIndexes := GetExistingIndexes(transaction)
 	err = transaction.Rollback()
