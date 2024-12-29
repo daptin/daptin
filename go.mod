@@ -26,6 +26,7 @@ require (
 	github.com/artpar/xlsx/v2 v2.0.5
 	github.com/artpar/ydb v0.1.31
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
+	github.com/aws/aws-sdk-go v1.49.20
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.5.5
 	github.com/disintegration/gift v1.2.1
@@ -35,6 +36,7 @@ require (
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/emersion/go-webdav v0.4.0
 	github.com/fclairamb/ftpserver v0.0.0-20200221221851-84e5d668e655
+	github.com/flysnow-org/soha v0.0.0-20191204153003-307ff1f8b4d8
 	github.com/getkin/kin-openapi v0.110.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gin-contrib/gzip v0.0.2
@@ -66,6 +68,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/json-iterator/go v1.1.12
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/labstack/gommon v0.4.2
 	github.com/lib/pq v1.10.4
 	github.com/looplab/fsm v1.0.1
 	github.com/mattn/go-sqlite3 v1.14.17
@@ -129,7 +132,6 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20180103000110-68a521d7cbbb // indirect
-	github.com/aws/aws-sdk-go v1.49.20 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.9.1 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.7.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.4.0 // indirect
@@ -185,7 +187,6 @@ require (
 	github.com/evanw/esbuild v0.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/flynn/noise v1.0.1 // indirect
-	github.com/flysnow-org/soha v0.0.0-20191204153003-307ff1f8b4d8 // indirect
 	github.com/frankban/quicktest v1.14.6 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.5 // indirect
@@ -266,7 +267,6 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/kyokomi/emoji/v2 v2.2.11 // indirect
 	github.com/labstack/echo v3.3.10+incompatible // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
