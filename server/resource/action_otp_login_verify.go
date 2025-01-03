@@ -142,6 +142,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request Outcome, inFieldMap map
 		"nbf":     timeInstance.Unix(),
 		"exp":     timeInstance.Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
 		"iss":     d.jwtTokenIssuer,
+		"sub":     daptinid.InterfaceToDIR(userAccount["reference_id"]).String(),
 		"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", GetMD5HashString(strings.ToLower(userAccount["email"].(string)))),
 		"iat":     timeInstance.Unix(),
 		"jti":     u.String(),

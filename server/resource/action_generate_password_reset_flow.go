@@ -7,6 +7,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/golang-jwt/jwt/v4"
 	uuid "github.com/google/uuid"
@@ -58,6 +59,7 @@ func (d *generatePasswordResetActionPerformer) DoAction(request Outcome, inField
 			"name":  existingUser["name"],
 			"nbf":   timeNow.Unix(),
 			"exp":   timeNow.Add(30 * time.Minute).Unix(),
+			"sub":   daptinid.InterfaceToDIR(existingUser["reference_id"]).String(),
 			"iss":   d.jwtTokenIssuer,
 			"iat":   timeNow.Unix(),
 			"jti":   u.String(),
