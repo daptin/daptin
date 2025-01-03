@@ -177,7 +177,7 @@ type column struct {
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request, transaction *sqlx.Tx) (
 	[]map[string]interface{}, [][]map[string]interface{}, *PaginationData, bool, error) {
-	//log.Printf("Find all row by params: [%v]: %v", dbResource.model.GetName(), req.QueryParams)
+	log.Debugf("Find all row by params: [%v]: %v", dbResource.model.GetName(), req.QueryParams)
 	var err error
 
 	user := req.PlainRequest.Context().Value("user")
