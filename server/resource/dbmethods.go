@@ -3318,6 +3318,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					fallthrough
 				case "has_many_and_belongs_to_many":
+					dir := daptinid.InterfaceToDIR(row["reference_id"])
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetObjectName()+".id")).Prepared(true).
 						From(goqu.T(relation.GetSubject()).As(relation.GetSubjectName())).
@@ -3334,10 +3335,11 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 							}),
 						).
 						Where(goqu.Ex{
-							relation.GetSubjectName() + ".reference_id": row["reference_id"],
+							relation.GetSubjectName() + ".reference_id": dir[:],
 						}).Order(goqu.I(relation.GetJoinTableName() + ".created_at").Desc()).Limit(50).ToSQL()
 					if err != nil {
 						log.Printf("Failed to build query 1474: %v", err)
+						return nil, nil, err
 					}
 
 					stmt1, err := transaction.Preparex(query)
@@ -3365,7 +3367,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 						err = rows.Scan(&includeRow)
 						if err != nil {
 							log.Printf("[1857] failed to scan include row: %v", err)
-							continue
+							break
 						}
 						ids = append(ids, includeRow)
 					}
@@ -3382,11 +3384,11 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					_, ok := row[relation.GetObjectName()]
 					if !ok {
-						row[relation.GetObjectName()] = make([]string, 0)
+						row[relation.GetObjectName()] = make([]daptinid.DaptinReferenceId, 0)
 					}
 
 					for _, incl := range includes1 {
-						row[relation.GetObjectName()] = append(row[relation.GetObjectName()].([]string), incl["reference_id"].(string))
+						row[relation.GetObjectName()] = append(row[relation.GetObjectName()].([]daptinid.DaptinReferenceId), incl["reference_id"].(daptinid.DaptinReferenceId))
 					}
 
 					localInclude = append(localInclude, includes1...)
@@ -3403,6 +3405,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					fallthrough
 				case "belongs_to":
 
+					asDir := daptinid.InterfaceToDIR(row["reference_id"])
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetSubjectName()+".id")).Prepared(true).
 						From(goqu.T(relation.GetObject()).As(relation.GetObjectName())).
@@ -3413,7 +3416,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 							}),
 						).
 						Where(goqu.Ex{
-							relation.GetObjectName() + ".reference_id": row["reference_id"],
+							relation.GetObjectName() + ".reference_id": asDir[:],
 						}).Order(goqu.I(relation.GetSubjectName() + ".created_at").Desc()).Limit(50).ToSQL()
 
 					if err != nil {
@@ -3474,6 +3477,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					fallthrough
 				case "has_many_and_belongs_to_many":
+					asDir := daptinid.InterfaceToDIR(row["reference_id"])
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetSubjectName()+".id")).Prepared(true).
 						From(goqu.T(relation.GetObject()).As(relation.GetObjectName())).
@@ -3490,7 +3494,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 							}),
 						).
 						Where(goqu.Ex{
-							relation.GetObjectName() + ".reference_id": row["reference_id"],
+							relation.GetObjectName() + ".reference_id": asDir[:],
 						}).Order(goqu.I(relation.GetJoinTableName() + ".created_at").Desc()).Limit(50).ToSQL()
 					if err != nil {
 						log.Printf("Failed to build query 1474: %v", err)
@@ -3543,7 +3547,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					_, ok := row[relation.GetSubjectName()]
 					if !ok {
-						row[relation.GetSubjectName()] = make([]string, 0)
+						row[relation.GetSubjectName()] = make([]daptinid.DaptinReferenceId, 0)
 					}
 
 					for _, incl := range includes1 {
