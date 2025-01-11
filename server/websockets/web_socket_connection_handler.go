@@ -56,6 +56,10 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 
 					for {
 						msg := <-listenChannel
+						if msg == nil {
+							// subscription is closed
+							return
+						}
 						var eventMessage resource.EventMessage
 						err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
 						resource.CheckErr(err, "Failed to unmarshal eventMessage")
