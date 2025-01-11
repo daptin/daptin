@@ -15,7 +15,7 @@ import (
 // WebSocketConnectionHandlerImpl : Each websocket connection has its own handler
 type WebSocketConnectionHandlerImpl struct {
 	DtopicMap        *map[string]*olric.PubSub
-	subscribedTopics map[string]uint64
+	subscribedTopics map[string]*redis.PubSub
 	olricDb          *olric.EmbeddedClient
 	cruds            map[string]*resource.DbResource
 }
@@ -50,14 +50,14 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 				}
 				dTopic := (*wsch.DtopicMap)[topic]
 				subscription := dTopic.Subscribe(context.Background(), topic)
-
+				wsch.subscribedTopics[topic] = subscription
 				go func(pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}) {
 					listenChannel := pubsub.Channel()
 
 					for {
 						msg := <-listenChannel
 						var eventMessage resource.EventMessage
-						err = json.Unmarshal([]byte(msg.String()), &eventMessage)
+						err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
 						resource.CheckErr(err, "Failed to unmarshal eventMessage")
 
 						eventDataMap := make(map[string]interface{})
@@ -75,11 +75,14 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 						if tableExists {
 							tx, err := wsch.cruds["world"].Connection.Beginx()
 							if err != nil {
-								resource.CheckErr(err, "Failed to begin transaction [62]")
+								resource.CheckErr(err, "Failed to begin transaction [78]")
 							}
 
-							defer tx.Commit()
 							permission = wsch.cruds["world"].GetRowPermission(eventData, tx)
+							err = tx.Commit()
+							if err != nil {
+								resource.CheckErr(err, "Failed to commit transaction [84]")
+							}
 
 						}
 						if permission.CanRead(client.user.UserReferenceId, client.user.Groups, wsch.cruds["world"].AdministratorGroupId) {
@@ -199,8 +202,9 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		}
 		topicsList := strings.Split(topics, ",")
 		for _, topic := range topicsList {
-			_, ok := wsch.subscribedTopics[topic]
+			pubSubs, ok := wsch.subscribedTopics[topic]
 			if ok {
+				pubSubs.Close()
 				//err := (*wsch.DtopicMap)[topic].RemoveListener(subscriptionId)
 				delete(wsch.subscribedTopics, topic)
 				//if err != nil {

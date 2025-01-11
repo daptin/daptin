@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 	"io"
@@ -37,7 +38,7 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 
 	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{
 		DtopicMap:        server.dtopicMap,
-		subscribedTopics: make(map[string]uint64),
+		subscribedTopics: make(map[string]*redis.PubSub),
 		olricDb:          server.olricDb,
 		cruds:            server.cruds,
 	}
@@ -48,7 +49,7 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 
 	u := ws.Request().Context().Value("user")
 	if u == nil {
-		return nil, errors.New("unauthorized")
+		return nil, errors.New("{\"message\": \"unauthorized\"}")
 	}
 	user := u.(*auth.SessionUser)
 	return &Client{
@@ -93,7 +94,7 @@ func (c *Client) listenWrite() {
 
 		// send message to the client
 		case msg := <-c.ch:
-			log.Println("Send:", msg)
+			//log.Println("Send:", msg)
 			err := websocket.JSON.Send(c.ws, msg)
 			if err != nil {
 				log.Printf("Failed to to send message: %v", err)

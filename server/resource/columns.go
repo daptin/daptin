@@ -2129,6 +2129,7 @@ var StandardTables = []TableInfo{
 		TableName:     "world",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
+		DefaultOrder:  "+table_name",
 		Icon:          "fa-home",
 		Columns: []api2go.ColumnInfo{
 			{
