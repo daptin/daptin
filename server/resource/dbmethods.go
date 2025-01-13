@@ -3384,11 +3384,11 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					_, ok := row[relation.GetObjectName()]
 					if !ok {
-						row[relation.GetObjectName()] = make([]daptinid.DaptinReferenceId, 0)
+						row[relation.GetObjectName()] = make([]string, 0)
 					}
 
 					for _, incl := range includes1 {
-						row[relation.GetObjectName()] = append(row[relation.GetObjectName()].([]daptinid.DaptinReferenceId), incl["reference_id"].(daptinid.DaptinReferenceId))
+						row[relation.GetObjectName()] = append(row[relation.GetObjectName()].([]string), incl["reference_id"].(daptinid.DaptinReferenceId).String())
 					}
 
 					localInclude = append(localInclude, includes1...)
@@ -3547,7 +3547,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					_, ok := row[relation.GetSubjectName()]
 					if !ok {
-						row[relation.GetSubjectName()] = make([]daptinid.DaptinReferenceId, 0)
+						row[relation.GetSubjectName()] = make([]string, 0)
 					}
 
 					for _, incl := range includes1 {
