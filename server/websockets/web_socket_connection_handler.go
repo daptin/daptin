@@ -137,6 +137,15 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		newTopic, err := wsch.olricDb.NewPubSub()
 		resource.CheckErr(err, "Failed to create new topicName on client request [%v]", topicName)
 
+		topicSubscription := newTopic.Subscribe(context.Background(), "members")
+		go func(pubsub *redis.PubSub) {
+			channel := pubsub.Channel()
+			for {
+				msg := <-channel
+				log.Printf("[145] Member says: " + msg.String())
+			}
+		}(topicSubscription)
+
 		(*wsch.DtopicMap)[topicName] = newTopic
 
 	case "list-topicName":

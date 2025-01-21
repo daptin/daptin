@@ -399,7 +399,7 @@ func main() {
 				channel := pubsub.Channel()
 				for {
 					msg := <-channel
-					log.Printf("Member says: " + msg.String())
+					log.Printf("[402] [%s] Member says: [%v]", msg.Channel, msg.String())
 				}
 			}(sub)
 			resource.CheckErr(err, "Failed to add listener to _members topic")

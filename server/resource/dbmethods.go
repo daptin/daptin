@@ -3551,7 +3551,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					}
 
 					for _, incl := range includes1 {
-						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), incl["reference_id"].(string))
+						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), incl["reference_id"].(daptinid.DaptinReferenceId).String())
 					}
 
 					localInclude = append(localInclude, includes1...)

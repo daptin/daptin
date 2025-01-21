@@ -429,6 +429,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	if err != nil {
 		log.Fatalf("failed to create olric topic - %v", err)
 	}
+
+	tableTopicSubscription := tablesPubSub.Subscribe(context.Background(), "members")
+	go func(topicScubscription *redis.PubSub) {
+		channel := topicScubscription.Channel()
+		for {
+			msg := <-channel
+			log.Infof("[438] Received message on [%s]: [%v]", msg.Channel, msg.String())
+		}
+	}(tableTopicSubscription)
+
 	for key := range cruds {
 		dtopicMap[key] = tablesPubSub
 

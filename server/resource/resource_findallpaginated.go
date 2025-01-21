@@ -1139,7 +1139,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		err = stmt.Close()
 		err = rows.Close()
 
-		results, includes, err = dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.model.GetColumnMap(), includedRelations, transaction)
+		results, includes, err = dbResource.ResultToArrayOfMapWithTransaction(responseArray,
+			dbResource.model.GetColumnMap(), includedRelations, transaction)
 		if err != nil {
 			return nil, nil, nil, false, err
 		}
