@@ -55,8 +55,10 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 	if ok && credentialName != nil {
 		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
-		for key, val := range cred.DataMap {
-			config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
+		if cred.DataMap != nil {
+			for key, val := range cred.DataMap {
+				config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
+			}
 		}
 	}
 

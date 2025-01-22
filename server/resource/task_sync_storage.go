@@ -20,8 +20,10 @@ func (dbResource *DbResource) SyncStorageToPath(cloudStore CloudStore, path stri
 	if cloudStore.CredentialName != "" {
 		cred, err := dbResource.GetCredentialByName(cloudStore.CredentialName, transaction)
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cloudStore.CredentialName))
-		for key, val := range cred.DataMap {
-			config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+		if cred.DataMap != nil {
+			for key, val := range cred.DataMap {
+				config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+			}
 		}
 	}
 

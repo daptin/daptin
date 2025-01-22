@@ -185,8 +185,10 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 		cred, err := actionPerformer.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
 		name := inFields["name"].(string)
-		for key, val := range cred.DataMap {
-			config.Data().SetValue(name, key, fmt.Sprintf("%s", val))
+		if cred.DataMap != nil {
+			for key, val := range cred.DataMap {
+				config.Data().SetValue(name, key, fmt.Sprintf("%s", val))
+			}
 		}
 	}
 

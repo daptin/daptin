@@ -46,8 +46,10 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 	if cloudStore.CredentialName != "" {
 		cred, err := d.cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cloudStore.CredentialName))
-		for key, val := range cred.DataMap {
-			config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+		if cred.DataMap != nil {
+			for key, val := range cred.DataMap {
+				config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+			}
 		}
 	}
 

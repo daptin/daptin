@@ -2618,12 +2618,11 @@ var StandardTables = []TableInfo{
 				DataType:   "varchar(1000)",
 			},
 			{
-				Name:         "credential_name",
-				ColumnName:   "credential_name",
-				ColumnType:   "label",
-				DefaultValue: "''",
-				IsNullable:   true,
-				DataType:     "varchar(1000)",
+				Name:       "credential_name",
+				ColumnName: "credential_name",
+				ColumnType: "label",
+				IsNullable: true,
+				DataType:   "varchar(1000)",
 			},
 			{
 				Name:       "store_parameters",

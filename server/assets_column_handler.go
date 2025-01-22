@@ -122,25 +122,25 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 						nameParts := strings.Split(fileNameToServe, ".")
 						extFromName := nameParts[len(nameParts)-1]
 						switch extFromName {
-						case ".png":
+						case "png":
 							fileType = "image/png"
-						case ".jpeg", ".jpg":
+						case "jpeg", "jpg":
 							fileType = "image/jpeg"
-						case ".gif":
+						case "gif":
 							fileType = "image/gif"
-						case ".html", ".htm":
+						case "html", "htm":
 							fileType = "text/html; charset=utf-8"
-						case ".css":
+						case "css":
 							fileType = "text/css; charset=utf-8"
-						case ".js":
+						case "js":
 							fileType = "application/javascript"
-						case ".json":
+						case "json":
 							fileType = "application/json"
-						case ".pdf":
+						case "pdf":
 							fileType = "application/pdf"
-						case ".txt":
+						case "txt":
 							fileType = "text/plain; charset=utf-8"
-						case ".xml":
+						case "xml":
 							fileType = "application/xml"
 						// Add more cases as needed
 						default:

@@ -77,8 +77,10 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 		if cacheFolder.CloudStore.CredentialName != "" {
 			cred, err := d.cruds["credential"].GetCredentialByName(cacheFolder.CloudStore.CredentialName, transaction)
 			CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cacheFolder.CloudStore.CredentialName))
-			for key, val := range cred.DataMap {
-				config.Data().SetValue(cacheFolder.CloudStore.Name, key, fmt.Sprintf("%s", val))
+			if cred.DataMap != nil {
+				for key, val := range cred.DataMap {
+					config.Data().SetValue(cacheFolder.CloudStore.CredentialName, key, fmt.Sprintf("%s", val))
+				}
 			}
 		}
 
