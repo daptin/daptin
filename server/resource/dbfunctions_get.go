@@ -366,11 +366,19 @@ func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.Da
 		cloudStore.Id = row["id"].(int64)
 		cloudStore.Version = int(row["version"].(int64))
 		cloudStore.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
-		cloudStore.CredentialName = row["credential_name"].(string)
+		cloudStore.CredentialName = StringOrEmpty(row["credential_name"])
 	}
 
 	return cloudStore, nil
 
+}
+
+func StringOrEmpty(i interface{}) string {
+	s, ok := i.(string)
+	if ok {
+		return s
+	}
+	return ""
 }
 
 func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
