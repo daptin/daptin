@@ -180,12 +180,7 @@ func (dbResource *DbResource) GetAllCloudStores(transaction *sqlx.Tx) ([]CloudSt
 	for _, storeRowMap := range rows {
 		var cloudStore CloudStore
 
-		credentialName, ok := storeRowMap["credential_name"]
-		if credentialName == nil || !ok {
-			log.Warnf("[185] Token id for store [%v] is empty", storeRowMap["name"])
-		} else {
-			cloudStore.CredentialName = credentialName.(string)
-		}
+		cloudStore.CredentialName = StringOrEmpty(storeRowMap["credential_name"])
 		cloudStore.Name = storeRowMap["name"].(string)
 
 		id, ok := storeRowMap["id"].(int64)
@@ -327,7 +322,7 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
-		cloudStore.CredentialName = row["credential_name"].(string)
+		cloudStore.CredentialName = StringOrEmpty(row["credential_name"])
 		cloudStore.Id = row["id"].(int64)
 		cloudStore.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
 		cloudStore.Version = int(row["version"].(int64))
