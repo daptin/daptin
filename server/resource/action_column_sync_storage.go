@@ -4,17 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/artpar/rclone/fs/config"
+	"github.com/artpar/rclone/fs/sync"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
-
-	"github.com/artpar/api2go"
-	"github.com/artpar/rclone/fs/config"
-	"github.com/artpar/rclone/fs/sync"
-	"strings"
 )
 
 type syncColumnStorageActionPerformer struct {
@@ -45,28 +42,13 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	}
 	cloudStore := cacheFolder.CloudStore
 
-	oauthTokenId := cloudStore.OAutoTokenId
-
-	var token *oauth2.Token
-	var oauthConf *oauth2.Config
-	var err error
-
-	if cloudStore.StoreProvider != "local" {
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-		CheckErr(err, "Failed to get oauth2 token for storage sync")
-	}
-
-	jsonToken, err := json.Marshal(token)
-	CheckErr(err, "Failed to convert token to json")
-	if jsonToken != nil {
-		config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
-	}
-	if oauthConf != nil {
-		config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)
-		config.FileSet(cloudStore.StoreProvider, "type", cloudStore.StoreProvider)
-		config.FileSet(cloudStore.StoreProvider, "client_secret", oauthConf.ClientSecret)
-		config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-		config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
+	credentialName, ok := inFields["credential_name"]
+	if ok && credentialName != nil {
+		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
+		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
+		for key, val := range cred.DataMap {
+			config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+		}
 	}
 
 	args := []string{
@@ -103,7 +85,7 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 
 	restartAttrs := make(map[string]interface{})
 	restartAttrs["type"] = "success"
-	restartAttrs["message"] = "Cloud storage file upload queued"
+	restartAttrs["message"] = "Cloud storage sync queued"
 	restartAttrs["title"] = "Success"
 	actionResponse := NewActionResponse("client.notify", restartAttrs)
 	responses = append(responses, actionResponse)

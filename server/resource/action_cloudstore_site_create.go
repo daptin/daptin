@@ -16,11 +16,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 )
 
 type cloudStoreSiteCreateActionPerformer struct {
@@ -107,26 +105,16 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request Outcome, inFields
 
 	log.Printf("Upload source target for site create %v %v", tempDirectoryPath, rootPath)
 
-	var token *oauth2.Token
-	oauthConf := &oauth2.Config{}
-	oauthTokenId1 := daptinid.InterfaceToDIR(inFields["oauth_token_id"])
-	if oauthTokenId1 == daptinid.NullReferenceId {
-		log.Printf("No oauth token set for target store")
-	} else {
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId1, transaction)
-		CheckErr(err, "[117] Failed to get oauth2 token for store sync")
+	storeName := inFields["name"].(string)
+
+	credentialName, ok := inFields["credential_name"]
+	if ok && credentialName != nil {
+		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
+		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
+		for key, val := range cred.DataMap {
+			config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
+		}
 	}
-
-	jsonToken, err := json.Marshal(token)
-	CheckErr(err, "Failed to marshal access token to json")
-
-	storeProvider := inFields["store_provider"].(string)
-	config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(storeProvider, "type", storeProvider)
-	config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(storeProvider, "token", string(jsonToken))
-	config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
 	cobraCommand := &cobra.Command{

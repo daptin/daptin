@@ -7,7 +7,6 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/artpar/rclone/fs/sync"
-	daptinid "github.com/daptin/daptin/server/id"
 	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -15,9 +14,7 @@ import (
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
-	"golang.org/x/oauth2"
 	"os"
-	"strings"
 )
 
 type cloudStorePathMoveActionPerformer struct {
@@ -58,27 +55,15 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request Outcome, inFields m
 	}
 	log.Printf("Create move %v %v", sourcePath, destinationPath)
 
-	var token *oauth2.Token
-	oauthConf := &oauth2.Config{}
-	oauthTokenId1 := daptinid.InterfaceToDIR(inFields["oauth_token_id"])
-
-	if oauthTokenId1 == daptinid.NullReferenceId {
-		log.Printf("No oauth token set for target store")
-	} else {
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId1, transaction)
-		CheckErr(err, "[69] Failed to get oauth2 token for store sync")
+	storeName := inFields["name"].(string)
+	credentialName, ok := inFields["credential_name"]
+	if ok && credentialName != nil {
+		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
+		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
+		for key, val := range cred.DataMap {
+			config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
+		}
 	}
-
-	jsonToken, err := json.Marshal(token)
-	CheckErr(err, "Failed to marshal access token to json")
-
-	storeProvider := inFields["store_provider"].(string)
-	config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(storeProvider, "type", storeProvider)
-	config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(storeProvider, "token", string(jsonToken))
-	config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{

@@ -6,17 +6,14 @@ import (
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/operations"
-	daptinid "github.com/daptin/daptin/server/id"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
-	"golang.org/x/oauth2"
 	"os"
-	"strings"
 )
 
 type cloudStoreFolderCreateActionPerformer struct {
@@ -52,28 +49,16 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request Outcome, inFiel
 		rootPath,
 	}
 	log.Printf("Create folder target %v", folderPath)
+	storeName := inFields["name"].(string)
 
-	var token *oauth2.Token
-	oauthConf := &oauth2.Config{}
-	oauthTokenId1 := daptinid.InterfaceToDIR(inFields["oauth_token_id"])
-
-	if oauthTokenId1 == daptinid.NullReferenceId {
-		log.Tracef("No oauth token set for target store")
-	} else {
-		token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId1, transaction)
-		CheckErr(err, "[64] Failed to get oauth2 token for store sync")
+	credentialName, ok := inFields["credential_name"]
+	if ok && credentialName != nil {
+		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
+		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
+		for key, val := range cred.DataMap {
+			config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
+		}
 	}
-
-	jsonToken, err := json.Marshal(token)
-	CheckErr(err, "Failed to marshal access token to json")
-
-	storeProvider := inFields["store_provider"].(string)
-	config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(storeProvider, "type", storeProvider)
-	config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(storeProvider, "token", string(jsonToken))
-	config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{

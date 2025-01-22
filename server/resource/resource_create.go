@@ -201,8 +201,10 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 					log.Printf("[195] Cloud storage: %v", cloudStore)
 
-					actionRequestParameters["oauth_token_id"] = cloudStore.OAutoTokenId
+					actionRequestParameters["credential_name"] = cloudStore.CredentialName
 					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
+					actionRequestParameters["store_type"] = cloudStore.StoreType
+					actionRequestParameters["name"] = cloudStore.Name
 					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
 					log.Printf("Initiate file upload action from resource create")

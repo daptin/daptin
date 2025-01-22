@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -44,26 +45,16 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	mailFrom := inFields["from"].(string)
 	credential_name := inFields["credential"].(string)
 
-	credentialRow, err := d.cruds["credential"].GetObjectByWhereClauseWithTransaction(
-		"credential", "name", credential_name, transaction)
-	if err != nil {
-		return nil, nil, []error{err}
-	}
-
-	decryptedSpec, err := Decrypt(d.encryptionSecret, credentialRow["content"].(string))
-
-	decryptedSpecMap := make(map[string]interface{})
-	err = json.Unmarshal([]byte(decryptedSpec), &decryptedSpecMap)
+	credential, err := d.cruds["credential"].GetCredentialByName(credential_name, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
 
 	// AWS credentials (IAM Access Key and Secret Key)
-	accessKey := decryptedSpecMap["access_key"].(string)
-	secretKey := decryptedSpecMap["secret_key"].(string)
-	region := decryptedSpecMap["region"].(string)
-	token := decryptedSpecMap["token"].(string)
-	//provider_name := decryptedSpecMap["provider_name"].(string)
+	accessKey := credential.DataMap["access_key"].(string)
+	secretKey := credential.DataMap["secret_key"].(string)
+	region := credential.DataMap["region"].(string)
+	token := credential.DataMap["token"].(string)
 
 	// AWS Session
 	sess, err := session.NewSession(&aws.Config{
@@ -133,6 +124,55 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	actionResponse := NewActionResponse("client.notify", restartAttrs)
 	responses = append(responses, actionResponse)
 	return nil, responses, nil
+}
+
+type Credential struct {
+	DataMap map[string]interface{}
+	Name    string
+}
+
+func (d *DbResource) GetCredentialByName(credentialName string, transaction *sqlx.Tx) (*Credential, error) {
+	credentialRow, err := d.GetObjectByWhereClauseWithTransaction(
+		"credential", "name", credentialName, transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptionSecret, _ := d.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+
+	decryptedSpec, err := Decrypt([]byte(encryptionSecret), credentialRow["content"].(string))
+
+	decryptedSpecMap := make(map[string]interface{})
+	err = json.Unmarshal([]byte(decryptedSpec), &decryptedSpecMap)
+	if err != nil {
+		return nil, err
+	}
+	return &Credential{
+		Name:    credentialName,
+		DataMap: decryptedSpecMap,
+	}, nil
+}
+
+func (d *DbResource) GetCredentialByReferenceId(referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (*Credential, error) {
+	credentialRow, err := d.GetObjectByWhereClauseWithTransaction(
+		"credential", "reference_id", referenceId[:], transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptionSecret, _ := d.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+
+	decryptedSpec, err := Decrypt([]byte(encryptionSecret), credentialRow["content"].(string))
+
+	decryptedSpecMap := make(map[string]interface{})
+	err = json.Unmarshal([]byte(decryptedSpec), &decryptedSpecMap)
+	if err != nil {
+		return nil, err
+	}
+	return &Credential{
+		Name:    credentialRow["name"].(string),
+		DataMap: decryptedSpecMap,
+	}, nil
 }
 
 func NewAwsMailSendActionPerformer(cruds map[string]*DbResource, mailDaemon *guerrilla.Daemon, configStore *ConfigStore, transaction *sqlx.Tx) (ActionPerformerInterface, error) {

@@ -9,12 +9,10 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
-	daptinid "github.com/daptin/daptin/server/id"
 	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
 	"strings"
 	"time"
 )
@@ -76,28 +74,17 @@ func (d *importCloudStoreFilesPerformer) DoAction(request Outcome, inFields map[
 		CheckErr(err, "Failed to get id from reference id: %v", userId)
 		defaltValues["user_account_id"] = userId
 
-		var token *oauth2.Token
-		oauthConf := &oauth2.Config{}
-		oauthTokenId := cacheFolder.CloudStore.OAutoTokenId
-
-		if oauthTokenId != daptinid.NullReferenceId {
-			token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-			CheckErr(err, "[83] Failed to get oauth2 token for store sync")
+		if cacheFolder.CloudStore.CredentialName != "" {
+			cred, err := d.cruds["credential"].GetCredentialByName(cacheFolder.CloudStore.CredentialName, transaction)
+			CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cacheFolder.CloudStore.CredentialName))
+			for key, val := range cred.DataMap {
+				config.Data().SetValue(cacheFolder.CloudStore.Name, key, fmt.Sprintf("%s", val))
+			}
 		}
 
-		jsonToken, err := json.Marshal(token)
-		CheckErr(err, "Failed to marshal access token to json")
-
-		config.FileSet(cacheFolder.CloudStore.StoreProvider, "client_id", oauthConf.ClientID)
-		config.FileSet(cacheFolder.CloudStore.StoreProvider, "type", cacheFolder.CloudStore.StoreProvider)
-		config.FileSet(cacheFolder.CloudStore.StoreProvider, "client_secret", oauthConf.ClientSecret)
-		config.FileSet(cacheFolder.CloudStore.StoreProvider, "token", string(jsonToken))
-		config.FileSet(cacheFolder.CloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-		config.FileSet(cacheFolder.CloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
-
-		fsrc := cmd.NewFsDir([]string{cacheFolder.CloudStore.StoreProvider + ":" + cacheFolder.CloudStore.RootPath + "/" + colFkdata.KeyName})
+		fsrc := cmd.NewFsDir([]string{cacheFolder.CloudStore.RootPath + "/" + colFkdata.KeyName})
 		cobraCommand := &cobra.Command{
-			Use: fmt.Sprintf("list files from from [%v] %v", cacheFolder.CloudStore.StoreProvider, fsrc),
+			Use: fmt.Sprintf("list files from from [%v] %v", cacheFolder.CloudStore.Name, fsrc),
 		}
 		defaultConfig := fs.GetConfig(nil)
 		defaultConfig.LogLevel = fs.LogLevelNotice

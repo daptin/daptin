@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
-	daptinid "github.com/daptin/daptin/server/id"
 	uuid "github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +19,6 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
-	"golang.org/x/oauth2"
 	"io"
 	"os"
 	"path/filepath"
@@ -180,42 +178,16 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 		tempDirectoryPath,
 		rootPath,
 	}
-	log.Infof("Upload source target %v %v", tempDirectoryPath, rootPath)
+	log.Infof("[183] Upload source [%v] target [%v]", tempDirectoryPath, rootPath)
 
-	var token *oauth2.Token
-	oauthConf := &oauth2.Config{}
-	oauthTokenId1, isOauthTokenPresent := inFields["oauth_token_id"]
-	asStr, isStr := oauthTokenId1.(string)
-	if !isOauthTokenPresent {
-		log.Printf("No oauth token set for target store")
-	} else if isStr {
-		if asStr == "<nil>" {
-			log.Printf("No oauth token set for target store")
-		} else {
-			oauthTokenId, err := uuid.Parse(asStr)
-			token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(daptinid.DaptinReferenceId(oauthTokenId), transaction)
-			CheckErr(err, "Failed to parse token reference id")
-
+	credentialName, ok := inFields["credential_name"]
+	if ok && credentialName != nil {
+		cred, err := actionPerformer.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
+		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
+		name := inFields["name"].(string)
+		for key, val := range cred.DataMap {
+			config.Data().SetValue(name, key, fmt.Sprintf("%s", val))
 		}
-	} else {
-		oauthTokenId := daptinid.InterfaceToDIR(oauthTokenId1)
-		if oauthTokenId != daptinid.NullReferenceId {
-			token, oauthConf, err = actionPerformer.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-			CheckErr(err, "[203] Failed to get oauth2 token for store sync")
-		}
-	}
-
-	jsonToken, err := json.Marshal(token)
-	CheckErr(err, "Failed to marshal access token to json")
-
-	storeProvider := inFields["store_provider"].(string)
-	if oauthConf != nil {
-		config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
-		config.FileSet(storeProvider, "type", storeProvider)
-		config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-		config.FileSet(storeProvider, "token", string(jsonToken))
-		config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-		config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
@@ -224,7 +196,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 	}
 	defaultConfig := fs.GetConfig(nil)
 
-	defaultConfig.LogLevel = fs.LogLevelNotice
+	defaultConfig.LogLevel = fs.LogLevelDebug
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {

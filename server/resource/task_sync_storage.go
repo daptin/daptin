@@ -13,30 +13,17 @@ import (
 	//hugoCommand "github.com/gohugoio/hugo/commands"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func (dbResource *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tempDirectoryPath string, transaction *sqlx.Tx) error {
 
-	oauthTokenId := cloudStore.OAutoTokenId
-
-	token, oauthConf, err := dbResource.GetTokenByTokenReferenceId(oauthTokenId, transaction)
-	if err != nil && cloudStore.StoreProvider != "local" {
-		CheckErr(err, "Failed to get oauth2 token for scheduled storage sync")
-		log.Printf("Storage syncing will fail without valid token: OAuthTokenID [%v]", oauthTokenId)
-		// return err
+	if cloudStore.CredentialName != "" {
+		cred, err := dbResource.GetCredentialByName(cloudStore.CredentialName, transaction)
+		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cloudStore.CredentialName))
+		for key, val := range cred.DataMap {
+			config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+		}
 	}
-
-	//hostRouter := httprouter.New()
-
-	jsonToken, err := json.Marshal(token)
-	CheckErr(err, "Failed to convert token to json")
-	config.FileSet(cloudStore.StoreProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(cloudStore.StoreProvider, "type", cloudStore.StoreProvider)
-	config.FileSet(cloudStore.StoreProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(cloudStore.StoreProvider, "token", string(jsonToken))
-	config.FileSet(cloudStore.StoreProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(cloudStore.StoreProvider, "redirect_url", oauthConf.RedirectURL)
 
 	args := []string{
 		cloudStore.RootPath,

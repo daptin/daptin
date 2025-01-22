@@ -9,13 +9,9 @@ import (
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
-	daptinid "github.com/daptin/daptin/server/id"
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
-	"strings"
 )
 
 type cloudStoreFileDeleteActionPerformer struct {
@@ -49,38 +45,23 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 	}
 	log.Printf("Delete target path: %v", rootPath)
 
-	var token *oauth2.Token
-	oauthConf := &oauth2.Config{}
-	oauthTokenId1, isOauthTokenIdPresent := inFields["oauth_token_id"]
-	asStr, isStr := oauthTokenId1.(string)
-	if !isOauthTokenIdPresent {
-		log.Printf("No oauth token set for target store")
-	} else if isStr {
-		if asStr == "<nil>" {
-			log.Printf("No oauth token set for target store")
-		} else {
-			oauthTokenId, err := uuid.Parse(asStr)
-			token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(daptinid.DaptinReferenceId(oauthTokenId), transaction)
-			CheckErr(err, "Failed to parse token reference id")
-
-		}
-	} else {
-		oauthTokenId := daptinid.InterfaceToDIR(oauthTokenId1)
-		if oauthTokenId != daptinid.NullReferenceId {
-			token, oauthConf, err = d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-			CheckErr(err, "[203] Failed to get oauth2 token for store sync")
+	credentialName, ok := inFields["credential_name"]
+	if ok && credentialName != nil {
+		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
+		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
+		name := inFields["name"].(string)
+		for key, val := range cred.DataMap {
+			config.Data().SetValue(name, key, fmt.Sprintf("%s", val))
 		}
 	}
-	jsonToken, err := json.Marshal(token)
-	CheckErr(err, "Failed to marshal access token to json")
 
-	storeProvider := inFields["store_provider"].(string)
-	config.FileSet(storeProvider, "client_id", oauthConf.ClientID)
-	config.FileSet(storeProvider, "type", storeProvider)
-	config.FileSet(storeProvider, "client_secret", oauthConf.ClientSecret)
-	config.FileSet(storeProvider, "token", string(jsonToken))
-	config.FileSet(storeProvider, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	config.FileSet(storeProvider, "redirect_url", oauthConf.RedirectURL)
+	//config.FileSet(name, "client_id", oauthConf.ClientID)
+	//config.FileSet(name, "type", inFields["store_type"].(string))
+	//config.FileSet(name, "provider", storeProvider)
+	//config.FileSet(name, "client_secret", oauthConf.ClientSecret)
+	//config.FileSet(name, "token", string(jsonToken))
+	//config.FileSet(name, "client_scopes", strings.Join(oauthConf.Scopes, ","))
+	//config.FileSet(name, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{

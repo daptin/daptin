@@ -98,10 +98,12 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 
 				outcome := Outcome{}
 				actionParameters := map[string]interface{}{
-					"oauth_token_id": cloudStoreData.OAutoTokenId,
-					"store_provider": cloudStoreData.StoreProvider,
-					"path":           fileItem["path"].(string) + "/" + fileItem["name"].(string),
-					"root_path":      cloudStoreData.RootPath + "/" + column.ForeignKeyData.KeyName,
+					"credential_name": cloudStoreData.CredentialName,
+					"store_provider":  cloudStoreData.StoreProvider,
+					"store_type":      cloudStoreData.StoreType,
+					"name":            cloudStoreData.Name,
+					"path":            fileItem["path"].(string) + "/" + fileItem["name"].(string),
+					"root_path":       cloudStoreData.RootPath + "/" + column.ForeignKeyData.KeyName,
 				}
 				_, _, errList := deleteFileActionPerformer.DoAction(outcome, actionParameters, transaction)
 				if len(errList) > 0 {

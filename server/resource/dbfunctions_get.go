@@ -157,7 +157,7 @@ type CloudStore struct {
 	RootPath        string
 	StoreParameters map[string]interface{}
 	UserId          daptinid.DaptinReferenceId
-	OAutoTokenId    daptinid.DaptinReferenceId
+	CredentialName  string
 	Name            string
 	StoreType       string
 	StoreProvider   string
@@ -180,11 +180,11 @@ func (dbResource *DbResource) GetAllCloudStores(transaction *sqlx.Tx) ([]CloudSt
 	for _, storeRowMap := range rows {
 		var cloudStore CloudStore
 
-		tokenId := daptinid.InterfaceToDIR(storeRowMap["oauth_token_id"])
-		if tokenId == daptinid.NullReferenceId {
-			log.Printf("Token id for store [%v] is empty", storeRowMap["name"])
+		credentialName, ok := storeRowMap["credential_name"]
+		if credentialName == nil || !ok {
+			log.Warnf("[185] Token id for store [%v] is empty", storeRowMap["name"])
 		} else {
-			cloudStore.OAutoTokenId = tokenId
+			cloudStore.CredentialName = credentialName.(string)
 		}
 		cloudStore.Name = storeRowMap["name"].(string)
 
@@ -327,7 +327,7 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 		cloudStore.StoreParameters = params
 		cloudStore.RootPath = row["root_path"].(string)
 		cloudStore.StoreProvider = row["store_provider"].(string)
-		cloudStore.OAutoTokenId = daptinid.InterfaceToDIR(row["oauth_token_id"])
+		cloudStore.CredentialName = row["credential_name"].(string)
 		cloudStore.Id = row["id"].(int64)
 		cloudStore.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
 		cloudStore.Version = int(row["version"].(int64))
@@ -366,7 +366,7 @@ func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.Da
 		cloudStore.Id = row["id"].(int64)
 		cloudStore.Version = int(row["version"].(int64))
 		cloudStore.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
-		cloudStore.OAutoTokenId = daptinid.InterfaceToDIR(row["oauth_token_id"])
+		cloudStore.CredentialName = row["credential_name"].(string)
 	}
 
 	return cloudStore, nil
