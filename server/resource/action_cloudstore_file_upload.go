@@ -181,7 +181,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 	log.Infof("[183] Upload source [%v] target [%v]", tempDirectoryPath, rootPath)
 
 	credentialName, ok := inFields["credential_name"]
-	if ok && credentialName != nil {
+	if ok && credentialName != nil && credentialName != "" {
 		cred, err := actionPerformer.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
 		name := inFields["name"].(string)

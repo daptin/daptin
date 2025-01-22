@@ -46,7 +46,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request Outcome, inFields
 	log.Printf("Delete target path: %v", rootPath)
 
 	credentialName, ok := inFields["credential_name"]
-	if ok && credentialName != nil {
+	if ok && credentialName != nil && credentialName != "" {
 		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
 		name := inFields["name"].(string)
