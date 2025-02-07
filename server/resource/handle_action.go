@@ -332,6 +332,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest,
 	inFieldMap["__url"] = req.PlainRequest.URL.String()
 	inFieldMap["rawBodyString"] = actionRequest.RawBodyString
 	inFieldMap["rawBodyBytes"] = actionRequest.RawBodyBytes
+	inFieldMap["encryptionSecret"] = dbResource.EncryptionSecret
 
 	if sessionUser.UserReferenceId != daptinid.NullReferenceId {
 		user, err := dbResource.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)

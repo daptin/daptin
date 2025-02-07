@@ -655,11 +655,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
 	initConfig.ActionPerformers = actionPerformers
+	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 
 	// todo : move this somewhere and make it part of something
 	actionHandlerMap := actionPerformersListToMap(actionPerformers)
 	for k := range cruds {
 		cruds[k].ActionHandlerMap = actionHandlerMap
+		cruds[k].EncryptionSecret = []byte(encryptionSecret)
 	}
 
 	transaction, err = db.Beginx()
@@ -667,8 +669,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [634]")
 	}
 
-	CreateTemplateHooks(&initConfig, transaction, cruds, rateConfig, hostSwitch)
-	transaction.Commit()
+	_ = CreateTemplateHooks(&initConfig, transaction, cruds, rateConfig, hostSwitch)
+	_ = transaction.Commit()
 
 	transaction, err = db.Beginx()
 	if err != nil {

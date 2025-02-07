@@ -135,6 +135,8 @@ var CryptoFuncMap = map[string]interface{}{
 	"RSADecrypt":     RSADecrypt,
 	"ECDSASign":      ECDSASign,
 	"ECDSAVerify":    ECDSAVerify,
+	"Encrypt":        Encrypt,
+	"Decrypt":        Decrypt,
 }
 
 // SHA256 hash function

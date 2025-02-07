@@ -20,7 +20,7 @@ require (
 	github.com/artpar/go-imap-idle v1.0.2
 	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
-	github.com/artpar/rclone v1.70.3
+	github.com/artpar/rclone v1.70.4
 	github.com/artpar/resty v1.0.3
 	github.com/artpar/stats v1.0.2
 	github.com/artpar/xlsx/v2 v2.0.5

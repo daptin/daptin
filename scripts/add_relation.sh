@@ -1,0 +1,3 @@
+curl --location --request PATCH 'http://localhost:6336/api/workgroup/01944a3d-45f9-71f0-b82d-5e8b7b6b149a/relationships/memory_id' \
+--header "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhckBnbWFpbC5jb20iLCJleHAiOjE3Mzc2OTgxNTUsImlhdCI6MTczNzQzODk1NSwiaXNzIjoiZGFwdGluLTAxOTIyOCIsImp0aSI6IjAxOTQ4NzZlLTg5MGYtNzI2NS05OWRjLWRkMDU2YzY5NTc5YyIsIm5hbWUiOiJhcnRwYXJAZ21haWwuY29tIiwibmJmIjoxNzM3NDM4OTU1LCJzdWIiOiIwMTkyMmUxYS1kNWVhLTcxYzktYmQzZS02MTZkMjM3ODBmOTMifQ.tximUXFcgjFmsaUw29fbEPweyHPxXiOEQNKwyxNopzY" \
+--data '{"data":[{"type":"memory","id":"01923850-db81-76b6-838b-7c67cb47bf8d"}],"meta":{}}'

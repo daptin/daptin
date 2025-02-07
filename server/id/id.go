@@ -107,12 +107,12 @@ func InterfaceToDIR(valueToConvert interface{}) DaptinReferenceId {
 	asStr, isStr := valueToConvert.(string)
 	if isStr {
 		if asStr == "<nil>" {
-			log.Printf("[100] No reference id is <nil> target store")
+			log.Printf("[110] No reference id is <nil> target store")
 			return NullReferenceId
 		} else {
 			oauthTokenId, err := uuid.Parse(asStr)
 			if err != nil {
-				log.Errorf("[105] Failed to parse string as uuid [%s]: %v", asStr, err)
+				log.Errorf("[115] Failed to parse string as uuid [%s]: %v", asStr, err)
 				return NullReferenceId
 			}
 			return DaptinReferenceId(oauthTokenId)

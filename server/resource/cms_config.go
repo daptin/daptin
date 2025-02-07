@@ -183,7 +183,7 @@ func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string,
 
 	stmt1, err := transaction.Preparex(s)
 	if err != nil {
-		log.Errorf("[185] failed to prepare statment: %v", err)
+		log.Errorf("[186] failed to prepare statment: %v", err)
 		return "", err
 	}
 	defer stmt1.Close()
@@ -218,7 +218,7 @@ func (configStore *ConfigStore) GetConfigValueForWithTransaction(key string, con
 
 	stmt1, err := transaction.Preparex(s)
 	if err != nil {
-		log.Errorf("[185] failed to prepare statment: %v", err)
+		log.Errorf("[221] failed to prepare statment: %v", err)
 		return "", err
 	}
 	defer stmt1.Close()

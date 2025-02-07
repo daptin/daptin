@@ -521,7 +521,10 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	}
 
 	start = time.Now()
-	queryBuilder, countQueryBuilder = dbResource.addFilters(queryBuilder, countQueryBuilder, queries, prefix, transaction)
+	queryBuilder, countQueryBuilder, err = dbResource.addFilters(queryBuilder, countQueryBuilder, queries, prefix, transaction)
+	if err != nil {
+		return nil, nil, nil, false, err
+	}
 	duration = time.Since(start)
 	log.Tracef("[TIMING] FindAllAddFilters %v", duration)
 
@@ -977,8 +980,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	}
 
 	idsListQuery, args, err := queryBuilder.Order(orders...).ToSQL()
+	log.Tracef("[983] Id query: [%s]", err)
 	if err != nil {
-		log.Tracef("[981] Id query: [%s]", err)
 		return nil, nil, nil, false, err
 	}
 	log.Tracef("[984] Id query: [%s] => %v", idsListQuery, args)
@@ -1021,8 +1024,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 		ids = append(ids, row["id"].(int64))
 	}
-	idsRow.Close()
-	stmt.Close()
+	_ = idsRow.Close()
+	_ = stmt.Close()
 
 	if len(languagePreferences) == 0 {
 
@@ -1296,10 +1299,10 @@ var OperatorMap = map[string]string{
 }
 
 func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBuilder *goqu.SelectDataset,
-	queries []Query, prefix string, transaction *sqlx.Tx) (*goqu.SelectDataset, *goqu.SelectDataset) {
+	queries []Query, prefix string, transaction *sqlx.Tx) (*goqu.SelectDataset, *goqu.SelectDataset, error) {
 
 	if len(queries) == 0 {
-		return queryBuilder, countQueryBuilder
+		return queryBuilder, countQueryBuilder, nil
 	}
 
 	for _, filterQuery := range queries {
@@ -1321,21 +1324,22 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 
 			valuesArray := []daptinid.DaptinReferenceId{}
 			if err != nil {
-				log.Errorf("invalid value type in forign key column [%v] filter: %v", columnName, refernceValueString)
+				if !(refernceValueString == nil || refernceValueString == "null" || refernceValueString == "nil") {
+					log.Errorf("invalid value type in forign key column [%v] filter: %v", columnName, refernceValueString)
+				}
 			} else {
 				valuesArray = append(valuesArray, daptinid.DaptinReferenceId(refUuid))
-			}
-
-			valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
-			if err != nil {
-				log.Printf("failed to lookup foreign key value: %v => %v", refernceValueString, err)
-			} else {
-				refernceValueString = valueIds
-				refernceValueString, ok = valueIds[valuesArray[0]]
-				if !ok {
-					refernceValueString = valuesArray[0]
+				valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
+				if err != nil {
+					log.Printf("[1334] failed to lookup foreign key value: %v => %v", refernceValueString, err)
+				} else {
+					refernceValueString = valueIds
+					refernceValueString, ok = valueIds[valuesArray[0]]
+					if !ok {
+						refernceValueString = valuesArray[0]
+					}
+					filterQuery.Value = refernceValueString
 				}
-				filterQuery.Value = refernceValueString
 			}
 
 		}
@@ -1440,7 +1444,7 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 
 	}
 
-	return queryBuilder, countQueryBuilder
+	return queryBuilder, countQueryBuilder, nil
 }
 
 func (dbResource *DbResource) FindAll(req api2go.Request) (response api2go.Responder, err error) {

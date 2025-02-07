@@ -35,6 +35,7 @@ type DbResource struct {
 	ms                   *MiddlewareSet
 	ActionHandlerMap     map[string]ActionPerformerInterface
 	configStore          *ConfigStore
+	EncryptionSecret     []byte
 	contextCache         map[string]interface{}
 	envMap               map[string]string
 	defaultGroups        []int64
