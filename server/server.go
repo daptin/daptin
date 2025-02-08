@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go-adapter/gingonic"
-	"github.com/artpar/rclone/fs/config/configfile"
 	"github.com/buraksezer/olric"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/emersion/go-webdav"
@@ -121,7 +120,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	// rclone config load
-	configfile.Install()
+	//configfile.Install()
 	defaultConfig := fs.GetConfig(nil)
 	defaultConfig.DryRun = false
 	defaultConfig.LogLevel = fs.LogLevelDebug

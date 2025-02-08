@@ -3537,7 +3537,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 						continue
 					}
 
-					includes1, err := dbResource.Cruds[relation.GetObject()].GetAllObjectsWithWhereWithTransaction(relation.GetSubject(), transaction, goqu.Ex{
+					includes1, err := dbResource.Cruds[relation.GetSubject()].GetAllObjectsWithWhereWithTransaction(relation.GetSubject(), transaction, goqu.Ex{
 						"id": ids,
 					})
 					if err != nil {
