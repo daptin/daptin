@@ -388,6 +388,15 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 				relationsById["get"] = getMethod
 				relationsById["delete"] = deleteMethod
 
+				patchMethod := CreatePatchRelationMethod(relatedTable)
+				patchMethod["description"] = fmt.Sprintf("Add a related %v from the %v", tableInfo.TableName, rel.ObjectName)
+				patchMethod["tags"] = []string{rel.ObjectName, rel.Subject, rel.SubjectName, rel.Object, rel.Relation, "patch"}
+
+				patchMethod["summary"] = fmt.Sprintf("Add related %s of %v", rel.ObjectName, tableInfo.TableName)
+				patchMethod["operationId"] = "Patch" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(tableInfo.TableName)
+
+				relationsById["patch"] = patchMethod
+
 				deleteMethod["parameters"] = []map[string]interface{}{
 					{
 						"name": "referenceId",
@@ -575,7 +584,7 @@ func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]in
 						"type": "object",
 						"properties": map[string]interface{}{
 							"type": map[string]interface{}{
-								"type": "string",
+								"type":  "string",
 								"value": tableInfo.TableName,
 							},
 							"attributes": map[string]interface{}{
@@ -715,7 +724,7 @@ func CreateDeleteMethod(tableInfo resource.TableInfo) map[string]interface{} {
 func CreateDeleteRelationMethod(tableInfo resource.TableInfo) map[string]interface{} {
 	deleteByIdMethod := make(map[string]interface{})
 	deleteByIdMethod200Response := make(map[string]interface{})
-	deleteByIdMethod200Response["description"] = "Successful deletion of " + tableInfo.TableName
+	deleteByIdMethod200Response["description"] = "Successful deletion of relation " + tableInfo.TableName
 	deleteBody := make(map[string]interface{})
 	deleteBody["type"] = tableInfo.TableName
 	deleteByIdMethod["description"] = "Delete a " + tableInfo.TableName
@@ -736,8 +745,85 @@ func CreateDeleteRelationMethod(tableInfo resource.TableInfo) map[string]interfa
 			"description": "Reference Id of the " + tableInfo.TableName,
 		},
 	}
+	deleteByIdMethod["requestBody"] = map[string]interface{}{
+		"content": map[string]interface{}{
+			"application/json": map[string]interface{}{
+				"schema": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"data": map[string]interface{}{
+								"type": "object",
+								"properties": map[string]interface{}{
+									"type": map[string]interface{}{
+										"type":    "string",
+										"default": tableInfo.TableName,
+									},
+									"id": map[string]interface{}{
+										"type": "string",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 
 	return deleteByIdMethod
+}
+
+func CreatePatchRelationMethod(tableInfo resource.TableInfo) map[string]interface{} {
+	patchByIdMethod := make(map[string]interface{})
+	patchByIdMethod200Response := make(map[string]interface{})
+	patchByIdMethod200Response["description"] = "Add relation " + tableInfo.TableName
+	patchBody := make(map[string]interface{})
+	patchBody["type"] = tableInfo.TableName
+	patchByIdMethod["description"] = "Patch relation to add " + tableInfo.TableName
+
+	patchByIdResponseMap := make(map[string]interface{})
+	patchByIdResponseMap["200"] = patchByIdMethod200Response
+	patchByIdMethod["responses"] = patchByIdResponseMap
+	patchByIdMethod["description"] = fmt.Sprintf("Patch and add related %v ", tableInfo.TableName)
+	patchByIdMethod["tags"] = []string{tableInfo.TableName}
+	patchByIdMethod["parameters"] = []map[string]interface{}{
+		{
+			"name": "referenceId",
+			"schema": map[string]interface{}{
+				"type": "string",
+			},
+			"required":    true,
+			"in":          "path",
+			"description": "Reference Id of the " + tableInfo.TableName,
+		},
+	}
+	patchByIdMethod["requestBody"] = map[string]interface{}{
+		"content": map[string]interface{}{
+			"application/json": map[string]interface{}{
+				"schema": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"data": map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"type": map[string]interface{}{
+									"type":    "string",
+									"default": tableInfo.TableName,
+								},
+								"id": map[string]interface{}{
+									"type": "string",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return patchByIdMethod
 }
 
 func CreateGetMethod(tableInfo resource.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
