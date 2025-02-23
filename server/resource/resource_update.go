@@ -212,7 +212,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					actionRequestParameters["name"] = cloudStore.Name
 					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
-					log.Printf("Initiate file upload action from resource update")
+					log.Printf("[215] Initiate file upload action from resource update")
 					_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters, updateTransaction)
 					if errs != nil && len(errs) > 0 {
 						log.Errorf("Failed to upload attachments: %v", errs)

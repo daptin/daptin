@@ -71,10 +71,12 @@ func (cm *CorsMiddleware) CorsMiddlewareFunc(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
 	c.Header("Access-Control-Allow-Methods", "*")
 	c.Header("Access-Control-Allow-Credentials", "true")
-	c.Header("Access-Control-Allow-Headers", "*")
 
 	if c.Request.Method == "OPTIONS" {
+		c.Header("Access-Control-Allow-Headers", c.Request.Header.Get("Access-Control-Request-Headers"))
 		c.AbortWithStatus(200)
+	} else {
+		c.Header("Access-Control-Allow-Headers", "*")
 	}
 
 	return

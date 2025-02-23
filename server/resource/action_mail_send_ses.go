@@ -29,18 +29,10 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	//log.Printf("Sync mail servers")
 	responses := make([]ActionResponse, 0)
 
-	toValueInterfaceList, ok := inFields["to"].([]interface{})
-	mailTo := make([]string, 0)
-	if ok && len(toValueInterfaceList) > 0 {
-		for _, toValueInterface := range toValueInterfaceList {
-			mailTo = append(mailTo, toValueInterface.(string))
-		}
-	} else {
-		isStrArray, ok := inFields["to"].([]string)
-		if ok {
-			mailTo = isStrArray
-		}
-	}
+	mailTo := GetValueAsArrayString(inFields, "to")
+	mailCc := GetValueAsArrayString(inFields, "cc")
+	mailBcc := GetValueAsArrayString(inFields, "bcc")
+
 	subject := inFields["subject"].(string)
 	mailFrom := inFields["from"].(string)
 	credential_name := inFields["credential"].(string)
@@ -72,10 +64,20 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	svc := ses.New(sess)
 
 	// Construct email
-	toAd := []*string{}
+	toAddresses := []*string{}
 	for _, mailToI := range mailTo {
-		toAd = append(toAd, aws.String(mailToI))
+		toAddresses = append(toAddresses, &mailToI)
 	}
+	ccAddresses := []*string{}
+	for _, mailToI := range mailCc {
+		ccAddresses = append(ccAddresses, &mailToI)
+	}
+
+	bccAddresses := []*string{}
+	for _, mailToI := range mailBcc {
+		bccAddresses = append(bccAddresses, &mailToI)
+	}
+
 	mailBodyText, isMailBodyText := inFields["text"].(string)
 	var awsMailBody *ses.Body = nil
 	if isMailBodyText {
@@ -99,7 +101,9 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	}
 	input := &ses.SendEmailInput{
 		Destination: &ses.Destination{
-			ToAddresses: toAd,
+			ToAddresses:  toAddresses,
+			CcAddresses:  ccAddresses,
+			BccAddresses: bccAddresses,
 		},
 		Message: &ses.Message{
 			Body: awsMailBody,
@@ -124,6 +128,26 @@ func (d *awsMailSendActionPerformer) DoAction(request Outcome, inFields map[stri
 	actionResponse := NewActionResponse("client.notify", restartAttrs)
 	responses = append(responses, actionResponse)
 	return nil, responses, nil
+}
+
+func GetValueAsArrayString(inFields map[string]interface{}, keyName string) []string {
+	stringValueList := make([]string, 0)
+	valueObject, ok := inFields[keyName]
+	if !ok {
+		return stringValueList
+	}
+	toValueInterfaceList, ok := valueObject.([]interface{})
+	if ok && len(toValueInterfaceList) > 0 {
+		for _, toValueInterface := range toValueInterfaceList {
+			stringValueList = append(stringValueList, toValueInterface.(string))
+		}
+	} else {
+		isStrArray, ok := valueObject.([]string)
+		if ok {
+			stringValueList = isStrArray
+		}
+	}
+	return stringValueList
 }
 
 type Credential struct {

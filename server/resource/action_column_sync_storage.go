@@ -71,7 +71,7 @@ func (d *syncColumnStorageActionPerformer) DoAction(request Outcome, inFields ma
 	defaultConfig.LogLevel = fs.LogLevelNotice
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
-			log.Errorf("Either source or destination is empty")
+			log.Errorf("[74] Either source or destination is empty")
 			return nil
 		}
 

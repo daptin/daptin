@@ -178,7 +178,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request Outcome, inFi
 		tempDirectoryPath,
 		rootPath,
 	}
-	log.Infof("[183] Upload source [%v] target [%v]", tempDirectoryPath, rootPath)
+	log.Infof("[183] Upload source [%v] target [%v] with [%v]", tempDirectoryPath, rootPath, inFields["credential_name"])
 
 	credentialName, ok := inFields["credential_name"]
 	if ok && credentialName != nil && credentialName != "" {

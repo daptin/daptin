@@ -50,7 +50,7 @@ func (dbResource *DbResource) SyncStorageToPath(cloudStore CloudStore, path stri
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
-			log.Errorf("Either source or destination is empty")
+			log.Errorf("[53] Either source or destination is empty")
 			return nil
 		}
 		ctx := context.Background()

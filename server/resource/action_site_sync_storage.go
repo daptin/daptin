@@ -83,7 +83,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request Outcome, inFields map[
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
-			log.Errorf("Either source or destination is empty")
+			log.Errorf("[86] Either source or destination is empty")
 			return nil
 		}
 
