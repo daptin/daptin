@@ -504,7 +504,7 @@ OutFields:
 			referenceIdString, ok := model.GetAttributes()["reference_id"]
 			referenceIdDir := daptinid.InterfaceToDIR(referenceIdString)
 			if referenceIdDir == daptinid.NullReferenceId || !ok {
-				err = api2go.NewHTTPError(err, "no reference id provided for GET_BY_ONE", 400)
+				err = api2go.NewHTTPError(err, "no reference id provided for GET_BY_ID", 400)
 				break OutFields
 			}
 			includedRelations := make(map[string]bool, 0)

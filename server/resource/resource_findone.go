@@ -34,7 +34,11 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 		}
 	} else {
 		if referenceIdString != "" {
-			referenceId = daptinid.DaptinReferenceId(uuid.MustParse(referenceIdString))
+			parse, err := uuid.Parse(referenceIdString)
+			if err != nil {
+				return nil, err
+			}
+			referenceId = daptinid.DaptinReferenceId(parse)
 		}
 	}
 

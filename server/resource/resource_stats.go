@@ -9,7 +9,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -112,7 +111,8 @@ func ColumnToInterfaceArray(s []column) []interface{} {
 
 func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sqlx.Tx) (*AggregateData, error) {
 
-	sort.Strings(req.GroupBy)
+	requestedGroupBys := req.GroupBy
+
 	projections := req.ProjectColumn
 
 	joinedTables := make([]string, 0)
@@ -138,7 +138,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		}
 	}
 
-	for _, group := range req.GroupBy {
+	for _, group := range requestedGroupBys {
 		projections = append(projections, group)
 		projectionsAdded = append(projectionsAdded, goqu.L(group))
 	}
@@ -150,7 +150,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 	selectBuilder := statementbuilder.Squirrel.Select(projectionsAdded...).Prepared(true)
 	builder := selectBuilder.From(req.RootEntity)
 
-	builder = builder.GroupBy(ToInterfaceArray(req.GroupBy)...)
+	builder = builder.GroupBy(ToInterfaceArray(requestedGroupBys)...)
 
 	builder = builder.Order(ToOrderedExpressionArray(req.Order)...)
 
@@ -344,7 +344,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 	}
 	stmt1.Close()
 
-	for _, groupedColumn := range req.GroupBy {
+	for _, groupedColumn := range requestedGroupBys {
 		var columnInfo *api2go.ColumnInfo
 		var ok bool
 
