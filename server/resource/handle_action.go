@@ -367,7 +367,7 @@ OutFields:
 		if len(outcome.Condition) > 0 {
 			var outcomeResult interface{}
 			outcomeResult, err = evaluateString(outcome.Condition, inFieldMap)
-			CheckErr(err, "Failed to evaluate condition, assuming false by default")
+			CheckErr(err, "[%s][%s]Failed to evaluate condition, assuming false by default", action.OnType, action.Name)
 			if err != nil {
 				continue
 			}

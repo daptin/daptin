@@ -609,7 +609,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 				//log.Printf("Converted ids: %v", ids)
 				if err != nil {
-					log.Errorf("[571] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), uuidStringQueries, err)
+					log.Errorf("[612] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), uuidStringQueries, err)
 					return nil, nil, nil, false, err
 				}
 
@@ -1313,7 +1313,7 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 		colInfo, ok := tableInfo.GetColumnByName(columnName)
 
 		if !ok {
-			log.Printf("warn: invalid column [%v] in query, skipping", columnName)
+			log.Warnf("[1316] invalid column [%v] in query, skipping", columnName)
 			continue
 		}
 
@@ -1331,7 +1331,7 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 				valuesArray = append(valuesArray, daptinid.DaptinReferenceId(refUuid))
 				valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
 				if err != nil {
-					log.Printf("[1334] failed to lookup foreign key value: %v => %v", refernceValueString, err)
+					log.Warnf("[1334] failed to lookup foreign key value: %v => %v", refernceValueString, err)
 				} else {
 					refernceValueString = valueIds
 					refernceValueString, ok = valueIds[valuesArray[0]]
