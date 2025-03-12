@@ -472,7 +472,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				f := gift.New(filters...)
 
 				img, formatName, err := image.Decode(file)
-				log.Printf("Image format name: %v", formatName)
+				log.Tracef("Image format name[%v][%v][%v]: %v", typeName, columnName, fileNameToServe, formatName)
 				if err != nil {
 					c.AbortWithStatus(500)
 					return
