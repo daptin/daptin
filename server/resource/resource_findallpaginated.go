@@ -1320,7 +1320,19 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 		if colInfo.IsForeignKey {
 
 			refernceValueString := filterQuery.Value
-			refUuid, err := uuid.Parse(refernceValueString.(string))
+			var refUuid uuid.UUID
+			var err error
+			if refernceValueString != nil {
+				asStr, isStr := refernceValueString.(string)
+				if isStr {
+					refUuid, err = uuid.Parse(asStr)
+				} else {
+					err = fmt.Errorf("reference value is not uuid")
+				}
+			} else {
+				err = fmt.Errorf("reference value is nil")
+
+			}
 
 			valuesArray := []daptinid.DaptinReferenceId{}
 			if err != nil {

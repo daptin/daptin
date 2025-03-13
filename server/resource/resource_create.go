@@ -126,7 +126,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					var uId interface{}
 					foreignObjectReferenceId, err := GetReferenceIdToIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
 					if err != nil {
-						return nil, fmt.Errorf("foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, dir)
+						return nil, fmt.Errorf("[129] foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, dir)
 					}
 
 					foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
