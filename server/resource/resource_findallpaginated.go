@@ -1470,7 +1470,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 	defer transaction.Commit()
 
 	for _, bf := range dbResource.ms.BeforeFindAll {
-		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", databaseRequestInterceptor.String(), dbResource.model.GetName())
 		start := time.Now()
 		_, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{}, transaction)
 		duration := time.Since(start)
@@ -1495,7 +1495,7 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 	log.Tracef("[TIMING] FindAllWithoutFilters %v", duration)
 
 	for _, bf := range dbResource.ms.AfterFindAll {
-		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", databaseRequestInterceptor.String(), dbResource.model.GetName())
 
 		start := time.Now()
 		results, err = bf.InterceptAfter(dbResource, &req, results, transaction)
@@ -1513,10 +1513,12 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 	}
 
 	includesNew := make([][]map[string]interface{}, 0)
+	includesNew = append(includesNew, includes...)
 	for _, bf := range dbResource.ms.AfterFindAll {
 		log.Tracef("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
-		for _, include := range includes {
+		includesNewUpdated := make([][]map[string]interface{}, 0)
+		for _, include := range includesNew {
 			include, err = bf.InterceptAfter(dbResource, &req, include, transaction)
 			if err != nil {
 				rollbackErr := transaction.Rollback()
@@ -1524,10 +1526,12 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 				log.Errorf("[1514] Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
 				return 0, nil, err
 			}
-			includesNew = append(includesNew, include)
+			includesNewUpdated = append(includesNewUpdated, include)
 		}
+		includesNew = includesNewUpdated
 
 	}
+
 	log.Tracef("Commit transaction in PaginatedFindAll")
 	commitErr := transaction.Commit()
 	if commitErr != nil {
@@ -1634,17 +1638,22 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 	}
 
 	includesNew := make([][]map[string]interface{}, 0)
+	includesNew = append(includesNew, includes...)
 	for _, bf := range dbResource.ms.AfterFindAll {
-		//log.Printf("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
+		log.Tracef("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
-		for _, include := range includes {
+		includesNewUpdated := make([][]map[string]interface{}, 0)
+		for _, include := range includesNew {
 			include, err = bf.InterceptAfter(dbResource, &req, include, transaction)
 			if err != nil {
-				log.Errorf("Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
-				continue
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "failed to rollback")
+				log.Errorf("[1514] Error from AfterFindAll[includes][%v] middleware: %v", bf.String(), err)
+				return 0, nil, err
 			}
-			includesNew = append(includesNew, include)
+			includesNewUpdated = append(includesNewUpdated, include)
 		}
+		includesNew = includesNewUpdated
 
 	}
 
