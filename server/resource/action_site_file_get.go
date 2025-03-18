@@ -39,6 +39,7 @@ func (d *cloudStoreFileGetActionPerformer) DoAction(request Outcome, inFields ma
 
 	contents, _ := siteCacheFolder.GetFileByName(path)
 	data, _ := io.ReadAll(contents)
+	contents.Close()
 	dataBase64 := base64.StdEncoding.EncodeToString(data)
 	fileListResponse := NewResponse(nil, api2go.NewApi2GoModelWithData("file", nil, 0, nil, map[string]interface{}{
 		"data": dataBase64,
