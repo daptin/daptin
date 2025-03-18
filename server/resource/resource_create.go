@@ -134,7 +134,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 						uId = foreignObjectReferenceId
 					} else {
-						log.Printf("User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
+						log.Printf("[137] User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
 						return nil, fmt.Errorf("refer object not allowed [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
 					}
 

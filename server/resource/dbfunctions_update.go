@@ -646,7 +646,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				return err
 			}
 		} else {
-			log.Printf("Adding new action [%50v][%50v]", action.OnType, action.Name)
+			log.Printf("[649] Adding new action [%50v][%50v]", action.OnType, action.Name)
 
 			actionSchema, _ := json.Marshal(action)
 

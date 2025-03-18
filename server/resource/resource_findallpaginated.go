@@ -599,7 +599,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 				for _, str := range uuidStringQueries {
 					u, er := uuid.Parse(str)
 					if er != nil {
-						return nil, nil, nil, false, fmt.Errorf("failed to parse value as uuid: [%s] => %v", str, er)
+						return nil, nil, nil, false, fmt.Errorf("[602] failed to parse value as uuid: [%s] => %v", str, er)
 					} else {
 						uuidByteQueries = append(uuidByteQueries, daptinid.DaptinReferenceId(u))
 					}

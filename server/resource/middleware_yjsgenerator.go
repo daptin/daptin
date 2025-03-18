@@ -54,16 +54,16 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 				if BeginsWith(column.ColumnType, "file.") {
 					fileColumnValue, ok := obj[column.ColumnName]
 					if !ok || fileColumnValue == nil {
-						log.Printf("File column value missing [%v]", column.ColumnName)
+						log.Debugf("[57] File column value missing [%v]", column.ColumnName)
 						continue
 					}
-					log.Printf("Process file column with YJS [%s]", column.ColumnName)
+					log.Infof("[60] Process file column with YJS [%s]", column.ColumnName)
 					fileColumnValueArray, ok := fileColumnValue.([]interface{})
 					if !ok {
 						//log.Info("file column value not []interface{}: %s", fileColumnValue)
 						continue
 					}
-					log.Printf("yjs middleware for column [%v][%v]", dr.tableInfo.TableName, column.ColumnName)
+					log.Infof("[66] yjs middleware for column [%v][%v]", dr.tableInfo.TableName, column.ColumnName)
 
 					existingYjsDocument := false
 					// there should be only 2 files at max if the column

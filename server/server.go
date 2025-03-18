@@ -654,7 +654,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
 	initConfig.ActionPerformers = actionPerformers
+	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	_ = transaction.Rollback()
 
 	// todo : move this somewhere and make it part of something
 	actionHandlerMap := actionPerformersListToMap(actionPerformers)
