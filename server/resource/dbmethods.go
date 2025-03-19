@@ -930,7 +930,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 			var res []auth.GroupPermission
 			err = cachedValue.Scan(&res)
 			if err != nil {
-				log.Errorf("Failed to scan permission from cache: %v", err)
+				log.Errorf("[933] Failed to scan permission from cache: %v", err)
 			} else {
 				return res
 			}
