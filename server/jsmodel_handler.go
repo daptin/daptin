@@ -78,17 +78,27 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		}
 
 		aggReq := resource.AggregationRequest{}
+		if c.Request.Method == "POST" {
+			err = c.Bind(&aggReq)
+			if err != nil {
+				log.Errorf("Error parsing aggregation request: %v", err)
+				c.AbortWithStatus(400)
+				return
+			}
+		}
 
-		aggReq.RootEntity = typeName
-		aggReq.Filter = c.QueryArray("filter")
-		aggReq.Having = c.QueryArray("having")
-		aggReq.GroupBy = c.QueryArray("group")
-		aggReq.Join = c.QueryArray("join")
-		aggReq.ProjectColumn = c.QueryArray("column")
-		aggReq.TimeSample = resource.TimeStamp(c.Query("timesample"))
-		aggReq.TimeFrom = c.Query("timefrom")
-		aggReq.TimeTo = c.Query("timeto")
-		aggReq.Order = c.QueryArray("order")
+		if c.Request.Method == "GET" {
+			aggReq.RootEntity = typeName
+			aggReq.Filter = c.QueryArray("filter")
+			aggReq.Having = c.QueryArray("having")
+			aggReq.GroupBy = c.QueryArray("group")
+			aggReq.Join = c.QueryArray("join")
+			aggReq.ProjectColumn = c.QueryArray("column")
+			aggReq.TimeSample = resource.TimeStamp(c.Query("timesample"))
+			aggReq.TimeFrom = c.Query("timefrom")
+			aggReq.TimeTo = c.Query("timeto")
+			aggReq.Order = c.QueryArray("order")
+		}
 
 		aggResponse, err := cruds[typeName].DataStats(aggReq, transaction)
 

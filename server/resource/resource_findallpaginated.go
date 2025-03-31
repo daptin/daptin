@@ -1313,7 +1313,7 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 		colInfo, ok := tableInfo.GetColumnByName(columnName)
 
 		if !ok {
-			log.Warnf("[1316] invalid column [%v] in query, skipping", columnName)
+			log.Warnf("[1316] invalid column [%v] in query for table [%s], skipping", dbResource.model.GetName(), columnName)
 			continue
 		}
 

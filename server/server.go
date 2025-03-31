@@ -799,6 +799,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	defaultRouter.GET("/jsmodel/:typename", jsModelHandler)
 	defaultRouter.GET("/aggregate/:typename", statsHandler)
+	defaultRouter.POST("/aggregate/:typename", statsHandler)
 	defaultRouter.GET("/meta", metaHandler)
 	defaultRouter.GET("/openapi.yaml", blueprintHandler)
 	defaultRouter.OPTIONS("/jsmodel/:typename", jsModelHandler)

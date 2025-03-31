@@ -1,17 +1,20 @@
 package server
 
 import (
+	"compress/gzip"
 	"crypto/md5"
 	"fmt"
-	"github.com/artpar/api2go"
-	"github.com/daptin/daptin/server/resource"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/resource"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/groupcache/lru"
@@ -20,8 +23,11 @@ import (
 
 const (
 	// Cache settings
-	MaxCacheSize     = 1000    // Maximum number of files to cache
-	MaxFileCacheSize = 5 << 20 // 5MB max file size for caching
+	MaxCacheSize     = 20      // Maximum number of files to cache
+	MaxFileCacheSize = 5 << 20 // 10MB max file size for caching
+
+	// Compression threshold - only compress files larger than this
+	CompressionThreshold = 10 << 10 // 10KB
 )
 
 // FileCache implements a simple file caching system
@@ -197,15 +203,58 @@ func OptimizedFileHandler() gin.HandlerFunc {
 	}
 }
 
-// CreateDbAssetHandler optimized for static file serving
+// CreateDbAssetHandler optimized for static file serving using OptimizedFileHandler
 func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
 	// Pre-allocate common response headers
 	const cacheControl = "public, max-age=86400" // 1 day cache
+
+	// Create a file handler map for faster lookups
+	type cachedFileInfo struct {
+		path     string
+		mimeType string
+	}
+
+	// Create a concurrent map to store file handlers
+	fileHandlers := sync.Map{}
+
+	// Precompile regex patterns for common file types for faster matching
+	imagePattern := regexp.MustCompile(`\.(jpe?g|png|gif|webp|svg)$`)
+	textPattern := regexp.MustCompile(`\.(css|js|html?|txt|md|json|xml)$`)
 
 	return func(c *gin.Context) {
 		typeName := c.Param("typename")
 		resourceUuid := c.Param("resource_id")
 		columnNameWithExt := c.Param("columnname")
+
+		// Generate a cache key for this request
+		cacheKey := fmt.Sprintf("%s:%s:%s", typeName, resourceUuid, columnNameWithExt)
+
+		// Check if we have a cached handler for this request
+		if cachedInfo, found := fileHandlers.Load(cacheKey); found {
+			info := cachedInfo.(cachedFileInfo)
+
+			// Set content type from cache
+			c.Header("Content-Type", info.mimeType)
+			c.Header("Cache-Control", cacheControl)
+
+			// For downloads, add content disposition
+			if strings.HasPrefix(info.mimeType, "application/") {
+				c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(info.path)))
+			}
+
+			// Use optimized file handler
+			file, err := os.Open(info.path)
+			if err == nil {
+				defer file.Close()
+				fileInfo, err := file.Stat()
+				if err == nil {
+					http.ServeContent(c.Writer, c.Request, filepath.Base(info.path), fileInfo.ModTime(), file)
+					return
+				}
+			}
+			// If we get here, the file may have been deleted or changed
+			fileHandlers.Delete(cacheKey)
+		}
 
 		parts := strings.SplitN(columnNameWithExt, ".", 2)
 		if len(parts) == 0 {
@@ -364,8 +413,91 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", fileNameToServe))
 			}
 
-			// Serve file with proper range support
-			http.ServeFile(c.Writer, c.Request, filePath)
+			// Fast path for common file types
+			filename := filepath.Base(filePath)
+
+			// Apply different caching strategies based on file type
+			var maxAge int
+			if imagePattern.MatchString(strings.ToLower(filename)) {
+				// Images can be cached longer
+				maxAge = 604800 // 7 days
+				c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
+			} else if textPattern.MatchString(strings.ToLower(filename)) {
+				// Text files shorter cache time
+				maxAge = 86400 // 1 day
+				c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
+			}
+
+			// Use optimized file serving for small files that can be cached
+			if fileInfo.Size() <= MaxFileCacheSize {
+				file, err := os.Open(filePath)
+				if err != nil {
+					c.AbortWithStatus(http.StatusInternalServerError)
+					return
+				}
+				defer file.Close()
+
+				data, err := io.ReadAll(file)
+				if err != nil {
+					c.AbortWithStatus(http.StatusInternalServerError)
+					return
+				}
+
+				// Generate ETag for client-side caching
+				etag := generateETag(data)
+
+				// Check if client has fresh copy
+				if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+					c.AbortWithStatus(http.StatusNotModified)
+					return
+				}
+
+				// Add compression support for text files
+				if strings.HasPrefix(fileType, "text/") ||
+					strings.HasPrefix(fileType, "application/json") ||
+					strings.HasPrefix(fileType, "application/javascript") ||
+					strings.HasPrefix(fileType, "application/xml") {
+					// Only compress if file is larger than threshold and client accepts it
+					if len(data) > CompressionThreshold && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+						c.Header("Content-Encoding", "gzip")
+						c.Header("Vary", "Accept-Encoding")
+						c.Header("ETag", etag)
+
+						// Use gin's built-in gzip writer
+						c.Writer.Header().Set("Content-Type", fileType)
+						c.Status(http.StatusOK)
+						gzipWriter := gzip.NewWriter(c.Writer)
+						defer gzipWriter.Close()
+						gzipWriter.Write(data)
+						return
+					}
+				}
+
+				// Add to cache for future requests
+				newCachedFile := &CachedFile{
+					Data:     data,
+					ETag:     etag,
+					Modtime:  fileInfo.ModTime(),
+					MimeType: fileType,
+					Size:     len(data),
+				}
+				fileCache.Set(filePath, newCachedFile)
+
+				// Set ETag header
+				c.Header("ETag", etag)
+				c.Data(http.StatusOK, fileType, data)
+				return
+			}
+
+			// For larger files, use http.ServeContent for efficient range requests
+			file, err := os.Open(filePath)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+			defer file.Close()
+
+			http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
 		}
 	}
 }
