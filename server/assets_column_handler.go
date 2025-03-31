@@ -23,8 +23,8 @@ import (
 
 const (
 	// Cache settings
-	MaxCacheSize     = 20      // Maximum number of files to cache
-	MaxFileCacheSize = 5 << 20 // 10MB max file size for caching
+	MaxCacheSize     = 200     // Maximum number of files to cache
+	MaxFileCacheSize = 5 << 10 // 10MB max file size for caching
 
 	// Compression threshold - only compress files larger than this
 	CompressionThreshold = 10 << 10 // 10KB
@@ -389,7 +389,7 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				// Use separate function for image processing to keep this path fast
 				file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileNameToServe)
 				if err != nil {
-					c.AbortWithError(500, err)
+					_ = c.AbortWithError(500, err)
 					return
 				}
 				defer file.Close()
@@ -397,12 +397,18 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				return
 			}
 
-			// Check if client already has this file (via ETag)
-			_, err = os.Stat(filePath)
+			// Check if file exists
+			fileInfo, err := os.Stat(filePath)
 			if err != nil {
 				c.AbortWithStatus(http.StatusNotFound)
 				return
 			}
+
+			// Cache this file info for future requests
+			fileHandlers.Store(cacheKey, cachedFileInfo{
+				path:     filePath,
+				mimeType: fileType,
+			})
 
 			// Set response headers
 			c.Header("Content-Type", fileType)
