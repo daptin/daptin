@@ -134,13 +134,20 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 			projections[i] = "count(*) as count"
 			projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
 		} else {
-			projectionsAdded = append(projectionsAdded, goqu.L(project))
+			if strings.Index(project, " as ") > -1 {
+				parts := strings.Split(project, " as ")
+				projectionsAdded = append(projectionsAdded, goqu.L(parts[0]).As(parts[1]))
+			} else {
+				projectionsAdded = append(projectionsAdded, goqu.L(project))
+			}
 		}
 	}
 
+	groupBysAdded := make([]interface{}, 0)
 	for _, group := range requestedGroupBys {
 		projections = append(projections, group)
 		projectionsAdded = append(projectionsAdded, goqu.L(group))
+		groupBysAdded = append(groupBysAdded, goqu.L(group))
 	}
 
 	if len(projections) == 0 {
@@ -150,7 +157,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 	selectBuilder := statementbuilder.Squirrel.Select(projectionsAdded...).Prepared(true)
 	builder := selectBuilder.From(req.RootEntity)
 
-	builder = builder.GroupBy(ToInterfaceArray(requestedGroupBys)...)
+	builder = builder.GroupBy(groupBysAdded...)
 
 	builder = builder.Order(ToOrderedExpressionArray(req.Order)...)
 
@@ -368,8 +375,8 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		}
 
 		if columnInfo == nil {
-			log.Errorf("column info not found for %v", groupedColumn)
-			return nil, fmt.Errorf("column info not found for %v", groupedColumn)
+			log.Warnf("column info not found for %v", groupedColumn)
+			continue
 		}
 
 		if columnInfo.IsForeignKey && columnInfo.ForeignKeyData.DataSource == "self" {
