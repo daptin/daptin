@@ -23,8 +23,8 @@ import (
 
 const (
 	// Cache settings
-	MaxCacheSize     = 200     // Maximum number of files to cache
-	MaxFileCacheSize = 5 << 10 // 10MB max file size for caching
+	MaxCacheSize     = 200        // Maximum number of files to cache
+	MaxFileCacheSize = 4000 << 10 // 10MB max file size for caching
 
 	// Compression threshold - only compress files larger than this
 	CompressionThreshold = 10 << 10 // 10KB
@@ -42,6 +42,7 @@ type CachedFile struct {
 	ETag     string
 	Modtime  time.Time
 	MimeType string
+	Path     string
 	Size     int
 }
 
@@ -111,108 +112,10 @@ func GetMimeType(filename string) string {
 // Global file cache
 var fileCache = NewFileCache(MaxCacheSize)
 
-// OptimizedFileHandler is a high-performance static file handler
-func OptimizedFileHandler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		filepath := c.Param("filepath")
-
-		// Sanitize filepath to prevent path traversal
-		if strings.Contains(filepath, "..") {
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-
-		// Check if file is in cache
-		cachedFile, found := fileCache.Get(filepath)
-
-		// Get file info for comparison
-		fileInfo, err := os.Stat(filepath)
-		if err != nil {
-			c.AbortWithStatus(http.StatusNotFound)
-			return
-		}
-
-		// If file exists in cache and hasn't been modified, use cached version
-		if found && cachedFile.Modtime.Equal(fileInfo.ModTime()) {
-			// Check if client has fresh copy (If-None-Match header)
-			if etag := c.GetHeader("If-None-Match"); etag != "" && etag == cachedFile.ETag {
-				c.AbortWithStatus(http.StatusNotModified)
-				return
-			}
-
-			// Set headers and return cached file
-			c.Header("Content-Type", cachedFile.MimeType)
-			c.Header("ETag", cachedFile.ETag)
-			c.Header("Cache-Control", "public, max-age=86400") // 1 day cache
-			c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.Data)
-			return
-		}
-
-		// File not in cache or modified, need to read from disk
-		if fileInfo.Size() <= MaxFileCacheSize {
-			// Small enough to cache
-			file, err := os.Open(filepath)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-			defer file.Close()
-
-			data, err := io.ReadAll(file)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-
-			// Create new cached file
-			mimeType := GetMimeType(filepath)
-			etag := generateETag(data)
-
-			newCachedFile := &CachedFile{
-				Data:     data,
-				ETag:     etag,
-				Modtime:  fileInfo.ModTime(),
-				MimeType: mimeType,
-				Size:     len(data),
-			}
-
-			// Add to cache
-			fileCache.Set(filepath, newCachedFile)
-
-			// Set headers and return file
-			c.Header("Content-Type", mimeType)
-			c.Header("ETag", etag)
-			c.Header("Cache-Control", "public, max-age=86400") // 1 day cache
-			c.Data(http.StatusOK, mimeType, data)
-			return
-		}
-
-		// For large files, use http.ServeContent for efficient range requests
-		file, err := os.Open(filepath)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		defer file.Close()
-
-		mimeType := GetMimeType(filepath)
-		c.Header("Content-Type", mimeType)
-		c.Header("Cache-Control", "public, max-age=86400") // 1 day cache
-
-		http.ServeContent(c.Writer, c.Request, filepath, fileInfo.ModTime(), file)
-	}
-}
-
 // CreateDbAssetHandler optimized for static file serving using OptimizedFileHandler
 func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
 	// Pre-allocate common response headers
 	const cacheControl = "public, max-age=86400" // 1 day cache
-
-	// Create a file handler map for faster lookups
-	type cachedFileInfo struct {
-		path     string
-		mimeType string
-	}
 
 	// Create a concurrent map to store file handlers
 	fileHandlers := sync.Map{}
@@ -230,25 +133,31 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 		cacheKey := fmt.Sprintf("%s:%s:%s", typeName, resourceUuid, columnNameWithExt)
 
 		// Check if we have a cached handler for this request
-		if cachedInfo, found := fileHandlers.Load(cacheKey); found {
-			info := cachedInfo.(cachedFileInfo)
+		if cachedInfo, found := fileCache.Get(cacheKey); found {
+			info := cachedInfo
+
+			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == cachedInfo.ETag {
+				c.AbortWithStatus(http.StatusNotModified)
+				return
+			}
 
 			// Set content type from cache
-			c.Header("Content-Type", info.mimeType)
+			c.Header("Content-Type", info.MimeType)
 			c.Header("Cache-Control", cacheControl)
+			c.Header("ETag", info.ETag)
 
 			// For downloads, add content disposition
-			if strings.HasPrefix(info.mimeType, "application/") {
-				c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(info.path)))
+			if strings.HasPrefix(info.MimeType, "application/") {
+				c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(info.Path)))
 			}
 
 			// Use optimized file handler
-			file, err := os.Open(info.path)
+			file, err := os.Open(info.Path)
 			if err == nil {
 				defer file.Close()
 				fileInfo, err := file.Stat()
 				if err == nil {
-					http.ServeContent(c.Writer, c.Request, filepath.Base(info.path), fileInfo.ModTime(), file)
+					http.ServeContent(c.Writer, c.Request, filepath.Base(info.Path), fileInfo.ModTime(), file)
 					return
 				}
 			}
@@ -308,6 +217,8 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			// Return markdown as HTML
 			c.Header("Content-Type", "text/html")
 			c.Header("Cache-Control", cacheControl)
+			c.Header("ETag", generateETag([]byte(colData.(string))))
+
 			c.String(http.StatusOK, "<pre>%s</pre>", colData.(string))
 			return
 		}
@@ -404,12 +315,6 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 				return
 			}
 
-			// Cache this file info for future requests
-			fileHandlers.Store(cacheKey, cachedFileInfo{
-				path:     filePath,
-				mimeType: fileType,
-			})
-
 			// Set response headers
 			c.Header("Content-Type", fileType)
 			c.Header("Cache-Control", cacheControl)
@@ -451,6 +356,15 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 
 				// Generate ETag for client-side caching
 				etag := generateETag(data)
+				// Add to cache for future requests
+				newCachedFile := &CachedFile{
+					Data:     data,
+					ETag:     etag,
+					Modtime:  fileInfo.ModTime(),
+					MimeType: fileType,
+					Size:     len(data),
+				}
+				fileCache.Set(cacheKey, newCachedFile)
 
 				// Check if client has fresh copy
 				if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
@@ -478,16 +392,6 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 						return
 					}
 				}
-
-				// Add to cache for future requests
-				newCachedFile := &CachedFile{
-					Data:     data,
-					ETag:     etag,
-					Modtime:  fileInfo.ModTime(),
-					MimeType: fileType,
-					Size:     len(data),
-				}
-				fileCache.Set(filePath, newCachedFile)
 
 				// Set ETag header
 				c.Header("ETag", etag)
