@@ -12,7 +12,7 @@ require (
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20181123171228-21df004e09ca
-	github.com/artpar/api2go v2.6.4+incompatible
+	github.com/artpar/api2go v2.6.5+incompatible
 	github.com/artpar/api2go-adapter v1.0.1
 	github.com/artpar/conform v0.0.0-20171227110214-a5409cc587c6
 	github.com/artpar/go-guerrilla v1.5.2
