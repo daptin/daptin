@@ -1313,8 +1313,8 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 		colInfo, ok := tableInfo.GetColumnByName(columnName)
 
 		if !ok {
-			log.Warnf("[1316] invalid column [%v] in query for table [%s], skipping", dbResource.model.GetName(), columnName)
-			continue
+			log.Warnf("[1316] Table [%v] invalid column query [%v], skipping", dbResource.model.GetName(), columnName)
+			return nil, nil, fmt.Errorf("table [%v] invalid column query [%v]", dbResource.model.GetName(), columnName)
 		}
 
 		if colInfo.IsForeignKey {
