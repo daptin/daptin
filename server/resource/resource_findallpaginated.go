@@ -375,7 +375,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			})
 			finalCols = append(finalCols,
 				column{
-					originalvalue: goqu.I("usergroup.reference_id").As("reference_id"),
+					originalvalue: goqu.I("usergroup.reference_id").As("relation_reference_id"),
 					reference:     "usergroup.reference_id as relation_reference_id",
 				},
 			)
