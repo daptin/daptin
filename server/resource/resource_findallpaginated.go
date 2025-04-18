@@ -313,6 +313,15 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		//}
 	}
 
+	if len(req.QueryParams["filter[]"]) > 0 && len(queries) == 0 {
+		filters = req.QueryParams["filter[]"]
+
+		//for i, q := range filters {
+		//	unescaped, _ := url.QueryUnescape(q)
+		//	filters[i] = unescaped
+		//}
+	}
+
 	//filters := []string{}
 
 	//if len(req.QueryParams["filter"]) > 0 {
@@ -486,7 +495,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		colsToAdd := make([]string, 0)
 
 		for _, col := range infos {
-			if col.IsIndexed && (col.ColumnType == "name" || col.ColumnType == "label" || col.ColumnType == "email") {
+			if (col.IsIndexed || col.IsUnique) && (strings.Index(col.ColumnType, "name") > -1 || col.ColumnType == "label" || col.ColumnType == "email") {
 				colsToAdd = append(colsToAdd, col.ColumnName)
 			}
 		}
@@ -1289,10 +1298,10 @@ var OperatorMap = map[string]string{
 	"is not":       "isNot",
 	"before":       "lt",
 	"after":        "gt",
-	"more then":    "gt",
+	"more than":    "gt",
 	"any of":       "any of",
 	"none of":      "none of",
-	"less then":    "lt",
+	"less than":    "lt",
 	"is empty":     "is nil",
 	"is true":      "is true",
 	"is false":     "is false",
