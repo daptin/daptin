@@ -116,6 +116,7 @@ func CreateTemplateHooks(cmsConfig *resource.CmsConfig,
 	if err != nil {
 		return err
 	}
+	handlerCreator := CreateTemplateRouteHandler(cruds)
 	for _, templateRow := range templateList {
 		urlPattern := templateRow["url_pattern"].(string)
 		strArray := make([]string, 0)
@@ -123,45 +124,77 @@ func CreateTemplateHooks(cmsConfig *resource.CmsConfig,
 		if err != nil {
 			return fmt.Errorf("Failed to parse url pattern ["+urlPattern+"] as string array: %s", err)
 		}
-		templateRenderHelper := func(template map[string]interface{}) func(ginContext *gin.Context) {
-			return func(ginContext *gin.Context) {
-				inFields := make(map[string]interface{})
-				inFields["template"] = template["name"].(string)
-				queryMap := make(map[string]interface{})
-				inFields["query"] = queryMap
-				var outcomeRequest resource.Outcome
-				api2goResponder, _, err := cruds["action"].ActionHandlerMap["template.render"].DoAction(
-					outcomeRequest, inFields, transaction)
-				if err != nil && len(err) > 0 {
-					_ = ginContext.AbortWithError(500, err[0])
-					return
-				}
-
-				api2GoResult := api2goResponder.Result().(api2go.Api2GoModel)
-
-				attrs := api2GoResult.GetAttributes()
-				var content = attrs["content"].(string)
-				var mimeType = attrs["mime_type"].(string)
-				var headers = attrs["headers"].(map[string]string)
-
-				ginContext.Writer.WriteHeader(http.StatusOK)
-				ginContext.Writer.Header().Set("Content-Type", mimeType)
-				for hKey, hValue := range headers {
-					ginContext.Writer.Header().Set(hKey, hValue)
-				}
-				ginContext.Writer.Flush()
-
-				// Render the rest of the DATA
-				fmt.Fprint(ginContext.Writer, resource.Atob(content))
-				ginContext.Writer.Flush()
-
-			}
-		}(templateRow)
+		templateRenderHelper := handlerCreator(templateRow)
 		for _, urlMatch := range strArray {
 			mainRouter.Any(urlMatch, templateRenderHelper)
 		}
 	}
 	return nil
+}
+
+func CreateTemplateRouteHandler(cruds map[string]*resource.DbResource) func(template map[string]interface{}) func(ginContext *gin.Context) {
+	return func(template map[string]interface{}) func(ginContext *gin.Context) {
+		return func(ginContext *gin.Context) {
+			inFields := make(map[string]interface{})
+
+			inFields["template"] = template["name"].(string)
+			queryMap := make(map[string]interface{})
+			inFields["query"] = queryMap
+
+			for _, param := range ginContext.Params {
+				inFields[param.Key] = param.Value
+			}
+
+			queryParams := ginContext.Request.URL.Query()
+
+			for key, valArray := range queryParams {
+				if len(valArray) == 1 {
+					inFields[key] = valArray[0]
+					inFields[key+"[]"] = valArray
+				} else {
+					inFields[key] = valArray
+					inFields[key+"[]"] = valArray
+				}
+			}
+
+			var outcomeRequest resource.Outcome
+			var transaction *sqlx.Tx
+			var errTxn error
+			transaction, errTxn = cruds["world"].Connection.Beginx()
+			if errTxn != nil {
+				ginContext.AbortWithError(500, errTxn)
+				return
+			}
+			defer func() {
+				transaction.Rollback()
+			}()
+			api2goResponder, _, err := cruds["action"].ActionHandlerMap["template.render"].DoAction(
+				outcomeRequest, inFields, transaction)
+			if err != nil && len(err) > 0 {
+				_ = ginContext.AbortWithError(500, err[0])
+				return
+			}
+
+			api2GoResult := api2goResponder.Result().(api2go.Api2GoModel)
+
+			attrs := api2GoResult.GetAttributes()
+			var content = attrs["content"].(string)
+			var mimeType = attrs["mime_type"].(string)
+			var headers = attrs["headers"].(map[string]string)
+
+			ginContext.Writer.WriteHeader(http.StatusOK)
+			ginContext.Writer.Header().Set("Content-Type", mimeType)
+			for hKey, hValue := range headers {
+				ginContext.Writer.Header().Set(hKey, hValue)
+			}
+			ginContext.Writer.Flush()
+
+			// Render the rest of the DATA
+			fmt.Fprint(ginContext.Writer, resource.Atob(content))
+			ginContext.Writer.Flush()
+
+		}
+	}
 }
 
 // CreateSubSites creates a router which can route based on hostname to one of the hosted static subsites
@@ -473,394 +506,6 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//http.Error(w, "Forbidden", 403) // Or Redirect?
 	}
 }
-
-//type GrapeSaveRequest struct {
-//	Css    string       `json:"gjs-css"`
-//	Assets []GrapeAsset `json:"gjs-assets"`
-//	Html   string       `json:"gjs-html"`
-//}
-
-//func CreateSubSiteSaveContentHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
-//
-//	return func(context *gin.Context) {
-//
-//		//var grapeSaveRequest GrapeSaveRequest
-//		s, _ := context.GetRawData()
-//		//err := context.Bind(&grapeSaveRequest)
-//		//if err != nil {
-//		//	log.Errorf("Failed to create html document from html string: %v", err)
-//		//}
-//		//log.Printf("%s",string(s))
-//
-//		requestJson := make(map[string]interface{})
-//		err := json.Unmarshal(s, &requestJson)
-//		if err != nil {
-//			context.AbortWithError(403, err)
-//			return
-//		}
-//
-//		//queryString := string(s)
-//		//query, err := url.ParseQuery(queryString)
-//		//if err != nil {
-//		//	log.Errorf("Failed to parse query: [%v]", err)
-//		//	context.AbortWithStatus(400)
-//		//	return
-//		//}
-//		//action := context.Request.FormValue("action")
-//
-//		referrer, _ := url.Parse(context.GetHeader("Referer"))
-//		subsite, ok := GetSubSiteFromContext(context, initConfig.SubSites)
-//		if !ok {
-//			log.Errorf("Invalid subsite: %v", context.GetHeader("Referer"))
-//			context.AbortWithStatus(400)
-//			return
-//		}
-//
-//		path := referrer.Path
-//
-//		if strings.Index(path, subsite.SubSite.Path) == 1 {
-//			path = path[len(subsite.SubSite.Path)+1:]
-//		}
-//
-//		fullpath, ok := GetFilePath(subsite.SourceRoot, path)
-//		if !ok {
-//			context.AbortWithStatus(404)
-//			return
-//		}
-//
-//		//if action == "store" {
-//
-//		cssString := requestJson["gjs-css"]
-//		htmlString := requestJson["gjs-html"]
-//
-//		htmlDocument, err := goquery.NewDocumentFromReader(strings.NewReader(htmlString.(string)))
-//		if err != nil {
-//			log.Errorf("Failed to create html document from html string: %v", err)
-//			context.AbortWithStatus(400)
-//			return
-//		}
-//
-//		if len(cssString.(string)) > 0 {
-//			htmlDocument.Find("head").Append(fmt.Sprintf("<style>\n%s\n</style>", cssString))
-//		}
-//
-//		assetsList := make([]GrapeAsset, 0)
-//
-//		//assets := requestJson["gjs-assets"].(string)
-//
-//		err = json.Unmarshal([]byte(requestJson["gjs-assets"].(string)), &assetsList)
-//		//
-//		//for _, asset := range assets {
-//		//	assetItem := GrapeAsset{
-//		//		Src           : asset["src"].(string),
-//		//		Type          : asset["type"].(string),
-//		//		UnitDimension  : asset["unitDim"].(string),
-//		//		Height         : asset["height"].(int),
-//		//		Width          : asset["width"].(int),
-//		//	}
-//		//	assetsList = append(assetsList, assetItem)
-//		//}
-//
-//		//if len(assets) > 1 {
-//		//
-//		//	if err != nil {
-//		//		log.Errorf("Failed to unmarshal asset list from post body: %v", err)
-//		//		context.AbortWithStatus(400)
-//		//		return
-//		//	}
-//		//}
-//		for _, asset := range assetsList {
-//			switch asset.Type {
-//			case "image":
-//				//htmlDocument.Find("head").Append("<")
-//			case "script":
-//				htmlDocument.Find("head").Append(fmt.Sprintf("<script src='%s'></script>", asset.Src))
-//			case "style":
-//				htmlDocument.Find("head").Append(fmt.Sprintf("<link rel='stylesheet' href='%s'></script>", asset.Src))
-//			}
-//		}
-//
-//		htmlString, err = htmlDocument.Html()
-//		if err != nil {
-//			log.Errorf("Failed to convert to html document: %v", err)
-//			context.AbortWithStatus(400)
-//			return
-//		}
-//
-//		log.Printf("Writing contents to file: %v", fullpath)
-//		err = ioutil.WriteFile(fullpath, []byte(htmlString.(string)), 0644)
-//		if !ok {
-//			log.Errorf("Invalid subsite: %v", context.GetHeader("Referer"))
-//			context.AbortWithStatus(400)
-//			return
-//		}
-//		//
-//		//} else if action == "load" {
-//		//	keys := strings.Split(context.Request.FormValue("keys"), ",")
-//		//	log.Printf("Keys to load", keys)
-//		//
-//		//	responseMap := make(map[string]interface{})
-//		//	for _, key := range keys {
-//		//
-//		//		switch key {
-//		//		case "gjs-html":
-//		//			htmlDoc, err := ioutil.ReadFile(fullpath)
-//		//			if err != nil {
-//		//				context.AbortWithError(403, err)
-//		//				return
-//		//			}
-//		//			responseMap[key] = string(htmlDoc)
-//		//
-//		//		}
-//		//
-//		//	}
-//		context.AbortWithStatusJSON(200, requestJson)
-//		//
-//		//}
-//
-//	}
-//
-//}
-
-func GetFilePath(sourceRoot string, path string) (string, bool) {
-	fullpath := sourceRoot + path
-
-	exists, isDir := exists(fullpath)
-
-	if !exists {
-		return "", false
-	}
-	if isDir {
-		if EndsWithCheck(fullpath, "/") {
-			fullpath = fullpath + "index.html"
-		} else {
-			fullpath = fullpath + "/index.html"
-		}
-	}
-	return fullpath, true
-
-}
-
-func exists(path string) (Exists bool, IsDir bool) {
-	Exists = false
-	IsDir = false
-	fi, err := os.Stat(path)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	switch mode := fi.Mode(); {
-	case mode.IsDir():
-		// do directory stuff
-		Exists = true
-		IsDir = true
-		return
-	case mode.IsRegular():
-		// do file stuff
-		Exists = true
-		return
-	}
-	return
-}
-
-//func CreateSubSiteContentHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
-//
-//	siteMap := initConfig.SubSites
-//
-//	return func(context *gin.Context) {
-//
-//		keys, _ := context.GetQueryArray("keys[]")
-//		path, _ := context.GetQuery("path")
-//
-//		log.Printf("Keys: %v", keys)
-//		log.Printf("Path: %v", path)
-//
-//		subsite, ok := GetSubSiteFromContext(context, siteMap)
-//		if !ok {
-//			context.JSON(404, JsonApiError{Message: fmt.Sprintf("Invalid subsite: %v", context.GetHeader("Referer"))})
-//			return
-//		}
-//
-//		if path == "/" || path == "" {
-//			path = "/index.html"
-//		}
-//
-//		fullpath := subsite.SourceRoot + path
-//
-//		exists, isDir := exists(fullpath)
-//
-//		if !exists {
-//			context.AbortWithStatus(404)
-//			return
-//		}
-//		if isDir {
-//			if EndsWithCheck(fullpath, "/") {
-//				fullpath = fullpath + "index.html"
-//			} else {
-//				fullpath = fullpath + "/index.html"
-//			}
-//		}
-//		fileContents, err := ioutil.ReadFile(fullpath)
-//		if err != nil {
-//			log.Errorf("Failed to read file: %v", err)
-//			context.JSON(500, JsonApiError{Message: fmt.Sprintf("Failed  to read file: %v", err)})
-//			return
-//		}
-//
-//		if !EndsWithCheck(fullpath, ".html") {
-//			log.Errorf("Not a html file")
-//			context.JSON(400, JsonApiError{Message: "Not a html file"})
-//			return
-//		}
-//		cts := string(fileContents)
-//		doc, err := goquery.NewDocumentFromReader(strings.NewReader(cts))
-//		if err != nil {
-//			log.Errorf("Failed to read file as html doc: %v", err)
-//			context.JSON(500, JsonApiError{Message: fmt.Sprintf("Failed to read file as html doc: %v", err)})
-//			return
-//		}
-//
-//		cssContents := make([]string, 0)
-//
-//		doc.Find("style").Each(func(i int, s *goquery.Selection) {
-//			// For each item found, get the band and title
-//			cssContent := s.Text()
-//			cssContents = append(cssContents, cssContent)
-//		})
-//
-//		allCss := strings.Join(cssContents, "\n")
-//
-//		cssPaths := make([]string, 0)
-//
-//		doc.Find("link").Each(func(i int, s *goquery.Selection) {
-//			// For each item found, get the band and title
-//			relType := s.AttrOr("rel", "none")
-//
-//			if relType != "stylesheet" {
-//				return
-//			}
-//
-//			srcPath := s.AttrOr("href", "")
-//			if len(srcPath) > 0 {
-//				cssPaths = append(cssPaths, srcPath)
-//			}
-//		})
-//
-//		scriptPaths := make([]string, 0)
-//		doc.Find("script").Each(func(i int, s *goquery.Selection) {
-//			// For each item found, get the band and title
-//
-//			txt := s.Text()
-//
-//			if strings.TrimSpace(txt) != "" {
-//				return
-//			}
-//
-//			srcPath := s.AttrOr("src", "")
-//			if len(srcPath) > 0 {
-//				scriptPaths = append(scriptPaths, srcPath)
-//			}
-//		})
-//
-//		imagePaths := make([]string, 0)
-//		doc.Find("img").Each(func(i int, s *goquery.Selection) {
-//			// For each item found, get the band and title
-//
-//			txt := s.Text()
-//
-//			if strings.TrimSpace(txt) != "" {
-//				return
-//			}
-//
-//			srcPath := s.AttrOr("src", "")
-//			//styleValue := s.AttrOr("style", "")
-//			//width := styleValue
-//			//height := s.AttrOr("height", "")
-//			if len(srcPath) > 0 {
-//				imagePaths = append(imagePaths, srcPath)
-//			}
-//		})
-//
-//		doc.RemoveFiltered("link")
-//		doc.RemoveFiltered("script")
-//
-//		htmlContent, err := doc.Html()
-//		if err != nil {
-//			log.Errorf("Failed to convert to html: %v", err)
-//			context.JSON(500, JsonApiError{Message: fmt.Sprintf("Failed to convert to html: %v", err)})
-//			return
-//		}
-//
-//		respMap := make(map[string]interface{})
-//
-//		assetsList := make([]GrapeAsset, 0)
-//
-//		for _, asset := range cssPaths {
-//			assetsList = append(assetsList, NewStyleGrapeAsset(asset))
-//		}
-//
-//		for _, asset := range scriptPaths {
-//			assetsList = append(assetsList, NewScriptGrapeAsset(asset))
-//		}
-//
-//		respMap["gjs-html"] = htmlContent
-//		respMap["gjs-css"] = allCss
-//		respMap["gjs-assets"] = assetsList
-//
-//		context.Header("Content-type", "application/json")
-//		context.JSON(200, respMap)
-//	}
-//}
-
-//func GetSubSiteFromContext(context *gin.Context, siteMap map[string]resource.SubSiteInformation) (resource.SubSiteInformation, bool) {
-//	referrer := context.GetHeader("Referer")
-//	log.Printf("Referrer: %v", referrer)
-//
-//	parsed, err := url.Parse(referrer)
-//	if err != nil {
-//		log.Printf("Failed to parse referrer as url: %v", err)
-//	}
-//
-//	subsite, ok := siteMap[strings.Split(parsed.Host, ":")[0]]
-//
-//	if !ok {
-//		pathParts := strings.Split(parsed.Path, "/")
-//		if len(pathParts) > 1 {
-//			subSiteName := pathParts[1]
-//			subsite, ok = siteMap[subSiteName]
-//		}
-//	}
-//
-//	return subsite, ok
-//}
-
-//type GrapeAsset struct {
-//	Src           string `json:"src"`
-//	Type          string `json:"type"`
-//	UnitDimension string `json:"unitDim"`
-//	Height        int    `json:"height"`
-//	Width         int    `json:"width"`
-//}
-//
-//func NewImageGrapeAsset(src string) GrapeAsset {
-//	return GrapeAsset{
-//		Type: "image",
-//		Src:  src,
-//	}
-//}
-//func NewStyleGrapeAsset(src string) GrapeAsset {
-//	return GrapeAsset{
-//		Type: "style",
-//		Src:  src,
-//	}
-//}
-//
-//func NewScriptGrapeAsset(src string) GrapeAsset {
-//	return GrapeAsset{
-//		Type: "script",
-//		Src:  src,
-//	}
-//}
 
 func EndsWithCheck(str string, endsWith string) bool {
 	if len(endsWith) > len(str) {
