@@ -11,6 +11,8 @@ import (
 	"github.com/artpar/rclone/lib/random"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
+	"github.com/daptin/daptin/server/hostswitch"
+	"github.com/daptin/daptin/server/task_scheduler"
 	server2 "github.com/fclairamb/ftpserver/server"
 	log "github.com/sirupsen/logrus"
 
@@ -155,7 +157,7 @@ Imports:
     Entity: site
     FileType: json`
 
-func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.EmbeddedClient) {
+func createServer() (hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager, *server2.FtpServer, *ImapServer.Server, *olric.EmbeddedClient) {
 
 	log.SetOutput(ioutil.Discard)
 	dir := os.TempDir()
@@ -232,9 +234,9 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	}
 	log.Printf("connection acquired from database")
 
-	var hostSwitch server.HostSwitch
+	var hostSwitch hostswitch.HostSwitch
 	var mailDaemon *guerrilla.Daemon
-	var taskScheduler resource.TaskScheduler
+	var taskScheduler task_scheduler.TaskScheduler
 	var configStore *resource.ConfigStore
 	var certManager *resource.CertificateManager
 	//var imapServer *server2.Server
@@ -1218,7 +1220,7 @@ func FtpTest(t *testing.T) {
 }
 
 type TestRestartHandlerServer struct {
-	HostSwitch *server.HostSwitch
+	HostSwitch *hostswitch.HostSwitch
 }
 
 func (rhs *TestRestartHandlerServer) ServeHTTP(rew http.ResponseWriter, req *http.Request) {
