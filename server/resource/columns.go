@@ -28,20 +28,27 @@ var StandardColumns = []api2go.ColumnInfo{
 		IsPrimaryKey:    true,
 		IsAutoIncrement: true,
 		ExcludeFromApi:  true,
-		ColumnType:      "id",
+		ColumnDescription: "The primary internal identifier for each database record. This auto-incrementing " +
+			"integer serves as the unique primary key but is excluded from API responses to maintain data abstraction.",
+		ColumnType: "id",
 	},
 	{
-		Name:           "version",
-		ColumnName:     "version",
-		DataType:       "INTEGER",
-		ColumnType:     "measurement",
+		Name:       "version",
+		ColumnName: "version",
+		DataType:   "INTEGER",
+		ColumnType: "measurement",
+		ColumnDescription: "A counter that tracks the number of modifications made to a record. Starting at 1 for " +
+			"new records, this integer increments with each update to support optimistic " +
+			"concurrency control and change tracking. Exposed through the API.",
 		DefaultValue:   "1",
 		ExcludeFromApi: true,
 	},
 	{
-		Name:         "created_at",
-		ColumnName:   "created_at",
-		DataType:     "timestamp",
+		Name:       "created_at",
+		ColumnName: "created_at",
+		DataType:   "timestamp",
+		ColumnDescription: "Timestamp recording when the record was initially created in the database. " +
+			"Automatically set to the current time upon record creation and indexed for efficient temporal queries.",
 		DefaultValue: "current_timestamp",
 		ColumnType:   "datetime",
 		IsIndexed:    true,
@@ -50,6 +57,8 @@ var StandardColumns = []api2go.ColumnInfo{
 		Name:       "updated_at",
 		ColumnName: "updated_at",
 		DataType:   "timestamp",
+		ColumnDescription: "Timestamp indicating when the record was last modified. This " +
+			"non-nullable field is indexed to enable efficient filtering and sorting of records by modification time.",
 		IsIndexed:  true,
 		IsNullable: true,
 		ColumnType: "datetime",
@@ -59,6 +68,9 @@ var StandardColumns = []api2go.ColumnInfo{
 		ColumnName: "reference_id",
 		DataType:   "blob",
 		IsIndexed:  true,
+		ColumnDescription: "A unique external identifier stored as a blob that allows referencing the record from " +
+			"outside systems. This non-nullable field serves as a public-facing alias for the " +
+			"internal ID and is indexed for quick lookups.",
 		IsUnique:   true,
 		IsNullable: false,
 		ColumnType: "alias",
@@ -67,6 +79,8 @@ var StandardColumns = []api2go.ColumnInfo{
 		Name:       "permission",
 		ColumnName: "permission",
 		DataType:   "int(11)",
+		ColumnDescription: "An integer BITMASK value representing access control settings for the record. This field " +
+			"determines what operations can be performed on the record based on user roles and privileges.",
 		IsIndexed:  false,
 		ColumnType: "value",
 	},
@@ -1684,7 +1698,7 @@ var StandardTables = []table_info.TableInfo{
 		TableName:     "collection",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
-		Icon:          "fa-calendar-alt",
+		Icon:          "fa-folder-open",
 		Columns: []api2go.ColumnInfo{
 			{
 				ColumnName: "name",
@@ -1954,7 +1968,7 @@ var StandardTables = []table_info.TableInfo{
 		TableName:     "task",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
-		Icon:          "fa-clock",
+		Icon:          "fa-tasks",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -2005,7 +2019,7 @@ var StandardTables = []table_info.TableInfo{
 		TableName:     "template",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
-		Icon:          "fa-key",
+		Icon:          "fa-file-alt",
 		Columns: []api2go.ColumnInfo{
 			{
 				ColumnName: "name",
@@ -2119,7 +2133,7 @@ var StandardTables = []table_info.TableInfo{
 	},
 	{
 		TableName:     "timeline",
-		Icon:          "fa-clock-o",
+		Icon:          "fa-history",
 		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
@@ -2152,7 +2166,7 @@ var StandardTables = []table_info.TableInfo{
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		DefaultOrder:  "+table_name",
-		Icon:          "fa-home",
+		Icon:          "fa-globe",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "table_name",
@@ -2230,7 +2244,7 @@ var StandardTables = []table_info.TableInfo{
 	},
 	{
 		TableName:     "stream",
-		Icon:          "fa-strikethrough",
+		Icon:          "fa-stream",
 		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
@@ -2404,6 +2418,7 @@ var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     "smd",
 		IsHidden:      true,
+		Icon:          "fa-project-diagram",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -2439,6 +2454,7 @@ var StandardTables = []table_info.TableInfo{
 	},
 	{
 		TableName:     "oauth_connect",
+		Icon:          "fa-plug",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
@@ -2530,6 +2546,7 @@ var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     "data_exchange",
 		IsHidden:      true,
+		Icon:          "fa-sync",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -2581,6 +2598,7 @@ var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     "oauth_token",
 		IsHidden:      true,
+		Icon:          "fa-shield-alt",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -2611,6 +2629,7 @@ var StandardTables = []table_info.TableInfo{
 	},
 	{
 		TableName:     "cloud_store",
+		Icon:          "fa-cloud",
 		DefaultGroups: adminsGroup,
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
@@ -2657,6 +2676,7 @@ var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     "site",
 		DefaultGroups: adminsGroup,
+		Icon:          "fa-sitemap",
 		IsHidden:      true,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -2768,7 +2788,7 @@ var StandardTables = []table_info.TableInfo{
 		TableName:     "mail_account",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
-		Icon:          "fa-envelope",
+		Icon:          "fa-at",
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "username",
@@ -2792,6 +2812,7 @@ var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     "mail_box",
 		IsHidden:      true,
+		Icon:          "fa-inbox",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
@@ -3003,7 +3024,7 @@ var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     "outbox",
 		IsHidden:      true,
-		Icon:          "fa-envelope",
+		Icon:          "fa-paper-plane",
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
