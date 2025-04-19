@@ -19,7 +19,7 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 		}
 
 		userAccountTableCrud := cruds[resource.USER_ACCOUNT_TABLE_NAME]
-		transaction, err := userAccountTableCrud.Connection.Beginx()
+		transaction, err := userAccountTableCrud.Connection().Beginx()
 		if err != nil {
 			resource.CheckErr(err, "Failed to begin transaction [24]")
 			return

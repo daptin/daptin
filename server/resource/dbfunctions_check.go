@@ -5,6 +5,7 @@ import (
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/table_info"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -79,9 +80,9 @@ func CheckRelations(config *CmsConfig) {
 		}
 	}
 
-	newTables := make([]TableInfo, 0)
+	newTables := make([]table_info.TableInfo, 0)
 
-	for i, _ := range config.Tables {
+	for i := range config.Tables {
 
 		config.Tables[i].IsTopLevel = true
 		existingRelations := config.Tables[i].Relations
@@ -146,7 +147,7 @@ func CheckRelations(config *CmsConfig) {
 
 				if !relationsDone[relationHash(stateRelation)] {
 
-					stateTable := TableInfo{
+					stateTable := table_info.TableInfo{
 						TableName: config.Tables[i].TableName + "_state",
 						Columns: []api2go.ColumnInfo{
 							{
@@ -176,7 +177,7 @@ func CheckRelations(config *CmsConfig) {
 		} else {
 
 			if config.Tables[i].IsStateTrackingEnabled {
-				stateTable := TableInfo{
+				stateTable := table_info.TableInfo{
 					TableName: config.Tables[i].TableName + "_state",
 					Columns: []api2go.ColumnInfo{
 						{
@@ -323,7 +324,7 @@ func PrintRelations(relations []api2go.TableRelation) {
 
 func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) {
 
-	var tables []TableInfo
+	var tables []table_info.TableInfo
 	tableCreatedMap := map[string]bool{}
 
 	for _, table := range initConfig.Tables {
@@ -346,7 +347,7 @@ func CheckAllTableStatus(initConfig *CmsConfig, db database.DatabaseConnection) 
 	return
 }
 
-func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]bool, map[string]api2go.ColumnInfo) {
+func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *table_info.TableInfo) (map[string]bool, map[string]api2go.ColumnInfo) {
 	columnsWeWant := map[string]bool{}
 	colInfoMap := map[string]api2go.ColumnInfo{}
 	finalColumnList := make([]api2go.ColumnInfo, 0)
@@ -380,7 +381,7 @@ func CreateAMapOfColumnsWeWantInTheFinalTable(tableInfo *TableInfo) (map[string]
 	return columnsWeWant, colInfoMap
 }
 
-func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection) error {
+func CheckTable(tableInfo *table_info.TableInfo, db database.DatabaseConnection) error {
 
 	for i, c := range tableInfo.Columns {
 		if c.ColumnType == "truefalse" {
@@ -452,7 +453,7 @@ func CheckTable(tableInfo *TableInfo, db database.DatabaseConnection) error {
 	return nil
 }
 
-func PrintTableInfo(info *TableInfo, title string) {
+func PrintTableInfo(info *table_info.TableInfo, title string) {
 
 	table := simpletable.New()
 

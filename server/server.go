@@ -6,11 +6,24 @@ import (
 	"fmt"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server/action_provider"
+	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/assetcachepojo"
+	"github.com/daptin/daptin/server/cloud_store"
+	"github.com/daptin/daptin/server/dbresourceinterface"
+	"github.com/daptin/daptin/server/fsm"
+	"github.com/daptin/daptin/server/hostswitch"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/rootpojo"
+	"github.com/daptin/daptin/server/subsite"
+	"github.com/daptin/daptin/server/table_info"
+	"github.com/daptin/daptin/server/task"
+	"github.com/daptin/daptin/server/task_scheduler"
 	"github.com/emersion/go-webdav"
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
+	"io/ioutil"
 	"os"
 	"strings"
 	//"sync"
@@ -43,7 +56,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var TaskScheduler resource.TaskScheduler
+var TaskScheduler task_scheduler.TaskScheduler
 var Stats = stats.New()
 
 type RateConfig struct {
@@ -77,7 +90,7 @@ func PathExistsAndIsFolder(path string) bool {
 }
 
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.EmbeddedClient) (
-	HostSwitch, *guerrilla.Daemon, resource.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
+	hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
 	*server2.FtpServer, *server.Server, *olric.EmbeddedClient) {
 
 	fmt.Print(`                                                                           
@@ -109,7 +122,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	skipDbConfig, skipValueFound := os.LookupEnv("DAPTIN_SKIP_CONFIG_FROM_DATABASE")
 
-	var existingTables []resource.TableInfo
+	var existingTables []table_info.TableInfo
 	if skipValueFound && skipDbConfig == "true" {
 		log.Printf("ENV[DAPTIN_SKIP_CONFIG_FROM_DATABASE] skip loading existing tables config from database")
 	} else {
@@ -331,6 +344,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
 
 	cruds := make(map[string]*resource.DbResource)
+	crudsInterface := make(map[string]dbresourceinterface.DbResourceInterface)
 	defaultRouter.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
 
 	api := api2go.NewAPIWithRouting(
@@ -380,7 +394,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 				columnName := pathParts[2]
 				if transaction == nil {
 					log.Tracef("start transaction for GetDocumentInitialContent")
-					transaction, err = cruds[typeName].Connection.Beginx()
+					transaction, err = cruds[typeName].Connection().Beginx()
 					if err != nil {
 						return nil
 					}
@@ -438,9 +452,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}(tableTopicSubscription)
 
-	for key := range cruds {
+	for key, val := range cruds {
 		dtopicMap[key] = tablesPubSub
-
+		crudsInterface[key] = val
 	}
 	log.Tracef("Crated olric topics")
 
@@ -641,18 +655,18 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		defaultRouter.Handle("MKCOL", "/carddav/*path", caldavHttpHandler)
 		defaultRouter.Handle("PROPPATCH", "/carddav/*path", caldavHttpHandler)
 
-		//hostSwitch.handlerMap["calendar"] = caldavHandler
+		//hostSwitch.HandlerMap["calendar"] = caldavHandler
 	}
 	log.Tracef("Completed process caldav")
 
 	for k := range cruds {
-		cruds[k].SubsiteFolderCache = subsiteCacheFolders
+		cruds[k].SetSubsitesFolderCache(subsiteCacheFolders)
 	}
 
-	hostSwitch.handlerMap["api"] = defaultRouter
-	hostSwitch.handlerMap["dashboard"] = defaultRouter
+	hostSwitch.HandlerMap["api"] = defaultRouter
+	hostSwitch.HandlerMap["dashboard"] = defaultRouter
 
-	actionPerformers := GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
+	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
 	initConfig.ActionPerformers = actionPerformers
 	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -670,7 +684,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [634]")
 	}
 
-	_ = CreateTemplateHooks(&initConfig, transaction, cruds, rateConfig, hostSwitch)
+	_ = subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch)
 	_ = transaction.Commit()
 
 	transaction, err = db.Beginx()
@@ -678,7 +692,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [642]")
 	}
 
-	err = TaskScheduler.AddTask(resource.Task{
+	err = TaskScheduler.AddTask(task.Task{
 		EntityName:  "mail_server",
 		ActionName:  "sync_mail_servers",
 		Attributes:  map[string]interface{}{},
@@ -690,7 +704,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	TaskScheduler.StartTasks()
 
 	transaction = db.MustBegin()
-	assetColumnFolders := CreateAssetColumnSync(cruds, transaction)
+	assetColumnFolders := CreateAssetColumnSync(crudsInterface, transaction)
 	transaction.Commit()
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
@@ -700,7 +714,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
 	authMiddleware.SetUserUserGroupCrud(cruds["user_account_user_account_id_has_usergroup_usergroup_id"])
 
-	fsmManager := resource.NewFsmManager(db, cruds)
+	fsmManager := fsm.NewFsmManager(db)
 
 	transaction = db.MustBegin()
 	enableFtp, err := configStore.GetConfigValueFor("ftp.enable", "backend", transaction)
@@ -721,7 +735,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 		// ftpListener, err := net.Listen("tcp", ftp_interface)
 		// resource.CheckErr(err, "Failed to create listener for FTP")
-		ftpServer, err = CreateFtpServers(cruds, certificateManager, ftp_interface, transaction)
+		ftpServer, err = CreateFtpServers(cruds, crudsInterface, certificateManager, ftp_interface, transaction)
 		auth.CheckErr(err, "Failed to creat FTP server")
 		go func() {
 			log.Printf("FTP server started at %v", ftp_interface)
@@ -731,7 +745,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
-		transaction, err := cruds["world"].Connection.Beginx()
+		transaction, err := cruds["world"].Connection().Beginx()
 		if err != nil {
 			resource.CheckErr(err, "Failed to begin transaction [665]")
 			c.String(500, fmt.Sprintf("%v", err))
@@ -877,7 +891,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 								resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
 								referenceId := uuid.MustParse(eventDataMap["reference_id"].(string))
 
-								transaction, err := cruds[typename].Connection.Beginx()
+								transaction, err := cruds[typename].Connection().Beginx()
 								if err != nil {
 									resource.CheckErr(err, "Failed to begin transaction [788]")
 									return
@@ -929,7 +943,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 						referenceId := ginContext.Param("referenceId")
 
-						tx, err := cruds[typename].Connection.Beginx()
+						tx, err := cruds[typename].Connection().Beginx()
 						if err != nil {
 							resource.CheckErr(err, "Failed to begin transaction [840]")
 							return
@@ -943,7 +957,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 							return
 						}
 
-						tx, err = cruds[typename].Connection.Beginx()
+						tx, err = cruds[typename].Connection().Beginx()
 						objectPermission := cruds[typename].GetRowPermission(object, tx)
 						tx.Rollback()
 						if err != nil {
@@ -1028,18 +1042,18 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 }
 
-func CreateFtpServers(resources map[string]*resource.DbResource, certManager *resource.CertificateManager, ftp_interface string, transaction *sqlx.Tx) (*server2.FtpServer, error) {
+func CreateFtpServers(resources map[string]*resource.DbResource, resourcesInterfaces map[string]dbresourceinterface.DbResourceInterface, certManager *resource.CertificateManager, ftp_interface string, transaction *sqlx.Tx) (*server2.FtpServer, error) {
 
-	subsites, err := resources["site"].GetAllSites(transaction)
+	subsites, err := subsite.GetAllSites(resourcesInterfaces["site"], transaction)
 	if err != nil {
 		return nil, err
 	}
-	cloudStores, err := resources["cloud_store"].GetAllCloudStores(transaction)
+	cloudStores, err := cloud_store.GetAllCloudStores(resourcesInterfaces["cloud_store"], transaction)
 
 	if err != nil {
 		return nil, err
 	}
-	cloudStoreMap := make(map[uuid.UUID]resource.CloudStore)
+	cloudStoreMap := make(map[uuid.UUID]rootpojo.CloudStore)
 	for _, cloudStore := range cloudStores {
 		re, _ := uuid.FromBytes(cloudStore.ReferenceId[:])
 		cloudStoreMap[re] = cloudStore
@@ -1053,7 +1067,7 @@ func CreateFtpServers(resources map[string]*resource.DbResource, certManager *re
 			continue
 		}
 
-		assetCacheFolder, ok := resources["site"].SubsiteFolderCache[ftpServer.ReferenceId]
+		assetCacheFolder, ok := resourcesInterfaces["site"].SubsiteFolderCache(ftpServer.ReferenceId)
 		if !ok {
 			continue
 		}
@@ -1073,8 +1087,8 @@ func CreateFtpServers(resources map[string]*resource.DbResource, certManager *re
 }
 
 type SubSiteAssetCache struct {
-	resource.SubSite
-	*resource.AssetFolderCache
+	subsite.SubSite
+	*assetcachepojo.AssetFolderCache
 }
 
 type Crammd5 struct {
@@ -1174,8 +1188,8 @@ func initialiseResources(initConfig *resource.CmsConfig, db database.DatabaseCon
 
 }
 
-func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) map[string]resource.ActionPerformerInterface {
-	m := make(map[string]resource.ActionPerformerInterface)
+func actionPerformersListToMap(interfaces []actionresponse.ActionPerformerInterface) map[string]actionresponse.ActionPerformerInterface {
+	m := make(map[string]actionresponse.ActionPerformerInterface)
 
 	for _, api := range interfaces {
 		if api == nil {
@@ -1186,11 +1200,11 @@ func actionPerformersListToMap(interfaces []resource.ActionPerformerInterface) m
 	return m
 }
 
-func MergeTables(existingTables []resource.TableInfo, initConfigTables []resource.TableInfo) []resource.TableInfo {
-	allTables := make([]resource.TableInfo, 0)
+func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table_info.TableInfo) []table_info.TableInfo {
+	allTables := make([]table_info.TableInfo, 0)
 	existingTablesMap := make(map[string]bool)
 
-	newTableMap := make(map[string]resource.TableInfo)
+	newTableMap := make(map[string]table_info.TableInfo)
 	for _, newTable := range initConfigTables {
 		newTableMap[newTable.TableName] = newTable
 	}
@@ -1329,5 +1343,78 @@ func GetStreamProcessors(config *resource.CmsConfig, store *resource.ConfigStore
 	}
 
 	return allProcessors
+
+}
+
+func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterface, transaction *sqlx.Tx) map[string]map[string]*assetcachepojo.AssetFolderCache {
+	log.Tracef("CreateAssetColumnSync")
+
+	stores, err := cloud_store.GetAllCloudStores(cruds["cloud_store"], transaction)
+	assetCache := make(map[string]map[string]*assetcachepojo.AssetFolderCache)
+
+	if err != nil || len(stores) == 0 {
+		return assetCache
+	}
+	cloudStoreMap := make(map[string]rootpojo.CloudStore)
+
+	for _, store := range stores {
+		cloudStoreMap[store.Name] = store
+	}
+
+	for tableName, tableCrud := range cruds {
+
+		colCache := make(map[string]*assetcachepojo.AssetFolderCache)
+
+		tableInfo := tableCrud.TableInfo()
+		for _, column := range tableInfo.Columns {
+
+			if column.IsForeignKey && column.ForeignKeyData.DataSource == "cloud_store" {
+
+				columnName := column.ColumnName
+
+				cloudStore := cloudStoreMap[column.ForeignKeyData.Namespace]
+				tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), tableName+"_"+columnName)
+
+				if cloudStore.StoreProvider != "local" {
+					err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath, transaction)
+					if CheckErr(err, "Failed to setup sync to path for table column [%v][%v]", tableName, column.ColumnName) {
+						continue
+					}
+				} else {
+					tempDirectoryPath = cloudStore.RootPath + "/" + column.ForeignKeyData.KeyName
+				}
+
+				assetCacheFolder := &assetcachepojo.AssetFolderCache{
+					CloudStore:    cloudStore,
+					LocalSyncPath: tempDirectoryPath,
+					Keyname:       column.ForeignKeyData.KeyName,
+				}
+
+				colCache[columnName] = assetCacheFolder
+				log.Infof("Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
+
+				if cloudStore.StoreProvider != "local" {
+					err = TaskScheduler.AddTask(task.Task{
+						EntityName: "world",
+						ActionName: "sync_column_storage",
+						Attributes: map[string]interface{}{
+							"table_name":  tableInfo.TableName,
+							"column_name": columnName,
+						},
+						AsUserEmail: cruds["user_account"].GetAdminEmailId(transaction),
+						Schedule:    "@every 30m",
+					})
+				}
+
+			}
+
+		}
+
+		assetCache[tableName] = colCache
+
+	}
+	log.Tracef("Completed CreateAssetColumnSync")
+
+	return assetCache
 
 }

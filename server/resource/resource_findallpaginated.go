@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/buraksezer/olric"
 	daptinid "github.com/daptin/daptin/server/id"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"strconv"
 	"strings"
@@ -32,7 +32,7 @@ func (dbResource *DbResource) GetTotalCount() uint64 {
 	var count uint64
 
 	start := time.Now()
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection().Preparex(s)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetTotalCount PrepareX: %v", duration)
 	if err != nil {
@@ -67,7 +67,7 @@ func (dbResource *DbResource) GetTotalCountBySelectBuilder(builder *goqu.SelectD
 	var count uint64
 
 	start := time.Now()
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection().Preparex(s)
 	duration := time.Since(start)
 	log.Tracef("[TIMING] GetTotalCountBySelectBuilder PrepareX: %v", duration)
 
@@ -1057,9 +1057,9 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		translateTableName := tableModel.GetTableName() + "_i18n"
 
 		ifNullFunctionName := "IFNULL"
-		if dbResource.Connection.DriverName() == "postgres" {
+		if dbResource.Connection().DriverName() == "postgres" {
 			ifNullFunctionName = "COALESCE"
-		} else if dbResource.Connection.DriverName() == "mssql" {
+		} else if dbResource.Connection().DriverName() == "mssql" {
 			ifNullFunctionName = "ISNULL"
 		}
 
@@ -1483,7 +1483,7 @@ func (dbResource *DbResource) FindAll(req api2go.Request) (response api2go.Respo
 
 func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount uint, response api2go.Responder, err error) {
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dbResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [1434]")
 		return 0, nil, err

@@ -9,11 +9,15 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/artpar/xlsx/v2"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/fsm"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/daptin/daptin/server/table_info"
+	"github.com/daptin/daptin/server/task"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/ghodss/yaml"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -26,7 +30,7 @@ import (
 
 func (dbResource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64, transaction *sqlx.Tx) error {
 
-	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	encryptionSecret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		return err
 	}
@@ -55,7 +59,7 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken s
 func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(
 	referenceId daptinid.DaptinReferenceId, accessToken string, expiresIn int64, transaction *sqlx.Tx) error {
 
-	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	encryptionSecret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		return err
 	}
@@ -87,7 +91,7 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	if err != nil {
 		return err
 	}
-	taskMap := make(map[string]Task)
+	taskMap := make(map[string]task.Task)
 	for _, job := range tasks {
 		taskMap[job.Name] = job
 	}
@@ -141,7 +145,7 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 	}
 
-	finalJobs := make([]Task, 0)
+	finalJobs := make([]task.Task, 0)
 
 	for _, job := range taskMap {
 		finalJobs = append(finalJobs, job)
@@ -153,7 +157,7 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 }
 
-func GetTasks(connection *sqlx.Tx) ([]Task, error) {
+func GetTasks(connection *sqlx.Tx) ([]task.Task, error) {
 
 	s, v, err := statementbuilder.Squirrel.Select(
 		"name",
@@ -179,10 +183,10 @@ func GetTasks(connection *sqlx.Tx) ([]Task, error) {
 		return nil, err
 	}
 
-	jobs := make([]Task, 0)
+	jobs := make([]task.Task, 0)
 
 	for rows.Next() {
-		var job Task
+		var job task.Task
 
 		err = rows.StructScan(&job)
 		if err != nil {
@@ -498,7 +502,7 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.Tx) {
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(db)
 
 	for i := range initConfig.Tables {
-		ar := make([]LoopbookFsmDescription, 0)
+		ar := make([]fsm.LoopbookFsmDescription, 0)
 		initConfig.Tables[i].StateMachines = ar
 	}
 
@@ -685,7 +689,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	return commitErr
 }
 
-func ImportDataFiles(imports []DataFileImport, transaction *sqlx.Tx, cruds map[string]*DbResource) {
+func ImportDataFiles(imports []rootpojo.DataFileImport, transaction *sqlx.Tx, cruds map[string]*DbResource) {
 	importCount := len(imports)
 
 	if importCount == 0 {
@@ -1284,9 +1288,9 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		CheckErr(err, "Failed to close result after reading rows")
 	}()
 
-	tables := make([]TableInfo, 0)
+	tables := make([]table_info.TableInfo, 0)
 	for res.Next() {
-		var tabInfo TableInfo
+		var tabInfo table_info.TableInfo
 		var tableSchema []byte
 		var permission, defaultPermission int64
 		var isTopLevel, isHidden, isJoinTable bool

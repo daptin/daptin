@@ -1,4 +1,5 @@
-//+build test
+//go:build test
+// +build test
 
 package server
 
@@ -18,7 +19,6 @@ func NewInMemoryTestDatabase(db *sqlx.DB) *InMemoryTestDatabase {
 func (imtd *InMemoryTestDatabase) GetQueries() []string {
 	return imtd.queries
 }
-
 
 func (imtd *InMemoryTestDatabase) HasExecuted(query string) bool {
 	query = strings.ToLower(strings.TrimSpace(query))
@@ -60,7 +60,6 @@ func (imtd *InMemoryTestDatabase) HasExecutedAll(queries ...string) bool {
 
 	return executedAll
 }
-
 
 type InMemoryTestDatabase struct {
 	db      *sqlx.DB

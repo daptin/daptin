@@ -8,7 +8,9 @@ import (
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/hostswitch"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/task_scheduler"
 	server2 "github.com/fclairamb/ftpserver/server"
 	"github.com/go-redis/redis/v8"
 	"github.com/hashicorp/memberlist"
@@ -255,7 +257,7 @@ func main() {
 		databaseUrlValue, ok := os.LookupEnv(*database_url_variable)
 		if ok && len(databaseUrlValue) > 0 {
 			if strings.Index(databaseUrlValue, "://") > -1 {
-				log.Printf("Connection URL found for database in env variable [%v]", *database_url_variable)
+				log.Printf("connection URL found for database in env variable [%v]", *database_url_variable)
 				databaseUrlParsed, err := url.Parse(databaseUrlValue)
 
 				if err != nil {
@@ -305,7 +307,7 @@ func main() {
 	db.Stats()
 	transaction := db.MustBegin()
 	_ = transaction.Rollback()
-	log.Printf("Connection acquired from database [%s]", *dbType)
+	log.Printf("connection acquired from database [%s]", *dbType)
 
 	portValue := *port
 	portInt := int64(6336)
@@ -322,9 +324,9 @@ func main() {
 		portValue = ":" + portValue
 	}
 
-	var hostSwitch server.HostSwitch
+	var hostSwitch hostswitch.HostSwitch
 	var mailDaemon *guerrilla.Daemon
-	var taskScheduler resource.TaskScheduler
+	var taskScheduler task_scheduler.TaskScheduler
 	var certManager *resource.CertificateManager
 	var configStore *resource.ConfigStore
 	var ftpServer *server2.FtpServer
@@ -490,7 +492,7 @@ func main() {
 
 		//transaction := db1.MustBegin()
 		//_ = transaction.Rollback()
-		log.Printf("Connection acquired from database [%s]", *dbType)
+		log.Printf("connection acquired from database [%s]", *dbType)
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
 			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
@@ -609,7 +611,7 @@ func CreateKeyPairFromTLSCertificate(backendHostnameCertificate *resource.TLSCer
 
 // RestartHandlerServer helps in switching the new router with old router with restart is triggered
 type RestartHandlerServer struct {
-	HostSwitch *server.HostSwitch
+	HostSwitch *hostswitch.HostSwitch
 }
 
 func (rhs *RestartHandlerServer) ServeHTTP(rew http.ResponseWriter, req *http.Request) {

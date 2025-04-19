@@ -3,10 +3,12 @@ package server
 import (
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/apiblueprint"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -62,7 +64,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 			return
 		}
 
-		transaction, err := cruds[typeName].Connection.Beginx()
+		transaction, err := cruds[typeName].Connection().Beginx()
 		if err != nil {
 			resource.CheckErr(err, "Failed to begin transaction [65]")
 			return
@@ -128,7 +130,7 @@ func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 }
 
 func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, transaction *sqlx.Tx) func(*gin.Context) {
-	tableMap := make(map[string]resource.TableInfo)
+	tableMap := make(map[string]table_info.TableInfo)
 	for _, table := range initConfig.Tables {
 
 		//log.Printf("Default permission for [%v]: [%v]", table.TableName, table.Columns)
@@ -171,7 +173,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 				return
 
 			} else {
-				selectedTable = resource.TableInfo{}
+				selectedTable = table_info.TableInfo{}
 				selectedTable.TableName = selectedStream.StreamName
 				selectedTable.Columns = selectedStream.Columns
 				selectedTable.Relations = make([]api2go.TableRelation, 0)
@@ -183,7 +185,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 		cols := selectedTable.Columns
 
 		//log.Printf("data: %v", selectedTable.Relations)
-		tx, err := cruds["world"].Connection.Beginx()
+		tx, err := cruds["world"].Connection().Beginx()
 		if err != nil {
 			resource.CheckErr(err, "Failed to begin transaction [170]")
 			return
@@ -315,7 +317,7 @@ func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*reso
 
 type JsModel struct {
 	ColumnModel           map[string]interface{}
-	Actions               []resource.Action
+	Actions               []actionresponse.Action
 	StateMachines         []map[string]interface{}
 	IsStateMachineEnabled bool
 }

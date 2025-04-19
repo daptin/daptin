@@ -88,7 +88,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 	}
 
 	attrs := make(map[string]interface{})
-	urlStr, err := evaluateString(g.exchangeInformation.Url, inFieldMap)
+	urlStr, err := EvaluateString(g.exchangeInformation.Url, inFieldMap)
 	if err != nil {
 		return nil, err
 	}

@@ -2,40 +2,109 @@
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        function fulfilled(value) {
+            try {
+                step(generator.next(value));
+            } catch (e) {
+                reject(e);
+            }
+        }
+
+        function rejected(value) {
+            try {
+                step(generator["throw"](value));
+            } catch (e) {
+                reject(e);
+            }
+        }
+
+        function step(result) {
+            result.done ? resolve(result.value) : new P(function (resolve) {
+                resolve(result.value);
+            }).then(fulfilled, rejected);
+        }
+
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
+    var _ = {
+        label: 0, sent: function () {
+            if (t[0] & 1) throw t[1];
+            return t[1];
+        }, trys: [], ops: []
+    }, f, y, t, g;
+    return g = {
+        next: verb(0),
+        "throw": verb(1),
+        "return": verb(2)
+    }, typeof Symbol === "function" && (g[Symbol.iterator] = function () {
+        return this;
+    }), g;
+
+    function verb(n) {
+        return function (v) {
+            return step([n, v]);
+        };
+    }
+
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
         while (_) try {
             if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
             if (y = 0, t) op = [0, t.value];
             switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                case 0:
+                case 1:
+                    t = op;
+                    break;
+                case 4:
+                    _.label++;
+                    return {value: op[1], done: false};
+                case 5:
+                    _.label++;
+                    y = op[1];
+                    op = [0];
+                    continue;
+                case 7:
+                    op = _.ops.pop();
+                    _.trys.pop();
+                    continue;
                 default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                        _ = 0;
+                        continue;
+                    }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) {
+                        _.label = op[1];
+                        break;
+                    }
+                    if (op[0] === 6 && _.label < t[1]) {
+                        _.label = t[1];
+                        t = op;
+                        break;
+                    }
+                    if (t && _.label < t[2]) {
+                        _.label = t[2];
+                        _.ops.push(op);
+                        break;
+                    }
                     if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
+                    _.trys.pop();
+                    continue;
             }
             op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+        } catch (e) {
+            op = [6, e];
+            y = 0;
+        } finally {
+            f = t = 0;
+        }
+        if (op[0] & 5) throw op[1];
+        return {value: op[0] ? op[1] : void 0, done: true};
     }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
+Object.defineProperty(exports, "__esModule", {value: true});
 var fs = require("fs");
 var path = require("path");
 var process = require("process");
@@ -49,8 +118,12 @@ var commandLineArgs = require('command-line-args');
 var getUsage = require('command-line-usage');
 var fetch = require("node-fetch");
 var chalk = require("chalk");
-var langs = Main.renderers.map(function (r) { return r.extension; }).join("|");
-var langNames = Main.renderers.map(function (r) { return r.name; }).join(", ");
+var langs = Main.renderers.map(function (r) {
+    return r.extension;
+}).join("|");
+var langNames = Main.renderers.map(function (r) {
+    return r.name;
+}).join(", ");
 var optionDefinitions = [
     {
         name: 'out',
@@ -135,6 +208,7 @@ var sectionsAfterRenderers = [
         content: 'Learn more at [bold]{quicktype.io}'
     }
 ];
+
 function optionDefinitionsForRenderer(renderer) {
     return _.map(renderer.options, function (o) {
         return {
@@ -146,6 +220,7 @@ function optionDefinitionsForRenderer(renderer) {
         };
     });
 }
+
 function usage() {
     var rendererSections = [];
     _.forEach(Main.renderers, function (renderer) {
@@ -159,11 +234,14 @@ function usage() {
     var sections = _.concat(sectionsBeforeRenderers, rendererSections, sectionsAfterRenderers);
     console.log(getUsage(sections));
 }
+
 var Run = /** @class */ (function () {
     function Run(argv) {
         var _this = this;
         this.getRenderer = function (lang) {
-            var renderer = Main.renderers.find(function (r) { return _.includes(r, lang); });
+            var renderer = Main.renderers.find(function (r) {
+                return _.includes(r, lang);
+            });
             if (!renderer) {
                 console.error("'" + _this.options.lang + "' is not yet supported as an output language.");
                 process.exit(1);
@@ -177,10 +255,9 @@ var Run = /** @class */ (function () {
                 topLevels: Object.getOwnPropertyNames(samplesOrSchemas).map(function (name) {
                     if (areSchemas) {
                         // Only one schema per top-level is used right now
-                        return { name: name, schema: samplesOrSchemas[name][0] };
-                    }
-                    else {
-                        return { name: name, samples: samplesOrSchemas[name] };
+                        return {name: name, schema: samplesOrSchemas[name][0]};
+                    } else {
+                        return {name: name, samples: samplesOrSchemas[name]};
                     }
                 }),
                 rendererOptions: _this.rendererOptions
@@ -205,8 +282,7 @@ var Run = /** @class */ (function () {
                 var results = line.match("^// (.+\\.java)$");
                 if (results == null) {
                     currentFileContents += line + "\n";
-                }
-                else {
+                } else {
                     writeFile();
                     filename = results[1];
                     while (lines[i] == "")
@@ -220,12 +296,10 @@ var Run = /** @class */ (function () {
             if (_this.options.out) {
                 if (_this.options.lang == "java") {
                     _this.splitAndWriteJava(path.dirname(_this.options.out), output);
-                }
-                else {
+                } else {
                     fs.writeFileSync(_this.options.out, output);
                 }
-            }
-            else {
+            } else {
                 process.stdout.write(output);
             }
         };
@@ -238,20 +312,26 @@ var Run = /** @class */ (function () {
             return new Promise(function (resolve) {
                 var source = makeSource();
                 var assembler = new Assembler();
-                var assemble = function (chunk) { return assembler[chunk.name] && assembler[chunk.name](chunk.value); };
-                var isInt = function (intString) { return /^\d+$/.test(intString); };
-                var intSentinelChunks = function (intString) { return [
-                    { name: 'startObject' },
-                    { name: 'startKey' },
-                    { name: 'stringChunk', value: Main.intSentinel },
-                    { name: 'endKey' },
-                    { name: 'keyValue', value: Main.intSentinel },
-                    { name: 'startNumber' },
-                    { name: 'numberChunk', value: intString },
-                    { name: 'endNumber' },
-                    { name: 'numberValue', value: intString },
-                    { name: 'endObject' }
-                ]; };
+                var assemble = function (chunk) {
+                    return assembler[chunk.name] && assembler[chunk.name](chunk.value);
+                };
+                var isInt = function (intString) {
+                    return /^\d+$/.test(intString);
+                };
+                var intSentinelChunks = function (intString) {
+                    return [
+                        {name: 'startObject'},
+                        {name: 'startKey'},
+                        {name: 'stringChunk', value: Main.intSentinel},
+                        {name: 'endKey'},
+                        {name: 'keyValue', value: Main.intSentinel},
+                        {name: 'startNumber'},
+                        {name: 'numberChunk', value: intString},
+                        {name: 'endNumber'},
+                        {name: 'numberValue', value: intString},
+                        {name: 'endObject'}
+                    ];
+                };
                 var queue = [];
                 source.output.on("data", function (chunk) {
                     switch (chunk.name) {
@@ -265,8 +345,7 @@ var Run = /** @class */ (function () {
                             queue.push(chunk);
                             if (isInt(chunk.value)) {
                                 intSentinelChunks(chunk.value).forEach(assemble);
-                            }
-                            else {
+                            } else {
                                 queue.forEach(assemble);
                             }
                             queue = [];
@@ -275,97 +354,108 @@ var Run = /** @class */ (function () {
                             assemble(chunk);
                     }
                 });
-                source.output.on("end", function () { return resolve(assembler.current); });
+                source.output.on("end", function () {
+                    return resolve(assembler.current);
+                });
                 stream.setEncoding('utf8');
                 stream.pipe(source.input);
                 stream.resume();
             });
         };
-        this.mapValues = function (obj, f) { return __awaiter(_this, void 0, void 0, function () {
-            var result, _i, _a, key, _b, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0:
-                        result = {};
-                        _i = 0, _a = Object.keys(obj);
-                        _d.label = 1;
-                    case 1:
-                        if (!(_i < _a.length)) return [3 /*break*/, 4];
-                        key = _a[_i];
-                        _b = result;
-                        _c = key;
-                        return [4 /*yield*/, f(obj[key])];
-                    case 2:
-                        _b[_c] = _d.sent();
-                        _d.label = 3;
-                    case 3:
-                        _i++;
-                        return [3 /*break*/, 1];
-                    case 4: return [2 /*return*/, result];
-                }
+        this.mapValues = function (obj, f) {
+            return __awaiter(_this, void 0, void 0, function () {
+                var result, _i, _a, key, _b, _c;
+                return __generator(this, function (_d) {
+                    switch (_d.label) {
+                        case 0:
+                            result = {};
+                            _i = 0, _a = Object.keys(obj);
+                            _d.label = 1;
+                        case 1:
+                            if (!(_i < _a.length)) return [3 /*break*/, 4];
+                            key = _a[_i];
+                            _b = result;
+                            _c = key;
+                            return [4 /*yield*/, f(obj[key])];
+                        case 2:
+                            _b[_c] = _d.sent();
+                            _d.label = 3;
+                        case 3:
+                            _i++;
+                            return [3 /*break*/, 1];
+                        case 4:
+                            return [2 /*return*/, result];
+                    }
+                });
             });
-        }); };
-        this.parseFileOrUrl = function (fileOrUrl) { return __awaiter(_this, void 0, void 0, function () {
-            var res;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (!fs.existsSync(fileOrUrl)) return [3 /*break*/, 1];
-                        return [2 /*return*/, this.parseJsonFromStream(fs.createReadStream(fileOrUrl))];
-                    case 1: return [4 /*yield*/, fetch(fileOrUrl)];
-                    case 2:
-                        res = _a.sent();
-                        return [2 /*return*/, this.parseJsonFromStream(res.body)];
-                }
+        };
+        this.parseFileOrUrl = function (fileOrUrl) {
+            return __awaiter(_this, void 0, void 0, function () {
+                var res;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!fs.existsSync(fileOrUrl)) return [3 /*break*/, 1];
+                            return [2 /*return*/, this.parseJsonFromStream(fs.createReadStream(fileOrUrl))];
+                        case 1:
+                            return [4 /*yield*/, fetch(fileOrUrl)];
+                        case 2:
+                            res = _a.sent();
+                            return [2 /*return*/, this.parseJsonFromStream(res.body)];
+                    }
+                });
             });
-        }); };
+        };
         this.parseFileOrUrlArray = function (filesOrUrls) {
             return Promise.all(filesOrUrls.map(_this.parseFileOrUrl));
         };
-        this.main = function () { return __awaiter(_this, void 0, void 0, function () {
-            var json, jsonMap, _a, json, jsons;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        if (!this.options.help) return [3 /*break*/, 1];
-                        usage();
-                        return [3 /*break*/, 8];
-                    case 1:
-                        if (!this.options.srcUrls) return [3 /*break*/, 3];
-                        json = JSON.parse(fs.readFileSync(this.options.srcUrls, "utf8"));
-                        jsonMap = Either.fromRight(Main.urlsFromJsonGrammar(json));
-                        _a = this.renderAndOutput;
-                        return [4 /*yield*/, this.mapValues(jsonMap, this.parseFileOrUrlArray)];
-                    case 2:
-                        _a.apply(this, [_b.sent()]);
-                        return [3 /*break*/, 8];
-                    case 3:
-                        if (!(this.options.src.length == 0)) return [3 /*break*/, 5];
-                        return [4 /*yield*/, this.parseJsonFromStream(process.stdin)];
-                    case 4:
-                        json = _b.sent();
-                        this.workFromJsonArray([json]);
-                        return [3 /*break*/, 8];
-                    case 5:
-                        if (!(this.options.src.length == 1)) return [3 /*break*/, 7];
-                        return [4 /*yield*/, this.parseFileOrUrlArray(this.options.src)];
-                    case 6:
-                        jsons = _b.sent();
-                        this.workFromJsonArray(jsons);
-                        return [3 /*break*/, 8];
-                    case 7:
-                        usage();
-                        process.exit(1);
-                        _b.label = 8;
-                    case 8: return [2 /*return*/];
-                }
+        this.main = function () {
+            return __awaiter(_this, void 0, void 0, function () {
+                var json, jsonMap, _a, json, jsons;
+                return __generator(this, function (_b) {
+                    switch (_b.label) {
+                        case 0:
+                            if (!this.options.help) return [3 /*break*/, 1];
+                            usage();
+                            return [3 /*break*/, 8];
+                        case 1:
+                            if (!this.options.srcUrls) return [3 /*break*/, 3];
+                            json = JSON.parse(fs.readFileSync(this.options.srcUrls, "utf8"));
+                            jsonMap = Either.fromRight(Main.urlsFromJsonGrammar(json));
+                            _a = this.renderAndOutput;
+                            return [4 /*yield*/, this.mapValues(jsonMap, this.parseFileOrUrlArray)];
+                        case 2:
+                            _a.apply(this, [_b.sent()]);
+                            return [3 /*break*/, 8];
+                        case 3:
+                            if (!(this.options.src.length == 0)) return [3 /*break*/, 5];
+                            return [4 /*yield*/, this.parseJsonFromStream(process.stdin)];
+                        case 4:
+                            json = _b.sent();
+                            this.workFromJsonArray([json]);
+                            return [3 /*break*/, 8];
+                        case 5:
+                            if (!(this.options.src.length == 1)) return [3 /*break*/, 7];
+                            return [4 /*yield*/, this.parseFileOrUrlArray(this.options.src)];
+                        case 6:
+                            jsons = _b.sent();
+                            this.workFromJsonArray(jsons);
+                            return [3 /*break*/, 8];
+                        case 7:
+                            usage();
+                            process.exit(1);
+                            _b.label = 8;
+                        case 8:
+                            return [2 /*return*/];
+                    }
+                });
             });
-        }); };
+        };
         // Parse the options in argv and split them into global options and renderer options,
         // according to each option definition's `renderer` field.  If `partial` is false this
         // will throw if it encounters an unknown option.
         this.parseOptions = function (optionDefinitions, argv, partial) {
-            var opts = commandLineArgs(optionDefinitions, { argv: argv, partial: partial });
+            var opts = commandLineArgs(optionDefinitions, {argv: argv, partial: partial});
             var options = {};
             var renderer = {};
             optionDefinitions.forEach(function (o) {
@@ -379,7 +469,7 @@ var Run = /** @class */ (function () {
                     options[k] = v;
                 }
             });
-            return { options: _this.inferOptions(options), renderer: renderer };
+            return {options: _this.inferOptions(options), renderer: renderer};
         };
         this.inferOptions = function (opts) {
             opts.src = opts.src || [];
@@ -428,11 +518,11 @@ var Run = /** @class */ (function () {
             var allOptionDefinitions = _.concat(optionDefinitions, rendererOptionDefinitions);
             try {
                 // This is the parse that counts:
-                var _a = this.parseOptions(allOptionDefinitions, argv, false), options = _a.options, rendererOptions = _a.renderer;
+                var _a = this.parseOptions(allOptionDefinitions, argv, false), options = _a.options,
+                    rendererOptions = _a.renderer;
                 this.options = options;
                 this.rendererOptions = rendererOptions;
-            }
-            catch (error) {
+            } catch (error) {
                 if (error.name === 'UNKNOWN_OPTION') {
                     console.error("Error: Unknown option");
                     usage();
@@ -440,14 +530,15 @@ var Run = /** @class */ (function () {
                 }
                 throw error;
             }
-        }
-        else {
+        } else {
             this.options = this.inferOptions(argv);
             this.rendererOptions = {};
         }
     }
+
     return Run;
 }());
+
 function main(args) {
     return __awaiter(this, void 0, void 0, function () {
         var run;
@@ -463,11 +554,13 @@ function main(args) {
                 case 2:
                     _a.sent();
                     _a.label = 3;
-                case 3: return [2 /*return*/];
+                case 3:
+                    return [2 /*return*/];
             }
         });
     });
 }
+
 exports.main = main;
 if (require.main === module) {
     main(process.argv.slice(2)).catch(function (reason) {

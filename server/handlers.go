@@ -4,6 +4,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/fsm"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -15,7 +16,7 @@ import (
 	"net/http"
 )
 
-func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
+func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
 
 	return func(gincontext *gin.Context) {
 
@@ -73,7 +74,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 		}
 
 		nextState, err := fsmManager.ApplyEvent(subjectInstanceModel.GetAllAsAttributes(),
-			resource.NewStateMachineEvent(daptinid.DaptinReferenceId(stateMachineId), eventName))
+			fsm.NewStateMachineEvent(daptinid.DaptinReferenceId(stateMachineId), eventName))
 		if err != nil {
 			gincontext.AbortWithError(400, err)
 			return
@@ -119,7 +120,7 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager resource.FsmM
 
 }
 
-func CreateEventStartHandler(fsmManager resource.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
+func CreateEventStartHandler(fsmManager fsm.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
 
 	return func(gincontext *gin.Context) {
 

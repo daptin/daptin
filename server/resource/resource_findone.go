@@ -42,7 +42,7 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 		}
 	}
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dbResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [34]")
 		return nil, err

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -15,7 +16,7 @@ import (
 
 type DataValidationMiddleware struct {
 	config       *CmsConfig
-	tableInfoMap map[string]TableInfo
+	tableInfoMap map[string]table_info.TableInfo
 	translator   ut.Translator
 }
 
@@ -94,7 +95,7 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 
 func NewDataValidationMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) DatabaseRequestInterceptor {
 
-	tableInfoMap := make(map[string]TableInfo)
+	tableInfoMap := make(map[string]table_info.TableInfo)
 
 	for _, tabInfo := range cmsConfig.Tables {
 		tableInfoMap[tabInfo.TableName] = tabInfo

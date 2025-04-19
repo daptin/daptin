@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/artpar/rclone/lib/pacer"
+	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/jmoiron/sqlx"
 
 	//hugoCommand "github.com/gohugoio/hugo/commands"
@@ -15,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (dbResource *DbResource) SyncStorageToPath(cloudStore CloudStore, path string, tempDirectoryPath string, transaction *sqlx.Tx) error {
+func (dbResource *DbResource) SyncStorageToPath(cloudStore rootpojo.CloudStore, path string, tempDirectoryPath string, transaction *sqlx.Tx) error {
 
 	if cloudStore.CredentialName != "" {
 		cred, err := dbResource.GetCredentialByName(cloudStore.CredentialName, transaction)

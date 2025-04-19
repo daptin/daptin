@@ -3,7 +3,11 @@ package server
 import (
 	json1 "encoding/json"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/fsm"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/rootpojo"
+	"github.com/daptin/daptin/server/table_info"
 	yaml2 "github.com/ghodss/yaml"
 	"github.com/gobuffalo/flect"
 	"github.com/naoina/toml"
@@ -22,12 +26,12 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	errs := make([]error, 0)
 	var globalInitConfig resource.CmsConfig
 	globalInitConfig = resource.CmsConfig{
-		Tables:                   make([]resource.TableInfo, 0),
+		Tables:                   make([]table_info.TableInfo, 0),
 		Relations:                make([]api2go.TableRelation, 0),
-		Imports:                  make([]resource.DataFileImport, 0),
+		Imports:                  make([]rootpojo.DataFileImport, 0),
 		EnableGraphQL:            false,
-		Actions:                  make([]resource.Action, 0),
-		StateMachineDescriptions: make([]resource.LoopbookFsmDescription, 0),
+		Actions:                  make([]actionresponse.Action, 0),
+		StateMachineDescriptions: make([]fsm.LoopbookFsmDescription, 0),
 		Streams:                  make([]resource.StreamContract, 0),
 		//Marketplaces:             make([]resource.Marketplace, 0),
 	}
@@ -113,7 +117,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			continue
 		}
 
-		tables := make([]resource.TableInfo, 0)
+		tables := make([]table_info.TableInfo, 0)
 		for _, table := range initConfig.Tables {
 			table.TableName = flect.Underscore(table.TableName)
 			if len(table.TableName) < 1 {

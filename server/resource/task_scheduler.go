@@ -4,32 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/task"
+	"github.com/daptin/daptin/server/task_scheduler"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 )
-
-type Task struct {
-	Id             int64
-	ReferenceId    string
-	Schedule       string
-	Active         bool
-	Name           string
-	Attributes     map[string]interface{}
-	AsUserEmail    string
-	ActionName     string
-	EntityName     string
-	AttributesJson string
-}
-
-type TaskScheduler interface {
-	StartTasks()
-	AddTask(task Task) error
-	StopTasks()
-}
 
 type DefaultTaskScheduler struct {
 	//cmsConfig   *CmsConfig
@@ -39,7 +23,7 @@ type DefaultTaskScheduler struct {
 	activeTasks []*ActiveTaskInstance
 }
 
-func NewTaskScheduler(cmsConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) TaskScheduler {
+func NewTaskScheduler(cmsConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) task_scheduler.TaskScheduler {
 	cronService := cron.New()
 	cronService.Start()
 	dts := &DefaultTaskScheduler{
@@ -74,8 +58,8 @@ func (dts *DefaultTaskScheduler) StartTasks() {
 }
 
 type ActiveTaskInstance struct {
-	Task          Task
-	ActionRequest ActionRequest
+	Task          task.Task
+	ActionRequest actionresponse.ActionRequest
 	DbResource    *DbResource
 }
 
@@ -83,7 +67,7 @@ func (ati *ActiveTaskInstance) Run() {
 	log.Printf("[82] Execute task [%v][%v] as user [%v]", ati.Task.ReferenceId, ati.Task.ActionName, ati.Task.AsUserEmail)
 
 	sessionUser := &auth.SessionUser{}
-	transaction, err := ati.DbResource.Connection.Beginx()
+	transaction, err := ati.DbResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction for ATI.run [88]")
 	}
@@ -128,7 +112,7 @@ func (ati *ActiveTaskInstance) Run() {
 
 }
 
-func (dts *DefaultTaskScheduler) AddTask(task Task) error {
+func (dts *DefaultTaskScheduler) AddTask(task task.Task) error {
 	log.Printf("Register task [%v] at %v", task.ActionName, task.Schedule)
 	at := dts.cruds["task"].NewActiveTaskInstance(task)
 	dts.activeTasks = append(dts.activeTasks, at)
@@ -137,10 +121,10 @@ func (dts *DefaultTaskScheduler) AddTask(task Task) error {
 	return err
 }
 
-func (dbResource *DbResource) NewActiveTaskInstance(task Task) *ActiveTaskInstance {
+func (dbResource *DbResource) NewActiveTaskInstance(task task.Task) *ActiveTaskInstance {
 	return &ActiveTaskInstance{
 		Task: task,
-		ActionRequest: ActionRequest{
+		ActionRequest: actionresponse.ActionRequest{
 			Action:     task.ActionName,
 			Type:       task.EntityName,
 			Attributes: task.Attributes,

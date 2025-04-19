@@ -71,7 +71,7 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 // Returns the user mail account box row of a user
 func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
 
-	transaction, err := dbResource.Cruds["mail_box"].Connection.Beginx()
+	transaction, err := dbResource.Cruds["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 // Returns the user mail account box row of a user
 func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
 
-	transaction, err := dbResource.Cruds["mail_box"].Connection.Beginx()
+	transaction, err := dbResource.Cruds["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
 	}

@@ -2,20 +2,71 @@ package server
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/artpar/conform"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/doug-martin/goqu/v9"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+func EndsWithCheck(str string, endsWith string) bool {
+	if len(endsWith) > len(str) {
+		return false
+	}
+
+	if len(endsWith) == len(str) && endsWith != str {
+		return false
+	}
+
+	suffix := str[len(str)-len(endsWith):]
+	i := suffix == endsWith
+	return i
+
+}
+
+func BeginsWithCheck(str string, beginsWith string) bool {
+	if len(beginsWith) > len(str) {
+		return false
+	}
+
+	if len(beginsWith) == len(str) && beginsWith != str {
+		return false
+	}
+
+	prefix := str[:len(beginsWith)]
+	i := prefix == beginsWith
+	//log.Printf("Check [%v] begins with [%v]: %v", str, beginsWith, i)
+	return i
+
+}
+
+func CheckErr(err error, message ...interface{}) bool {
+
+	if err != nil {
+		fmtString := message[0].(string)
+		args := make([]interface{}, 0)
+		if len(message) > 1 {
+			args = message[1:]
+		}
+		args = append(args, err)
+		log.Errorf(fmtString+": %v", args...)
+		return true
+	}
+	return false
+}
 
 func CheckSystemSecrets(store *resource.ConfigStore, transaction *sqlx.Tx) error {
 	jwtSecret, err := store.GetConfigValueFor("jwt.secret", "backend", transaction)
@@ -23,7 +74,7 @@ func CheckSystemSecrets(store *resource.ConfigStore, transaction *sqlx.Tx) error
 		u, _ := uuid.NewV7()
 		jwtSecret = u.String()
 		err = store.SetConfigValueFor("jwt.secret", jwtSecret, "backend", transaction)
-		resource.CheckErr(err, "Failed to store jwt secret")
+		CheckErr(err, "Failed to store jwt secret")
 	}
 
 	encryptionSecret, err := store.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -37,7 +88,7 @@ func CheckSystemSecrets(store *resource.ConfigStore, transaction *sqlx.Tx) error
 
 }
 
-func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.EmbeddedClient, cruds map[string]*resource.DbResource) {
+func AddResourcesToApi2Go(api *api2go.API, tables []table_info.TableInfo, db database.DatabaseConnection, ms *resource.MiddlewareSet, configStore *resource.ConfigStore, olricDb *olric.EmbeddedClient, cruds map[string]*resource.DbResource) {
 	for _, table := range tables {
 
 		if table.TableName == "" {
@@ -72,9 +123,9 @@ func AddResourcesToApi2Go(api *api2go.API, tables []resource.TableInfo, db datab
 
 }
 
-func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, error) {
+func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo, error) {
 
-	ts := make([]resource.TableInfo, 0)
+	ts := make([]table_info.TableInfo, 0)
 
 	sql, args, err := statementbuilder.Squirrel.
 		Select("table_name", "permission", "default_permission",
@@ -136,7 +187,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]resource.TableInfo, e
 			continue
 		}
 
-		var t resource.TableInfo
+		var t table_info.TableInfo
 
 		err = json.Unmarshal([]byte(world_schema_json), &t)
 
@@ -284,7 +335,7 @@ func CleanUpConfigFiles() {
 
 	for _, fileName := range files {
 		err := os.Remove(fileName)
-		resource.CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
+		CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
 	}
 
 	schemaFolderDefinedByEnv, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
@@ -293,7 +344,28 @@ func CleanUpConfigFiles() {
 	for _, fileName := range files {
 		err := os.Remove(fileName)
 		log.Infof("Deleted config files: %v", fileName)
-		resource.CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
+		CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
 	}
 
+}
+
+func EndsWith(str string, endsWith string) (string, bool) {
+	if len(endsWith) > len(str) {
+		return "", false
+	}
+
+	if len(endsWith) == len(str) && endsWith != str {
+		return "", false
+	}
+
+	suffix := str[len(str)-len(endsWith):]
+	prefix := str[:len(str)-len(endsWith)]
+	i := suffix == endsWith
+	return prefix, i
+
+}
+
+func SmallSnakeCaseText(str string) string {
+	transformed := conform.TransformString(str, "lower,snake")
+	return transformed
 }

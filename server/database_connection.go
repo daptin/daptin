@@ -86,11 +86,11 @@ func GetDbConnection(dbType string, connectionString string) (*sqlx.DB, error) {
 
 	db.SetConnMaxLifetime(maxConnectionLifetimeMin)
 	db.SetConnMaxIdleTime(maxConnectionIdleTimeMin)
-	log.Infof("Database Connection Params: "+
+	log.Infof("Database connection Params: "+
 		"Max Idle Connections: [%v], "+
 		"Max Open Connections: [%v] , "+
-		"Max Connection Life time: [%v] , "+
-		"Max Idle Connection life time: [%v] ",
+		"Max connection Life time: [%v] , "+
+		"Max Idle connection life time: [%v] ",
 		maxIdleConnectionsInt,
 		maxOpenConnectionsInt,
 		maxConnectionLifetimeMin,

@@ -34,7 +34,7 @@ func (diu *DaptinImapUser) Username() string {
 func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
 
 	var boxes []backend.Mailbox
-	transaction, err := diu.dbResource["mail_box"].Connection.Beginx()
+	transaction, err := diu.dbResource["mail_box"].Connection().Beginx()
 	defer transaction.Commit()
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 // ErrNoSuchMailbox.
 func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 
-	transaction, err := diu.dbResource["mail_box"].Connection.Beginx()
+	transaction, err := diu.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func (diu *DaptinImapUser) CreateMailboxWithTransaction(name string, transaction
 // has a different unique identifier validity value.
 func (diu *DaptinImapUser) CreateMailbox(name string) error {
 
-	transaction, err := diu.dbResource["mail_box"].Connection.Beginx()
+	transaction, err := diu.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
 	}
@@ -348,7 +348,7 @@ func (diu *DaptinImapUser) RenameMailbox(existingName, newName string) error {
 }
 
 // Logout is called when this User will no longer be used, likely because the
-// client closed the Connection.
+// client closed the connection.
 func (diu *DaptinImapUser) Logout() error {
 	return nil
 }

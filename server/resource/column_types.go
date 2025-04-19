@@ -3,7 +3,7 @@ package resource
 import (
 	"crypto/md5"
 	"fmt"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/icrowley/fake"
 	log "github.com/sirupsen/logrus"

@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/permission"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/go-redis/redis/v8"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -74,10 +75,10 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 							_, tableExists = wsch.cruds[typeName.(string)]
 						}
 
-						permission := resource.PermissionInstance{Permission: auth.ALLOW_ALL_PERMISSIONS}
+						permission := permission.PermissionInstance{Permission: auth.ALLOW_ALL_PERMISSIONS}
 
 						if tableExists {
-							tx, err := wsch.cruds["world"].Connection.Beginx()
+							tx, err := wsch.cruds["world"].Connection().Beginx()
 							if err != nil {
 								resource.CheckErr(err, "Failed to begin transaction [78]")
 							}
@@ -150,7 +151,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 
 	case "list-topicName":
 		topics := make([]string, 0)
-		for t, _ := range *wsch.DtopicMap {
+		for t := range *wsch.DtopicMap {
 			topics = append(topics, t)
 		}
 

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	"os"
@@ -13,7 +14,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/dop251/goja"
 	"github.com/gin-gonic/gin"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	//"io"
@@ -32,11 +33,11 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-var guestActions = map[string]Action{}
+var guestActions = map[string]actionresponse.Action{}
 
 func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 
-	actionMap := make(map[string]Action)
+	actionMap := make(map[string]actionresponse.Action)
 
 	for _, ac := range initConfig.Actions {
 		actionMap[ac.OnType+":"+ac.Name] = ac
@@ -49,11 +50,6 @@ func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 
 		c.JSON(200, guestActions)
 	}
-}
-
-type ActionPerformerInterface interface {
-	DoAction(request Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []ActionResponse, []error)
-	Name() string
 }
 
 type DaptinError struct {
@@ -73,15 +69,15 @@ func NewDaptinError(str string, code string) *DaptinError {
 }
 
 func CreatePostActionHandler(initConfig *CmsConfig,
-	cruds map[string]*DbResource, actionPerformers []ActionPerformerInterface) func(*gin.Context) {
+	cruds map[string]*DbResource, actionPerformers []actionresponse.ActionPerformerInterface) func(*gin.Context) {
 
-	actionMap := make(map[string]Action)
+	actionMap := make(map[string]actionresponse.Action)
 
 	for _, ac := range initConfig.Actions {
 		actionMap[ac.OnType+":"+ac.Name] = ac
 	}
 
-	actionHandlerMap := make(map[string]ActionPerformerInterface)
+	actionHandlerMap := make(map[string]actionresponse.ActionPerformerInterface)
 
 	for _, actionPerformer := range actionPerformers {
 		if actionPerformer == nil {
@@ -119,22 +115,23 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 			actionCrudResource = cruds["world"]
 		}
 
-		transaction, err := cruds["world"].Connection.Beginx()
+		transaction, err := cruds["world"].Connection().Beginx()
 		if err != nil {
 			CheckErr(err, "Failed to begin transaction [121]")
 		}
-		defer transaction.Commit()
 
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req, transaction)
 		if err != nil {
 			transaction.Rollback()
+		} else {
+			transaction.Commit()
 		}
 
 		responseStatus := 200
 		for _, response := range responses {
 			if response.ResponseType == "render" {
 				attrs := response.Attributes.(map[string]interface{})
-				var content string = attrs["content"].(string)
+				var content = attrs["content"].(string)
 				var mimeType = attrs["mime_type"].(string)
 				var headers = attrs["headers"].(map[string]string)
 
@@ -173,7 +170,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 				if len(responses) > 0 {
 					ginContext.AbortWithStatusJSON(httpErr.Status(), responses)
 				} else {
-					ginContext.AbortWithStatusJSON(httpErr.Status(), []ActionResponse{
+					ginContext.AbortWithStatusJSON(httpErr.Status(), []actionresponse.ActionResponse{
 						{
 							ResponseType: "client.notify",
 							Attributes: map[string]interface{}{
@@ -189,7 +186,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 				if len(responses) > 0 {
 					ginContext.AbortWithStatusJSON(400, responses)
 				} else {
-					ginContext.AbortWithStatusJSON(500, []ActionResponse{
+					ginContext.AbortWithStatusJSON(500, []actionresponse.ActionResponse{
 						{
 							ResponseType: "client.notify",
 							Attributes: map[string]interface{}{
@@ -212,8 +209,8 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 	}
 }
 
-func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest,
-	req api2go.Request, transaction *sqlx.Tx) ([]ActionResponse, error) {
+func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.ActionRequest,
+	req api2go.Request, transaction *sqlx.Tx) ([]actionresponse.ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -347,8 +344,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest ActionRequest,
 		inFieldMap["subject"] = subjectInstanceMap
 	}
 
-	responses := make([]ActionResponse, 0)
-	var restartOnCompletion = false
+	responses := make([]actionresponse.ActionResponse, 0)
 
 	sessionUser.Groups = append(sessionUser.Groups, auth.GroupPermission{
 		GroupReferenceId: dbResource.AdministratorGroupId,
@@ -358,15 +354,15 @@ OutFields:
 	for _, outcome := range action.OutFields {
 		var responseObjects interface{}
 		responseObjects = nil
-		var responses1 []ActionResponse
+		var responses1 []actionresponse.ActionResponse
 		var errors1 []error
-		var actionResponse ActionResponse
+		var actionResponse actionresponse.ActionResponse
 
 		log.Debugf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceString, outcome.Type, outcome.Method)
 
 		if len(outcome.Condition) > 0 {
 			var outcomeResult interface{}
-			outcomeResult, err = evaluateString(outcome.Condition, inFieldMap)
+			outcomeResult, err = EvaluateString(outcome.Condition, inFieldMap)
 			CheckErr(err, "[%s][%s]Failed to evaluate condition, assuming false by default", action.OnType, action.Name)
 			if err != nil {
 				continue
@@ -403,7 +399,7 @@ OutFields:
 			if outcome.ContinueOnError {
 				continue
 			} else {
-				return []ActionResponse{}, fmt.Errorf("invalid input for %v => %v", outcome.Type, err)
+				return []actionresponse.ActionResponse{}, fmt.Errorf("invalid input for %v => %v", outcome.Type, err)
 			}
 		}
 		model = *modelPointer
@@ -421,7 +417,7 @@ OutFields:
 		//}
 		//request.PlainRequest = request.PlainRequest.WithContext(requestContext)
 
-		actionResponses := make([]ActionResponse, 0)
+		actionResponses := make([]actionresponse.ActionResponse, 0)
 		//log.Printf("Next outcome method: [%v][%v]", outcome.Method, outcome.Type)
 		switch outcome.Method {
 		case "SWITCH_USER":
@@ -568,11 +564,6 @@ OutFields:
 				outcome.Attributes["user"] = sessionUser
 				responder, responses1, errors1 = performer.DoAction(outcome, model.GetAttributes(), transaction)
 
-				for _, res := range responses1 {
-					if res.ResponseType == "restart" {
-						restartOnCompletion = true
-					}
-				}
 				actionResponses = append(actionResponses, responses1...)
 				if len(errors1) > 0 {
 					err = errors1[0]
@@ -581,7 +572,7 @@ OutFields:
 				if responder != nil {
 					api2GoResult := responder.Result().(api2go.Api2GoModel)
 					if api2GoResult.GetName() == "render" {
-						return []ActionResponse{
+						return []actionresponse.ActionResponse{
 							{
 								ResponseType: "render",
 								Attributes:   api2GoResult.GetAttributes(),
@@ -595,7 +586,7 @@ OutFields:
 		case "ACTIONRESPONSE":
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 			log.Debugf("Create action response: %v", model.GetName())
-			var actionResponse ActionResponse
+			var actionResponse actionresponse.ActionResponse
 			actionResponse = NewActionResponse(model.GetName(), model.GetAttributes())
 			responseObjects = api2go.Response{
 				Res: model,
@@ -706,19 +697,14 @@ OutFields:
 	if err != nil {
 		return nil, err
 	}
-	commitErr := transaction.Commit()
-	CheckErr(commitErr, "Failed to commit")
-	if restartOnCompletion {
-		go restart()
-	}
 
-	return responses, commitErr
+	return responses, nil
 }
 
 func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,
-	params gin.Params, queryParams url.Values) (ActionRequest, error) {
+	params gin.Params, queryParams url.Values) (actionresponse.ActionRequest, error) {
 	bytes, err := io.ReadAll(closer)
-	actionRequest := ActionRequest{}
+	actionRequest := actionresponse.ActionRequest{}
 	actionRequest.RawBodyBytes = bytes
 	actionRequest.RawBodyString = string(bytes)
 	if err != nil {
@@ -804,14 +790,9 @@ func GetMD5Hash(text []byte) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-type ActionResponse struct {
-	ResponseType string
-	Attributes   interface{}
-}
+func NewActionResponse(responseType string, attrs interface{}) actionresponse.ActionResponse {
 
-func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
-
-	ar := ActionResponse{
+	ar := actionresponse.ActionResponse{
 		ResponseType: responseType,
 		Attributes:   attrs,
 	}
@@ -821,7 +802,7 @@ func NewActionResponse(responseType string, attrs interface{}) ActionResponse {
 }
 
 func BuildOutcome(inFieldMap map[string]interface{},
-	outcome Outcome, sessionUser *auth.SessionUser) (*api2go.Api2GoModel,
+	outcome actionresponse.Outcome, sessionUser *auth.SessionUser) (*api2go.Api2GoModel,
 	api2go.Request, error) {
 
 	attrInterface, err := BuildActionContext(outcome.Attributes, inFieldMap)
@@ -1013,7 +994,7 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 
 				fieldString := field.(string)
 
-				val, err := evaluateString(fieldString, inFieldMap)
+				val, err := EvaluateString(fieldString, inFieldMap)
 				//log.Printf("Value of [%v] == [%v]", key, val)
 				if err != nil {
 					return data, err
@@ -1069,7 +1050,7 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 				outcomeString, isString := outcome.(string)
 
 				if isString {
-					evtStr, err := evaluateString(outcomeString, inFieldMap)
+					evtStr, err := EvaluateString(outcomeString, inFieldMap)
 					if err != nil {
 						return data, err
 					}
@@ -1088,7 +1069,7 @@ func BuildActionContext(outcomeAttributes interface{}, inFieldMap map[string]int
 	return data, nil
 }
 
-func evaluateString(fieldString string, inFieldMap map[string]interface{}) (interface{}, error) {
+func EvaluateString(fieldString string, inFieldMap map[string]interface{}) (interface{}, error) {
 
 	var valueToReturn interface{}
 
@@ -1240,7 +1221,7 @@ func evaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 	return valueToReturn, nil
 }
 
-func GetValidatedInFields(actionRequest ActionRequest, action Action) (map[string]interface{}, error) {
+func GetValidatedInFields(actionRequest actionresponse.ActionRequest, action actionresponse.Action) (map[string]interface{}, error) {
 
 	dataMap := actionRequest.Attributes
 	finalDataMap := make(map[string]interface{})

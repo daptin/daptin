@@ -19,7 +19,7 @@ import (
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/textproto"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
@@ -67,7 +67,7 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 	//	iMap[item] = true
 	//}
 
-	transaction, err := dimb.dbResource["mail_box"].Connection.Beginx()
+	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 // SetSubscribed adds or removes the mailbox to the server's set of "active"
 // or "subscribed" mailboxes.
 func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
-	transaction, err := dimb.dbResource["mail_box"].Connection.Beginx()
+	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
 // considerations, CHECK is equivalent to NOOP.
 func (dimb *DaptinImapMailBox) Check() error {
 
-	transaction, err := dimb.dbResource["mail_box"].Connection.Beginx()
+	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
 	}
@@ -392,7 +392,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	}
 
 	log.Printf("Search query for mail: %v", searchRequest.QueryParams)
-	transaction, err := dimb.dbResource["mail"].Connection.Beginx()
+	transaction, err := dimb.dbResource["mail"].Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [383]")
 		return nil, err
@@ -652,7 +652,7 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 	var mails []map[string]interface{}
 	var err error
 
-	transaction, err := dimb.dbResource["mail"].Connection.Beginx()
+	transaction, err := dimb.dbResource["mail"].Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [644]")
 		return err

@@ -2,7 +2,11 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
-	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/columns"
+	"github.com/daptin/daptin/server/fsm"
+	"github.com/daptin/daptin/server/table_info"
+	"github.com/daptin/daptin/server/task"
 )
 
 func IsStandardColumn(colName string) bool {
@@ -86,10 +90,10 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelationWithNames("user_otp_account", "primary_user_otp", "belongs_to", "user_account", "otp_of_account"),
 }
 
-var SystemSmds []LoopbookFsmDescription
+var SystemSmds []fsm.LoopbookFsmDescription
 var SystemExchanges []ExchangeContract
 
-var SystemActions = []Action{
+var SystemActions = []actionresponse.Action{
 	{
 		Name:             "import_files_from_store",
 		Label:            "Import files data to a table",
@@ -102,7 +106,7 @@ var SystemActions = []Action{
 				ColumnName: "table_name",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "cloud_store.files.import",
 				Method: "EXECUTE",
@@ -117,7 +121,7 @@ var SystemActions = []Action{
 		Label:            "Install integration",
 		OnType:           "integration",
 		InstanceOptional: false,
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "integration.install",
 				Method: "EXECUTE",
@@ -132,7 +136,7 @@ var SystemActions = []Action{
 		Label:            "Download certificate",
 		OnType:           "certificate",
 		InstanceOptional: false,
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "client.file.download",
 				Method: "ACTIONRESPONSE",
@@ -150,7 +154,7 @@ var SystemActions = []Action{
 		Label:            "Get Action Schema",
 		OnType:           "action",
 		InstanceOptional: false,
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "client.file.download",
 				Method: "ACTIONRESPONSE",
@@ -168,7 +172,7 @@ var SystemActions = []Action{
 		Label:            "Download public key",
 		OnType:           "certificate",
 		InstanceOptional: false,
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "client.file.download",
 				Method: "ACTIONRESPONSE",
@@ -193,7 +197,7 @@ var SystemActions = []Action{
 				ColumnName: "email",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "acme.tls.generate",
 				Method: "EXECUTE",
@@ -210,7 +214,7 @@ var SystemActions = []Action{
 		OnType:           "certificate",
 		InstanceOptional: false,
 		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "self.tls.generate",
 				Method: "EXECUTE",
@@ -232,7 +236,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:      "otp.generate",
 				Method:    "EXECUTE",
@@ -275,7 +279,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "otp.login.verify",
 				Method: "EXECUTE",
@@ -304,7 +308,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:      "otp.generate",
 				Method:    "EXECUTE",
@@ -347,7 +351,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "otp.login.verify",
 				Method: "EXECUTE",
@@ -371,7 +375,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "world.column.delete",
 				Method: "EXECUTE",
@@ -388,7 +392,7 @@ var SystemActions = []Action{
 		OnType:           "world",
 		InstanceOptional: false,
 		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "world.delete",
 				Method: "EXECUTE",
@@ -420,7 +424,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "world.column.rename",
 				Method: "EXECUTE",
@@ -444,7 +448,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "site.storage.sync",
 				Method: "EXECUTE",
@@ -473,7 +477,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "column.storage.sync",
 				Method: "EXECUTE",
@@ -490,7 +494,7 @@ var SystemActions = []Action{
 		OnType:           "mail_server",
 		InstanceOptional: true,
 		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:       "mail.servers.sync",
 				Method:     "EXECUTE",
@@ -504,7 +508,7 @@ var SystemActions = []Action{
 		OnType:           "world",
 		InstanceOptional: true,
 		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "system_json_schema_update",
 				Method: "EXECUTE",
@@ -531,7 +535,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "generate.random.data",
 				Method: "EXECUTE",
@@ -543,7 +547,7 @@ var SystemActions = []Action{
 				},
 			},
 		},
-		Validations: []ColumnTag{
+		Validations: []columns.ColumnTag{
 			{
 				ColumnName: "count",
 				Tags:       "gt=0",
@@ -562,7 +566,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "__data_export",
 				Method: "EXECUTE",
@@ -584,7 +588,7 @@ var SystemActions = []Action{
 				ColumnType: "label",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "__csv_data_export",
 				Method: "EXECUTE",
@@ -612,7 +616,7 @@ var SystemActions = []Action{
 				ColumnType: "truefalse",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "__data_import",
 				Method: "EXECUTE",
@@ -646,7 +650,7 @@ var SystemActions = []Action{
 				DefaultValue: "",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "cloudstore.file.upload",
 				Method: "EXECUTE",
@@ -686,7 +690,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "cloudstore.site.create",
 				Method: "EXECUTE",
@@ -718,7 +722,7 @@ var SystemActions = []Action{
 				DefaultValue: "",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "cloudstore.file.delete",
 				Method: "EXECUTE",
@@ -752,7 +756,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "cloudstore.folder.create",
 				Method: "EXECUTE",
@@ -785,7 +789,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "cloudstore.path.move",
 				Method: "EXECUTE",
@@ -812,7 +816,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "site.file.list",
 				Method: "EXECUTE",
@@ -837,7 +841,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "site.file.get",
 				Method: "EXECUTE",
@@ -861,7 +865,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "site.file.delete",
 				Method: "EXECUTE",
@@ -885,7 +889,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "system_json_schema_update",
 				Method: "EXECUTE",
@@ -926,13 +930,13 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		Validations: []ColumnTag{
+		Validations: []columns.ColumnTag{
 			{
 				ColumnName: "entity_name",
 				Tags:       "required",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "__upload_xlsx_file_to_entity",
 				Method: "EXECUTE",
@@ -978,13 +982,13 @@ var SystemActions = []Action{
 				IsNullable:   true,
 			},
 		},
-		Validations: []ColumnTag{
+		Validations: []columns.ColumnTag{
 			{
 				ColumnName: "entity_name",
 				Tags:       "required",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "__upload_csv_file_to_entity",
 				Method: "EXECUTE",
@@ -1003,7 +1007,7 @@ var SystemActions = []Action{
 		OnType:           "world",
 		InstanceOptional: true,
 		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:       "__download_cms_config",
 				Method:     "EXECUTE",
@@ -1017,7 +1021,7 @@ var SystemActions = []Action{
 		InstanceOptional: true,
 		OnType:           "world",
 		InFields:         []api2go.ColumnInfo{},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "__become_admin",
 				Method: "EXECUTE",
@@ -1065,7 +1069,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		Validations: []ColumnTag{
+		Validations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
@@ -1079,7 +1083,7 @@ var SystemActions = []Action{
 				Tags:       "eqfield=InnerStructField[passwordConfirm],min=8",
 			},
 		},
-		Conformations: []ColumnTag{
+		Conformations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
@@ -1093,7 +1097,7 @@ var SystemActions = []Action{
 				Tags:       "trim",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:           USER_ACCOUNT_TABLE_NAME,
 				Method:         "POST",
@@ -1150,19 +1154,19 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		Validations: []ColumnTag{
+		Validations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
 			},
 		},
-		Conformations: []ColumnTag{
+		Conformations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:           USER_ACCOUNT_TABLE_NAME,
 				Method:         "GET",
@@ -1212,19 +1216,19 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		Validations: []ColumnTag{
+		Validations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
 			},
 		},
-		Conformations: []ColumnTag{
+		Conformations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:           USER_ACCOUNT_TABLE_NAME,
 				Method:         "GET",
@@ -1292,7 +1296,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "jwt.token",
 				Method: "EXECUTE",
@@ -1308,7 +1312,7 @@ var SystemActions = []Action{
 		Label:    "Authenticate via OAuth",
 		OnType:   "oauth_connect",
 		InFields: []api2go.ColumnInfo{},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "oauth.client.redirect",
 				Method: "EXECUTE",
@@ -1344,12 +1348,12 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:           "oauth_connect",
 				Method:         "GET",
 				SkipInResponse: true,
-				Reference:      "Connection",
+				Reference:      "connection",
 				Attributes: map[string]interface{}{
 					"filter":       "~authenticator",
 					"page[number]": "1",
@@ -1374,12 +1378,12 @@ var SystemActions = []Action{
 				Method:         "EXECUTE",
 				Reference:      "profile",
 				SkipInResponse: true,
-				Condition:      "$Connection[0].allow_login",
+				Condition:      "$connection[0].allow_login",
 				Attributes: map[string]interface{}{
 					"authenticator": "~authenticator",
 					"token":         "$auth.access_token",
-					"tokenInfoUrl":  "$Connection[0].token_url",
-					"profileUrl":    "$Connection[0].profile_url",
+					"tokenInfoUrl":  "$connection[0].token_url",
+					"profileUrl":    "$connection[0].profile_url",
 				},
 			},
 			{
@@ -1387,7 +1391,7 @@ var SystemActions = []Action{
 				Method:         "GET",
 				Reference:      "user",
 				SkipInResponse: true,
-				Condition:      "$Connection[0].allow_login",
+				Condition:      "$connection[0].allow_login",
 				Attributes: map[string]interface{}{
 					"filter": "!profile.email || profile.emailAddress",
 				},
@@ -1468,7 +1472,7 @@ var SystemActions = []Action{
 				IsNullable: false,
 			},
 		},
-		OutFields: []Outcome{
+		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "data_exchange",
 				Method: "POST",
@@ -1488,9 +1492,9 @@ var SystemActions = []Action{
 
 var adminsGroup = []string{"administrators"}
 
-var StandardTasks []Task
+var StandardTasks []task.Task
 
-var StandardTables = []TableInfo{
+var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     "document",
 		IsHidden:      true,
@@ -2021,6 +2025,24 @@ var StandardTables = []TableInfo{
 				IsIndexed:  false,
 			},
 			{
+				ColumnName:   "action_config",
+				Name:         "action_config",
+				ColumnType:   "json",
+				DataType:     "text",
+				IsNullable:   true,
+				DefaultValue: "'{}'",
+				IsIndexed:    false,
+			},
+			{
+				ColumnName:   "cache_config",
+				Name:         "cache_config",
+				ColumnType:   "json",
+				DataType:     "text",
+				IsNullable:   true,
+				DefaultValue: "'{}'",
+				IsIndexed:    false,
+			},
+			{
 				ColumnName: "mime_type",
 				Name:       "mime_type",
 				ColumnType: "label",
@@ -2031,7 +2053,7 @@ var StandardTables = []TableInfo{
 			{
 				ColumnName: "headers",
 				Name:       "headers",
-				ColumnType: "content",
+				ColumnType: "json",
 				DataType:   "text",
 				IsNullable: true,
 				IsIndexed:  false,
@@ -2039,7 +2061,7 @@ var StandardTables = []TableInfo{
 			{
 				ColumnName: "url_pattern",
 				Name:       "url_pattern",
-				ColumnType: "label",
+				ColumnType: "json",
 				DataType:   "text",
 				IsNullable: false,
 				IsIndexed:  false,
@@ -2303,7 +2325,7 @@ var StandardTables = []TableInfo{
 				DefaultValue: "false",
 			},
 		},
-		Validations: []ColumnTag{
+		Validations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
@@ -2317,7 +2339,7 @@ var StandardTables = []TableInfo{
 				Tags:       "required",
 			},
 		},
-		Conformations: []ColumnTag{
+		Conformations: []columns.ColumnTag{
 			{
 				ColumnName: "email",
 				Tags:       "email",
@@ -3082,86 +3104,4 @@ var StandardStreams = []StreamContract{
 			},
 		},
 	},
-}
-
-type TableRelation struct {
-	api2go.TableRelation
-	OnDelete string
-}
-
-type TableInfo struct {
-	TableName              string `db:"table_name"`
-	TableId                int
-	DefaultPermission      auth.AuthPermission `db:"default_permission"`
-	Columns                []api2go.ColumnInfo
-	StateMachines          []LoopbookFsmDescription
-	Relations              []api2go.TableRelation
-	IsTopLevel             bool `db:"is_top_level"`
-	Permission             auth.AuthPermission
-	UserId                 uint64              `db:"user_account_id"`
-	IsHidden               bool                `db:"is_hidden"`
-	IsJoinTable            bool                `db:"is_join_table"`
-	IsStateTrackingEnabled bool                `db:"is_state_tracking_enabled"`
-	IsAuditEnabled         bool                `db:"is_audit_enabled"`
-	TranslationsEnabled    bool                `db:"translation_enabled"`
-	DefaultGroups          []string            `db:"default_groups"`
-	DefaultRelations       map[string][]string `db:"default_relations"`
-	Validations            []ColumnTag
-	Conformations          []ColumnTag
-	DefaultOrder           string
-	Icon                   string
-	CompositeKeys          [][]string
-}
-
-func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
-
-	for _, col := range ti.Columns {
-		if col.Name == name || col.ColumnName == name {
-			return &col, true
-		}
-	}
-
-	return nil, false
-
-}
-func (ti *TableInfo) GetRelationByName(name string) (*api2go.TableRelation, bool) {
-
-	for _, relation := range ti.Relations {
-		if relation.SubjectName == name || relation.ObjectName == name {
-			return &relation, true
-		}
-	}
-
-	return nil, false
-
-}
-
-func (ti *TableInfo) AddRelation(relations ...api2go.TableRelation) {
-
-	if ti.Relations == nil {
-		ti.Relations = make([]api2go.TableRelation, 0)
-	}
-
-	for _, relation := range relations {
-		exists := false
-		hash := relation.Hash()
-
-		for _, existingRelation := range ti.Relations {
-			if existingRelation.Hash() == hash {
-				exists = true
-				//log.Debugf("Relation already exists: %v", relation)
-				break
-			}
-		}
-
-		if !exists {
-			ti.Relations = append(ti.Relations, relation)
-		}
-	}
-
-}
-
-type ColumnTag struct {
-	ColumnName string
-	Tags       string
 }

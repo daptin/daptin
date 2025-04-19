@@ -5,7 +5,7 @@ import (
 	"github.com/artpar/api2go"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9/exp"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"regexp"

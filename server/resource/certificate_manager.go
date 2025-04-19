@@ -13,6 +13,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/subsite"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -138,7 +139,7 @@ type TLSCertificate struct {
 }
 
 func (cm *CertificateManager) GetTLSForEnabledSubsites(transaction *sqlx.Tx) (map[string]*TLSCertificate, error) {
-	allSites, err := cm.cruds["site"].GetAllSites(transaction)
+	allSites, err := subsite.GetAllSites(cm.cruds["site"], transaction)
 	if err != nil {
 		return nil, err
 	}

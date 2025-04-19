@@ -2,9 +2,11 @@ package server
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/gobuffalo/flect"
 	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
@@ -17,13 +19,10 @@ import (
 	"strings"
 	//	"encoding/base64"
 	"errors"
-	"github.com/json-iterator/go"
 	//"fmt"
 	"fmt"
 	"github.com/artpar/api2go/jsonapi"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var nodeDefinitions *relay.NodeDefinitions
 
@@ -314,7 +313,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				"page":   &pageConfig,
 			},
 			//Args:        uniqueFields,
-			Resolve: func(table resource.TableInfo) func(params graphql.ResolveParams) (interface{}, error) {
+			Resolve: func(table table_info.TableInfo) func(params graphql.ResolveParams) (interface{}, error) {
 				return func(params graphql.ResolveParams) (interface{}, error) {
 
 					//log.Printf("Arguments: %v", params.Args)
@@ -461,7 +460,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					Type: graphql.NewList(graphql.String),
 				},
 			},
-			Resolve: func(table resource.TableInfo) func(params graphql.ResolveParams) (interface{}, error) {
+			Resolve: func(table table_info.TableInfo) func(params graphql.ResolveParams) (interface{}, error) {
 
 				return func(params graphql.ResolveParams) (interface{}, error) {
 					log.Printf("GraphQL Aggregate Query Arguments: %v", params.Args)
@@ -472,7 +471,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						sessionUser = user.(*auth.SessionUser)
 					}
 
-					transaction, err := resources[table.TableName].Connection.Beginx()
+					transaction, err := resources[table.TableName].Connection().Beginx()
 					if err != nil {
 						resource.CheckErr(err, "Failed to begin transaction [548]")
 						return nil, err
@@ -565,7 +564,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			continue
 		}
 
-		func(table resource.TableInfo) {
+		func(table table_info.TableInfo) {
 
 			inputFields := make(graphql.FieldConfigArgument)
 			updateFields := make(graphql.FieldConfigArgument)
@@ -621,7 +620,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					req := api2go.Request{
 						PlainRequest: pr,
 					}
-					transaction, err := resources[table.TableName].Connection.Beginx()
+					transaction, err := resources[table.TableName].Connection().Beginx()
 					if err != nil {
 						return nil, err
 					}
@@ -668,7 +667,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						sessionUser = sessionUserInterface.(*auth.SessionUser)
 					}
 
-					transaction, err := resources[table.TableName].Connection.Beginx()
+					transaction, err := resources[table.TableName].Connection().Beginx()
 					if err != nil {
 						return nil, err
 					}
@@ -758,7 +757,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						PlainRequest: pr,
 					}
 
-					transaction, err := resources[table.TableName].Connection.Beginx()
+					transaction, err := resources[table.TableName].Connection().Beginx()
 					if err != nil {
 						return nil, err
 					}
@@ -785,7 +784,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 	for _, a := range cmsConfig.Actions {
 
-		func(action resource.Action) {
+		func(action actionresponse.Action) {
 
 			inputFields := make(graphql.FieldConfigArgument)
 
@@ -831,13 +830,13 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						PlainRequest: pr,
 					}
 
-					actionRequest := resource.ActionRequest{
+					actionRequest := actionresponse.ActionRequest{
 						Type:       action.OnType,
 						Action:     action.Name,
 						Attributes: params.Args,
 					}
 
-					transaction, err := resources[action.OnType].Connection.Beginx()
+					transaction, err := resources[action.OnType].Connection().Beginx()
 					if err != nil {
 						return nil, err
 					}

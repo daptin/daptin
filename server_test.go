@@ -230,7 +230,7 @@ func createServer() (server.HostSwitch, *guerrilla.Daemon, resource.TaskSchedule
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("Connection acquired from database")
+	log.Printf("connection acquired from database")
 
 	var hostSwitch server.HostSwitch
 	var mailDaemon *guerrilla.Daemon

@@ -131,7 +131,7 @@ func (driver *DaptinFtpDriver) GetTLSConfig() (*tls.Config, error) {
 		break
 	}
 
-	transaction, err := driver.cruds["world"].Connection.Beginx()
+	transaction, err := driver.cruds["world"].Connection().Beginx()
 	if err != nil {
 		resource.CheckErr(err, "Failed to begin transaction [134]")
 		return nil, err
@@ -172,7 +172,7 @@ func (driver *DaptinFtpDriver) WelcomeUser(cc server.ClientContext) (string, err
 // AuthUser authenticates the user and selects an handling driver
 func (driver *DaptinFtpDriver) AuthUser(cc server.ClientContext, user, pass string) (server.ClientHandlingDriver, error) {
 
-	transaction, err := driver.cruds["user_account"].Connection.Beginx()
+	transaction, err := driver.cruds["user_account"].Connection().Beginx()
 	if err != nil {
 		resource.CheckErr(err, "Failed to begin transaction [174]")
 		return nil, err

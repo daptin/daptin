@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/buraksezer/olric"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/daptin/daptin/server/task"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -138,109 +140,6 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.Tx) (int64, int64) {
 
 }
 
-type SubSite struct {
-	Id           int64
-	Name         string
-	Hostname     string
-	Path         string
-	CloudStoreId *int64 `db:"cloud_store_id"`
-	Permission   PermissionInstance
-	SiteType     string                     `db:"site_type"`
-	FtpEnabled   bool                       `db:"ftp_enabled"`
-	UserId       *int64                     `db:"user_account_id"`
-	ReferenceId  daptinid.DaptinReferenceId `db:"reference_id"`
-	Enable       bool                       `db:"enable"`
-}
-
-type CloudStore struct {
-	Id              int64
-	RootPath        string
-	StoreParameters map[string]interface{}
-	UserId          daptinid.DaptinReferenceId
-	CredentialName  string
-	Name            string
-	StoreType       string
-	StoreProvider   string
-	Version         int
-	CreatedAt       *time.Time
-	UpdatedAt       *time.Time
-	DeletedAt       *time.Time
-	ReferenceId     daptinid.DaptinReferenceId
-	Permission      PermissionInstance
-}
-
-func (dbResource *DbResource) GetAllCloudStores(transaction *sqlx.Tx) ([]CloudStore, error) {
-	var cloudStores []CloudStore
-
-	rows, err := dbResource.GetAllObjects("cloud_store", transaction)
-	if err != nil {
-		return cloudStores, err
-	}
-
-	for _, storeRowMap := range rows {
-		var cloudStore CloudStore
-
-		cloudStore.CredentialName = StringOrEmpty(storeRowMap["credential_name"])
-		cloudStore.Name = storeRowMap["name"].(string)
-
-		id, ok := storeRowMap["id"].(int64)
-		if !ok {
-			id, err = strconv.ParseInt(storeRowMap["id"].(string), 10, 64)
-			CheckErr(err, "Failed to parse id as int in loading stores")
-		}
-
-		cloudStore.Id = id
-		cloudStore.ReferenceId = daptinid.InterfaceToDIR(storeRowMap["reference_id"])
-		if cloudStore.ReferenceId == daptinid.NullReferenceId {
-			CheckErr(err, "Failed to parse permission as int in loading stores")
-		}
-		cloudStore.Permission = dbResource.GetObjectPermissionByReferenceId("cloud_store", cloudStore.ReferenceId, transaction)
-
-		if storeRowMap[USER_ACCOUNT_ID_COLUMN] != nil {
-			cloudStore.UserId = daptinid.InterfaceToDIR(storeRowMap[USER_ACCOUNT_ID_COLUMN])
-		}
-
-		createdAt, ok := storeRowMap["created_at"].(time.Time)
-		if !ok {
-			createdAt, _ = time.Parse(storeRowMap["created_at"].(string), "2006-01-02 15:04:05")
-		}
-
-		cloudStore.CreatedAt = &createdAt
-		if storeRowMap["updated_at"] != nil {
-			updatedAt, ok := storeRowMap["updated_at"].(time.Time)
-			if !ok {
-				updatedAt, _ = time.Parse(storeRowMap["updated_at"].(string), "2006-01-02 15:04:05")
-			}
-			cloudStore.UpdatedAt = &updatedAt
-		}
-		storeParameters := storeRowMap["store_parameters"].(string)
-
-		storeParamMap := make(map[string]interface{})
-
-		if len(storeParameters) > 0 {
-			err = json.Unmarshal([]byte(storeParameters), &storeParamMap)
-			CheckErr(err, "Failed to unmarshal store parameters for store %v", storeRowMap["name"])
-		}
-
-		cloudStore.StoreParameters = storeParamMap
-		cloudStore.StoreProvider = storeRowMap["store_provider"].(string)
-		cloudStore.StoreType = storeRowMap["store_type"].(string)
-		cloudStore.RootPath = storeRowMap["root_path"].(string)
-
-		version, ok := storeRowMap["version"].(int64)
-		if !ok {
-			version, _ = strconv.ParseInt(storeRowMap["version"].(string), 10, 64)
-		}
-
-		cloudStore.Version = int(version)
-
-		cloudStores = append(cloudStores, cloudStore)
-	}
-
-	return cloudStores, nil
-
-}
-
 type Integration struct {
 	Name                        string
 	SpecificationLanguage       string
@@ -293,8 +192,8 @@ func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Int
 
 }
 
-func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, transaction *sqlx.Tx) (CloudStore, error) {
-	var cloudStore CloudStore
+func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, transaction *sqlx.Tx) (rootpojo.CloudStore, error) {
+	var cloudStore rootpojo.CloudStore
 
 	cacheKey := fmt.Sprintf("store-%v", name)
 	if OlricCache != nil {
@@ -340,8 +239,8 @@ func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, tr
 
 }
 
-func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.DaptinReferenceId, transaction *sqlx.Tx) (CloudStore, error) {
-	var cloudStore CloudStore = CloudStore{}
+func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.DaptinReferenceId, transaction *sqlx.Tx) (rootpojo.CloudStore, error) {
+	var cloudStore = rootpojo.CloudStore{}
 
 	rows, _, err := dbResource.GetRowsByWhereClause("cloud_store", nil, transaction, goqu.Ex{
 		"reference_id": referenceID[:],
@@ -376,9 +275,9 @@ func StringOrEmpty(i interface{}) string {
 	return ""
 }
 
-func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
+func (dbResource *DbResource) GetAllTasks() ([]task.Task, error) {
 
-	var tasks []Task
+	var tasks []task.Task
 
 	s, v, err := statementbuilder.Squirrel.Select(goqu.I("t.name"),
 		goqu.I("t.action_name"), goqu.I("t.entity_name"), goqu.I("t.schedule"),
@@ -388,7 +287,7 @@ func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
 		return tasks, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection().Preparex(s)
 	if err != nil {
 		log.Errorf("[359] failed to prepare statment: %v", err)
 		return nil, err
@@ -412,7 +311,7 @@ func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
 	}(rows)
 
 	for rows.Next() {
-		var task Task
+		var task task.Task
 		err = rows.Scan(&task.Name, &task.ActionName, &task.EntityName, &task.Schedule, &task.Active, &task.AttributesJson, &task.AsUserEmail)
 		if err != nil {
 			log.Errorf("failed to scan task from db to struct: %v", err)
@@ -426,63 +325,6 @@ func (dbResource *DbResource) GetAllTasks() ([]Task, error) {
 	}
 
 	return tasks, nil
-
-}
-
-func (dbResource *DbResource) GetAllSites(transaction *sqlx.Tx) ([]SubSite, error) {
-
-	var sites []SubSite
-
-	s, v, err := statementbuilder.Squirrel.Select(
-		goqu.I("s.name"), goqu.I("s.hostname"),
-		goqu.I("s.cloud_store_id"),
-		goqu.I("s."+USER_ACCOUNT_ID_COLUMN), goqu.I("s.path"),
-		goqu.I("s.reference_id"), goqu.I("s.id"), goqu.I("s.enable"),
-		goqu.I("s.site_type"), goqu.I("s.ftp_enabled")).Prepared(true).
-		From(goqu.T("site").As("s")).ToSQL()
-	if err != nil {
-		return sites, err
-	}
-
-	stmt1, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[424] failed to prepare statment: %v", err)
-		return nil, err
-	}
-
-	rows, err := stmt1.Queryx(v...)
-	if err != nil {
-		return sites, err
-	}
-
-	for rows.Next() {
-		var site SubSite
-		err = rows.StructScan(&site)
-		if err != nil {
-			log.Errorf("Failed to scan site from db to struct: %v", err)
-		}
-		sites = append(sites, site)
-	}
-
-	err = rows.Close()
-	if err != nil {
-		log.Error("Failed to close rows after getting all sites", err)
-		return nil, err
-	}
-
-	err = stmt1.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-		return nil, err
-	}
-
-	for i, site := range sites {
-		perm := dbResource.GetObjectPermissionByReferenceId("site", site.ReferenceId, transaction)
-		site.Permission = perm
-		sites[i] = site
-	}
-
-	return sites, nil
 
 }
 
@@ -524,7 +366,7 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenId(id int64, transaction
 		return nil, err
 	}
 
-	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	encryptionSecret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -577,7 +419,7 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId 
 		return nil, err
 	}
 
-	encryptionSecret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	encryptionSecret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -628,7 +470,7 @@ func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId daptinid.Da
 		return nil, oauthConf, err
 	}
 
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	secret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)
@@ -669,7 +511,7 @@ func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId daptinid.Da
 
 func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error) {
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dbResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [656]")
 		return nil, err
@@ -707,7 +549,7 @@ func (dbResource *DbResource) GetTokenByTokenId(id int64) (*oauth2.Token, error)
 		return nil, err
 	}
 
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	secret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	transaction.Rollback()
 	CheckErr(err, "Failed to get encryption secret")
 
@@ -738,7 +580,7 @@ func (dbResource *DbResource) GetTokenByTokenName(name string, transaction *sqlx
 		return nil, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection().Preparex(s)
 	if err != nil {
 		log.Errorf("[711] failed to prepare statment: %v", err)
 		return nil, err
@@ -757,7 +599,7 @@ func (dbResource *DbResource) GetTokenByTokenName(name string, transaction *sqlx
 	}
 	stmt1.Close()
 
-	secret, err := dbResource.configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+	secret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	CheckErr(err, "Failed to get encryption secret")
 
 	dec, err := Decrypt([]byte(secret), access_token)

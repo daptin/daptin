@@ -99,7 +99,7 @@ func (dsa *DaptinSmtpAuthenticator) VerifyLOGIN(login, passwordBase64 string) bo
 	if err != nil {
 		return false
 	}
-	transaction, err := dsa.dbResource.Connection.Beginx()
+	transaction, err := dsa.dbResource.Connection().Beginx()
 	if err != nil {
 		resource.CheckErr(err, "Failed to begin transaction [102]")
 		return false
@@ -255,7 +255,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							URL: ur,
 						}
 
-						transaction, err := dbResource.Connection.Beginx()
+						transaction, err := dbResource.Connection().Beginx()
 						if err != nil {
 							resource.CheckErr(err, "Failed to begin transaction [255]")
 							return nil, err
@@ -281,7 +281,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							r := strings.NewReader(string(mailBytes))
 							netMessage, _ := mail1.ReadMessage(r)
 
-							transaction, err := dbResource.Connection.Beginx()
+							transaction, err := dbResource.Connection().Beginx()
 							if err != nil {
 								resource.CheckErr(err, "Failed to begin transaction [281]")
 								return nil, err
@@ -383,7 +383,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 						}
 
-						transaction, err = dbResource.Connection.Beginx()
+						transaction, err = dbResource.Connection().Beginx()
 						if err != nil {
 							resource.CheckErr(err, "Failed to begin transaction [383]")
 							return nil, err

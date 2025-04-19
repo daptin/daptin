@@ -5,8 +5,14 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/fsm"
+	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/daptin/daptin/server/subsite"
+	"github.com/daptin/daptin/server/table_info"
+	"github.com/daptin/daptin/server/task"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -15,18 +21,18 @@ import (
 )
 
 type CmsConfig struct {
-	Tables                   []TableInfo
+	Tables                   []table_info.TableInfo
 	EnableGraphQL            bool
-	Imports                  []DataFileImport
-	StateMachineDescriptions []LoopbookFsmDescription
+	Imports                  []rootpojo.DataFileImport
+	StateMachineDescriptions []fsm.LoopbookFsmDescription
 	Relations                []api2go.TableRelation
-	Actions                  []Action
+	Actions                  []actionresponse.Action
 	ExchangeContracts        []ExchangeContract
 	Hostname                 string
 	SubSites                 map[string]SubSiteInformation
-	Tasks                    []Task
+	Tasks                    []task.Task
 	Streams                  []StreamContract
-	ActionPerformers         []ActionPerformerInterface
+	ActionPerformers         []actionresponse.ActionPerformerInterface
 }
 
 var ValidatorInstance = validator.New()
@@ -56,8 +62,8 @@ func (ti *CmsConfig) AddRelations(relations ...api2go.TableRelation) {
 }
 
 type SubSiteInformation struct {
-	SubSite    SubSite
-	CloudStore CloudStore
+	SubSite    subsite.SubSite
+	CloudStore rootpojo.CloudStore
 	SourceRoot string
 }
 
@@ -78,7 +84,7 @@ type ConfigStore struct {
 
 var settingsTableName = "_config"
 
-var ConfigTableStructure = TableInfo{
+var ConfigTableStructure = table_info.TableInfo{
 	TableName: settingsTableName,
 	Columns: []api2go.ColumnInfo{
 		{

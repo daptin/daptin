@@ -47,7 +47,7 @@ func (be *DaptinImapBackend) LoginMd5(conn *imap.ConnInfo, username, challenge s
 func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password string) (backend.User, error) {
 
 	userAccountResource := be.cruds[USER_ACCOUNT_TABLE_NAME]
-	transaction, err := userAccountResource.Connection.Beginx()
+	transaction, err := userAccountResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [51]")
 		return nil, err

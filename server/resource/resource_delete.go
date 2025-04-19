@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
@@ -84,9 +85,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				continue
 			}
 
-			deleteFileActionPerformer, err := NewCloudStoreFileDeleteActionPerformer(dbResource.Cruds)
-			CheckErr(err, "Failed to create upload action performer")
-			//log.Printf("created upload action performer")
+			deleteFileActionPerformer := ActionHandlerMap["cloudstore.file.delete"]
 
 			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
 			if !ok {
@@ -96,7 +95,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 			log.Printf("Delete attached file on column %s from disk: %v", column.Name, fileListJson)
 			for _, fileItem := range fileListJson {
 
-				outcome := Outcome{}
+				outcome := actionresponse.Outcome{}
 				actionParameters := map[string]interface{}{
 					"credential_name": cloudStoreData.CredentialName,
 					"store_provider":  cloudStoreData.StoreProvider,
@@ -479,7 +478,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 func (dbResource *DbResource) Delete(idString string, req api2go.Request) (api2go.Responder, error) {
 	id := daptinid.DaptinReferenceId(uuid.MustParse(idString))
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dbResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [451]")
 		return nil, err

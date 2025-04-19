@@ -3,6 +3,7 @@ package resource
 import (
 	"crypto/md5"
 	"encoding/base64"
+	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"net/http"
 	"net/url"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/artpar/api2go"
 	"github.com/doug-martin/goqu/v9"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 
@@ -181,12 +182,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						files[i] = file
 					}
 
-					uploadActionPerformer, err := NewFileUploadActionPerformer(dbResource.Cruds)
-					CheckErr(err, "Failed to create upload action performer")
-					//log.Printf("created upload action performer")
-					if err != nil {
-						continue
-					}
+					uploadActionPerformer := ActionHandlerMap["cloudstore.file.upload"]
 
 					actionRequestParameters := make(map[string]interface{})
 					actionRequestParameters["file"] = columnValue
@@ -208,7 +204,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
 					log.Printf("Initiate file upload action from resource create")
-					_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters, createTransaction)
+					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, createTransaction)
 					if errs != nil && len(errs) > 0 {
 						log.Errorf("Failed to upload attachments: %v", errs)
 					}
@@ -352,7 +348,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			}
 		} else if col.ColumnType == "encrypted" {
 
-			secret, err := dbResource.configStore.GetConfigValueForWithTransaction("encryption.secret", "backend", createTransaction)
+			secret, err := dbResource.ConfigStore.GetConfigValueForWithTransaction("encryption.secret", "backend", createTransaction)
 			if err != nil {
 				log.Errorf("Failed to get secret from config: %v", err)
 				columnValue = ""
@@ -999,7 +995,7 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 	data := obj.(api2go.Api2GoModel)
 	//log.Printf("Create object request: [%v] %v", dbResource.model.GetTableName(), data.Data)
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dbResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [980]")
 		return nil, err

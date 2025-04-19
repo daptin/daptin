@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
@@ -33,7 +34,7 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 	if targetAttributes == nil {
 		targetAttributes = make(map[string]interface{})
 	}
-	request := ActionRequest{
+	request := actionresponse.ActionRequest{
 		Type:       tableName,
 		Action:     exchangeHandler.exchangeContract.TargetAttributes["action"].(string),
 		Attributes: targetAttributes.(map[string]interface{}),

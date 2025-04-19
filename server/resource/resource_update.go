@@ -2,6 +2,7 @@ package resource
 
 import (
 	"encoding/base64"
+	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	//"reflect"
@@ -150,12 +151,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						continue
 					}
 
-					uploadActionPerformer, err := NewFileUploadActionPerformer(dbResource.Cruds)
-					CheckErr(err, "Failed to create upload action performer")
-					//log.Printf("created upload action performer")
-					if err != nil {
-						continue
-					}
+					uploadActionPerformer := ActionHandlerMap["cloudstore.file.upload"]
 
 					files, ok := val.([]interface{})
 					uploadPath := ""
@@ -213,7 +209,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
 					log.Printf("[215] Initiate file upload action from resource update")
-					_, _, errs := uploadActionPerformer.DoAction(Outcome{}, actionRequestParameters, updateTransaction)
+					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, updateTransaction)
 					if errs != nil && len(errs) > 0 {
 						log.Errorf("Failed to upload attachments: %v", errs)
 					}
@@ -303,7 +299,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 			} else if col.ColumnType == "encrypted" {
 
-				secret, err := dbResource.configStore.GetConfigValueForWithTransaction("encryption.secret", "backend", updateTransaction)
+				secret, err := dbResource.ConfigStore.GetConfigValueForWithTransaction("encryption.secret", "backend", updateTransaction)
 				if err != nil {
 					log.Errorf("Failed to get secret from config: %v", err)
 					return nil, errors.New("unable to store a secret at this time")
@@ -1031,7 +1027,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	}
 	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
 
-	transaction, err := dbResource.Connection.Beginx()
+	transaction, err := dbResource.Connection().Beginx()
 	defer func() {
 		err = transaction.Rollback()
 		if err != nil {

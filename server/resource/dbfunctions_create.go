@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/jinzhu/copier"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -240,7 +241,7 @@ func CheckTranslationTables(config *CmsConfig) {
 
 	newRelations := make([]api2go.TableRelation, 0)
 
-	tableMap := make(map[string]*TableInfo)
+	tableMap := make(map[string]*table_info.TableInfo)
 	for i := range config.Tables {
 		t := config.Tables[i]
 		tableMap[t.TableName] = &t
@@ -328,7 +329,7 @@ func CheckTranslationTables(config *CmsConfig) {
 
 		newRelations = append(newRelations, newRelation)
 
-		newTable := TableInfo{
+		newTable := table_info.TableInfo{
 			TableName:         translationTableName,
 			Columns:           columnsCopy,
 			IsHidden:          true,
@@ -393,7 +394,7 @@ func CheckAuditTables(config *CmsConfig) {
 
 	newRelations := make([]api2go.TableRelation, 0)
 
-	tableMap := make(map[string]*TableInfo)
+	tableMap := make(map[string]*table_info.TableInfo)
 	for i := range config.Tables {
 		t := config.Tables[i]
 		tableMap[t.TableName] = &t
@@ -479,7 +480,7 @@ func CheckAuditTables(config *CmsConfig) {
 
 		//newRelations = append(newRelations, newRelation)
 
-		newTable := TableInfo{
+		newTable := table_info.TableInfo{
 			TableName:         auditTableName,
 			Columns:           columnsCopy,
 			IsHidden:          true,
@@ -541,7 +542,7 @@ func CheckAuditTables(config *CmsConfig) {
 
 func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConfig) {
 	existingRelationMap := make(map[string]bool)
-	tableMap := make(map[string]*TableInfo)
+	tableMap := make(map[string]*table_info.TableInfo)
 	for _, table := range config.Tables {
 		tableMap[table.TableName] = &table
 	}
@@ -633,7 +634,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			fromTable := relation.GetSubject()
 			targetTable := relation.GetObject()
 
-			newJoinTable := TableInfo{
+			newJoinTable := table_info.TableInfo{
 				TableName:   relation.GetJoinTableName(),
 				Columns:     make([]api2go.ColumnInfo, 0),
 				IsJoinTable: true,
@@ -683,7 +684,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			fromTable := relation.GetSubject()
 			targetTable := relation.GetObject()
 
-			newJoinTable := TableInfo{
+			newJoinTable := table_info.TableInfo{
 				TableName: relation.GetJoinTableName(),
 				Columns:   make([]api2go.ColumnInfo, 0),
 			}
@@ -741,7 +742,7 @@ func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriver
 	return sq
 }
 
-func CreateTable(tableInfo *TableInfo, db database.DatabaseConnection) error {
+func CreateTable(tableInfo *table_info.TableInfo, db database.DatabaseConnection) error {
 
 	createTableQuery := MakeCreateTableQuery(tableInfo, db.DriverName())
 
@@ -761,7 +762,7 @@ func CreateTable(tableInfo *TableInfo, db database.DatabaseConnection) error {
 	return nil
 }
 
-func MakeCreateTableQuery(tableInfo *TableInfo, sqlDriverName string) string {
+func MakeCreateTableQuery(tableInfo *table_info.TableInfo, sqlDriverName string) string {
 	createTableQuery := fmt.Sprintf("create table %s (\n", tableInfo.TableName)
 
 	var columnStrings []string

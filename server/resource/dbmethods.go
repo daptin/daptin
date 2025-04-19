@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
 	"os"
 	"strconv"
 	"strings"
@@ -19,7 +21,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -60,9 +62,9 @@ func (dbResource *DbResource) IsUserActionAllowedWithTransaction(userReferenceId
 
 // GetActionByName Gets an Action instance by `typeName` and `actionName`
 // Check Action instance for usage
-func (dbResource *DbResource) GetActionByName(typeName string, actionName string, transaction *sqlx.Tx) (Action, error) {
+func (dbResource *DbResource) GetActionByName(typeName string, actionName string, transaction *sqlx.Tx) (actionresponse.Action, error) {
 	var actionRow ActionRow
-	var action Action
+	var action actionresponse.Action
 
 	cacheKey := fmt.Sprintf("action-%v-%v", typeName, actionName)
 	if OlricCache != nil {
@@ -125,8 +127,8 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 	return action, nil
 }
 
-func ActionFromActionRow(actionRow ActionRow) (Action, error) {
-	var action Action
+func ActionFromActionRow(actionRow ActionRow) (actionresponse.Action, error) {
+	var action actionresponse.Action
 	err := json.Unmarshal([]byte(actionRow.ActionSchema), &action)
 	CheckErr(err, "[129] failed to unmarshal ActionSchema")
 
@@ -140,8 +142,8 @@ func ActionFromActionRow(actionRow ActionRow) (Action, error) {
 
 // GetActionsByType Gets the list of all actions defined on type `typeName`
 // Returns list of `Action`
-func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sqlx.Tx) ([]Action, error) {
-	action := make([]Action, 0)
+func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sqlx.Tx) ([]actionresponse.Action, error) {
+	action := make([]actionresponse.Action, 0)
 
 	sql, args, err := statementbuilder.Squirrel.Select(
 		goqu.I("a.action_name").As("name"),
@@ -185,7 +187,7 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 
 	for rows.Next() {
 
-		var act Action
+		var act actionresponse.Action
 		var a ActionRow
 		err := rows.StructScan(&a)
 		CheckErr(err, "Failed to struct scan action row")
@@ -213,15 +215,15 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Special utility function for actions, for other objects use GetObjectPermissionByReferenceId
-func (dbResource *DbResource) GetActionPermissionByName(worldId int64, actionName string, transaction *sqlx.Tx) (PermissionInstance, error) {
+func (dbResource *DbResource) GetActionPermissionByName(worldId int64, actionName string, transaction *sqlx.Tx) (permission.PermissionInstance, error) {
 
 	refId, err := dbResource.GetReferenceIdByWhereClause("action", goqu.Ex{"action_name": actionName}, goqu.Ex{"world_id": worldId})
 	if err != nil {
-		return PermissionInstance{}, err
+		return permission.PermissionInstance{}, err
 	}
 
 	if refId == nil || len(refId) < 1 {
-		return PermissionInstance{}, errors.New(fmt.Sprintf("Failed to find action [%v] on [%v]", actionName, worldId))
+		return permission.PermissionInstance{}, errors.New(fmt.Sprintf("Failed to find action [%v] on [%v]", actionName, worldId))
 	}
 	permissions := dbResource.GetObjectPermissionByReferenceId("action", refId[0], transaction)
 
@@ -232,12 +234,12 @@ func (dbResource *DbResource) GetActionPermissionByName(worldId int64, actionNam
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 	if referenceId == daptinid.NullReferenceId {
 		return perm
 	}
@@ -301,7 +303,7 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) PermissionInstance {
+func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	cacheKey := fmt.Sprintf("object-permission-%v-%v", objectType, referenceId)
 
@@ -309,7 +311,7 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
-			var pi PermissionInstance
+			var pi permission.PermissionInstance
 			cachedValue.Scan(&pi)
 			return pi
 		}
@@ -318,7 +320,7 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 	if referenceId == daptinid.NullReferenceId {
 		return perm
 	}
@@ -388,12 +390,12 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func (dbResource *DbResource) GetObjectPermissionById(objectType string, id int64, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetObjectPermissionById(objectType string, id int64, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").Prepared(true).
@@ -451,12 +453,12 @@ func (dbResource *DbResource) GetObjectPermissionById(objectType string, id int6
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType string, id int64, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType string, id int64, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	var selectQuery string
 	var queryParameters []interface{}
 	var err error
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 	if objectType == "usergroup" {
 		selectQuery, queryParameters, err = statementbuilder.Squirrel.
 			Select("permission", "id").Prepared(true).
@@ -518,7 +520,7 @@ var OlricCache olric.DMap
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
-func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string, transaction *sqlx.Tx) permission.PermissionInstance {
 	if OlricCache == nil {
 		OlricCache, _ = dbResource.OlricDb.NewDMap("default-cache")
 	}
@@ -528,7 +530,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
 		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
 		if cachedPermission != nil && err == nil {
-			var perm PermissionInstance
+			var perm permission.PermissionInstance
 			err := cachedPermission.Scan(&perm)
 			if err == nil {
 				return perm
@@ -536,7 +538,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 		}
 	}
 
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 	s, q, err := statementbuilder.Squirrel.
 		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
 		Where(goqu.Ex{colName: colValue}).ToSQL()
@@ -592,7 +594,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 	return perm
 }
 
-func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(objectType string, colName string, colValue string, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(objectType string, colName string, colValue string, transaction *sqlx.Tx) permission.PermissionInstance {
 	if OlricCache == nil {
 		OlricCache, _ = dbResource.OlricDb.NewDMap("default-cache")
 	}
@@ -602,7 +604,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 	if OlricCache != nil {
 		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
 		if cachedPermission != nil && err == nil {
-			var pi PermissionInstance
+			var pi permission.PermissionInstance
 			err = cachedPermission.Scan(&pi)
 			if err == nil {
 				return pi
@@ -612,7 +614,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 		}
 	}
 
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 	s, q, err := statementbuilder.Squirrel.
 		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
 		Where(goqu.Ex{colName: colValue}).ToSQL()
@@ -715,7 +717,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 //		return s
 //	}
 //
-//	stmt, err := dbResource.Connection.Preparex(sql)
+//	stmt, err := dbResource.connection.Preparex(sql)
 //	if err != nil {
 //		log.Errorf("[720] failed to prepare statment: %v", err)
 //		return nil
@@ -1071,7 +1073,7 @@ func (dbResource *DbResource) UserGroupNameToId(groupName string) (uint64, error
 	if err != nil {
 		return 0, err
 	}
-	stmt, err := dbResource.Connection.Preparex(query)
+	stmt, err := dbResource.Connection().Preparex(query)
 	if err != nil {
 		log.Errorf("[592] failed to prepare statment: %v", err)
 		return 0, err
@@ -1244,7 +1246,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	return true
 }
 
-func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	refId := daptinid.InterfaceToDIR(row["reference_id"])
 	if refId == daptinid.NullReferenceId {
@@ -1252,7 +1254,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 	}
 	rowType := row["__type"].(string)
 
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 
 	if rowType != "usergroup" {
 		if row[USER_ACCOUNT_ID_COLUMN] != nil {
@@ -1339,7 +1341,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 	return perm
 }
 
-func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]interface{}, transaction *sqlx.Tx) PermissionInstance {
+func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]interface{}, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	var referenceId daptinid.DaptinReferenceId
 	referenceId = daptinid.InterfaceToDIR(row["reference_id"])
@@ -1351,13 +1353,13 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
-			var cv PermissionInstance
+			var cv permission.PermissionInstance
 			cachedValue.Scan(&cv)
 			return cv
 		}
 	}
 
-	var perm PermissionInstance
+	var perm permission.PermissionInstance
 
 	loc := strings.Index(rowType, "_has_")
 	if rowType != "usergroup" && loc == -1 {
@@ -1555,7 +1557,7 @@ func (dbResource *DbResource) GetRandomRow(typeName string, count uint, transact
 
 	randomFunc := "RANDOM() * "
 
-	if dbResource.Connection.DriverName() == "mysql" {
+	if dbResource.Connection().DriverName() == "mysql" {
 		randomFunc = "RAND() * "
 	}
 
@@ -2309,7 +2311,7 @@ func (dbResource *DbResource) GetAllObjectsWithWhereWithTransaction(typeName str
 // Can be used by actions
 func (dbResource *DbResource) GetAllRawObjectsByRawQuery(typeName string, query string, args []interface{}) ([]map[string]interface{}, error) {
 
-	stmt1, err := dbResource.Connection.Preparex(query)
+	stmt1, err := dbResource.Connection().Preparex(query)
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -2350,7 +2352,7 @@ func (dbResource *DbResource) GetAllRawObjects(typeName string) ([]map[string]in
 		return nil, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection().Preparex(s)
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
 		if err != nil {
@@ -2568,7 +2570,7 @@ func (dbResource *DbResource) GetReferenceIdByWhereClause(typeName string, queri
 		return nil, err
 	}
 
-	stmt, err := dbResource.Connection.Preparex(s)
+	stmt, err := dbResource.Connection().Preparex(s)
 	if err != nil {
 		log.Errorf("[1525] failed to prepare statment: %v", err)
 		return nil, err
@@ -2892,7 +2894,7 @@ func (dbResource *DbResource) GetReferenceIdListToIdList(typeName string, refere
 		return idMap, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(s)
+	stmt1, err := dbResource.Connection().Preparex(s)
 	if err != nil {
 		log.Errorf("[1694] failed to prepare statment: %v", err)
 		return nil, err
@@ -3022,7 +3024,7 @@ func (dbResource *DbResource) GetSingleColumnValueByReferenceId(
 		return nil, err
 	}
 
-	stmt, err := dbResource.Connection.Preparex(s)
+	stmt, err := dbResource.Connection().Preparex(s)
 	if err != nil {
 		log.Errorf("[1768] failed to prepare statment for permission select: %v", err)
 		return nil, err

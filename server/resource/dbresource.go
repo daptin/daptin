@@ -2,11 +2,16 @@ package resource
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
+	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
-	uuid "github.com/google/uuid"
+	"github.com/daptin/daptin/server/table_info"
+	"github.com/google/uuid"
+	"golang.org/x/oauth2"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -29,12 +34,12 @@ import (
 type DbResource struct {
 	model                api2go.Api2GoModel
 	db                   sqlx.Ext
-	Connection           database.DatabaseConnection
-	tableInfo            *TableInfo
+	connection           database.DatabaseConnection
+	tableInfo            *table_info.TableInfo
 	Cruds                map[string]*DbResource
 	ms                   *MiddlewareSet
-	ActionHandlerMap     map[string]ActionPerformerInterface
-	configStore          *ConfigStore
+	ActionHandlerMap     map[string]actionresponse.ActionPerformerInterface
+	ConfigStore          *ConfigStore
 	EncryptionSecret     []byte
 	contextCache         map[string]interface{}
 	envMap               map[string]string
@@ -43,113 +48,31 @@ type DbResource struct {
 	defaultRelations     map[string][]int64
 	contextLock          sync.RWMutex
 	OlricDb              *olric.EmbeddedClient
-	AssetFolderCache     map[string]map[string]*AssetFolderCache
-	SubsiteFolderCache   map[daptinid.DaptinReferenceId]*AssetFolderCache
+	AssetFolderCache     map[string]map[string]*assetcachepojo.AssetFolderCache
+	subsiteFolderCache   map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache
 	MailSender           func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
 }
 
-type AssetFolderCache struct {
-	LocalSyncPath string
-	Keyname       string
-	CloudStore    CloudStore
+func (dbResource *DbResource) GetActionHandler(name string) actionresponse.ActionPerformerInterface {
+	//TODO implement me
+	return ActionHandlerMap[name]
 }
 
-func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
-
-	return os.Open(afc.LocalSyncPath + string(os.PathSeparator) + fileName)
-
-}
-func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
-
-	return os.Remove(afc.LocalSyncPath + string(os.PathSeparator) + fileName)
-
+func (dbResource *DbResource) Connection() database.DatabaseConnection {
+	//TODO implement me
+	return dbResource.connection
 }
 
-func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interface{}, error) {
-
-	fileInfo, err := os.ReadDir(afc.LocalSyncPath + string(os.PathSeparator) + path)
-	if err != nil {
-		return nil, err
-	}
-
-	//files, err := filepath.Glob(afc.LocalSyncPath + string(os.PathSeparator) + path + "*")
-	//fmt.Println(files)
-	var files []map[string]interface{}
-	for _, file := range fileInfo {
-		//files[i] = strings.Replace(file, afc.LocalSyncPath, "", 1)
-		info, err := file.Info()
-		if err != nil {
-			return nil, err
-		}
-		files = append(files, map[string]interface{}{
-			"name":     file.Name(),
-			"is_dir":   file.IsDir(),
-			"mod_time": info.ModTime(),
-			"size":     info.Size(),
-		})
-	}
-
-	return files, err
-
-}
-
-func createDirIfNotExist(dir string) {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.MkdirAll(dir, 0755)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
-
-	for i := range files {
-		file := files[i].(map[string]interface{})
-		contents, ok := file["file"]
-		if !ok {
-			contents = file["contents"]
-		}
-		if contents != nil {
-
-			contentString, ok := contents.(string)
-			if ok && len(contentString) > 4 {
-
-				if strings.Index(contentString, ",") > -1 {
-					contentString = strings.SplitN(contentString, ",", 2)[1]
-				}
-				fileBytes, e := base64.StdEncoding.DecodeString(contentString)
-				if e != nil {
-					continue
-				}
-				if file["name"] == nil {
-					return errors.WithMessage(errors.New("file name cannot be null"), "File name is null")
-				}
-				filePath := string(os.PathSeparator)
-				if file["path"] != nil {
-					filePath = strings.Replace(file["path"].(string), "/", string(os.PathSeparator), -1) + string(os.PathSeparator)
-				}
-				localPath := afc.LocalSyncPath + string(os.PathSeparator) + filePath
-				createDirIfNotExist(localPath)
-				localFilePath := localPath + file["name"].(string)
-				err := os.WriteFile(localFilePath, fileBytes, os.ModePerm)
-				CheckErr(err, "Failed to write data to local file store asset cache folder")
-				if err != nil {
-					return errors.WithMessage(err, "Failed to write data to local file store ")
-				}
-			}
-		}
-	}
-
-	return nil
-
+func (dbResource *DbResource) SubsiteFolderCache(id daptinid.DaptinReferenceId) (*assetcachepojo.AssetFolderCache, bool) {
+	val, ok := dbResource.subsiteFolderCache[id]
+	return val, ok
 }
 
 var CRUD_MAP = make(map[string]*DbResource)
 
 func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	ms *MiddlewareSet, cruds map[string]*DbResource, configStore *ConfigStore,
-	olricDb *olric.EmbeddedClient, tableInfo TableInfo) (*DbResource, error) {
+	olricDb *olric.EmbeddedClient, tableInfo table_info.TableInfo) (*DbResource, error) {
 
 	envLines := os.Environ()
 	envMap := make(map[string]string)
@@ -187,9 +110,9 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 	tableCrud := &DbResource{
 		model:                model,
 		db:                   db,
-		Connection:           db,
+		connection:           db,
 		ms:                   ms,
-		configStore:          configStore,
+		ConfigStore:          configStore,
 		Cruds:                cruds,
 		envMap:               envMap,
 		tableInfo:            &tableInfo,
@@ -199,15 +122,15 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 		AdministratorGroupId: administratorGroupId,
 		contextCache:         make(map[string]interface{}),
 		contextLock:          sync.RWMutex{},
-		AssetFolderCache:     make(map[string]map[string]*AssetFolderCache),
-		SubsiteFolderCache:   make(map[daptinid.DaptinReferenceId]*AssetFolderCache),
+		AssetFolderCache:     make(map[string]map[string]*assetcachepojo.AssetFolderCache),
+		subsiteFolderCache:   make(map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache),
 	}
 
 	CRUD_MAP[model.GetTableName()] = tableCrud
 	return tableCrud, nil
 }
 
-func RelationNamesToIds(db database.DatabaseConnection, tableInfo TableInfo) (map[string][]int64, error) {
+func RelationNamesToIds(db database.DatabaseConnection, tableInfo table_info.TableInfo) (map[string][]int64, error) {
 
 	if len(tableInfo.DefaultRelations) == 0 {
 		return map[string][]int64{}, nil
@@ -366,7 +289,7 @@ func (a AdminMapType) UnmarshalBinary(data []byte) error {
 		a = make(AdminMapType)
 	}
 
-	for i := 0; i < len(data); i += (uuidSize + 1) {
+	for i := 0; i < len(data); i += uuidSize + 1 {
 		key := uuid.UUID{}
 		copy(key[:], data[i:i+uuidSize])  // Extract UUID from data
 		value := data[i+uuidSize] == 0x01 // Extract boolean from data
@@ -437,7 +360,7 @@ func IsAdminWithTransaction(userReferenceId *auth.SessionUser, transaction *sqlx
 
 }
 
-func (dbResource *DbResource) TableInfo() *TableInfo {
+func (dbResource *DbResource) TableInfo() *table_info.TableInfo {
 	return dbResource.tableInfo
 }
 
@@ -723,7 +646,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	stmt1, err := dbResource.Connection.Preparex(selectQuery)
+	stmt1, err := dbResource.Connection().Preparex(selectQuery)
 	if err != nil {
 		log.Errorf("[544] failed to prepare statment: %v", err)
 	}
@@ -805,4 +728,53 @@ func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sq
 	err = r5.Scan(&uidNext)
 	return uint32(int32(uidNext) + 1), err
 
+}
+
+func (dbResource *DbResource) SetSubsitesFolderCache(cache map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
+	dbResource.subsiteFolderCache = cache
+}
+
+func (dbResource *DbResource) StoreToken(token *oauth2.Token,
+	token_type string, oauth_connect_reference_id daptinid.DaptinReferenceId,
+	user_reference_id daptinid.DaptinReferenceId, transaction *sqlx.Tx) error {
+	storeToken := make(map[string]interface{})
+
+	storeToken["access_token"] = token.AccessToken
+	storeToken["refresh_token"] = token.RefreshToken
+	expiry := token.Expiry.Unix()
+	if expiry < 0 {
+		expiry = time.Now().Add(24 * 300 * time.Hour).Unix()
+	}
+	storeToken["expires_in"] = expiry
+	storeToken["token_type"] = token_type
+	storeToken["oauth_connect_id"] = oauth_connect_reference_id
+
+	userId, err := dbResource.GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, user_reference_id, transaction)
+
+	if err != nil {
+		return err
+	}
+
+	sessionUser := &auth.SessionUser{
+		UserId:          userId,
+		UserReferenceId: user_reference_id,
+		Groups:          nil,
+	}
+
+	ur, _ := url.Parse("/oauth_token")
+
+	pr := &http.Request{
+		Method: "POST",
+		URL:    ur,
+	}
+	pr = pr.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+
+	req := api2go.Request{
+		PlainRequest: pr,
+	}
+
+	model := api2go.NewApi2GoModelWithData("oauth_token", nil, int64(auth.DEFAULT_PERMISSION), nil, storeToken)
+
+	_, err = dbResource.Cruds["oauth_token"].CreateWithoutFilter(model, req, transaction)
+	return err
 }

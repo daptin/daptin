@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/iancoleman/strcase"
 
 	"fmt"
@@ -77,7 +78,7 @@ func CreateColumnLine(colInfo api2go.ColumnInfo) map[string]interface{} {
 
 func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.DbResource) string {
 
-	tableMap := map[string]resource.TableInfo{}
+	tableMap := map[string]table_info.TableInfo{}
 	for _, table := range config.Tables {
 		tableMap[table.TableName] = table
 	}
@@ -304,7 +305,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	}
 
 	resourcesMap := map[string]map[string]interface{}{}
-	tableInfoMap := make(map[string]resource.TableInfo)
+	tableInfoMap := make(map[string]table_info.TableInfo)
 	for _, tableInfo := range config.Tables {
 		tableInfoMap[tableInfo.TableName] = tableInfo
 	}
@@ -534,7 +535,7 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 
 }
 
-func CreateDataInResponse(tableInfo resource.TableInfo) map[string]interface{} {
+func CreateDataInResponse(tableInfo table_info.TableInfo) map[string]interface{} {
 	relationshipMap := make(map[string]interface{}, 0)
 	for _, relation := range tableInfo.Relations {
 		if relation.Object == tableInfo.TableName {
@@ -566,7 +567,7 @@ func CreateDataInResponse(tableInfo resource.TableInfo) map[string]interface{} {
 	}
 	return dataInResponse
 }
-func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
+func CreatePostMethod(tableInfo table_info.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
 	postMethod := make(map[string]interface{})
 	postMethod["operationId"] = fmt.Sprintf("Create%s", strcase.ToCamel(tableInfo.TableName))
 	postMethod["summary"] = fmt.Sprintf("Create a new %v", tableInfo.TableName)
@@ -625,7 +626,7 @@ func CreatePostMethod(tableInfo resource.TableInfo, dataInResponse map[string]in
 	postMethod["responses"] = postResponseMap
 	return postMethod
 }
-func CreateGetAllMethod(tableInfo resource.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
+func CreateGetAllMethod(tableInfo table_info.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
 	getAllMethod := make(map[string]interface{})
 	getAllMethod["description"] = fmt.Sprintf("Returns a list of %v", ProperCase(tableInfo.TableName))
 	getAllMethod["operationId"] = fmt.Sprintf("Get" + strcase.ToCamel(tableInfo.TableName))
@@ -694,7 +695,7 @@ func ProperCase(str string) string {
 	return strings.ToUpper(str[0:1]) + st
 }
 
-func CreateDeleteMethod(tableInfo resource.TableInfo) map[string]interface{} {
+func CreateDeleteMethod(tableInfo table_info.TableInfo) map[string]interface{} {
 	deleteByIdMethod := make(map[string]interface{})
 	deleteByIdMethod200Response := make(map[string]interface{})
 	deleteByIdResponseMap := make(map[string]interface{})
@@ -721,7 +722,7 @@ func CreateDeleteMethod(tableInfo resource.TableInfo) map[string]interface{} {
 	return deleteByIdMethod
 }
 
-func CreateDeleteRelationMethod(tableInfo resource.TableInfo) map[string]interface{} {
+func CreateDeleteRelationMethod(tableInfo table_info.TableInfo) map[string]interface{} {
 	deleteByIdMethod := make(map[string]interface{})
 	deleteByIdMethod200Response := make(map[string]interface{})
 	deleteByIdMethod200Response["description"] = "Successful deletion of relation " + tableInfo.TableName
@@ -775,7 +776,7 @@ func CreateDeleteRelationMethod(tableInfo resource.TableInfo) map[string]interfa
 	return deleteByIdMethod
 }
 
-func CreatePatchRelationMethod(tableInfo resource.TableInfo) map[string]interface{} {
+func CreatePatchRelationMethod(tableInfo table_info.TableInfo) map[string]interface{} {
 	patchByIdMethod := make(map[string]interface{})
 	patchByIdMethod200Response := make(map[string]interface{})
 	patchByIdMethod200Response["description"] = "Add relation " + tableInfo.TableName
@@ -826,7 +827,7 @@ func CreatePatchRelationMethod(tableInfo resource.TableInfo) map[string]interfac
 	return patchByIdMethod
 }
 
-func CreateGetMethod(tableInfo resource.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
+func CreateGetMethod(tableInfo table_info.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
 	getByIdMethod := make(map[string]interface{})
 	getByIdMethod200Response := make(map[string]interface{})
 	getByIdMethod["tags"] = []string{tableInfo.TableName}
@@ -860,7 +861,7 @@ func CreateGetMethod(tableInfo resource.TableInfo, dataInResponse map[string]int
 	getByIdMethod["operationId"] = fmt.Sprintf("Get%sByReferenceId", strcase.ToCamel(tableInfo.TableName))
 	return getByIdMethod
 }
-func CreatePatchMethod(tableInfo resource.TableInfo) map[string]interface{} {
+func CreatePatchMethod(tableInfo table_info.TableInfo) map[string]interface{} {
 
 	patchMethod := make(map[string]interface{})
 	patchMethod["operationId"] = fmt.Sprintf("Update%s", strcase.ToCamel(tableInfo.TableName))
