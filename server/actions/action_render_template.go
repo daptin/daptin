@@ -63,6 +63,10 @@ func (actionPerformer *renderTemplateActionPerformer) DoAction(
 	var buf strings.Builder
 
 	err = tmpl.Execute(&buf, inFieldMap)
+	if err != nil {
+		log.Errorf("Failed to execute tempalte [%s]: %s", template_name, err)
+		return nil, []actionresponse.ActionResponse{}, []error{err}
+	}
 
 	resp := &api2go.Response{}
 
