@@ -13,9 +13,9 @@ type ActionResponse struct {
 }
 
 type ActionRequest struct {
-	Type          string
-	Action        string
-	Attributes    map[string]interface{}
+	Type          string                 // name of the entity on which the action is defined
+	Action        string                 // action name
+	Attributes    map[string]interface{} // set of parameters as expected by the action definition
 	RawBodyBytes  []byte
 	RawBodyString string
 }
@@ -49,14 +49,14 @@ type Outcome struct {
 // New actions can be defined and added using JSON or YAML files
 // Actions are stored and reloaded from the `action` table of the storage
 type Action struct {
-	Name                    string // Name of the action
-	Label                   string
-	OnType                  string
-	InstanceOptional        bool
-	RequestSubjectRelations []string
-	ReferenceId             daptinid.DaptinReferenceId
-	InFields                []api2go.ColumnInfo
-	OutFields               []Outcome
+	Name                    string                     // Name of the action
+	Label                   string                     // Human-readable text defining the function
+	OnType                  string                     // Name of the entity for this action, used to build url endpoint $BASE/action/<entityName>
+	InstanceOptional        bool                       // if true a "reference_id" parameter is expected to a value of a an existing <entityType> object, the entity object looked up by this reference_id will be passed on in the Context for outcome evaluations
+	RequestSubjectRelations []string                   // if above is true and, this array of strings defined what relations to be fecthed when the subject (above) is fetched and also provided in the context
+	ReferenceId             daptinid.DaptinReferenceId // uuid of this action
+	InFields                []api2go.ColumnInfo        // {ColumnName: '', ... }
+	OutFields               []Outcome                  // {Action: '', Type: '', Attributes: {...} }
 	Validations             []columns.ColumnTag
 	Conformations           []columns.ColumnTag
 }

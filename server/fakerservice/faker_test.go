@@ -3,6 +3,7 @@ package fakerservice
 import (
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	log "github.com/sirupsen/logrus"
 	"testing"
 )
@@ -10,7 +11,7 @@ import (
 func TestNewFakeInstance(t *testing.T) {
 
 	resource.InitialiseColumnManager()
-	table := &resource.TableInfo{
+	table := &table_info.TableInfo{
 		TableName: "test",
 		Columns:   []api2go.ColumnInfo{},
 	}
