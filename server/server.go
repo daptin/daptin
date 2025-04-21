@@ -21,10 +21,12 @@ import (
 	"github.com/daptin/daptin/server/task_scheduler"
 	"github.com/emersion/go-webdav"
 	"github.com/go-redis/redis/v8"
+	"github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 	"github.com/sadlil/go-trigger"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	//"sync"
 	"time"
@@ -89,6 +91,31 @@ func PathExistsAndIsFolder(path string) bool {
 	return info.IsDir() // Check if it's a directory
 }
 
+// DiskFileCache represents a cached file entry
+type DiskFileCache struct {
+	Data         []byte
+	ContentType  string
+	LastModified time.Time
+	ETag         string
+}
+
+// Configure these values based on your requirements
+const (
+	// Server-side cache settings
+	cacheSize          = 1000             // Number of files to cache
+	maxFileSizeToCache = 10 * 1024 * 1024 // 10MB max file size to cache
+
+	// Client-side cache settings
+	cacheMaxAge          = 86400     // 1 day in seconds
+	cacheStaleIfError    = 86400 * 7 // 7 days in seconds
+	cacheStaleRevalidate = 43200     // 12 hours in seconds
+)
+
+var (
+	diskFileCache     *lru.Cache
+	indexFileContents []byte
+)
+
 func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.EmbeddedClient) (
 	hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
 	*server2.FtpServer, *server.Server, *olric.EmbeddedClient) {
@@ -112,7 +139,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	/// Start system initialise
 	log.Printf("Load config files")
-
 	initConfig, errs := LoadConfigFiles()
 	if errs != nil {
 		for _, err := range errs {
@@ -149,6 +175,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
+	diskFileCache, err = lru.New(cacheSize)
 
 	transaction, err := db.Beginx()
 	if err != nil {
@@ -988,38 +1015,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		websocketServer.Listen(defaultRouter)
 	}()
 
-	indexFile, err := boxRoot.Open("index.html")
-
-	resource.CheckErr(err, "Failed to open index.html file from dashboard directory %v")
-
-	var indexFileContents = []byte("")
-	if indexFile != nil && err == nil {
-		indexFileContents, err = io.ReadAll(indexFile)
-	}
-
-	defaultRouter.NoRoute(func(c *gin.Context) {
-		//c.Header("Content-Type", "text/html")
-		fileExists, err := boxRoot.Open(strings.TrimLeft(c.Request.URL.Path, "/"))
-		if err == nil {
-			var fileContents = []byte("")
-			if fileExists != nil && err == nil {
-				fileContents, err = io.ReadAll(fileExists)
-				if err == nil {
-					c.Data(200, "text/html; charset=UTF-8", fileContents)
-					return
-				}
-			}
-		}
-		if len(indexFileContents) > 0 {
-			c.Data(200, "text/html; charset=UTF-8", indexFileContents)
-		}
-	})
-
-	defaultRouter.GET("", func(c *gin.Context) {
-		c.Data(200, "text/html; charset=UTF-8", indexFileContents)
-		//_, err = c.Writer.Write(indexFileContents)
-		//resource.CheckErr(err, "Failed to write index html")
-	})
+	setupNoRouteRouter(boxRoot, defaultRouter)
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	CleanUpConfigFiles()
@@ -1040,6 +1036,235 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer, olricDb
 
+}
+
+func setupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
+
+	indexFile, err := boxRoot.Open("index.html")
+
+	resource.CheckErr(err, "Failed to open index.html file from dashboard directory %v")
+
+	var indexFileContents = []byte("")
+	if indexFile != nil && err == nil {
+		indexFileContents, err = io.ReadAll(indexFile)
+	}
+	defaultRouter.GET("", func(c *gin.Context) {
+		c.Header("Cache-Control", "public, max-age=60") // Short cache time for index.html
+		c.Data(http.StatusOK, "text/html; charset=UTF-8", indexFileContents)
+	})
+
+	// Add cache middleware
+	defaultRouter.Use(func(c *gin.Context) {
+		// Skip non-GET requests
+		if c.Request.Method != http.MethodGet {
+			c.Next()
+			return
+		}
+
+		c.Next()
+	})
+
+	defaultRouter.NoRoute(func(c *gin.Context) {
+		filePath := strings.TrimLeft(c.Request.URL.Path, "/")
+
+		// Check if we have the file in our cache first
+		if cached, found := diskFileCache.Get(filePath); found {
+			cachedFile := cached.(*DiskFileCache)
+
+			// Handle conditional requests
+			ifModifiedSince := c.GetHeader("If-Modified-Since")
+			ifNoneMatch := c.GetHeader("If-None-Match")
+
+			// Check ETag first
+			if ifNoneMatch != "" && ifNoneMatch == cachedFile.ETag {
+				c.Status(http.StatusNotModified)
+				return
+			}
+
+			// Then check Last-Modified
+			if ifModifiedSince != "" {
+				ifModifiedSinceTime, err := http.ParseTime(ifModifiedSince)
+				if err == nil && !cachedFile.LastModified.After(ifModifiedSinceTime) {
+					c.Status(http.StatusNotModified)
+					return
+				}
+			}
+
+			// Set cache headers
+			setClientCacheHeaders(c, cachedFile)
+
+			// Serve from cache
+			c.Data(http.StatusOK, cachedFile.ContentType, cachedFile.Data)
+			return
+		}
+
+		// File not in cache, try to open it
+		file, err := boxRoot.Open(filePath)
+		if err == nil && file != nil {
+			defer file.Close()
+
+			// For file system, get stats to determine last modified time
+			stat, statErr := file.(interface{ Stat() (os.FileInfo, error) }).Stat()
+			if statErr != nil {
+				log.Printf("Error getting file stats: %v", statErr)
+				c.FileFromFS(filePath, boxRoot)
+				return
+			}
+
+			// Don't cache large files
+			if stat.Size() > maxFileSizeToCache {
+				// Still set client caching headers even if we don't cache it server-side
+				setClientCacheHeadersForFile(c, stat.ModTime(), generateETagWithData(filePath, stat.ModTime(), stat.Size()))
+				c.FileFromFS(filePath, boxRoot)
+				return
+			}
+
+			// Read the file content
+			content := make([]byte, stat.Size())
+			_, readErr := file.Read(content)
+			if readErr != nil {
+				log.Printf("Error reading file: %v", readErr)
+				c.FileFromFS(filePath, boxRoot)
+				return
+			}
+
+			// Determine content type
+			contentType := getContentType(filePath)
+			lastModified := stat.ModTime()
+			etag := generateETagWithData(filePath, lastModified, stat.Size())
+
+			// Create cache entry
+			cacheEntry := &DiskFileCache{
+				Data:         content,
+				ContentType:  contentType,
+				LastModified: lastModified,
+				ETag:         etag,
+			}
+
+			// Add to cache
+			diskFileCache.Add(filePath, cacheEntry)
+
+			// Set client cache headers
+			setClientCacheHeaders(c, cacheEntry)
+
+			// Serve the file
+			c.Data(http.StatusOK, contentType, content)
+			return
+		}
+
+		// Fallback to serving index.html
+		if len(indexFileContents) > 0 {
+			// Set minimal caching for index.html
+			c.Header("Cache-Control", "public, max-age=60") // Short cache time for index.html
+			c.Data(http.StatusOK, "text/html; charset=UTF-8", indexFileContents)
+		}
+	})
+}
+
+// Set HTTP cache headers based on the cached file
+func setClientCacheHeaders(c *gin.Context, cachedFile *DiskFileCache) {
+	// Set ETag
+	c.Header("ETag", cachedFile.ETag)
+
+	// Set Last-Modified
+	c.Header("Last-Modified", cachedFile.LastModified.UTC().Format(http.TimeFormat))
+
+	// Set Cache-Control with aggressive but sane settings
+	c.Header("Cache-Control", fmt.Sprintf(
+		"public, max-age=%d, stale-while-revalidate=%d, stale-if-error=%d",
+		cacheMaxAge, cacheStaleRevalidate, cacheStaleIfError))
+
+	// Add Expires header as a fallback for older clients
+	expiresTime := time.Now().Add(time.Duration(cacheMaxAge) * time.Second)
+	c.Header("Expires", expiresTime.UTC().Format(http.TimeFormat))
+
+	// Set Content-Type
+	c.Header("Content-Type", cachedFile.ContentType)
+}
+
+// Set HTTP cache headers for a file that isn't cached server-side
+func setClientCacheHeadersForFile(c *gin.Context, lastModified time.Time, etag string) {
+	c.Header("ETag", etag)
+	c.Header("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
+	c.Header("Cache-Control", fmt.Sprintf(
+		"public, max-age=%d, stale-while-revalidate=%d, stale-if-error=%d",
+		cacheMaxAge, cacheStaleRevalidate, cacheStaleIfError))
+	expiresTime := time.Now().Add(time.Duration(cacheMaxAge) * time.Second)
+	c.Header("Expires", expiresTime.UTC().Format(http.TimeFormat))
+}
+
+// Generate ETag based on file path, modification time, and size
+func generateETagWithData(path string, modTime time.Time, size int64) string {
+	etag := fmt.Sprintf("\"%x-%x-%x\"", size, modTime.UnixNano(), hash(path))
+	return etag
+}
+
+// Simple hash function for ETag generation
+func hash(s string) uint32 {
+	h := uint32(0)
+	for i := 0; i < len(s); i++ {
+		h = h*31 + uint32(s[i])
+	}
+	return h
+}
+
+// Get content type based on file extension
+func getContentType(filePath string) string {
+	ext := strings.ToLower(filepath.Ext(filePath))
+	switch ext {
+	case ".html", ".htm":
+		return "text/html; charset=UTF-8"
+	case ".css":
+		return "text/css; charset=UTF-8"
+	case ".js":
+		return "application/javascript; charset=UTF-8"
+	case ".json":
+		return "application/json; charset=UTF-8"
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".gif":
+		return "image/gif"
+	case ".svg":
+		return "image/svg+xml"
+	case ".webp":
+		return "image/webp"
+	case ".ico":
+		return "image/x-icon"
+	case ".pdf":
+		return "application/pdf"
+	case ".txt":
+		return "text/plain; charset=UTF-8"
+	case ".xml":
+		return "application/xml; charset=UTF-8"
+	case ".woff":
+		return "font/woff"
+	case ".woff2":
+		return "font/woff2"
+	case ".ttf":
+		return "font/ttf"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+// loadIndexFile loads the index.html file into memory
+func loadIndexFile(boxRoot http.FileSystem) error {
+	file, err := boxRoot.Open("index.html")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	stat, err := file.(interface{ Stat() (os.FileInfo, error) }).Stat()
+	if err != nil {
+		return err
+	}
+
+	indexFileContents = make([]byte, stat.Size())
+	_, err = file.Read(indexFileContents)
+	return err
 }
 
 func CreateFtpServers(resources map[string]*resource.DbResource, resourcesInterfaces map[string]dbresourceinterface.DbResourceInterface, certManager *resource.CertificateManager, ftp_interface string, transaction *sqlx.Tx) (*server2.FtpServer, error) {
