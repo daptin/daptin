@@ -435,7 +435,7 @@ OutFields:
 			if err != nil {
 
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error",
-					"No such useruser_reference_id ["+fmt.Sprintf("%v", refIdAttr)+"] "+err.Error(), "Failed"))
+					"No such user user_reference_id ["+fmt.Sprintf("%v", refIdAttr)+"] "+err.Error(), "Failed"))
 				responses = append(responses, actionResponse)
 				break OutFields
 			}
