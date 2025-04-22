@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -259,10 +260,16 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 			// Find the correct file
 			fileNameToServe := ""
 			fileType := "application/octet-stream"
+			colDataMapArray := colData.([]map[string]interface{})
 
-			for _, fileData := range colData.([]map[string]interface{}) {
+			indexByQuery := c.Query("index")
+			var indexByQueryInt = -1
+			indexByQueryInt, err = strconv.Atoi(indexByQuery)
+			nameByQuery := c.Query("file")
+			if err == nil && indexByQueryInt > -1 && indexByQueryInt < len(colDataMapArray) {
+				fileData := colDataMapArray[indexByQueryInt]
 				fileName := fileData["name"].(string)
-				queryFile := c.Query("file")
+				queryFile := nameByQuery
 
 				if queryFile == fileName || queryFile == "" {
 					// Determine filename
@@ -282,8 +289,33 @@ func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Conte
 					} else {
 						fileType = GetMimeType(fileNameToServe)
 					}
+				}
+			} else {
+				for _, fileData := range colDataMapArray {
+					fileName := fileData["name"].(string)
+					queryFile := nameByQuery
 
-					break
+					if queryFile == fileName || queryFile == "" {
+						// Determine filename
+						if fileData["path"] != nil && len(fileData["path"].(string)) > 0 {
+							fileNameToServe = fileData["path"].(string) + "/" + fileName
+						} else {
+							fileNameToServe = fileName
+						}
+
+						// Determine mime type
+						if typFromData, ok := fileData["type"]; ok {
+							if typeStr, isStr := typFromData.(string); isStr {
+								fileType = typeStr
+							} else {
+								fileType = GetMimeType(fileNameToServe)
+							}
+						} else {
+							fileType = GetMimeType(fileNameToServe)
+						}
+
+						break
+					}
 				}
 			}
 
