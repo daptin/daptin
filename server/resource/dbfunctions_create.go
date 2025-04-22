@@ -613,7 +613,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 					//log.Printf("Add column [%v] to table [%v]", col.ColumnName, t.TableName)
 					if targetTable != USER_ACCOUNT_TABLE_NAME && relation.GetRelation() == "belongs_to" {
-						config.Tables[i].IsTopLevel = false
+						//config.Tables[i].IsTopLevel = false
 						//log.Printf("Table [%v] is not top level == %v", t.TableName, targetTable)
 					}
 					config.Tables[i].AddRelation(relation)
