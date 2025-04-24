@@ -23,6 +23,17 @@ func (hs HostSwitch) GetHostRouter(name string) *gin.Engine {
 	return hs.HandlerMap[name]
 }
 
+func (hs HostSwitch) GetAllRouter() []*gin.Engine {
+	//TODO implement me
+	arr := make([]*gin.Engine, len(hs.HandlerMap))
+	i := 0
+	for _, h := range hs.HandlerMap {
+		arr = append(arr, h)
+		i += 1
+	}
+	return arr
+}
+
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("HostSwitch.ServeHTTP RequestUrl: %v", r.URL)
 	// Check if a http.Handler is registered for the given host.

@@ -42,6 +42,7 @@ type SubSite struct {
 
 type HostRouterProvider interface {
 	GetHostRouter(name string) *gin.Engine
+	GetAllRouter() []*gin.Engine
 }
 
 // CacheEntry represents a single entry in the in-memory cache
@@ -229,7 +230,7 @@ func (c *InMemoryCache) evictEntries() {
 }
 
 func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterface.DbResourceInterface, hostSwitch HostRouterProvider) error {
-	mainRouter := hostSwitch.GetHostRouter("dashboard")
+	allRouters := hostSwitch.GetAllRouter()
 	templateList, err := cruds["template"].GetAllObjects("template", transaction)
 	if err != nil {
 		return err
@@ -244,7 +245,10 @@ func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterf
 		}
 		templateRenderHelper := handlerCreator(templateRow)
 		for _, urlMatch := range strArray {
-			mainRouter.Any(urlMatch, templateRenderHelper)
+			log.Infof("TemplateRoute[%s]", urlMatch, templateRow["name"])
+			for _, router := range allRouters {
+				router.Any(urlMatch, templateRenderHelper)
+			}
 		}
 	}
 	return nil
