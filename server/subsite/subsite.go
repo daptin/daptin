@@ -232,6 +232,7 @@ func (c *InMemoryCache) evictEntries() {
 func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterface.DbResourceInterface, hostSwitch HostRouterProvider) error {
 	allRouters := hostSwitch.GetAllRouter()
 	templateList, err := cruds["template"].GetAllObjects("template", transaction)
+	log.Infof("Got [%d] Templates from database", len(templateList))
 	if err != nil {
 		return err
 	}
