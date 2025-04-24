@@ -28,7 +28,7 @@ func (hs HostSwitch) GetAllRouter() []*gin.Engine {
 	arr := make([]*gin.Engine, len(hs.HandlerMap))
 	i := 0
 	for _, h := range hs.HandlerMap {
-		arr = append(arr, h)
+		arr[i] = h
 		i += 1
 	}
 	return arr

@@ -246,7 +246,7 @@ func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterf
 		}
 		templateRenderHelper := handlerCreator(templateRow)
 		for _, urlMatch := range strArray {
-			log.Infof("TemplateRoute[%s]", urlMatch, templateRow["name"])
+			log.Infof("TemplateRoute [%s] => %s", urlMatch, templateRow["name"])
 			for _, router := range allRouters {
 				router.Any(urlMatch, templateRenderHelper)
 			}
