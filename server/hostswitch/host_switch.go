@@ -25,7 +25,7 @@ func (hs HostSwitch) GetHostRouter(name string) *gin.Engine {
 
 func (hs HostSwitch) GetAllRouter() []*gin.Engine {
 	//TODO implement me
-	arr := make([]*gin.Engine, len(hs.HandlerMap))
+	arr := make([]*gin.Engine, 0)
 	for key, h := range hs.HandlerMap {
 		if key == "api" {
 			continue
