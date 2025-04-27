@@ -238,11 +238,13 @@ func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterf
 	}
 	handlerCreator := CreateTemplateRouteHandler(cruds, transaction)
 	for _, templateRow := range templateList {
+		log.Infof("ProcessTemplateRoute [%s] %v", templateRow["name"], templateRow["url_pattern"])
 		urlPattern := templateRow["url_pattern"].(string)
 		strArray := make([]string, 0)
 		err = json.Unmarshal([]byte(urlPattern), &strArray)
 		if err != nil {
-			return fmt.Errorf("Failed to parse url pattern ["+urlPattern+"] as string array: %s", err)
+			log.Errorf("Failed to parse url pattern [%v] as string array [%v]", urlPattern, err)
+			continue
 		}
 		templateRenderHelper := handlerCreator(templateRow)
 		for _, urlMatch := range strArray {
@@ -282,6 +284,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 		return func(ginContext *gin.Context) {
 
 			// Apply caching configuration if available
+			log.Tracef("Serve subsite[%s] reqeust[%s]", templateName, ginContext.Request.URL.Path)
 			if cacheConfig != nil && cacheConfig.Enable {
 				// Apply cache control headers based on configuration
 				applyCacheHeaders(ginContext, cacheConfig)

@@ -1,6 +1,9 @@
 package server
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
 	"github.com/artpar/stats"
 	limit "github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/assetcachepojo"
@@ -12,7 +15,6 @@ import (
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/daptin/daptin/server/task"
-	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -23,9 +25,33 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
+
+// SubsiteCacheEntry represents a cached file with its etag and content
+type SubsiteCacheEntry struct {
+	ETag         string
+	Content      []byte
+	ContentType  string
+	LastModified time.Time
+}
+
+// SubsiteFileCache is a global in-memory cache for subsite files
+var subsiteFileCache sync.Map
+
+// generateSubsiteETag creates an ETag for a file based on its content
+func generateSubsiteETag(content []byte) string {
+	hash := md5.Sum(content)
+	return fmt.Sprintf("\"%s\"", hex.EncodeToString(hash[:]))
+}
+
+// getSubsiteCacheKey generates a unique cache key for a file path and host
+func getSubsiteCacheKey(host, path string) string {
+	return host + "::" + path
+}
 
 func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
@@ -109,6 +135,15 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			continue
 		}
 
+		// Clear cache for this site when syncing
+		subsiteFileCache.Range(func(key, value interface{}) bool {
+			cacheKey := key.(string)
+			if strings.HasPrefix(cacheKey, site.Hostname) {
+				subsiteFileCache.Delete(key)
+			}
+			return true
+		})
+
 		syncTask := task.Task{
 			EntityName: "site",
 			ActionName: "sync_site_storage",
@@ -174,11 +209,89 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 		//hostRouter.ServeFiles("/*filepath", http.Dir(tempDirectoryPath))
 		hostRouter.Use(authMiddleware.AuthCheckMiddleware)
 
-		if site.SiteType == "hugo" {
-			hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath+"/public", true)))
-		} else {
-			hostRouter.Use(static.Serve("/", static.LocalFile(tempDirectoryPath, true)))
-		}
+		log.Tracef("Serve subsite[%s] from source [%s]", site.Name, tempDirectoryPath)
+
+		// Create a custom middleware for serving static files with aggressive caching
+		hostRouter.Use(func(c *gin.Context) {
+			path := c.Request.URL.Path
+			var filePath string
+
+			if site.SiteType == "hugo" {
+				filePath = filepath.Join(tempDirectoryPath, "public", path)
+			} else {
+				filePath = filepath.Join(tempDirectoryPath, path)
+			}
+
+			// Handle directory paths by appending index.html
+			fileInfo, err := os.Stat(filePath)
+			if err == nil && fileInfo.IsDir() {
+				filePath = filepath.Join(filePath, "index.html")
+			}
+
+			// Generate a cache key for this request
+			cacheKey := getSubsiteCacheKey(c.Request.Host, path)
+
+			// Check if we have this file in cache
+			if cachedEntry, found := subsiteFileCache.Load(cacheKey); found {
+				entry := cachedEntry.(*SubsiteCacheEntry)
+
+				// Check if client has a valid cached version using If-None-Match header
+				clientETag := c.Request.Header.Get("If-None-Match")
+				if clientETag == entry.ETag {
+					c.Writer.WriteHeader(http.StatusNotModified)
+					return
+				}
+
+				// Set cache headers
+				c.Writer.Header().Set("ETag", entry.ETag)
+				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
+				c.Writer.Header().Set("Content-Type", entry.ContentType)
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(entry.Content)
+				c.Abort()
+				return
+			}
+
+			// If not in cache, try to read the file
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				// Let the next middleware handle 404s
+				c.Next()
+				return
+			}
+
+			// Determine content type
+			contentType := http.DetectContentType(content)
+			if strings.HasSuffix(filePath, ".css") {
+				contentType = "text/css"
+			} else if strings.HasSuffix(filePath, ".js") {
+				contentType = "application/javascript"
+			} else if strings.HasSuffix(filePath, ".html") {
+				contentType = "text/html; charset=utf-8"
+			}
+
+			// Generate ETag
+			etag := generateSubsiteETag(content)
+			lastModified := time.Now()
+
+			// Cache the file
+			subsiteFileCache.Store(cacheKey, &SubsiteCacheEntry{
+				ETag:         etag,
+				Content:      content,
+				ContentType:  contentType,
+				LastModified: lastModified,
+			})
+
+			// Set cache headers
+			c.Writer.Header().Set("ETag", etag)
+			c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+			c.Writer.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
+			c.Writer.Header().Set("Content-Type", contentType)
+			c.Writer.WriteHeader(http.StatusOK)
+			c.Writer.Write(content)
+			c.Abort()
+		})
 
 		faviconPath := tempDirectoryPath + "/favicon.ico"
 		if site.SiteType == "hugo" {
@@ -186,10 +299,108 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 		}
 
 		hostRouter.GET("/favicon.ico", func(c *gin.Context) {
+			// Check if favicon is in cache
+			cacheKey := getSubsiteCacheKey(c.Request.Host, "/favicon.ico")
+			if cachedEntry, found := subsiteFileCache.Load(cacheKey); found {
+				entry := cachedEntry.(*SubsiteCacheEntry)
+
+				// Check if client has a valid cached version
+				clientETag := c.Request.Header.Get("If-None-Match")
+				if clientETag == entry.ETag {
+					c.Writer.WriteHeader(http.StatusNotModified)
+					return
+				}
+
+				// Set cache headers
+				c.Writer.Header().Set("ETag", entry.ETag)
+				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
+				c.Writer.Header().Set("Content-Type", entry.ContentType)
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(entry.Content)
+				return
+			}
+
+			// If not in cache, read the file
+			content, err := os.ReadFile(faviconPath)
+			if err == nil {
+				// Generate ETag
+				etag := generateSubsiteETag(content)
+				lastModified := time.Now()
+
+				// Cache the favicon
+				subsiteFileCache.Store(cacheKey, &SubsiteCacheEntry{
+					ETag:         etag,
+					Content:      content,
+					ContentType:  "image/x-icon",
+					LastModified: lastModified,
+				})
+
+				// Set cache headers
+				c.Writer.Header().Set("ETag", etag)
+				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+				c.Writer.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
+				c.Writer.Header().Set("Content-Type", "image/x-icon")
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(content)
+				return
+			}
+
+			// Fallback to standard file serving if reading fails
 			c.File(faviconPath)
 		})
 		hostRouter.NoRoute(func(c *gin.Context) {
 			log.Printf("Found no route for [%v] [%v] [%v]", c.ClientIP(), c.Request.Header.Get("User-Agent"), c.Request.URL)
+
+			// Check if index.html is in cache
+			cacheKey := getSubsiteCacheKey(c.Request.Host, "/index.html")
+			if cachedEntry, found := subsiteFileCache.Load(cacheKey); found {
+				entry := cachedEntry.(*SubsiteCacheEntry)
+
+				// Check if client has a valid cached version
+				clientETag := c.Request.Header.Get("If-None-Match")
+				if clientETag == entry.ETag {
+					c.Writer.WriteHeader(http.StatusNotModified)
+					return
+				}
+
+				// Set cache headers
+				c.Writer.Header().Set("ETag", entry.ETag)
+				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
+				c.Writer.Header().Set("Content-Type", entry.ContentType)
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(entry.Content)
+				return
+			}
+
+			// If not in cache, read the file
+			indexPath := tempDirectoryPath + "/index.html"
+			content, err := os.ReadFile(indexPath)
+			if err == nil {
+				// Generate ETag
+				etag := generateSubsiteETag(content)
+				lastModified := time.Now()
+
+				// Cache the index.html
+				subsiteFileCache.Store(cacheKey, &SubsiteCacheEntry{
+					ETag:         etag,
+					Content:      content,
+					ContentType:  "text/html; charset=utf-8",
+					LastModified: lastModified,
+				})
+
+				// Set cache headers
+				c.Writer.Header().Set("ETag", etag)
+				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+				c.Writer.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
+				c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(content)
+				return
+			}
+
+			// Fallback to standard file serving if reading fails
 			c.File(tempDirectoryPath + "/index.html")
 		})
 
