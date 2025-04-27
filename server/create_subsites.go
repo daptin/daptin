@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -33,10 +35,11 @@ import (
 
 // SubsiteCacheEntry represents a cached file with its etag and content
 type SubsiteCacheEntry struct {
-	ETag         string
-	Content      []byte
-	ContentType  string
-	LastModified time.Time
+	ETag              string
+	Content           []byte
+	CompressedContent []byte // Gzip compressed content
+	ContentType       string
+	LastModified      time.Time
 }
 
 // SubsiteFileCache is a global in-memory cache for subsite files
@@ -46,6 +49,74 @@ var subsiteFileCache sync.Map
 func generateSubsiteETag(content []byte) string {
 	hash := md5.Sum(content)
 	return fmt.Sprintf("\"%s\"", hex.EncodeToString(hash[:]))
+}
+
+// compressContent compresses content using gzip with best compression
+func compressContent(content []byte) ([]byte, error) {
+	var b bytes.Buffer
+	gw, err := gzip.NewWriterLevel(&b, gzip.BestCompression)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := gw.Write(content); err != nil {
+		return nil, err
+	}
+
+	if err := gw.Close(); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+// shouldCompress determines if a file should be compressed based on its content type
+func shouldCompress(contentType string) bool {
+	compressibleTypes := []string{
+		"text/",
+		"application/javascript",
+		"application/json",
+		"application/xml",
+		"application/xhtml+xml",
+		"image/svg+xml",
+		"application/font-woff",
+		"application/font-woff2",
+		"application/vnd.ms-fontobject",
+		"application/x-font-ttf",
+		"font/opentype",
+		"application/octet-stream",
+	}
+
+	// Don't compress already compressed formats
+	alreadyCompressed := []string{
+		"image/jpeg",
+		"image/png",
+		"image/gif",
+		"image/webp",
+		"audio/",
+		"video/",
+		"application/zip",
+		"application/gzip",
+		"application/x-gzip",
+		"application/x-compressed",
+		"application/x-zip-compressed",
+	}
+
+	// Check if content is already compressed
+	for _, t := range alreadyCompressed {
+		if strings.Contains(contentType, t) {
+			return false
+		}
+	}
+
+	// Check if content is compressible
+	for _, t := range compressibleTypes {
+		if strings.Contains(contentType, t) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // getSubsiteCacheKey generates a unique cache key for a file path and host
@@ -178,6 +249,8 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 		subsiteStats := stats.New()
 		hostRouter := gin.New()
 
+		// We're using our own compression implementation instead of middleware
+
 		hostRouter.Use(func() gin.HandlerFunc {
 			return func(c *gin.Context) {
 				beginning, recorder := subsiteStats.Begin(c.Writer)
@@ -244,11 +317,20 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 
 				// Set cache headers
 				c.Writer.Header().Set("ETag", entry.ETag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+				c.Writer.Header().Set("Cache-Control", "public, max-age=604800, immutable") // 7 days with immutable directive
 				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
 				c.Writer.Header().Set("Content-Type", entry.ContentType)
-				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(entry.Content)
+
+				// Check if client accepts gzip encoding and we have compressed content
+				if entry.CompressedContent != nil && len(entry.CompressedContent) > 0 && strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+					c.Writer.Header().Set("Content-Encoding", "gzip")
+					c.Writer.Header().Set("Vary", "Accept-Encoding")
+					c.Writer.WriteHeader(http.StatusOK)
+					c.Writer.Write(entry.CompressedContent)
+				} else {
+					c.Writer.WriteHeader(http.StatusOK)
+					c.Writer.Write(entry.Content)
+				}
 				c.Abort()
 				return
 			}
@@ -275,133 +357,90 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			etag := generateSubsiteETag(content)
 			lastModified := time.Now()
 
+			// Compress content if it's a compressible type
+			var compressedContent []byte
+			if shouldCompress(contentType) {
+				compressed, err := compressContent(content)
+				if err == nil {
+					compressedContent = compressed
+				}
+			}
+
 			// Cache the file
 			subsiteFileCache.Store(cacheKey, &SubsiteCacheEntry{
-				ETag:         etag,
-				Content:      content,
-				ContentType:  contentType,
-				LastModified: lastModified,
+				ETag:              etag,
+				Content:           content,
+				CompressedContent: compressedContent,
+				ContentType:       contentType,
+				LastModified:      lastModified,
 			})
 
 			// Set cache headers
 			c.Writer.Header().Set("ETag", etag)
-			c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+			c.Writer.Header().Set("Cache-Control", "public, max-age=604800, immutable") // 7 days with immutable directive
 			c.Writer.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
 			c.Writer.Header().Set("Content-Type", contentType)
-			c.Writer.WriteHeader(http.StatusOK)
-			c.Writer.Write(content)
-			c.Abort()
-		})
+			c.Writer.Header().Set("Vary", "Accept-Encoding")
 
-		faviconPath := tempDirectoryPath + "/favicon.ico"
-		if site.SiteType == "hugo" {
-			faviconPath = tempDirectoryPath + "/public/favicon.ico"
-		}
-
-		hostRouter.GET("/favicon.ico", func(c *gin.Context) {
-			// Check if favicon is in cache
-			cacheKey := getSubsiteCacheKey(c.Request.Host, "/favicon.ico")
-			if cachedEntry, found := subsiteFileCache.Load(cacheKey); found {
-				entry := cachedEntry.(*SubsiteCacheEntry)
-
-				// Check if client has a valid cached version
-				clientETag := c.Request.Header.Get("If-None-Match")
-				if clientETag == entry.ETag {
-					c.Writer.WriteHeader(http.StatusNotModified)
-					return
-				}
-
-				// Set cache headers
-				c.Writer.Header().Set("ETag", entry.ETag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
-				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
-				c.Writer.Header().Set("Content-Type", entry.ContentType)
+			// Check if client accepts gzip encoding and we have compressed content
+			if compressedContent != nil && len(compressedContent) > 0 && strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+				c.Writer.Header().Set("Content-Encoding", "gzip")
 				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(entry.Content)
-				return
-			}
-
-			// If not in cache, read the file
-			content, err := os.ReadFile(faviconPath)
-			if err == nil {
-				// Generate ETag
-				etag := generateSubsiteETag(content)
-				lastModified := time.Now()
-
-				// Cache the favicon
-				subsiteFileCache.Store(cacheKey, &SubsiteCacheEntry{
-					ETag:         etag,
-					Content:      content,
-					ContentType:  "image/x-icon",
-					LastModified: lastModified,
-				})
-
-				// Set cache headers
-				c.Writer.Header().Set("ETag", etag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
-				c.Writer.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
-				c.Writer.Header().Set("Content-Type", "image/x-icon")
+				c.Writer.Write(compressedContent)
+			} else {
 				c.Writer.WriteHeader(http.StatusOK)
 				c.Writer.Write(content)
-				return
 			}
+			c.Abort()
+			return
 
 			// Fallback to standard file serving if reading fails
-			c.File(faviconPath)
-		})
-		hostRouter.NoRoute(func(c *gin.Context) {
-			log.Printf("Found no route for [%v] [%v] [%v]", c.ClientIP(), c.Request.Header.Get("User-Agent"), c.Request.URL)
-
-			// Check if index.html is in cache
-			cacheKey := getSubsiteCacheKey(c.Request.Host, "/index.html")
-			if cachedEntry, found := subsiteFileCache.Load(cacheKey); found {
-				entry := cachedEntry.(*SubsiteCacheEntry)
-
-				// Check if client has a valid cached version
-				clientETag := c.Request.Header.Get("If-None-Match")
-				if clientETag == entry.ETag {
-					c.Writer.WriteHeader(http.StatusNotModified)
-					return
-				}
-
-				// Set cache headers
-				c.Writer.Header().Set("ETag", entry.ETag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
-				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
-				c.Writer.Header().Set("Content-Type", entry.ContentType)
-				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(entry.Content)
-				return
-			}
-
-			// If not in cache, read the file
-			indexPath := tempDirectoryPath + "/index.html"
-			content, err := os.ReadFile(indexPath)
+			// Try to read and cache index.html with compression
+			indexPath := filepath.Join(tempDirectoryPath, "index.html")
+			indexContent, err := os.ReadFile(indexPath)
 			if err == nil {
 				// Generate ETag
-				etag := generateSubsiteETag(content)
-				lastModified := time.Now()
+				indexEtag := generateSubsiteETag(indexContent)
+				indexLastModified := time.Now()
+
+				// Compress the index.html content
+				var compressedIndexContent []byte
+				compressedIndex, err := compressContent(indexContent)
+				if err == nil {
+					compressedIndexContent = compressedIndex
+				}
 
 				// Cache the index.html
-				subsiteFileCache.Store(cacheKey, &SubsiteCacheEntry{
-					ETag:         etag,
-					Content:      content,
-					ContentType:  "text/html; charset=utf-8",
-					LastModified: lastModified,
+				indexCacheKey := getSubsiteCacheKey(c.Request.Host, "/index.html")
+				subsiteFileCache.Store(indexCacheKey, &SubsiteCacheEntry{
+					ETag:              indexEtag,
+					Content:           indexContent,
+					CompressedContent: compressedIndexContent,
+					ContentType:       "text/html; charset=utf-8",
+					LastModified:      indexLastModified,
 				})
 
 				// Set cache headers
-				c.Writer.Header().Set("ETag", etag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
-				c.Writer.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
+				c.Writer.Header().Set("ETag", indexEtag)
+				c.Writer.Header().Set("Cache-Control", "public, max-age=604800, immutable") // 7 days with immutable directive
+				c.Writer.Header().Set("Last-Modified", indexLastModified.Format(http.TimeFormat))
 				c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(content)
+				c.Writer.Header().Set("Vary", "Accept-Encoding")
+
+				// Serve compressed content if client accepts it
+				if compressedIndexContent != nil && strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+					c.Writer.Header().Set("Content-Encoding", "gzip")
+					c.Writer.WriteHeader(http.StatusOK)
+					c.Writer.Write(compressedIndexContent)
+				} else {
+					c.Writer.WriteHeader(http.StatusOK)
+					c.Writer.Write(indexContent)
+				}
 				return
 			}
 
-			// Fallback to standard file serving if reading fails
-			c.File(tempDirectoryPath + "/index.html")
+			// If reading fails, fallback to standard file serving
+			c.File(indexPath)
 		})
 
 		hostRouter.Handle("GET", "/statistics", func(c *gin.Context) {
