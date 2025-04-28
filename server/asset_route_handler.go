@@ -10,30 +10,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// Define cache duration by file type
-const imageCacheDuration = 7 * 24 * time.Hour  // 7 days
-const textCacheDuration = 24 * time.Hour       // 1 day
-const defaultCacheDuration = 24 * time.Hour    // 1 day
-const videoCacheDuration = 14 * 24 * time.Hour // 14 days
-
-var imagePattern = regexp.MustCompile(`\.(jpe?g|png|gif|webp|svg)$`)
-var textPattern = regexp.MustCompile(`\.(css|js|html?|txt|md|json|xml)$`)
-var videoPattern = regexp.MustCompile(`\.(mp4|webm|ogg)$`)
-
 func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Context) {
-	// Precompile regex patterns for common file types
-
 	return func(c *gin.Context) {
 		typeName := c.Param("typename")
 		resourceUuid := c.Param("resource_id")
 		columnNameWithExt := c.Param("columnname")
 		columnNameWithoutExt := columnNameWithExt
+
 		if strings.Index(columnNameWithoutExt, ".") > -1 {
 			columnNameWithoutExt = columnNameWithoutExt[:strings.LastIndex(columnNameWithoutExt, ".")]
 		}
@@ -60,17 +48,12 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			c.Header("Content-Type", cachedFile.MimeType)
 			c.Header("ETag", cachedFile.ETag)
 
-			// Set cache control based on file type
-			filename := filepath.Base(cachedFile.Path)
-			if imagePattern.MatchString(strings.ToLower(filename)) {
-				c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(imageCacheDuration.Seconds())))
-			} else if textPattern.MatchString(strings.ToLower(filename)) {
-				c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(textCacheDuration.Seconds())))
-			} else if videoPattern.MatchString(strings.ToLower(filename)) {
-				c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(videoCacheDuration.Seconds())))
-			} else {
-				c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(defaultCacheDuration.Seconds())))
+			// Set cache control based on expiry time
+			maxAge := int(time.Until(cachedFile.ExpiresAt).Seconds())
+			if maxAge <= 0 {
+				maxAge = 60 // Minimum 1 minute for almost expired resources
 			}
+			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
 
 			// Add content disposition if needed
 			if cachedFile.IsDownload {
@@ -93,12 +76,12 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		}
 
 		// Parse column name and extension
-		parts := strings.SplitN(columnNameWithExt, ".", 2)
-		if len(parts) == 0 {
-			c.AbortWithStatus(http.StatusBadRequest)
-			return
-		}
-		columnName := parts[0]
+		//parts := strings.SplitN(columnNameWithExt, ".", 2)
+		//if len(parts) == 0 {
+		//	c.AbortWithStatus(http.StatusBadRequest)
+		//	return
+		//}
+		columnName := columnNameWithoutExt
 
 		// Fast path: check if the table exists
 		table, ok := cruds[typeName]
@@ -165,6 +148,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				Size:       len(htmlContent),
 				Path:       fmt.Sprintf("%s/%s/%s", typeName, resourceUuid, columnNameWithExt),
 				IsDownload: false,
+				ExpiresAt:  calculateExpiry("text/html", ""),
 			}
 
 			// Create compressed version if large enough
@@ -178,7 +162,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 			// Return markdown as HTML with appropriate headers
 			c.Header("Content-Type", "text/html; charset=utf-8")
-			c.Header("Cache-Control", "public, max-age=86400") // 1 day
+			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(time.Until(cachedMarkdown.ExpiresAt).Seconds())))
 			c.Header("ETag", etag)
 
 			// Use compression if client accepts it and we have compressed data
@@ -311,7 +295,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				return
 			}
 
-			// Check if file exists
+			// Check if file exists and get file info
 			fileInfo, err := os.Stat(filePath)
 			if err != nil {
 				c.AbortWithStatus(http.StatusNotFound)
@@ -331,19 +315,12 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", fileNameToServe))
 			}
 
-			// Apply different caching strategies based on file type
-			var cacheDuration time.Duration
-			filename := filepath.Base(filePath)
-			if imagePattern.MatchString(strings.ToLower(filename)) {
-				cacheDuration = imageCacheDuration
-			} else if textPattern.MatchString(strings.ToLower(filename)) {
-				cacheDuration = textCacheDuration
-			} else if videoPattern.MatchString(strings.ToLower(filename)) {
-				cacheDuration = videoCacheDuration
-			} else {
-				cacheDuration = defaultCacheDuration
-			}
-			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(cacheDuration.Seconds())))
+			// Calculate expiry time
+			expiryTime := calculateExpiry(fileType, filePath)
+
+			// Set cache control header based on expiry
+			maxAge := int(time.Until(expiryTime).Seconds())
+			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
 
 			// Use optimized file serving for small files that can be cached
 			if fileInfo.Size() <= MaxFileCacheSize {
@@ -381,6 +358,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 					Size:       len(data),
 					Path:       filePath,
 					IsDownload: isDownload,
+					ExpiresAt:  expiryTime,
 				}
 
 				// Pre-compress text files for better performance
@@ -389,6 +367,11 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 					if compressedData, err := compressData(data); err == nil {
 						newCachedFile.GzipData = compressedData
 					}
+				}
+
+				// Get file stat for validation
+				if fileStat, err := getFileStat(filePath); err == nil {
+					newCachedFile.FileStat = fileStat
 				}
 
 				// Add to cache for future requests
@@ -420,19 +403,14 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			defer file.Close()
 
 			// Set ETag for large files too
-			fileData, err := io.ReadAll(file)
-			if err == nil {
-				etag := generateETag(fileData, fileInfo.ModTime())
-				c.Header("ETag", etag)
+			// Instead of reading the entire file, use file info to generate ETag
+			etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
+			c.Header("ETag", etag)
 
-				// Check if client has fresh copy
-				if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
-					c.AbortWithStatus(http.StatusNotModified)
-					return
-				}
-
-				// Reset file position after reading
-				file.Seek(0, 0)
+			// Check if client has fresh copy
+			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+				c.AbortWithStatus(http.StatusNotModified)
+				return
 			}
 
 			http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
