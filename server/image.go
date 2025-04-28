@@ -3,8 +3,10 @@ package server
 import (
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/anthonynsimon/bild/effect"
+	"github.com/bep/gowebp/libwebp/webpoptions"
 	"github.com/disintegration/gift"
 	"github.com/gin-gonic/gin"
+	"github.com/gohugoio/hugo/resources/images/webp"
 	log "github.com/sirupsen/logrus"
 	"image"
 	"image/jpeg"
@@ -337,6 +339,13 @@ func HandleImageProcessing(c *gin.Context, file *os.File) {
 	c.Writer.Header().Set("Content-Type", "image/"+formatName)
 	if formatName == "png" {
 		err = png.Encode(c.Writer, dst)
+	} else if formatName == "webp" {
+		encodingOptions := webpoptions.EncodingOptions{
+			Quality:        10,
+			EncodingPreset: 0,
+			UseSharpYuv:    false,
+		}
+		err = webp.Encode(c.Writer, dst, encodingOptions)
 	} else {
 		err = jpeg.Encode(c.Writer, dst, nil)
 	}

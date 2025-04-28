@@ -3,9 +3,6 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
 	"github.com/artpar/stats"
 	limit "github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/assetcachepojo"
@@ -33,23 +30,34 @@ import (
 	"time"
 )
 
-// SubsiteCacheEntry represents a cached file with its etag and content
+// SubsiteCacheEntry represents a cached file with its etag, content, and expiration
 type SubsiteCacheEntry struct {
 	ETag              string
 	Content           []byte
 	CompressedContent []byte // Gzip compressed content
 	ContentType       string
 	LastModified      time.Time
+	FilePath          string    // Store the actual file path for checking modifications
+	ExpiresAt         time.Time // When this cache entry expires
+}
+
+// CacheConfig holds configuration for the cache
+var CacheConfig = struct {
+	DefaultTTL    time.Duration // Default time-to-live for cache entries
+	CheckInterval time.Duration // How often to check for file modifications
+	MaxCacheSize  int64         // Maximum size of the cache in bytes (0 for unlimited)
+	EnableCache   bool          // Toggle to enable/disable caching
+}{
+	DefaultTTL:    time.Minute * 30,  // Default to 30 minutes
+	CheckInterval: time.Minute * 5,   // Check every 5 minutes
+	MaxCacheSize:  100 * 1024 * 1024, // 100 MB max cache size
+	EnableCache:   true,
 }
 
 // SubsiteFileCache is a global in-memory cache for subsite files
 var subsiteFileCache sync.Map
-
-// generateSubsiteETag creates an ETag for a file based on its content
-func generateSubsiteETag(content []byte) string {
-	hash := md5.Sum(content)
-	return fmt.Sprintf("\"%s\"", hex.EncodeToString(hash[:]))
-}
+var cacheSizeCount int64
+var cacheSizeMutex sync.Mutex
 
 // compressContent compresses content using gzip with best compression
 func compressContent(content []byte) ([]byte, error) {
@@ -124,6 +132,199 @@ func getSubsiteCacheKey(host, path string) string {
 	return host + "::" + path
 }
 
+// isFileModified checks if the file on disk has been modified compared to cache
+func isFileModified(filePath string, cacheEntry *SubsiteCacheEntry) bool {
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		// If we can't stat the file, consider it modified
+		return true
+	}
+
+	// Check modification time
+	if fileInfo.ModTime().After(cacheEntry.LastModified) {
+		return true
+	}
+
+	// For extra verification, we could also check file size
+	if fileInfo.Size() != int64(len(cacheEntry.Content)) {
+		return true
+	}
+
+	return false
+}
+
+// isCacheExpired checks if a cache entry is expired
+func isCacheExpired(entry *SubsiteCacheEntry) bool {
+	// Check if the entry has expired based on time
+	if time.Now().After(entry.ExpiresAt) {
+		return true
+	}
+
+	// Check if the file has been modified
+	if entry.FilePath != "" && isFileModified(entry.FilePath, entry) {
+		return true
+	}
+
+	return false
+}
+
+// addToCache adds an entry to the cache, managing cache size
+func addToCache(cacheKey string, entry *SubsiteCacheEntry) {
+	if !CacheConfig.EnableCache {
+		return
+	}
+
+	// Calculate memory size of this entry
+	entrySize := int64(len(entry.Content))
+	if entry.CompressedContent != nil {
+		entrySize += int64(len(entry.CompressedContent))
+	}
+
+	// Check if adding this would exceed the max cache size
+	if CacheConfig.MaxCacheSize > 0 {
+		cacheSizeMutex.Lock()
+		defer cacheSizeMutex.Unlock()
+
+		// If adding this would exceed the cache size, try to remove some entries
+		if cacheSizeCount+entrySize > CacheConfig.MaxCacheSize {
+			evictCacheEntries(entrySize)
+		}
+
+		// Update cache size
+		subsiteFileCache.Store(cacheKey, entry)
+		cacheSizeCount += entrySize
+	} else {
+		// No max size, just add it
+		subsiteFileCache.Store(cacheKey, entry)
+	}
+}
+
+// evictCacheEntries removes entries to make room for new ones
+func evictCacheEntries(requiredSpace int64) {
+	// Simple LRU-like eviction - remove oldest entries first
+	// In a production system, you'd want a proper LRU implementation
+	var entriesToRemove []string
+	var removedSize int64
+
+	// Find entries to remove
+	subsiteFileCache.Range(func(key, value interface{}) bool {
+		entry := value.(*SubsiteCacheEntry)
+
+		// Calculate size of this entry
+		entrySize := int64(len(entry.Content))
+		if entry.CompressedContent != nil {
+			entrySize += int64(len(entry.CompressedContent))
+		}
+
+		entriesToRemove = append(entriesToRemove, key.(string))
+		removedSize += entrySize
+
+		// Stop iteration once we have enough space
+		return removedSize < requiredSpace
+	})
+
+	// Remove the entries
+	for _, key := range entriesToRemove {
+		if val, ok := subsiteFileCache.Load(key); ok {
+			entry := val.(*SubsiteCacheEntry)
+			entrySize := int64(len(entry.Content))
+			if entry.CompressedContent != nil {
+				entrySize += int64(len(entry.CompressedContent))
+			}
+
+			subsiteFileCache.Delete(key)
+			cacheSizeCount -= entrySize
+		}
+	}
+}
+
+// startCacheCleanupRoutine starts a background goroutine that cleans up expired cache entries
+func startCacheCleanupRoutine() {
+	go func() {
+		for {
+			time.Sleep(CacheConfig.CheckInterval)
+			cleanupExpiredEntries()
+		}
+	}()
+}
+
+// cleanupExpiredEntries removes expired entries from the cache
+func cleanupExpiredEntries() {
+	var entriesToRemove []string
+	var removedSize int64
+
+	// Find expired entries
+	subsiteFileCache.Range(func(key, value interface{}) bool {
+		cacheKey := key.(string)
+		entry := value.(*SubsiteCacheEntry)
+
+		if isCacheExpired(entry) {
+			entriesToRemove = append(entriesToRemove, cacheKey)
+
+			// Calculate size for bookkeeping
+			entrySize := int64(len(entry.Content))
+			if entry.CompressedContent != nil {
+				entrySize += int64(len(entry.CompressedContent))
+			}
+			removedSize += entrySize
+		}
+		return true // continue iteration
+	})
+
+	// Remove expired entries
+	if len(entriesToRemove) > 0 {
+		cacheSizeMutex.Lock()
+		defer cacheSizeMutex.Unlock()
+
+		for _, key := range entriesToRemove {
+			if val, ok := subsiteFileCache.Load(key); ok {
+				entry := val.(*SubsiteCacheEntry)
+				entrySize := int64(len(entry.Content))
+				if entry.CompressedContent != nil {
+					entrySize += int64(len(entry.CompressedContent))
+				}
+
+				subsiteFileCache.Delete(key)
+				cacheSizeCount -= entrySize
+			}
+		}
+
+		log.Infof("Removed %d expired entries from cache, freed %d bytes", len(entriesToRemove), removedSize)
+	}
+}
+
+// invalidateSiteCache removes all cache entries for a given site
+func invalidateSiteCache(hostname string) {
+	var removedEntries int
+	var removedSize int64
+
+	subsiteFileCache.Range(func(key, value interface{}) bool {
+		cacheKey := key.(string)
+		if strings.HasPrefix(cacheKey, hostname+"::") {
+			entry := value.(*SubsiteCacheEntry)
+
+			// Calculate size for bookkeeping
+			entrySize := int64(len(entry.Content))
+			if entry.CompressedContent != nil {
+				entrySize += int64(len(entry.CompressedContent))
+			}
+
+			subsiteFileCache.Delete(key)
+			removedEntries++
+			removedSize += entrySize
+		}
+		return true // continue iteration
+	})
+
+	if removedEntries > 0 {
+		cacheSizeMutex.Lock()
+		cacheSizeCount -= removedSize
+		cacheSizeMutex.Unlock()
+		log.Infof("Invalidated cache for site %s: removed %d entries, freed %d bytes",
+			hostname, removedEntries, removedSize)
+	}
+}
+
 func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
 	rateConfig RateConfig, max_connections int) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
@@ -138,6 +339,9 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	hs.HandlerMap = make(map[string]*gin.Engine)
 	hs.SiteMap = make(map[string]subsite.SubSite)
 	hs.AuthMiddleware = authMiddleware
+
+	// Start the cache cleanup routine
+	startCacheCleanupRoutine()
 
 	//log.Printf("Cruds before making sub sits: %v", cruds)
 	sites, err := subsite.GetAllSites(cruds["site"], transaction)
@@ -207,13 +411,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 		}
 
 		// Clear cache for this site when syncing
-		subsiteFileCache.Range(func(key, value interface{}) bool {
-			cacheKey := key.(string)
-			if strings.HasPrefix(cacheKey, site.Hostname) {
-				subsiteFileCache.Delete(key)
-			}
-			return true
-		})
+		invalidateSiteCache(site.Hostname)
 
 		syncTask := task.Task{
 			EntityName: "site",
@@ -233,6 +431,8 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 				log.Info("Sleep 5 sec for running new sync task")
 				time.Sleep(5 * time.Second)
 				activeTask.Run()
+				// Invalidate cache after sync
+				invalidateSiteCache(site.Hostname)
 			}()
 		}(activeTask)
 
@@ -259,6 +459,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			}
 		}())
 
+		hostRouter.Use(gin.Logger())
 		hostRouter.Use(limit.MaxAllowed(max_connections))
 		hostRouter.Use(limit2.NewRateLimiter(func(c *gin.Context) string {
 			requestPath := c.Request.Host + "/" + strings.Split(c.Request.RequestURI, "?")[0]
@@ -304,40 +505,58 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			// Generate a cache key for this request
 			cacheKey := getSubsiteCacheKey(c.Request.Host, path)
 
-			// Check if we have this file in cache
+			// Check if we have this file in cache and if it's still valid
 			if cachedEntry, found := subsiteFileCache.Load(cacheKey); found {
 				entry := cachedEntry.(*SubsiteCacheEntry)
 
-				// Check if client has a valid cached version using If-None-Match header
-				clientETag := c.Request.Header.Get("If-None-Match")
-				if clientETag == entry.ETag {
-					c.Writer.WriteHeader(http.StatusNotModified)
+				// Check if entry is expired or file has been modified
+				if isCacheExpired(entry) {
+					// Cache entry expired or file modified, remove it from cache
+					subsiteFileCache.Delete(cacheKey)
+
+					// Update cache size tracking
+					cacheSizeMutex.Lock()
+					entrySize := int64(len(entry.Content))
+					if entry.CompressedContent != nil {
+						entrySize += int64(len(entry.CompressedContent))
+					}
+					cacheSizeCount -= entrySize
+					cacheSizeMutex.Unlock()
+
+					// Continue to read the file from disk
+				} else {
+					// Valid cache entry, check if client has a valid cached version
+					clientETag := c.Request.Header.Get("If-None-Match")
+					if clientETag == entry.ETag {
+						c.Writer.WriteHeader(http.StatusNotModified)
+						return
+					}
+
+					// Set cache headers
+					c.Writer.Header().Set("ETag", entry.ETag)
+					c.Writer.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour
+					c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
+					c.Writer.Header().Set("Content-Type", entry.ContentType)
+
+					// Check if client accepts gzip encoding and we have compressed content
+					if entry.CompressedContent != nil && len(entry.CompressedContent) > 0 &&
+						strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+						c.Writer.Header().Set("Content-Encoding", "gzip")
+						c.Writer.Header().Set("Vary", "Accept-Encoding")
+						c.Writer.WriteHeader(http.StatusOK)
+						c.Writer.Write(entry.CompressedContent)
+					} else {
+						c.Writer.WriteHeader(http.StatusOK)
+						c.Writer.Write(entry.Content)
+					}
+					c.Abort()
 					return
 				}
-
-				// Set cache headers
-				c.Writer.Header().Set("ETag", entry.ETag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=604800, immutable") // 7 days with immutable directive
-				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
-				c.Writer.Header().Set("Content-Type", entry.ContentType)
-
-				// Check if client accepts gzip encoding and we have compressed content
-				if entry.CompressedContent != nil && len(entry.CompressedContent) > 0 && strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
-					c.Writer.Header().Set("Content-Encoding", "gzip")
-					c.Writer.Header().Set("Vary", "Accept-Encoding")
-					c.Writer.WriteHeader(http.StatusOK)
-					c.Writer.Write(entry.CompressedContent)
-				} else {
-					c.Writer.WriteHeader(http.StatusOK)
-					c.Writer.Write(entry.Content)
-				}
-				c.Abort()
-				return
 			}
 
-			// If not in cache, try to read the file
+			// If not in cache or expired, try to read the file
 			content, err := os.ReadFile(filePath)
-			//cacheResponse := true
+			fileInfo1, _ := os.Stat(filePath)
 			if err == nil {
 				// Determine content type
 				contentType := http.DetectContentType(content)
@@ -350,7 +569,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 				}
 
 				// Generate ETag
-				etag := generateSubsiteETag(content)
+				etag := generateETag(content, fileInfo1.ModTime())
 				lastModified := time.Now()
 
 				// Compress content if it's a compressible type
@@ -362,24 +581,30 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 					}
 				}
 
-				// Cache the file
-				subsiteFileCache.Store(cacheKey, &SubsiteCacheEntry{
+				// Cache the file with expiration
+				cacheEntry := &SubsiteCacheEntry{
 					ETag:              etag,
 					Content:           content,
 					CompressedContent: compressedContent,
 					ContentType:       contentType,
 					LastModified:      lastModified,
-				})
+					FilePath:          filePath,
+					ExpiresAt:         time.Now().Add(CacheConfig.DefaultTTL),
+				}
+
+				// Add to cache with size management
+				addToCache(cacheKey, cacheEntry)
 
 				// Set cache headers
 				c.Writer.Header().Set("ETag", etag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=604800, immutable") // 7 days with immutable directive
+				c.Writer.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour
 				c.Writer.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
 				c.Writer.Header().Set("Content-Type", contentType)
 				c.Writer.Header().Set("Vary", "Accept-Encoding")
 
 				// Check if client accepts gzip encoding and we have compressed content
-				if compressedContent != nil && len(compressedContent) > 0 && strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+				if compressedContent != nil && len(compressedContent) > 0 &&
+					strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
 					c.Writer.Header().Set("Content-Encoding", "gzip")
 					c.Writer.WriteHeader(http.StatusOK)
 					c.Writer.Write(compressedContent)
@@ -394,9 +619,10 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			// Try to read and cache index.html with compression
 			indexPath := filepath.Join(tempDirectoryPath, "index.html")
 			indexContent, err := os.ReadFile(indexPath)
+			fileinfo, err := os.Stat(indexPath)
 			if err == nil {
 				// Generate ETag
-				indexEtag := generateSubsiteETag(indexContent)
+				indexEtag := generateETag(indexContent, fileinfo.ModTime())
 				indexLastModified := time.Now()
 
 				// Compress the index.html content
@@ -406,19 +632,24 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 					compressedIndexContent = compressedIndex
 				}
 
-				// Cache the index.html
+				// Cache the index.html with expiration
 				indexCacheKey := getSubsiteCacheKey(c.Request.Host, "/index.html")
-				subsiteFileCache.Store(indexCacheKey, &SubsiteCacheEntry{
+				indexCacheEntry := &SubsiteCacheEntry{
 					ETag:              indexEtag,
 					Content:           indexContent,
 					CompressedContent: compressedIndexContent,
 					ContentType:       "text/html; charset=utf-8",
 					LastModified:      indexLastModified,
-				})
+					FilePath:          indexPath,
+					ExpiresAt:         time.Now().Add(CacheConfig.DefaultTTL),
+				}
+
+				// Add to cache with size management
+				addToCache(indexCacheKey, indexCacheEntry)
 
 				// Set cache headers
 				c.Writer.Header().Set("ETag", indexEtag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=604800, immutable") // 7 days with immutable directive
+				c.Writer.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour
 				c.Writer.Header().Set("Last-Modified", indexLastModified.Format(http.TimeFormat))
 				c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 				c.Writer.Header().Set("Vary", "Accept-Encoding")
@@ -438,6 +669,16 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			// If reading fails, fallback to standard file serving
 			c.File(indexPath)
 		})
+
+		// Add a cache invalidation endpoint for manual cache clearing
+		//hostRouter.Handle("GET", "/_clear_cache", func(c *gin.Context) {
+		//	if c.Query("secret") == os.Getenv("DAPTIN_ADMIN_SECRET") {
+		//		invalidateSiteCache(c.Request.Host)
+		//		c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Cache cleared"})
+		//	} else {
+		//		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Unauthorized"})
+		//	}
+		//})
 
 		hostRouter.Handle("GET", "/statistics", func(c *gin.Context) {
 			c.JSON(http.StatusOK, Stats.Data())
