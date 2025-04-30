@@ -275,6 +275,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 		}
 		// Get the in-memory cache instance
 		cache := GetInMemoryCache()
+		log.Infof("Cache config for [%v] [%v]", templateName, cacheConfig)
 
 		// Configure the cache based on the current config
 		if cacheConfig != nil {
@@ -284,7 +285,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 		return func(ginContext *gin.Context) {
 
 			// Apply caching configuration if available
-			log.Tracef("Serve subsite[%s] reqeust[%s]", templateName, ginContext.Request.URL.Path)
+			log.Tracef("Serve subsite[%s] request[%s]", templateName, ginContext.Request.URL.Path)
 			if cacheConfig != nil && cacheConfig.Enable {
 				// Apply cache control headers based on configuration
 				applyCacheHeaders(ginContext, cacheConfig)
@@ -324,6 +325,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 							ginContext.Writer.WriteHeader(http.StatusOK)
 							fmt.Fprint(ginContext.Writer, entry.Content)
 							ginContext.Writer.Flush()
+							ginContext.Abort()
 							return
 						}
 					}
@@ -441,6 +443,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			// Render the content
 			fmt.Fprint(ginContext.Writer, decodedContent)
 			ginContext.Writer.Flush()
+			ginContext.Abort()
 
 			// Store in cache if in-memory caching is enabled
 			if cacheConfig != nil && cacheConfig.Enable && cacheConfig.EnableInMemoryCache {
