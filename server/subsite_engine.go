@@ -35,7 +35,8 @@ func CreateSubsiteEngine(site subsite.SubSite, tempDirectoryPath string, middlew
 	log.Tracef("Serve subsite[%s] from source [%s]", site.Name, tempDirectoryPath)
 
 	// Create a custom middleware for serving static files with aggressive caching
-	hostRouter.Use(SubsiteRequestHandler(site, tempDirectoryPath))
+	//hostRouter.Any("/", SubsiteRequestHandler(site, tempDirectoryPath))
+	hostRouter.NoRoute(SubsiteRequestHandler(site, tempDirectoryPath))
 
 	hostRouter.Handle("GET", "/statistics", func(c *gin.Context) {
 		c.JSON(http.StatusOK, Stats.Data())
