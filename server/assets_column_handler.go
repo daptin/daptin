@@ -102,7 +102,7 @@ func (fc *FileCache) cleanup() {
 		}
 
 		// Remove oldest item and check if expired
-		fc.cache.RemoveOldest()
+		//fc.cache.RemoveOldest()
 		//if !ok {
 		//	break
 		//}
