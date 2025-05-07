@@ -63,7 +63,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			}
 
 			// Check if client accepts gzip and we have compressed data
-			if cachedFile.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+			if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
 				c.Header("Content-Encoding", "gzip")
 				c.Header("Vary", "Accept-Encoding")
 				c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.GzipData)

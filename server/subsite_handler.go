@@ -31,52 +31,33 @@ func SubsiteRequestHandler(site subsite.SubSite, tempDirectoryPath string) func(
 		cacheKey := getSubsiteCacheKey(c.Request.Host, path)
 
 		// Check if we have this file in cache and if it's still valid
-		if cachedEntry, found := SubsiteFileCache.Load(cacheKey); found {
-			entry := cachedEntry.(*SubsiteCacheEntry)
-
-			// Check if entry is expired or file has been modified
-			if isCacheExpired(entry) {
-				// Cache entry expired or file modified, remove it from cache
-				SubsiteFileCache.Delete(cacheKey)
-
-				// Update cache size tracking
-				CacheSizeMutex.Lock()
-				entrySize := int64(len(entry.Content))
-				if entry.CompressedContent != nil {
-					entrySize += int64(len(entry.CompressedContent))
-				}
-				CacheSizeCount -= entrySize
-				CacheSizeMutex.Unlock()
-
-				// Continue to read the file from disk
-			} else {
-				// Valid cache entry, check if client has a valid cached version
-				clientETag := c.Request.Header.Get("If-None-Match")
-				if clientETag == entry.ETag {
-					c.Writer.WriteHeader(http.StatusNotModified)
-					return
-				}
-
-				// Set cache headers
-				c.Writer.Header().Set("ETag", entry.ETag)
-				c.Writer.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour
-				c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
-				c.Writer.Header().Set("Content-Type", entry.ContentType)
-
-				// Check if client accepts gzip encoding and we have compressed content
-				if entry.CompressedContent != nil && len(entry.CompressedContent) > 0 &&
-					strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
-					c.Writer.Header().Set("Content-Encoding", "gzip")
-					c.Writer.Header().Set("Vary", "Accept-Encoding")
-					c.Writer.WriteHeader(http.StatusOK)
-					c.Writer.Write(entry.CompressedContent)
-				} else {
-					c.Writer.WriteHeader(http.StatusOK)
-					c.Writer.Write(entry.Content)
-				}
-				c.Abort()
+		if entry, found := getFromCache(cacheKey); found {
+			// Valid cache entry, check if client has a valid cached version
+			clientETag := c.Request.Header.Get("If-None-Match")
+			if clientETag == entry.ETag {
+				c.Writer.WriteHeader(http.StatusNotModified)
 				return
 			}
+
+			// Set cache headers
+			c.Writer.Header().Set("ETag", entry.ETag)
+			c.Writer.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour
+			c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
+			c.Writer.Header().Set("Content-Type", entry.ContentType)
+
+			// Check if client accepts gzip encoding and we have compressed content
+			if entry.CompressedContent != nil && len(entry.CompressedContent) > 0 &&
+				strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+				c.Writer.Header().Set("Content-Encoding", "gzip")
+				c.Writer.Header().Set("Vary", "Accept-Encoding")
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(entry.CompressedContent)
+			} else {
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(entry.Content)
+			}
+			c.Abort()
+			return
 		}
 
 		// If not in cache or expired, try to read the file

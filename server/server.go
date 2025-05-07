@@ -665,7 +665,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [559]")
 	}
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections, olricDb)
 	transaction.Commit()
 
 	if enableCaldav == "true" {
@@ -817,7 +817,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
 
-	dbAssetHandler := CreateDbAssetHandler(cruds)
+	dbAssetHandler := CreateDbAssetHandler(cruds, olricDb)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
 
 	defaultRouter.GET("/feed/:feedname", feedHandler)

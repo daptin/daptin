@@ -2,6 +2,7 @@ package server
 
 import (
 	limit "github.com/aviddiviner/gin-limit"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/cloud_store"
@@ -25,7 +26,7 @@ import (
 
 func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
-	rateConfig RateConfig, max_connections int) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
+	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
 
 	hs := hostswitch.HostSwitch{
 		AdministratorGroupId: cruds["usergroup"].AdministratorGroupId,
@@ -35,8 +36,17 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	hs.SiteMap = make(map[string]subsite.SubSite)
 	hs.AuthMiddleware = authMiddleware
 
-	// Start the cache cleanup routine
-	startCacheCleanupRoutine()
+	// Initialize the subsite cache with Olric client
+	if olricClient != nil {
+		err := InitSubsiteCache(olricClient)
+		if err != nil {
+			log.Errorf("Failed to initialize subsite cache: %v", err)
+		} else {
+			log.Infof("Subsite cache initialized with Olric")
+		}
+	} else {
+		log.Warnf("Olric client is nil, subsite cache will not be available")
+	}
 
 	//log.Printf("Cruds before making sub sits: %v", cruds)
 	sites, err := subsite.GetAllSites(cruds["site"], transaction)

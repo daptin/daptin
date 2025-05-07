@@ -1,8 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/md5"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,15 +13,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
-	"github.com/golang/groupcache/lru"
 	"log"
 )
 
 const (
 	// Cache settings
-	MaxCacheSize     = 500        // Maximum number of cached files
 	MaxFileCacheSize = 8000 << 10 // 8MB max file size for caching
 
 	// Compression threshold - only compress files larger than this
@@ -30,17 +32,16 @@ const (
 	TextCacheExpiry    = 24 * time.Hour      // 1 day for text files
 	VideoCacheExpiry   = 14 * 24 * time.Hour // 14 days for videos
 
-	// Cache cleanup interval
-	CacheCleanupInterval = 1 * time.Hour
+	// Olric cache namespace
+	AssetsCacheNamespace = "assets-cache"
 )
 
-// FileCache implements a simple file caching system with expiry
+// FileCache implements a file caching system using Olric distributed cache
 type FileCache struct {
-	cache        *lru.Cache
-	cacheMutex   sync.RWMutex
-	cleanupTimer *time.Timer
-	closed       bool
-	closeMutex   sync.RWMutex
+	cache      olric.DMap
+	cacheMutex sync.RWMutex
+	closed     bool
+	closeMutex sync.RWMutex
 }
 
 // CachedFile represents a cached file with its metadata
@@ -57,6 +58,185 @@ type CachedFile struct {
 	FileStat   FileStat  // File stat information for validation
 }
 
+// MarshalBinary implements encoding.BinaryMarshaler interface for Olric compatibility
+// Custom binary format without using gob or other encoders
+func (cf *CachedFile) MarshalBinary() ([]byte, error) {
+	// Calculate the total size needed for the buffer
+	bufSize := 8 + // Size for Data length
+		len(cf.Data) + // Size for Data
+		4 + // Size for ETag length
+		len(cf.ETag) + // Size for ETag
+		8 + // Size for ModTime (Unix timestamp)
+		4 + // Size for MimeType length
+		len(cf.MimeType) + // Size for MimeType
+		4 + // Size for Path length
+		len(cf.Path) + // Size for Path
+		4 + // Size for Size int
+		8 + // Size for GzipData length
+		len(cf.GzipData) + // Size for GzipData
+		1 + // Size for IsDownload bool
+		8 + // Size for ExpiresAt (Unix timestamp)
+		8 + // Size for FileStat.ModTime (Unix timestamp)
+		8 + // Size for FileStat.Size (int64)
+		1 // Size for FileStat.Exists (bool)
+
+	// Create a buffer with the calculated size
+	buf := bytes.NewBuffer(make([]byte, 0, bufSize))
+
+	// Write Data length and Data
+	binary.Write(buf, binary.LittleEndian, int64(len(cf.Data)))
+	buf.Write(cf.Data)
+
+	// Write ETag length and ETag
+	binary.Write(buf, binary.LittleEndian, int32(len(cf.ETag)))
+	buf.WriteString(cf.ETag)
+
+	// Write ModTime as Unix timestamp
+	binary.Write(buf, binary.LittleEndian, cf.Modtime.Unix())
+
+	// Write MimeType length and MimeType
+	binary.Write(buf, binary.LittleEndian, int32(len(cf.MimeType)))
+	buf.WriteString(cf.MimeType)
+
+	// Write Path length and Path
+	binary.Write(buf, binary.LittleEndian, int32(len(cf.Path)))
+	buf.WriteString(cf.Path)
+
+	// Write Size
+	binary.Write(buf, binary.LittleEndian, int32(cf.Size))
+
+	// Write GzipData length and GzipData
+	binary.Write(buf, binary.LittleEndian, int64(len(cf.GzipData)))
+	buf.Write(cf.GzipData)
+
+	// Write IsDownload
+	if cf.IsDownload {
+		buf.WriteByte(1)
+	} else {
+		buf.WriteByte(0)
+	}
+
+	// Write ExpiresAt as Unix timestamp
+	binary.Write(buf, binary.LittleEndian, cf.ExpiresAt.Unix())
+
+	// Write FileStat
+	binary.Write(buf, binary.LittleEndian, cf.FileStat.ModTime.Unix())
+	binary.Write(buf, binary.LittleEndian, cf.FileStat.Size)
+	if cf.FileStat.Exists {
+		buf.WriteByte(1)
+	} else {
+		buf.WriteByte(0)
+	}
+
+	return buf.Bytes(), nil
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler interface for Olric compatibility
+// Custom binary format without using gob or other encoders
+func (cf *CachedFile) UnmarshalBinary(data []byte) error {
+	buf := bytes.NewBuffer(data)
+
+	// Read Data length and Data
+	var dataLen int64
+	if err := binary.Read(buf, binary.LittleEndian, &dataLen); err != nil {
+		return fmt.Errorf("failed to read Data length: %v", err)
+	}
+	cf.Data = make([]byte, dataLen)
+	if _, err := buf.Read(cf.Data); err != nil {
+		return fmt.Errorf("failed to read Data: %v", err)
+	}
+
+	// Read ETag length and ETag
+	var etagLen int32
+	if err := binary.Read(buf, binary.LittleEndian, &etagLen); err != nil {
+		return fmt.Errorf("failed to read ETag length: %v", err)
+	}
+	etagBytes := make([]byte, etagLen)
+	if _, err := buf.Read(etagBytes); err != nil {
+		return fmt.Errorf("failed to read ETag: %v", err)
+	}
+	cf.ETag = string(etagBytes)
+
+	// Read ModTime
+	var modTimeUnix int64
+	if err := binary.Read(buf, binary.LittleEndian, &modTimeUnix); err != nil {
+		return fmt.Errorf("failed to read ModTime: %v", err)
+	}
+	cf.Modtime = time.Unix(modTimeUnix, 0)
+
+	// Read MimeType length and MimeType
+	var mimeTypeLen int32
+	if err := binary.Read(buf, binary.LittleEndian, &mimeTypeLen); err != nil {
+		return fmt.Errorf("failed to read MimeType length: %v", err)
+	}
+	mimeTypeBytes := make([]byte, mimeTypeLen)
+	if _, err := buf.Read(mimeTypeBytes); err != nil {
+		return fmt.Errorf("failed to read MimeType: %v", err)
+	}
+	cf.MimeType = string(mimeTypeBytes)
+
+	// Read Path length and Path
+	var pathLen int32
+	if err := binary.Read(buf, binary.LittleEndian, &pathLen); err != nil {
+		return fmt.Errorf("failed to read Path length: %v", err)
+	}
+	pathBytes := make([]byte, pathLen)
+	if _, err := buf.Read(pathBytes); err != nil {
+		return fmt.Errorf("failed to read Path: %v", err)
+	}
+	cf.Path = string(pathBytes)
+
+	// Read Size
+	var size int32
+	if err := binary.Read(buf, binary.LittleEndian, &size); err != nil {
+		return fmt.Errorf("failed to read Size: %v", err)
+	}
+	cf.Size = int(size)
+
+	// Read GzipData length and GzipData
+	var gzipDataLen int64
+	if err := binary.Read(buf, binary.LittleEndian, &gzipDataLen); err != nil {
+		return fmt.Errorf("failed to read GzipData length: %v", err)
+	}
+	cf.GzipData = make([]byte, gzipDataLen)
+	if _, err := buf.Read(cf.GzipData); err != nil {
+		return fmt.Errorf("failed to read GzipData: %v", err)
+	}
+
+	// Read IsDownload
+	isDownloadByte, err := buf.ReadByte()
+	if err != nil {
+		return fmt.Errorf("failed to read IsDownload: %v", err)
+	}
+	cf.IsDownload = isDownloadByte == 1
+
+	// Read ExpiresAt
+	var expiresAtUnix int64
+	if err := binary.Read(buf, binary.LittleEndian, &expiresAtUnix); err != nil {
+		return fmt.Errorf("failed to read ExpiresAt: %v", err)
+	}
+	cf.ExpiresAt = time.Unix(expiresAtUnix, 0)
+
+	// Read FileStat
+	var fileStatModTimeUnix int64
+	if err := binary.Read(buf, binary.LittleEndian, &fileStatModTimeUnix); err != nil {
+		return fmt.Errorf("failed to read FileStat.ModTime: %v", err)
+	}
+	cf.FileStat.ModTime = time.Unix(fileStatModTimeUnix, 0)
+
+	if err := binary.Read(buf, binary.LittleEndian, &cf.FileStat.Size); err != nil {
+		return fmt.Errorf("failed to read FileStat.Size: %v", err)
+	}
+
+	existsByte, err := buf.ReadByte()
+	if err != nil {
+		return fmt.Errorf("failed to read FileStat.Exists: %v", err)
+	}
+	cf.FileStat.Exists = existsByte == 1
+
+	return nil
+}
+
 // FileStat stores file information for validation
 type FileStat struct {
 	ModTime time.Time
@@ -64,103 +244,22 @@ type FileStat struct {
 	Exists  bool
 }
 
-// NewFileCache creates a new file cache with cleanup
-func NewFileCache(maxEntries int) *FileCache {
+// NewFileCache creates a new file cache using Olric
+func NewFileCache(olricClient *olric.EmbeddedClient) (*FileCache, error) {
+	if olricClient == nil {
+		return nil, fmt.Errorf("olric client is nil")
+	}
+
+	dmap, err := olricClient.NewDMap(AssetsCacheNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Olric DMap for assets cache: %v", err)
+	}
+
 	fc := &FileCache{
-		cache: lru.New(maxEntries),
+		cache: dmap,
 	}
 
-	// Start the cleanup timer
-	fc.startCleanupTimer()
-
-	return fc
-}
-
-// startCleanupTimer initializes and starts the cleanup timer
-func (fc *FileCache) startCleanupTimer() {
-	fc.closeMutex.Lock()
-	defer fc.closeMutex.Unlock()
-
-	if fc.closed {
-		return
-	}
-
-	fc.cleanupTimer = time.AfterFunc(CacheCleanupInterval, func() {
-		// Check if cache is closed before cleaning up
-		fc.closeMutex.Lock()
-		if fc.closed {
-			fc.closeMutex.Unlock()
-			return
-		}
-		fc.closeMutex.Unlock()
-
-		// Run cleanup
-		fc.cleanup()
-
-		// Check again if cache is closed before resetting timer
-		fc.closeMutex.Lock()
-		if !fc.closed {
-			fc.cleanupTimer.Reset(CacheCleanupInterval)
-		}
-		fc.closeMutex.Unlock()
-	})
-}
-
-// cleanup removes expired entries from the cache
-func (fc *FileCache) cleanup() {
-	fc.cacheMutex.Lock()
-	defer fc.cacheMutex.Unlock()
-
-	// This is inefficient but the LRU cache doesn't provide a better way
-	// We'll need to get all keys and check each one
-	var expiredCount int
-	now := time.Now()
-
-	// Store cache contents before clearing
-	cacheContents := make(map[interface{}]interface{})
-	keysToProcess := make([]interface{}, 0, fc.cache.Len())
-
-	// First, save all keys and values
-	// We need to do this because we can't iterate through the cache directly
-	originalOnEvicted := fc.cache.OnEvicted
-
-	fc.cache.OnEvicted = func(key lru.Key, value interface{}) {
-		// Store the key and value
-		cacheContents[key] = value
-		keysToProcess = append(keysToProcess, key)
-	}
-
-	// Clear the cache to trigger OnEvicted for all entries
-	// We need to keep removing until the cache is empty
-	cacheSize := fc.cache.Len()
-	for i := 0; i < cacheSize; i++ {
-		fc.cache.RemoveOldest()
-	}
-
-	// Restore the original OnEvicted function
-	fc.cache.OnEvicted = originalOnEvicted
-
-	// Now process all the entries we collected
-	for _, key := range keysToProcess {
-		value := cacheContents[key]
-		entry, ok := value.(*CachedFile)
-		if !ok {
-			// Skip invalid entries
-			continue
-		}
-
-		// If not expired, add it back to the cache
-		if entry.ExpiresAt.After(now) {
-			fc.cache.Add(key, entry)
-		} else {
-			expiredCount++
-		}
-	}
-
-	// Log removed entries if any
-	if expiredCount > 0 {
-		log.Printf("Cleaned up %d expired cache entries", expiredCount)
-	}
+	return fc, nil
 }
 
 // Get retrieves a file from cache if it exists and is valid
@@ -175,48 +274,38 @@ func (fc *FileCache) Get(key string) (*CachedFile, bool) {
 
 	// Read lock for cache access
 	fc.cacheMutex.RLock()
-	val, ok := fc.cache.Get(key)
-	if !ok {
-		fc.cacheMutex.RUnlock()
+	defer fc.cacheMutex.RUnlock()
+
+	// Get from Olric cache
+	response, err := fc.cache.Get(context.Background(), key)
+	if err != nil {
+		if err != olric.ErrKeyNotFound {
+			log.Printf("Error getting key %s from Olric cache: %v", key, err)
+		}
 		return nil, false
 	}
 
-	cachedFile, ok := val.(*CachedFile)
-	if !ok {
-		fc.cacheMutex.RUnlock()
+	// Extract value from response using Scan
+	var cachedFile CachedFile
+	err = response.Scan(&cachedFile)
+	if err != nil {
+		log.Printf("Error scanning cached file from Olric: %v", err)
 		return nil, false
 	}
 
-	// Check if expired
+	// Check if expired (this should not happen with Olric's TTL, but just in case)
 	if time.Now().After(cachedFile.ExpiresAt) {
-		fc.cacheMutex.RUnlock()
 		// Remove expired entry asynchronously
 		go fc.Remove(key)
 		return nil, false
 	}
 
-	// Make a copy of the cached file to avoid race conditions
-	// after releasing the lock
-	cachedFileCopy := *cachedFile
-	fc.cacheMutex.RUnlock()
-
-	// Validate file stat if path exists - this is done outside the lock
-	// to reduce lock contention
-	if cachedFileCopy.Path != "" {
-		currentStat, err := getFileStat(cachedFileCopy.Path)
-		if err != nil || !isSameFile(currentStat, cachedFileCopy.FileStat) {
-			// Remove invalid entry asynchronously
-			go fc.Remove(key)
-			return nil, false
-		}
-	}
-
-	return &cachedFileCopy, true
+	return &cachedFile, true
 }
 
 // Set adds a file to the cache with appropriate expiry
 func (fc *FileCache) Set(key string, file *CachedFile) {
-	// Check if cache is closed
+	// First check if cache is closed
 	fc.closeMutex.RLock()
 	if fc.closed {
 		fc.closeMutex.RUnlock()
@@ -224,41 +313,37 @@ func (fc *FileCache) Set(key string, file *CachedFile) {
 	}
 	fc.closeMutex.RUnlock()
 
-	// Create a copy of the file to avoid external modifications
-	fileCopy := *file
-
-	// If expiry isn't set, set a default based on file type
-	if fileCopy.ExpiresAt.IsZero() {
-		fileCopy.ExpiresAt = calculateExpiry(fileCopy.MimeType, fileCopy.Path)
+	// Check file size - don't cache very large files
+	if len(file.Data) > MaxFileCacheSize {
+		return
 	}
 
-	// If path exists, get file stat for future validation
-	if fileCopy.Path != "" {
-		if stat, err := getFileStat(fileCopy.Path); err == nil {
-			fileCopy.FileStat = stat
-		}
-	}
-
-	// Only compress data if it exceeds the threshold and isn't already compressed
-	if len(fileCopy.Data) > CompressionThreshold && len(fileCopy.GzipData) == 0 {
-		if strings.HasPrefix(fileCopy.MimeType, "text/") ||
-			strings.Contains(fileCopy.MimeType, "javascript") ||
-			strings.Contains(fileCopy.MimeType, "json") ||
-			strings.Contains(fileCopy.MimeType, "xml") {
-			if compressed, err := compressData(fileCopy.Data); err == nil {
-				fileCopy.GzipData = compressed
-			}
-		}
-	}
-
+	// Write lock for cache access
 	fc.cacheMutex.Lock()
 	defer fc.cacheMutex.Unlock()
-	fc.cache.Add(key, &fileCopy)
+
+	// Set the expiry time based on file type if not already set
+	if file.ExpiresAt.IsZero() {
+		file.ExpiresAt = calculateExpiry(file.MimeType, file.Path)
+	}
+
+	// Calculate TTL duration from ExpiresAt
+	ttl := file.ExpiresAt.Sub(time.Now())
+	if ttl <= 0 {
+		// Don't cache expired files
+		return
+	}
+
+	// Add to Olric cache with expiry
+	err := fc.cache.Put(context.Background(), key, file, olric.EX(ttl))
+	if err != nil {
+		log.Printf("Error setting key %s in Olric cache: %v", key, err)
+	}
 }
 
 // Remove removes an entry from cache
 func (fc *FileCache) Remove(key string) {
-	// Check if cache is closed
+	// First check if cache is closed
 	fc.closeMutex.RLock()
 	if fc.closed {
 		fc.closeMutex.RUnlock()
@@ -266,11 +351,15 @@ func (fc *FileCache) Remove(key string) {
 	}
 	fc.closeMutex.RUnlock()
 
+	// Write lock for cache access
 	fc.cacheMutex.Lock()
 	defer fc.cacheMutex.Unlock()
 
-	// The lru.Cache actually does have a Remove method
-	fc.cache.Remove(key)
+	// Remove from Olric cache
+	_, err := fc.cache.Delete(context.Background(), key)
+	if err != nil && err != olric.ErrKeyNotFound {
+		log.Printf("Error removing key %s from Olric cache: %v", key, err)
+	}
 }
 
 // getFileStat gets file info for validation
@@ -429,26 +518,23 @@ func compressData(data []byte) ([]byte, error) {
 	return []byte(b.String()), nil
 }
 
-// Close properly shuts down the cache and cancels the cleanup timer
+// Close properly shuts down the cache
 func (fc *FileCache) Close() {
 	fc.closeMutex.Lock()
 	defer fc.closeMutex.Unlock()
 
-	if !fc.closed {
-		fc.closed = true
-		if fc.cleanupTimer != nil {
-			fc.cleanupTimer.Stop()
-		}
-
-		// Clear the cache to free memory
-		fc.cacheMutex.Lock()
-		fc.cache = lru.New(MaxCacheSize) // Use the constant instead of trying to get the current size
-		fc.cacheMutex.Unlock()
+	if fc.closed {
+		return
 	}
+
+	fc.closed = true
+
+	// No need to explicitly clear the cache as Olric manages this
+	// Just mark as closed to prevent further operations
 }
 
-// Global file cache with proper initialization
-var fileCache = NewFileCache(MaxCacheSize)
+// Global file cache - will be initialized in CreateDbAssetHandler
+var fileCache *FileCache
 
 // ShutdownFileCache properly shuts down the global file cache
 // This should be called during application shutdown
@@ -459,6 +545,13 @@ func ShutdownFileCache() {
 }
 
 // CreateDbAssetHandler optimized for static file serving with aggressive caching
-func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
+func CreateDbAssetHandler(cruds map[string]*resource.DbResource, olricClient *olric.EmbeddedClient) func(*gin.Context) {
+	// Initialize the global file cache with Olric
+	var err error
+	fileCache, err = NewFileCache(olricClient)
+	if err != nil {
+		log.Printf("Failed to initialize Olric file cache: %v. Using nil cache.", err)
+		// Continue without cache
+	}
 	return AssetRouteHandler(cruds)
 }
