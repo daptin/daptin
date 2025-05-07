@@ -13,6 +13,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/groupcache/lru"
+	"log"
 )
 
 const (
@@ -38,6 +39,8 @@ type FileCache struct {
 	cache        *lru.Cache
 	cacheMutex   sync.RWMutex
 	cleanupTimer *time.Timer
+	closed       bool
+	closeMutex   sync.RWMutex
 }
 
 // CachedFile represents a cached file with its metadata
@@ -75,9 +78,31 @@ func NewFileCache(maxEntries int) *FileCache {
 
 // startCleanupTimer initializes and starts the cleanup timer
 func (fc *FileCache) startCleanupTimer() {
+	fc.closeMutex.Lock()
+	defer fc.closeMutex.Unlock()
+
+	if fc.closed {
+		return
+	}
+
 	fc.cleanupTimer = time.AfterFunc(CacheCleanupInterval, func() {
+		// Check if cache is closed before cleaning up
+		fc.closeMutex.Lock()
+		if fc.closed {
+			fc.closeMutex.Unlock()
+			return
+		}
+		fc.closeMutex.Unlock()
+
+		// Run cleanup
 		fc.cleanup()
-		fc.cleanupTimer.Reset(CacheCleanupInterval)
+
+		// Check again if cache is closed before resetting timer
+		fc.closeMutex.Lock()
+		if !fc.closed {
+			fc.cleanupTimer.Reset(CacheCleanupInterval)
+		}
+		fc.closeMutex.Unlock()
 	})
 }
 
@@ -88,117 +113,164 @@ func (fc *FileCache) cleanup() {
 
 	// This is inefficient but the LRU cache doesn't provide a better way
 	// We'll need to get all keys and check each one
-	//var keysToRemove []string
+	var expiredCount int
+	now := time.Now()
 
-	// Iterate through all entries (would be better with a method to access all keys)
-	// This is a hacky workaround since lru.Cache doesn't expose its keys
-	tempCache := lru.New(MaxCacheSize)
+	// Store cache contents before clearing
+	cacheContents := make(map[interface{}]interface{})
+	keysToProcess := make([]interface{}, 0, fc.cache.Len())
 
-	//now := time.Now()
+	// First, save all keys and values
+	// We need to do this because we can't iterate through the cache directly
+	originalOnEvicted := fc.cache.OnEvicted
 
-	for {
-		if fc.cache.Len() == 0 {
-			break
-		}
-
-		// Remove oldest item and check if expired
-		//fc.cache.RemoveOldest()
-		//if !ok {
-		//	break
-		//}
-
-		//entry := value.(*CachedFile)
-
-		// If not expired, we'll add it back
-		//if entry.ExpiresAt.After(now) {
-		//	tempCache.Add(key, entry)
-		//} else {
-		//	keysToRemove = append(keysToRemove, key.(string))
-		//}
+	fc.cache.OnEvicted = func(key lru.Key, value interface{}) {
+		// Store the key and value
+		cacheContents[key] = value
+		keysToProcess = append(keysToProcess, key)
 	}
 
-	// Now restore non-expired entries
-	for {
-		if tempCache.Len() == 0 {
-			break
+	// Clear the cache to trigger OnEvicted for all entries
+	// We need to keep removing until the cache is empty
+	cacheSize := fc.cache.Len()
+	for i := 0; i < cacheSize; i++ {
+		fc.cache.RemoveOldest()
+	}
+
+	// Restore the original OnEvicted function
+	fc.cache.OnEvicted = originalOnEvicted
+
+	// Now process all the entries we collected
+	for _, key := range keysToProcess {
+		value := cacheContents[key]
+		entry, ok := value.(*CachedFile)
+		if !ok {
+			// Skip invalid entries
+			continue
 		}
 
-		tempCache.RemoveOldest()
-		//if !ok {
-		//	break
-		//}
-
-		//fc.cache.Add(key, value)
+		// If not expired, add it back to the cache
+		if entry.ExpiresAt.After(now) {
+			fc.cache.Add(key, entry)
+		} else {
+			expiredCount++
+		}
 	}
 
 	// Log removed entries if any
-	//if len(keysToRemove) > 0 {
-	// Maybe log how many items were cleaned up
-	//log.Infof("Cleaned up %d expired cache entries", len(keysToRemove))
-	//}
+	if expiredCount > 0 {
+		log.Printf("Cleaned up %d expired cache entries", expiredCount)
+	}
 }
 
 // Get retrieves a file from cache if it exists and is valid
 func (fc *FileCache) Get(key string) (*CachedFile, bool) {
+	// First check if cache is closed
+	fc.closeMutex.RLock()
+	if fc.closed {
+		fc.closeMutex.RUnlock()
+		return nil, false
+	}
+	fc.closeMutex.RUnlock()
+
+	// Read lock for cache access
 	fc.cacheMutex.RLock()
-	defer fc.cacheMutex.RUnlock()
+	val, ok := fc.cache.Get(key)
+	if !ok {
+		fc.cacheMutex.RUnlock()
+		return nil, false
+	}
 
-	if val, ok := fc.cache.Get(key); ok {
-		cachedFile := val.(*CachedFile)
+	cachedFile, ok := val.(*CachedFile)
+	if !ok {
+		fc.cacheMutex.RUnlock()
+		return nil, false
+	}
 
-		// Check if expired
-		if time.Now().After(cachedFile.ExpiresAt) {
+	// Check if expired
+	if time.Now().After(cachedFile.ExpiresAt) {
+		fc.cacheMutex.RUnlock()
+		// Remove expired entry asynchronously
+		go fc.Remove(key)
+		return nil, false
+	}
+
+	// Make a copy of the cached file to avoid race conditions
+	// after releasing the lock
+	cachedFileCopy := *cachedFile
+	fc.cacheMutex.RUnlock()
+
+	// Validate file stat if path exists - this is done outside the lock
+	// to reduce lock contention
+	if cachedFileCopy.Path != "" {
+		currentStat, err := getFileStat(cachedFileCopy.Path)
+		if err != nil || !isSameFile(currentStat, cachedFileCopy.FileStat) {
+			// Remove invalid entry asynchronously
+			go fc.Remove(key)
 			return nil, false
 		}
-
-		// Validate file stat if path exists
-		if cachedFile.Path != "" {
-			currentStat, err := getFileStat(cachedFile.Path)
-			if err != nil || !isSameFile(currentStat, cachedFile.FileStat) {
-				return nil, false
-			}
-		}
-
-		return cachedFile, true
 	}
-	return nil, false
+
+	return &cachedFileCopy, true
 }
 
 // Set adds a file to the cache with appropriate expiry
 func (fc *FileCache) Set(key string, file *CachedFile) {
-	fc.cacheMutex.Lock()
-	defer fc.cacheMutex.Unlock()
+	// Check if cache is closed
+	fc.closeMutex.RLock()
+	if fc.closed {
+		fc.closeMutex.RUnlock()
+		return
+	}
+	fc.closeMutex.RUnlock()
+
+	// Create a copy of the file to avoid external modifications
+	fileCopy := *file
 
 	// If expiry isn't set, set a default based on file type
-	if file.ExpiresAt.IsZero() {
-		file.ExpiresAt = calculateExpiry(file.MimeType, file.Path)
+	if fileCopy.ExpiresAt.IsZero() {
+		fileCopy.ExpiresAt = calculateExpiry(fileCopy.MimeType, fileCopy.Path)
 	}
 
 	// If path exists, get file stat for future validation
-	if file.Path != "" {
-		if stat, err := getFileStat(file.Path); err == nil {
-			file.FileStat = stat
+	if fileCopy.Path != "" {
+		if stat, err := getFileStat(fileCopy.Path); err == nil {
+			fileCopy.FileStat = stat
 		}
 	}
 
-	fc.cache.Add(key, file)
+	// Only compress data if it exceeds the threshold and isn't already compressed
+	if len(fileCopy.Data) > CompressionThreshold && len(fileCopy.GzipData) == 0 {
+		if strings.HasPrefix(fileCopy.MimeType, "text/") ||
+			strings.Contains(fileCopy.MimeType, "javascript") ||
+			strings.Contains(fileCopy.MimeType, "json") ||
+			strings.Contains(fileCopy.MimeType, "xml") {
+			if compressed, err := compressData(fileCopy.Data); err == nil {
+				fileCopy.GzipData = compressed
+			}
+		}
+	}
+
+	fc.cacheMutex.Lock()
+	defer fc.cacheMutex.Unlock()
+	fc.cache.Add(key, &fileCopy)
 }
 
 // Remove removes an entry from cache
 func (fc *FileCache) Remove(key string) {
+	// Check if cache is closed
+	fc.closeMutex.RLock()
+	if fc.closed {
+		fc.closeMutex.RUnlock()
+		return
+	}
+	fc.closeMutex.RUnlock()
+
 	fc.cacheMutex.Lock()
 	defer fc.cacheMutex.Unlock()
 
-	// The LRU cache doesn't have a Remove method, so we can't directly implement this
-	// We could work around this by creating a new cache and copying all except this key
-	// But that's inefficient, so for now we just implement a simple version
-
-	// For now, we'll just use a hack - set it to an expired entry
-	if val, ok := fc.cache.Get(key); ok {
-		cachedFile := val.(*CachedFile)
-		cachedFile.ExpiresAt = time.Now().Add(-1 * time.Second)
-		fc.cache.Add(key, cachedFile)
-	}
+	// The lru.Cache actually does have a Remove method
+	fc.cache.Remove(key)
 }
 
 // getFileStat gets file info for validation
@@ -357,8 +429,34 @@ func compressData(data []byte) ([]byte, error) {
 	return []byte(b.String()), nil
 }
 
-// Global file cache
+// Close properly shuts down the cache and cancels the cleanup timer
+func (fc *FileCache) Close() {
+	fc.closeMutex.Lock()
+	defer fc.closeMutex.Unlock()
+
+	if !fc.closed {
+		fc.closed = true
+		if fc.cleanupTimer != nil {
+			fc.cleanupTimer.Stop()
+		}
+
+		// Clear the cache to free memory
+		fc.cacheMutex.Lock()
+		fc.cache = lru.New(MaxCacheSize) // Use the constant instead of trying to get the current size
+		fc.cacheMutex.Unlock()
+	}
+}
+
+// Global file cache with proper initialization
 var fileCache = NewFileCache(MaxCacheSize)
+
+// ShutdownFileCache properly shuts down the global file cache
+// This should be called during application shutdown
+func ShutdownFileCache() {
+	if fileCache != nil {
+		fileCache.Close()
+	}
+}
 
 // CreateDbAssetHandler optimized for static file serving with aggressive caching
 func CreateDbAssetHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
