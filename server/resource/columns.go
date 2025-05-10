@@ -579,13 +579,31 @@ var SystemActions = []actionresponse.Action{
 				Name:       "table_name",
 				ColumnType: "label",
 			},
+			{
+				ColumnName: "format",
+				Name:       "format",
+				ColumnType: "label",
+			},
+			{
+				ColumnName: "columns",
+				Name:       "columns",
+				ColumnType: "label",
+			},
+			{
+				ColumnName: "include_headers",
+				Name:       "include_headers",
+				ColumnType: "truefalse",
+			},
 		},
 		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "__data_export",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"table_name": "~table_name",
+					"table_name":      "~table_name",
+					"format":          "~format",
+					"include_headers": "~include_headers",
+					"columns":         "~columns",
 				},
 			},
 		},

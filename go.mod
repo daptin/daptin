@@ -289,6 +289,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jtolio/eventkit v0.0.0-20231019094657-5d77ebb407d9 // indirect
 	github.com/jtolio/noiseconn v0.0.0-20231127013910-f6d9ecbf1de7 // indirect
+	github.com/jung-kurt/gofpdf v1.16.2 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
