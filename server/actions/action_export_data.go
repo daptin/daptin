@@ -323,17 +323,11 @@ func exportAsPDF(data map[string][]map[string]interface{}, includeHeaders bool, 
 
 		// Calculate column width
 		pageWidth := 270.0 // A4 landscape width in mm (approx)
-		colWidth := pageWidth / float64(len(columns))
+		colWidth := pageWidth / 4
 
 		// Write header row if requested
 		if includeHeaders {
 			pdf.SetFillColor(200, 200, 200)
-			pdf.SetFont("Arial", "B", 10)
-			for _, column := range columns {
-				pdf.Cell(colWidth, 10, column)
-			}
-			pdf.Ln(-1)
-			pdf.SetFont("Arial", "", 10)
 		}
 
 		// Write data rows
@@ -343,9 +337,12 @@ func exportAsPDF(data map[string][]map[string]interface{}, includeHeaders bool, 
 				if val, ok := record[column]; ok {
 					value = fmt.Sprintf("%v", val)
 				}
+				pdf.SetFont("Arial", "B", 10)
+				pdf.Cell(colWidth, 10, column)
+				pdf.SetFont("Arial", "", 10)
 				pdf.Cell(colWidth, 10, value)
+				pdf.Ln(-1)
 			}
-			pdf.Ln(-1)
 		}
 	}
 

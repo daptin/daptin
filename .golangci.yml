@@ -1,21 +1,42 @@
-# golangci-lint configuration options
+# golangci-lint configuration for database-related issues
+version: 2
+
+formatters:
+  enable:
+    - goimports
 
 linters:
   enable:
-    - deadcode
-    - errcheck
-    - goimports
-    - golint
-    - ineffassign
-    - structcheck
-    - varcheck
-    - govet
-    - unconvert
-    #- prealloc
-    #- maligned
+    # Core linters for general code quality
+    - errcheck        # Checks for unchecked errors (critical for DB operations)
+    - govet           # Examines Go source code for suspicious constructs
+    - staticcheck     # Applies a ton of static analysis checks
+    - unused          # Checks for unused code
+
+    # Database-specific linters
+    - rowserrcheck    # Checks whether Rows.Err is checked after iteration
+    - sqlclosecheck   # Checks that sql.Rows and sql.Stmt are properly closed
+    - bodyclose       # Ensures response bodies are closed (useful for DB API calls)
+
+    # Security linters relevant to databases
+    - gosec           # Inspects source code for security problems (SQL injection, etc.)
+
+    # Additional helpful linters for DB code
+    - nilerr          # Finds code that returns nil even if error is not nil
+    - wrapcheck       # Ensures errors from external packages (like DB drivers) are wrapped
+    - errorlint       # Ensures proper error handling with Go 1.13+ error wrapping
+    - noctx           # Finds HTTP requests without context (useful for DB timeouts)
+
   disable-all: true
 
 issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - noctx
+
   # Enable some lints excluded by default
   exclude-use-default: false
 
@@ -24,3 +45,24 @@ issues:
 
   # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
   max-same-issues: 0
+
+# Specific configuration for linters
+linters-settings:
+  gosec:
+    # G201: SQL query construction using format string
+    # G202: SQL query construction using string concatenation
+    includes:
+      - G201
+      - G202
+
+  errcheck:
+    # Check for ignored errors in database operations
+    check-type-assertions: true
+    check-blank: true
+
+  wrapcheck:
+    # Ensure database errors are wrapped for better context
+    ignoreSigs:
+      - .Exec(
+      - .Query(
+      - .QueryRow(

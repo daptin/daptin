@@ -580,9 +580,10 @@ var SystemActions = []actionresponse.Action{
 				ColumnType: "label",
 			},
 			{
-				ColumnName: "format",
-				Name:       "format",
-				ColumnType: "label",
+				ColumnName:   "format",
+				Name:         "format",
+				ColumnType:   "label",
+				DefaultValue: "json",
 			},
 			{
 				ColumnName: "columns",
