@@ -930,59 +930,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 							msg := <-channel
 							var eventMessage resource.EventMessage
 							//log.Infof("Message received: %s", msg.Payload)
-							err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
-							if err != nil {
-								resource.CheckErr(err, "Failed to read message on channel "+typename)
-								return
-							}
-							log.Tracef("dtopicMapListener handle: [%v]", eventMessage.ObjectType)
-							if err != nil {
-								resource.CheckErr(err, "Failed to read message on channel "+typename)
-								return
-							}
-							if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
-								eventDataMap := make(map[string]interface{})
-								err := json.Unmarshal(eventMessage.EventData, &eventDataMap)
-								resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
-								referenceId := uuid.MustParse(eventDataMap["reference_id"].(string))
-
-								transaction, err := cruds[typename].Connection().Beginx()
-								if err != nil {
-									resource.CheckErr(err, "Failed to begin transaction [788]")
-									return
-								}
-
-								object, _, _ := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, daptinid.DaptinReferenceId(referenceId), map[string]bool{
-									columnInfo.ColumnName: true,
-								}, transaction)
-								log.Tracef("Completed dtopicMapListener GetSingleRowByReferenceIdWithTransaction")
-
-								colValue := object[columnInfo.ColumnName]
-								if colValue == nil {
-									return
-								}
-								columnValueArray, ok := colValue.([]map[string]interface{})
-								if !ok {
-									log.Warnf("value is not of type array - %v", colValue)
-									return
-								}
-
-								fileContentsJson := []byte{}
-								for _, file := range columnValueArray {
-									if file["type"] != "x-crdt/yjs" {
-										continue
-									}
-									fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
-								}
-
-								documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
-								document := documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
-								transaction.Rollback()
-								if document != nil && len(fileContentsJson) > 0 {
-									document.SetInitialContent(fileContentsJson)
-								}
-
-							}
+							err = ProcessEventMessage(eventMessage, msg, typename, cruds, columnInfo, documentProvider)
+							CheckErr(err, "Failed to process message on OlricTopic[%v]", typename)
 
 						}
 					}(redisPubSub)
@@ -1064,6 +1013,59 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer, olricDb
 
+}
+
+func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message, typename string, cruds map[string]*resource.DbResource, columnInfo api2go.ColumnInfo, documentProvider ydb.DocumentProvider) error {
+	var err error
+	err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
+	if err != nil {
+		resource.CheckErr(err, "Failed to read message on channel "+typename)
+		return nil
+	}
+	if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
+		eventDataMap := make(map[string]interface{})
+		err := json.Unmarshal(eventMessage.EventData, &eventDataMap)
+		resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
+		referenceId := uuid.MustParse(eventDataMap["reference_id"].(string))
+
+		transaction1, err := cruds[typename].Connection().Beginx()
+		defer transaction1.Rollback()
+		if err != nil {
+			resource.CheckErr(err, "Failed to begin transaction [788]")
+			return nil
+		}
+
+		object, _, _ := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename, daptinid.DaptinReferenceId(referenceId), map[string]bool{
+			columnInfo.ColumnName: true,
+		}, transaction1)
+		log.Tracef("Completed dtopicMapListener GetSingleRowByReferenceIdWithTransaction")
+
+		colValue := object[columnInfo.ColumnName]
+		if colValue == nil {
+			return nil
+		}
+		columnValueArray, ok := colValue.([]map[string]interface{})
+		if !ok {
+			log.Warnf("value is not of type array - %v", colValue)
+			return nil
+		}
+
+		fileContentsJson := []byte{}
+		for _, file := range columnValueArray {
+			if file["type"] != "x-crdt/yjs" {
+				continue
+			}
+			fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
+		}
+
+		documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
+		document := documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction1)
+		if document != nil && len(fileContentsJson) > 0 {
+			document.SetInitialContent(fileContentsJson)
+		}
+
+	}
+	return err
 }
 
 func setupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
