@@ -221,6 +221,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}())
 
+	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
 	defaultRouter.GET("/statistics", func(c *gin.Context) {
 		stats := make(map[string]interface{})
 		stats["web"] = Stats.Data()
@@ -228,7 +229,6 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		c.JSON(http.StatusOK, stats)
 	})
 
-	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 	defaultRouter.StaticFS("/statics", NewSubPathFs(boxRoot, "/statics"))
 	defaultRouter.StaticFS("/js", NewSubPathFs(boxRoot, "/js"))
