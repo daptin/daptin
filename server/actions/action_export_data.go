@@ -126,6 +126,7 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 	}
 
 	// Initialize the writer
+	log.Infof("Exporting [%v] columns [%v]", tablesToExport, selectedColumnsMap)
 	err = writer.Initialize(tablesToExport, includeHeaders, selectedColumnsMap)
 	if err != nil {
 		log.Errorf("Failed to initialize streaming writer: %v", err)
@@ -161,7 +162,7 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 				func(rows []map[string]interface{}) error {
 					firstRowResult = rows
 					return nil
-				},
+				}, 1,
 			)
 
 			if err != nil {
@@ -198,7 +199,7 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 			transaction,
 			func(rows []map[string]interface{}) error {
 				return writer.WriteRows(currentTable, rows)
-			},
+			}, -1,
 		)
 
 		if err != nil {

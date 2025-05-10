@@ -16,7 +16,7 @@ func (dbResource *DbResource) GetAllRawObjectsWithPaginationAndTransaction(
 	typeName string,
 	pageSize int,
 	transaction *sqlx.Tx,
-	callback PaginatedResultCallback) error {
+	callback PaginatedResultCallback, limit int) error {
 	log.Infof("Starting paginated export for table [%s] with page size %d", typeName, pageSize)
 
 	if pageSize <= 0 {
@@ -78,6 +78,9 @@ func (dbResource *DbResource) GetAllRawObjectsWithPaginationAndTransaction(
 
 		// Move to next page
 		offset += pageSize
+		if limit > -1 && offset >= limit {
+			break
+		}
 	}
 
 	return nil
