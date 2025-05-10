@@ -221,7 +221,56 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 	}())
 
+	transaction, err = db.Beginx()
+	if err != nil {
+		resource.CheckErr(err, "Failed to begin transaction [214]")
+	}
+
+	languageMiddleware := NewLanguageMiddleware(configStore, transaction)
+
+	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend", transaction)
+	if err != nil {
+		maxConnections = 100
+		err = configStore.SetConfigValueFor("limit.max_connections", maxConnections, "backend", transaction)
+		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
+	}
+	log.Printf("Limiting max connections per IP: %v", maxConnections)
+	rateConfigJson, err := configStore.GetConfigValueFor("limit.rate", "backend", transaction)
+	if err != nil {
+		rateConfigJson = "{\"version\":\"default\"}"
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
+		resource.CheckErr(err, "Failed to store limit.rate default value in db")
+	}
+
+	var rateConfig RateConfig
+	err = json.Unmarshal([]byte(rateConfigJson), rateConfig)
+	if err != nil || rateConfig.version == "" {
+		rateConfig = defaultRateConfig
+		rateConfigJson = "{\"version\":\"default\"}"
+		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
+		resource.CheckErr(err, "Failed to store limit.rate default value in db")
+	}
+	_ = transaction.Commit()
+
 	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
+	defaultRouter.Use(limit.MaxAllowed(maxConnections))
+	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
+		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
+		return c.ClientIP() + requestPath // limit rate by client ip + url
+	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
+		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
+		ratePerSecond, ok := rateConfig.limits[requestPath]
+		if !ok {
+			ratePerSecond = 500
+		}
+		microSecondRateGap := int(1000000 / ratePerSecond)
+		return rate.NewLimiter(rate.Every(time.Duration(microSecondRateGap)*time.Microsecond),
+			ratePerSecond,
+		), time.Minute // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+	}, func(c *gin.Context) {
+		c.AbortWithStatus(429) // handle exceed rate limit request
+	}))
+
 	defaultRouter.GET("/statistics", CreateStatisticsHandler(db))
 
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
@@ -296,55 +345,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to write favicon."+format)
 	})
 
-	transaction, err = db.Beginx()
-	if err != nil {
-		resource.CheckErr(err, "Failed to begin transaction [214]")
-	}
-
-	defaultRouter.Use(NewLanguageMiddleware(configStore, transaction).LanguageMiddlewareFunc)
-
-	maxConnections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend", transaction)
-	if err != nil {
-		maxConnections = 100
-		err = configStore.SetConfigValueFor("limit.max_connections", maxConnections, "backend", transaction)
-		resource.CheckErr(err, "Failed to store limit.max_connections default value in db")
-	}
-	defaultRouter.Use(limit.MaxAllowed(maxConnections))
-	log.Printf("Limiting max connections per IP: %v", maxConnections)
-
-	rateConfigJson, err := configStore.GetConfigValueFor("limit.rate", "backend", transaction)
-	if err != nil {
-		rateConfigJson = "{\"version\":\"default\"}"
-		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
-		resource.CheckErr(err, "Failed to store limit.rate default value in db")
-	}
-
-	var rateConfig RateConfig
-	err = json.Unmarshal([]byte(rateConfigJson), rateConfig)
-	if err != nil || rateConfig.version == "" {
-		rateConfig = defaultRateConfig
-		rateConfigJson = "{\"version\":\"default\"}"
-		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
-		resource.CheckErr(err, "Failed to store limit.rate default value in db")
-	}
-	transaction.Commit()
-
-	defaultRouter.Use(rateLimit.NewRateLimiter(func(c *gin.Context) string {
-		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
-		return c.ClientIP() + requestPath // limit rate by client ip + url
-	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
-		requestPath := strings.Split(c.Request.RequestURI, "?")[0]
-		ratePerSecond, ok := rateConfig.limits[requestPath]
-		if !ok {
-			ratePerSecond = 500
-		}
-		microSecondRateGap := int(1000000 / ratePerSecond)
-		return rate.NewLimiter(rate.Every(time.Duration(microSecondRateGap)*time.Microsecond),
-			ratePerSecond,
-		), time.Minute // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
-	}, func(c *gin.Context) {
-		c.AbortWithStatus(429) // handle exceed rate limit request
-	}))
+	defaultRouter.Use(languageMiddleware.LanguageMiddlewareFunc)
 
 	transaction, err = db.Beginx()
 	if err != nil {
