@@ -1265,7 +1265,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	}
 
 	s, v, err = statementbuilder.Squirrel.
-		Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table").Prepared(true).
+		Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table", "icon").Prepared(true).
 		From("world").
 		ToSQL()
 
@@ -1291,10 +1291,10 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	tables := make([]table_info.TableInfo, 0)
 	for res.Next() {
 		var tabInfo table_info.TableInfo
-		var tableSchema []byte
+		var tableSchema, tableIcon []byte
 		var permission, defaultPermission int64
 		var isTopLevel, isHidden, isJoinTable bool
-		err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden, &isJoinTable)
+		err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden, &isJoinTable, &tableIcon)
 		CheckErr(err, "Failed to scan table info")
 		err = json.Unmarshal(tableSchema, &tabInfo)
 		CheckErr(err, "Failed to convert json to table schema")
@@ -1302,6 +1302,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		tabInfo.DefaultPermission = auth.AuthPermission(defaultPermission)
 		tabInfo.IsTopLevel = isTopLevel
 		tabInfo.IsHidden = isHidden
+		tabInfo.Icon = string(tableIcon)
 		tabInfo.IsJoinTable = isJoinTable
 		tables = append(tables, tabInfo)
 	}
