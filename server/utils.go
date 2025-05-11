@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/daptin/daptin/server/actionresponse"
 	"os"
 	"path/filepath"
 	"strings"
@@ -369,4 +370,45 @@ func EndsWith(str string, endsWith string) (string, bool) {
 func SmallSnakeCaseText(str string) string {
 	transformed := conform.TransformString(str, "lower,snake")
 	return transformed
+}
+
+func ActionPerformersListToMap(interfaces []actionresponse.ActionPerformerInterface) map[string]actionresponse.ActionPerformerInterface {
+	m := make(map[string]actionresponse.ActionPerformerInterface)
+
+	for _, api := range interfaces {
+		if api == nil {
+			continue
+		}
+		m[api.Name()] = api
+	}
+	return m
+}
+
+func AddStreamsToApi2Go(api *api2go.API, processors []*resource.StreamProcessor, db database.DatabaseConnection,
+	middlewareSet *resource.MiddlewareSet, configStore *resource.ConfigStore) {
+
+	for _, processor := range processors {
+
+		contract := processor.GetContract()
+		model := api2go.NewApi2GoModel(contract.StreamName, contract.Columns, 0, nil)
+		api.AddResource(model, processor)
+
+	}
+
+}
+
+func GetStreamProcessors(config *resource.CmsConfig, store *resource.ConfigStore,
+	cruds map[string]*resource.DbResource) []*resource.StreamProcessor {
+
+	allProcessors := make([]*resource.StreamProcessor, 0)
+
+	for _, streamContract := range config.Streams {
+
+		streamProcessor := resource.NewStreamProcessor(streamContract, cruds)
+		allProcessors = append(allProcessors, streamProcessor)
+
+	}
+
+	return allProcessors
+
 }
