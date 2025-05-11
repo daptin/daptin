@@ -26,7 +26,7 @@ const (
 // StreamingImportParser defines the interface for import parsers
 type StreamingImportParser interface {
 	// Initialize prepares the parser with the file content
-	Initialize(fileContent []byte) error
+	Initialize(fileContent []byte, tableName string) error
 
 	// GetTableNames returns the names of tables found in the import file
 	GetTableNames() ([]string, error)
@@ -48,7 +48,7 @@ type StreamingJSONParser struct {
 }
 
 // Initialize prepares the JSON parser
-func (p *StreamingJSONParser) Initialize(fileContent []byte) error {
+func (p *StreamingJSONParser) Initialize(fileContent []byte, tableName string) error {
 	log.Debugf("Initializing JSON parser with %d bytes", len(fileContent))
 	// Parse the JSON content
 	var jsonData map[string]interface{}
@@ -145,13 +145,15 @@ type StreamingCSVParser struct {
 	headers        []string
 	rows           [][]string
 	hasTableHeader bool
+	tableName      string
 	tableMap       map[string][][]string // Maps table names to their rows
 }
 
 // Initialize prepares the CSV parser
-func (p *StreamingCSVParser) Initialize(fileContent []byte) error {
+func (p *StreamingCSVParser) Initialize(fileContent []byte, tableName string) error {
 	log.Debugf("Initializing CSV parser with %d bytes", len(fileContent))
 	reader := csv.NewReader(bytes.NewReader(fileContent))
+	p.tableName = tableName
 
 	// Read all CSV records
 	records, err := reader.ReadAll()
@@ -168,7 +170,7 @@ func (p *StreamingCSVParser) Initialize(fileContent []byte) error {
 
 	// Check if the first row is a table header (starts with "Table:" or similar)
 	p.hasTableHeader = false
-	currentTable := "default"
+	currentTable := tableName
 	tableRows := make([][]string, 0)
 
 	for i, row := range records {
@@ -180,11 +182,7 @@ func (p *StreamingCSVParser) Initialize(fileContent []byte) error {
 			}
 
 			// Extract the new table name
-			currentTable = strings.TrimSpace(strings.TrimPrefix(row[0], "Table:"))
-			if currentTable == "" {
-				currentTable = fmt.Sprintf("table_%d", i)
-			}
-
+			currentTable = tableName
 			p.hasTableHeader = true
 			tableRows = make([][]string, 0)
 		} else if i == 0 && !p.hasTableHeader {
@@ -207,21 +205,7 @@ func (p *StreamingCSVParser) Initialize(fileContent []byte) error {
 
 // GetTableNames returns the names of tables in the CSV
 func (p *StreamingCSVParser) GetTableNames() ([]string, error) {
-	if !p.hasTableHeader {
-		// If no table headers, we have only one default table
-		return []string{"default"}, nil
-	}
-
-	tableNames := make([]string, 0, len(p.tableMap))
-	for name := range p.tableMap {
-		tableNames = append(tableNames, name)
-	}
-
-	if len(tableNames) == 0 {
-		return nil, errors.New("no tables found in CSV")
-	}
-
-	return tableNames, nil
+	return []string{p.tableName}, nil
 }
 
 // GetColumnsForTable returns the column names for a specific table
@@ -293,7 +277,7 @@ type StreamingXLSXParser struct {
 }
 
 // Initialize prepares the XLSX parser
-func (p *StreamingXLSXParser) Initialize(fileContent []byte) error {
+func (p *StreamingXLSXParser) Initialize(fileContent []byte, tableName string) error {
 	log.Debugf("Initializing XLSX parser with %d bytes", len(fileContent))
 	var err error
 

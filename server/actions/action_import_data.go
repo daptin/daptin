@@ -122,8 +122,9 @@ func (d *importDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 			continue
 		}
 
+		tableNameString := tableName.(string)
 		// Initialize the parser with file content
-		err = parser.Initialize(fileBytes)
+		err = parser.Initialize(fileBytes, tableNameString)
 		if err != nil {
 			log.Errorf("Failed to parse file '%s': %v", fileName, err)
 			errors = append(errors, fmt.Errorf("failed to parse file '%s': %w", fileName, err))
@@ -181,7 +182,6 @@ func (d *importDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 						row[resource.USER_ACCOUNT_TABLE_NAME] = userIdInt
 					}
 
-					// Insert the row
 					err := d.cruds[currentTable].DirectInsert(currentTable, row, transaction)
 					if err != nil {
 						log.Errorf("Failed to insert row into table '%s': %v", currentTable, err)
