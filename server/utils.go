@@ -1,6 +1,10 @@
 package server
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/artpar/api2go"
 	"github.com/artpar/conform"
 	"github.com/artpar/ydb"
@@ -15,9 +19,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -129,7 +130,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 
 	sql, args, err := statementbuilder.Squirrel.
 		Select("table_name", "permission", "default_permission",
-			"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order",
+			"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order", "icon",
 		).Prepared(true).
 		From("world").
 		Where(goqu.Ex{
@@ -176,12 +177,13 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 		var permission int64
 		var default_permission int64
 		var world_schema_json string
-		var default_order *string
+		var default_order string
+		var icon string
 		var is_top_level bool
 		var is_hidden bool
 		var is_state_tracking_enabled bool
 
-		err = res.Scan(&table_name, &permission, &default_permission, &world_schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled, &default_order)
+		err = res.Scan(&table_name, &permission, &default_permission, &world_schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled, &default_order, &icon)
 		if err != nil {
 			log.Errorf("Failed to scan json schema from world: %v", err)
 			continue
@@ -212,10 +214,9 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 		t.DefaultPermission = auth.AuthPermission(default_permission)
 		t.IsHidden = is_hidden
 		t.IsTopLevel = is_top_level
+		t.Icon = icon
 		t.IsStateTrackingEnabled = is_state_tracking_enabled
-		if default_order != nil {
-			t.DefaultOrder = *default_order
-		}
+		t.DefaultOrder = default_order
 		ts = append(ts, t)
 
 	}
