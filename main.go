@@ -390,27 +390,24 @@ func main() {
 
 	go func() {
 
-		go func() {
+		time.Sleep(5 * time.Second)
+		membersTopic, err := olricDb.NewPubSub()
+		resource.CheckErr(err, "failed to listen to _members topic")
 
-			time.Sleep(5 * time.Second)
-			membersTopic, err := olricDb.NewPubSub()
-			resource.CheckErr(err, "failed to listen to _members topic")
+		sub := membersTopic.Subscribe(context.Background(), "members")
+		go func(pubsub *redis.PubSub) {
+			channel := pubsub.Channel()
+			for {
+				msg := <-channel
+				log.Printf("[402] [%s] Member says: [%v]", msg.Channel, msg.String())
+			}
+		}(sub)
+		resource.CheckErr(err, "Failed to add listener to _members topic")
 
-			sub := membersTopic.Subscribe(context.Background(), "members")
-			go func(pubsub *redis.PubSub) {
-				channel := pubsub.Channel()
-				for {
-					msg := <-channel
-					log.Printf("[402] [%s] Member says: [%v]", msg.Channel, msg.String())
-				}
-			}(sub)
-			resource.CheckErr(err, "Failed to add listener to _members topic")
+		_, err = membersTopic.Publish(context.Background(), "members",
+			fmt.Sprintf("Joining from %v", olricConfig1.MemberlistConfig.Name))
 
-			_, err = membersTopic.Publish(context.Background(), "members",
-				fmt.Sprintf("Joining from %v", olricConfig1.MemberlistConfig.Name))
-
-			resource.CheckErr(err, "Failed to publish message at _members topic")
-		}()
+		resource.CheckErr(err, "Failed to publish message at _members topic")
 
 	}()
 
