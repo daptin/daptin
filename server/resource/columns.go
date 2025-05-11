@@ -638,15 +638,20 @@ var SystemActions = []actionresponse.Action{
 		InstanceOptional: false,
 		InFields: []api2go.ColumnInfo{
 			{
-				Name:       "JSON Dump file",
+				Name:       "Import file",
 				ColumnName: "dump_file",
-				ColumnType: "file.json|yaml|toml|hcl",
+				ColumnType: "file.json|yaml|toml|hcl|csv|docx|xlsx|pdf|html",
 				IsNullable: false,
 			},
 			{
 				Name:       "truncate_before_insert",
 				ColumnName: "truncate_before_insert",
 				ColumnType: "truefalse",
+			},
+			{
+				Name:       "batch_size",
+				ColumnName: "batch_size",
+				ColumnType: "measurement",
 			},
 		},
 		OutFields: []actionresponse.Outcome{
@@ -658,6 +663,7 @@ var SystemActions = []actionresponse.Action{
 					"truncate_before_insert": "~truncate_before_insert",
 					"dump_file":              "~dump_file",
 					"table_name":             "$.table_name",
+					"batch_size":             "~batch_size",
 					"user":                   "~user",
 				},
 			},
