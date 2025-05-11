@@ -12,6 +12,18 @@ import (
 	"strings"
 )
 
+// PathExistsAndIsFolder checks if a path exists and is a folder
+func PathExistsAndIsFolder(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false // Path does not exist
+	}
+	if err != nil {
+		return false // Other errors
+	}
+	return info.IsDir() // Check if it's a directory
+}
+
 func CreateYjsDocumentProvider(configStore *resource.ConfigStore, transaction *sqlx.Tx, localStoragePath string, documentProvider ydb.DocumentProvider, cruds map[string]*resource.DbResource) ydb.DocumentProvider {
 	logrus.Infof("YJS endpoint is enabled in config")
 	yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.storage.path", "backend", transaction)

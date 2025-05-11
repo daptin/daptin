@@ -17,8 +17,6 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/sadlil/go-trigger"
 	"os"
-	//"sync"
-	"time"
 
 	"github.com/artpar/api2go"
 	"github.com/artpar/go-guerrilla"
@@ -59,26 +57,6 @@ type YjsConnectionSessionFetcher struct {
 func (y *YjsConnectionSessionFetcher) GetSessionId(r *http.Request, roomname string) uint64 {
 
 	return 0
-}
-
-// PathExistsAndIsFolder checks if a path exists and is a folder
-func PathExistsAndIsFolder(path string) bool {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false // Path does not exist
-	}
-	if err != nil {
-		return false // Other errors
-	}
-	return info.IsDir() // Check if it's a directory
-}
-
-// DiskFileCache represents a cached file entry
-type DiskFileCache struct {
-	Data         []byte
-	ContentType  string
-	LastModified time.Time
-	ETag         string
 }
 
 // Configure these values based on your requirements

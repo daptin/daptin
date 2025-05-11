@@ -136,6 +136,14 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 	})
 }
 
+// DiskFileCache represents a cached file entry
+type DiskFileCache struct {
+	Data         []byte
+	ContentType  string
+	LastModified time.Time
+	ETag         string
+}
+
 // Set HTTP cache headers based on the cached file
 func SetClientCacheHeaders(c *gin.Context, cachedFile *DiskFileCache) {
 	// Set ETag
