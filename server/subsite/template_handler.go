@@ -144,58 +144,66 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			// Apply caching configuration if available
 			log.Tracef("Serve subsite[%s] request[%s]", templateName, c.Request.URL.Path)
 			if cacheConfig != nil && cacheConfig.Enable {
+				// Generate cache key first - we'll need this for both checking and creating cache
+				var cacheKey string
+				if cacheConfig.EnableInMemoryCache {
+					cacheKey = generateCacheKey(c, cacheConfig)
+				}
+
 				// Apply cache control headers based on configuration
 				applyCacheHeaders(c, cacheConfig)
 
-				// Check if we can serve from cache using ETag or other cache validators
+				// First check client cache validators (If-None-Match, If-Modified-Since)
+				// This should be done before checking the server cache to avoid unnecessary processing
 				if checkCacheValidators(c, cacheConfig) {
 					// Return 304 Not Modified if client has valid cached version
 					c.Writer.WriteHeader(http.StatusNotModified)
 					return
 				}
 
-				// Check if we can serve the response from in-memory cache
-				if cacheConfig.EnableInMemoryCache {
-					cacheKey := generateCacheKey(c, cacheConfig)
-					if cacheKey != "" {
-						if cachedFile, found := fileCache.Get(cacheKey); found {
-							if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == cachedFile.ETag {
-								c.Header("Cache-Control", "public, max-age=31536000") // 1 year for 304 responses
-								c.Header("ETag", cachedFile.ETag)
-								c.AbortWithStatus(http.StatusNotModified)
-								return
-							}
-
-							// Set basic headers from cache
-							c.Header("Content-Type", cachedFile.MimeType)
+				// Then check if we can serve the response from in-memory cache
+				if cacheConfig.EnableInMemoryCache && cacheKey != "" {
+					if cachedFile, found := fileCache.Get(cacheKey); found {
+						// Check if client's ETag matches our cached ETag
+						if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == cachedFile.ETag {
+							c.Header("Cache-Control", "public, max-age=31536000") // 1 year for 304 responses
 							c.Header("ETag", cachedFile.ETag)
-
-							// Set cache control based on expiry time
-							maxAge := int(time.Until(cachedFile.ExpiresAt).Seconds())
-							if maxAge <= 0 {
-								maxAge = 60 // Minimum 1 minute for almost expired resources
-							}
-							c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
-
-							// Add content disposition if needed
-							if cachedFile.IsDownload {
-								c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(cachedFile.Path)))
-							} else {
-								c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", filepath.Base(cachedFile.Path)))
-							}
-
-							// Check if client accepts gzip and we have compressed data
-							if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-								c.Header("Content-Encoding", "gzip")
-								c.Header("Vary", "Accept-Encoding")
-								c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.GzipData)
-								return
-							}
-
-							// Serve uncompressed data
-							c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.Data)
+							c.AbortWithStatus(http.StatusNotModified)
 							return
 						}
+
+						// Set basic headers from cache
+						c.Header("Content-Type", cachedFile.MimeType)
+						c.Header("ETag", cachedFile.ETag)
+
+						// Set cache control based on expiry time
+						maxAge := int(time.Until(cachedFile.ExpiresAt).Seconds())
+						if maxAge <= 0 {
+							maxAge = 60 // Minimum 1 minute for almost expired resources
+						}
+						c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
+
+						// Add content disposition if needed
+						if cachedFile.IsDownload {
+							c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(cachedFile.Path)))
+						} else {
+							c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", filepath.Base(cachedFile.Path)))
+						}
+
+						// Set cache hit header for debugging
+						c.Header("X-Cache", "HIT")
+
+						// Check if client accepts gzip and we have compressed data
+						if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+							c.Header("Content-Encoding", "gzip")
+							c.Header("Vary", "Accept-Encoding")
+							c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.GzipData)
+							return
+						}
+
+						// Serve uncompressed data
+						c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.Data)
+						return
 					}
 				}
 			}
@@ -315,53 +323,34 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			expiryTime := server.CalculateExpiry(mimeType, c.Request.URL.Path)
 
 			// Store in cache if in-memory caching is enabled
+			// This should happen after we've already rendered the content but before we return
 			if cacheConfig != nil && cacheConfig.Enable && cacheConfig.EnableInMemoryCache {
 				cacheKey := generateCacheKey(c, cacheConfig)
-				// Check if client has fresh copy before we do anything else
-				if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
-					c.Header("ETag", etag)
-					c.AbortWithStatus(http.StatusNotModified)
-					return
-				}
-
-				// Create cache entry
-				data := []byte(decodedContent)
-				newCachedFile := &server.CachedFile{
-					Data:       data,
-					ETag:       etag,
-					Modtime:    time.Now().UTC(),
-					MimeType:   mimeType,
-					Size:       len(data),
-					Path:       c.Request.URL.Path,
-					IsDownload: false,
-					ExpiresAt:  expiryTime,
-				}
-
-				// Pre-compress text files for better performance
-				needsCompression := server.ShouldCompress(mimeType) && len(data) > server.CompressionThreshold
-				if needsCompression {
-					if compressedData, err := server.CompressData(data); err == nil {
-						newCachedFile.GzipData = compressedData
+				if cacheKey != "" {
+					// Create cache entry
+					data := []byte(decodedContent)
+					newCachedFile := &server.CachedFile{
+						Data:       data,
+						ETag:       etag,
+						Modtime:    time.Now().UTC(),
+						MimeType:   mimeType,
+						Size:       len(data),
+						Path:       c.Request.URL.Path,
+						IsDownload: false,
+						ExpiresAt:  expiryTime,
 					}
+
+					// Pre-compress text files for better performance
+					needsCompression := server.ShouldCompress(mimeType) && len(data) > server.CompressionThreshold
+					if needsCompression {
+						if compressedData, err := server.CompressData(data); err == nil {
+							newCachedFile.GzipData = compressedData
+						}
+					}
+
+					// Add to cache for future requests
+					fileCache.Set(cacheKey, newCachedFile)
 				}
-
-				// Add to cache for future requests
-				fileCache.Set(cacheKey, newCachedFile)
-
-				// Set ETag header
-				c.Header("ETag", etag)
-
-				// Use compression if client accepts it and we have compressed data
-				if newCachedFile.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-					c.Header("Content-Encoding", "gzip")
-					c.Header("Vary", "Accept-Encoding")
-					c.Data(http.StatusOK, mimeType, newCachedFile.GzipData)
-					return
-				}
-
-				// Serve uncompressed data
-				c.Data(http.StatusOK, mimeType, data)
-				return
 			}
 
 		}
