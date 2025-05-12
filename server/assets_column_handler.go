@@ -22,7 +22,7 @@ func ShutdownFileCache() {
 func CreateDbAssetHandler(cruds map[string]*resource.DbResource, olricClient *olric.EmbeddedClient) func(*gin.Context) {
 	// Initialize the global file cache with Olric
 	var err error
-	fileCache, err = NewFileCache(olricClient)
+	fileCache, err = NewFileCache(olricClient, AssetsCacheNamespace)
 	if err != nil {
 		log.Printf("Failed to initialize Olric file cache: %v. Using nil cache.", err)
 		// Continue without cache

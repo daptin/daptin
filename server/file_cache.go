@@ -101,7 +101,7 @@ func (fc *FileCache) Set(key string, file *CachedFile) {
 
 	// Set the expiry time based on file type if not already set
 	if file.ExpiresAt.IsZero() {
-		file.ExpiresAt = calculateExpiry(file.MimeType, file.Path)
+		file.ExpiresAt = CalculateExpiry(file.MimeType, file.Path)
 	}
 
 	// Calculate TTL duration from ExpiresAt
@@ -118,8 +118,8 @@ func (fc *FileCache) Set(key string, file *CachedFile) {
 	}
 }
 
-// calculateExpiry determines expiry time based on file type
-func calculateExpiry(mimeType, path string) time.Time {
+// CalculateExpiry determines expiry time based on file type
+func CalculateExpiry(mimeType, path string) time.Time {
 	now := time.Now()
 
 	// Determine file type from extension
@@ -240,8 +240,8 @@ type FileStat struct {
 	Exists  bool
 }
 
-// getFileStat gets file info for validation
-func getFileStat(path string) (FileStat, error) {
+// GetFileStat gets file info for validation
+func GetFileStat(path string) (FileStat, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -258,12 +258,12 @@ func getFileStat(path string) (FileStat, error) {
 }
 
 // NewFileCache creates a new file cache using Olric
-func NewFileCache(olricClient *olric.EmbeddedClient) (*FileCache, error) {
+func NewFileCache(olricClient *olric.EmbeddedClient, namespace string) (*FileCache, error) {
 	if olricClient == nil {
 		return nil, fmt.Errorf("olric client is nil")
 	}
 
-	dmap, err := olricClient.NewDMap(AssetsCacheNamespace)
+	dmap, err := olricClient.NewDMap(namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Olric DMap for assets cache: %v", err)
 	}
@@ -275,8 +275,8 @@ func NewFileCache(olricClient *olric.EmbeddedClient) (*FileCache, error) {
 	return fc, nil
 }
 
-// compressData compresses data using gzip
-func compressData(data []byte) ([]byte, error) {
+// CompressData compresses data using gzip
+func CompressData(data []byte) ([]byte, error) {
 	var b strings.Builder
 	gz := gzip.NewWriter(&b)
 	if _, err := gz.Write(data); err != nil {

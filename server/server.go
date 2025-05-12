@@ -461,7 +461,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [634]")
 	}
 
-	_ = subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch)
+	// Set the Olric client for template cache
+	_ = subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch, olricDb)
 	_ = transaction.Commit()
 
 	transaction, err = db.Beginx()

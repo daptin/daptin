@@ -187,8 +187,8 @@ func compressContent(content []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// shouldCompress determines if a file should be compressed based on its content type
-func shouldCompress(contentType string) bool {
+// ShouldCompress determines if a file should be compressed based on its content type
+func ShouldCompress(contentType string) bool {
 	compressibleTypes := []string{
 		"text/",
 		"application/javascript",

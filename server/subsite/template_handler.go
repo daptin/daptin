@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/artpar/api2go"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
+	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -16,9 +18,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"sort"
+	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -45,62 +46,7 @@ type HostRouterProvider interface {
 	GetAllRouter() []*gin.Engine
 }
 
-// CacheEntry represents a single entry in the in-memory cache
-type CacheEntry struct {
-	Content     string
-	MimeType    string
-	Headers     map[string]string
-	ETag        string
-	CreatedAt   time.Time
-	LastAccess  time.Time
-	AccessCount int
-}
-
-// InMemoryCache provides a thread-safe in-memory cache implementation
-type InMemoryCache struct {
-	Entries    map[string]*CacheEntry
-	MaxSize    int
-	Strategy   string
-	Mutex      sync.RWMutex
-	Compressed bool
-}
-
-// Global cache instance
-var globalCache *InMemoryCache
-var cacheOnce sync.Once
-
-// GetInMemoryCache returns the singleton cache instance
-func GetInMemoryCache() *InMemoryCache {
-	cacheOnce.Do(func() {
-		globalCache = &InMemoryCache{
-			Entries:    make(map[string]*CacheEntry),
-			MaxSize:    100, // Default max size
-			Strategy:   "lru",
-			Compressed: false,
-		}
-	})
-	return globalCache
-}
-
-// ConfigureCache updates the cache configuration
-func (c *InMemoryCache) ConfigureCache(config *CacheConfig) {
-	if config == nil {
-		return
-	}
-
-	c.Mutex.Lock()
-	defer c.Mutex.Unlock()
-
-	if config.InMemoryCacheMaxSize > 0 {
-		c.MaxSize = config.InMemoryCacheMaxSize
-	}
-
-	if config.InMemoryCacheStrategy != "" {
-		c.Strategy = config.InMemoryCacheStrategy
-	}
-
-	c.Compressed = config.InMemoryCacheCompression
-}
+var fileCache *server.FileCache
 
 // generateCacheKey creates a unique key for the cache based on the request and configuration
 func generateCacheKey(c *gin.Context, config *CacheConfig) string {
@@ -141,101 +87,18 @@ func generateCacheKey(c *gin.Context, config *CacheConfig) string {
 	return key
 }
 
-// Get retrieves an entry from the cache if it exists and is not expired
-func (c *InMemoryCache) Get(key string, ttl int) (*CacheEntry, bool) {
-	c.Mutex.RLock()
-	defer c.Mutex.RUnlock()
-
-	entry, exists := c.Entries[key]
-	if !exists {
-		return nil, false
-	}
-
-	// Check if entry is expired
-	if ttl > 0 && time.Since(entry.CreatedAt).Seconds() > float64(ttl) {
-		return nil, false
-	}
-
-	// Update access statistics
-	entry.LastAccess = time.Now()
-	entry.AccessCount++
-
-	return entry, true
-}
-
-// Set adds or updates an entry in the cache
-func (c *InMemoryCache) Set(key string, content string, mimeType string, headers map[string]string, etag string) {
-	c.Mutex.Lock()
-	defer c.Mutex.Unlock()
-
-	// Check if we need to evict entries
-	if len(c.Entries) >= c.MaxSize {
-		c.evictEntries()
-	}
-
-	// Create new entry
-	entry := &CacheEntry{
-		Content:     content,
-		MimeType:    mimeType,
-		Headers:     headers,
-		ETag:        etag,
-		CreatedAt:   time.Now(),
-		LastAccess:  time.Now(),
-		AccessCount: 1,
-	}
-
-	c.Entries[key] = entry
-}
-
-// evictEntries removes entries based on the configured strategy
-func (c *InMemoryCache) evictEntries() {
-	// Determine how many entries to evict (20% of max size or at least 1)
-	evictCount := c.MaxSize / 5
-	if evictCount < 1 {
-		evictCount = 1
-	}
-
-	// Create a slice of entries for sorting
-	entries := make([]*CacheEntry, 0, len(c.Entries))
-	keys := make([]string, 0, len(c.Entries))
-
-	for key, entry := range c.Entries {
-		entries = append(entries, entry)
-		keys = append(keys, key)
-	}
-
-	// Sort based on strategy
-	if c.Strategy == "lru" {
-		// Sort by last access time (oldest first)
-		sort.Slice(entries, func(i, j int) bool {
-			return entries[i].LastAccess.Before(entries[j].LastAccess)
-		})
-	} else if c.Strategy == "lfu" {
-		// Sort by access count (least frequently used first)
-		sort.Slice(entries, func(i, j int) bool {
-			return entries[i].AccessCount < entries[j].AccessCount
-		})
-	}
-
-	// Create a map of entries to their keys
-	entryToKey := make(map[*CacheEntry]string)
-	for i, entry := range entries {
-		entryToKey[entry] = keys[i]
-	}
-
-	// Remove the entries
-	for i := 0; i < evictCount && i < len(entries); i++ {
-		delete(c.Entries, entryToKey[entries[i]])
-	}
-}
-
-func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterface.DbResourceInterface, hostSwitch HostRouterProvider) error {
+func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterface.DbResourceInterface, hostSwitch HostRouterProvider, olricDb *olric.EmbeddedClient) error {
 	allRouters := hostSwitch.GetAllRouter()
 	templateList, err := cruds["template"].GetAllObjects("template", transaction)
 	log.Infof("Got [%d] Templates from database", len(templateList))
 	if err != nil {
 		return err
 	}
+	if fileCache == nil {
+		fileCache, err = server.NewFileCache(olricDb, "template-cache")
+		CheckErr(err, "Failed to create olric template cache")
+	}
+
 	handlerCreator := CreateTemplateRouteHandler(cruds, transaction)
 	for _, templateRow := range templateList {
 		log.Infof("ProcessTemplateRoute [%s] %v", templateRow["name"], templateRow["url_pattern"])
@@ -273,59 +136,64 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 		if err != nil {
 			log.Errorf("Failed to get template instance for template [%v]", templateName)
 		}
-		// Get the in-memory cache instance
-		cache := GetInMemoryCache()
+		// Get the Olric cache instance
 		log.Infof("Cache config for [%v] [%v]", templateName, cacheConfig)
 
-		// Configure the cache based on the current config
-		if cacheConfig != nil {
-			cache.ConfigureCache(cacheConfig)
-		}
-
-		return func(ginContext *gin.Context) {
+		return func(c *gin.Context) {
 
 			// Apply caching configuration if available
-			log.Tracef("Serve subsite[%s] request[%s]", templateName, ginContext.Request.URL.Path)
+			log.Tracef("Serve subsite[%s] request[%s]", templateName, c.Request.URL.Path)
 			if cacheConfig != nil && cacheConfig.Enable {
 				// Apply cache control headers based on configuration
-				applyCacheHeaders(ginContext, cacheConfig)
+				applyCacheHeaders(c, cacheConfig)
 
 				// Check if we can serve from cache using ETag or other cache validators
-				if checkCacheValidators(ginContext, cacheConfig) {
+				if checkCacheValidators(c, cacheConfig) {
 					// Return 304 Not Modified if client has valid cached version
-					ginContext.Writer.WriteHeader(http.StatusNotModified)
+					c.Writer.WriteHeader(http.StatusNotModified)
 					return
 				}
 
 				// Check if we can serve the response from in-memory cache
 				if cacheConfig.EnableInMemoryCache {
-					cacheKey := generateCacheKey(ginContext, cacheConfig)
+					cacheKey := generateCacheKey(c, cacheConfig)
 					if cacheKey != "" {
-						if entry, found := cache.Get(cacheKey, cacheConfig.InMemoryCacheTTL); found {
-							// Serve from cache
-							log.Infof("Serving response from in-memory cache for %s", ginContext.Request.URL.Path)
-
-							// Set ETag if available
-							if entry.ETag != "" {
-								ginContext.Writer.Header().Set("ETag", entry.ETag)
+						if cachedFile, found := fileCache.Get(cacheKey); found {
+							if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == cachedFile.ETag {
+								c.Header("Cache-Control", "public, max-age=31536000") // 1 year for 304 responses
+								c.Header("ETag", cachedFile.ETag)
+								c.AbortWithStatus(http.StatusNotModified)
+								return
 							}
 
-							// Set content type
-							ginContext.Writer.Header().Set("Content-Type", entry.MimeType)
+							// Set basic headers from cache
+							c.Header("Content-Type", cachedFile.MimeType)
+							c.Header("ETag", cachedFile.ETag)
 
-							// Set custom headers
-							for key, value := range entry.Headers {
-								ginContext.Writer.Header().Set(key, value)
+							// Set cache control based on expiry time
+							maxAge := int(time.Until(cachedFile.ExpiresAt).Seconds())
+							if maxAge <= 0 {
+								maxAge = 60 // Minimum 1 minute for almost expired resources
+							}
+							c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
+
+							// Add content disposition if needed
+							if cachedFile.IsDownload {
+								c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(cachedFile.Path)))
+							} else {
+								c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", filepath.Base(cachedFile.Path)))
 							}
 
-							// Set cache hit header for debugging
-							ginContext.Writer.Header().Set("X-Cache", "HIT")
+							// Check if client accepts gzip and we have compressed data
+							if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+								c.Header("Content-Encoding", "gzip")
+								c.Header("Vary", "Accept-Encoding")
+								c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.GzipData)
+								return
+							}
 
-							// Write the response
-							ginContext.Writer.WriteHeader(http.StatusOK)
-							fmt.Fprint(ginContext.Writer, entry.Content)
-							ginContext.Writer.Flush()
-							ginContext.Abort()
+							// Serve uncompressed data
+							c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.Data)
 							return
 						}
 					}
@@ -338,11 +206,11 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			queryMap := make(map[string]interface{})
 			inFields["query"] = queryMap
 
-			for _, param := range ginContext.Params {
+			for _, param := range c.Params {
 				inFields[param.Key] = param.Value
 			}
 
-			queryParams := ginContext.Request.URL.Query()
+			queryParams := c.Request.URL.Query()
 
 			for key, valArray := range queryParams {
 				if len(valArray) == 1 {
@@ -359,7 +227,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			var errTxn error
 			transaction1, errTxn = cruds["world"].Connection().Beginx()
 			if errTxn != nil {
-				_ = ginContext.AbortWithError(500, errTxn)
+				_ = c.AbortWithError(500, errTxn)
 				return
 			}
 			defer func() {
@@ -367,10 +235,10 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			}()
 
 			var api2goRequestData = api2go.Request{
-				PlainRequest: ginContext.Request,
-				QueryParams:  ginContext.Request.URL.Query(),
+				PlainRequest: c.Request,
+				QueryParams:  c.Request.URL.Query(),
 				Pagination:   nil,
-				Header:       ginContext.Request.Header,
+				Header:       c.Request.Header,
 				Context:      nil,
 			}
 
@@ -378,7 +246,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 				actionRequest.Attributes = inFields
 				actionResponses, errAction := cruds["action"].HandleActionRequest(actionRequest, api2goRequestData, transaction1)
 				if errAction != nil {
-					_ = ginContext.AbortWithError(500, errAction)
+					_ = c.AbortWithError(500, errAction)
 					return
 				}
 				inFields["actionResponses"] = actionResponses
@@ -391,7 +259,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			api2goResponder, _, err := cruds["world"].GetActionHandler("template.render").DoAction(
 				outcomeRequest, inFields, transaction1)
 			if err != nil && len(err) > 0 {
-				_ = ginContext.AbortWithError(500, err[0])
+				_ = c.AbortWithError(500, err[0])
 				return
 			}
 
@@ -412,11 +280,11 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			if cacheConfig != nil && cacheConfig.Enable && cacheConfig.ETagStrategy != "none" {
 				etag = generateETag(decodedContent, cacheConfig.ETagStrategy)
 				if etag != "" {
-					ginContext.Writer.Header().Set("ETag", etag)
+					c.Writer.Header().Set("ETag", etag)
 				}
 
 				// Set Last-Modified header for cache validation
-				ginContext.Writer.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
+				c.Writer.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 			}
 
 			// Apply VaryByQueryParams if configured
@@ -424,42 +292,76 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 				// Add Vary header for query parameters
 				// This is a custom implementation as HTTP doesn't directly support varying by query params
 				// We'll add a custom header to indicate which query params affect caching
-				ginContext.Writer.Header().Set("X-Vary-By-Query-Params", strings.Join(cacheConfig.VaryByQueryParams, ", "))
+				c.Writer.Header().Set("X-Vary-By-Query-Params", strings.Join(cacheConfig.VaryByQueryParams, ", "))
 			}
 
 			// Prepare response headers
-			ginContext.Writer.Header().Set("Content-Type", mimeType)
+			c.Writer.Header().Set("Content-Type", mimeType)
 			for hKey, hValue := range headers {
-				ginContext.Writer.Header().Set(hKey, hValue)
+				c.Writer.Header().Set(hKey, hValue)
 			}
 
 			// Set cache miss header for debugging
-			ginContext.Writer.Header().Set("X-Cache", "MISS")
+			c.Writer.Header().Set("X-Cache", "MISS")
 
 			// Write status and flush headers
-			ginContext.Writer.WriteHeader(http.StatusOK)
-			ginContext.Writer.Flush()
+			c.Writer.WriteHeader(http.StatusOK)
+			c.Writer.Flush()
 
 			// Render the content
-			fmt.Fprint(ginContext.Writer, decodedContent)
-			ginContext.Writer.Flush()
-			ginContext.Abort()
+			fmt.Fprint(c.Writer, decodedContent)
+			c.Writer.Flush()
+			c.Abort()
+			expiryTime := server.CalculateExpiry(mimeType, c.Request.URL.Path)
 
 			// Store in cache if in-memory caching is enabled
 			if cacheConfig != nil && cacheConfig.Enable && cacheConfig.EnableInMemoryCache {
-				cacheKey := generateCacheKey(ginContext, cacheConfig)
-				if cacheKey != "" {
-					// Clone headers to avoid reference issues
-					cachedHeaders := make(map[string]string)
-					for k, v := range headers {
-						cachedHeaders[k] = v
-					}
-
-					// Store in cache
-					cache := GetInMemoryCache()
-					cache.Set(cacheKey, decodedContent, mimeType, cachedHeaders, etag)
-					log.Infof("Stored response in in-memory cache for %s", ginContext.Request.URL.Path)
+				cacheKey := generateCacheKey(c, cacheConfig)
+				// Check if client has fresh copy before we do anything else
+				if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+					c.Header("ETag", etag)
+					c.AbortWithStatus(http.StatusNotModified)
+					return
 				}
+
+				// Create cache entry
+				data := []byte(decodedContent)
+				newCachedFile := &server.CachedFile{
+					Data:       data,
+					ETag:       etag,
+					Modtime:    time.Now().UTC(),
+					MimeType:   mimeType,
+					Size:       len(data),
+					Path:       c.Request.URL.Path,
+					IsDownload: false,
+					ExpiresAt:  expiryTime,
+				}
+
+				// Pre-compress text files for better performance
+				needsCompression := server.ShouldCompress(mimeType) && len(data) > server.CompressionThreshold
+				if needsCompression {
+					if compressedData, err := server.CompressData(data); err == nil {
+						newCachedFile.GzipData = compressedData
+					}
+				}
+
+				// Add to cache for future requests
+				fileCache.Set(cacheKey, newCachedFile)
+
+				// Set ETag header
+				c.Header("ETag", etag)
+
+				// Use compression if client accepts it and we have compressed data
+				if newCachedFile.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+					c.Header("Content-Encoding", "gzip")
+					c.Header("Vary", "Accept-Encoding")
+					c.Data(http.StatusOK, mimeType, newCachedFile.GzipData)
+					return
+				}
+
+				// Serve uncompressed data
+				c.Data(http.StatusOK, mimeType, data)
+				return
 			}
 
 		}

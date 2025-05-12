@@ -148,12 +148,12 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				Size:       len(htmlContent),
 				Path:       fmt.Sprintf("%s/%s/%s", typeName, resourceUuid, columnNameWithExt),
 				IsDownload: false,
-				ExpiresAt:  calculateExpiry("text/html", ""),
+				ExpiresAt:  CalculateExpiry("text/html", ""),
 			}
 
 			// Create compressed version if large enough
 			if len(htmlContent) > CompressionThreshold {
-				if compressedData, err := compressData([]byte(htmlContent)); err == nil {
+				if compressedData, err := CompressData([]byte(htmlContent)); err == nil {
 					cachedMarkdown.GzipData = compressedData
 				}
 			}
@@ -316,7 +316,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			}
 
 			// Calculate expiry time
-			expiryTime := calculateExpiry(fileType, filePath)
+			expiryTime := CalculateExpiry(fileType, filePath)
 
 			// Set cache control header based on expiry
 			maxAge := int(time.Until(expiryTime).Seconds())
@@ -362,15 +362,15 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				}
 
 				// Pre-compress text files for better performance
-				needsCompression := shouldCompress(fileType) && len(data) > CompressionThreshold
+				needsCompression := ShouldCompress(fileType) && len(data) > CompressionThreshold
 				if needsCompression {
-					if compressedData, err := compressData(data); err == nil {
+					if compressedData, err := CompressData(data); err == nil {
 						newCachedFile.GzipData = compressedData
 					}
 				}
 
 				// Get file stat for validation
-				if fileStat, err := getFileStat(filePath); err == nil {
+				if fileStat, err := GetFileStat(filePath); err == nil {
 					newCachedFile.FileStat = fileStat
 				}
 

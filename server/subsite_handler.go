@@ -80,7 +80,7 @@ func SubsiteRequestHandler(site subsite.SubSite, tempDirectoryPath string) func(
 
 			// Compress content if it's a compressible type
 			var compressedContent []byte
-			if shouldCompress(contentType) {
+			if ShouldCompress(contentType) {
 				compressed, err := compressContent(content)
 				if err == nil {
 					compressedContent = compressed
