@@ -9,8 +9,8 @@ import (
 	"github.com/artpar/api2go"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/buraksezer/olric"
-	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
@@ -46,7 +46,7 @@ type HostRouterProvider interface {
 	GetAllRouter() []*gin.Engine
 }
 
-var fileCache *server.FileCache
+var fileCache *cache.FileCache
 
 // generateCacheKey creates a unique key for the cache based on the request and configuration
 func generateCacheKey(c *gin.Context, config *CacheConfig) string {
@@ -95,7 +95,7 @@ func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterf
 		return err
 	}
 	if fileCache == nil {
-		fileCache, err = server.NewFileCache(olricDb, "template-cache")
+		fileCache, err = cache.NewFileCache(olricDb, "template-cache")
 		CheckErr(err, "Failed to create olric template cache")
 	}
 
@@ -320,7 +320,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 			fmt.Fprint(c.Writer, decodedContent)
 			c.Writer.Flush()
 			c.Abort()
-			expiryTime := server.CalculateExpiry(mimeType, c.Request.URL.Path)
+			expiryTime := cache.CalculateExpiry(mimeType, c.Request.URL.Path)
 
 			// Store in cache if in-memory caching is enabled
 			// This should happen after we've already rendered the content but before we return
@@ -329,7 +329,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 				if cacheKey != "" {
 					// Create cache entry
 					data := []byte(decodedContent)
-					newCachedFile := &server.CachedFile{
+					newCachedFile := &cache.CachedFile{
 						Data:       data,
 						ETag:       etag,
 						Modtime:    time.Now().UTC(),
@@ -341,9 +341,9 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 					}
 
 					// Pre-compress text files for better performance
-					needsCompression := server.ShouldCompress(mimeType) && len(data) > server.CompressionThreshold
+					needsCompression := cache.ShouldCompress(mimeType) && len(data) > cache.CompressionThreshold
 					if needsCompression {
-						if compressedData, err := server.CompressData(data); err == nil {
+						if compressedData, err := cache.CompressData(data); err == nil {
 							newCachedFile.GzipData = compressedData
 						}
 					}

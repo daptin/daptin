@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -54,7 +55,7 @@ func CreateFaviconEndpoint(boxRoot http.FileSystem) gin.HandlerFunc {
 
 		// Generate ETag for better caching
 		fileInfo, _ := file.Stat()
-		etag := generateETag(fileContents, fileInfo.ModTime())
+		etag := cache.GenerateETag(fileContents, fileInfo.ModTime())
 		c.Header("ETag", etag)
 
 		// Check if client has this version cached

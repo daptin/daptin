@@ -1,4 +1,4 @@
-package server
+package cache
 
 import (
 	"compress/gzip"
@@ -152,7 +152,7 @@ func CalculateExpiry(mimeType, path string) time.Time {
 	return now.Add(DefaultCacheExpiry)
 }
 
-func generateETag(content []byte, modTime time.Time) string {
+func GenerateETag(content []byte, modTime time.Time) string {
 	hash := md5.New()
 	hash.Write(content)
 	// Include modTime in the hash to ensure we catch file changes

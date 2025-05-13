@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -75,12 +76,12 @@ func SubsiteRequestHandler(site subsite.SubSite, tempDirectoryPath string) func(
 			}
 
 			// Generate ETag
-			etag := generateETag(content, fileInfo1.ModTime())
+			etag := cache.GenerateETag(content, fileInfo1.ModTime())
 			lastModified := time.Now()
 
 			// Compress content if it's a compressible type
 			var compressedContent []byte
-			if ShouldCompress(contentType) {
+			if cache.ShouldCompress(contentType) {
 				compressed, err := compressContent(content)
 				if err == nil {
 					compressedContent = compressed
@@ -128,7 +129,7 @@ func SubsiteRequestHandler(site subsite.SubSite, tempDirectoryPath string) func(
 		fileinfo, err := os.Stat(indexPath)
 		if err == nil {
 			// Generate ETag
-			indexEtag := generateETag(indexContent, fileinfo.ModTime())
+			indexEtag := cache.GenerateETag(indexContent, fileinfo.ModTime())
 			indexLastModified := time.Now()
 
 			// Compress the index.html content

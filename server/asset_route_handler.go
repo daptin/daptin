@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/artpar/api2go"
+	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -128,7 +129,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			markdownContent := colData.(string)
 
 			// Generate ETag
-			etag := generateETag([]byte(markdownContent), time.Now())
+			etag := cache.GenerateETag([]byte(markdownContent), time.Now())
 
 			// Check if client has fresh copy
 			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
@@ -140,7 +141,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 			// Cache the markdown content
 			htmlContent := fmt.Sprintf("<pre>%s</pre>", markdownContent)
-			cachedMarkdown := &CachedFile{
+			cachedMarkdown := &cache.CachedFile{
 				Data:       []byte(htmlContent),
 				ETag:       etag,
 				Modtime:    time.Now(),
@@ -148,12 +149,12 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				Size:       len(htmlContent),
 				Path:       fmt.Sprintf("%s/%s/%s", typeName, resourceUuid, columnNameWithExt),
 				IsDownload: false,
-				ExpiresAt:  CalculateExpiry("text/html", ""),
+				ExpiresAt:  cache.CalculateExpiry("text/html", ""),
 			}
 
 			// Create compressed version if large enough
-			if len(htmlContent) > CompressionThreshold {
-				if compressedData, err := CompressData([]byte(htmlContent)); err == nil {
+			if len(htmlContent) > cache.CompressionThreshold {
+				if compressedData, err := cache.CompressData([]byte(htmlContent)); err == nil {
 					cachedMarkdown.GzipData = compressedData
 				}
 			}
@@ -239,10 +240,10 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 						if typeStr, isStr := typFromData.(string); isStr {
 							fileType = typeStr
 						} else {
-							fileType = GetMimeType(fileNameToServe)
+							fileType = cache.GetMimeType(fileNameToServe)
 						}
 					} else {
-						fileType = GetMimeType(fileNameToServe)
+						fileType = cache.GetMimeType(fileNameToServe)
 					}
 				}
 			} else {
@@ -263,10 +264,10 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 							if typeStr, isStr := typFromData.(string); isStr {
 								fileType = typeStr
 							} else {
-								fileType = GetMimeType(fileNameToServe)
+								fileType = cache.GetMimeType(fileNameToServe)
 							}
 						} else {
-							fileType = GetMimeType(fileNameToServe)
+							fileType = cache.GetMimeType(fileNameToServe)
 						}
 
 						break
@@ -303,7 +304,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			}
 
 			// Determine if this should be a download
-			isDownload := ShouldBeDownloaded(fileType, fileNameToServe)
+			isDownload := cache.ShouldBeDownloaded(fileType, fileNameToServe)
 
 			// Set response headers for all cases
 			c.Header("Content-Type", fileType)
@@ -316,14 +317,14 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			}
 
 			// Calculate expiry time
-			expiryTime := CalculateExpiry(fileType, filePath)
+			expiryTime := cache.CalculateExpiry(fileType, filePath)
 
 			// Set cache control header based on expiry
 			maxAge := int(time.Until(expiryTime).Seconds())
 			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
 
 			// Use optimized file serving for small files that can be cached
-			if fileInfo.Size() <= MaxFileCacheSize {
+			if fileInfo.Size() <= cache.MaxFileCacheSize {
 				// Open file
 				file, err := os.Open(filePath)
 				if err != nil {
@@ -340,7 +341,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				}
 
 				// Generate ETag for client-side caching
-				etag := generateETag(data, fileInfo.ModTime())
+				etag := cache.GenerateETag(data, fileInfo.ModTime())
 
 				// Check if client has fresh copy before we do anything else
 				if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
@@ -350,7 +351,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				}
 
 				// Create cache entry
-				newCachedFile := &CachedFile{
+				newCachedFile := &cache.CachedFile{
 					Data:       data,
 					ETag:       etag,
 					Modtime:    fileInfo.ModTime(),
@@ -362,15 +363,15 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				}
 
 				// Pre-compress text files for better performance
-				needsCompression := ShouldCompress(fileType) && len(data) > CompressionThreshold
+				needsCompression := cache.ShouldCompress(fileType) && len(data) > cache.CompressionThreshold
 				if needsCompression {
-					if compressedData, err := CompressData(data); err == nil {
+					if compressedData, err := cache.CompressData(data); err == nil {
 						newCachedFile.GzipData = compressedData
 					}
 				}
 
 				// Get file stat for validation
-				if fileStat, err := GetFileStat(filePath); err == nil {
+				if fileStat, err := cache.GetFileStat(filePath); err == nil {
 					newCachedFile.FileStat = fileStat
 				}
 
