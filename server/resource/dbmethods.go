@@ -354,7 +354,7 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 		log.Errorf("failed to close prepared statement: %v", err)
 	}
 	if errScan != nil {
-		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
+		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, errScan)
 	}
 	//log.Printf("permi map: %v", resultObject)
 	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {

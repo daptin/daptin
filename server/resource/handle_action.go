@@ -631,7 +631,7 @@ OutFields:
 			return nil, err
 		}
 
-		if !outcome.SkipInResponse || true {
+		if !outcome.SkipInResponse {
 			for _, ar := range actionResponses {
 				attrs, yes := ar.Attributes.(map[string]interface{})
 				if yes {
