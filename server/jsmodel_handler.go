@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/artpar/api2go"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -16,6 +17,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 func CreateApiBlueprintHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(ctx *gin.Context) {
@@ -117,14 +119,30 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 }
 
 func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
+	columnTypesResponse, _ := json.MarshalToString(resource.ColumnManager.ColumnMap)
+	columnTypesResponseEtag := fmt.Sprintf("W/\"%x\"", sha256.Sum256([]byte(columnTypesResponse)))
 
 	return func(context *gin.Context) {
+		// Set aggressive cache control headers
+		context.Header("Cache-Control", "public, max-age=86400, s-maxage=86400, immutable")
+		context.Header("Expires", time.Now().Add(24*time.Hour).Format(http.TimeFormat))
+		context.Header("Pragma", "cache")
 
 		query := context.Query("query")
 
 		switch query {
 		case "column_types":
-			context.JSON(200, resource.ColumnManager.ColumnMap)
+			// Check if browser sent If-None-Match header (ETag)
+			context.Header("ETag", columnTypesResponseEtag)
+
+			if match := context.GetHeader("If-None-Match"); match != "" {
+				if strings.Contains(match, columnTypesResponseEtag) {
+					context.Status(http.StatusNotModified)
+					return
+				}
+			}
+
+			context.JSON(200, columnTypesResponse)
 		}
 	}
 }

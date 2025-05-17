@@ -111,7 +111,7 @@ func (c *Client) listenWrite() {
 
 // Listen read request via chanel
 func (c *Client) listenRead() {
-	log.Println("Listening read from client")
+	log.Println("[114] websocket listening read from client")
 	for {
 		select {
 

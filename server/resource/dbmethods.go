@@ -121,7 +121,7 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 
 	if OlricCache != nil {
 		err = OlricCache.Put(context.Background(), cacheKey, actionRow, olric.EX(1*time.Minute), olric.NX())
-		CheckErr(err, "Failed to set action in olric cache")
+		CheckInfo(err, "Failed to set action in olric cache")
 	}
 
 	return action, nil

@@ -521,10 +521,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	jsModelHandler := CreateJsModelHandler(&initConfig, cruds, transaction)
 	transaction.Commit()
-	metaHandler := CreateMetaHandler(&initConfig)
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
 	resource.InitialiseColumnManager()
+	metaHandler := CreateMetaHandler(&initConfig)
 
 	dbAssetHandler := CreateDbAssetHandler(cruds, olricDb)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)

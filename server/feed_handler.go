@@ -42,6 +42,10 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 		var feedName = c.Param("feedname")
 
 		var parts = strings.Split(feedName, ".")
+		if len(parts) < 2 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid feed request"})
+			return
+		}
 		feedName = parts[0]
 		feedExtension := parts[1]
 
