@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-imap"
@@ -51,6 +51,11 @@ type DbResource struct {
 	AssetFolderCache     map[string]map[string]*assetcachepojo.AssetFolderCache
 	subsiteFolderCache   map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache
 	MailSender           func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
+}
+
+func (dbResource *DbResource) InitializeObject(value interface{}) {
+	model := value.(*api2go.Api2GoModel)
+	model.SetRelations(dbResource.model.GetRelations())
 }
 
 func (dbResource *DbResource) GetActionHandler(name string) actionresponse.ActionPerformerInterface {

@@ -1,6 +1,6 @@
 package resource
 
-import "github.com/artpar/api2go"
+import "github.com/artpar/api2go/v2"
 
 //type Response struct {
 //  metadata   map[string]interface{}

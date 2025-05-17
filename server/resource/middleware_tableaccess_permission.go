@@ -2,7 +2,7 @@ package resource
 
 import (
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strings"

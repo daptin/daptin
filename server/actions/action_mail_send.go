@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/mail"
 	mta "github.com/artpar/go-smtp-mta"

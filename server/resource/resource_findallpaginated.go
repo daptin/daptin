@@ -17,7 +17,7 @@ import (
 
 	"encoding/base64"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/statementbuilder"
 	log "github.com/sirupsen/logrus"
 )

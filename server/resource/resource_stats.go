@@ -2,7 +2,7 @@ package resource
 
 import (
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/google/uuid"

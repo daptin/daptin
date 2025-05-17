@@ -1,7 +1,7 @@
 package dbresourceinterface
 
 import (
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/database"

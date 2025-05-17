@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend/backendutil"
 	"github.com/artpar/parsemail"

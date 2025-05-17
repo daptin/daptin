@@ -8,7 +8,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"io"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/jmoiron/sqlx"
 )
 

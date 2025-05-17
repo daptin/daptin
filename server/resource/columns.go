@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/columns"
 	"github.com/daptin/daptin/server/fsm"

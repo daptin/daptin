@@ -3,7 +3,7 @@ package resource
 import (
 	"context"
 	"errors"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"

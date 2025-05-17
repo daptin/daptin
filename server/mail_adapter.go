@@ -9,7 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-guerrilla/authenticators"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"

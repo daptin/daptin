@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"strings"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"

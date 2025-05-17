@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/fs/config"
 	"os"
 )

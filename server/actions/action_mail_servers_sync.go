@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/jmoiron/sqlx"

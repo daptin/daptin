@@ -5,7 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"strings"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 
 	//"github.com/Masterminds/squirrel"
 

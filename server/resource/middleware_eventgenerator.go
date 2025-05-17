@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"

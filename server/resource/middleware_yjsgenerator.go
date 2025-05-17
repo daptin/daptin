@@ -3,7 +3,7 @@ package resource
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	daptinid "github.com/daptin/daptin/server/id"

@@ -2,7 +2,7 @@ package server
 
 import (
 	json1 "encoding/json"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/fsm"
 	"github.com/daptin/daptin/server/resource"

@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/ydb"
 	"github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"

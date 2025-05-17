@@ -16,7 +16,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 
 	"github.com/araddon/dateparse"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	fieldtypes "github.com/daptin/daptin/server/columntypes"

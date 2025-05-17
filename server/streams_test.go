@@ -5,7 +5,7 @@ package server
 
 import (
 	"context"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	"github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"

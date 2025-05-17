@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/actionresponse"

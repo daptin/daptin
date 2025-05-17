@@ -7,7 +7,7 @@ import (
 
 	//"os/exec"
 	//"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 )
 
 type restartSystemActionPerformer struct {

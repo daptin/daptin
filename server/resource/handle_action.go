@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"os"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/dop251/goja"
 	"github.com/gin-gonic/gin"

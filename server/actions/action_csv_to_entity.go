@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/csvmap"
 	"github.com/jmoiron/sqlx"

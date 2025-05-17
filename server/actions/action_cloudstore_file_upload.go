@@ -18,7 +18,7 @@ import (
 
 	//"os"
 	"archive/zip"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"io"

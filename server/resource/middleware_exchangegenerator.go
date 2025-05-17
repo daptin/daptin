@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"

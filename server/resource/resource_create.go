@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -135,7 +135,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
 						uId = foreignObjectReferenceId
 					} else {
-						log.Printf("[137] User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
+						log.Errorf("[137] User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
 						return nil, fmt.Errorf("refer object not allowed [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
 					}
 
@@ -839,8 +839,9 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				for _, itemInterface := range values {
 					item := itemInterface.(map[string]interface{})
 					//obj := make(map[string]interface{})
-					item[rel.GetSubjectName()] = daptinid.InterfaceToDIR(item["reference_id"])
-					returnList = append(returnList, daptinid.InterfaceToDIR(item["reference_id"]))
+					targetEntityDir := daptinid.InterfaceToDIR(item["reference_id"])
+					item[rel.GetSubjectName()] = targetEntityDir
+					returnList = append(returnList, targetEntityDir)
 					item[rel.GetObjectName()] = newObjectReferenceId
 					delete(item, "reference_id")
 					delete(item, "meta")
@@ -868,7 +869,8 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					if err != nil {
 						return nil, fmt.Errorf("subject not found [%v][%v]", rel.GetSubject(), item[rel.GetSubjectName()])
 					}
-					objectId := data.GetID()
+
+					objectId := createdResource["id"]
 
 					joinRow, err := GetObjectByWhereClauseWithTransaction(rel.GetJoinTableName(), createTransaction, goqu.Ex{
 						rel.GetObjectName():  objectId,

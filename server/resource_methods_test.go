@@ -4,7 +4,7 @@
 package server
 
 import (
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"

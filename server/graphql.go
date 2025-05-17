@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -21,7 +21,7 @@ import (
 	"errors"
 	//"fmt"
 	"fmt"
-	"github.com/artpar/api2go/jsonapi"
+	"github.com/artpar/api2go/v2/jsonapi"
 )
 
 var nodeDefinitions *relay.NodeDefinitions

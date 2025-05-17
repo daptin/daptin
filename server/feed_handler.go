@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"

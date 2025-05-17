@@ -1,8 +1,6 @@
 module github.com/daptin/daptin
 
-go 1.23.0
-
-toolchain go1.24.0
+go 1.24.3
 
 // +heroku goVersion go1.15
 
@@ -12,8 +10,8 @@ require (
 	github.com/alexeyco/simpletable v0.0.0-20180729223640-1fa9009f1080
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
-	github.com/artpar/api2go v2.6.5+incompatible
-	github.com/artpar/api2go-adapter v1.0.1
+	github.com/artpar/api2go v2.7.0+incompatible
+	github.com/artpar/api2go-adapter v1.0.2
 	github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.5
@@ -135,6 +133,7 @@ require (
 	github.com/appscode/go-querystring v0.0.0-20170504095604-0126cfb3f1dc // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/artpar/api2go/v2 v2.7.3 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/fsm"

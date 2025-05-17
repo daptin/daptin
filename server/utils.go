@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/conform"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"

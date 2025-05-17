@@ -2,7 +2,7 @@ package resource
 
 import (
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/go-gota/gota/dataframe"
 	"github.com/go-gota/gota/series"
 )

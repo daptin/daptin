@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	//"golang.org/x/oauth2"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"time"

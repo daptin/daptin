@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/artpar/api2go"
+	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	daptinid "github.com/daptin/daptin/server/id"
