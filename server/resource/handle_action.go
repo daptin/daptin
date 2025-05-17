@@ -374,11 +374,11 @@ OutFields:
 
 				strVal := fmt.Sprintf("%v", outcomeResult)
 				if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
-					log.Printf("Condition is true")
+					log.Tracef("Condition is true [%s]", outcome.Condition)
 					// condition is true
 				} else {
 					// condition isn't true
-					log.Printf("Condition is false, skipping outcome [" + outcome.Condition + "]")
+					log.Tracef("Condition is false, skipping outcome [%s]", outcome.Condition)
 					continue
 				}
 

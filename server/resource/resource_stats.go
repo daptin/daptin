@@ -246,7 +246,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 				case "last":
 					expr = goqu.LAST(colName)
 				default:
-					return nil, fmt.Errorf("invalid function name in having clause - " + leftValParts[0])
+					return nil, fmt.Errorf("invalid function name in having clause - %s", leftValParts[0])
 				}
 
 				switch functionName {
@@ -282,7 +282,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		for _, joinClause := range joinClauseList {
 
 			if !querySyntax.MatchString(joinClause) {
-				return nil, fmt.Errorf("invalid join condition format: " + joinClause)
+				return nil, fmt.Errorf("invalid join condition format: %v", joinClause)
 			} else {
 				parts := querySyntax.FindStringSubmatch(joinClause)
 
@@ -436,7 +436,7 @@ func BuildWhereClause(functionName string, leftVal string, rightVal interface{})
 			return goqu.C(leftVal).IsNotNull(), nil
 
 		default:
-			return nil, fmt.Errorf("invalid function name for null rhs - " + functionName)
+			return nil, fmt.Errorf("invalid function name for null rhs - %v", functionName)
 
 		}
 
@@ -452,7 +452,7 @@ func BuildWhereClause(functionName string, leftVal string, rightVal interface{})
 			return goqu.C(leftVal).IsNotTrue(), nil
 
 		default:
-			return nil, fmt.Errorf("invalid function name for true rhs - " + functionName)
+			return nil, fmt.Errorf("invalid function name for true rhs - %v", functionName)
 
 		}
 
@@ -468,7 +468,7 @@ func BuildWhereClause(functionName string, leftVal string, rightVal interface{})
 			return goqu.C(leftVal).IsNotFalse(), nil
 
 		default:
-			return nil, fmt.Errorf("invalid function name for false rhs - " + functionName)
+			return nil, fmt.Errorf("invalid function name for false rhs - %v", functionName)
 
 		}
 

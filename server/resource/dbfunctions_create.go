@@ -751,7 +751,7 @@ func CreateTable(tableInfo *table_info.TableInfo, db database.DatabaseConnection
 		log.Tracef("Table name less than two characters is unacceptable [%v]", tableInfo.TableName)
 		return nil
 	}
-	log.Debugf(createTableQuery)
+	log.Debugf("%v", createTableQuery)
 	_, err := db.Exec(createTableQuery)
 	//db.Exec("COMMIT ")
 	if err != nil {

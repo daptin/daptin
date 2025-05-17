@@ -48,7 +48,7 @@ func FromJson(data []byte) interface{} {
 	}
 	err := json.Unmarshal(data, &mapIns)
 	if err != nil {
-		log.Printf("Failed to unmarshal as json [" + string(data) + "] => " + err.Error())
+		log.Printf("Failed to unmarshal as json [%s] => [%v]", string(data), err.Error())
 		return nil
 	}
 	return mapIns
@@ -60,7 +60,7 @@ func ToJson(mapIns interface{}) string {
 
 	data, err := json.Marshal(&mapIns)
 	if err != nil {
-		log.Printf("Failed to unmarshal as json [" + string(data) + "] => " + err.Error())
+		log.Printf("Failed to unmarshal as json [%s] => [%v]", string(data), err.Error())
 		return ""
 	}
 	return string(data)
