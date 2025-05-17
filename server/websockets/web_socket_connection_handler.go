@@ -143,7 +143,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			channel := pubsub.Channel()
 			for {
 				msg := <-channel
-				log.Printf("[145] Member says: " + msg.String())
+				log.Println("[145] Member says: " + msg.String())
 			}
 		}(topicSubscription)
 

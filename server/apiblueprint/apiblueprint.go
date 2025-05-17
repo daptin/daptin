@@ -363,9 +363,9 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 			if tableInfo.TableName == rel.Subject {
 				relatedTable := tableInfoMap[rel.Object]
 				getMethod := CreateGetAllMethod(relatedTable, CreateDataInResponse(relatedTable))
-				getMethod["description"] = fmt.Sprintf("Returns a list of all %v", ProperCase(relatedTable.TableName)+" related to a "+tableInfo.TableName)
-				getMethod["operationId"] = fmt.Sprintf("Get" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(rel.SubjectName))
-				getMethod["summary"] = fmt.Sprintf("Fetch related %s of %v", rel.ObjectName, tableInfo.TableName)
+				getMethod["description"] = "Returns a list of all " + ProperCase(relatedTable.TableName) + " related to a " + tableInfo.TableName
+				getMethod["operationId"] = "Get" + strcase.ToCamel(rel.ObjectName) + "Of" + strcase.ToCamel(rel.SubjectName)
+				getMethod["summary"] = "Fetch related " + rel.ObjectName + " of " + tableInfo.TableName
 
 				getMethod["parameters"] = []map[string]interface{}{
 					{
@@ -628,9 +628,9 @@ func CreatePostMethod(tableInfo table_info.TableInfo, dataInResponse map[string]
 }
 func CreateGetAllMethod(tableInfo table_info.TableInfo, dataInResponse map[string]interface{}) map[string]interface{} {
 	getAllMethod := make(map[string]interface{})
-	getAllMethod["description"] = fmt.Sprintf("Returns a list of %v", ProperCase(tableInfo.TableName))
-	getAllMethod["operationId"] = fmt.Sprintf("Get" + strcase.ToCamel(tableInfo.TableName))
-	getAllMethod["summary"] = fmt.Sprintf("List all %v", tableInfo.TableName)
+	getAllMethod["description"] = "Returns a list of " + ProperCase(tableInfo.TableName)
+	getAllMethod["operationId"] = "Get" + strcase.ToCamel(tableInfo.TableName)
+	getAllMethod["summary"] = "List all " + tableInfo.TableName
 	getAllMethod["tags"] = []string{tableInfo.TableName, "find", "get"}
 	getAllMethod["parameters"] = []map[string]interface{}{
 		{

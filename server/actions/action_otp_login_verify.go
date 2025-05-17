@@ -92,7 +92,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request actionresponse.Outcome,
 		Algorithm: otp.AlgorithmSHA1,
 	})
 	if !ok {
-		log.Errorf("Failed to validate otp key [" + userAccount["email"].(string) + "] [" + state + "]")
+		log.Errorf("Failed to validate otp key [%s] [%s]", userAccount["email"].(string), state)
 		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
 

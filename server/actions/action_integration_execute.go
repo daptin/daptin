@@ -83,7 +83,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	if d.router.Servers == nil || len(d.router.Servers) == 0 {
-		log.Errorf("No servers found in integration spec of [" + d.integration.Name + "]")
+		log.Errorf("No servers found in integration spec of [%s]", d.integration.Name)
 		return nil, nil, []error{errors.New("No servers found in integration spec of [" + d.integration.Name + "]")}
 	}
 
@@ -746,7 +746,7 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 		return nil, err
 	}
 	if router.Servers == nil || len(router.Servers) == 0 {
-		log.Errorf("No servers found in integration spec of [" + integration.Name + "]")
+		log.Errorf("No servers found in integration spec of [%s]", integration.Name)
 	}
 
 	commandMap := make(map[string]*openapi3.Operation)
@@ -763,7 +763,7 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 			commandMap[operationID] = command
 			pathMap[operationID] = path
 			methodMap[operationID] = method
-			log.Infof("Mapping Operation [" + operationID + "] in [" + integration.Name + "] [" + command.Description + "]")
+			log.Infof("Mapping Operation [%s] in [%s] [%s]", operationID, integration.Name, command.Description)
 		}
 	}
 	log.Printf("Registered %d actions from [%v]", count, integration.Name)

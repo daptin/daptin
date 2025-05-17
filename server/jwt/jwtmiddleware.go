@@ -226,7 +226,7 @@ func (m *JWTMiddleware) CheckJWT(w http.ResponseWriter, r *http.Request) (*jwt.T
 		errorMsg := "Required authorization token not found"
 		m.Options.ErrorHandler(w, r, errorMsg)
 		m.logf("  Error: No credentials found (CredentialsOptional=false)")
-		return nil, fmt.Errorf(errorMsg)
+		return nil, errors.New(errorMsg)
 	}
 
 	// Now parse the token
@@ -314,7 +314,7 @@ func (m *JWTMiddleware) CheckExtractedJWT(w http.ResponseWriter, token string) (
 		errorMsg := "Required authorization token not found"
 		//m.Options.ErrorHandler(w, r, errorMsg)
 		m.logf("  Error: No credentials found (CredentialsOptional=false)")
-		return nil, fmt.Errorf(errorMsg)
+		return nil, errors.New(errorMsg)
 	}
 
 	// Now parse the token

@@ -119,7 +119,8 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 }
 
 func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
-	columnTypesResponse, _ := json.MarshalToString(resource.ColumnManager.ColumnMap)
+	columnTypesMap := resource.ColumnManager.ColumnMap
+	columnTypesResponse, _ := json.MarshalToString(columnTypesMap)
 	columnTypesResponseEtag := fmt.Sprintf("W/\"%x\"", sha256.Sum256([]byte(columnTypesResponse)))
 
 	return func(context *gin.Context) {
@@ -142,7 +143,7 @@ func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 				}
 			}
 
-			context.JSON(200, columnTypesResponse)
+			context.String(200, columnTypesResponse)
 		}
 	}
 }
