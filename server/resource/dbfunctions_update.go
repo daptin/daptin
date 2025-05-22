@@ -5,6 +5,12 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/alexeyco/simpletable"
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/xlsx/v2"
@@ -21,11 +27,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 )
 
 func (dbResource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken string, expiresIn int64, transaction *sqlx.Tx) error {

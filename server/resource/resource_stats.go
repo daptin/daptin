@@ -375,7 +375,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		}
 
 		if columnInfo == nil {
-			log.Warnf("column info not found for %v", groupedColumn)
+			log.Warnf("[378] column info not found for %v", groupedColumn)
 			continue
 		}
 

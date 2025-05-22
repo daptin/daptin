@@ -90,6 +90,39 @@ func (actionPerformer *renderTemplateActionPerformer) DoAction(
 		templateContent = fileContent
 	}
 
+	// Check if the template content is a reference to a site file
+	if strings.HasPrefix(templateContent, "site://") {
+		// Parse the site path: "site://<site_reference_id>/path/to/file"
+		pathParts := strings.SplitN(strings.TrimPrefix(templateContent, "site://"), "/", 2)
+		if len(pathParts) != 2 {
+			return nil, []actionresponse.ActionResponse{}, []error{errors.New("invalid site file path format, expected: site://<site_reference_id>/path/to/file")}
+		}
+
+		siteReferenceIdStr := pathParts[0]
+		filePath := pathParts[1]
+
+		// Convert site reference ID string to DaptinReferenceId
+		siteReferenceId := daptinid.InterfaceToDIR(siteReferenceIdStr)
+		if siteReferenceId == daptinid.NullReferenceId {
+			return nil, []actionresponse.ActionResponse{}, []error{errors.New("invalid site reference ID: " + siteReferenceIdStr)}
+		}
+
+		// Get the site folder cache
+		assetFolderCache, ok := actionPerformer.cruds["template"].SubsiteFolderCache(siteReferenceId)
+		if !ok {
+			return nil, []actionresponse.ActionResponse{}, []error{errors.New("site not found for reference ID: " + siteReferenceIdStr)}
+		}
+
+		// Load the file content from the site
+		fileContent, err := loadFileFromSubsite(assetFolderCache, filePath)
+		if err != nil {
+			return nil, []actionresponse.ActionResponse{}, []error{errors.New("failed to load file from site: " + err.Error())}
+		}
+
+		// Use the file content as the template content
+		templateContent = fileContent
+	}
+
 	sohaFuncMap := soha.CreateFuncMap()
 
 	tmpl, err := template.New(template_name).Funcs(sohaFuncMap).Parse(templateContent)
