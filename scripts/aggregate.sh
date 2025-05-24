@@ -1,0 +1,18 @@
+curl 'http://localhost:6336/aggregate/user_account' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'Accept-Language: en-US,en;q=0.8' \
+  -H 'Cache-Control: no-cache' \
+  -H 'Connection: keep-alive' \
+  -H 'Content-Type: application/json' \
+  -H 'Origin: http://localhost:5174' \
+  -H 'Pragma: no-cache' \
+  -H 'Referer: http://localhost:5174/' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-site' \
+  -H 'Sec-GPC: 1' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36' \
+  -H 'sec-ch-ua: "Chromium";v="136", "Brave";v="136", "Not.A/Brand";v="99"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  --data-raw '{"RootEntity":"user_account","Join":[],"GroupBy":["date(created_at)"],"ProjectColumn":["count","max(date(created_at))","min(date(created_at))"],"Query":[],"Order":[],"Having":[],"Filter":[],"TimeSample":"","TimeFrom":"","TimeTo":""}'
