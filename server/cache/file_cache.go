@@ -16,7 +16,7 @@ import (
 
 const (
 	// Cache settings
-	MaxFileCacheSize = 8000 << 10 // 8MB max file size for caching
+	MaxFileCacheSize = 2000 << 10 // 8MB max file size for caching
 
 	// Compression threshold - only compress files larger than this
 	CompressionThreshold = 5 << 10 // 5KB
