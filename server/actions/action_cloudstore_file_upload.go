@@ -110,7 +110,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 			splitParts := strings.Split(fileContentsBase64, ",")
 			encodedPart := splitParts[0]
 			if len(splitParts) > 1 {
-				encodedPart = splitParts[1]
+				encodedPart = splitParts[len(splitParts)-1]
 			}
 			fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
 			log.Printf("Write file [%v] for upload", temproryFilePath)

@@ -167,9 +167,11 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						splitParts := strings.Split(fileContentsBase64, ",")
 						encodedPart := splitParts[0]
 						if len(splitParts) > 1 {
-							encodedPart = splitParts[1]
+							encodedPart = splitParts[len(splitParts)-1]
 						}
 						fileBytes, _ := base64.StdEncoding.DecodeString(encodedPart)
+						//partial := fileBytes[0:500]
+						//log.Infof("Partial file: [%v]", partial)
 						filemd5 := GetMD5Hash(fileBytes)
 						file["md5"] = filemd5
 						file["size"] = len(fileBytes)
