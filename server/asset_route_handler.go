@@ -287,10 +287,16 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		filePath := assetCache.LocalSyncPath + string(os.PathSeparator) + fileNameToServe
 		assetFileByName, err := assetCache.GetFileByName(fileNameToServe)
 		if err != nil {
-			panic(err)
+			log.Errorf("Failed to get file from asset cache: %v", err)
+			c.AbortWithStatus(http.StatusNotFound)
+			return
 		}
-		st, _ := assetFileByName.Stat()
-		log.Infof("assetFileByName: [%v] -> %v", assetFileByName.Name(), st)
+		fileInfo, err := assetFileByName.Stat()
+		if err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		defer assetFileByName.Close() // Close the file after stat
 
 		// Check if it's an image that needs processing
 		if isImage := strings.HasPrefix(fileType, "image/"); isImage && c.Query("processImage") == "true" {
@@ -305,8 +311,6 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			return
 		}
 
-		// Check if file exists and get file info
-		fileInfo, err := os.Stat(filePath)
 		if err != nil {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
@@ -335,15 +339,9 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		// Use optimized file serving for small files that can be cached
 		if fileInfo.Size() <= cache.MaxFileCacheSize {
 			// Open file
-			file, err := os.Open(filePath)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-			defer file.Close()
 
 			// Read file into memory
-			data, err := io.ReadAll(file)
+			data, err := io.ReadAll(assetFileByName)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return

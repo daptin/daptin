@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/task"
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
@@ -41,25 +42,34 @@ func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterf
 				cloudStore := cloudStoreMap[column.ForeignKeyData.Namespace]
 				tempDirectoryPath, err := ioutil.TempDir(os.Getenv("DAPTIN_CACHE_FOLDER"), tableName+"_"+columnName)
 
-				if cloudStore.StoreProvider != "local" {
+				if cloudStore.StoreProvider != "local" && cloudStore.StoreType == "cached" {
+					log.Infof("Setting up cache for [%v][%v]", cloudStore.StoreProvider, cloudStore.Name)
 					err = cruds["task"].SyncStorageToPath(cloudStore, column.ForeignKeyData.KeyName, tempDirectoryPath, transaction)
 					if CheckErr(err, "Failed to setup sync to path for table column [%v][%v]", tableName, column.ColumnName) {
 						continue
 					}
-				} else {
-					tempDirectoryPath = cloudStore.RootPath + "/" + column.ForeignKeyData.KeyName
+				}
+
+				// Get credentials if available
+				var credentials map[string]interface{}
+				if cloudStore.CredentialName != "" {
+					cred, err := cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)
+					if err == nil && cred != nil {
+						credentials = cred.DataMap
+					}
 				}
 
 				assetCacheFolder := &assetcachepojo.AssetFolderCache{
 					CloudStore:    cloudStore,
 					LocalSyncPath: tempDirectoryPath,
 					Keyname:       column.ForeignKeyData.KeyName,
+					Credentials:   credentials,
 				}
 
 				colCache[columnName] = assetCacheFolder
-				logrus.Infof("Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
 
-				if cloudStore.StoreProvider != "local" {
+				logrus.Infof("Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
+				if cloudStore.StoreProvider != "local" && cloudStore.StoreType == "cached" {
 					err = TaskScheduler.AddTask(task.Task{
 						EntityName: "world",
 						ActionName: "sync_column_storage",

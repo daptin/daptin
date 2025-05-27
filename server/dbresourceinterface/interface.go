@@ -20,7 +20,7 @@ type DbResourceInterface interface {
 	Connection() database.DatabaseConnection
 	HandleActionRequest(request actionresponse.ActionRequest, data api2go.Request, transaction1 *sqlx.Tx) ([]actionresponse.ActionResponse, error)
 	GetActionHandler(name string) actionresponse.ActionPerformerInterface
-
+	GetCredentialByName(credentialName string, transaction *sqlx.Tx) (*Credential, error)
 	SubsiteFolderCache(id daptinid.DaptinReferenceId) (*assetcachepojo.AssetFolderCache, bool)
 	SyncStorageToPath(store rootpojo.CloudStore, name string, path string, transaction *sqlx.Tx) error
 }
