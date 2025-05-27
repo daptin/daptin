@@ -178,52 +178,79 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			return
 		}
 
-		// Handle foreign key (file data)
-		if colInfo.IsForeignKey {
-			// Get cache for this path
-			assetCache, ok := cruds["world"].AssetFolderCache[typeName][columnName]
-			if !ok {
-				c.AbortWithStatus(http.StatusNotFound)
-				return
+		if !colInfo.IsForeignKey {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		// Get cache for this path
+		assetCache, ok := cruds["world"].AssetFolderCache[typeName][columnName]
+		if !ok {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		// Find the file to serve
+		pr := &http.Request{
+			Method: "GET",
+			URL:    c.Request.URL,
+		}
+		pr = pr.WithContext(c.Request.Context())
+
+		req := api2go.Request{
+			PlainRequest: pr,
+		}
+
+		obj, err := cruds[typeName].FindOne(resourceUuid, req)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		row := obj.Result().(api2go.Api2GoModel)
+		colData := row.GetAttributes()[columnName]
+		if colData == nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		// Find the correct file
+		fileNameToServe := ""
+		fileType := "application/octet-stream"
+		colDataMapArray := colData.([]map[string]interface{})
+
+		indexByQuery := c.Query("index")
+		var indexByQueryInt = -1
+		indexByQueryInt, err = strconv.Atoi(indexByQuery)
+		nameByQuery := c.Query("file")
+
+		// Logic to find the right file based on index or name
+		if err == nil && indexByQueryInt > -1 && indexByQueryInt < len(colDataMapArray) {
+			fileData := colDataMapArray[indexByQueryInt]
+			fileName := fileData["name"].(string)
+			queryFile := nameByQuery
+
+			if queryFile == fileName || queryFile == "" {
+				// Determine filename
+				if fileData["path"] != nil && len(fileData["path"].(string)) > 0 {
+					fileNameToServe = fileData["path"].(string) + "/" + fileName
+				} else {
+					fileNameToServe = fileName
+				}
+
+				// Determine mime type
+				if typFromData, ok := fileData["type"]; ok {
+					if typeStr, isStr := typFromData.(string); isStr {
+						fileType = typeStr
+					} else {
+						fileType = cache.GetMimeType(fileNameToServe)
+					}
+				} else {
+					fileType = cache.GetMimeType(fileNameToServe)
+				}
 			}
-
-			// Find the file to serve
-			pr := &http.Request{
-				Method: "GET",
-				URL:    c.Request.URL,
-			}
-			pr = pr.WithContext(c.Request.Context())
-
-			req := api2go.Request{
-				PlainRequest: pr,
-			}
-
-			obj, err := cruds[typeName].FindOne(resourceUuid, req)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-
-			row := obj.Result().(api2go.Api2GoModel)
-			colData := row.GetAttributes()[columnName]
-			if colData == nil {
-				c.AbortWithStatus(http.StatusNotFound)
-				return
-			}
-
-			// Find the correct file
-			fileNameToServe := ""
-			fileType := "application/octet-stream"
-			colDataMapArray := colData.([]map[string]interface{})
-
-			indexByQuery := c.Query("index")
-			var indexByQueryInt = -1
-			indexByQueryInt, err = strconv.Atoi(indexByQuery)
-			nameByQuery := c.Query("file")
-
-			// Logic to find the right file based on index or name
-			if err == nil && indexByQueryInt > -1 && indexByQueryInt < len(colDataMapArray) {
-				fileData := colDataMapArray[indexByQueryInt]
+		} else {
+			for _, fileData := range colDataMapArray {
 				fileName := fileData["name"].(string)
 				queryFile := nameByQuery
 
@@ -245,157 +272,69 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 					} else {
 						fileType = cache.GetMimeType(fileNameToServe)
 					}
-				}
-			} else {
-				for _, fileData := range colDataMapArray {
-					fileName := fileData["name"].(string)
-					queryFile := nameByQuery
 
-					if queryFile == fileName || queryFile == "" {
-						// Determine filename
-						if fileData["path"] != nil && len(fileData["path"].(string)) > 0 {
-							fileNameToServe = fileData["path"].(string) + "/" + fileName
-						} else {
-							fileNameToServe = fileName
-						}
-
-						// Determine mime type
-						if typFromData, ok := fileData["type"]; ok {
-							if typeStr, isStr := typFromData.(string); isStr {
-								fileType = typeStr
-							} else {
-								fileType = cache.GetMimeType(fileNameToServe)
-							}
-						} else {
-							fileType = cache.GetMimeType(fileNameToServe)
-						}
-
-						break
-					}
+					break
 				}
 			}
+		}
 
-			if fileNameToServe == "" {
-				c.AbortWithStatus(http.StatusNotFound)
-				return
-			}
+		if fileNameToServe == "" {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 
-			// Get file path
-			filePath := assetCache.LocalSyncPath + string(os.PathSeparator) + fileNameToServe
+		// Get file path
+		filePath := assetCache.LocalSyncPath + string(os.PathSeparator) + fileNameToServe
+		assetFileByName, err := assetCache.GetFileByName(fileNameToServe)
+		if err != nil {
+			panic(err)
+		}
+		st, _ := assetFileByName.Stat()
+		log.Infof("assetFileByName: [%v] -> %v", assetFileByName.Name(), st)
 
-			// Check if it's an image that needs processing
-			if isImage := strings.HasPrefix(fileType, "image/"); isImage && c.Query("processImage") == "true" {
-				// Use separate function for image processing
-				file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileNameToServe)
-				if err != nil {
-					_ = c.AbortWithError(500, err)
-					return
-				}
-				defer file.Close()
-				HandleImageProcessing(c, file)
-				return
-			}
-
-			// Check if file exists and get file info
-			fileInfo, err := os.Stat(filePath)
+		// Check if it's an image that needs processing
+		if isImage := strings.HasPrefix(fileType, "image/"); isImage && c.Query("processImage") == "true" {
+			// Use separate function for image processing
+			file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileNameToServe)
 			if err != nil {
-				c.AbortWithStatus(http.StatusNotFound)
+				_ = c.AbortWithError(500, err)
 				return
 			}
+			defer file.Close()
+			HandleImageProcessing(c, file)
+			return
+		}
 
-			// Determine if this should be a download
-			isDownload := cache.ShouldBeDownloaded(fileType, fileNameToServe)
+		// Check if file exists and get file info
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 
-			// Set response headers for all cases
-			c.Header("Content-Type", fileType)
+		// Determine if this should be a download
+		isDownload := cache.ShouldBeDownloaded(fileType, fileNameToServe)
 
-			// For downloads, add content disposition
-			if isDownload {
-				c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", fileNameToServe))
-			} else {
-				c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", fileNameToServe))
-			}
+		// Set response headers for all cases
+		c.Header("Content-Type", fileType)
 
-			// Calculate expiry time
-			expiryTime := cache.CalculateExpiry(fileType, filePath)
+		// For downloads, add content disposition
+		if isDownload {
+			c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", fileNameToServe))
+		} else {
+			c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", fileNameToServe))
+		}
 
-			// Set cache control header based on expiry
-			maxAge := int(time.Until(expiryTime).Seconds())
-			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
+		// Calculate expiry time
+		expiryTime := cache.CalculateExpiry(fileType, filePath)
 
-			// Use optimized file serving for small files that can be cached
-			if fileInfo.Size() <= cache.MaxFileCacheSize {
-				// Open file
-				file, err := os.Open(filePath)
-				if err != nil {
-					c.AbortWithStatus(http.StatusInternalServerError)
-					return
-				}
-				defer file.Close()
+		// Set cache control header based on expiry
+		maxAge := int(time.Until(expiryTime).Seconds())
+		c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
 
-				// Read file into memory
-				data, err := io.ReadAll(file)
-				if err != nil {
-					c.AbortWithStatus(http.StatusInternalServerError)
-					return
-				}
-
-				// Generate ETag for client-side caching
-				etag := cache.GenerateETag(data, fileInfo.ModTime())
-
-				// Check if client has fresh copy before we do anything else
-				if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
-					c.Header("ETag", etag)
-					c.AbortWithStatus(http.StatusNotModified)
-					return
-				}
-
-				// Create cache entry
-				newCachedFile := &cache.CachedFile{
-					Data:       data,
-					ETag:       etag,
-					Modtime:    fileInfo.ModTime(),
-					MimeType:   fileType,
-					Size:       len(data),
-					Path:       filePath,
-					IsDownload: isDownload,
-					ExpiresAt:  expiryTime,
-				}
-
-				// Pre-compress text files for better performance
-				needsCompression := cache.ShouldCompress(fileType) && len(data) > cache.CompressionThreshold
-				if needsCompression {
-					if compressedData, err := cache.CompressData(data); err == nil {
-						newCachedFile.GzipData = compressedData
-					}
-				}
-
-				// Get file stat for validation
-				if fileStat, err := cache.GetFileStat(filePath); err == nil {
-					newCachedFile.FileStat = fileStat
-				}
-
-				// Add to cache for future requests
-				fileCache.Set(cacheKey, newCachedFile)
-
-				// Set ETag header
-				c.Header("ETag", etag)
-
-				// Use compression if client accepts it and we have compressed data
-				if newCachedFile.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-					c.Header("Content-Encoding", "gzip")
-					c.Header("Vary", "Accept-Encoding")
-					c.Data(http.StatusOK, fileType, newCachedFile.GzipData)
-					return
-				}
-
-				// Serve uncompressed data
-				c.Data(http.StatusOK, fileType, data)
-				return
-			}
-
-			// For larger files, use http.ServeContent for efficient range requests
-			// This is important for video/audio streaming
+		// Use optimized file serving for small files that can be cached
+		if fileInfo.Size() <= cache.MaxFileCacheSize {
+			// Open file
 			file, err := os.Open(filePath)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
@@ -403,18 +342,87 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			}
 			defer file.Close()
 
-			// Set ETag for large files too
-			// Instead of reading the entire file, use file info to generate ETag
-			etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
-			c.Header("ETag", etag)
+			// Read file into memory
+			data, err := io.ReadAll(file)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
 
-			// Check if client has fresh copy
+			// Generate ETag for client-side caching
+			etag := cache.GenerateETag(data, fileInfo.ModTime())
+
+			// Check if client has fresh copy before we do anything else
 			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+				c.Header("ETag", etag)
 				c.AbortWithStatus(http.StatusNotModified)
 				return
 			}
 
-			http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
+			// Create cache entry
+			newCachedFile := &cache.CachedFile{
+				Data:       data,
+				ETag:       etag,
+				Modtime:    fileInfo.ModTime(),
+				MimeType:   fileType,
+				Size:       len(data),
+				Path:       filePath,
+				IsDownload: isDownload,
+				ExpiresAt:  expiryTime,
+			}
+
+			// Pre-compress text files for better performance
+			needsCompression := cache.ShouldCompress(fileType) && len(data) > cache.CompressionThreshold
+			if needsCompression {
+				if compressedData, err := cache.CompressData(data); err == nil {
+					newCachedFile.GzipData = compressedData
+				}
+			}
+
+			// Get file stat for validation
+			if fileStat, err := cache.GetFileStat(filePath); err == nil {
+				newCachedFile.FileStat = fileStat
+			}
+
+			// Add to cache for future requests
+			fileCache.Set(cacheKey, newCachedFile)
+
+			// Set ETag header
+			c.Header("ETag", etag)
+
+			// Use compression if client accepts it and we have compressed data
+			if newCachedFile.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+				c.Header("Content-Encoding", "gzip")
+				c.Header("Vary", "Accept-Encoding")
+				c.Data(http.StatusOK, fileType, newCachedFile.GzipData)
+				return
+			}
+
+			// Serve uncompressed data
+			c.Data(http.StatusOK, fileType, data)
+			return
 		}
+
+		// For larger files, use http.ServeContent for efficient range requests
+		// This is important for video/audio streaming
+		file, err := os.Open(filePath)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		defer file.Close()
+
+		// Set ETag for large files too
+		// Instead of reading the entire file, use file info to generate ETag
+		etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
+		c.Header("ETag", etag)
+
+		// Check if client has fresh copy
+		if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+			c.AbortWithStatus(http.StatusNotModified)
+			return
+		}
+
+		http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
 	}
 }

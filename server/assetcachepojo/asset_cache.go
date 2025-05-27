@@ -68,7 +68,8 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 			if ok && len(contentString) > 4 {
 
 				if strings.Index(contentString, ",") > -1 {
-					contentString = strings.SplitN(contentString, ",", 2)[1]
+					contentParts := strings.Split(contentString, ",")
+					contentString = contentParts[len(contentParts)-1]
 				}
 				fileBytes, e := base64.StdEncoding.DecodeString(contentString)
 				if e != nil {
