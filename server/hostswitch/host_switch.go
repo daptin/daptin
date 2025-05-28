@@ -115,7 +115,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !BeginsWithCheck(r.Host, "dashboard.") && !BeginsWithCheck(r.Host, "api.") {
-			handler, ok := hs.HandlerMap["default"]
+			handler, ok := hs.HandlerMap["dashboard"]
 			if !ok {
 				//log.Errorf("Failed to find default route")
 			} else {

@@ -1800,7 +1800,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	}
 
 	if len(resultRows) < 1 {
-		return nil, nil, fmt.Errorf("897 no such entity [%v][%v]", typeName, referenceId)
+		return nil, nil, fmt.Errorf("[897] no such entity [%v][%v]", typeName, referenceId)
 	}
 
 	m := resultRows[0]
