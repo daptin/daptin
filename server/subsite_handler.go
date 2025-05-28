@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/gin-gonic/gin"
@@ -11,15 +12,15 @@ import (
 	"time"
 )
 
-func SubsiteRequestHandler(site subsite.SubSite, tempDirectoryPath string) func(c *gin.Context) {
+func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.AssetFolderCache) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 		var filePath string
 
 		if site.SiteType == "hugo" {
-			filePath = filepath.Join(tempDirectoryPath, "public", path)
+			filePath = filepath.Join(assetCache.LocalSyncPath, "public", path)
 		} else {
-			filePath = filepath.Join(tempDirectoryPath, path)
+			filePath = filepath.Join(assetCache.LocalSyncPath, path)
 		}
 
 		// Handle directory paths by appending index.html
@@ -124,7 +125,7 @@ func SubsiteRequestHandler(site subsite.SubSite, tempDirectoryPath string) func(
 
 		// Fallback to standard file serving if reading fails
 		// Try to read and cache index.html with compression
-		indexPath := filepath.Join(tempDirectoryPath, "index.html")
+		indexPath := filepath.Join(assetCache.LocalSyncPath, "index.html")
 		indexContent, err := os.ReadFile(indexPath)
 		fileinfo, err := os.Stat(indexPath)
 		if err == nil {

@@ -76,7 +76,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 	}
 
 	fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
-	log.Printf("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
+	log.Infof("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, cloudStore.RootPath, tempDirectoryPath)
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
 	}

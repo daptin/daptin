@@ -142,7 +142,7 @@ func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceI
 		return func(c *gin.Context) {
 
 			// Apply caching configuration if available
-			log.Tracef("Serve subsite[%s] request[%s]", templateName, c.Request.URL.Path)
+			log.Tracef("Serve template[%s] request[%s]", templateName, c.Request.URL.Path)
 			if cacheConfig != nil && cacheConfig.Enable {
 				// Generate cache key first - we'll need this for both checking and creating cache
 				var cacheKey string

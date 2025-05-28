@@ -123,7 +123,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 		cloudStore, ok := cloudStoreMap[*site.CloudStoreId]
 		subSiteInformation.CloudStore = cloudStore
 		if !ok {
-			log.Printf("Site [%v] does not have a associated storage", site.Name)
+			log.Warnf("Site [%v] does not have a associated storage", site.Name)
 			continue
 		}
 
@@ -159,16 +159,25 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 		}(activeTask)
 
 		err = TaskScheduler.AddTask(syncTask)
+		var credentials map[string]interface{}
+		if cloudStore.CredentialName != "" {
+			cred, err := cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)
+			if err == nil && cred != nil {
+				credentials = cred.DataMap
+			}
+		}
 
-		subsiteCacheFolders[site.ReferenceId] = &assetcachepojo.AssetFolderCache{
+		subsiteAssetCache := &assetcachepojo.AssetFolderCache{
 			LocalSyncPath: tempDirectoryPath,
 			Keyname:       site.Path,
 			CloudStore:    cloudStore,
+			Credentials:   credentials,
 		}
+		subsiteCacheFolders[site.ReferenceId] = subsiteAssetCache
 
 		resource.CheckErr(err, "Failed to register task to sync storage")
 
-		hostRouter := CreateSubsiteEngine(site, tempDirectoryPath, middlewares)
+		hostRouter := CreateSubsiteEngine(site, subsiteAssetCache, middlewares)
 
 		hs.HandlerMap[site.Hostname] = hostRouter
 		siteMap[subSiteInformation.SubSite.Hostname] = subSiteInformation

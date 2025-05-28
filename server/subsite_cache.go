@@ -337,5 +337,5 @@ func invalidateSiteCache(hostname string) {
 	// that supports pattern matching for keys
 
 	// Log the operation
-	log.Infof("Invalidating cache for site %s", hostname)
+	//log.Infof("Invalidating cache for site %s", hostname)
 }
