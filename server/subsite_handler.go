@@ -5,6 +5,7 @@ import (
 	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,16 +19,19 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 		var filePath string
 
 		if site.SiteType == "hugo" {
-			filePath = filepath.Join(assetCache.LocalSyncPath, "public", path)
+			filePath = filepath.Join("public", path)
 		} else {
-			filePath = filepath.Join(assetCache.LocalSyncPath, path)
+			filePath = path
 		}
 
 		// Handle directory paths by appending index.html
-		fileInfo, err := os.Stat(filePath)
+		file, err := assetCache.GetFileByName(filePath)
+		fileInfo, err := file.Stat()
 		if err == nil && fileInfo.IsDir() {
 			filePath = filepath.Join(filePath, "index.html")
+			file, err = assetCache.GetFileByName(filePath)
 		}
+		defer file.Close()
 
 		// Generate a cache key for this request
 		cacheKey := getSubsiteCacheKey(c.Request.Host, path)
@@ -63,8 +67,7 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 		}
 
 		// If not in cache or expired, try to read the file
-		content, err := os.ReadFile(filePath)
-		fileInfo1, _ := os.Stat(filePath)
+		content, err := io.ReadAll(file)
 		if err == nil {
 			// Determine content type
 			contentType := http.DetectContentType(content)
@@ -77,7 +80,7 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			}
 
 			// Generate ETag
-			etag := cache.GenerateETag(content, fileInfo1.ModTime())
+			etag := cache.GenerateETag(content, fileInfo.ModTime())
 			lastModified := time.Now()
 
 			// Compress content if it's a compressible type

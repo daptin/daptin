@@ -39,7 +39,7 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 		// Download the file from cloud storage
 		err = afc.downloadFileFromCloudStore(fileName)
 		if err != nil {
-			log.Errorf("Failed to download file from cloud storage: %v", err)
+			log.Errorf("[42] Failed to download file from cloud storage: %v", err)
 			return nil, err
 		}
 

@@ -23,7 +23,7 @@ func (dbResource *DbResource) SyncStorageToPath(cloudStore rootpojo.CloudStore, 
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cloudStore.CredentialName))
 		if cred.DataMap != nil {
 			for key, val := range cred.DataMap {
-				config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+				config.Data().SetValue(cloudStore.StoreProvider, key, fmt.Sprintf("%s", val))
 			}
 		}
 	}
