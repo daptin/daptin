@@ -132,9 +132,6 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			continue
 		}
 
-		// Clear cache for this site when syncing
-		invalidateSiteCache(site.Hostname)
-
 		syncTask := task.Task{
 			EntityName: "site",
 			ActionName: "sync_site_storage",
@@ -153,8 +150,6 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 				log.Info("Sleep 5 sec for running new sync task")
 				time.Sleep(5 * time.Second)
 				activeTask.Run()
-				// Invalidate cache after sync
-				invalidateSiteCache(site.Hostname)
 			}()
 		}(activeTask)
 

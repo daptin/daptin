@@ -129,7 +129,7 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 		return errors.Wrap(err, "failed to move downloaded file to final location")
 	}
 
-	log.Infof("Successfully downloaded file [%v] from cloud storage to cache", fileName)
+	log.Debugf("Successfully downloaded file [%v] from cloud storage[%v] to cache", sourcePath, fileName)
 	return nil
 }
 func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {

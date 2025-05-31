@@ -321,21 +321,3 @@ func removeFromCache(cacheKey string) {
 		log.Errorf("Error removing key %s from Olric subsite cache: %v", cacheKey, err)
 	}
 }
-
-// invalidateSiteCache removes all cache entries for a given site
-func invalidateSiteCache(hostname string) {
-	if !CacheConfig.EnableCache || !subsiteCacheInitialized {
-		return
-	}
-
-	// We need to scan all keys in the cache to find ones with the hostname prefix
-	// This is a limitation of Olric as it doesn't support pattern-based key deletion
-	// In a production environment, you might want to maintain a separate index of keys by hostname
-
-	// This is a simplified approach and may not scale well for large caches
-	// A better approach would be to use a secondary index or a different data structure
-	// that supports pattern matching for keys
-
-	// Log the operation
-	//log.Infof("Invalidating cache for site %s", hostname)
-}
