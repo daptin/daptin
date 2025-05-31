@@ -117,14 +117,13 @@ func (s *Server) Listen(router *gin.Engine) {
 
 		// Add new a client
 		case c := <-s.addCh:
-			log.Println("Added new client")
 			s.clients[c.id] = c
-			log.Println("Now", len(s.clients), "clients connected.")
+			log.Infof("Added new client, %d clients connected", len(s.clients))
 			//s.sendPastMessages(c)
 
 			// del a client
 		case c := <-s.delCh:
-			log.Println("Delete client")
+			log.Infof("[126] delete client")
 			delete(s.clients, c.id)
 
 			//	// broadcast message for all clients
@@ -134,7 +133,7 @@ func (s *Server) Listen(router *gin.Engine) {
 			//	s.sendAll(msg)
 
 		case err := <-s.errCh:
-			log.Println("Error:", err.Error())
+			log.Infof("[136] error: %s", err.Error())
 
 		case <-s.doneCh:
 			return
