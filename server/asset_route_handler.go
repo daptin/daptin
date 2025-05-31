@@ -261,6 +261,41 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			return
 		}
 
+		// Check if it's a video or audio file that should be streamed
+		isVideo := strings.HasPrefix(fileType, "video/")
+		isAudio := strings.HasPrefix(fileType, "audio/")
+		if isVideo || isAudio {
+			// For video/audio files, always use streaming with http.ServeContent for range request support
+			file, err := os.Open(filePath)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+			defer file.Close()
+
+			// Set media-specific headers for optimal streaming
+			c.Header("Content-Type", fileType)
+			c.Header("Accept-Ranges", "bytes")
+			c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", fileNameToServe))
+
+			// Set cache control for media files (shorter cache time due to size)
+			c.Header("Cache-Control", "public, max-age=3600") // 1 hour
+
+			// Generate ETag for media files
+			etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
+			c.Header("ETag", etag)
+
+			// Check if client has fresh copy
+			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+				c.AbortWithStatus(http.StatusNotModified)
+				return
+			}
+
+			// Use http.ServeContent for efficient video streaming with range request support
+			http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
+			return
+		}
+
 		if err != nil {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
@@ -364,6 +399,11 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		// Instead of reading the entire file, use file info to generate ETag
 		etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
 		c.Header("ETag", etag)
+
+		// Add streaming-specific headers for video/audio files
+		if isVideo || isAudio {
+			c.Header("Accept-Ranges", "bytes")
+		}
 
 		// Check if client has fresh copy
 		if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
