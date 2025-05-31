@@ -215,68 +215,18 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		}
 
 		// Find the correct file
-		fileNameToServe := ""
-		fileType := "application/octet-stream"
 		colDataMapArray := colData.([]map[string]interface{})
 
 		indexByQuery := c.Query("index")
 		var indexByQueryInt = -1
 		indexByQueryInt, err = strconv.Atoi(indexByQuery)
+		if err != nil {
+			indexByQueryInt = -1
+		}
 		nameByQuery := c.Query("file")
 
 		// Logic to find the right file based on index or name
-		if err == nil && indexByQueryInt > -1 && indexByQueryInt < len(colDataMapArray) {
-			fileData := colDataMapArray[indexByQueryInt]
-			fileName := fileData["name"].(string)
-			queryFile := nameByQuery
-
-			if queryFile == fileName || queryFile == "" {
-				// Determine filename
-				if fileData["path"] != nil && len(fileData["path"].(string)) > 0 {
-					fileNameToServe = fileData["path"].(string) + "/" + fileName
-				} else {
-					fileNameToServe = fileName
-				}
-
-				// Determine mime type
-				if typFromData, ok := fileData["type"]; ok {
-					if typeStr, isStr := typFromData.(string); isStr {
-						fileType = typeStr
-					} else {
-						fileType = cache.GetMimeType(fileNameToServe)
-					}
-				} else {
-					fileType = cache.GetMimeType(fileNameToServe)
-				}
-			}
-		} else {
-			for _, fileData := range colDataMapArray {
-				fileName := fileData["name"].(string)
-				queryFile := nameByQuery
-
-				if queryFile == fileName || queryFile == "" {
-					// Determine filename
-					if fileData["path"] != nil && len(fileData["path"].(string)) > 0 {
-						fileNameToServe = fileData["path"].(string) + "/" + fileName
-					} else {
-						fileNameToServe = fileName
-					}
-
-					// Determine mime type
-					if typFromData, ok := fileData["type"]; ok {
-						if typeStr, isStr := typFromData.(string); isStr {
-							fileType = typeStr
-						} else {
-							fileType = cache.GetMimeType(fileNameToServe)
-						}
-					} else {
-						fileType = cache.GetMimeType(fileNameToServe)
-					}
-
-					break
-				}
-			}
-		}
+		fileNameToServe, fileType := GetFileToServe(indexByQueryInt, colDataMapArray, nameByQuery)
 
 		if fileNameToServe == "" {
 			c.AbortWithStatus(http.StatusNotFound)
@@ -423,4 +373,63 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 		http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
 	}
+}
+
+func GetFileToServe(indexByQueryInt int, colDataMapArray []map[string]interface{}, nameByQuery string) (string, string) {
+	fileNameToServe := ""
+	fileType := "application/octet-stream"
+
+	if indexByQueryInt > -1 && indexByQueryInt < len(colDataMapArray) {
+		fileData := colDataMapArray[indexByQueryInt]
+		fileName := fileData["name"].(string)
+		queryFile := nameByQuery
+
+		if queryFile == fileName || queryFile == "" {
+			// Determine filename
+			if fileData["path"] != nil && len(fileData["path"].(string)) > 0 {
+				fileNameToServe = fileData["path"].(string) + "/" + fileName
+			} else {
+				fileNameToServe = fileName
+			}
+
+			// Determine mime type
+			if typFromData, ok := fileData["type"]; ok {
+				if typeStr, isStr := typFromData.(string); isStr {
+					fileType = typeStr
+				} else {
+					fileType = cache.GetMimeType(fileNameToServe)
+				}
+			} else {
+				fileType = cache.GetMimeType(fileNameToServe)
+			}
+		}
+	} else {
+		for _, fileData := range colDataMapArray {
+			fileName := fileData["name"].(string)
+			queryFile := nameByQuery
+
+			if queryFile == fileName || queryFile == "" {
+				// Determine filename
+				if fileData["path"] != nil && len(fileData["path"].(string)) > 0 {
+					fileNameToServe = fileData["path"].(string) + "/" + fileName
+				} else {
+					fileNameToServe = fileName
+				}
+
+				// Determine mime type
+				if typFromData, ok := fileData["type"]; ok {
+					if typeStr, isStr := typFromData.(string); isStr {
+						fileType = typeStr
+					} else {
+						fileType = cache.GetMimeType(fileNameToServe)
+					}
+				} else {
+					fileType = cache.GetMimeType(fileNameToServe)
+				}
+
+				break
+			}
+		}
+	}
+	return fileNameToServe, fileType
 }
