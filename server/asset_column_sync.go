@@ -74,11 +74,12 @@ func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterf
 						EntityName: "world",
 						ActionName: "sync_column_storage",
 						Attributes: map[string]interface{}{
-							"table_name":  tableInfo.TableName,
-							"column_name": columnName,
+							"table_name":      tableInfo.TableName,
+							"credential_name": cloudStore.CredentialName,
+							"column_name":     columnName,
 						},
 						AsUserEmail: cruds["user_account"].GetAdminEmailId(transaction),
-						Schedule:    "@every 30m",
+						Schedule:    "@every 1m",
 					})
 				}
 

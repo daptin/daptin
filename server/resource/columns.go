@@ -490,14 +490,20 @@ var SystemActions = []actionresponse.Action{
 				ColumnName: "column_name",
 				ColumnType: "label",
 			},
+			{
+				Name:       "Credential name",
+				ColumnName: "credential_name",
+				ColumnType: "label",
+			},
 		},
 		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "column.storage.sync",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"column_name": "~column_name",
-					"table_name":  "~table_name",
+					"column_name":     "~column_name",
+					"credential_name": "~credential_name",
+					"table_name":      "~table_name",
 				},
 			},
 		},
