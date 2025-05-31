@@ -6,7 +6,7 @@ import (
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
-	"github.com/labstack/gommon/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type actionTransactionPerformer struct {
@@ -61,7 +61,7 @@ func (d *actionTransactionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	if err != nil {
-		log.Errorf("Failed to commit transaction: [%v]", err)
+		log.Errorf("[64] Failed to commit transaction: [%v]", err)
 		return nil, nil, []error{err}
 	}
 	return nil, []actionresponse.ActionResponse{resource.NewActionResponse("client.notify", resource.NewClientNotification("message", "Column deleted", "Success"))}, nil

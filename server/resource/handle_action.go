@@ -1081,7 +1081,7 @@ func EvaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 
 		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
+			return nil, fmt.Errorf("[1084] failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
 		valueToReturn = res
 
@@ -1090,7 +1090,7 @@ func EvaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 		jsString := fieldString[2 : len(fieldString)-2]
 		res, err := runUnsafeJavascript(jsString, inFieldMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
+			return nil, fmt.Errorf("[1093] failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
 		valueToReturn = res
 
@@ -1098,7 +1098,7 @@ func EvaluateString(fieldString string, inFieldMap map[string]interface{}) (inte
 
 		res, err := runUnsafeJavascript(fieldString[1:], inFieldMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
+			return nil, fmt.Errorf("[1101] failed to evaluate JS in outcome attribute for key %s: %v", fieldString, err)
 		}
 		valueToReturn = res
 
