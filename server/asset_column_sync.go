@@ -79,7 +79,7 @@ func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterf
 							"column_name":     columnName,
 						},
 						AsUserEmail: cruds["user_account"].GetAdminEmailId(transaction),
-						Schedule:    "@every 1m",
+						Schedule:    "@every 30m",
 					})
 				}
 
