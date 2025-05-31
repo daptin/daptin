@@ -13,6 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"strings"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/fs/config"
@@ -34,7 +35,7 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 	u, _ := uuid.NewV7()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
-	log.Printf("Temp directory for this upload cloudStorePathMoveActionPerformer: %v", tempDirectoryPath)
+	log.Debugf("Temp directory for upload cloudStorePathMoveActionPerformer: %v", tempDirectoryPath)
 
 	//defer os.RemoveAll(tempDirectoryPath) // clean up
 
@@ -57,7 +58,7 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 	}
 	log.Printf("Create move %v %v", sourcePath, destinationPath)
 
-	storeName := inFields["name"].(string)
+	storeName := strings.Split(rootPath, ":")[0]
 	credentialName, ok := inFields["credential_name"]
 	if ok && credentialName != nil && credentialName != "" {
 		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)

@@ -12,6 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"strings"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/fs/config"
@@ -51,7 +52,7 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request actionresponse.
 		rootPath,
 	}
 	log.Printf("Create folder target %v", folderPath)
-	storeName := inFields["name"].(string)
+	storeName := strings.Split(rootPath, ":")[0]
 
 	credentialName, ok := inFields["credential_name"]
 	if ok && credentialName != nil && credentialName != "" {

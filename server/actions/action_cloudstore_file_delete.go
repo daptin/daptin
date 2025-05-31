@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 type cloudStoreFileDeleteActionPerformer struct {
@@ -51,7 +52,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 	if ok && credentialName != nil && credentialName != "" {
 		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
 		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
-		name := inFields["name"].(string)
+		name := strings.Split(rootPath, ":")[0]
 		if cred.DataMap != nil {
 			for key, val := range cred.DataMap {
 				config.Data().SetValue(name, key, fmt.Sprintf("%s", val))

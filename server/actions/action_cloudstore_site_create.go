@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 type cloudStoreSiteCreateActionPerformer struct {
@@ -107,7 +108,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 
 	log.Printf("Upload source target for site create %v %v", tempDirectoryPath, rootPath)
 
-	storeName := inFields["name"].(string)
+	storeName := strings.Split(rootPath, ":")[0]
 
 	credentialName, ok := inFields["credential_name"]
 	if ok && credentialName != nil && credentialName != "" {
