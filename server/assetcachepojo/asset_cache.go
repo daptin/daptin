@@ -53,13 +53,17 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 // downloadFileFromCloudStore downloads a specific file from cloud storage to local cache
 func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	// Setup credentials if available
+	configSetName := afc.CloudStore.Name
+	if strings.Index(afc.CloudStore.RootPath, ":") > -1 {
+		configSetName = strings.Split(afc.CloudStore.RootPath, ":")[0]
+	}
 	if afc.Credentials != nil {
 		for key, val := range afc.Credentials {
-			config.Data().SetValue(afc.CloudStore.Name, key, fmt.Sprintf("%s", val))
+			config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
 		}
 	} else if afc.CloudStore.StoreParameters != nil {
 		for key, val := range afc.CloudStore.StoreParameters {
-			config.Data().SetValue(afc.CloudStore.Name, key, fmt.Sprintf("%s", val))
+			config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
 		}
 	}
 

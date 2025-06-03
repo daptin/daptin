@@ -76,12 +76,16 @@ func (d *importCloudStoreFilesPerformer) DoAction(request actionresponse.Outcome
 		resource.CheckErr(err, "Failed to get id from reference id: %v", userId)
 		defaltValues["user_account_id"] = userId
 
+		configSetName := cacheFolder.CloudStore.Name
+		if strings.Index(cacheFolder.CloudStore.RootPath, ":") > -1 {
+			configSetName = strings.Split(cacheFolder.CloudStore.RootPath, ":")[0]
+		}
 		if cacheFolder.CloudStore.CredentialName != "" {
 			cred, err := d.cruds["credential"].GetCredentialByName(cacheFolder.CloudStore.CredentialName, transaction)
 			resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cacheFolder.CloudStore.CredentialName))
 			if cred.DataMap != nil {
 				for key, val := range cred.DataMap {
-					config.Data().SetValue(cacheFolder.CloudStore.Name, key, fmt.Sprintf("%s", val))
+					config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
 				}
 			}
 		}

@@ -268,7 +268,7 @@ func addToCache(cacheKey string, entry *SubsiteCacheEntry) {
 	// Add to Olric cache with expiry
 	err := SubsiteCache.Put(context.Background(), cacheKey, entry, olric.EX(ttl))
 	if err != nil {
-		log.Errorf("Error setting key %s in Olric subsite cache: %v", cacheKey, err)
+		log.Errorf("[271] Error setting key %s in Olric subsite cache: %v", cacheKey, err)
 	}
 }
 

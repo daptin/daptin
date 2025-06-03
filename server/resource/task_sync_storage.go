@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/rclone/lib/pacer"
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/jmoiron/sqlx"
+	"strings"
 
 	//hugoCommand "github.com/gohugoio/hugo/commands"
 	log "github.com/sirupsen/logrus"
@@ -18,12 +19,16 @@ import (
 
 func (dbResource *DbResource) SyncStorageToPath(cloudStore rootpojo.CloudStore, path string, tempDirectoryPath string, transaction *sqlx.Tx) error {
 
+	configSetName := cloudStore.StoreProvider
+	if strings.Index(cloudStore.RootPath, ":") > -1 {
+		configSetName = strings.Split(cloudStore.RootPath, ":")[0]
+	}
 	if cloudStore.CredentialName != "" {
 		cred, err := dbResource.GetCredentialByName(cloudStore.CredentialName, transaction)
 		CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cloudStore.CredentialName))
 		if cred.DataMap != nil {
 			for key, val := range cred.DataMap {
-				config.Data().SetValue(cloudStore.StoreProvider, key, fmt.Sprintf("%s", val))
+				config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
 			}
 		}
 	}

@@ -114,7 +114,7 @@ func (fc *FileCache) Set(key string, file *CachedFile) {
 	// Add to Olric cache with expiry
 	err := fc.cache.Put(context.Background(), key, file, olric.EX(ttl))
 	if err != nil {
-		log.Printf("Error setting key %s in Olric cache: %v", key, err)
+		log.Printf("[117] Error setting key %s in Olric cache: %v", key, err)
 	}
 }
 

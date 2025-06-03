@@ -17,6 +17,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 type syncSiteStorageActionPerformer struct {
@@ -45,12 +46,16 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 		return nil, nil, []error{errors.New("no site found here")}
 	}
 
+	configSetName := cloudStore.Name
+	if strings.Index(cloudStore.RootPath, ":") > -1 {
+		configSetName = strings.Split(cloudStore.RootPath, ":")[0]
+	}
 	if cloudStore.CredentialName != "" {
 		cred, err := d.cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)
 		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cloudStore.CredentialName))
 		if cred.DataMap != nil {
 			for key, val := range cred.DataMap {
-				config.Data().SetValue(cloudStore.Name, key, fmt.Sprintf("%s", val))
+				config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
 			}
 		}
 	}
