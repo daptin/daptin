@@ -89,10 +89,10 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 
 			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
 			if !ok {
-				log.Printf("Unknown content in cloud store column [%s]%s", dbResource.model.GetName(), column.ColumnName)
+				log.Warnf("[92] Unknown content in cloud store column [%s][%s] => %v", dbResource.model.GetName(), column.ColumnName, data[column.ColumnName])
 				continue
 			}
-			log.Printf("Delete attached file on column %s from disk: %v", column.Name, fileListJson)
+			log.Info("[95] Delete attached file on column %s from disk: %v", column.Name, fileListJson)
 			for _, fileItem := range fileListJson {
 
 				outcome := actionresponse.Outcome{}

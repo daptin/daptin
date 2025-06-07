@@ -46,7 +46,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 	args := []string{
 		rootPath,
 	}
-	log.Printf("Delete target path: %v", rootPath)
+	log.Infof("[49] Delete target path: %v", rootPath)
 
 	credentialName, ok := inFields["credential_name"]
 	if ok && credentialName != nil && credentialName != "" {
@@ -59,14 +59,6 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 			}
 		}
 	}
-
-	//config.FileSet(name, "client_id", oauthConf.ClientID)
-	//config.FileSet(name, "type", inFields["store_type"].(string))
-	//config.FileSet(name, "provider", storeProvider)
-	//config.FileSet(name, "client_secret", oauthConf.ClientSecret)
-	//config.FileSet(name, "token", string(jsonToken))
-	//config.FileSet(name, "client_scopes", strings.Join(oauthConf.Scopes, ","))
-	//config.FileSet(name, "redirect_url", oauthConf.RedirectURL)
 
 	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{
