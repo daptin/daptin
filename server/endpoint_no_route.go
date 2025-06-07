@@ -98,7 +98,7 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 			content := make([]byte, stat.Size())
 			_, readErr := file.Read(content)
 			if readErr != nil {
-				logrus.Printf("Error reading file: %v", readErr)
+				logrus.Printf("[101] Error reading file [%v]: %v", filePath, readErr)
 				c.FileFromFS(filePath, boxRoot)
 				return
 			}

@@ -113,13 +113,14 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 				encodedPart = splitParts[len(splitParts)-1]
 			}
 			fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
-			log.Printf("Write file [%v] for upload", temproryFilePath)
+			log.Infof("[116] Write file [%v] for upload", temproryFilePath)
 			resource.CheckErr(err, "Failed to convert base64 to []bytes")
 
-			os.MkdirAll(tempDirectoryPath, 0600)
+			fileDir := filepath.Dir(temproryFilePath)
+			os.MkdirAll(fileDir, 0755)
 
 			err = os.WriteFile(temproryFilePath, fileBytes, 0666)
-			resource.CheckErr(err, "Failed to write file bytes to temp file for rclone upload")
+			resource.CheckErr(err, "[122] Failed to write file bytes to temp file for rclone upload")
 
 			if EndsWithCheck(fileName, ".zip") {
 				err = unzip(temproryFilePath, tempDirectoryPath)

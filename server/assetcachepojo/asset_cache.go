@@ -199,11 +199,12 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 					filePath = strings.Replace(file["path"].(string), "/", string(os.PathSeparator), -1) + string(os.PathSeparator)
 				}
 				localPath := afc.LocalSyncPath + string(os.PathSeparator) + filePath
-				createDirIfNotExist(localPath)
 				localFilePath := localPath + file["name"].(string)
+				dirPath := filepath.Dir(localFilePath)
+				createDirIfNotExist(dirPath)
 				err := os.WriteFile(localFilePath, fileBytes, os.ModePerm)
 				if err != nil {
-					log.Error("Failed to write data to local file store asset cache folder")
+					log.Error("[206] Failed to write data to local file store asset cache folder")
 					return errors.WithMessage(err, "Failed to write data to local file store ")
 				}
 			}
