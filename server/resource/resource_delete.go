@@ -92,7 +92,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				log.Warnf("[92] Unknown content in cloud store column [%s][%s] => %v", dbResource.model.GetName(), column.ColumnName, data[column.ColumnName])
 				continue
 			}
-			log.Info("[95] Delete attached file on column %s from disk: %v", column.Name, fileListJson)
+			log.Infof("[95] Delete attached file on column %s from disk: %v", column.Name, fileListJson)
 			for _, fileItem := range fileListJson {
 
 				outcome := actionresponse.Outcome{}
