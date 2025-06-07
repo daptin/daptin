@@ -182,7 +182,8 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 		ctx := context.Background()
 
 		defaultConfig.DeleteMode = fs.DeleteModeOff
-		err := sync.CopyDir(ctx, fdst, fsrc, true)
+		defaultConfig.ErrorOnNoTransfer = true
+		err := sync.Sync(ctx, fdst, fsrc, false)
 		resource.InfoErr(err, "Failed to sync files for upload to cloud")
 
 		go func() {
