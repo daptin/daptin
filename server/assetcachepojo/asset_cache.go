@@ -39,7 +39,7 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 		// Download the file from cloud storage
 		err = afc.downloadFileFromCloudStore(fileName)
 		if err != nil {
-			log.Errorf("[42] Failed to download file from cloud storage: %v", err)
+			log.Errorf("[42] Failed to download file[%s] from cloud storage: %v", fileName, err)
 			return nil, err
 		}
 
@@ -105,6 +105,8 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	}
 
 	// Open destination file
+	tmpFileDir := filepath.Dir(tmpFile)
+	os.MkdirAll(tmpFileDir, 0755)
 	dst, err := os.Create(tmpFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to create destination file")
