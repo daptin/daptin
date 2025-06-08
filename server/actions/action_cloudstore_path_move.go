@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/artpar/rclone/fs/filter"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -74,16 +75,20 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
-	defaultConfig := fs.GetConfig(nil)
+	ctx := context.Background()
+	newFilter, _ := filter.NewFilter(nil)
+	ctx = filter.ReplaceConfig(ctx, newFilter)
+
+	defaultConfig := fs.ConfigInfo{}
 	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
 	cmd.Run(true, true, cobraCommand, func() error {
 		var err error
 		if srcFileName == "" {
-			err = sync.MoveDir(context.Background(), fdst, fsrc, false, true)
+			err = sync.MoveDir(ctx, fdst, fsrc, false, true)
 		} else {
-			err = operations.MoveFile(context.Background(), fdst, fsrc, srcFileName, srcFileName)
+			err = operations.MoveFile(ctx, fdst, fsrc, srcFileName, srcFileName)
 		}
 
 		if err != nil {

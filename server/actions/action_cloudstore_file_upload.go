@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/artpar/rclone/fs/accounting"
+	"github.com/artpar/rclone/fs/filter"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/google/uuid"
@@ -169,7 +171,11 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
-	defaultConfig := fs.GetConfig(nil)
+	ctx := context.Background()
+	ctx = accounting.WithStatsGroup(ctx, "transfer-"+fmt.Sprintf("%s", time.Now().Unix()))
+	newFilter, _ := filter.NewFilter(nil)
+	ctx = filter.ReplaceConfig(ctx, newFilter)
+	defaultConfig := fs.ConfigInfo{}
 
 	defaultConfig.LogLevel = fs.LogLevelDebug
 
@@ -179,12 +185,10 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 			return nil
 		}
 
-		ctx := context.Background()
-
 		defaultConfig.DeleteMode = fs.DeleteModeOff
 		defaultConfig.ErrorOnNoTransfer = true
-		err := sync.Sync(ctx, fdst, fsrc, false)
-		resource.InfoErr(err, "Failed to sync files for upload to cloud")
+		err := sync.CopyDir(ctx, fdst, fsrc, false)
+		resource.InfoErr(err, "[187] Failed to sync files for upload to cloud")
 
 		go func() {
 			cleanupmux.Lock()

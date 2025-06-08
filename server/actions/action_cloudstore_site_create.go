@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -125,16 +124,12 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
-	defaultConfig := fs.GetConfig(nil)
-	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-
-		ctx := context.Background()
 
 		err := sync.CopyDir(ctx, fdst, fsrc, true)
 		resource.InfoErr(err, "Failed to sync files for upload to cloud after site create")

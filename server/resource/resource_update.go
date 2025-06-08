@@ -200,7 +200,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						continue
 					}
 
-					log.Infof("[208] Cloud storage name [%v]: %v", col.ForeignKeyData.Namespace, cloudStore)
+					log.Infof("[208] uploading [%s] to cloud storage [%v]", uploadPath, col.ForeignKeyData.Namespace)
 
 					actionRequestParameters["credential_name"] = cloudStore.CredentialName
 					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
@@ -208,7 +208,6 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					actionRequestParameters["name"] = cloudStore.Name
 					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
 
-					log.Printf("[215] Initiate file upload action from resource update")
 					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, updateTransaction)
 					if errs != nil && len(errs) > 0 {
 						log.Errorf("Failed to upload attachments: %v", errs)
@@ -226,13 +225,41 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					files, ok = val.([]interface{})
 					if ok {
 
+						var exitingFilesArray []map[string]interface{}
+						exitingFilesMap := make(map[string]bool)
+						existingFiles := data.GetColumnOriginalValue(col.ColumnName)
+						exitingFilesArray, ok = existingFiles.([]map[string]interface{})
+
+						if !ok || existingFiles == nil {
+							existingFiles = make([]map[string]interface{}, 0)
+						}
+
+						finalFileSet := make([]map[string]interface{}, 0)
+
+						for _, file := range exitingFilesArray {
+							fileName := file["name"].(string)
+							if exitingFilesMap[fileName] {
+								continue
+							}
+							exitingFilesMap[fileName] = true
+							finalFileSet = append(finalFileSet, file)
+						}
+
 						for i := range files {
 							file := files[i].(map[string]interface{})
 							delete(file, "file")
 							delete(file, "contents")
 							files[i] = file
+							fileName := file["name"].(string)
+							if exitingFilesMap[fileName] {
+								continue
+							}
+							exitingFilesMap[fileName] = true
+							finalFileSet = append(finalFileSet, file)
+
 						}
-						val, err = json.Marshal(files)
+
+						val, err = json.Marshal(finalFileSet)
 						CheckErr(err, "Failed to marshal file data to column")
 					}
 

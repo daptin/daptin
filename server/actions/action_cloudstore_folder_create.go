@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
+	"github.com/artpar/rclone/fs/filter"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
@@ -69,7 +70,11 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request actionresponse.
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
-	defaultConfig := fs.GetConfig(nil)
+	ctx := context.Background()
+	newFilter, _ := filter.NewFilter(nil)
+	ctx = filter.ReplaceConfig(ctx, newFilter)
+	defaultConfig := fs.ConfigInfo{}
+
 	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
@@ -77,8 +82,6 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request actionresponse.
 			log.Errorf("Source or destination is null")
 			return nil
 		}
-
-		ctx := context.Background()
 
 		err := operations.Mkdir(ctx, fsrc, folderPath)
 		if err != nil {

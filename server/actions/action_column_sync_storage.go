@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -70,19 +69,17 @@ func (d *syncColumnStorageActionPerformer) DoAction(request actionresponse.Outco
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)
-	log.Printf("Temp dir for site [%v]/%v ==> %v", cloudStore.Name, args[0], cacheFolder.LocalSyncPath)
+	log.Infof("[73] Temp dir for column storage sync [%v]/%v ==> %v", cloudStore.Name, args[0], cacheFolder.LocalSyncPath)
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync column storage [%v]", columnName),
 	}
-	defaultConfig := fs.GetConfig(nil)
-	defaultConfig.LogLevel = fs.LogLevelNotice
-	go cmd.Run(true, false, cobraCommand, func() error {
+	ctx := context.Background()
+	go cmd.Run(true, true, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("[74] Either source [%s] or destination[%s] is empty", cloudStore.Name+"/"+cacheFolder.Keyname, cacheFolder.LocalSyncPath)
 			return nil
 		}
 
-		ctx := context.Background()
 		//log.Printf("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")

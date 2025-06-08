@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
+	"github.com/artpar/rclone/fs/filter"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
@@ -64,7 +65,10 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Delete file action at [%v]", atPath),
 	}
-	defaultConfig := fs.GetConfig(nil)
+	ctx := context.Background()
+	newFilter, _ := filter.NewFilter(nil)
+	ctx = filter.ReplaceConfig(ctx, newFilter)
+	defaultConfig := fs.ConfigInfo{}
 	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
@@ -72,8 +76,6 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 			log.Errorf("path is null for delete operation")
 			return nil
 		}
-
-		ctx := context.Background()
 
 		err = operations.Delete(ctx, fsrc)
 		if err != nil {
