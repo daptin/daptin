@@ -172,7 +172,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
 	}
 	ctx := context.Background()
-	ctx = accounting.WithStatsGroup(ctx, "transfer-"+fmt.Sprintf("%s", time.Now().Unix()))
+	ctx = accounting.WithStatsGroup(ctx, "transfer-"+fmt.Sprintf("%d", time.Now().Unix()))
 	newFilter, _ := filter.NewFilter(nil)
 	ctx = filter.ReplaceConfig(ctx, newFilter)
 	defaultConfig := fs.ConfigInfo{}
