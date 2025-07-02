@@ -647,7 +647,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			if err != nil {
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "Failed to rollback")
-				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
+				log.Errorf("[650] Failed to insert action [%v]: %v", action.Name, err)
 				return err
 			}
 		} else {
@@ -678,7 +678,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			if err != nil {
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "Failed to rollback")
-				log.Errorf("Failed to insert action [%v]: %v", action.Name, err)
+				log.Errorf("[681] Failed to insert action [%v]: %v", action.Name, err)
 				return err
 			}
 		}

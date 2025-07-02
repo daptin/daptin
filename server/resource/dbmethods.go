@@ -2796,6 +2796,9 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 		OlricCache.Put(context.Background(), k, str, olric.EX(30*time.Minute), olric.NX())
 		//CheckErr(cacheErr, "[2897] Failed to set id to reference id in olric cache")
 	}
+	if len(str) == 0 {
+		return daptinid.NullReferenceId, err
+	}
 	return daptinid.DaptinReferenceId(str), err
 
 }

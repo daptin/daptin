@@ -529,7 +529,7 @@ OutFields:
 			actionResponses = append(actionResponses, actionResponse)
 		case "PATCH":
 			responseObjects, err = dbResource.Cruds[outcome.Type].UpdateWithTransaction(model, request, transaction)
-			CheckErr(err, "Failed to update inside action")
+			CheckErr(err, "[532] Failed to update inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
 				responses = append(responses, actionResponse)
