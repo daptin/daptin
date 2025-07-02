@@ -1,0 +1,131 @@
+[36mINFO[0m[2025-07-02 12:18:11] Setting timezone to UTC since no TZ env variable set 
+
+   GitCommit: 
+   GitBranch: 
+    GitState: 
+  GitSummary: 
+   BuildDate: 
+     Version: 
+	[36mINFO[0m[2025-07-02 12:18:11] Runtime is [release], logLevel: [info]       
+[36mINFO[0m[2025-07-02 12:18:11] Database connection using: [sqlite3] [fresh_daptin.db] 
+[36mINFO[0m[2025-07-02 12:18:11] Database connection Params: Max Idle Connections: [10], Max Open Connections: [1] , Max connection Life time: [1m0s] , Max Idle connection life time: [1m0s]  
+[36mINFO[0m[2025-07-02 12:18:11] connection acquired from database [sqlite3]  
+[36mINFO[0m[2025-07-02 12:18:11] Olric bind port is: 5336                     
+[36mINFO[0m[2025-07-02 12:18:11] olric peers: []                              
+[36mINFO[0m[2025-07-02 12:18:11] Olric member name: 0.0.0.0:5336 => 5336      
+[36mINFO[0m[2025-07-02 12:18:11] Olric membership address: 0.0.0.0:5336       
+                                                                           
+                              
+===================================
+===================================
+
+ ____    _    ____ _____ ___ _   _ 
+|  _ \  / \  |  _ |_   _|_ _| \ | |
+| | | |/ _ \ | |_) || |  | ||  \| |
+| |_| / ___ \|  __/ | |  | || |\  |
+|____/_/   \_|_|    |_| |___|_| \_|
+
+===================================                                   
+===================================
+
+
+[36mINFO[0m[2025-07-02 12:18:11] Load config files                            
+2025/07/02 12:18:11 [INFO] Olric 0.5.7 on darwin/arm64 go1.24.3
+[36mINFO[0m[2025-07-02 12:18:11] Found files to load: [schema_uploaded_empty.json_daptin.json] 
+[36mINFO[0m[2025-07-02 12:18:11] Process file: schema_uploaded_empty.json_daptin.json 
+[36mINFO[0m[2025-07-02 12:18:11] ENV[DAPTIN_SKIP_CONFIG_FROM_DATABASE] loading existing tables config from database 
+[36mINFO[0m[2025-07-02 12:18:11] Loaded 26 tables from world table            
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          document             
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          calendar             
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          collection           
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          credential           
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          certificate          
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          feed                 
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          integration          
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          task                 
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          template             
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          json_schema          
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          timeline             
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          stream               
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          user_otp_account     
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          user_account         
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          smd                  
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          oauth_connect        
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          data_exchange        
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          oauth_token          
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          cloud_store          
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          site                 
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          mail_server          
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          mail_account         
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          mail_box             
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          mail                 
+[36mINFO[0m[2025-07-02 12:18:11] Table from initial configuration:          outbox               
+[36mINFO[0m[2025-07-02 12:18:11] ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value:  
+[36mINFO[0m[2025-07-02 12:18:11] 0 state tables on base entities              
+[36mINFO[0m[2025-07-02 12:18:11] 0 Audit tables are new                       
+[36mINFO[0m[2025-07-02 12:18:11] 0 Audit tables are updated                   
+[36mINFO[0m[2025-07-02 12:18:11] 0 Translation tables are new                 
+[36mINFO[0m[2025-07-02 12:18:11] 0 Translation tables are updated             
+[36mINFO[0m[2025-07-02 12:18:11] Create constraints and indexes               
+[31mERRO[0m[2025-07-02 12:18:11] Table[action] Column[[action_name world_id]]: Failed to create unique composite key index: index i8a72bc158cdd936536c235813bd5d8cc already exists 
+[31mERRO[0m[2025-07-02 12:18:11] Create unique index sql: create unique index i8a72bc158cdd936536c235813bd5d8cc on action(action_name,world_id) 
+[31mERRO[0m[2025-07-02 12:18:11] Failed to commit transaction after creating unique constrains: cannot commit - no transaction is active 
+[36mINFO[0m[2025-07-02 12:18:11] Create indexes                               
+[36mINFO[0m[2025-07-02 12:18:11] We have 0 data exchange updates              
+[36mINFO[0m[2025-07-02 12:18:11] We have 2 existing streams                   
+[36mINFO[0m[2025-07-02 12:18:11] Limiting max connections per IP: 100         
+[36mINFO[0m[2025-07-02 12:18:11] YJS endpoint is enabled in config            
+[36mINFO[0m[2025-07-02 12:18:11] SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers configured 
+[36mINFO[0m[2025-07-02 12:18:11] Started mail server                          
+[36mINFO[0m[2025-07-02 12:18:11] ENV[DAPTIN_SKIP_IMPORT_DATA] importing data from files 
+[36mINFO[0m[2025-07-02 12:18:11] Subsite cache initialized with Olric         
+[33mWARN[0m[2025-07-02 12:18:11] Failed to execute query 789: SELECT `u`.`email` FROM `user_account_user_account_id_has_usergroup_usergroup_id` AS `uu` LEFT JOIN `user_account` AS `u` ON (`uu`.`user_account_id` = `u`.`id`) WHERE (`uu`.`usergroup_id` = ?) ORDER BY `uu`.`created_at` ASC LIMIT ? == [2 1] 
+[33mWARN[0m[2025-07-02 12:18:11] Failed to scan user group id from the result 830: sql: no rows in result set 
+[36mINFO[0m[2025-07-02 12:18:11] Admin email id:                              
+[36mINFO[0m[2025-07-02 12:18:11] Got [0] Templates from database              
+[36mINFO[0m[2025-07-02 12:18:11] Register task [sync_mail_servers] at @every 1h 
+[36mINFO[0m[2025-07-02 12:18:11] Sync table column [document][document_content] at /var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/document_document_content1184848113 
+[36mINFO[0m[2025-07-02 12:18:11] Sync table column [calendar][content] at /var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/calendar_content159753464 
+[36mINFO[0m[2025-07-02 12:18:11] [/live/calendar/:referenceId/content/yjs] YJS websocket endpoint for calendar[content] 
+[36mINFO[0m[2025-07-02 12:18:11] [/live/document/:referenceId/document_content/yjs] YJS websocket endpoint for document[document_content] 
+[36mINFO[0m[2025-07-02 12:18:11] Listening websocket server at ... /live      
+[36mINFO[0m[2025-07-02 12:18:11] Our admin is [No one]                        
+[36mINFO[0m[2025-07-02 12:18:11] [ProcessId=5180] Listening at port: :6336    
+[36mINFO[0m[2025-07-02 12:18:11] Get certificate for [Parths-MacBook-Pro.local]: createIfNotFound[true] 
+[36mINFO[0m[2025-07-02 12:18:11] Certificate exists for [Parths-MacBook-Pro.local] 
+[33mWARN[0m[2025-07-02 12:18:11] Not starting HTTPS server: Parths-MacBook-Pro.local: <nil> 
+[36mINFO[0m[2025-07-02 12:18:11] Listening at: [:6336]                        
+[36mINFO[0m[2025-07-02 12:18:16] [402] [members] Member says: [Message<members: Joining from 192.168.0.112:5336>] 
+[36mINFO[0m[2025-07-02 12:18:16] [438] Received message on [members]: [Message<members: Joining from 192.168.0.112:5336>] 
+[36mINFO[0m[2025-07-02 12:18:28] Create olric default-cache for auth          
+[31mERRO[0m[2025-07-02 12:18:28] [431] Failed to execute insert query: INSERT INTO `user_account` (`version`, `name`, `email`, `password`, `confirmed`, `reference_id`, `permission`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?), vals [[1 Test Admin admin@test.com $2a$11$C3AINdunrcZvGxfy3u0McO2Gswc34P8m1/aB0nLTh9Iy6YIOuTKJG 0 [1 151 201 228 218 126 122 72 143 149 144 107 169 196 162 205] 2097151 2025-07-02 12:18:28.158249 +0530 IST m=+16.716611084 2025-07-02 12:18:28.15825 +0530 IST m=+16.716611917]] 
+[31mERRO[0m[2025-07-02 12:18:28] Failed to post from action: UNIQUE constraint failed: user_account.email 
+[GIN] 2025/07/02 - 12:18:28 | 500 |  130.574541ms |             ::1 | POST     "/action/user_account/signup"
+[GIN] 2025/07/02 - 12:18:28 | 200 |  128.773875ms |             ::1 | POST     "/action/user_account/signin"
+[36mINFO[0m[2025-07-02 12:18:28] User: 2 is going to become admin             
+[GIN] 2025/07/02 - 12:18:28 | 200 |      5.7845ms |             ::1 | POST     "/action/world/become_an_administrator"
+[31mERRO[0m[2025-07-02 12:18:30] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 12:18:30] Failed to scan action 66: <nil>              
+[31mERRO[0m[2025-07-02 12:18:30] [636] failed to scan permission: <nil>       
+[33mWARN[0m[2025-07-02 12:18:30] user[&{0 00000000-0000-0000-0000-000000000000 []}] not allowed action: restart - <nil> 
+[GIN] 2025/07/02 - 12:18:30 | 403 |      4.2325ms |             ::1 | POST     "/action/world/restart"
+[33mWARN[0m[2025-07-02 12:18:48] Error from BeforeCreate[TableAccessPermissionChecker]: http error (403) TableAccessPermissionChecker and 0 more errors, [table] [world] access not allowed for action [POST] to user [00000000-0000-0000-0000-000000000000] 
+2025/07/02 12:18:48 NOTICE: http error (403) TableAccessPermissionChecker and 0 more errors, [table] [world] access not allowed for action [POST] to user [00000000-0000-0000-0000-000000000000]
+[GIN] 2025/07/02 - 12:18:48 | 403 |     364.417µs |             ::1 | POST     "/api/world"
+[GIN] 2025/07/02 - 12:19:03 | 200 |    1.332917ms |             ::1 | GET      "/api/user_account"
+[GIN] 2025/07/02 - 12:19:10 | 200 |  126.383291ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 12:19:10 | 200 |     704.542µs |             ::1 | GET      "/api/user_account"
+[33mWARN[0m[2025-07-02 12:19:21] Error from BeforeCreate[TableAccessPermissionChecker]: http error (403) TableAccessPermissionChecker and 0 more errors, [table] [world] access not allowed for action [POST] to user [00000000-0000-0000-0000-000000000000] 
+2025/07/02 12:19:21 NOTICE: http error (403) TableAccessPermissionChecker and 0 more errors, [table] [world] access not allowed for action [POST] to user [00000000-0000-0000-0000-000000000000]
+[GIN] 2025/07/02 - 12:19:21 | 403 |     988.125µs |             ::1 | POST     "/api/world"
+[GIN] 2025/07/02 - 12:21:00 | 200 |     402.625µs |       127.0.0.1 | GET      "/sign-in"
+[GIN] 2025/07/02 - 12:21:00 | 200 |   11.106917ms |       127.0.0.1 | GET      "/assets/index-Dld2H117.css"
+[GIN] 2025/07/02 - 12:21:00 | 200 |  104.095167ms |       127.0.0.1 | GET      "/assets/index-BNwpK1zh.js"
+[GIN] 2025/07/02 - 12:21:00 | 200 |     257.875µs |       127.0.0.1 | GET      "/meta?query=column_types"
+[GIN] 2025/07/02 - 12:21:00 | 200 |    9.314166ms |       127.0.0.1 | GET      "/jsmodel/user_account.js"
+[GIN] 2025/07/02 - 12:21:00 | 200 |      317.25µs |       127.0.0.1 | GET      "/images/favicon.svg"
+[GIN] 2025/07/02 - 12:21:00 | 200 |     451.625µs |       127.0.0.1 | GET      "/jsmodel/usergroup.js"
+[GIN] 2025/07/02 - 12:21:00 | 200 |         897µs |       127.0.0.1 | GET      "/jsmodel/world.js"
+[GIN] 2025/07/02 - 12:21:00 | 200 |     475.041µs |       127.0.0.1 | GET      "/jsmodel/action.js"
+[36mINFO[0m[2025-07-02 12:21:00] memory is not a table                        
+[GIN] 2025/07/02 - 12:21:00 | 404 |     103.292µs |       127.0.0.1 | GET      "/jsmodel/memory.js"

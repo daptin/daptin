@@ -1,0 +1,613 @@
+[36mINFO[0m[2025-07-02 12:48:37] Setting timezone to UTC since no TZ env variable set 
+
+   GitCommit: 
+   GitBranch: 
+    GitState: 
+  GitSummary: 
+   BuildDate: 
+     Version: 
+	[36mINFO[0m[2025-07-02 12:48:37] Runtime is [release], logLevel: [trace]      
+[36mINFO[0m[2025-07-02 12:48:37] Database connection using: [sqlite3] [fresh_daptin.db] 
+[36mINFO[0m[2025-07-02 12:48:37] Database connection Params: Max Idle Connections: [10], Max Open Connections: [1] , Max connection Life time: [1m0s] , Max Idle connection life time: [1m0s]  
+[36mINFO[0m[2025-07-02 12:48:37] connection acquired from database [sqlite3]  
+[36mINFO[0m[2025-07-02 12:48:37] Olric bind port is: 5336                     
+[36mINFO[0m[2025-07-02 12:48:37] olric peers: []                              
+[36mINFO[0m[2025-07-02 12:48:37] Olric member name: 0.0.0.0:5336 => 5336      
+[36mINFO[0m[2025-07-02 12:48:37] Olric membership address: 0.0.0.0:5336       
+                                                                           
+                              
+===================================
+===================================
+
+ ____    _    ____ _____ ___ _   _ 
+|  _ \  / \  |  _ |_   _|_ _| \ | |
+| | | |/ _ \ | |_) || |  | ||  \| |
+| |_| / ___ \|  __/ | |  | || |\  |
+|____/_/   \_|_|    |_| |___|_| \_|
+
+===================================                                   
+===================================
+
+
+[36mINFO[0m[2025-07-02 12:48:37] Load config files                            
+2025/07/02 12:48:37 [INFO] Olric 0.5.7 on darwin/arm64 go1.24.3
+[36mINFO[0m[2025-07-02 12:48:37] Found files to load: [schema_uploaded_empty.json_daptin.json] 
+[36mINFO[0m[2025-07-02 12:48:37] Process file: schema_uploaded_empty.json_daptin.json 
+[37mTRAC[0m[2025-07-02 12:48:37] File added to config schema_uploaded_empty.json_daptin.json 
+[36mINFO[0m[2025-07-02 12:48:37] ENV[DAPTIN_SKIP_CONFIG_FROM_DATABASE] loading existing tables config from database 
+[36mINFO[0m[2025-07-02 12:48:37] Loaded 27 tables from world table            
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          document             
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          calendar             
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          collection           
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          credential           
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          certificate          
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          feed                 
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          integration          
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          task                 
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          template             
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          json_schema          
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          timeline             
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          stream               
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          user_otp_account     
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          user_account         
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          smd                  
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          oauth_connect        
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          data_exchange        
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          oauth_token          
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          cloud_store          
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          site                 
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          mail_server          
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          mail_account         
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          mail_box             
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          mail                 
+[36mINFO[0m[2025-07-02 12:48:37] Table from initial configuration:          outbox               
+[37mTRAC[0m[2025-07-02 12:48:37] Table book is not being modified             
+[37mTRAC[0m[2025-07-02 12:48:37] Table simple_test is not being modified      
+[36mINFO[0m[2025-07-02 12:48:37] ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value:  
+[36mINFO[0m[2025-07-02 12:48:37] 0 state tables on base entities              
+[36mINFO[0m[2025-07-02 12:48:37] 0 Audit tables are new                       
+[36mINFO[0m[2025-07-02 12:48:37] 0 Audit tables are updated                   
+[36mINFO[0m[2025-07-02 12:48:37] 0 Translation tables are new                 
+[36mINFO[0m[2025-07-02 12:48:37] 0 Translation tables are updated             
+[37mTRAC[0m[2025-07-02 12:48:37] Check table document                         
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from document limit 1          
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from document limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table calendar                         
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from calendar limit 1          
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from calendar limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table collection                       
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from collection limit 1        
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from collection limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table credential                       
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from credential limit 1        
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from credential limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table certificate                      
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from certificate limit 1       
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from certificate limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table feed                             
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from feed limit 1              
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from feed limit 1     
+[37mTRAC[0m[2025-07-02 12:48:37] Check table integration                      
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from integration limit 1       
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from integration limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table task                             
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from task limit 1              
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from task limit 1     
+[37mTRAC[0m[2025-07-02 12:48:37] Check table template                         
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from template limit 1          
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from template limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table json_schema                      
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from json_schema limit 1       
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from json_schema limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table timeline                         
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from timeline limit 1          
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from timeline limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table stream                           
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from stream limit 1            
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from stream limit 1   
+[37mTRAC[0m[2025-07-02 12:48:37] Check table user_otp_account                 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from user_otp_account limit 1  
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from user_otp_account limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table user_account                     
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from user_account limit 1      
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from user_account limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table smd                              
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from smd limit 1               
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from smd limit 1      
+[37mTRAC[0m[2025-07-02 12:48:37] Check table oauth_connect                    
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from oauth_connect limit 1     
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from oauth_connect limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table data_exchange                    
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from data_exchange limit 1     
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from data_exchange limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table oauth_token                      
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from oauth_token limit 1       
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from oauth_token limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table cloud_store                      
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from cloud_store limit 1       
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from cloud_store limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table site                             
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from site limit 1              
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from site limit 1     
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail_server                      
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail_server limit 1       
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail_server limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail_account                     
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail_account limit 1      
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail_account limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail_box                         
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail_box limit 1          
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail_box limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail                             
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail limit 1              
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail limit 1     
+[37mTRAC[0m[2025-07-02 12:48:37] Check table outbox                           
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from outbox limit 1            
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from outbox limit 1   
+[37mTRAC[0m[2025-07-02 12:48:37] Check table book                             
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from book limit 1              
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from book limit 1     
+[37mTRAC[0m[2025-07-02 12:48:37] Check table simple_test                      
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from simple_test limit 1       
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from simple_test limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table world                            
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from world limit 1             
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from world limit 1    
+[37mTRAC[0m[2025-07-02 12:48:37] Check table usergroup                        
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from usergroup limit 1         
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from usergroup limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table action                           
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from action limit 1            
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from action limit 1   
+[37mTRAC[0m[2025-07-02 12:48:37] Check table document_document_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from document_document_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from document_document_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table calendar_calendar_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from calendar_calendar_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from calendar_calendar_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table collection_collection_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from collection_collection_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from collection_collection_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table credential_credential_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from credential_credential_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from credential_credential_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table certificate_certificate_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from certificate_certificate_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from certificate_certificate_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table feed_feed_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from feed_feed_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from feed_feed_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table integration_integration_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from integration_integration_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from integration_integration_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table task_task_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from task_task_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from task_task_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table template_template_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from template_template_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from template_template_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table json_schema_json_schema_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from json_schema_json_schema_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from json_schema_json_schema_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table timeline_timeline_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from timeline_timeline_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from timeline_timeline_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table stream_stream_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from stream_stream_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from stream_stream_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table user_otp_account_user_otp_account_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from user_otp_account_user_otp_account_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from user_otp_account_user_otp_account_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table user_account_user_account_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from user_account_user_account_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from user_account_user_account_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table smd_smd_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from smd_smd_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from smd_smd_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table oauth_connect_oauth_connect_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from oauth_connect_oauth_connect_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from oauth_connect_oauth_connect_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table data_exchange_data_exchange_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from data_exchange_data_exchange_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from data_exchange_data_exchange_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table oauth_token_oauth_token_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from oauth_token_oauth_token_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from oauth_token_oauth_token_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table cloud_store_cloud_store_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from cloud_store_cloud_store_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from cloud_store_cloud_store_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table site_site_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from site_site_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from site_site_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail_server_mail_server_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail_server_mail_server_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail_server_mail_server_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail_account_mail_account_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail_account_mail_account_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail_account_mail_account_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail_box_mail_box_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail_box_mail_box_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail_box_mail_box_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table mail_mail_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from mail_mail_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from mail_mail_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table outbox_outbox_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from outbox_outbox_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from outbox_outbox_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table book_book_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from book_book_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from book_book_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table simple_test_simple_test_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from simple_test_simple_test_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from simple_test_simple_test_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table world_world_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from world_world_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from world_world_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table action_action_id_has_usergroup_usergroup_id 
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from action_action_id_has_usergroup_usergroup_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from action_action_id_has_usergroup_usergroup_id limit 1 
+[37mTRAC[0m[2025-07-02 12:48:37] Check table world_world_id_has_smd_smd_id    
+[37mDEBU[0m[2025-07-02 12:48:37] Sql: select * from world_world_id_has_smd_smd_id limit 1 
+[37mDEBU[0m[2025-07-02 12:48:37] Prepared Sql: select * from world_world_id_has_smd_smd_id limit 1 
+[36mINFO[0m[2025-07-02 12:48:37] Create constraints and indexes               
+[31mERRO[0m[2025-07-02 12:48:37] Table[action] Column[[action_name world_id]]: Failed to create unique composite key index: index i8a72bc158cdd936536c235813bd5d8cc already exists 
+[31mERRO[0m[2025-07-02 12:48:37] Create unique index sql: create unique index i8a72bc158cdd936536c235813bd5d8cc on action(action_name,world_id) 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[document_document_id_has_usergroup_usergroup_id] Column[[document_id usergroup_id]]: unique join index already exists: index idd9f4365c4c351f304c93555b446d9ca already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[calendar_calendar_id_has_usergroup_usergroup_id] Column[[calendar_id usergroup_id]]: unique join index already exists: index ia2360d6040d014ed720a62c246c34839 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[collection_collection_id_has_usergroup_usergroup_id] Column[[collection_id usergroup_id]]: unique join index already exists: index i6ce1f03b0e9d820d9121da35f0b93437 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[credential_credential_id_has_usergroup_usergroup_id] Column[[credential_id usergroup_id]]: unique join index already exists: index i4f7d7ac39851f7f77a736c3f60dc5d1e already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[certificate_certificate_id_has_usergroup_usergroup_id] Column[[certificate_id usergroup_id]]: unique join index already exists: index i063db11e0a03b6fd088339310f221c7c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[feed_feed_id_has_usergroup_usergroup_id] Column[[feed_id usergroup_id]]: unique join index already exists: index i21c7300f3e840b229e983b39e25eb0c9 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[integration_integration_id_has_usergroup_usergroup_id] Column[[integration_id usergroup_id]]: unique join index already exists: index i4a25ad298bbbeade595043c446f24165 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[task_task_id_has_usergroup_usergroup_id] Column[[task_id usergroup_id]]: unique join index already exists: index ifc43a6d3a4b1ab3ded51188a1bfab97c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[template_template_id_has_usergroup_usergroup_id] Column[[template_id usergroup_id]]: unique join index already exists: index i3f3110b378f2f8e22c9b401aa8cfa307 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[json_schema_json_schema_id_has_usergroup_usergroup_id] Column[[json_schema_id usergroup_id]]: unique join index already exists: index i7bdf947d7edddda61841d18e22a4d673 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[timeline_timeline_id_has_usergroup_usergroup_id] Column[[timeline_id usergroup_id]]: unique join index already exists: index i10f7880cbbac0ba9efa96d2ee4d1c623 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[stream_stream_id_has_usergroup_usergroup_id] Column[[stream_id usergroup_id]]: unique join index already exists: index ic078e711fb287a216389bc506cc03be3 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[user_otp_account_user_otp_account_id_has_usergroup_usergroup_id] Column[[user_otp_account_id usergroup_id]]: unique join index already exists: index i1f1d29178fad58aba2c26c406da45867 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[user_account_user_account_id_has_usergroup_usergroup_id] Column[[user_account_id usergroup_id]]: unique join index already exists: index ide9e5ff7ea7f6f506eff9fa1e32825d6 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[smd_smd_id_has_usergroup_usergroup_id] Column[[smd_id usergroup_id]]: unique join index already exists: index ia3df3f1730dc2e573ebd49de833141c3 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[oauth_connect_oauth_connect_id_has_usergroup_usergroup_id] Column[[oauth_connect_id usergroup_id]]: unique join index already exists: index ibd6fa31c18c11e995313284971bc1357 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[data_exchange_data_exchange_id_has_usergroup_usergroup_id] Column[[data_exchange_id usergroup_id]]: unique join index already exists: index iaee9d7524f1546142d9235a4c8f5c587 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[oauth_token_oauth_token_id_has_usergroup_usergroup_id] Column[[oauth_token_id usergroup_id]]: unique join index already exists: index i777bce0a23bb5f9f4b986e27449a755f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[cloud_store_cloud_store_id_has_usergroup_usergroup_id] Column[[cloud_store_id usergroup_id]]: unique join index already exists: index ib6c680e2c01ba7e505cd25647752bf27 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[site_site_id_has_usergroup_usergroup_id] Column[[site_id usergroup_id]]: unique join index already exists: index iede2015ac82e9eeddf9a986d256b158d already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[mail_server_mail_server_id_has_usergroup_usergroup_id] Column[[mail_server_id usergroup_id]]: unique join index already exists: index iab23f1f85959c6f762f570f3cc690ab4 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[mail_account_mail_account_id_has_usergroup_usergroup_id] Column[[mail_account_id usergroup_id]]: unique join index already exists: index id8984eb4b71270715dd6741da80b20d0 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[mail_box_mail_box_id_has_usergroup_usergroup_id] Column[[mail_box_id usergroup_id]]: unique join index already exists: index icf3ae23eeafced61830c9e6c38c3e9b9 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[mail_mail_id_has_usergroup_usergroup_id] Column[[mail_id usergroup_id]]: unique join index already exists: index i5aede90c2cc8a424644a1e26f0aa223a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[outbox_outbox_id_has_usergroup_usergroup_id] Column[[outbox_id usergroup_id]]: unique join index already exists: index i8e8b8192f9e65e84cbac31d2611b336b already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[book_book_id_has_usergroup_usergroup_id] Column[[book_id usergroup_id]]: unique join index already exists: index i98be312058d4ac2e8020b1c1336fc37b already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[simple_test_simple_test_id_has_usergroup_usergroup_id] Column[[simple_test_id usergroup_id]]: unique join index already exists: index i47de8d2aa5ff974a2f5d64ba0e2fa5e0 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[world_world_id_has_usergroup_usergroup_id] Column[[world_id usergroup_id]]: unique join index already exists: index icee90d7d1f7f4656a25cf28160db53b1 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[action_action_id_has_usergroup_usergroup_id] Column[[action_id usergroup_id]]: unique join index already exists: index i83f208f065e2f99e2a22dc54b24c6e14 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Table[world_world_id_has_smd_smd_id] Column[[world_id smd_id]]: unique join index already exists: index i1905b322c0f7f8db4c87f3740001dd4f already exists 
+[31mERRO[0m[2025-07-02 12:48:37] Failed to commit transaction after creating unique constrains: cannot commit - no transaction is active 
+[36mINFO[0m[2025-07-02 12:48:37] Create indexes                               
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document] Column[created_at]: index ic2010a71344eb3a49c1894e01ca294d1 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document] Column[updated_at]: index ifbb6358a705debcb2f2ec41819bcf382 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[document][reference_id]: index u572dcb3e32d02b1a9dc4ed14af786803 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document] Column[document_name]: index i42e6a116e40e9788e85a98e5f094f66f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document] Column[document_path]: index i362792c99caf4130df519346a941c797 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document] Column[document_extension]: index i07644b7e1ded0db785001511fb41b1c2 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document] Column[mime_type]: index idaa84f17b7255baceb15b6bb52ce9314 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[calendar] Column[created_at]: index i94b29e3b36d0bd75a01364ed9175ab41 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[calendar] Column[updated_at]: index i0460287db3ac4ae1daa62f5b438d71c3 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[calendar][reference_id]: index u0e16737a2c26b043a8ce93d9a3f168a9 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[calendar][rpath]: index uddda4700ba3bbdf1725397a54f7a8fd6 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[collection] Column[created_at]: index i932a7a2f19553fd6a6b447ed65664032 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[collection] Column[updated_at]: index i3305801e7fb52e3643c19759e99bb224 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[collection][reference_id]: index ud0c5fce218549b0e922ea6ab4ad21d6a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[collection] Column[name]: index i592925cc4133c5843e40089d803d02a1 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[collection] Column[description]: index ibd9269d14586c972dc70098fd4e8818a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[credential] Column[created_at]: index i4368f814cedb63bd2e16816104ab79fd already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[credential] Column[updated_at]: index i8be6b0746936ac40e419868f2c331d8c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[credential][reference_id]: index u847ff91bbc87f8e77a41f8b07bb02955 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[credential] Column[name]: index ied159aebacba38305181caddf0442685 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[certificate] Column[created_at]: index ice1988d3c2d93ba448a2a1c9787dd132 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[certificate] Column[updated_at]: index icfdcadc05e28c3f2ad76be600122334b already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[certificate][reference_id]: index udae39875d7f5dc35d91bd2f27b40a182 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[certificate][hostname]: index u72559c4402982f33a23ae6aa8f3937b1 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[feed] Column[created_at]: index i9082920ae0db9fedf47d3e1b4a1a23e4 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[feed] Column[updated_at]: index i50a5c0d8a37b31db79f88b564a16989e already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[feed][reference_id]: index uf2fb491368e60eabb4a224227c29f2ae already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[feed][feed_name]: index ucf8facb113ed3c1f3d4499f9cd78fe6c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[integration] Column[created_at]: index if260ec9f22e35f27369e2c7b4afd5933 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[integration] Column[updated_at]: index ieae265b5841a01e297f7cb62ce745c83 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[integration][reference_id]: index u3025a6db454bc0401ac094feb8e18fa6 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[integration][name]: index uaee2bf244807f30516dd82ef016cb66b already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[task] Column[created_at]: index i6d3ec785fa5f3810b3989842afcd68a5 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[task] Column[updated_at]: index i748c30281ed83d865e2ab18d6bc21c55 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[task][reference_id]: index u7c7172d61afa1cbeda17cb697139682f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[task] Column[name]: index i1a9044139129bf6878ad2b8ffbfe26ef already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[template] Column[created_at]: index i11d5a375349b9dd93a1fb733b7460120 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[template] Column[updated_at]: index i3eaa21b76b93176aac20eeb55d774fa8 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[template][reference_id]: index u2df668de39d1b501230225e19e4dc358 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[template][name]: index ube2c5f0b47c720697fa9df3d899bf5ec already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[json_schema] Column[created_at]: index i9e2ef22b6d3dd2128859d8bf5a816dad already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[json_schema] Column[updated_at]: index ieb60b039ec377760719de1d018a02ace already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[json_schema][reference_id]: index u6365d6ce457fce64f6909a5af8286790 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[timeline] Column[created_at]: index i4e87ba23efc71740ec8267aadde6a5ab already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[timeline] Column[updated_at]: index id55be7e20090cfa238c49b825ba3d4e6 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[timeline][reference_id]: index u29a5d676c989ff0bf3f5e16ca0b905ca already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[timeline] Column[title]: index i31bcee41660b14b3b6858cb8529978b3 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[stream] Column[created_at]: index iea116e2da6dacacf45eb0a5f50a305cb already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[stream] Column[updated_at]: index i79f90e203265d130f6a5a7eef61413a7 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[stream][reference_id]: index ub97b7a1f6d33c48aa3dc1954b49c4379 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[stream] Column[stream_name]: index i4aafc023dd83341e5d6d3b8143e8a923 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_otp_account] Column[created_at]: index ib4f7071f147bcf73a9bdc53857a3cc7a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_otp_account] Column[updated_at]: index i5b3194fc84e06d3a9b041faf8f73e958 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[user_otp_account][reference_id]: index u69db25aec7628e5cfdc02ee55bcea577 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_otp_account] Column[mobile_number]: index i70a61a3d08b1352251edfc25d7d3235a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_otp_account] Column[otp_secret]: index i500bdade2c7a935452c12b96a1600406 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_account] Column[created_at]: index if491a792b82c8a2e8a3d6388ef281041 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_account] Column[updated_at]: index ie2066951213a7a32c3d8c023e37b732f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[user_account][reference_id]: index uc3274439894e5fb9f13e21fd898414d1 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_account] Column[name]: index i329fcf6908581e2e2c73230a15bc5609 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[user_account][email]: index u6fb6d50c98cc2ab6e638360e616e9e76 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[smd] Column[created_at]: index i25a8fa1b5a260f0956c1ac12bc5c9496 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[smd] Column[updated_at]: index i6c7ef25f09597c015c4af073ebf94364 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[smd][reference_id]: index udae153e344fe2c221cde5dae00a064e5 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[smd] Column[name]: index id712bafbd1d299db4279fc33a2d62523 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_connect] Column[created_at]: index i0cd242674c7d7bf2aad332b20a381738 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_connect] Column[updated_at]: index i9d1f606f20e37428e5300c7111185abe already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[oauth_connect][reference_id]: index u28a17505bad0a46e668f24ea38d938cf already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[oauth_connect][name]: index ub45be12900eeb61dec4f76efdb541c88 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[data_exchange] Column[created_at]: index i28a623cde7682e99d770338cf30520e9 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[data_exchange] Column[updated_at]: index i07eaa7a2c1f6ce928f59714a9c945499 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[data_exchange][reference_id]: index ucc3a71c7da5722122312f5723c1bc1ea already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[data_exchange][name]: index ufa82fb7e0999ff026a0be60baae348ee already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_token] Column[created_at]: index i05083546f3221e3dbb1c854a1a07f30f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_token] Column[updated_at]: index ib2812275eddd3432df32e8c7b2e62883 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[oauth_token][reference_id]: index u31fc4a1b3a3fe89acaf2ab68eb89f566 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[cloud_store] Column[created_at]: index i6c434fb2a0143c57fed0f9403d191096 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[cloud_store] Column[updated_at]: index if0ce0469e3ff9e951c46b2e30b1a8343 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[cloud_store][reference_id]: index uba116afa21371850d0148805f552a434 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[cloud_store][name]: index uc50e8cd781f0d2ecd7200f1c811db905 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[site] Column[created_at]: index i54e15bbb30e154d96caa20c59033ad76 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[site] Column[updated_at]: index ic392773f50f962433cf87a4d08ae38e4 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[site][reference_id]: index u4c43488a2bb2710b2c094be95782a78c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_server] Column[created_at]: index ie273e73ca9293551c4625df005191dd0 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_server] Column[updated_at]: index ic1ff0351c2d75b8ae2bd5e1283416f16 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_server][reference_id]: index ub3fa608002df8cfd0de0aea14e3190f5 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_account] Column[created_at]: index i16f6f0dd2c0cacece082195e7f6ee8d8 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_account] Column[updated_at]: index i45e1f1f915d30cbd10031d0537e2fd1c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_account][reference_id]: index u38ec2939802e1dd59725352255b26cba already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_account][username]: index u0c35c69a950339649be8de71edcb3a04 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_box] Column[created_at]: index i2169225e1ff83b2065089e86286e50d5 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_box] Column[updated_at]: index i96a662289eac9cbc6a8b6b58426deca7 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_box][reference_id]: index ud7a4384f12e3148af2b8b442b7d510c2 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail] Column[created_at]: index i6130d7b1e7ccd193dbba5743d6e65e45 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail] Column[updated_at]: index ide0d4be1b85e0be027090bd880bdb154 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail][reference_id]: index ueae70e71ae42e5a9c7408900f939076d already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[outbox] Column[created_at]: index i8a45db358324b47034d8ee509b015f7a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[outbox] Column[updated_at]: index i9d975f18abe40b41a48b5e8063f12799 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[outbox][reference_id]: index u31a84bba6de890dd4822057af5969b54 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[book] Column[created_at]: index i2f28da67f20f4838b6bde0762bc088bd already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[book] Column[updated_at]: index id717f49664cde4651ad0d46ff11cb78c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[book][reference_id]: index udb8d285cb03be8dade1f278d35965231 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[simple_test] Column[created_at]: index ic306cc3d94af71e9b64b4938f0d764f9 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[simple_test] Column[updated_at]: index ic2c404952330d7543dce3827460f02dc already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[simple_test][reference_id]: index u235ce4d7be91abbc60975f1acfd3bc02 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[world] Column[created_at]: index i0776c7a8d308acd0d91decc458006d1e already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[world] Column[updated_at]: index i85a5bedb5d68123536eecaa2c4a291ae already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[world][reference_id]: index u344581a1f8d2bfbe1f292b86a7482732 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[world][table_name]: index u020fdc96910169691287e65bfc759981 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[usergroup] Column[created_at]: index iad4883cbe9a0527e35473a554b090201 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[usergroup] Column[updated_at]: index i9dcea0aebac0110c56ae3033ca0d5584 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[usergroup][reference_id]: index u1031f3de7e3d221332cfa3aa7f48910c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[usergroup][name]: index ua3a9bfe6245ac949a27af4c55144c692 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[action] Column[created_at]: index i913c599f4b5bdfe61c9513ecfda89c1d already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[action] Column[updated_at]: index ie0979674b10774b7fe1244ea020c8458 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[action][reference_id]: index u058ca5d0a9f114ab15ae50ea9c9b5ce0 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[action] Column[action_name]: index i64599857bf4ce5db655fd2a9baaa1fce already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[action] Column[label]: index i5b0001becb3873fab344179694f624fc already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document_document_id_has_usergroup_usergroup_id] Column[created_at]: index i2e67fe665b326aee9659e58c755191bc already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[document_document_id_has_usergroup_usergroup_id] Column[updated_at]: index ie3ee685f297ce7d81a5e63610be0bb5d already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[document_document_id_has_usergroup_usergroup_id][reference_id]: index u75a7c8f243e74bb61c7948f5b25c8efc already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[calendar_calendar_id_has_usergroup_usergroup_id] Column[created_at]: index i0d30e7b5f40091c2bf5b955f4b03ae2c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[calendar_calendar_id_has_usergroup_usergroup_id] Column[updated_at]: index i96b6aec68706943694c4955abb57d540 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[calendar_calendar_id_has_usergroup_usergroup_id][reference_id]: index ue5ab1bb4f76a56b53bd25b37cab4cf34 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[collection_collection_id_has_usergroup_usergroup_id] Column[created_at]: index ifcc32c05e5d92aed12a56d9c7446346a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[collection_collection_id_has_usergroup_usergroup_id] Column[updated_at]: index i3b95907f908a704a37d9e3945e0ce536 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[collection_collection_id_has_usergroup_usergroup_id][reference_id]: index u5d7b6063b6f059b00351d6c865945bec already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[credential_credential_id_has_usergroup_usergroup_id] Column[created_at]: index i8fe8329d3e86feb22be18c4c23e6d40d already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[credential_credential_id_has_usergroup_usergroup_id] Column[updated_at]: index ifacebcc3bbf1218869ba0a41838534c1 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[credential_credential_id_has_usergroup_usergroup_id][reference_id]: index u1655103b0ef3d43e7094881c3bfb5176 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[certificate_certificate_id_has_usergroup_usergroup_id] Column[created_at]: index i10819598e7dac98d189b9d4834043944 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[certificate_certificate_id_has_usergroup_usergroup_id] Column[updated_at]: index ief4669d3eba3bb7726453d8a02618c1d already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[certificate_certificate_id_has_usergroup_usergroup_id][reference_id]: index ub3e586f11f3f822363f602b04e0e2033 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[feed_feed_id_has_usergroup_usergroup_id] Column[created_at]: index ibaa8feec37083f44d75c571c62c4e446 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[feed_feed_id_has_usergroup_usergroup_id] Column[updated_at]: index id6b071097c3d482008871ea693b88297 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[feed_feed_id_has_usergroup_usergroup_id][reference_id]: index u3f3126eb49b8052216bd95261e95d912 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[integration_integration_id_has_usergroup_usergroup_id] Column[created_at]: index iac24449b5e883651ff738aff228f6029 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[integration_integration_id_has_usergroup_usergroup_id] Column[updated_at]: index ia19892f4bcfca03202896ec8f66cf3ed already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[integration_integration_id_has_usergroup_usergroup_id][reference_id]: index ue95b16975c4718667add98b7f72055e4 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[task_task_id_has_usergroup_usergroup_id] Column[created_at]: index i5031267e5974789e533a64daa91261ac already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[task_task_id_has_usergroup_usergroup_id] Column[updated_at]: index i520c55668fe7e4b5efcf1502b4291418 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[task_task_id_has_usergroup_usergroup_id][reference_id]: index u430baf745c077e0ec4ca23692273e6c5 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[template_template_id_has_usergroup_usergroup_id] Column[created_at]: index icc2e7507abcc467eff58456683fee225 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[template_template_id_has_usergroup_usergroup_id] Column[updated_at]: index i6793332bf572eef2b0a148351641b20c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[template_template_id_has_usergroup_usergroup_id][reference_id]: index u23d75fe26345713077777e99afffa5e7 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[json_schema_json_schema_id_has_usergroup_usergroup_id] Column[created_at]: index iaa093d86040e63f130aff4448d207846 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[json_schema_json_schema_id_has_usergroup_usergroup_id] Column[updated_at]: index i15a4c3a57c4b13811916ceefd9c48b46 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[json_schema_json_schema_id_has_usergroup_usergroup_id][reference_id]: index u71be72f83a10209d25a9b9742faf194b already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[timeline_timeline_id_has_usergroup_usergroup_id] Column[created_at]: index ia8a6179937b8d2f511fcdba31bac5083 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[timeline_timeline_id_has_usergroup_usergroup_id] Column[updated_at]: index i6a71d57ed465e943943449533324fa25 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[timeline_timeline_id_has_usergroup_usergroup_id][reference_id]: index u3623945e279ab573c90a2b261d19c0a4 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[stream_stream_id_has_usergroup_usergroup_id] Column[created_at]: index i3248a69595d131abe2eba142864faa55 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[stream_stream_id_has_usergroup_usergroup_id] Column[updated_at]: index i0b01d07ecc47d3e9c422d3f5a792da08 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[stream_stream_id_has_usergroup_usergroup_id][reference_id]: index u5ec79f87fedffdd38c5d23fa952306ef already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_otp_account_user_otp_account_id_has_usergroup_usergroup_id] Column[created_at]: index id980d30f4363d6afe402482bad177a77 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_otp_account_user_otp_account_id_has_usergroup_usergroup_id] Column[updated_at]: index if2f67f487415edf4534e4107a61b8b3b already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[user_otp_account_user_otp_account_id_has_usergroup_usergroup_id][reference_id]: index uda921921817053329e4fbf25b3a50252 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_account_user_account_id_has_usergroup_usergroup_id] Column[created_at]: index ia44ec83c6fa406c63ba99c95388ca904 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[user_account_user_account_id_has_usergroup_usergroup_id] Column[updated_at]: index i1ceae717f48c5410d0b783dc5dde0756 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[user_account_user_account_id_has_usergroup_usergroup_id][reference_id]: index ubc037867ced4d4b0a5a0e2df8a6d6f76 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[smd_smd_id_has_usergroup_usergroup_id] Column[created_at]: index id7ef570058855cea7ef003d8a3e10f70 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[smd_smd_id_has_usergroup_usergroup_id] Column[updated_at]: index i18579c85dc3c0d1e92f511b3446abe87 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[smd_smd_id_has_usergroup_usergroup_id][reference_id]: index u1e5ee65070f34a5c632c4068c4986dbb already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_connect_oauth_connect_id_has_usergroup_usergroup_id] Column[created_at]: index i3330e504cb91096e4ce22a4ae8482451 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_connect_oauth_connect_id_has_usergroup_usergroup_id] Column[updated_at]: index ifeb713998174d866e212ea9d0d235f9f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[oauth_connect_oauth_connect_id_has_usergroup_usergroup_id][reference_id]: index u7979877a786e52a5732a7c34bb595678 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[data_exchange_data_exchange_id_has_usergroup_usergroup_id] Column[created_at]: index ifbc1b4d1bb08e5cb7ef6c3d73b0cff49 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[data_exchange_data_exchange_id_has_usergroup_usergroup_id] Column[updated_at]: index i84061f7e664fb02edb5507405a5dac46 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[data_exchange_data_exchange_id_has_usergroup_usergroup_id][reference_id]: index u5a9833b19d4b13b3c61ef566df9a5e79 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_token_oauth_token_id_has_usergroup_usergroup_id] Column[created_at]: index ia101d91eb64a42af8c806b9a28b9aad6 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[oauth_token_oauth_token_id_has_usergroup_usergroup_id] Column[updated_at]: index ifa942e165b5bb1fff902fd60976f450f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[oauth_token_oauth_token_id_has_usergroup_usergroup_id][reference_id]: index u9fb4f16dfdb97c5e81612efbb714e354 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[cloud_store_cloud_store_id_has_usergroup_usergroup_id] Column[created_at]: index i6f3e6deb3c4ce8d3f3ca4ff775260ecb already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[cloud_store_cloud_store_id_has_usergroup_usergroup_id] Column[updated_at]: index i7681f84920b34258b6ac0b787bb6663b already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[cloud_store_cloud_store_id_has_usergroup_usergroup_id][reference_id]: index u9225e303af3012cba54a6fe5eb0d4fb6 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[site_site_id_has_usergroup_usergroup_id] Column[created_at]: index i7462f8af5694b95658f1d4801dca4589 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[site_site_id_has_usergroup_usergroup_id] Column[updated_at]: index ifc70e68eaf97bc171f511043713a5da4 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[site_site_id_has_usergroup_usergroup_id][reference_id]: index u1753fa753292841a960cfa2c89e8e88e already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_server_mail_server_id_has_usergroup_usergroup_id] Column[created_at]: index i980bbac0970bf2e1c66796a865c85ca2 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_server_mail_server_id_has_usergroup_usergroup_id] Column[updated_at]: index i06a653975e39b9d1a9d88ea5a1644eb2 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_server_mail_server_id_has_usergroup_usergroup_id][reference_id]: index ufff7f22c3739039f64dbd240409b4e13 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_account_mail_account_id_has_usergroup_usergroup_id] Column[created_at]: index ib9fff24f9161533c924ff90b2b76cbe5 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_account_mail_account_id_has_usergroup_usergroup_id] Column[updated_at]: index i9201a39c26c8f848fed325ce9e4c924d already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_account_mail_account_id_has_usergroup_usergroup_id][reference_id]: index ufe265372cfb8f8085029713eae2e2a16 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_box_mail_box_id_has_usergroup_usergroup_id] Column[created_at]: index ibfc243a49f59246e20e6ed518ee02096 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_box_mail_box_id_has_usergroup_usergroup_id] Column[updated_at]: index iccd3468e8ac3f7e3b5ec9a4a0b2f818c already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_box_mail_box_id_has_usergroup_usergroup_id][reference_id]: index u019a5a9018e9fb8c9de392b51086ec83 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_mail_id_has_usergroup_usergroup_id] Column[created_at]: index ia47ee6f77f4d0acf69cabe0380c48ba0 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[mail_mail_id_has_usergroup_usergroup_id] Column[updated_at]: index i60c50393b2030ea39a222c0d1965968e already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[mail_mail_id_has_usergroup_usergroup_id][reference_id]: index u05fc662890b9f5be136f273df31bed35 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[outbox_outbox_id_has_usergroup_usergroup_id] Column[created_at]: index iac2edae6764ccccce1efd67da422b158 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[outbox_outbox_id_has_usergroup_usergroup_id] Column[updated_at]: index i6e9e5cca473bdd09e45c3aaacb3d2292 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[outbox_outbox_id_has_usergroup_usergroup_id][reference_id]: index u43e3851499d42b98040c23cc09daf67f already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[book_book_id_has_usergroup_usergroup_id] Column[created_at]: index ibc9e777866f33d8ece1336484aee1010 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[book_book_id_has_usergroup_usergroup_id] Column[updated_at]: index if9048338b82752800b0751d1041aa0eb already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[book_book_id_has_usergroup_usergroup_id][reference_id]: index u4a3106d54c9b6a9d09ea8b69357e3bc1 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[simple_test_simple_test_id_has_usergroup_usergroup_id] Column[created_at]: index i5186cbfaf31333295772c1e615ea9215 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[simple_test_simple_test_id_has_usergroup_usergroup_id] Column[updated_at]: index i766849c7022d1598bc753040a13e1813 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[simple_test_simple_test_id_has_usergroup_usergroup_id][reference_id]: index u7a0703b5d0def42817afdce0e0fef873 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[world_world_id_has_usergroup_usergroup_id] Column[created_at]: index i869f2d0dc9693a8de1397feedbfed9ac already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[world_world_id_has_usergroup_usergroup_id] Column[updated_at]: index i6200a14bfac11d17314154cfcd1f83a0 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[world_world_id_has_usergroup_usergroup_id][reference_id]: index u089636a70d62e567edea7b43c21b3469 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[action_action_id_has_usergroup_usergroup_id] Column[created_at]: index i0594270dc96e5a79b6cb814501160919 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[action_action_id_has_usergroup_usergroup_id] Column[updated_at]: index icd2937028492a3bebefaa3b92d286e4a already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[action_action_id_has_usergroup_usergroup_id][reference_id]: index u0d3f8c6b2e59d65a1f1c8d6be214dfea already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[world_world_id_has_smd_smd_id] Column[created_at]: index i635d88c22b9461b1359866bb6fd780bc already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [120] New index not created on Table[world_world_id_has_smd_smd_id] Column[updated_at]: index ic883f6413cf5e80ea36880573c7246af already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] [108] New index not created on Table[world_world_id_has_smd_smd_id][reference_id]: index u795fd3e58ac1016784b895ac79d5c1a0 already exists 
+[37mDEBU[0m[2025-07-02 12:48:37] Start table check: [60 tables][73 relations] 
+[36mINFO[0m[2025-07-02 12:48:37] We have 0 data exchange updates              
+[37mTRAC[0m[2025-07-02 12:48:37] GetAdminUserIdAndUserGroupId [2], [1]        
+[37mDEBU[0m[2025-07-02 12:48:37] We have 0 state machine descriptions         
+[37mTRAC[0m[2025-07-02 12:48:37] GetAdminUserIdAndUserGroupId [2], [1]        
+[37mTRAC[0m[2025-07-02 12:48:37] GetAdminUserIdAndUserGroupId [2], [1]        
+[36mINFO[0m[2025-07-02 12:48:37] We have 2 existing streams                   
+[37mDEBU[0m[2025-07-02 12:48:37] Process stream [table]                       
+[37mDEBU[0m[2025-07-02 12:48:37] Stream [table] already present in db, updating db values 
+[37mDEBU[0m[2025-07-02 12:48:37] Process stream [transformed_user]            
+[37mDEBU[0m[2025-07-02 12:48:37] Stream [transformed_user] already present in db, updating db values 
+[37mTRAC[0m[2025-07-02 12:48:37] UpdateActionTable                            
+[37mTRAC[0m[2025-07-02 12:48:37] GetAdminUserIdAndUserGroupId [2], [1]        
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][import_files_from_store] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [integration][install_integration] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [certificate][download_certificate] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [action][get_action_schema] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [certificate][download_public_key] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [certificate][generate_acme_certificate] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [certificate][generate_self_certificate] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_account][register_otp] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_otp_account][verify_mobile_number] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_otp_account][send_otp] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_account][verify_otp] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][remove_column] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][remove_table] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][rename_column] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [site][sync_site_storage] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][sync_column_storage] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [mail_server][sync_mail_servers] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][restart_daptin] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][generate_random_data] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][export_data] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][export_csv_data] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][import_data] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [cloud_store][upload_file] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [cloud_store][create_site] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [cloud_store][delete_path] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [cloud_store][create_folder] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [cloud_store][move_path] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [site][list_files] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [site][get_file] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [site][delete_file] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][upload_system_schema] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][upload_xls_to_system_schema] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][upload_csv_to_system_schema] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][download_system_schema] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][become_an_administrator] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_account][signup] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_account][reset-password] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_account][reset-password-verify] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [user_account][signin] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [oauth_connect][oauth_login_begin] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [oauth_token][oauth.login.response] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Action [world][add_exchange] available in database 
+[37mDEBU[0m[2025-07-02 12:48:37] Config table already exists                  
+[36mINFO[0m[2025-07-02 12:48:37] Limiting max connections per IP: 100         
+[36mINFO[0m[2025-07-02 12:48:37] YJS endpoint is enabled in config            
+[37mTRAC[0m[2025-07-02 12:48:37] Created middleware set                       
+[37mTRAC[0m[2025-07-02 12:48:37] Added ResourcesToApi2Go                      
+[37mTRAC[0m[2025-07-02 12:48:37] Crated olric topics                          
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] GetAllObjects ResultToArray: 9.625µs 
+[36mINFO[0m[2025-07-02 12:48:37] SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers configured 
+[36mINFO[0m[2025-07-02 12:48:37] Started mail server                          
+[37mTRAC[0m[2025-07-02 12:48:37] Processed imps                               
+[36mINFO[0m[2025-07-02 12:48:37] ENV[DAPTIN_SKIP_IMPORT_DATA] importing data from files 
+[37mTRAC[0m[2025-07-02 12:48:37] CreateDefaultLocalStorage                    
+[36mINFO[0m[2025-07-02 12:48:37] Subsite cache initialized with Olric         
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] RowsToMap IdToReferenceId: 109.333µs 
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] GetAllObjects ResultToArray: 136.042µs 
+[36mINFO[0m[2025-07-02 12:48:37] Admin email id: admin@test.com               
+[37mTRAC[0m[2025-07-02 12:48:37] Completed process caldav                     
+[37mTRAC[0m[2025-07-02 12:48:37] GetActionPerformers                          
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] GetRowsByWhere ResultToArray: 6.916µs 
+[37mTRAC[0m[2025-07-02 12:48:37] Completed GetActionPerformers                
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] GetAllObjects ResultToArray: 12.208µs 
+[36mINFO[0m[2025-07-02 12:48:37] Got [0] Templates from database              
+[36mINFO[0m[2025-07-02 12:48:37] Register task [sync_mail_servers] at @every 1h 
+[37mTRAC[0m[2025-07-02 12:48:37] CreateAssetColumnSync                        
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] RowsToMap IdToReferenceId: 7.791µs  
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] GetAllObjects ResultToArray: 36.917µs 
+[36mINFO[0m[2025-07-02 12:48:37] Sync table column [document][document_content] at /var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/document_document_content3850705064 
+[36mINFO[0m[2025-07-02 12:48:37] Sync table column [calendar][content] at /var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/calendar_content1879773970 
+[37mTRAC[0m[2025-07-02 12:48:37] Completed CreateAssetColumnSync              
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] RowsToMap IdToReferenceId: 2.083µs  
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] GetRowsByWhere ResultToArray: 514.75µs 
+[36mINFO[0m[2025-07-02 12:48:37] [/live/document/:referenceId/document_content/yjs] YJS websocket endpoint for document[document_content] 
+[36mINFO[0m[2025-07-02 12:48:37] [/live/calendar/:referenceId/content/yjs] YJS websocket endpoint for calendar[content] 
+[36mINFO[0m[2025-07-02 12:48:37] Listening websocket server at ... /live      
+[37mDEBU[0m[2025-07-02 12:48:37] Created websocket handler                    
+[37mDEBU[0m[2025-07-02 12:48:37] Clean up uploaded config files: [schema_uploaded_empty.json_daptin.json] 
+[36mINFO[0m[2025-07-02 12:48:37] Our admin is [admin@test.com]                
+[36mINFO[0m[2025-07-02 12:48:37] [ProcessId=7245] Listening at port: :6336    
+[36mINFO[0m[2025-07-02 12:48:37] Get certificate for [Parths-MacBook-Pro.local]: createIfNotFound[true] 
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] RowsToMap IdToReferenceId: 1.792µs  
+[37mTRAC[0m[2025-07-02 12:48:37] [TIMING] GetObjectByWhere ResultToArray [1946]: 179.167µs 
+[36mINFO[0m[2025-07-02 12:48:37] Certificate exists for [Parths-MacBook-Pro.local] 
+[33mWARN[0m[2025-07-02 12:48:37] Not starting HTTPS server: Parths-MacBook-Pro.local: <nil> 
+[36mINFO[0m[2025-07-02 12:48:37] Listening at: [:6336]                        
+[36mINFO[0m[2025-07-02 12:48:42] [438] Received message on [members]: [Message<members: Joining from 192.168.0.112:5336>] 
+[36mINFO[0m[2025-07-02 12:48:42] [402] [members] Member says: [Message<members: Joining from 192.168.0.112:5336>] 
+[37mDEBU[0m[2025-07-02 12:48:45] HostSwitch.ServeHTTP RequestUrl: /action/user_account/signin 
+[36mINFO[0m[2025-07-02 12:48:45] Create olric default-cache for auth          
+[37mDEBU[0m[2025-07-02 12:48:45] PermissionInstance for [world]: {0197c9e1-008a-7687-a1c1-e1af5e0e72dc [] 561441} 
+[37mDEBU[0m[2025-07-02 12:48:45] PermissionInstance for [action]: {0197c9e1-008a-7687-a1c1-e1af5e0e72dc [] 561441} 
+[37mDEBU[0m[2025-07-02 12:48:45] Handle event for action [signin] by user [&{0 00000000-0000-0000-0000-000000000000 []}] 
+[37mDEBU[0m[2025-07-02 12:48:45] Action [signin][<nil>] => Outcome [jwt.token][EXECUTE]  
+[37mTRAC[0m[2025-07-02 12:48:45] [TIMING] RowsToMap IdToReferenceId: 958ns    
+[37mTRAC[0m[2025-07-02 12:48:45] [TIMING] GetRowsByWhere ResultToArray: 32.375µs 
+[GIN] 2025/07/02 - 12:48:45 | 200 |  143.240083ms |             ::1 | POST     "/action/user_account/signin"
+[37mDEBU[0m[2025-07-02 12:48:55] HostSwitch.ServeHTTP RequestUrl: /action/world/restart_daptin 
+[37mDEBU[0m[2025-07-02 12:48:55] Handle event for action [restart_daptin] by user [&{2 0197c9e1-008a-7687-a1c1-e1af5e0e72dc [{0197c9e0-a655-78ca-a4f8-cd959104af0b 0197c9e1-008a-7687-a1c1-e1af5e0e72dc 0197c9e4-db95-7543-8fcf-1800dcaf5fff 561441} {0197c9e0-a655-78f4-8caa-c94dd770c0eb 0197c9e1-008a-7687-a1c1-e1af5e0e72dc 0197c9e1-010f-7111-a8e6-b3e3a638051f 561441}]}] 
+[37mTRAC[0m[2025-07-02 12:48:55] [TIMING] RowsToMap IdToReferenceId: 77.834µs 
+[37mTRAC[0m[2025-07-02 12:48:55] [TIMING] GetReferenceIdToObject ResultToArray: 114.292µs 
+[37mDEBU[0m[2025-07-02 12:48:55] Action [restart_daptin][<nil>] => Outcome [system_json_schema_update][EXECUTE]  
+[36mINFO[0m[2025-07-02 12:48:55] Files [map[json_schema:[map[file:data:application/json;base64,e30K name:empty.json type:application/json]]]]: [map[file:data:application/json;base64,e30K name:empty.json type:application/json]] 
+[36mINFO[0m[2025-07-02 12:48:55] File name: empty.json                        
+[36mINFO[0m[2025-07-02 12:48:55] Written all json files. Attempting restart   
+[GIN] 2025/07/02 - 12:48:55 | 200 |    2.170542ms |             ::1 | POST     "/action/world/restart_daptin"

@@ -1,0 +1,417 @@
+[36mINFO[0m[2025-07-02 12:53:21] Setting timezone to UTC since no TZ env variable set 
+
+   GitCommit: 
+   GitBranch: 
+    GitState: 
+  GitSummary: 
+   BuildDate: 
+     Version: 
+	[36mINFO[0m[2025-07-02 12:53:21] Runtime is [release], logLevel: [info]       
+[36mINFO[0m[2025-07-02 12:53:21] Database connection using: [sqlite3] [fresh_daptin.db] 
+[36mINFO[0m[2025-07-02 12:53:21] Database connection Params: Max Idle Connections: [10], Max Open Connections: [1] , Max connection Life time: [1m0s] , Max Idle connection life time: [1m0s]  
+[36mINFO[0m[2025-07-02 12:53:21] connection acquired from database [sqlite3]  
+[36mINFO[0m[2025-07-02 12:53:21] Olric bind port is: 5336                     
+[36mINFO[0m[2025-07-02 12:53:21] olric peers: []                              
+[36mINFO[0m[2025-07-02 12:53:21] Olric member name: 0.0.0.0:5336 => 5336      
+[36mINFO[0m[2025-07-02 12:53:21] Olric membership address: 0.0.0.0:5336       
+                                                                           
+                              
+===================================
+===================================
+
+ ____    _    ____ _____ ___ _   _ 
+|  _ \  / \  |  _ |_   _|_ _| \ | |
+| | | |/ _ \ | |_) || |  | ||  \| |
+| |_| / ___ \|  __/ | |  | || |\  |
+|____/_/   \_|_|    |_| |___|_| \_|
+
+===================================                                   
+===================================
+
+
+[36mINFO[0m[2025-07-02 12:53:21] Load config files                            
+2025/07/02 12:53:21 [INFO] Olric 0.5.7 on darwin/arm64 go1.24.3
+[36mINFO[0m[2025-07-02 12:53:21] Found files to load: [schema_uploaded_empty.json_daptin.json] 
+[36mINFO[0m[2025-07-02 12:53:21] Process file: schema_uploaded_empty.json_daptin.json 
+[36mINFO[0m[2025-07-02 12:53:21] ENV[DAPTIN_SKIP_CONFIG_FROM_DATABASE] loading existing tables config from database 
+[36mINFO[0m[2025-07-02 12:53:21] Loaded 27 tables from world table            
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          document             
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          calendar             
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          collection           
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          credential           
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          certificate          
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          feed                 
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          integration          
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          task                 
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          template             
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          json_schema          
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          timeline             
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          stream               
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          user_otp_account     
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          user_account         
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          smd                  
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          oauth_connect        
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          data_exchange        
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          oauth_token          
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          cloud_store          
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          site                 
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          mail_server          
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          mail_account         
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          mail_box             
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          mail                 
+[36mINFO[0m[2025-07-02 12:53:21] Table from initial configuration:          outbox               
+[36mINFO[0m[2025-07-02 12:53:21] ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value:  
+[36mINFO[0m[2025-07-02 12:53:21] 0 state tables on base entities              
+[36mINFO[0m[2025-07-02 12:53:21] 0 Audit tables are new                       
+[36mINFO[0m[2025-07-02 12:53:21] 0 Audit tables are updated                   
+[36mINFO[0m[2025-07-02 12:53:21] 0 Translation tables are new                 
+[36mINFO[0m[2025-07-02 12:53:21] 0 Translation tables are updated             
+[36mINFO[0m[2025-07-02 12:53:21] Create constraints and indexes               
+[31mERRO[0m[2025-07-02 12:53:21] Table[action] Column[[action_name world_id]]: Failed to create unique composite key index: index i8a72bc158cdd936536c235813bd5d8cc already exists 
+[31mERRO[0m[2025-07-02 12:53:21] Create unique index sql: create unique index i8a72bc158cdd936536c235813bd5d8cc on action(action_name,world_id) 
+[31mERRO[0m[2025-07-02 12:53:21] Failed to commit transaction after creating unique constrains: cannot commit - no transaction is active 
+[36mINFO[0m[2025-07-02 12:53:21] Create indexes                               
+[36mINFO[0m[2025-07-02 12:53:21] We have 0 data exchange updates              
+[36mINFO[0m[2025-07-02 12:53:21] We have 2 existing streams                   
+[36mINFO[0m[2025-07-02 12:53:21] Limiting max connections per IP: 100         
+[36mINFO[0m[2025-07-02 12:53:21] YJS endpoint is enabled in config            
+[36mINFO[0m[2025-07-02 12:53:21] SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers configured 
+[36mINFO[0m[2025-07-02 12:53:21] Started mail server                          
+[36mINFO[0m[2025-07-02 12:53:21] ENV[DAPTIN_SKIP_IMPORT_DATA] importing data from files 
+[36mINFO[0m[2025-07-02 12:53:21] Subsite cache initialized with Olric         
+[36mINFO[0m[2025-07-02 12:53:21] Admin email id: admin@test.com               
+[36mINFO[0m[2025-07-02 12:53:21] Got [0] Templates from database              
+[36mINFO[0m[2025-07-02 12:53:21] Register task [sync_mail_servers] at @every 1h 
+[36mINFO[0m[2025-07-02 12:53:21] Sync table column [document][document_content] at /var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/document_document_content1649373840 
+[36mINFO[0m[2025-07-02 12:53:21] Sync table column [calendar][content] at /var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/calendar_content3807081409 
+[36mINFO[0m[2025-07-02 12:53:21] [/live/calendar/:referenceId/content/yjs] YJS websocket endpoint for calendar[content] 
+[36mINFO[0m[2025-07-02 12:53:21] [/live/document/:referenceId/document_content/yjs] YJS websocket endpoint for document[document_content] 
+[36mINFO[0m[2025-07-02 12:53:21] Listening websocket server at ... /live      
+[36mINFO[0m[2025-07-02 12:53:21] Our admin is [admin@test.com]                
+[36mINFO[0m[2025-07-02 12:53:21] [ProcessId=7534] Listening at port: :6336    
+[36mINFO[0m[2025-07-02 12:53:21] Get certificate for [Parths-MacBook-Pro.local]: createIfNotFound[true] 
+[36mINFO[0m[2025-07-02 12:53:21] Certificate exists for [Parths-MacBook-Pro.local] 
+[33mWARN[0m[2025-07-02 12:53:21] Not starting HTTPS server: Parths-MacBook-Pro.local: <nil> 
+[36mINFO[0m[2025-07-02 12:53:21] Listening at: [:6336]                        
+[36mINFO[0m[2025-07-02 12:53:26] [438] Received message on [members]: [Message<members: Joining from 192.168.0.112:5336>] 
+[36mINFO[0m[2025-07-02 12:53:29] Create olric default-cache for auth          
+[GIN] 2025/07/02 - 12:53:29 | 200 |    65.79225ms |             ::1 | GET      "/openapi.yaml"
+[GIN] 2025/07/02 - 12:53:38 | 200 |    1.385292ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 12:53:39 | 200 |    1.131834ms |             ::1 | GET      "/api/action"
+[33mWARN[0m[2025-07-02 12:53:47] user[&{0 00000000-0000-0000-0000-000000000000 []}] not allowed action: signup - <nil> 
+[GIN] 2025/07/02 - 12:53:47 | 403 |    1.180416ms |             ::1 | POST     "/action/user_account/signup"
+[GIN] 2025/07/02 - 12:53:55 | 200 |    130.2025ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 12:54:06 | 201 |    1.633875ms |             ::1 | POST     "/api/world"
+[GIN] 2025/07/02 - 12:56:58 | 403 |    6.381375ms |             ::1 | GET      "/_config"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 12:57:00 | 200 |  136.805625ms |             ::1 | GET      "/statistics"
+[GIN] 2025/07/02 - 12:57:01 | 200 |          47µs |             ::1 | GET      "/meta"
+[GIN] 2025/07/02 - 12:57:10 | 200 |      38.625µs |             ::1 | GET      "/meta"
+[GIN] 2025/07/02 - 12:57:11 | 200 |      84.875µs |             ::1 | GET      "/ping"
+[GIN] 2025/07/02 - 12:57:27 | 200 |      305.75µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 12:57:28 | 200 |    3.938542ms |             ::1 | GET      "/jsmodel/user_account"
+[36mINFO[0m[2025-07-02 12:57:37] user [<nil>] not allowed to execute aggregate on [user_account] 
+[GIN] 2025/07/02 - 12:57:37 | 403 |      914.75µs |             ::1 | GET      "/aggregate/user_account"
+[GIN] 2025/07/02 - 12:57:41 | 200 |     456.875µs |             ::1 | HEAD     "/live"
+[GIN] 2025/07/02 - 13:07:01 | 200 |  135.166458ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:07:19 | 200 |  132.099584ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:07:19 | 200 |      64.125µs |             ::1 | HEAD     "/live"
+[GIN] 2025/07/02 - 13:07:21 | 200 |        77.5µs |             ::1 | HEAD     "/live"
+[GIN] 2025/07/02 - 13:07:28 | 200 |     127.875µs |             ::1 | GET      "/live"
+[GIN] 2025/07/02 - 13:07:56 | 200 |  127.850625ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:07:56 | 200 |    1.692458ms |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:08:27 | 200 |  133.245416ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:08:28 | 200 |    1.152541ms |             ::1 | GET      "/api/document"
+[GIN] 2025/07/02 - 13:08:28 | 200 |  125.856583ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:08:28 | 200 |      247.75µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:08:28 | 200 |  125.817833ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:08:28 | 200 |    1.702875ms |             ::1 | GET      "/api/mail_server"
+[GIN] 2025/07/02 - 13:08:38 | 200 |  126.618583ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:08:38 | 200 |     227.125µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:08:40 | 200 |     454.292µs |             ::1 | GET      "/feed"
+[GIN] 2025/07/02 - 13:08:40 | 200 |  126.176666ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:08:40 | 200 |    1.818209ms |             ::1 | GET      "/api/feed"
+[GIN] 2025/07/02 - 13:25:58 | 200 |     104.625µs |             ::1 | HEAD     "/api/world"
+[GIN] 2025/07/02 - 13:26:10 | 200 |  135.173375ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:26:46 | 200 |  126.938958ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:26:53 | 200 |  129.419042ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:26:53 | 200 |    2.238167ms |             ::1 | GET      "/live?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQHRlc3QuY29tIiwiZXhwIjoxNzUxNzAyMjEzLCJpYXQiOjE3NTE0NDMwMTMsImlzcyI6ImRhcHRpbi0wMTk3YzkiLCJqdGkiOiIwMTk3Y2EyMy03ZGYzLTdkNWQtOTgxMC0xODk3OWZmMDBmMmQiLCJuYW1lIjoiVGVzdCBBZG1pbiIsIm5iZiI6MTc1MTQ0MzAxMywic3ViIjoiMDE5N2M5ZTEtMDA4YS03Njg3LWExYzEtZTFhZjVlMGU3MmRjIn0.Y8TE0EDZfxAu-sCggM5EKvn7Kj4o21vW6_ImjRVJUgA"
+[GIN] 2025/07/02 - 13:27:04 | 200 |  132.129041ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:27:04 | 200 |      66.292µs |             ::1 | GET      "/live"
+[GIN] 2025/07/02 - 13:28:01 | 200 |  133.636708ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:28:03 | 200 |      68.584µs |             ::1 | GET      "/live"
+[GIN] 2025/07/02 - 13:28:13 | 200 |   126.05175ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:28:15 | 200 |      67.208µs |             ::1 | GET      "/live"
+[GIN] 2025/07/02 - 13:28:28 | 200 |  126.587208ms |             ::1 | POST     "/action/user_account/signin"
+[31mERRO[0m[2025-07-02 13:28:28] [431] Failed to execute insert query: INSERT INTO `document` (`version`, `reference_id`, `permission`, `created_at`, `updated_at`, `user_account_id`) VALUES (?, ?, ?, ?, ?, ?), vals [[1 [1 151 202 36 241 76 117 40 151 103 20 31 186 198 134 75] 561441 2025-07-02 13:28:28.172363 +0530 IST m=+2107.170214834 2025-07-02 13:28:28.172363 +0530 IST m=+2107.170215043 2]] 
+2025/07/02 13:28:28 NOTICE: NOT NULL constraint failed: document.document_name
+[GIN] 2025/07/02 - 13:28:28 | 500 |     379.458µs |             ::1 | POST     "/api/document"
+[GIN] 2025/07/02 - 13:28:28 | 200 |  126.403042ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:28:28 | 200 |     931.792µs |             ::1 | GET      "/api/document"
+[GIN] 2025/07/02 - 13:28:43 | 200 |  126.318875ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:28:43 | 200 |      2.0355ms |             ::1 | PUT      "/_config/backend/smtp.enable"
+[GIN] 2025/07/02 - 13:28:43 | 200 |  126.017459ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:28:43 | 200 |     243.291µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:28:43 | 200 |  126.643792ms |             ::1 | POST     "/action/user_account/signin"
+[31mERRO[0m[2025-07-02 13:28:43] [431] Failed to execute insert query: INSERT INTO `feed` (`version`, `title`, `link`, `author_name`, `author_email`, `enable`, `enable_atom`, `enable_json`, `enable_rss`, `page_size`, `reference_id`, `permission`, `created_at`, `updated_at`, `user_account_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?), vals [[1 '' '' '' '' 0 1 1 1 1000 [1 151 202 37 45 203 116 11 190 17 74 49 120 182 38 69] 561441 2025-07-02 13:28:43.65929 +0530 IST m=+2122.657094043 2025-07-02 13:28:43.65929 +0530 IST m=+2122.657094168 2]] 
+2025/07/02 13:28:43 NOTICE: NOT NULL constraint failed: feed.feed_name
+[GIN] 2025/07/02 - 13:28:43 | 500 |     851.542µs |             ::1 | POST     "/api/feed"
+[GIN] 2025/07/02 - 13:28:58 | 200 |    125.7685ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:28:58 | 200 |   44.589833ms |             ::1 | GET      "/openapi.yaml"
+[GIN] 2025/07/02 - 13:28:58 | 200 |  127.280166ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:28:58 | 200 |    3.572708ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:29:15 | 200 |  134.306583ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:29:15 | 200 |    3.141125ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:29:29 | 200 |  126.627875ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:29:29 | 200 |    2.123667ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:29:29 | 200 |  126.565041ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:29:29 | 200 |    1.338417ms |             ::1 | GET      "/api/user_account"
+[GIN] 2025/07/02 - 13:29:43 | 200 |  126.558542ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:29:43 | 200 |    2.198125ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:29:43 | 200 |  126.748542ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:29:43 | 200 |    1.008791ms |             ::1 | GET      "/api/calendar"
+[GIN] 2025/07/02 - 13:29:56 | 200 |  126.927375ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:29:56 | 200 |    3.417542ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:29:56 | 200 |  128.966459ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:29:56 | 200 |     449.208µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:30:09 | 200 |  126.706708ms |             ::1 | POST     "/action/user_account/signin"
+[36mINFO[0m[2025-07-02 13:30:09] Get cloud store details: localstore          
+[36mINFO[0m[2025-07-02 13:30:09] [195] Cloud storage: {1 ./storage map[] 00000000-0000-0000-0000-000000000000  localstore local local 1 <nil> <nil> <nil> 0197c9e0-a665-7547-a7ec-260b90f87e4e {00000000-0000-0000-0000-000000000000 [] 0}} 
+[36mINFO[0m[2025-07-02 13:30:09] Initiate file upload action from resource create 
+[36mINFO[0m[2025-07-02 13:30:09] [116] Write file [/var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/upload-0197ca26603673576/test.ical] for upload 
+[31mERRO[0m[2025-07-02 13:30:09] Failed to convert base64 to []bytes: illegal base64 data at input byte 5 
+[36mINFO[0m[2025-07-02 13:30:09] [183] Upload source [/var/folders/z8/gs6k9gx90jx55pfj93fc1gjm0000gn/T/upload-0197ca26603673576] target [./storage/caldav] with [] 
+rclone session exitcode - 1
+[GIN] 2025/07/02 - 13:30:09 | 201 |    3.266709ms |             ::1 | POST     "/api/calendar"
+[GIN] 2025/07/02 - 13:30:09 | 200 |  127.164375ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:30:09 | 200 |     421.959µs |             ::1 | GET      "/api/calendar"
+[GIN] 2025/07/02 - 13:30:25 | 200 |  127.688958ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:30:25 | 200 |  126.821917ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:30:25 | 200 |     779.708µs |             ::1 | PUT      "/_config/backend/caldav.enable"
+[GIN] 2025/07/02 - 13:30:25 | 200 |     191.792µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:30:41 | 200 |  126.664417ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:30:41 | 200 |      76.916µs |             ::1 | HEAD     "/yjs/test-doc"
+[GIN] 2025/07/02 - 13:30:41 | 200 |  125.814958ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:30:41 | 400 |      42.167µs |             ::1 | GET      "/feed/test-feed"
+[GIN] 2025/07/02 - 13:30:41 | 200 |  125.976917ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:30:41 | 200 |     774.125µs |             ::1 | PUT      "/_config/backend/ftp.enable"
+[GIN] 2025/07/02 - 13:30:41 | 200 |     181.667µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:34:47 | 200 |  133.662584ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:34:52 | 200 |  138.723667ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:35:01 | 200 |     127.806ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:35:25 | 200 |     100.625µs |             ::1 | HEAD     "/live"
+[GIN] 2025/07/02 - 13:37:32 | 200 |  132.983041ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:37:55 | 200 |  127.896292ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:38:03 | 200 |  127.468042ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:38:03 | 200 |    3.517333ms |             ::1 | GET      "/live"
+[GIN] 2025/07/02 - 13:38:27 | 200 |  126.963291ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:38:27 | 200 |     490.625µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:38:50 | 200 |  159.043375ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:38:51 | 200 |     2.96625ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:38:57 | 200 |  128.476458ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:38:57 | 200 |    1.094708ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:39:08 | 200 |   128.73475ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:39:08 | 200 |    3.395875ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:39:33 | 200 |  126.893625ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:39:33 | 200 |    3.229375ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 13:43:09 | 200 |  139.395625ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:43:09 | 200 |     374.083µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:43:15 | 200 |  127.187875ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:43:15 | 200 |     228.333µs |             ::1 | GET      "/_config"
+[GIN] 2025/07/02 - 13:47:38 | 200 |  136.077084ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:47:38 | 200 |     227.584µs |             ::1 | PROPFIND  "/caldav/"
+[GIN] 2025/07/02 - 13:48:05 | 400 |      54.583µs |             ::1 | GET      "/feed/world"
+[GIN] 2025/07/02 - 13:48:17 | 200 |  127.089792ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 13:48:17 | 200 |    2.118292ms |             ::1 | GET      "/api/feed"
+[36mINFO[0m[2025-07-02 13:53:21] [82] Execute task [][sync_mail_servers] as user [admin@test.com] 
+[GIN] 2025/07/02 - 13:54:11 | 200 |   42.037875ms |             ::1 | GET      "/openapi.yaml"
+[GIN] 2025/07/02 - 14:00:13 | 200 |  138.494375ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 14:00:40 | 200 |    3.781083ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:01:00 | 200 |     123.209µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:00 | 200 |     103.833µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:00 | 200 |     193.041µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:00 | 200 |     101.208µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:00 | 200 |         109µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      90.667µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      99.041µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |     132.792µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |     102.291µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      80.917µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      87.584µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      78.917µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      95.375µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      73.042µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      69.958µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      97.334µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |         120µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |     104.833µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |        81.5µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:01 | 200 |      83.292µs |             ::1 | POST     "/api/books"
+[GIN] 2025/07/02 - 14:01:11 | 200 |     130.834µs |             ::1 | GET      "/api/books/aggregate?column=title&group=title&function=count"
+[GIN] 2025/07/02 - 14:01:21 | 200 |     115.875µs |             ::1 | GET      "/api/books/aggregate?column=title&group=title&function=count"
+[31mERRO[0m[2025-07-02 14:01:36] entity not found for aggregation: books      
+[GIN] 2025/07/02 - 14:01:36 | 404 |     127.917µs |             ::1 | GET      "/aggregate/books"
+[31mERRO[0m[2025-07-02 14:03:44] entity not found for aggregation: books      
+[GIN] 2025/07/02 - 14:03:44 | 404 |     330.708µs |             ::1 | GET      "/aggregate/books?group=title&column=title,count(*)"
+[31mERRO[0m[2025-07-02 14:03:55] entity not found for aggregation: books      
+[GIN] 2025/07/02 - 14:03:55 | 404 |      134.25µs |             ::1 | GET      "/aggregate/books?column=count"
+[36mINFO[0m[2025-07-02 14:04:06] Aggregation query: SELECT is_hidden, count(*) AS `count`, is_hidden FROM `world` GROUP BY is_hidden 
+[GIN] 2025/07/02 - 14:04:06 | 200 |    7.405792ms |             ::1 | GET      "/aggregate/world?group=is_hidden&column=is_hidden,count"
+[36mINFO[0m[2025-07-02 14:04:38] Aggregation query: SELECT sum(is_hidden) FROM `world` 
+[GIN] 2025/07/02 - 14:04:38 | 200 |     506.083µs |             ::1 | GET      "/aggregate/world?column=sum(is_hidden)"
+[36mINFO[0m[2025-07-02 14:04:48] Aggregation query: SELECT count(*) AS `count` FROM `world` WHERE (`is_top_level` = ?) 
+[GIN] 2025/07/02 - 14:04:48 | 200 |     426.041µs |             ::1 | GET      "/aggregate/world?filter=eq(is_top_level,1)&column=count"
+[GIN] 2025/07/02 - 14:05:14 | 200 |         547µs |             ::1 | GET      "/graphql"
+[GIN] 2025/07/02 - 14:05:31 | 200 |     105.167µs |             ::1 | GET      "/_config/graphql.enable"
+[GIN] 2025/07/02 - 14:05:40 | 200 |     120.916µs |             ::1 | POST     "/_config/graphql.enable"
+[31mERRO[0m[2025-07-02 14:08:20] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 14:08:20] Failed to scan action 66: <nil>              
+[33mWARN[0m[2025-07-02 14:08:20] subject is unidentified: __enable_graphql - world 
+[GIN] 2025/07/02 - 14:08:20 | 400 |    5.961084ms |             ::1 | POST     "/action/world/__enable_graphql"
+[GIN] 2025/07/02 - 14:08:31 | 200 |       1.295ms |             ::1 | POST     "/_config/backend/graphql.enable"
+[36mINFO[0m[2025-07-02 14:08:42] Files [map[json_schema:[map[file:data:application/json;base64,e30K name:empty.json type:application/json]]]]: [map[file:data:application/json;base64,e30K name:empty.json type:application/json]] 
+[36mINFO[0m[2025-07-02 14:08:42] File name: empty.json                        
+[36mINFO[0m[2025-07-02 14:08:42] Written all json files. Attempting restart   
+[GIN] 2025/07/02 - 14:08:42 | 200 |    3.414333ms |             ::1 | POST     "/action/world/restart_daptin"
+[GIN] 2025/07/02 - 14:09:00 | 200 |  139.895875ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 14:09:11 | 200 |     197.792µs |             ::1 | POST     "/graphql"
+[GIN] 2025/07/02 - 14:09:44 | 200 |     126.416µs |             ::1 | GET      "/api/books.csv"
+[GIN] 2025/07/02 - 14:12:56 | 200 |    6.813917ms |             ::1 | POST     "/api/books/action/__data_export"
+[GIN] 2025/07/02 - 14:13:08 | 200 |     144.583µs |             ::1 | POST     "/api/books/action/__data_export"
+[GIN] 2025/07/02 - 14:13:43 | 201 |    3.320792ms |             ::1 | POST     "/api/world"
+[36mINFO[0m[2025-07-02 14:13:57] Files [map[json_schema:[map[file:data:application/json;base64,e30K name:empty.json type:application/json]]]]: [map[file:data:application/json;base64,e30K name:empty.json type:application/json]] 
+[36mINFO[0m[2025-07-02 14:13:57] File name: empty.json                        
+[36mINFO[0m[2025-07-02 14:13:57] Written all json files. Attempting restart   
+[GIN] 2025/07/02 - 14:13:57 | 200 |   23.615917ms |             ::1 | POST     "/action/world/restart_daptin"
+[GIN] 2025/07/02 - 14:14:15 | 200 |   133.88625ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 14:14:27 | 200 |    1.934916ms |             ::1 | GET      "/api/user_account?include=usergroup_id"
+[GIN] 2025/07/02 - 14:14:41 | 200 |    1.053459ms |             ::1 | GET      "/api/world/0197c9e0-a657-70af-855e-04ffcd8235d4?include=user_account_id"
+[GIN] 2025/07/02 - 14:23:09 | 200 |  132.739083ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 14:23:40 | 403 |     115.917µs |             ::1 | GET      "/_config"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:23:47 | 200 |       95.25µs |             ::1 | GET      "/_config/backend"
+[GIN] 2025/07/02 - 14:23:52 | 200 |      74.583µs |             ::1 | GET      "/_config/backend"
+[GIN] 2025/07/02 - 14:24:00 | 200 |      83.292µs |             ::1 | GET      "/_config/backend"
+[GIN] 2025/07/02 - 14:24:20 | 200 |      83.541µs |             ::1 | GET      "/api/_config"
+[GIN] 2025/07/02 - 14:24:59 | 403 |    5.498625ms |             ::1 | GET      "/_config"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:05 | 403 |     100.333µs |             ::1 | GET      "/_config/backend/graphql.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:14 | 403 |         106µs |             ::1 | POST     "/_config/backend/graphql.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:27 | 403 |     131.542µs |             ::1 | POST     "/_config/backend/graphql.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:27 | 403 |      63.875µs |             ::1 | POST     "/_config/backend/gzip.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:27 | 403 |          47µs |             ::1 | POST     "/_config/backend/limit.rate"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:27 | 403 |      45.625µs |             ::1 | POST     "/_config/backend/yjs.enabled"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:27 | 403 |      49.667µs |             ::1 | POST     "/_config/backend/caldav.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:27 | 403 |      54.333µs |             ::1 | POST     "/_config/backend/ftp.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:36 | 403 |     101.417µs |             ::1 | GET      "/_config/backend/graphql.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:36 | 403 |      55.833µs |             ::1 | GET      "/_config/backend/gzip.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:36 | 403 |        50.5µs |             ::1 | GET      "/_config/backend/limit.rate"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:36 | 403 |      50.584µs |             ::1 | GET      "/_config/backend/yjs.enabled"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:36 | 403 |       56.75µs |             ::1 | GET      "/_config/backend/caldav.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:36 | 403 |      44.917µs |             ::1 | GET      "/_config/backend/ftp.enable"
+Error #01: unauthorized
+[GIN] 2025/07/02 - 14:25:46 | 200 |      89.875µs |             ::1 | POST     "/api/world/action/__download_system_schema"
+[GIN] 2025/07/02 - 14:25:55 | 200 |    4.143375ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |    7.661625ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     298.541µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     262.333µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     261.292µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     305.833µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |       284.5µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     255.792µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     281.875µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     265.542µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:37 | 200 |     236.542µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:59 | 200 |     679.291µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:59 | 200 |     539.417µs |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:26:59 | 200 |     144.542µs |             ::1 | HEAD     "/api/world"
+[GIN] 2025/07/02 - 14:27:40 | 200 |      19.042µs |             ::1 | OPTIONS  "/api/world"
+[GIN] 2025/07/02 - 14:27:40 | 200 |      69.291µs |             ::1 | HEAD     "/api/world"
+[GIN] 2025/07/02 - 14:28:18 | 200 |    7.085042ms |             ::1 | GET      "/api/site"
+[33mWARN[0m[2025-07-02 14:28:27] Error from BeforeCreate[TableAccessPermissionChecker]: http error (403) TableAccessPermissionChecker and 0 more errors, [table] [site] access not allowed for action [POST] to user [00000000-0000-0000-0000-000000000000] 
+2025/07/02 14:28:27 NOTICE: http error (403) TableAccessPermissionChecker and 0 more errors, [table] [site] access not allowed for action [POST] to user [00000000-0000-0000-0000-000000000000]
+[GIN] 2025/07/02 - 14:28:27 | 403 |      407.25µs |             ::1 | POST     "/api/site"
+[GIN] 2025/07/02 - 14:28:35 | 200 |    2.478541ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:28:42 | 200 |    2.811584ms |             ::1 | GET      "/api/action"
+[31mERRO[0m[2025-07-02 14:33:29] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 14:33:29] Failed to scan action 66: <nil>              
+[31mERRO[0m[2025-07-02 14:33:29] [636] failed to scan permission: <nil>       
+[33mWARN[0m[2025-07-02 14:33:29] user[&{0 00000000-0000-0000-0000-000000000000 []}] not allowed action: signin - <nil> 
+[GIN] 2025/07/02 - 14:33:29 | 403 |     6.91675ms |             ::1 | POST     "/action/user/signin"
+[31mERRO[0m[2025-07-02 14:33:36] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 14:33:36] Failed to scan action 66: <nil>              
+[31mERRO[0m[2025-07-02 14:33:36] [636] failed to scan permission: <nil>       
+[33mWARN[0m[2025-07-02 14:33:36] user[&{0 00000000-0000-0000-0000-000000000000 []}] not allowed action: signin - <nil> 
+[GIN] 2025/07/02 - 14:33:36 | 403 |     474.333µs |             ::1 | POST     "/action/user/signin"
+[GIN] 2025/07/02 - 14:33:46 | 200 |     125.291µs |             ::1 | POST     "/user/signin"
+[GIN] 2025/07/02 - 14:33:54 | 200 |      86.416µs |             ::1 | POST     "/api/user/signin"
+[GIN] 2025/07/02 - 14:34:14 | 200 |    1.489125ms |             ::1 | GET      "/api/action"
+[GIN] 2025/07/02 - 14:34:27 | 200 |    3.162333ms |             ::1 | GET      "/api/world?page%5Bsize%5D=50"
+[GIN] 2025/07/02 - 14:34:34 | 200 |      99.333µs |             ::1 | GET      "/api/user_action?page%5Bsize%5D=50"
+[GIN] 2025/07/02 - 14:34:34 | 200 |    6.458167ms |             ::1 | GET      "/api/world"
+[GIN] 2025/07/02 - 14:34:42 | 200 |      75.459µs |             ::1 | GET      "/action/user"
+[31mERRO[0m[2025-07-02 14:34:44] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 14:34:44] Failed to scan action 66: <nil>              
+[31mERRO[0m[2025-07-02 14:34:44] [636] failed to scan permission: <nil>       
+[33mWARN[0m[2025-07-02 14:34:44] user[&{0 00000000-0000-0000-0000-000000000000 []}] not allowed action: signup - <nil> 
+[GIN] 2025/07/02 - 14:34:44 | 403 |    1.898416ms |             ::1 | POST     "/action/user/signup"
+[GIN] 2025/07/02 - 14:35:58 | 200 |  133.557458ms |             ::1 | POST     "/action/user_account/signin"
+[GIN] 2025/07/02 - 14:36:08 | 200 |    1.313542ms |             ::1 | GET      "/action/user"
+[GIN] 2025/07/02 - 14:36:16 | 200 |    1.641375ms |             ::1 | GET      "/api/world?filter=table_name+eq+action"
+[31mERRO[0m[2025-07-02 14:36:41] [431] Failed to execute insert query: INSERT INTO `world` (`version`, `table_name`, `default_permission`, `is_top_level`, `is_hidden`, `is_join_table`, `is_state_tracking_enabled`, `default_order`, `icon`, `reference_id`, `permission`, `created_at`, `updated_at`, `user_account_id`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?), vals [[1 workflow_test 438 1 0 0 0 +id fa-star [1 151 202 99 103 249 113 13 182 51 108 49 51 235 187 183] 561441 2025-07-02 14:36:41.7851 +0530 IST m=+6200.806011293 2025-07-02 14:36:41.7851 +0530 IST m=+6200.806011376 2]] 
+2025/07/02 14:36:41 NOTICE: NOT NULL constraint failed: world.world_schema_json
+[GIN] 2025/07/02 - 14:36:41 | 500 |     470.958µs |             ::1 | POST     "/api/world"
+[GIN] 2025/07/02 - 14:36:47 | 200 |    1.366291ms |             ::1 | GET      "/api/world?page%5Bsize%5D=2"
+[GIN] 2025/07/02 - 14:36:53 | 200 |     572.125µs |             ::1 | GET      "/api/world?filter=table_name+eq+user_account&page%5Bsize%5D=1"
+[GIN] 2025/07/02 - 14:37:09 | 200 |    1.865208ms |       127.0.0.1 | GET      "/sign-in"
+[GIN] 2025/07/02 - 14:37:09 | 200 |    2.557542ms |       127.0.0.1 | GET      "/assets/index-Dld2H117.css"
+[GIN] 2025/07/02 - 14:37:09 | 200 |   92.508875ms |       127.0.0.1 | GET      "/assets/index-BNwpK1zh.js"
+[GIN] 2025/07/02 - 14:37:09 | 200 |     366.084µs |       127.0.0.1 | GET      "/meta?query=column_types"
+[GIN] 2025/07/02 - 14:37:09 | 200 |     525.417µs |       127.0.0.1 | GET      "/images/favicon.svg"
+[GIN] 2025/07/02 - 14:37:09 | 200 |      260.75µs |       127.0.0.1 | GET      "/jsmodel/user_account.js"
+[GIN] 2025/07/02 - 14:37:09 | 200 |    7.805334ms |       127.0.0.1 | GET      "/jsmodel/usergroup.js"
+[GIN] 2025/07/02 - 14:37:09 | 200 |    1.064917ms |       127.0.0.1 | GET      "/jsmodel/world.js"
+[GIN] 2025/07/02 - 14:37:09 | 200 |     585.084µs |       127.0.0.1 | GET      "/jsmodel/action.js"
+[36mINFO[0m[2025-07-02 14:37:09] memory is not a table                        
+[GIN] 2025/07/02 - 14:37:09 | 404 |     124.167µs |       127.0.0.1 | GET      "/jsmodel/memory.js"
+[GIN] 2025/07/02 - 14:37:10 | 200 |     182.292µs |             ::1 | GET      "/actions"
+[36mINFO[0m[2025-07-02 14:37:18] Generate random data for table               
+[36mINFO[0m[2025-07-02 14:37:18] map[__type:generate.random.data count:5 table_name: user_account_id:2 user_reference_id:0197c9e1-008a-7687-a1c1-e1af5e0e72dc] 
+[31mERRO[0m[2025-07-02 14:37:18] Table [] is not created yet                  
+[GIN] 2025/07/02 - 14:37:18 | 500 |     2.05675ms |             ::1 | POST     "/action/world/generate_random_data"
+[31mERRO[0m[2025-07-02 14:37:18] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 14:37:18] Failed to scan action 66: <nil>              
+[33mWARN[0m[2025-07-02 14:37:18] subject is unidentified: generate_jwt_token - user_account 
+[GIN] 2025/07/02 - 14:37:18 | 400 |     373.125µs |             ::1 | POST     "/action/user_account/generate_jwt_token"
+[31mERRO[0m[2025-07-02 14:37:18] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 14:37:18] Failed to scan action 66: <nil>              
+[33mWARN[0m[2025-07-02 14:37:18] subject is unidentified: otp_generate - user_account 
+[GIN] 2025/07/02 - 14:37:18 | 400 |     511.709µs |             ::1 | POST     "/action/user_account/otp_generate"
+[36mINFO[0m[2025-07-02 14:37:18] Exporting [[user_account]] columns [map[user_account:[]]] 
+[36mINFO[0m[2025-07-02 14:37:18] Starting paginated export for table [user_account] with page size 1 
+[36mINFO[0m[2025-07-02 14:37:18] Starting paginated export for table [user_account] with page size 1000 
+[36mINFO[0m[2025-07-02 14:37:18] Writing [2] rows                             
+[GIN] 2025/07/02 - 14:37:18 | 200 |     753.458µs |             ::1 | POST     "/action/world/export_data"
+[31mERRO[0m[2025-07-02 14:37:18] sql: SELECT `a`.`action_name` AS `name`, `w`.`table_name` AS `ontype`, `a`.`label` AS `label`, `action_schema` AS `action_schema`, `a`.`instance_optional` AS `instance_optional`, `a`.`reference_id` AS `referenceid` FROM `action` AS `a` INNER JOIN `world` AS `w` ON (`w`.`id` = `a`.`world_id`) WHERE ((`w`.`table_name` = ?) AND (`a`.`action_name` = ?)) LIMIT ? 
+[31mERRO[0m[2025-07-02 14:37:18] Failed to scan action 66: <nil>              
+[33mWARN[0m[2025-07-02 14:37:18] subject is unidentified: send - mail         
+[GIN] 2025/07/02 - 14:37:18 | 400 |         284µs |             ::1 | POST     "/action/mail/send"
+[GIN] 2025/07/02 - 14:38:05 | 200 |     520.542µs |             ::1 | GET      "/api/smd?page%5Bsize%5D=2"
+[GIN] 2025/07/02 - 14:38:15 | 200 |    6.964125ms |             ::1 | GET      "/api/world?filter=table_name+contains+task&page%5Bsize%5D=10"
+[GIN] 2025/07/02 - 14:38:23 | 200 |    8.791375ms |             ::1 | GET      "/api/world?page%5Bsize%5D=50"
+[GIN] 2025/07/02 - 14:38:24 | 200 |    3.991708ms |             ::1 | GET      "/api/world?page%5Bsize%5D=50"
+[GIN] 2025/07/02 - 14:38:31 | 200 |    1.079917ms |             ::1 | GET      "/api/task?page%5Bsize%5D=2"
+[GIN] 2025/07/02 - 14:38:31 | 200 |     472.209µs |             ::1 | GET      "/api/world?filter=table_name+eq+task"

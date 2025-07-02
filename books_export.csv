@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" style="overflow: hidden !important;; height: 100vh !important;; width: 100vw !important;">
+  <head >
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="icon" type="image/png" href="/images/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary Meta Tags -->
+    <title>Daptin Admin</title>
+    <meta name="title" content="Shadcn Admin" />
+    <meta
+      name="description"
+      content="Daptin Admin Dashboard UI built with Shadcn and Vite."
+    />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://github.com/daptin/daptin" />
+    <meta property="og:title" content="Shadcn Admin" />
+    <meta
+      property="og:description"
+      content="Daptin Admin Dashboard UI built with Shadcn and Vite."
+    />
+    <meta
+      property="og:image"
+      content="https://shadcn-admin.netlify.app/images/shadcn-admin.png"
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shadcn-admin.netlify.app" />
+    <meta property="twitter:title" content="Shadcn Admin" />
+    <meta
+      property="twitter:description"
+      content="Admin Dashboard UI built with Shadcn and Vite."
+    />
+    <meta
+      property="twitter:image"
+      content="https://shadcn-admin.netlify.app/images/shadcn-admin.png"
+    />
+
+    <!-- font family -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap"
+      rel="stylesheet"
+    />
+
+    <meta name="theme-color" content="#fff" />
+    <script type="module" crossorigin src="/assets/index-BNwpK1zh.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Dld2H117.css">
+  </head>
+  <body class="group/body">
+    <div id="root"></div>
+  </body>
+</html>

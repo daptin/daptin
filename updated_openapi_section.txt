@@ -1,0 +1,318 @@
+## 🔄 Real-time & Communication Features
+
+### WebSocket Integration
+Daptin provides real-time capabilities through WebSocket connections at `/live`.
+
+**Connection Setup:**
+~~~javascript
+// WebSocket authentication via query parameter
+const token = 'YOUR_JWT_TOKEN';
+const ws = new WebSocket(`ws://localhost:6336/live?token=${token}`);
+
+ws.onopen = () => console.log('Connected to Daptin real-time server');
+ws.onmessage = (event) => console.log('Received:', JSON.parse(event.data));
+~~~
+
+**Supported Methods:**
+- `subscribe` - Subscribe to topics with optional filters
+- `unsubscribe` - Unsubscribe from topics
+- `list-topicName` - List all available topics
+- `create-topicName` - Create custom topics
+- `destroy-topicName` - Remove custom topics
+- `new-message` - Publish messages to topics
+
+**WebSocket Message Format:**
+~~~json
+{
+  "method": "subscribe",
+  "attributes": {
+    "topicName": "user_account,document",
+    "filters": {
+      "EventType": "create|update|delete"
+    }
+  }
+}
+~~~
+
+**Pub/Sub Pattern:**
+- System topics: One per database table (automatic)
+- Custom topics: User-created for custom messaging
+- Permission-aware: Events filtered based on user permissions
+- Distributed: Uses Olric for cluster-wide messaging
+
+**Real-time Event Example:**
+~~~json
+{
+  "EventData": {
+    "__type": "user_account",
+    "email": "user@example.com",
+    "reference_id": "uuid-here",
+    "created_at": "2024-01-15T09:30:00Z"
+  },
+  "MessageSource": "database",
+  "EventType": "create",
+  "ObjectType": "user_account"
+}
+~~~
+
+### YJS Collaborative Editing
+Real-time document collaboration powered by YJS protocol.
+
+**Configuration:**
+~~~bash
+# Check YJS status
+curl -H "Authorization: Bearer TOKEN" http://localhost:6336/_config | grep yjs
+# Returns: "yjs.enabled": "true", "yjs.storage.path": "./storage/yjs-documents"
+~~~
+
+**YJS WebSocket Connection:**
+~~~javascript
+// Connect to YJS document collaboration (token in URL)
+const token = 'YOUR_JWT_TOKEN';
+const yjsProvider = new WebsocketProvider(
+  `ws://localhost:6336/live/document/REFERENCE_ID/content/yjs?token=${token}`,
+  'document-room',
+  ydoc,
+  { 
+    awareness: {
+      user: {
+        name: 'User Name',
+        color: '#ff0000'
+      }
+    }
+  }
+);
+~~~
+
+**YJS Endpoints:**
+- **Document Collaboration**: `/live/{typename}/{referenceId}/{columnName}/yjs`
+- **Direct YJS**: `/yjs/{documentName}`
+- **Automatic**: Any file-type column gets YJS endpoints
+
+**Supported File Types for Collaboration:**
+- `file.document` - Rich text documents
+- `file.diagram` - Mermaid/diagram files
+- `file.spreadsheet` - Spreadsheet collaboration
+- `file.*` - Any file type column
+
+**Example: Create Collaborative Document:**
+~~~bash
+curl -X POST http://localhost:6336/api/document \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "type": "document",
+      "attributes": {
+        "title": "Collaborative Doc",
+        "content": [{
+          "name": "doc.yjs",
+          "type": "x-crdt/yjs",
+          "contents": "BASE64_ENCODED_YJS_STATE"
+        }]
+      }
+    }
+  }'
+~~~
+
+### Live Data Subscription
+Subscribe to real-time changes across all entities:
+~~~bash
+# WebSocket message to subscribe to user account changes
+{
+  "method": "subscribe",
+  "attributes": {
+    "topicName": "user_account",
+    "filters": {"EventType": "update"}
+  }
+}
+~~~
+
+## 📧 Communication Systems
+
+### SMTP Email Server
+Built-in email server with full SMTP/IMAP support.
+
+**Configuration:**
+~~~bash
+# Enable SMTP server
+curl -X PUT http://localhost:6336/_config/backend/smtp.enable \
+  -H "Authorization: Bearer TOKEN" \
+  -d '"true"'
+~~~
+
+**Create Mail Server:**
+~~~bash
+curl -X POST http://localhost:6336/api/mail_server \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "mail_server",
+      "attributes": {
+        "hostname": "smtp.yourdomain.com",
+        "is_enabled": true,
+        "listen_interface": "0.0.0.0:465",
+        "max_size": 10485760,
+        "max_clients": 100,
+        "always_on_tls": true,
+        "authentication_required": true
+      }
+    }
+  }'
+~~~
+
+**Send Email:**
+~~~bash
+curl -X POST http://localhost:6336/action/world/mail.send \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "from": "sender@yourdomain.com",
+      "to": ["recipient@example.com"],
+      "subject": "Test Email",
+      "body": "This is a test email sent via Daptin SMTP"
+    }
+  }'
+~~~
+
+**Email Features:**
+- TLS/SSL with automatic certificate management
+- DKIM signing for all outgoing emails
+- SPF verification for incoming emails
+- Spam scoring and filtering
+- Full IMAP support for email retrieval
+- AWS SES integration available
+
+### CalDAV Calendar Sync
+Synchronize calendars and contacts via CalDAV/CardDAV protocols.
+
+**Configuration:**
+~~~bash
+# Enable CalDAV server
+curl -X PUT http://localhost:6336/_config/backend/caldav.enable \
+  -H "Authorization: Bearer TOKEN" \
+  -d '"true"'
+~~~
+
+**CalDAV Endpoints:**
+- **Calendar**: `/caldav/*` - Calendar synchronization
+- **Contacts**: `/carddav/*` - Contact synchronization
+- **Authentication**: Basic auth with Daptin credentials
+
+**Client Configuration:**
+- **Server URL**: `http://localhost:6336/caldav/`
+- **Username**: Your Daptin email
+- **Password**: Your Daptin password
+- **Protocol**: CalDAV for calendars, CardDAV for contacts
+
+### FTP File Transfer
+Built-in FTP server for file transfer operations.
+
+**Configuration:**
+~~~bash
+# Enable FTP server
+curl -X PUT http://localhost:6336/_config/backend/ftp.enable \
+  -H "Authorization: Bearer TOKEN" \
+  -d '"true"'
+~~~
+
+**FTP Features:**
+- Multi-site support with subsite isolation
+- Cloud storage backend integration
+- User authentication via Daptin credentials
+- TLS support for secure transfers
+- Site-specific FTP access control
+
+## 📰 Feed System
+
+### RSS/Atom Feed Generation
+Automatic feed generation for any entity.
+
+**Create Feed:**
+~~~bash
+curl -X POST http://localhost:6336/api/feed \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "type": "feed",
+      "attributes": {
+        "feed_name": "blog-posts",
+        "table_name": "blog_post",
+        "title": "Blog RSS Feed",
+        "description": "Latest blog posts",
+        "order": "created_at desc",
+        "limit": 20
+      }
+    }
+  }'
+~~~
+
+**Access Feed:**
+~~~bash
+# RSS format
+curl http://localhost:6336/feed/blog-posts.rss
+
+# Atom format
+curl http://localhost:6336/feed/blog-posts.atom
+
+# JSON format
+curl http://localhost:6336/feed/blog-posts.json
+~~~
+
+**Feed Features:**
+- Automatic RSS/Atom/JSON generation
+- Customizable field mapping
+- Public or authenticated access
+- Pagination support
+- Multiple format outputs
+
+## 🚀 Advanced Features Summary
+
+### Real-time Capabilities
+- **WebSockets**: Pub/sub messaging, live data updates, custom topics
+- **YJS Collaboration**: Document co-editing, presence awareness, conflict resolution
+- **Event Streaming**: Database change notifications with permission filtering
+- **Distributed Messaging**: Olric-based pub/sub for cluster deployments
+
+### Communication Protocols
+- **SMTP/IMAP**: Full email server with TLS, DKIM, SPF
+- **CalDAV/CardDAV**: Calendar and contact synchronization
+- **FTP/FTPS**: Secure file transfer with multi-site support
+- **RSS/Atom**: Automatic feed generation from any entity
+
+### Integration Patterns
+- **Client SDK Generation**: Auto-generated TypeScript/JavaScript models
+- **GraphQL Support**: Optional GraphQL API layer
+- **External Storage**: S3, Google Cloud, Azure blob integration
+- **Authentication**: JWT, OAuth2, Basic Auth, API keys
+
+### Developer Experience
+- **Self-Discovery**: All features discoverable via API
+- **Progressive Complexity**: Simple CRUD to advanced workflows
+- **Hot Configuration**: Most settings changeable without restart
+- **Comprehensive Logging**: Detailed logs for debugging
+
+## 📚 Learning Resources
+
+### Quick References
+- **Entity Discovery**: `GET /api/world`
+- **Action Discovery**: `GET /api/action`
+- **Configuration**: `GET /_config` (admin only)
+- **Statistics**: `GET /statistics` (public)
+- **Client Models**: `GET /jsmodel/{entity}`
+
+### Common Patterns
+1. **Authentication Flow**: signup → signin → become_admin → use API
+2. **Entity Creation**: create world entry → restart → use new entity
+3. **Real-time Setup**: enable feature → create entity → connect WebSocket
+4. **Email Setup**: create mail_server → create mail_account → send emails
+
+### Best Practices
+- Always check permissions with `GET /api/user_account`
+- Use filter parameters for efficient queries
+- Enable only needed features for security
+- Monitor rate limits in response headers
+- Use appropriate authentication method for use case
