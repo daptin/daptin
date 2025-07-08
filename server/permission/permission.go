@@ -203,7 +203,7 @@ func (p PermissionInstance) CanRead(userId daptinid.DaptinReferenceId, usergroup
 			return true
 		}
 		for _, oGroup := range p.UserGroupId {
-			if uGroup.GroupReferenceId == oGroup.GroupReferenceId && oGroup.Permission&auth.GroupRead == auth.GroupRead {
+			if (uGroup.GroupReferenceId == oGroup.GroupReferenceId || uGroup.RelationReferenceId == oGroup.GroupReferenceId) && oGroup.Permission&auth.GroupRead == auth.GroupRead {
 				return true
 			}
 		}

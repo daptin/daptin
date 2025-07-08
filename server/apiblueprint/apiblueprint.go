@@ -71,17 +71,17 @@ func CreateColumnLine(colInfo api2go.ColumnInfo) map[string]interface{} {
 	m := map[string]interface{}{
 		"type": typ,
 	}
-	
+
 	// Add description if available
 	if colInfo.ColumnDescription != "" {
 		m["description"] = colInfo.ColumnDescription
 	}
-	
+
 	// Add default value if specified
 	if colInfo.DefaultValue != "" && colInfo.DefaultValue != "null" {
 		m["default"] = colInfo.DefaultValue
 	}
-	
+
 	// Add format based on column type
 	switch columnType {
 	case "email":
@@ -103,7 +103,7 @@ func CreateColumnLine(colInfo api2go.ColumnInfo) map[string]interface{} {
 		m["format"] = "uuid"
 		m["example"] = "550e8400-e29b-41d4-a716-446655440000"
 	}
-	
+
 	// Add enum values if available
 	if len(colInfo.Options) > 0 {
 		enumValues := make([]string, 0)
@@ -118,12 +118,12 @@ func CreateColumnLine(colInfo api2go.ColumnInfo) map[string]interface{} {
 			m["enum"] = enumValues
 		}
 	}
-	
+
 	// Add nullable property for clarity
 	if colInfo.IsNullable {
 		m["nullable"] = true
 	}
-	
+
 	return m
 }
 
@@ -138,36 +138,36 @@ func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.Db
 	apiDefinition := yaml.MapSlice{
 		{Key: "openapi", Value: "3.0.0"},
 	}
-	
+
 	apiDefinition = append(apiDefinition, yaml.MapItem{
 		Key: "info",
 		Value: map[string]interface{}{
-		"version": "1.0.0",
-		"title":   "Daptin API endpoint",
-		"license": map[string]interface{}{
-			"name": "MIT",
-			"url": "https://opensource.org/licenses/MIT",
-		},
-		"contact": map[string]interface{}{
-			"name":  "Daptin Support",
-			"url":   "https://dapt.in",
-			"email": "artpar@gmail.com",
-		},
-		"description": `Daptin is a self-discovering headless backend that provides complete CRUD operations, authentication, authorization, and custom actions. This API follows JSON:API specification for resource representation.
+			"version": "1.0.0",
+			"title":   "Daptin API endpoint",
+			"license": map[string]interface{}{
+				"name": "MIT",
+				"url":  "https://opensource.org/licenses/MIT",
+			},
+			"contact": map[string]interface{}{
+				"name":  "Daptin Support",
+				"url":   "https://dapt.in",
+				"email": "artpar@gmail.com",
+			},
+			"description": `Daptin is a self-discovering headless backend that provides complete CRUD operations, authentication, authorization, and custom actions. This API follows JSON:API specification for resource representation.
 
 ## 🚀 Quick Start for Beginners
 
 ### Step 1: Discover Available Resources
-~~~bash
+` + "```" + `bash
 # Get all available entities/tables
 curl http://localhost:6336/api/world
 
 # Get all available actions
 curl http://localhost:6336/api/action
-~~~
+` + "```" + `
 
 ### Step 2: Authentication Setup
-~~~bash
+` + "```" + `bash
 # 1. Create your first user account (public endpoint)
 curl -X POST http://localhost:6336/action/user_account/signup \
   -H "Content-Type: application/json" \
@@ -183,10 +183,10 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{}'
-~~~
+` + "```" + `
 
 ### Step 3: Basic Resource Operations
-~~~bash
+` + "```" + `bash
 # List all user accounts (using JWT token)
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   http://localhost:6336/api/user_account
@@ -202,7 +202,7 @@ curl -X POST http://localhost:6336/action/world/restart_daptin \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{}'
-~~~
+` + "```" + `
 
 ## 🎓 Advanced Self-Management
 
@@ -269,10 +269,10 @@ Daptin has WebSocket infrastructure at '/live' but currently has authentication 
 - Authentication middleware causes 403 Forbidden during WebSocket handshake
 - Requires further investigation for proper token handling in WebSocket connections
 
-**Endpoint Available:** `/live` (returns "not websocket protocol" via HTTP, 403 via WebSocket)
+**Endpoint Available:** ` + "`" + `/live` + "`" + ` (returns "not websocket protocol" via HTTP, 403 via WebSocket)
 
 **WebSocket Message Format:**
-~~~json
+` + "```" + `json
 {
   "method": "subscribe|unsubscribe|list-topic|create-topic|destroy-topic|new-message",
   "attributes": {
@@ -283,10 +283,10 @@ Daptin has WebSocket infrastructure at '/live' but currently has authentication 
     }
   }
 }
-~~~
+` + "```" + `
 
 **Real-time Event Example:**
-~~~json
+` + "```" + `json
 {
   "MessageSource": "database",
   "EventType": "create", 
@@ -298,13 +298,13 @@ Daptin has WebSocket infrastructure at '/live' but currently has authentication 
     "created_at": "2024-01-15T09:30:00Z"
   }
 }
-~~~
+` + "```" + `
 
 ### ✅ YJS Collaborative Editing (Infrastructure Verified)
 Real-time document collaboration infrastructure powered by YJS protocol.
 
 **YJS Configuration (VERIFIED WORKING):**
-~~~bash
+` + "```" + `bash
 # YJS is enabled and configured (TESTED ✅)
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/_config | grep yjs
 # Returns: "yjs.enabled": "true", "yjs.storage.path": "./storage/yjs-documents"
@@ -312,28 +312,28 @@ curl -H "Authorization: Bearer TOKEN" http://localhost:6336/_config | grep yjs
 # YJS endpoint exists and responds (TESTED ✅)
 curl -I http://localhost:6336/yjs/documentName
 # Returns: HTTP/1.1 200 OK
-~~~
+` + "```" + `
 
 **File Column Setup (VERIFIED WORKING):**
-~~~bash
+` + "```" + `bash
 # Create calendar with file.ical content for YJS collaboration (TESTED ✅)
 curl -X POST http://localhost:6336/api/calendar \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"data": {"type": "calendar", "attributes": {"rpath": "test-calendar", "content": [{"name": "test.ical", "type": "text/calendar", "contents": "BEGIN:VCALENDAR\\nVERSION:2.0\\nEND:VCALENDAR"}]}}}'
 # Returns: Success with reference_id for collaboration
-~~~
+` + "```" + `
 
 **YJS Endpoints (Infrastructure Present):**
-- **Direct YJS**: `/yjs/:documentName` (HTTP 200 ✅)
-- **Live Collaboration**: `/live/calendar/:referenceId/content/yjs` (Requires WebSocket auth fix)
+- **Direct YJS**: ` + "`" + `/yjs/:documentName` + "`" + ` (HTTP 200 ✅)
+- **Live Collaboration**: ` + "`" + `/live/calendar/:referenceId/content/yjs` + "`" + ` (Requires WebSocket auth fix)
 - **File Columns**: Any file-type column gets automatic YJS endpoints
 
 **Status**: YJS infrastructure is ready, collaboration endpoints exist, but require WebSocket authentication resolution for full functionality.
 
 ### Live Data Subscription
 Subscribe to real-time changes across all entities:
-~~~bash
+` + "```" + `bash
 # WebSocket message to subscribe to user account changes
 {
   "method": "subscribe",
@@ -342,7 +342,7 @@ Subscribe to real-time changes across all entities:
     "filters": {"EventType": "update"}
   }
 }
-~~~
+` + "```" + `
 
 ## ✅ Communication Systems (Configuration Verified)
 
@@ -350,7 +350,7 @@ Subscribe to real-time changes across all entities:
 Built-in email server capabilities with working configuration management.
 
 **SMTP Configuration (VERIFIED WORKING):**
-~~~bash
+` + "```" + `bash
 # Check SMTP settings (TESTED ✅)
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/_config | grep smtp
 # Default: SMTP disabled
@@ -360,23 +360,23 @@ curl -X PUT http://localhost:6336/_config/backend/smtp.enable \
   -H "Authorization: Bearer TOKEN" \
   -d '"true"'
 # Result: "smtp.enable": "\"true\"" (Successfully enabled)
-~~~
+` + "```" + `
 
 **Mail Server Management:**
-~~~bash
+` + "```" + `bash
 # List mail servers
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/api/mail_server
 
 # Mail accounts and mailboxes
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/api/mail_account
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/api/mail_box
-~~~
+` + "```" + `
 
 ### ✅ CalDAV Calendar Sync (Configuration Tested)
 Calendar synchronization via CalDAV protocol with working configuration.
 
 **CalDAV Configuration (VERIFIED WORKING):**
-~~~bash
+` + "```" + `bash
 # Check CalDAV status (TESTED ✅)
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/_config | grep caldav
 # Default: "caldav.enable": "false"
@@ -386,13 +386,13 @@ curl -X PUT http://localhost:6336/_config/backend/caldav.enable \
   -H "Authorization: Bearer TOKEN" \
   -d '"true"'
 # Result: "caldav.enable": "\"true\"" (Successfully enabled)
-~~~
+` + "```" + `
 
 ### ✅ FTP File Transfer (Configuration Tested)
 Optional FTP server for file transfer operations with working configuration.
 
 **FTP Configuration (VERIFIED WORKING):**
-~~~bash
+` + "```" + `bash
 # Check FTP status (TESTED ✅)
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/_config | grep ftp
 # Default: "ftp.enable": "false"
@@ -402,7 +402,7 @@ curl -X PUT http://localhost:6336/_config/backend/ftp.enable \
   -H "Authorization: Bearer TOKEN" \
   -d '"true"'
 # Result: "ftp.enable": "\"true\"" (Successfully enabled)
-~~~
+` + "```" + `
 
 ## ⚠️ Feed System (Needs Further Testing)
 
@@ -410,7 +410,7 @@ curl -X PUT http://localhost:6336/_config/backend/ftp.enable \
 Feed generation infrastructure exists but requires proper configuration.
 
 **Feed Status (PARTIALLY TESTED):**
-~~~bash
+` + "```" + `bash
 # Feed API exists (TESTED ✅)
 curl -H "Authorization: Bearer TOKEN" http://localhost:6336/api/feed
 # Returns: Empty feed list (successful response)
@@ -418,7 +418,7 @@ curl -H "Authorization: Bearer TOKEN" http://localhost:6336/api/feed
 # Feed endpoint exists (TESTED ✅)
 curl http://localhost:6336/feed/test-feed
 # Returns: {"error":"Invalid feed request"} (endpoint exists, needs proper feed setup)
-~~~
+` + "```" + `
 
 **Current Status:**
 - Feed API endpoints are accessible
@@ -430,13 +430,13 @@ curl http://localhost:6336/feed/test-feed
 
 ### ✅ Verified Working Features
 **Configuration Management:**
-- SMTP, CalDAV, FTP server enable/disable via `/_config` API
+- SMTP, CalDAV, FTP server enable/disable via ` + "`" + `/_config` + "`" + ` API
 - YJS collaboration infrastructure enabled and responding
 - JWT authentication for API endpoints
 - Entity creation with file-type columns for collaboration
 
 **Real-time Infrastructure:**
-- YJS endpoints accessible (`/yjs/:documentName` returns HTTP 200)
+- YJS endpoints accessible (` + "`" + `/yjs/:documentName` + "`" + ` returns HTTP 200)
 - Calendar entities with file.ical content created successfully
 - WebSocket server running (responds to HTTP requests)
 
@@ -467,7 +467,7 @@ curl http://localhost:6336/feed/test-feed
 Daptin provides 50+ built-in actions for automation, plus custom action creation.
 
 **Action Endpoints:**
-~~~bash
+` + "```" + `bash
 # List available guest actions (signup/signin)
 curl http://localhost:6336/actions
 
@@ -476,7 +476,7 @@ curl -X POST http://localhost:6336/action/{entity}/{actionName} \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"attributes": {...}}'
-~~~
+` + "```" + `
 
 **Built-in Action Categories:**
 - **User Management**: signin, signup, become_admin, generate_jwt_token, otp_generate, password reset
@@ -488,57 +488,57 @@ curl -X POST http://localhost:6336/action/{entity}/{actionName} \
 - **Utilities**: network_request, execute_process, render_template, generate_random_data
 
 **Action Response Types:**
-- `client.notify` - Display notification
-- `client.redirect` - Browser redirect
-- `client.file.download` - File download
-- `client.token.set` - Store JWT token
-- `Restart` - System restart
+- ` + "`" + `client.notify` + "`" + ` - Display notification
+- ` + "`" + `client.redirect` + "`" + ` - Browser redirect
+- ` + "`" + `client.file.download` + "`" + ` - File download
+- ` + "`" + `client.token.set` + "`" + ` - Store JWT token
+- ` + "`" + `Restart` + "`" + ` - System restart
 
 **Example - Export Data:**
-~~~bash
+` + "```" + `bash
 curl -X POST http://localhost:6336/action/user_account/export_data \
   -H "Authorization: Bearer TOKEN" \
   -d '{"attributes": {"format": "json"}}'
 # Returns base64-encoded JSON data for download
-~~~
+` + "```" + `
 
 ### ✅ State Machines (FSM)
 Event-driven workflow system with audit trails.
 
 **State Machine Tables:**
-- `smd` - State machine definitions
-- `smd_state` - Individual states
-- `{entity}_state` - Entity state tracking
-- `{entity}_state_audit` - Transition audit logs
+- ` + "`" + `smd` + "`" + ` - State machine definitions
+- ` + "`" + `smd_state` + "`" + ` - Individual states
+- ` + "`" + `{entity}_state` + "`" + ` - Entity state tracking
+- ` + "`" + `{entity}_state_audit` + "`" + ` - Transition audit logs
 
 **FSM Event Endpoint:**
-~~~bash
+` + "```" + `bash
 POST /api/event/{entity}/{objectStateId}/{eventName}
-~~~
+` + "```" + `
 
 ### ✅ Task Scheduler
 Background job execution with cron support.
 
 **Task Table Fields:**
-- `name` - Task identifier
-- `schedule` - Cron expression (e.g., "0 0 * * *" for daily)
-- `action_name` - Action to execute
-- `entity_name` - Target entity
-- `attributes` - JSON parameters
-- `active` - Enable/disable flag
-- `last_run` / `next_run` - Execution tracking
+- ` + "`" + `name` + "`" + ` - Task identifier
+- ` + "`" + `schedule` + "`" + ` - Cron expression (e.g., "0 0 * * *" for daily)
+- ` + "`" + `action_name` + "`" + ` - Action to execute
+- ` + "`" + `entity_name` + "`" + ` - Target entity
+- ` + "`" + `attributes` + "`" + ` - JSON parameters
+- ` + "`" + `active` + "`" + ` - Enable/disable flag
+- ` + "`" + `last_run` + "`" + ` / ` + "`" + `next_run` + "`" + ` - Execution tracking
 
 ### ✅ Integration System
 OAuth providers and external API connections.
 
 **Integration Tables:**
-- `oauth_connect` - OAuth provider configs
-- `oauth_token` - Stored tokens
-- `integration` - Third-party integrations
-- `data_exchange` - ETL configurations
+- ` + "`" + `oauth_connect` + "`" + ` - OAuth provider configs
+- ` + "`" + `oauth_token` + "`" + ` - Stored tokens
+- ` + "`" + `integration` + "`" + ` - Third-party integrations
+- ` + "`" + `data_exchange` + "`" + ` - ETL configurations
 
 **OAuth Flow:**
-~~~bash
+` + "```" + `bash
 # Start OAuth
 POST /action/oauth/oauth_login_begin {"attributes": {"provider": "google"}}
 
@@ -547,7 +547,7 @@ POST /action/oauth/oauth_profile_exchange
 
 # Use integration
 POST /action/integration/integration_execute
-~~~
+` + "```" + `
 
 ### ✅ Data Exchange System
 ETL and synchronization capabilities.
@@ -559,29 +559,29 @@ ETL and synchronization capabilities.
 - Scheduled transfers
 
 **Exchange Configuration:**
-~~~json
+` + "```" + `json
 {
   "source": {"type": "rest", "endpoint": "https://api.example.com"},
   "destination": {"type": "entity", "name": "products"},
   "mapping": {"external_id": "id", "name": "title"},
   "schedule": "0 */6 * * *"
 }
-~~~`,
-		"x-logo": map[string]interface{}{
-			"url": "https://daptin.github.io/daptin/images/logo.png",
-			"altText": "Daptin Logo",
+` + "```" + ``,
+			"x-logo": map[string]interface{}{
+				"url":     "https://daptin.github.io/daptin/images/logo.png",
+				"altText": "Daptin Logo",
+			},
 		},
-	},
 	})
 
 	apiDefinition = append(apiDefinition, yaml.MapItem{
 		Key: "servers",
 		Value: []map[string]interface{}{
-		{
-			"url":         fmt.Sprintf("http://%v", config.Hostname),
-			"description": "Server " + config.Hostname,
+			{
+				"url":         fmt.Sprintf("http://%v", config.Hostname),
+				"description": "Server " + config.Hostname,
+			},
 		},
-	},
 	})
 	typeMap := make(map[string]map[string]interface{})
 	typeMap["RelatedStructure"] = map[string]interface{}{
@@ -658,11 +658,11 @@ Executes JavaScript in the client.
 		"required": []string{"ResponseType", "Attributes"},
 		"properties": map[string]interface{}{
 			"ResponseType": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "The type of response directing client behavior",
 				"enum": []string{
 					"client.redirect",
-					"client.notify", 
+					"client.notify",
 					"client.file.download",
 					"client.token.set",
 					"client.cookie.set",
@@ -672,22 +672,22 @@ Executes JavaScript in the client.
 				"example": "client.notify",
 			},
 			"Attributes": map[string]interface{}{
-				"type": "object",
-				"description": "Response-specific attributes. Structure depends on ResponseType (see schema description for details).",
+				"type":                 "object",
+				"description":          "Response-specific attributes. Structure depends on ResponseType (see schema description for details).",
 				"additionalProperties": true,
 				"examples": []map[string]interface{}{
 					{
-						"type": "success",
-						"title": "Operation Successful",
+						"type":    "success",
+						"title":   "Operation Successful",
 						"message": "The action completed successfully",
 					},
 					{
 						"location": "/dashboard",
-						"delay": 2000,
+						"delay":    2000,
 					},
 					{
-						"name": "export.csv",
-						"content": "base64_encoded_content",
+						"name":        "export.csv",
+						"content":     "base64_encoded_content",
 						"contentType": "text/csv",
 					},
 				},
@@ -696,8 +696,8 @@ Executes JavaScript in the client.
 		"example": map[string]interface{}{
 			"ResponseType": "client.notify",
 			"Attributes": map[string]interface{}{
-				"type": "success",
-				"title": "Success",
+				"type":    "success",
+				"title":   "Success",
 				"message": "Action executed successfully",
 			},
 		},
@@ -733,35 +733,35 @@ Executes JavaScript in the client.
 	}
 	typeMap["PaginationStatus"] = paginationStatus
 	typeMap["ActionResponse"] = actionResponse
-	
+
 	// Add ActionDefinition schema for action metadata
 	actionDefinition := map[string]interface{}{
-		"type": "object",
+		"type":        "object",
 		"description": "Defines an action's structure, inputs, outputs, and behavior",
 		"properties": map[string]interface{}{
 			"Name": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Internal name of the action",
 			},
 			"Label": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "User-friendly display name",
 			},
 			"OnType": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Entity type this action operates on",
 			},
 			"InstanceOptional": map[string]interface{}{
-				"type": "boolean",
+				"type":        "boolean",
 				"description": "Whether an entity instance is required",
 			},
 			"InFields": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "Input fields required by the action",
 				"items": map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"Name": map[string]interface{}{"type": "string"},
+						"Name":       map[string]interface{}{"type": "string"},
 						"ColumnName": map[string]interface{}{"type": "string"},
 						"ColumnType": map[string]interface{}{"type": "string"},
 						"IsNullable": map[string]interface{}{"type": "boolean"},
@@ -769,72 +769,72 @@ Executes JavaScript in the client.
 				},
 			},
 			"OutFields": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "Output actions and responses",
 				"items": map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"Type": map[string]interface{}{"type": "string"},
-						"Method": map[string]interface{}{"type": "string"},
+						"Type":       map[string]interface{}{"type": "string"},
+						"Method":     map[string]interface{}{"type": "string"},
 						"Attributes": map[string]interface{}{"type": "object"},
 					},
 				},
 			},
 			"Validations": map[string]interface{}{
-				"type": "array",
+				"type":        "array",
 				"description": "Input validation rules",
 			},
 		},
 	}
 	typeMap["ActionDefinition"] = actionDefinition
-	
+
 	// Add comprehensive error response schemas
 	errorResponse := map[string]interface{}{
-		"type": "object",
+		"type":     "object",
 		"required": []string{"errors"},
 		"properties": map[string]interface{}{
 			"errors": map[string]interface{}{
 				"type": "array",
 				"items": map[string]interface{}{
-					"type": "object",
+					"type":     "object",
 					"required": []string{"status", "title"},
 					"properties": map[string]interface{}{
 						"id": map[string]interface{}{
-							"type": "string",
+							"type":        "string",
 							"description": "A unique identifier for this particular occurrence of the problem",
 						},
 						"status": map[string]interface{}{
-							"type": "string",
+							"type":        "string",
 							"description": "The HTTP status code applicable to this problem",
-							"example": "400",
+							"example":     "400",
 						},
 						"code": map[string]interface{}{
-							"type": "string",
+							"type":        "string",
 							"description": "An application-specific error code",
-							"example": "VALIDATION_ERROR",
+							"example":     "VALIDATION_ERROR",
 						},
 						"title": map[string]interface{}{
-							"type": "string",
+							"type":        "string",
 							"description": "A short, human-readable summary of the problem",
-							"example": "Validation failed",
+							"example":     "Validation failed",
 						},
 						"detail": map[string]interface{}{
-							"type": "string",
+							"type":        "string",
 							"description": "A human-readable explanation specific to this occurrence",
-							"example": "The email field must be a valid email address",
+							"example":     "The email field must be a valid email address",
 						},
 						"source": map[string]interface{}{
 							"type": "object",
 							"properties": map[string]interface{}{
 								"pointer": map[string]interface{}{
-									"type": "string",
+									"type":        "string",
 									"description": "JSON Pointer to the associated entity in the request",
-									"example": "/data/attributes/email",
+									"example":     "/data/attributes/email",
 								},
 								"parameter": map[string]interface{}{
-									"type": "string",
+									"type":        "string",
 									"description": "String indicating which query parameter caused the error",
-									"example": "filter",
+									"example":     "filter",
 								},
 							},
 						},
@@ -844,7 +844,7 @@ Executes JavaScript in the client.
 		},
 	}
 	typeMap["ErrorResponse"] = errorResponse
-	
+
 	// Add rate limit error response
 	rateLimitResponse := map[string]interface{}{
 		"type": "object",
@@ -855,15 +855,15 @@ Executes JavaScript in the client.
 					"type": "object",
 					"properties": map[string]interface{}{
 						"status": map[string]interface{}{
-							"type": "string",
+							"type":    "string",
 							"example": "429",
 						},
 						"title": map[string]interface{}{
-							"type": "string",
+							"type":    "string",
 							"example": "Too Many Requests",
 						},
 						"detail": map[string]interface{}{
-							"type": "string",
+							"type":    "string",
 							"example": "Rate limit exceeded. Please retry after some time.",
 						},
 					},
@@ -876,15 +876,15 @@ Executes JavaScript in the client.
 						"type": "object",
 						"properties": map[string]interface{}{
 							"limit": map[string]interface{}{
-								"type": "integer",
+								"type":        "integer",
 								"description": "The maximum number of requests allowed",
 							},
 							"remaining": map[string]interface{}{
-								"type": "integer",
+								"type":        "integer",
 								"description": "The number of requests remaining in the current window",
 							},
 							"reset": map[string]interface{}{
-								"type": "integer",
+								"type":        "integer",
 								"description": "Unix timestamp when the rate limit window resets",
 							},
 						},
@@ -902,7 +902,7 @@ Executes JavaScript in the client.
 		"data": map[string]interface{}{
 			"oneOf": []map[string]interface{}{
 				{
-					"$ref": "#/components/schemas/RelatedStructure",
+					"$ref":        "#/components/schemas/RelatedStructure",
 					"description": "Single related resource (has_one/belongs_to)",
 				},
 				{
@@ -933,8 +933,8 @@ Executes JavaScript in the client.
 			},
 		},
 		"meta": map[string]interface{}{
-			"type":        "object",
-			"description": "Additional metadata about the relationship",
+			"type":                 "object",
+			"description":          "Additional metadata about the relationship",
 			"additionalProperties": true,
 		},
 	}
@@ -967,12 +967,12 @@ Executes JavaScript in the client.
 
 		ramlType["properties"] = properties
 		ramlType["required"] = requiredCols
-		
+
 		// Add table description if available
 		if tableInfo.TableDescription != "" {
 			ramlType["description"] = tableInfo.TableDescription
 		}
-		
+
 		// Add example object
 		exampleObj := make(map[string]interface{})
 		for colName, colDef := range properties {
@@ -1045,7 +1045,7 @@ Executes JavaScript in the client.
 
 		actionProperties := make(map[string]interface{})
 		requiredFields := []string{}
-		
+
 		for _, colInfo := range action.InFields {
 			if colInfo.IsForeignKey {
 				continue
@@ -1056,20 +1056,20 @@ Executes JavaScript in the client.
 
 			// Create enhanced column definition with better descriptions
 			colDef := CreateColumnLine(colInfo)
-			
+
 			// Add field-specific descriptions based on the action context
 			if desc, ok := getFieldDescription(action.Name, colInfo.ColumnName); ok {
 				colDef["description"] = desc
 			}
-			
+
 			actionProperties[colInfo.ColumnName] = colDef
-			
+
 			// Track required fields
 			if !colInfo.IsNullable {
 				requiredFields = append(requiredFields, colInfo.ColumnName)
 			}
 		}
-		
+
 		if !action.InstanceOptional {
 			actionProperties[action.OnType+"_id"] = map[string]interface{}{
 				"type":        "string",
@@ -1081,16 +1081,16 @@ Executes JavaScript in the client.
 		}
 
 		ramlActionType["properties"] = actionProperties
-		
+
 		if len(requiredFields) > 0 {
 			ramlActionType["required"] = requiredFields
 		}
-		
+
 		// Add example object for the action
 		if example := generateActionExample(action); example != nil {
 			ramlActionType["example"] = example
 		}
-		
+
 		typeMap[fmt.Sprintf("%sOn%sRequestObject", strcase.ToCamel(action.Name), strcase.ToCamel(action.OnType))] = ramlActionType
 
 	}
@@ -1282,7 +1282,7 @@ Executes JavaScript in the client.
 
 		// Generate example request body
 		exampleRequest := generateActionRequestExample(action)
-		
+
 		// Generate comprehensive security information
 		securityInfo := generateActionSecurityInfo(action)
 
@@ -1294,11 +1294,11 @@ Executes JavaScript in the client.
 				"description": actionDescription,
 				"x-codeSamples": []map[string]interface{}{
 					{
-						"lang": "curl",
+						"lang":   "curl",
 						"source": generateCurlExample(action),
 					},
 					{
-						"lang": "javascript",
+						"lang":   "javascript",
 						"source": generateJavaScriptExample(action),
 					},
 				},
@@ -1321,7 +1321,7 @@ Executes JavaScript in the client.
 						"content": map[string]interface{}{
 							"application/json": map[string]interface{}{
 								"schema": map[string]interface{}{
-									"type": "array",
+									"type":        "array",
 									"description": "Array of action responses, each representing an outcome of the action",
 									"items": map[string]interface{}{
 										"$ref": "#/components/schemas/ActionResponse",
@@ -1330,11 +1330,11 @@ Executes JavaScript in the client.
 								"examples": map[string]interface{}{
 									"success": map[string]interface{}{
 										"summary": "Successful execution",
-										"value": generateActionResponseExample(action),
+										"value":   generateActionResponseExample(action),
 									},
 									"error": map[string]interface{}{
 										"summary": "Common error response",
-										"value": generateActionErrorExample(action),
+										"value":   generateActionErrorExample(action),
 									},
 								},
 							},
@@ -1385,8 +1385,8 @@ This endpoint is useful for discovering available authentication methods.`,
 							},
 							"example": map[string]interface{}{
 								"user:signin": map[string]interface{}{
-									"Name": "signin",
-									"Label": "Sign in",
+									"Name":   "signin",
+									"Label":  "Sign in",
 									"OnType": "user_account",
 									"InFields": []map[string]interface{}{
 										{"Name": "email", "ColumnType": "email", "IsNullable": false},
@@ -1394,8 +1394,8 @@ This endpoint is useful for discovering available authentication methods.`,
 									},
 								},
 								"user:signup": map[string]interface{}{
-									"Name": "signup",
-									"Label": "Sign up",
+									"Name":   "signup",
+									"Label":  "Sign up",
 									"OnType": "user_account",
 									"InFields": []map[string]interface{}{
 										{"Name": "name", "ColumnType": "label", "IsNullable": false},
@@ -1450,7 +1450,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 				},
 			},
 			"parameters": CreateCommonParameters(),
-			"responses": CreateCommonResponses(),
+			"responses":  CreateCommonResponses(),
 		},
 	})
 	apiDefinition = append(apiDefinition, yaml.MapItem{
@@ -1461,7 +1461,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			},
 		},
 	})
-	
+
 	// Add external documentation
 	apiDefinition = append(apiDefinition, yaml.MapItem{
 		Key: "externalDocs",
@@ -1470,7 +1470,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"url":         "https://docs.dapt.in",
 		},
 	})
-	
+
 	// Add tags for better organization
 	tags := []map[string]interface{}{
 		{
@@ -1478,7 +1478,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"description": "Authentication endpoints for obtaining JWT tokens",
 		},
 		{
-			"name":        "System Actions",
+			"name": "System Actions",
 			"description": `Core system administration actions that affect the entire Daptin instance.
 
 **Key Actions:**
@@ -1489,7 +1489,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"x-displayName": "System Actions",
 		},
 		{
-			"name":        "Data Operations",
+			"name": "Data Operations",
 			"description": `Actions for bulk data manipulation, import/export, and data generation.
 
 **Import/Export:**
@@ -1504,7 +1504,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"x-displayName": "Data Operations",
 		},
 		{
-			"name":        "Schema Management",
+			"name": "Schema Management",
 			"description": `Database schema modification actions. ⚠️ Use with caution - these are destructive operations!
 
 **Column Operations:**
@@ -1517,7 +1517,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"x-displayName": "Schema Management",
 		},
 		{
-			"name":        "Storage Management",
+			"name": "Storage Management",
 			"description": `Cloud storage and file management actions supporting multiple providers (AWS S3, GCS, Azure).
 
 **File Operations:**
@@ -1534,7 +1534,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"x-displayName": "Storage Management",
 		},
 		{
-			"name":        "Certificate Management",
+			"name": "Certificate Management",
 			"description": `SSL/TLS certificate generation and management for secure HTTPS connections.
 
 **Certificate Types:**
@@ -1547,7 +1547,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"x-displayName": "Certificate Management",
 		},
 		{
-			"name":        "User Management",
+			"name": "User Management",
 			"description": `User account lifecycle management and authentication actions.
 
 **Account Creation:**
@@ -1566,7 +1566,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"x-displayName": "User Management",
 		},
 	}
-	
+
 	// Add tags for each table
 	for _, tableInfo := range config.Tables {
 		if strings.Index(tableInfo.TableName, "_has_") > -1 {
@@ -1580,7 +1580,7 @@ Example: Authorization: Bearer <your-jwt-token>`,
 		}
 		tags = append(tags, tag)
 	}
-	
+
 	apiDefinition = append(apiDefinition, yaml.MapItem{
 		Key:   "tags",
 		Value: tags,
@@ -1635,23 +1635,23 @@ func CreatePostMethod(tableInfo table_info.TableInfo, dataInResponse map[string]
 	postBody["content"] = map[string]interface{}{
 		"application/json": map[string]interface{}{
 			"schema": map[string]interface{}{
-				"type": "object",
+				"type":     "object",
 				"required": []string{"data"},
 				"properties": map[string]interface{}{
 					"data": map[string]interface{}{
-						"type": "object",
+						"type":     "object",
 						"required": []string{"type", "attributes"},
 						"properties": map[string]interface{}{
 							"type": map[string]interface{}{
-								"type":  "string",
-								"enum": []string{tableInfo.TableName},
+								"type":        "string",
+								"enum":        []string{tableInfo.TableName},
 								"description": "Resource type identifier",
 							},
 							"attributes": map[string]interface{}{
 								"$ref": "#/components/schemas/New" + strcase.ToCamel(tableInfo.TableName),
 							},
 							"relationships": map[string]interface{}{
-								"type": "object",
+								"type":        "object",
 								"description": "Related resources to create relationships with",
 								"additionalProperties": map[string]interface{}{
 									"type": "object",
@@ -1663,7 +1663,7 @@ func CreatePostMethod(tableInfo table_info.TableInfo, dataInResponse map[string]
 													"type": "string",
 												},
 												"id": map[string]interface{}{
-													"type": "string",
+													"type":   "string",
 													"format": "uuid",
 												},
 											},
@@ -1775,8 +1775,8 @@ func CreateGetAllMethod(tableInfo table_info.TableInfo, dataInResponse map[strin
 			"name": "accept",
 			"in":   "header",
 			"schema": map[string]interface{}{
-				"type": "string",
-				"enum": []string{"application/json", "text/csv", "application/xml"},
+				"type":    "string",
+				"enum":    []string{"application/json", "text/csv", "application/xml"},
 				"default": "application/json",
 			},
 			"required":    false,
@@ -1801,7 +1801,7 @@ func CreateGetAllMethod(tableInfo table_info.TableInfo, dataInResponse map[strin
 						"$ref": "#/components/schemas/PaginationStatus",
 					},
 					"included": map[string]interface{}{
-						"type": "array",
+						"type":        "array",
 						"description": "Included related resources when using included_relations parameter",
 						"items": map[string]interface{}{
 							"type": "object",
@@ -1812,16 +1812,16 @@ func CreateGetAllMethod(tableInfo table_info.TableInfo, dataInResponse map[strin
 		},
 		"text/csv": map[string]interface{}{
 			"schema": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "CSV formatted data. Use Accept: text/csv header.",
-				"example": "id,name,email,created_at\n1,John Doe,john@example.com,2024-01-15T09:30:00Z\n",
+				"example":     "id,name,email,created_at\n1,John Doe,john@example.com,2024-01-15T09:30:00Z\n",
 			},
 		},
 		"application/xml": map[string]interface{}{
 			"schema": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "XML formatted data. Use Accept: application/xml header.",
-				"example": "<data><item><id>1</id><name>John Doe</name></item></data>",
+				"example":     "<data><item><id>1</id><name>John Doe</name></item></data>",
 			},
 		},
 	}
@@ -2100,7 +2100,7 @@ func CreateDeleteMethod(tableInfo table_info.TableInfo) map[string]interface{} {
 						"type": "object",
 						"properties": map[string]interface{}{
 							"message": map[string]interface{}{
-								"type": "string",
+								"type":    "string",
 								"example": "Resource deleted successfully",
 							},
 						},
@@ -2302,7 +2302,7 @@ func CreatePostRequestExample(tableInfo table_info.TableInfo) map[string]interfa
 		if col.IsForeignKey || skipColumns[col.ColumnName] || resource.IsStandardColumn(col.ColumnName) {
 			continue
 		}
-		
+
 		switch col.ColumnType {
 		case "email":
 			attributes[col.ColumnName] = "user@example.com"
@@ -2330,7 +2330,7 @@ func CreatePostRequestExample(tableInfo table_info.TableInfo) map[string]interfa
 			}
 		}
 	}
-	
+
 	return map[string]interface{}{
 		"data": map[string]interface{}{
 			"type":       tableInfo.TableName,
@@ -2440,65 +2440,65 @@ func CreatePatchMethod(tableInfo table_info.TableInfo) map[string]interface{} {
 func categorizeAction(actionName string) string {
 	categories := map[string]string{
 		// Data Operations
-		"import_files_from_store": "Data Operations",
-		"export_data": "Data Operations",
-		"export_csv_data": "Data Operations",
-		"import_data": "Data Operations",
-		"generate_random_data": "Data Operations",
+		"import_files_from_store":     "Data Operations",
+		"export_data":                 "Data Operations",
+		"export_csv_data":             "Data Operations",
+		"import_data":                 "Data Operations",
+		"generate_random_data":        "Data Operations",
 		"upload_xls_to_system_schema": "Data Operations",
 		"upload_csv_to_system_schema": "Data Operations",
-		"add_exchange": "Data Operations",
-		
+		"add_exchange":                "Data Operations",
+
 		// Schema Management
-		"remove_column": "Schema Management",
-		"remove_table": "Schema Management",
-		"rename_column": "Schema Management",
-		"upload_system_schema": "Schema Management",
+		"remove_column":          "Schema Management",
+		"remove_table":           "Schema Management",
+		"rename_column":          "Schema Management",
+		"upload_system_schema":   "Schema Management",
 		"download_system_schema": "Schema Management",
-		
+
 		// Storage Management
-		"sync_site_storage": "Storage Management",
-		"sync_column_storage": "Storage Management",
-		"upload_file": "Storage Management",
-		"create_site": "Storage Management",
-		"delete_path": "Storage Management",
-		"create_folder": "Storage Management",
-		"move_path": "Storage Management",
-		"list_files": "Storage Management",
-		"get_file": "Storage Management",
-		"delete_file": "Storage Management",
+		"sync_site_storage":       "Storage Management",
+		"sync_column_storage":     "Storage Management",
+		"upload_file":             "Storage Management",
+		"create_site":             "Storage Management",
+		"delete_path":             "Storage Management",
+		"create_folder":           "Storage Management",
+		"move_path":               "Storage Management",
+		"list_files":              "Storage Management",
+		"get_file":                "Storage Management",
+		"delete_file":             "Storage Management",
 		"import_cloudstore_files": "Storage Management",
-		
+
 		// Certificate Management
-		"download_certificate": "Certificate Management",
-		"download_public_key": "Certificate Management",
+		"download_certificate":      "Certificate Management",
+		"download_public_key":       "Certificate Management",
 		"generate_acme_certificate": "Certificate Management",
 		"generate_self_certificate": "Certificate Management",
-		
+
 		// User Management
-		"signup": "User Management",
-		"signin": "User Management",
-		"register_otp": "User Management",
-		"verify_otp": "User Management",
-		"send_otp": "User Management",
-		"reset-password": "User Management",
+		"signup":                "User Management",
+		"signin":                "User Management",
+		"register_otp":          "User Management",
+		"verify_otp":            "User Management",
+		"send_otp":              "User Management",
+		"reset-password":        "User Management",
 		"reset-password-verify": "User Management",
-		"oauth_login_begin": "User Management",
-		"oauth.login.response": "User Management",
-		
+		"oauth_login_begin":     "User Management",
+		"oauth.login.response":  "User Management",
+
 		// System Actions
-		"restart_daptin": "System Actions",
+		"restart_daptin":          "System Actions",
 		"become_an_administrator": "System Actions",
-		"sync_mail_servers": "System Actions",
-		"install_integration": "System Actions",
-		"mail_send": "System Actions",
-		"mail_send_ses": "System Actions",
+		"sync_mail_servers":       "System Actions",
+		"install_integration":     "System Actions",
+		"mail_send":               "System Actions",
+		"mail_send_ses":           "System Actions",
 	}
-	
+
 	if category, ok := categories[actionName]; ok {
 		return category
 	}
-	
+
 	// Try to categorize by patterns
 	if strings.Contains(actionName, "mail") || strings.Contains(actionName, "email") {
 		return "System Actions"
@@ -2509,7 +2509,7 @@ func categorizeAction(actionName string) string {
 	if strings.Contains(actionName, "oauth") || strings.Contains(actionName, "login") || strings.Contains(actionName, "auth") {
 		return "User Management"
 	}
-	
+
 	return ""
 }
 
@@ -2528,9 +2528,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - "invalid table" - Target table doesn't exist
 - Cloud storage not configured properly
 - Insufficient permissions on target table`,
-		
+
 		"install_integration": "Installs and configures a third-party integration. This action sets up external service integrations, enabling Daptin to connect with various APIs, webhooks, and external systems.",
-		
+
 		"download_certificate": `Downloads the SSL/TLS certificate in PEM format for a specific hostname. Returns the certificate file as a base64-encoded download.
 
 **Response Type:** client.file.download
@@ -2541,9 +2541,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - Backup SSL certificates
 - Certificate inspection and validation
 - Deployment to other systems`,
-		
+
 		"download_public_key": "Downloads the public key associated with a certificate. This action provides access to the public key component of SSL/TLS certificates for cryptographic operations or verification purposes.",
-		
+
 		"generate_acme_certificate": `Generates a Let's Encrypt SSL/TLS certificate using the ACME protocol. Automatically handles domain validation and certificate issuance.
 
 **Prerequisites:**
@@ -2557,9 +2557,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - Stores certificate and private key
 
 **Rate Limits:** Let's Encrypt rate limits apply (5 certificates per domain per week)`,
-		
+
 		"generate_self_certificate": "Generates a self-signed SSL/TLS certificate. Useful for development environments or internal services where a trusted certificate authority is not required.",
-		
+
 		"register_otp": `Registers a mobile number for OTP-based authentication. Associates a phone number with the current user account for two-factor authentication.
 
 **SMS Provider Required:** Configured SMS gateway (Twilio, AWS SNS, etc.)
@@ -2568,7 +2568,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Mobile number format validation
 - Duplicate number check
 - User authentication required`,
-		
+
 		"verify_otp": `Verifies an OTP code for authentication. Validates the one-time password and returns authentication tokens.
 
 **Response Types:**
@@ -2578,9 +2578,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - client.redirect - Redirect after successful login
 
 **OTP Expiry:** Codes expire after 5 minutes`,
-		
+
 		"send_otp": "Sends a one-time password to a registered mobile number or email. Use this action to trigger OTP delivery for authentication or verification purposes.",
-		
+
 		"remove_column": `Permanently removes a column from a database table. This is a destructive DDL operation that cannot be undone.
 
 **⚠️ WARNING:** All data in the column will be permanently deleted!
@@ -2594,7 +2594,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Column must exist
 - Cannot remove system columns
 - Checks for dependent relationships`,
-		
+
 		"remove_table": `Permanently deletes an entire database table and all its data. This is an irreversible destructive operation.
 
 **⚠️ CRITICAL WARNING:** 
@@ -2604,7 +2604,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Cannot be undone!
 
 **Required:** Administrator privileges`,
-		
+
 		"rename_column": `Renames a column in a database table while preserving all data.
 
 **Side Effects:**
@@ -2617,7 +2617,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Column must exist
 - New name must be unique in table
 - Spaces converted to underscores`,
-		
+
 		"sync_site_storage": `Synchronizes files between a site and its configured cloud storage using rclone. Performs bidirectional sync to ensure consistency.
 
 **Sync Direction:** Bidirectional (local ↔ cloud)
@@ -2628,9 +2628,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - Creates/updates/deletes files in cloud storage
 - Updates local file cache
 - Logs sync operations`,
-		
+
 		"sync_column_storage": "Synchronizes file-type column data with external cloud storage. Ensures that files referenced in database columns are properly stored in the configured cloud storage backend.",
-		
+
 		"sync_mail_servers": `Synchronizes email configurations with IMAP/SMTP servers. Fetches emails and updates mailbox state.
 
 **Supported Protocols:**
@@ -2642,7 +2642,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Creates mail_box records for new emails
 - Updates sync timestamps
 - May trigger email processing workflows`,
-		
+
 		"restart_daptin": `Initiates a graceful system restart. Returns success immediately but actual restart happens asynchronously.
 
 **Response Types:**
@@ -2650,7 +2650,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - client.redirect - Redirects to home after 5 seconds
 
 **Note:** The actual restart is handled by the process manager (systemd, Docker, etc.)`,
-		
+
 		"generate_random_data": `Generates realistic test data for a specified table based on column types.
 
 **Data Generation:**
@@ -2661,7 +2661,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Text: Lorem ipsum style content
 
 **Batch Size:** Processes in batches of 100 records`,
-		
+
 		"export_data": `Exports table data with advanced options for filtering and formatting.
 
 **Supported Formats:**
@@ -2679,9 +2679,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - Filter expressions
 
 **Response:** Base64-encoded file download`,
-		
+
 		"export_csv_data": "Exports table data specifically in CSV format. Optimized for spreadsheet applications and data analysis tools. Simpler alternative to export_data when only CSV is needed.",
-		
+
 		"import_data": `Imports data from uploaded files with automatic format detection and validation.
 
 **Supported Formats:**
@@ -2700,7 +2700,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Column type checking
 - Constraint validation
 - Foreign key verification`,
-		
+
 		"upload_file": `Uploads a file to configured cloud storage with automatic path resolution.
 
 **File Handling:**
@@ -2710,7 +2710,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Progress tracking for large files
 
 **Storage Providers:** AWS S3, Google Cloud Storage, Azure Blob, Local filesystem`,
-		
+
 		"create_site": `Creates a new website/application site with hosting configuration.
 
 **Site Types:**
@@ -2723,13 +2723,13 @@ func generateActionDescription(action actionresponse.Action) string {
 - Sets up routing rules
 - Configures SSL (if enabled)
 - Initializes site templates`,
-		
+
 		"delete_path": "Deletes a file or directory from cloud storage. Removes specified paths from the configured storage backend. Supports recursive deletion for directories.",
-		
+
 		"create_folder": "Creates a new directory in cloud storage. Establishes folder structures for organizing files in external storage systems. Creates parent directories if needed.",
-		
+
 		"move_path": "Moves or renames files/folders in cloud storage. Relocates content within the storage system while preserving file integrity and metadata.",
-		
+
 		"list_files": `Lists files and directories at a specified path with detailed metadata.
 
 **Response Format:**
@@ -2740,11 +2740,11 @@ func generateActionDescription(action actionresponse.Action) string {
 - Directory indicators
 
 **Supports:** Pagination, sorting, filtering`,
-		
+
 		"get_file": "Retrieves a specific file from site storage. Downloads file content for viewing or processing. Returns base64-encoded content for binary files.",
-		
+
 		"delete_file": "Removes a specific file from site storage. Permanently deletes the specified file from the site's storage location. Cannot be undone.",
-		
+
 		"upload_system_schema": `Uploads and applies a new system configuration schema. Supports incremental updates and full replacements.
 
 **Supported Formats:**
@@ -2758,7 +2758,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Relationship validation
 
 **⚠️ Caution:** Can significantly modify system behavior`,
-		
+
 		"download_system_schema": `Downloads the complete system configuration including all tables, columns, actions, and relationships.
 
 **Export Contains:**
@@ -2770,7 +2770,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - State machines
 
 **Format:** JSON schema compatible with upload_system_schema`,
-		
+
 		"become_an_administrator": `Elevates the current user to become the sole system administrator.
 
 **🚨 CRITICAL BOOTSTRAPPING INFORMATION:**
@@ -2801,7 +2801,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Other logged-in users will need to re-authenticate
 
 **Response:** Redirect to home page after 7 seconds`,
-		
+
 		"signup": `Creates a new user account with email/password authentication.
 
 **🎯 IMPORTANT FOR NEW INSTALLATIONS:**
@@ -2830,7 +2830,7 @@ func generateActionDescription(action actionresponse.Action) string {
 1. Sign in with the created credentials
 2. If first user, invoke 'become_an_administrator'
 3. Configure system settings as needed`,
-		
+
 		"signin": `Authenticates a user and returns JWT tokens for API access.
 
 **Prerequisites:**
@@ -2864,11 +2864,11 @@ func generateActionDescription(action actionresponse.Action) string {
 - Rate limiting on failed attempts
 - Account lockout after 5 failures
 - JWT includes issuer validation`,
-		
+
 		"reset-password": "Initiates the password reset process. Sends a verification code to the user's registered email for password recovery. Codes expire after 15 minutes.",
-		
+
 		"reset-password-verify": "Completes password reset with verification code. Validates the reset code and sets a new password for the user account. Invalidates all existing sessions.",
-		
+
 		"oauth_login_begin": `Initiates OAuth authentication flow with supported providers.
 
 **Supported Providers:**
@@ -2879,9 +2879,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - Custom OAuth2
 
 **Flow:** Redirects to provider → User authorizes → Callback to oauth.login.response`,
-		
+
 		"oauth.login.response": "Handles OAuth provider callback. Processes the OAuth response and creates/updates user account with provider data. Merges accounts if email matches.",
-		
+
 		"upload_xls_to_system_schema": `Imports Excel data with automatic schema detection and table creation.
 
 **Smart Detection:**
@@ -2894,7 +2894,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Create new table
 - Update existing table
 - Merge with existing data`,
-		
+
 		"upload_csv_to_system_schema": `Imports CSV data with intelligent parsing and schema creation.
 
 **CSV Parsing:**
@@ -2904,7 +2904,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Encoding detection
 
 **Data Types:** Automatically inferred from content analysis`,
-		
+
 		"add_exchange": `Configures automated data synchronization with external services.
 
 **Exchange Types:**
@@ -2918,7 +2918,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Scheduled or real-time
 - Conflict resolution rules`,
 	}
-	
+
 	if desc, ok := descriptions[action.Name]; ok {
 		return desc
 	}
@@ -2927,7 +2927,7 @@ func generateActionDescription(action actionresponse.Action) string {
 
 func generateActionSchemaDescription(action actionresponse.Action) string {
 	baseDesc := fmt.Sprintf("Request schema for the '%s' action. ", action.Label)
-	
+
 	// Count required fields
 	requiredCount := 0
 	for _, field := range action.InFields {
@@ -2935,7 +2935,7 @@ func generateActionSchemaDescription(action actionresponse.Action) string {
 			requiredCount++
 		}
 	}
-	
+
 	if len(action.InFields) == 0 && action.InstanceOptional {
 		return baseDesc + `This action requires no input parameters and can be executed without specifying an instance.
 
@@ -2949,14 +2949,14 @@ func generateActionSchemaDescription(action actionresponse.Action) string {
 **Instance Required:** Yes - must specify a valid %s_id
 **Permissions:** Execute permission on the instance`, action.OnType, getAuthRequirement(action.Name), action.OnType)
 	}
-	
+
 	return baseDesc + fmt.Sprintf(`This action operates on %s instances and requires %d input parameter(s) to execute successfully.
 
 **Authentication:** %s
 **Instance Required:** %s
 **Required Fields:** %d of %d fields are mandatory
-**Validation:** Input fields are validated before execution`, 
-		action.OnType, 
+**Validation:** Input fields are validated before execution`,
+		action.OnType,
 		len(action.InFields),
 		getAuthRequirement(action.Name),
 		func() string {
@@ -2971,44 +2971,44 @@ func generateActionSchemaDescription(action actionresponse.Action) string {
 
 func getAuthRequirement(actionName string) string {
 	publicActions := map[string]bool{
-		"signin": true,
-		"signup": true,
-		"oauth_login_begin": true,
-		"oauth.login.response": true,
-		"reset-password": true,
+		"signin":                true,
+		"signup":                true,
+		"oauth_login_begin":     true,
+		"oauth.login.response":  true,
+		"reset-password":        true,
 		"reset-password-verify": true,
 	}
-	
+
 	if publicActions[actionName] {
 		return "Not required (public endpoint)"
 	}
-	
+
 	if actionName == "become_an_administrator" {
 		return "Required (Bearer token) - Can only be invoked when NO admin exists in the system"
 	}
-	
+
 	if strings.Contains(actionName, "admin") {
 		return "Required (Administrator role needed)"
 	}
-	
+
 	return "Required (Bearer token)"
 }
 
 func getIdempotency(actionName string) string {
 	idempotentActions := map[string]bool{
 		"download_system_schema": true,
-		"download_certificate": true,
-		"download_public_key": true,
-		"export_data": true,
-		"export_csv_data": true,
-		"list_files": true,
-		"get_file": true,
+		"download_certificate":   true,
+		"download_public_key":    true,
+		"export_data":            true,
+		"export_csv_data":        true,
+		"list_files":             true,
+		"get_file":               true,
 	}
-	
+
 	if idempotentActions[actionName] {
 		return "Yes - Safe to retry"
 	}
-	
+
 	return "No - May have side effects"
 }
 
@@ -3300,13 +3300,13 @@ Example: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"`,
 - Stored encrypted`,
 		},
 	}
-	
+
 	if actionFields, ok := fieldDescriptions[actionName]; ok {
 		if desc, ok := actionFields[fieldName]; ok {
 			return desc, true
 		}
 	}
-	
+
 	return "", false
 }
 
@@ -3322,54 +3322,54 @@ func generateActionExample(action actionresponse.Action) map[string]interface{} 
 			"mobile_number": "+1234567890",
 		},
 		"verify_otp": {
-			"otp": "123456",
+			"otp":           "123456",
 			"mobile_number": "+1234567890",
-			"email": "user@example.com",
+			"email":         "user@example.com",
 		},
 		"remove_column": {
 			"column_name": "deprecated_field",
 		},
 		"rename_column": {
-			"table_name": "products",
-			"column_name": "product_desc",
+			"table_name":      "products",
+			"column_name":     "product_desc",
 			"new_column_name": "product_description",
 		},
 		"generate_random_data": {
-			"count": 100,
+			"count":      100,
 			"table_name": "test_users",
 		},
 		"export_data": {
-			"table_name": "customers",
-			"format": "csv",
-			"columns": "name,email,created_at",
+			"table_name":      "customers",
+			"format":          "csv",
+			"columns":         "name,email,created_at",
 			"include_headers": true,
 		},
 		"signup": {
-			"name": "John Doe",
-			"email": "john.doe@example.com",
-			"mobile": "+1234567890",
-			"password": "SecurePass123!",
+			"name":            "John Doe",
+			"email":           "john.doe@example.com",
+			"mobile":          "+1234567890",
+			"password":        "SecurePass123!",
 			"passwordConfirm": "SecurePass123!",
 		},
 		"signin": {
-			"email": "john.doe@example.com",
+			"email":    "john.doe@example.com",
 			"password": "SecurePass123!",
 		},
 	}
-	
+
 	if example, ok := examples[action.Name]; ok {
 		if !action.InstanceOptional {
 			example[action.OnType+"_id"] = "550e8400-e29b-41d4-a716-446655440000"
 		}
 		return example
 	}
-	
+
 	// Generate a basic example if not specifically defined
 	basicExample := make(map[string]interface{})
 	if !action.InstanceOptional {
 		basicExample[action.OnType+"_id"] = "550e8400-e29b-41d4-a716-446655440000"
 	}
-	
+
 	for _, field := range action.InFields {
 		switch field.ColumnType {
 		case "email":
@@ -3384,7 +3384,7 @@ func generateActionExample(action actionresponse.Action) map[string]interface{} 
 			basicExample[field.ColumnName] = "example_value"
 		}
 	}
-	
+
 	return basicExample
 }
 
@@ -3399,22 +3399,22 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.store.set",
 				"Attributes": map[string]interface{}{
-					"key": "token",
+					"key":   "token",
 					"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTUwMjk5NTksImlhdCI6MTc1MTQzMzU1OSwibmFtZSI6IkpvaG4gRG9lIiwic3ViIjoiMDE5MjQyMTItZGQ5NC03N2QzLTkyMzMtYjJiYmM1ZmNiZDQ2In0...",
 				},
 			},
 			{
 				"ResponseType": "client.cookie.set",
 				"Attributes": map[string]interface{}{
-					"key": "token",
+					"key":   "token",
 					"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTUwMjk5NTksImlhdCI6MTc1MTQzMzU1OSwibmFtZSI6IkpvaG4gRG9lIiwic3ViIjoiMDE5MjQyMTItZGQ5NC03N2QzLTkyMzMtYjJiYmM1ZmNiZDQ2In0...; SameSite=Strict",
 				},
 			},
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Success",
+					"type":    "success",
+					"title":   "Success",
 					"message": "Logged in",
 				},
 			},
@@ -3422,8 +3422,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 				"ResponseType": "client.redirect",
 				"Attributes": map[string]interface{}{
 					"location": "/",
-					"window": "self",
-					"delay": 2000,
+					"window":   "self",
+					"delay":    2000,
 				},
 			},
 		},
@@ -3431,8 +3431,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Success",
+					"type":    "success",
+					"title":   "Success",
 					"message": "Sign-up successful. Redirecting to sign in",
 				},
 			},
@@ -3440,7 +3440,7 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 				"ResponseType": "client.redirect",
 				"Attributes": map[string]interface{}{
 					"location": "/auth/signin",
-					"delay": 2000,
+					"delay":    2000,
 				},
 			},
 		},
@@ -3448,15 +3448,15 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.store.set",
 				"Attributes": map[string]interface{}{
-					"key": "token",
+					"key":   "token",
 					"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
 				},
 			},
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Verified",
+					"type":    "success",
+					"title":   "Verified",
 					"message": "OTP verification successful",
 				},
 			},
@@ -3465,10 +3465,10 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.file.download",
 				"Attributes": map[string]interface{}{
-					"name": "example.com.pem.crt",
-					"content": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZhekNDQTFPZ0F3SUJBZ0lVT...",
+					"name":        "example.com.pem.crt",
+					"content":     "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZhekNDQTFPZ0F3SUJBZ0lVT...",
 					"contentType": "application/x-x509-ca-cert",
-					"message": "Certificate for example.com",
+					"message":     "Certificate for example.com",
 				},
 			},
 		},
@@ -3476,10 +3476,10 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.file.download",
 				"Attributes": map[string]interface{}{
-					"name": "daptin_schema.json",
-					"content": "ewogICJUYWJsZXMiOiBbCiAgICB7CiAgICAgICJUYWJsZU5hbWUiOiAidXNlcl9hY2NvdW50IiwKICAgICAgIkNvbHVtbnMiOiBbLi4uXQogICAgfQogIF0KfQ==",
+					"name":        "daptin_schema.json",
+					"content":     "ewogICJUYWJsZXMiOiBbCiAgICB7CiAgICAgICJUYWJsZU5hbWUiOiAidXNlcl9hY2NvdW50IiwKICAgICAgIkNvbHVtbnMiOiBbLi4uXQogICAgfQogIF0KfQ==",
 					"contentType": "application/json",
-					"message": "System schema export",
+					"message":     "System schema export",
 				},
 			},
 		},
@@ -3487,10 +3487,10 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.file.download",
 				"Attributes": map[string]interface{}{
-					"name": "daptin_export_customers.csv",
-					"content": "aWQsbmFtZSxlbWFpbCxjcmVhdGVkX2F0CjEsSm9obiBEb2Usam9obkBleGFtcGxlLmNvbSwyMDI0LTAxLTE1CjIsSmFuZSBTbWl0aCxqYW5lQGV4YW1wbGUuY29tLDIwMjQtMDEtMTY=",
+					"name":        "daptin_export_customers.csv",
+					"content":     "aWQsbmFtZSxlbWFpbCxjcmVhdGVkX2F0CjEsSm9obiBEb2Usam9obkBleGFtcGxlLmNvbSwyMDI0LTAxLTE1CjIsSmFuZSBTbWl0aCxqYW5lQGV4YW1wbGUuY29tLDIwMjQtMDEtMTY=",
 					"contentType": "text/csv",
-					"message": "Downloading data as csv",
+					"message":     "Downloading data as csv",
 				},
 			},
 		},
@@ -3498,10 +3498,10 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.file.download",
 				"Attributes": map[string]interface{}{
-					"name": "export.csv",
-					"content": "aWQsbmFtZSxlbWFpbA0KMSxKb2huIERvZSxqb2huQGV4YW1wbGUuY29t",
+					"name":        "export.csv",
+					"content":     "aWQsbmFtZSxlbWFpbA0KMSxKb2huIERvZSxqb2huQGV4YW1wbGUuY29t",
 					"contentType": "text/csv",
-					"message": "CSV export completed",
+					"message":     "CSV export completed",
 				},
 			},
 		},
@@ -3509,8 +3509,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Import Complete",
+					"type":    "success",
+					"title":   "Import Complete",
 					"message": "Imported success 25 files, failed 0 files",
 				},
 			},
@@ -3519,8 +3519,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Success",
+					"type":    "success",
+					"title":   "Success",
 					"message": "Created 100 rows in test_users",
 				},
 			},
@@ -3529,8 +3529,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Success",
+					"type":    "success",
+					"title":   "Success",
 					"message": "Column deleted",
 				},
 			},
@@ -3539,8 +3539,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Success",
+					"type":    "success",
+					"title":   "Success",
 					"message": "Column renamed",
 				},
 			},
@@ -3549,8 +3549,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Success",
+					"type":    "success",
+					"title":   "Success",
 					"message": "Initiating system update.",
 				},
 			},
@@ -3558,8 +3558,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 				"ResponseType": "client.redirect",
 				"Attributes": map[string]interface{}{
 					"location": "/",
-					"window": "self",
-					"delay": 5000,
+					"window":   "self",
+					"delay":    5000,
 				},
 			},
 		},
@@ -3567,8 +3567,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Congratulations",
+					"type":    "success",
+					"title":   "Congratulations",
 					"message": "You are now an administrator",
 				},
 			},
@@ -3577,8 +3577,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "info",
-					"title": "Email Sent",
+					"type":    "info",
+					"title":   "Email Sent",
 					"message": "If the email exists, a reset code has been sent",
 				},
 			},
@@ -3587,8 +3587,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Upload Complete",
+					"type":    "success",
+					"title":   "Upload Complete",
 					"message": "File uploaded successfully",
 				},
 			},
@@ -3597,8 +3597,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Site Created",
+					"type":    "success",
+					"title":   "Site Created",
 					"message": "New site created at example.com",
 				},
 			},
@@ -3606,7 +3606,7 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 				"ResponseType": "client.redirect",
 				"Attributes": map[string]interface{}{
 					"location": "/sites",
-					"delay": 2000,
+					"delay":    2000,
 				},
 			},
 		},
@@ -3614,8 +3614,8 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Certificate Generated",
+					"type":    "success",
+					"title":   "Certificate Generated",
 					"message": "Let's Encrypt certificate generated and installed",
 				},
 			},
@@ -3624,25 +3624,25 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "success",
-					"title": "Sync Complete",
+					"type":    "success",
+					"title":   "Sync Complete",
 					"message": "Site storage synchronized: 15 files uploaded, 3 files downloaded",
 				},
 			},
 		},
 	}
-	
+
 	if examples, ok := responseExamples[action.Name]; ok {
 		return examples
 	}
-	
+
 	// Default response example
 	return []map[string]interface{}{
 		{
 			"ResponseType": "client.notify",
 			"Attributes": map[string]interface{}{
-				"type": "success",
-				"title": "Action Completed",
+				"type":    "success",
+				"title":   "Action Completed",
 				"message": fmt.Sprintf("%s action executed successfully", action.Label),
 			},
 		},
@@ -3652,21 +3652,21 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 func generateCurlExample(action actionresponse.Action) string {
 	example := generateActionExample(action)
 	exampleJSON, _ := json.Marshal(example)
-	
+
 	return fmt.Sprintf(`curl -X POST \\
   https://your-daptin-instance.com/action/%s/%s \\
   -H 'Authorization: Bearer YOUR_JWT_TOKEN' \\
   -H 'Content-Type: application/json' \\
-  -d '%s'`, 
-		action.OnType, 
-		action.Name, 
+  -d '%s'`,
+		action.OnType,
+		action.Name,
 		string(exampleJSON))
 }
 
 func generateJavaScriptExample(action actionresponse.Action) string {
 	example := generateActionExample(action)
 	exampleJSON, _ := json.Marshal(example)
-	
+
 	return fmt.Sprintf(`const response = await fetch('https://your-daptin-instance.com/action/%s/%s', {
   method: 'POST',
   headers: {
@@ -3677,27 +3677,27 @@ func generateJavaScriptExample(action actionresponse.Action) string {
 });
 
 const result = await response.json();
-console.log(result);`, 
-		action.OnType, 
-		action.Name, 
+console.log(result);`,
+		action.OnType,
+		action.Name,
 		string(exampleJSON))
 }
 
 func generateActionSecurityInfo(action actionresponse.Action) []map[string][]string {
 	// Most actions require authentication
 	publicActions := map[string]bool{
-		"signin": true,
-		"signup": true,
-		"oauth_login_begin": true,
-		"oauth.login.response": true,
-		"reset-password": true,
+		"signin":                true,
+		"signup":                true,
+		"oauth_login_begin":     true,
+		"oauth.login.response":  true,
+		"reset-password":        true,
 		"reset-password-verify": true,
 	}
-	
+
 	if publicActions[action.Name] {
 		return []map[string][]string{} // No security required
 	}
-	
+
 	return []map[string][]string{
 		{"bearerAuth": []string{}},
 	}
@@ -3709,8 +3709,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Authentication Failed",
+					"type":    "error",
+					"title":   "Authentication Failed",
 					"message": "Invalid email or password",
 				},
 			},
@@ -3719,8 +3719,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Registration Failed",
+					"type":    "error",
+					"title":   "Registration Failed",
 					"message": "Email already exists",
 				},
 			},
@@ -3729,8 +3729,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "failed",
+					"type":    "error",
+					"title":   "failed",
 					"message": "table not found",
 				},
 			},
@@ -3739,8 +3739,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Error",
+					"type":    "error",
+					"title":   "Error",
 					"message": "no such column",
 				},
 			},
@@ -3749,8 +3749,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Error",
+					"type":    "error",
+					"title":   "Error",
 					"message": "new_column_name is a reserved word",
 				},
 			},
@@ -3759,8 +3759,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Import Failed",
+					"type":    "error",
+					"title":   "Import Failed",
 					"message": "invalid table",
 				},
 			},
@@ -3769,8 +3769,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Verification Failed",
+					"type":    "error",
+					"title":   "Verification Failed",
 					"message": "Invalid or expired OTP",
 				},
 			},
@@ -3779,8 +3779,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Export Failed",
+					"type":    "error",
+					"title":   "Export Failed",
 					"message": "Table not found or access denied",
 				},
 			},
@@ -3789,8 +3789,8 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Upload Failed",
+					"type":    "error",
+					"title":   "Upload Failed",
 					"message": "File too large or invalid format",
 				},
 			},
@@ -3799,25 +3799,25 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			{
 				"ResponseType": "client.notify",
 				"Attributes": map[string]interface{}{
-					"type": "error",
-					"title": "Certificate Generation Failed",
+					"type":    "error",
+					"title":   "Certificate Generation Failed",
 					"message": "Domain validation failed or rate limit exceeded",
 				},
 			},
 		},
 	}
-	
+
 	if examples, ok := errorExamples[action.Name]; ok {
 		return examples
 	}
-	
+
 	// Default error example
 	return []map[string]interface{}{
 		{
 			"ResponseType": "client.notify",
 			"Attributes": map[string]interface{}{
-				"type": "error",
-				"title": "Action Failed",
+				"type":    "error",
+				"title":   "Action Failed",
 				"message": "An error occurred while executing the action",
 			},
 		},
