@@ -1407,7 +1407,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   referenceId,
 				RelationReferenceId: referenceId,
-				Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].model.GetDefaultPermission()),
+				Permission:          auth.AuthPermission(row["permission"].(int64)),
 			},
 		}
 	} else if loc > -1 {
