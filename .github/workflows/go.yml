@@ -97,7 +97,7 @@ jobs:
           sudo modprobe fuse
           sudo chmod 666 /dev/fuse
           sudo chown root:$USER /etc/fuse.conf
-          sudo apt-get install fuse libfuse-dev rpm pkg-config rclone
+          sudo apt-get install fuse libfuse-dev rpm pkg-config
         if: matrix.os == 'ubuntu-latest'
 
 
