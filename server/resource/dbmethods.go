@@ -948,11 +948,18 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 			log.Printf("Failed to get id to reference id [%v][%v] == %v", objectType, objectId, err)
 			return groupPermissionList
 		}
+
+		usergroupObjectResult, err := GetSingleColumnValueByReferenceIdWithTransaction("usergroup", []interface{}{"permission"},
+			"reference_id", []string{refId.String()}, transaction)
+		if err != nil {
+			return groupPermissionList
+		}
+
 		groupPermissionList = append(groupPermissionList, auth.GroupPermission{
 			GroupReferenceId:    refId,
 			ObjectReferenceId:   refId,
 			RelationReferenceId: refId,
-			Permission:          auth.DEFAULT_PERMISSION,
+			Permission:          auth.AuthPermission(usergroupObjectResult[0].(int64)),
 		})
 		return groupPermissionList
 	}
