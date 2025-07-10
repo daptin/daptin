@@ -525,19 +525,25 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	for _, groupId := range groupsToAdd {
 		nuuid, _ := uuid.NewV7()
 
-		belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
-			Insert(dbResource.model.GetName()+"_"+dbResource.model.GetName()+"_id"+"_has_usergroup_usergroup_id").
-			Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").Prepared(true).
-			Vals([]interface{}{createdResource["id"], groupId, nuuid[:], auth.DEFAULT_PERMISSION}).ToSQL()
+		relationTableName := dbResource.model.GetName() + "_" + dbResource.model.GetName() + "_id" + "_has_usergroup_usergroup_id"
+		relationTableModel, ok := dbResource.Cruds[relationTableName]
+		if !ok {
+			log.Errorf("Relation table model not found [%s]", relationTableName)
+		} else {
+			belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
+				Insert(relationTableName).
+				Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").Prepared(true).
+				Vals([]interface{}{createdResource["id"], groupId, nuuid[:], relationTableModel.model.GetDefaultPermission()}).ToSQL()
 
-		log.Tracef("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
-		_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
-		log.Tracef("Added new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
+			log.Tracef("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
+			_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
+			log.Tracef("Added new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
 
-		if err != nil {
-			log.Errorf("Failed to insert add user group relation for [%v]: %v", dbResource.model.GetName(), err)
-			return nil, err
+			if err != nil {
+				log.Errorf("Failed to insert add user group relation for [%v]: %v", dbResource.model.GetName(), err)
+				return nil, err
 
+			}
 		}
 	}
 
