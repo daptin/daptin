@@ -32,20 +32,25 @@ func (d *actionTransactionPerformer) DoAction(request actionresponse.Outcome, in
 	case "rollback":
 		err = transaction.Rollback()
 	case "query":
-		statement, err := transaction.Preparex(inFields["query"].(string))
+		query := inFields["query"].(string)
+		queryArgs := inFields["arguments"].([]interface{})
+		log.Tracef("$transaction.query [%s][%v]", query, queryArgs)
+		statement, err := transaction.Preparex(query)
 		if err != nil {
 			return nil, nil, []error{err}
 		}
 		defer statement.Close()
 
-		rows, err := statement.Queryx(inFields["arguments"].([]interface{})...)
+		rows, err := statement.Queryx(queryArgs...)
 		if err != nil {
+			log.Errorf("$transaction query failed [%v]", err.Error())
 			return nil, nil, []error{err}
 		}
 		defer rows.Close()
 		typeName := inFields["typeName"].(string)
 		result, err := resource.RowsToMap(rows, typeName)
 		if err != nil {
+			log.Errorf("$transaction rowstomap failed [%v]", err.Error())
 			return nil, nil, []error{err}
 		}
 		return nil, []actionresponse.ActionResponse{resource.NewActionResponse(typeName, result)}, nil

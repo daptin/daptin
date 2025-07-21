@@ -255,6 +255,8 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 
 		subjectInstanceMap = subjectInstance.GetAllAsAttributes()
 		subjectInstanceMap["reference_id"] = subjectInstance.GetID()
+		nativeId, _ := dbResource.Cruds["usergroup"].GetReferenceIdToId(actionRequest.Type, subjectInstanceReferenceUuid, transaction)
+		subjectInstanceMap["id"] = nativeId
 
 		if subjectInstanceMap == nil {
 			log.Warnf("subject is empty: %v - %v", actionRequest.Action, subjectInstanceReferenceString)

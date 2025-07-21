@@ -1401,13 +1401,14 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 		originalGroupId, _ := row["reference_id"]
 		originalGroupIdStr := referenceId
 		originalGroupIdStr = daptinid.InterfaceToDIR(originalGroupId)
+		pe := GetObjectPermissionByReferenceIdWithTransaction(rowType, referenceId, transaction)
 
 		perm.UserGroupId = auth.GroupPermissionList{
 			{
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   referenceId,
 				RelationReferenceId: referenceId,
-				Permission:          auth.AuthPermission(row["permission"].(int64)),
+				Permission:          pe.Permission,
 			},
 		}
 	} else if loc > -1 {
