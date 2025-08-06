@@ -66,13 +66,6 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 			"relation_reference_id": daptinid.NullReferenceId,
 		}
 
-		transaction, err := dbResource.Connection().Beginx()
-		if err != nil {
-			c.AbortWithError(500, err)
-			return
-		}
-		defer transaction.Rollback()
-
 		user := c.Request.Context().Value("user")
 		sessionUser := &auth.SessionUser{}
 
@@ -80,27 +73,50 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 			sessionUser = user.(*auth.SessionUser)
 		}
 
-		permission := dbResource.GetRowPermissionWithTransaction(originalRowReference, transaction)
-		if !permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
+		// For stream operation, we only need permission check, not full transaction
+		if operation == "stream" || operation == "" {
+			// Create a minimal transaction just for permission check
+			tx, err := dbResource.Connection().Beginx()
+			if err != nil {
+				c.AbortWithError(500, err)
+				return
+			}
 
-		switch operation {
-		case "init":
-			// Initialize upload session and return presigned URL if supported
-			handleUploadInit(c, cruds, typeName, columnName, fileName, uuidDir, assetCache, transaction)
-		case "stream":
-			// Handle streaming upload
-			handleStreamUpload(c, cruds, typeName, columnName, fileName, uuidDir, assetCache, transaction)
-		case "complete":
-			// Mark upload as complete
-			handleUploadComplete(c, cruds, typeName, columnName, fileName, uuidDir, transaction)
-		default:
-			// Default to streaming upload
-			handleStreamUpload(c, cruds, typeName, columnName, fileName, uuidDir, assetCache, transaction)
+			permission := dbResource.GetRowPermissionWithTransaction(originalRowReference, tx)
+			tx.Rollback() // Immediately rollback as we only needed to check permissions
+
+			if !permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+
+			// Handle streaming upload without maintaining transaction
+			handleStreamUpload(c, fileName, assetCache)
+		} else if operation == "init" || operation == "complete" {
+			// For init and complete operations, we need full transaction
+			transaction, err := dbResource.Connection().Beginx()
+			if err != nil {
+				c.AbortWithError(500, err)
+				return
+			}
+			defer transaction.Rollback()
+
+			permission := dbResource.GetRowPermissionWithTransaction(originalRowReference, transaction)
+			if !permission.CanUpdate(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+
+			switch operation {
+			case "init":
+				// Initialize upload session and return presigned URL if supported
+				handleUploadInit(c, cruds, typeName, columnName, fileName, uuidDir, assetCache, transaction)
+			case "complete":
+				// Mark upload as complete
+				handleUploadComplete(c, cruds, typeName, columnName, fileName, uuidDir, transaction)
+			}
+			transaction.Commit()
 		}
-		transaction.Commit()
 	}
 }
 
@@ -121,7 +137,12 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 
 	if err == nil && presignedData != nil {
 		// Presigned URL available - update database with pending upload
-		cruds[typeName].UpdateAssetColumnWithPendingUpload(resourceUuid, columnName, fileName, uploadId, fileSize, fileType, transaction)
+		err = cruds[typeName].UpdateAssetColumnWithPendingUpload(resourceUuid, columnName, fileName, uploadId, fileSize, fileType, transaction)
+		if err != nil {
+			log.Errorf("Failed to update asset column with pending upload: %v", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
 
 		// Return presigned URL to client
 		c.JSON(http.StatusOK, gin.H{
@@ -131,6 +152,14 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 			"complete_url": fmt.Sprintf("/asset/%s/%s/%s/upload?operation=complete&upload_id=%s",
 				typeName, resourceUuid, columnName, uploadId),
 		})
+		return
+	}
+
+	// For streaming upload, also track in database as pending
+	err = cruds[typeName].UpdateAssetColumnWithPendingUpload(resourceUuid, columnName, fileName, uploadId, fileSize, fileType, transaction)
+	if err != nil {
+		log.Errorf("Failed to update asset column with pending upload: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -146,30 +175,17 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 }
 
 // handleStreamUpload handles direct streaming upload to cloud storage
-func handleStreamUpload(c *gin.Context, cruds map[string]*resource.DbResource, typeName,
-	columnName, fileName string, resourceUuid daptinid.DaptinReferenceId, assetCache *assetcachepojo.AssetFolderCache, transaction *sqlx.Tx) {
+func handleStreamUpload(c *gin.Context, fileName string, assetCache *assetcachepojo.AssetFolderCache) {
 	uploadId := c.Query("upload_id")
 	if uploadId == "" {
 		uploadId = uuid.New().String()
 	}
 
-	// Setup credentials
-	configSetName := assetCache.CloudStore.Name
-	if strings.Contains(assetCache.CloudStore.RootPath, ":") {
-		configSetName = strings.Split(assetCache.CloudStore.RootPath, ":")[0]
-	}
-
-	if assetCache.Credentials != nil {
-		for key, val := range assetCache.Credentials {
-			config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
-		}
-	}
-
-	// Determine upload path
-	//cloudPath := assetCache.CloudStore.RootPath + "/" + assetCache.Keyname + "/" + fileName
+	// Setup credentials using helper function
+	setupCloudStorageCredentials(assetCache)
 
 	// For local storage or when Rcat is not suitable, use traditional approach
-	if assetCache.CloudStore.StoreProvider == "local" {
+	if isLocalStorage(assetCache) {
 		// Write to local file
 		localPath := filepath.Join(assetCache.LocalSyncPath, fileName)
 
@@ -193,17 +209,13 @@ func handleStreamUpload(c *gin.Context, cruds map[string]*resource.DbResource, t
 			return
 		}
 
-		// Update database
-		err = cruds[typeName].UpdateAssetColumnWithFile(columnName, fileName, resourceUuid, written, c.ContentType(), transaction)
-		if err != nil {
-			c.AbortWithError(500, err)
-			return
-		}
-
+		// Return upload info without DB update
+		// DB will be updated in complete phase
 		c.JSON(http.StatusOK, gin.H{
 			"upload_id": uploadId,
-			"status":    "completed",
+			"status":    "uploaded",
 			"size":      written,
+			"message":   "File uploaded, call complete endpoint to finalize",
 		})
 		return
 	}
@@ -239,17 +251,13 @@ func handleStreamUpload(c *gin.Context, cruds map[string]*resource.DbResource, t
 		return
 	}
 
-	// Update database with file info
-	err = cruds[typeName].UpdateAssetColumnWithFile(columnName, fileName, resourceUuid, progressReader.bytesRead, c.ContentType(), transaction)
-	if err != nil {
-		c.AbortWithError(500, err)
-		return
-	}
-
+	// Return upload info without DB update
+	// DB will be updated in complete phase
 	c.JSON(http.StatusOK, gin.H{
 		"upload_id": uploadId,
-		"status":    "completed",
+		"status":    "uploaded",
 		"size":      progressReader.bytesRead,
+		"message":   "File uploaded, call complete endpoint to finalize",
 	})
 }
 
@@ -261,10 +269,31 @@ func handleUploadComplete(c *gin.Context, cruds map[string]*resource.DbResource,
 		uploadId = c.PostForm("upload_id")
 	}
 
+	// Get file size and type from request or metadata
+	fileSize, _ := strconv.ParseInt(c.GetHeader("X-File-Size"), 10, 64)
+	fileType := c.GetHeader("X-File-Type")
+	if fileType == "" {
+		fileType = c.GetHeader("Content-Type")
+		if fileType == "" {
+			fileType = "application/octet-stream"
+		}
+	}
+
 	// Get additional metadata from client
 	var metadata map[string]interface{}
 	if err := c.ShouldBindJSON(&metadata); err != nil {
 		metadata = make(map[string]interface{})
+	}
+
+	// Extract file info from metadata if available
+	if size, ok := metadata["size"].(float64); ok && fileSize == 0 {
+		fileSize = int64(size)
+	}
+	if fType, ok := metadata["type"].(string); ok && fileType == "application/octet-stream" {
+		fileType = fType
+	}
+	if fName, ok := metadata["fileName"].(string); ok && fileName == "" {
+		fileName = fName
 	}
 
 	// Verify file exists in cloud storage (optional based on provider)
@@ -279,17 +308,30 @@ func handleUploadComplete(c *gin.Context, cruds map[string]*resource.DbResource,
 		return
 	}
 
-	// Update database to mark upload as complete
-	err := cruds[typeName].UpdateAssetColumnStatus(resourceUuid, columnName, uploadId, "completed", metadata, transaction)
-	if err != nil {
-		log.Errorf("Failed to update asset column status: %v", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+	// Update database with file information
+	if uploadId != "" {
+		// If we have an upload ID, update the pending upload
+		err := cruds[typeName].UpdateAssetColumnStatus(resourceUuid, columnName, uploadId, "completed", metadata, transaction)
+		if err != nil {
+			log.Errorf("Failed to update asset column status: %v", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Direct update without upload ID (for stream uploads)
+		err := cruds[typeName].UpdateAssetColumnWithFile(columnName, fileName, resourceUuid, fileSize, fileType, transaction)
+		if err != nil {
+			log.Errorf("Failed to update asset column: %v", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"upload_id": uploadId,
 		"status":    "completed",
+		"fileName":  fileName,
+		"size":      fileSize,
 	})
 }
 
@@ -317,18 +359,8 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 }
 
 // verifyFileInCloud checks if a file exists in cloud storage
-func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName string) bool {
-	// For local storage, check file existence
-	if assetCache.CloudStore.StoreProvider == "local" {
-		localPath := filepath.Join(assetCache.LocalSyncPath, fileName)
-		_, err := os.Stat(localPath)
-		return err == nil
-	}
-
-	// For cloud storage, use rclone to check
-	ctx := context.Background()
-
-	// Setup credentials
+// setupCloudStorageCredentials configures rclone credentials for the given asset cache
+func setupCloudStorageCredentials(assetCache *assetcachepojo.AssetFolderCache) string {
 	configSetName := assetCache.CloudStore.Name
 	if strings.Contains(assetCache.CloudStore.RootPath, ":") {
 		configSetName = strings.Split(assetCache.CloudStore.RootPath, ":")[0]
@@ -340,6 +372,23 @@ func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName str
 		}
 	}
 
+	return configSetName
+}
+
+func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName string) bool {
+	// For local storage, check file existence
+	if assetCache.CloudStore.StoreProvider == "local" {
+		localPath := filepath.Join(assetCache.LocalSyncPath, fileName)
+		_, err := os.Stat(localPath)
+		return err == nil
+	}
+
+	// For cloud storage, use rclone to check
+	ctx := context.Background()
+
+	// Setup credentials using helper function
+	setupCloudStorageCredentials(assetCache)
+
 	// Check if file exists
 	fsrc, err := fs.NewFs(ctx, assetCache.CloudStore.RootPath+"/"+assetCache.Keyname)
 	if err != nil {
@@ -348,4 +397,14 @@ func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName str
 
 	_, err = fsrc.NewObject(ctx, fileName)
 	return err == nil
+}
+
+// getUploadPath constructs the full path for upload destination
+func getUploadPath(assetCache *assetcachepojo.AssetFolderCache, fileName string) string {
+	return assetCache.CloudStore.RootPath + "/" + assetCache.Keyname + "/" + fileName
+}
+
+// isLocalStorage checks if the storage provider is local filesystem
+func isLocalStorage(assetCache *assetcachepojo.AssetFolderCache) bool {
+	return assetCache.CloudStore.StoreProvider == "local"
 }
