@@ -783,3 +783,176 @@ func (dbResource *DbResource) StoreToken(token *oauth2.Token,
 	_, err = dbResource.Cruds["oauth_token"].CreateWithoutFilter(model, req, transaction)
 	return err
 }
+
+func (dbResource *DbResource) UpdateAssetColumnWithFile(columnName,
+	fileName string, resourceUuid daptinid.DaptinReferenceId, fileSize int64, fileType string, transaction *sqlx.Tx) error {
+
+	obj, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction(dbResource.tableInfo.TableName, resourceUuid, nil, transaction)
+	if err != nil {
+		return err
+	}
+
+	colData := obj[columnName]
+
+	var files []map[string]interface{}
+	if colData != nil {
+		files = colData.([]map[string]interface{})
+	} else {
+		files = make([]map[string]interface{}, 0)
+	}
+
+	// Check if file already exists and update or append
+	found := false
+	for i, file := range files {
+		if file["name"] == fileName {
+			// Update existing file
+			files[i] = map[string]interface{}{
+				"name":        fileName,
+				"size":        fileSize,
+				"type":        fileType,
+				"status":      "completed",
+				"uploaded_at": time.Now(),
+			}
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		// Add new file
+		files = append(files, map[string]interface{}{
+			"name":        fileName,
+			"size":        fileSize,
+			"type":        fileType,
+			"status":      "completed",
+			"uploaded_at": time.Now(),
+		})
+	}
+
+	// Update column
+	jsonData, _ := json.Marshal(files)
+
+	newData := goqu.Record{
+		"updated_at": time.Now(),
+	}
+	newData[columnName] = jsonData
+	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).ToSQL()
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec(query, args)
+
+	return err
+}
+
+func (dbResource *DbResource) UpdateAssetColumnStatus(resourceUuid daptinid.DaptinReferenceId, columnName,
+	uploadId, status string, metadata map[string]interface{}, transaction *sqlx.Tx) error {
+
+	// Get current resource - use cruds to access the method
+	referenceId := resourceUuid
+	resourceData, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.tableInfo.TableName, referenceId, transaction)
+	if err != nil {
+		return err
+	}
+
+	colData := resourceData[columnName]
+	var files []map[string]interface{}
+	if colData != nil {
+		// Handle both string (JSON) and direct array types
+		switch v := colData.(type) {
+		case string:
+			json.Unmarshal([]byte(v), &files)
+		case []map[string]interface{}:
+			files = v
+		default:
+			files = make([]map[string]interface{}, 0)
+		}
+	}
+
+	// Find and update the file with matching upload_id
+	for i, file := range files {
+		if file["upload_id"] == uploadId {
+			file["status"] = status
+			delete(file, "upload_id")
+
+			// Add metadata if provided
+			if metadata != nil {
+				if size, ok := metadata["size"]; ok {
+					file["size"] = size
+				}
+				if fileType, ok := metadata["type"]; ok {
+					file["type"] = fileType
+				}
+			}
+
+			file["uploaded_at"] = time.Now()
+			files[i] = file
+			break
+		}
+	}
+
+	// Update column
+	jsonData, _ := json.Marshal(files)
+
+	newData := goqu.Record{
+		"updated_at": time.Now(),
+	}
+	newData[columnName] = jsonData
+	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).
+		Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).ToSQL()
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec(query, args)
+
+	return err
+
+}
+
+func (dbResource *DbResource) UpdateAssetColumnWithPendingUpload(resourceUuid daptinid.DaptinReferenceId,
+	columnName, fileName, uploadId string, fileSize int64, fileType string, transaction *sqlx.Tx) error {
+
+	obj, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction(dbResource.tableInfo.TableName, resourceUuid, nil, transaction)
+	if err != nil {
+		return err
+	}
+
+	colData := obj[columnName]
+
+	var files []map[string]interface{}
+	if colData != nil {
+		files = colData.([]map[string]interface{})
+	} else {
+		files = make([]map[string]interface{}, 0)
+	}
+
+	// Add pending upload entry
+	files = append(files, map[string]interface{}{
+		"name":       fileName,
+		"size":       fileSize,
+		"type":       fileType,
+		"upload_id":  uploadId,
+		"status":     "pending",
+		"created_at": time.Now(),
+	})
+
+	// Update column
+	jsonData, _ := json.Marshal(files)
+
+	newData := goqu.Record{
+		"updated_at": time.Now(),
+	}
+	newData[columnName] = jsonData
+	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).
+		Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).ToSQL()
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec(query, args)
+
+	return err
+
+}

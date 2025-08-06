@@ -94,7 +94,7 @@ func (s *mapStringScan) Update(rows *sqlx.Rows) error {
 		rb := s.cp[i]
 		if true {
 			s.row[s.colNames[i]] = ValueOf(rb)
-			if s.colNames[i] == "reference_id" {
+			if s.colNames[i] == "reference_id" || EndsWithCheck(s.colNames[i], "_reference_id") {
 				s.row[s.colNames[i]] = daptinid.DaptinReferenceId([]byte(s.row[s.colNames[i]].(string)))
 			}
 			rb = nil // reset pointer to discard current value to avoid a bug

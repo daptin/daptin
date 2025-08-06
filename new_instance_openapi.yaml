@@ -24574,6 +24574,230 @@ paths:
       - usergroup
       - has_many
       - patch
+  /statistics:
+    get:
+      description: Returns comprehensive system statistics including CPU, memory, disk, database, and web metrics
+      operationId: GetStatistics
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  cpu:
+                    properties:
+                      counts:
+                        description: Number of CPU cores
+                        type: integer
+                      info:
+                        description: CPU information array
+                        items:
+                          properties:
+                            cores:
+                              type: integer
+                            modelName:
+                              type: string
+                            mhz:
+                              type: number
+                          type: object
+                        type: array
+                      percent:
+                        description: CPU usage percentage per core
+                        items:
+                          type: number
+                        type: array
+                    type: object
+                  db:
+                    properties:
+                      IdleConnections:
+                        type: integer
+                      InUse:
+                        type: integer
+                      MaxOpenConnections:
+                        type: integer
+                      OpenConnections:
+                        type: integer
+                    type: object
+                  disk:
+                    properties:
+                      io:
+                        additionalProperties:
+                          properties:
+                            readCount:
+                              type: integer
+                            writeCount:
+                              type: integer
+                          type: object
+                        type: object
+                    type: object
+                  host:
+                    properties:
+                      info:
+                        properties:
+                          hostname:
+                            type: string
+                          os:
+                            type: string
+                          platform:
+                            type: string
+                          uptime:
+                            type: integer
+                        type: object
+                    type: object
+                  load:
+                    properties:
+                      avg:
+                        properties:
+                          load1:
+                            type: number
+                          load15:
+                            type: number
+                          load5:
+                            type: number
+                        type: object
+                    type: object
+                  memory:
+                    properties:
+                      virtual:
+                        properties:
+                          available:
+                            type: integer
+                          total:
+                            type: integer
+                          used:
+                            type: integer
+                          usedPercent:
+                            type: number
+                        type: object
+                    type: object
+                  process:
+                    properties:
+                      count:
+                        type: integer
+                      top_processes:
+                        items:
+                          properties:
+                            cpu_percent:
+                              type: number
+                            mem_percent:
+                              type: number
+                            name:
+                              type: string
+                            pid:
+                              type: integer
+                          type: object
+                        type: array
+                    type: object
+                  web:
+                    properties:
+                      average_response_time:
+                        type: string
+                      count:
+                        type: integer
+                      hostname:
+                        type: string
+                      pid:
+                        type: integer
+                      status_code_count:
+                        additionalProperties:
+                          type: integer
+                        type: object
+                      total_count:
+                        type: integer
+                      total_response_time:
+                        type: string
+                      uptime:
+                        type: string
+                    type: object
+                type: object
+          description: System statistics
+      summary: Get system statistics
+      tags:
+      - monitoring
+      - statistics
+  /ping:
+    get:
+      description: Simple health check endpoint that returns "pong"
+      operationId: GetPing
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                example: pong
+                type: string
+          description: Service is healthy
+      summary: Health check ping
+      tags:
+      - monitoring
+      - health
+  /action/{entity}/{actionName}:
+    post:
+      description: Execute built-in or custom actions on entities with support for data export/import, system operations, and entity-specific workflows
+      operationId: ExecuteEntityAction
+      parameters:
+      - description: Entity name or "world" for system actions
+        in: path
+        name: entity
+        required: true
+        schema:
+          type: string
+      - description: Action name (e.g., data_export, data_import, restart_daptin)
+        in: path
+        name: actionName
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              data_export:
+                summary: Export data in various formats
+                value:
+                  format: json
+                  table_name: user_account
+                  include_headers: true
+                  page_size: 1000
+              data_import:
+                summary: Import data from file
+                value:
+                  table_name: user_account
+                  truncate_before_insert: false
+                  batch_size: 100
+                  dump_file:
+                  - name: users.json
+                    file: base64_encoded_content
+            schema:
+              type: object
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                properties:
+                  attributes:
+                    type: object
+                  type:
+                    type: string
+                type: object
+          description: Action executed successfully
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      summary: Execute entity action
+      tags:
+      - actions
+      - operations
 components:
   parameters:
     Fields:

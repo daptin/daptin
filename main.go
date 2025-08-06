@@ -245,8 +245,8 @@ func main() {
 
 	var boxRoot http.FileSystem
 	if err != nil || (webDashboardSource != nil && *webDashboardSource != "daptinweb") {
-		log.Errorf("Dashboard not loading from default path: %v == %v", err, boxRoot1)
-		log.Printf("Try loading web dashboard from: %v", *webDashboardSource)
+		log.Tracef("Dashboard not loading from default path: %v == %v", err, boxRoot1)
+		log.Infof("Try loading web dashboard from: %v", *webDashboardSource)
 		boxRoot = http.Dir(*webDashboardSource)
 	} else {
 		boxRoot = boxRoot1.HTTPBox()

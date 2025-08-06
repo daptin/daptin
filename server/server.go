@@ -529,6 +529,13 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	dbAssetHandler := CreateDbAssetHandler(cruds, olricDb)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
 
+	// Asset upload endpoints for streaming and presigned URLs
+	assetUploadHandler := AssetUploadHandler(cruds)
+	defaultRouter.POST("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)           // Initialize upload
+	defaultRouter.PUT("/asset/:typename/:resource_id/:columnname/:filename/upload", assetUploadHandler)  // Stream upload
+	defaultRouter.POST("/asset/:typename/:resource_id/:columnname/:filename/upload", assetUploadHandler) // Stream upload alternative
+	defaultRouter.PATCH("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)          // Complete upload
+
 	defaultRouter.GET("/feed/:feedname", feedHandler)
 
 	configHandler := CreateConfigHandler(&initConfig, cruds, configStore)
