@@ -836,12 +836,12 @@ func (dbResource *DbResource) UpdateAssetColumnWithFile(columnName,
 		"updated_at": time.Now(),
 	}
 	newData[columnName] = jsonData
-	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).ToSQL()
+	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).Prepared(true).ToSQL()
 	if err != nil {
 		return err
 	}
 
-	_, err = transaction.Exec(query, args)
+	_, err = transaction.Exec(query, args...)
 
 	return err
 }
@@ -900,12 +900,12 @@ func (dbResource *DbResource) UpdateAssetColumnStatus(resourceUuid daptinid.Dapt
 	}
 	newData[columnName] = jsonData
 	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).
-		Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).ToSQL()
+		Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).Prepared(true).ToSQL()
 	if err != nil {
 		return err
 	}
 
-	_, err = transaction.Exec(query, args)
+	_, err = transaction.Exec(query, args...)
 
 	return err
 
@@ -939,19 +939,24 @@ func (dbResource *DbResource) UpdateAssetColumnWithPendingUpload(resourceUuid da
 	})
 
 	// Update column
-	jsonData, _ := json.Marshal(files)
+	jsonData, _ := json.MarshalToString(files)
 
 	newData := goqu.Record{
 		"updated_at": time.Now(),
 	}
 	newData[columnName] = jsonData
-	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).
+	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).Prepared(true).
 		Where(goqu.Ex{"reference_id": resourceUuid[:]}).Set(newData).ToSQL()
+	log.Debugf("[950] Query [%s] => %v", query, args)
 	if err != nil {
 		return err
 	}
 
-	_, err = transaction.Exec(query, args)
+	_, err = transaction.Exec(query, args...)
+	if err != nil {
+		log.Errorf("Failed to execute query: %v", err)
+		return err
+	}
 
 	return err
 

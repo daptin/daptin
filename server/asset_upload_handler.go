@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
@@ -30,12 +31,16 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 		typeName := c.Param("typename")
 		resourceUuid := c.Param("resource_id")
 		columnName := c.Param("columnname")
-		fileName := c.Param("filename")
+		fileName := c.Query("filename")
 		operation := c.Query("operation") // append, replace, init
 
 		uuidDir := daptinid.InterfaceToDIR(resourceUuid)
 		if uuidDir == daptinid.NullReferenceId {
 			c.AbortWithStatus(404)
+			return
+		}
+		if fileName == "" {
+			c.AbortWithError(401, errors.New("file name required"))
 			return
 		}
 		// Validate table and column
@@ -139,7 +144,7 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 		// Presigned URL available - update database with pending upload
 		err = cruds[typeName].UpdateAssetColumnWithPendingUpload(resourceUuid, columnName, fileName, uploadId, fileSize, fileType, transaction)
 		if err != nil {
-			log.Errorf("Failed to update asset column with pending upload: %v", err)
+			log.Errorf("[147] Failed to update asset column with pending upload: %v", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
@@ -158,7 +163,7 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 	// For streaming upload, also track in database as pending
 	err = cruds[typeName].UpdateAssetColumnWithPendingUpload(resourceUuid, columnName, fileName, uploadId, fileSize, fileType, transaction)
 	if err != nil {
-		log.Errorf("Failed to update asset column with pending upload: %v", err)
+		log.Errorf("[166] Failed to update asset column with pending upload: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
