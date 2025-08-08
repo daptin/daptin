@@ -102,7 +102,7 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 		return 0, nil
 	}
 
-	queryHash := GetMD5HashString(s)
+	queryHash := GetMD5HashString(s + fmt.Sprintf("%v", v))
 	cacheKey := fmt.Sprintf("count-%v", queryHash)
 	if OlricCache != nil {
 		cachedCount, err := OlricCache.Get(context.Background(), cacheKey)
