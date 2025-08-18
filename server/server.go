@@ -529,12 +529,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	dbAssetHandler := CreateDbAssetHandler(cruds, olricDb)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname", dbAssetHandler)
 
-	// Asset upload endpoints for streaming and presigned URLs
+	// Asset upload endpoints - properly organized
 	assetUploadHandler := AssetUploadHandler(cruds)
-	defaultRouter.POST("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)           // Initialize upload
-	defaultRouter.PUT("/asset/:typename/:resource_id/:columnname/:filename/upload", assetUploadHandler)  // Stream upload
-	defaultRouter.POST("/asset/:typename/:resource_id/:columnname/:filename/upload", assetUploadHandler) // Stream upload alternative
-	defaultRouter.PATCH("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)          // Complete upload
+	// Main upload endpoint - uses operation query param for different actions
+	defaultRouter.POST("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)
+	defaultRouter.GET("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)    // For get_part_url operation
+	defaultRouter.DELETE("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler) // For abort operation
 
 	defaultRouter.GET("/feed/:feedname", feedHandler)
 

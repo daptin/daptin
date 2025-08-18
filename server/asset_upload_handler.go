@@ -31,16 +31,40 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 		typeName := c.Param("typename")
 		resourceUuid := c.Param("resource_id")
 		columnName := c.Param("columnname")
+
+		// Determine operation based on HTTP method and query param
+		operation := c.Query("operation")
+		if operation == "" {
+			// Default operations based on HTTP method
+			switch c.Request.Method {
+			case "GET":
+				operation = "get_part_url"
+			case "DELETE":
+				operation = "abort"
+			case "POST":
+				// Check if it's init or complete based on presence of upload_id
+				if c.Query("upload_id") != "" || c.PostForm("upload_id") != "" {
+					operation = "complete"
+				} else {
+					operation = "init"
+				}
+			default:
+				operation = "stream"
+			}
+		}
+
+		// Get filename from query param (required for all operations)
 		fileName := c.Query("filename")
-		operation := c.Query("operation") // append, replace, init
 
 		uuidDir := daptinid.InterfaceToDIR(resourceUuid)
 		if uuidDir == daptinid.NullReferenceId {
 			c.AbortWithStatus(404)
 			return
 		}
-		if fileName == "" {
-			c.AbortWithError(401, errors.New("file name required"))
+
+		// Filename is required for all operations
+		if fileName == "" && operation != "complete" {
+			c.AbortWithError(400, errors.New("filename query parameter is required"))
 			return
 		}
 		// Validate table and column
@@ -97,7 +121,7 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 
 			// Handle streaming upload without maintaining transaction
 			handleStreamUpload(c, fileName, assetCache)
-		} else if operation == "init" || operation == "complete" {
+		} else if operation == "init" || operation == "complete" || operation == "get_part_url" || operation == "abort" {
 			// For init and complete operations, we need full transaction
 			transaction, err := dbResource.Connection().Beginx()
 			if err != nil {
@@ -119,6 +143,12 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 			case "complete":
 				// Mark upload as complete
 				handleUploadComplete(c, cruds, typeName, columnName, fileName, uuidDir, transaction)
+			case "get_part_url":
+				// Get presigned URL for a specific part in multipart upload
+				handleGetPartPresignedURL(c, assetCache)
+			case "abort":
+				// Abort multipart upload
+				handleAbortMultipartUpload(c, assetCache)
 			}
 			transaction.Commit()
 		}
@@ -136,6 +166,67 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 
 	// Generate upload ID
 	uploadId := uuid.New().String()
+
+	// Check if this is a large file that requires multipart upload (>100MB)
+	const multipartThreshold = 100 * 1024 * 1024 // 100MB
+	if fileSize > multipartThreshold {
+		// Check if this is S3 storage which supports multipart
+		if assetCache.Credentials != nil {
+			if providerType, ok := assetCache.Credentials["type"].(string); ok && providerType == "s3" {
+				// Extract bucket and key
+				rootPath := assetCache.CloudStore.RootPath
+				keyPath := assetCache.Keyname + "/" + fileName
+
+				// Parse bucket name
+				bucketName := ""
+				if strings.Contains(rootPath, ":") {
+					parts := strings.Split(rootPath, ":")
+					if len(parts) >= 2 {
+						bucketName = strings.TrimPrefix(parts[1], "/")
+						if strings.Contains(bucketName, "/") {
+							pathParts := strings.SplitN(bucketName, "/", 2)
+							bucketName = pathParts[0]
+							if len(pathParts) > 1 {
+								keyPath = pathParts[1] + "/" + keyPath
+							}
+						}
+					}
+				}
+
+				if bucketName != "" {
+					// Initiate S3 multipart upload
+					s3UploadId, err := InitiateS3MultipartUpload(assetCache.Credentials, bucketName, keyPath)
+					if err == nil {
+						// Update database with pending multipart upload
+						err = cruds[typeName].UpdateAssetColumnWithPendingUpload(resourceUuid, columnName, fileName, uploadId, fileSize, fileType, transaction)
+						if err != nil {
+							log.Errorf("Failed to update asset column with pending multipart upload: %v", err)
+							c.AbortWithStatus(http.StatusInternalServerError)
+							return
+						}
+
+						// Return multipart upload details to client
+						c.JSON(http.StatusOK, gin.H{
+							"upload_id":     uploadId,
+							"s3_upload_id":  s3UploadId,
+							"upload_type":   "multipart",
+							"min_part_size": 5 * 1024 * 1024, // 5MB minimum part size for S3
+							"max_parts":     10000,           // S3 limit
+							"get_part_url": fmt.Sprintf("/asset/%s/%s/%s/upload?operation=get_part_url&upload_id=%s&filename=%s",
+								typeName, resourceUuid, columnName, s3UploadId, fileName),
+							"complete_url": fmt.Sprintf("/asset/%s/%s/%s/upload?operation=complete&upload_id=%s",
+								typeName, resourceUuid, columnName, uploadId),
+							"abort_url": fmt.Sprintf("/asset/%s/%s/%s/upload?operation=abort&upload_id=%s&filename=%s",
+								typeName, resourceUuid, columnName, s3UploadId, fileName),
+						})
+						return
+					}
+					// If multipart init failed, fall through to regular presigned URL
+					log.Warnf("Failed to initiate multipart upload, falling back to regular upload: %v", err)
+				}
+			}
+		}
+	}
 
 	// Try to generate presigned URL based on storage provider
 	presignedData, err := generatePresignedURL(assetCache, fileName, uploadId)
@@ -290,6 +381,119 @@ func handleUploadComplete(c *gin.Context, cruds map[string]*resource.DbResource,
 		metadata = make(map[string]interface{})
 	}
 
+	// Check if this is a multipart upload completion
+	if parts, ok := metadata["parts"].([]interface{}); ok && len(parts) > 0 {
+		// This is a multipart upload completion
+		s3UploadId, _ := metadata["s3_upload_id"].(string)
+		if s3UploadId == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "s3_upload_id is required for multipart completion",
+			})
+			return
+		}
+
+		// Get filename from metadata if not in query param
+		if fileName == "" {
+			if fn, ok := metadata["fileName"].(string); ok {
+				fileName = fn
+			}
+		}
+
+		if fileName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "fileName is required for multipart completion",
+			})
+			return
+		}
+
+		// Get asset cache to access credentials
+		assetCache := cruds["world"].AssetFolderCache[typeName][columnName]
+
+		// Check if this is S3 storage
+		if assetCache.Credentials == nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "multipart completion not supported for this storage type",
+			})
+			return
+		}
+
+		providerType, ok := assetCache.Credentials["type"].(string)
+		if !ok || providerType != "s3" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "multipart completion only supported for S3 storage",
+			})
+			return
+		}
+
+		// Extract bucket and key
+		rootPath := assetCache.CloudStore.RootPath
+		keyPath := assetCache.Keyname + "/" + fileName
+
+		// Parse bucket name
+		bucketName := ""
+		if strings.Contains(rootPath, ":") {
+			partsList := strings.Split(rootPath, ":")
+			if len(partsList) >= 2 {
+				bucketName = strings.TrimPrefix(partsList[1], "/")
+				if strings.Contains(bucketName, "/") {
+					pathParts := strings.SplitN(bucketName, "/", 2)
+					bucketName = pathParts[0]
+					if len(pathParts) > 1 {
+						keyPath = pathParts[1] + "/" + keyPath
+					}
+				}
+			}
+		}
+
+		if bucketName == "" {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "could not extract bucket name",
+			})
+			return
+		}
+
+		// Convert parts to the format expected by CompleteS3MultipartUpload
+		var s3Parts []map[string]interface{}
+		for _, part := range parts {
+			if partMap, ok := part.(map[string]interface{}); ok {
+				s3Parts = append(s3Parts, partMap)
+			}
+		}
+
+		// Complete the multipart upload on S3
+		err := CompleteS3MultipartUpload(assetCache.Credentials, bucketName, keyPath, s3UploadId, s3Parts)
+		if err != nil {
+			log.Errorf("Failed to complete S3 multipart upload: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("failed to complete multipart upload: %v", err),
+				"details": map[string]interface{}{
+					"bucket":      bucketName,
+					"key":         keyPath,
+					"upload_id":   s3UploadId,
+					"parts_count": len(s3Parts),
+				},
+			})
+			return
+		}
+
+		// Update database with completed status
+		err = cruds[typeName].UpdateAssetColumnStatus(resourceUuid, columnName, uploadId, "completed", metadata, transaction)
+		if err != nil {
+			log.Errorf("Failed to update asset column status: %v", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"upload_id": uploadId,
+			"status":    "completed",
+			"fileName":  fileName,
+			"size":      fileSize,
+			"multipart": true,
+		})
+		return
+	}
+
 	// Extract file info from metadata if available
 	if size, ok := metadata["size"].(float64); ok && fileSize == 0 {
 		fileSize = int64(size)
@@ -412,4 +616,150 @@ func getUploadPath(assetCache *assetcachepojo.AssetFolderCache, fileName string)
 // isLocalStorage checks if the storage provider is local filesystem
 func isLocalStorage(assetCache *assetcachepojo.AssetFolderCache) bool {
 	return assetCache.CloudStore.StoreProvider == "local"
+}
+
+// handleGetPartPresignedURL generates a presigned URL for a specific part in multipart upload
+func handleGetPartPresignedURL(c *gin.Context, assetCache *assetcachepojo.AssetFolderCache) {
+	uploadId := c.Query("upload_id")
+	partNumberStr := c.Query("part_number")
+
+	if uploadId == "" || partNumberStr == "" {
+		c.AbortWithError(400, fmt.Errorf("upload_id and part_number are required"))
+		return
+	}
+
+	partNumber, err := strconv.ParseInt(partNumberStr, 10, 32)
+	if err != nil {
+		c.AbortWithError(400, fmt.Errorf("invalid part_number: %v", err))
+		return
+	}
+
+	// Check if this is S3 storage
+	if assetCache.Credentials == nil {
+		c.AbortWithError(400, fmt.Errorf("presigned URLs not supported for this storage type"))
+		return
+	}
+
+	providerType, ok := assetCache.Credentials["type"].(string)
+	if !ok || providerType != "s3" {
+		c.AbortWithError(400, fmt.Errorf("presigned URLs only supported for S3 storage"))
+		return
+	}
+
+	// Extract bucket and key
+	rootPath := assetCache.CloudStore.RootPath
+	fileName := c.Query("filename")
+	if fileName == "" {
+		c.AbortWithError(400, fmt.Errorf("filename is required"))
+		return
+	}
+
+	keyPath := assetCache.Keyname + "/" + fileName
+
+	// Parse bucket name
+	bucketName := ""
+	if strings.Contains(rootPath, ":") {
+		parts := strings.Split(rootPath, ":")
+		if len(parts) >= 2 {
+			bucketName = strings.TrimPrefix(parts[1], "/")
+			if strings.Contains(bucketName, "/") {
+				pathParts := strings.SplitN(bucketName, "/", 2)
+				bucketName = pathParts[0]
+				if len(pathParts) > 1 {
+					keyPath = pathParts[1] + "/" + keyPath
+				}
+			}
+		}
+	}
+
+	if bucketName == "" {
+		c.AbortWithError(500, fmt.Errorf("could not extract bucket name"))
+		return
+	}
+
+	// Generate presigned URL for this part
+	log.Infof("Generating presigned URL for part %d - uploadId from query: %s, bucket: %s, key: %s",
+		partNumber, uploadId, bucketName, keyPath)
+	presignedUrl, err := GetS3PartPresignedURL(assetCache.Credentials, bucketName, keyPath, uploadId, int32(partNumber))
+	if err != nil {
+		log.Errorf("Failed to generate part presigned URL: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	log.Infof("Generated presigned URL: %s", presignedUrl)
+
+	c.JSON(http.StatusOK, gin.H{
+		"presigned_url": presignedUrl,
+		"part_number":   partNumber,
+		"expires_at":    time.Now().Add(3600 * time.Second).Unix(),
+	})
+}
+
+// handleAbortMultipartUpload aborts an in-progress multipart upload
+func handleAbortMultipartUpload(c *gin.Context, assetCache *assetcachepojo.AssetFolderCache) {
+	uploadId := c.Query("upload_id")
+	if uploadId == "" {
+		uploadId = c.PostForm("upload_id")
+	}
+
+	if uploadId == "" {
+		c.AbortWithError(400, fmt.Errorf("upload_id is required"))
+		return
+	}
+
+	// Check if this is S3 storage
+	if assetCache.Credentials == nil {
+		c.AbortWithError(400, fmt.Errorf("abort not supported for this storage type"))
+		return
+	}
+
+	providerType, ok := assetCache.Credentials["type"].(string)
+	if !ok || providerType != "s3" {
+		c.AbortWithError(400, fmt.Errorf("abort only supported for S3 storage"))
+		return
+	}
+
+	// Extract bucket and key
+	rootPath := assetCache.CloudStore.RootPath
+	fileName := c.Query("filename")
+	if fileName == "" {
+		c.AbortWithError(400, fmt.Errorf("filename is required"))
+		return
+	}
+
+	keyPath := assetCache.Keyname + "/" + fileName
+
+	// Parse bucket name
+	bucketName := ""
+	if strings.Contains(rootPath, ":") {
+		parts := strings.Split(rootPath, ":")
+		if len(parts) >= 2 {
+			bucketName = strings.TrimPrefix(parts[1], "/")
+			if strings.Contains(bucketName, "/") {
+				pathParts := strings.SplitN(bucketName, "/", 2)
+				bucketName = pathParts[0]
+				if len(pathParts) > 1 {
+					keyPath = pathParts[1] + "/" + keyPath
+				}
+			}
+		}
+	}
+
+	if bucketName == "" {
+		c.AbortWithError(500, fmt.Errorf("could not extract bucket name"))
+		return
+	}
+
+	// Abort the multipart upload
+	err := AbortS3MultipartUpload(assetCache.Credentials, bucketName, keyPath, uploadId)
+	if err != nil {
+		log.Errorf("Failed to abort multipart upload: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "aborted",
+		"upload_id": uploadId,
+	})
 }

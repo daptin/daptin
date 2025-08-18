@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -78,6 +79,121 @@ func generatePresignedURL(assetCache *assetcachepojo.AssetFolderCache, fileName 
 	return nil, fmt.Errorf("presigned URLs not yet implemented for this cloud storage provider")
 }
 
+// InitiateS3MultipartUpload starts a new multipart upload session on S3
+func InitiateS3MultipartUpload(credentials map[string]interface{}, bucketName string, keyPath string) (string, error) {
+	// Extract S3 credentials
+	accessKeyID, ok := credentials["access_key_id"].(string)
+	if !ok || accessKeyID == "" {
+		return "", fmt.Errorf("missing access_key_id in S3 credentials")
+	}
+
+	secretAccessKey, ok := credentials["secret_access_key"].(string)
+	if !ok || secretAccessKey == "" {
+		return "", fmt.Errorf("missing secret_access_key in S3 credentials")
+	}
+
+	region, ok := credentials["region"].(string)
+	if !ok || region == "" {
+		region = "us-east-1"
+	}
+
+	endpoint, _ := credentials["endpoint"].(string)
+
+	// Create AWS config
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx,
+		awsconfig.WithRegion(region),
+		awsconfig.WithCredentialsProvider(
+			awscredentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, ""),
+		),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to create AWS config: %v", err)
+	}
+
+	// Create S3 client
+	s3Options := func(o *s3.Options) {
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = true
+		}
+	}
+	s3Client := s3.NewFromConfig(cfg, s3Options)
+
+	// Initiate multipart upload
+	createResp, err := s3Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(keyPath),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create multipart upload: %v", err)
+	}
+
+	log.Infof("Initiated S3 multipart upload for bucket: %s, key: %s, uploadId: %s", bucketName, keyPath, *createResp.UploadId)
+	return *createResp.UploadId, nil
+}
+
+// GetS3PartPresignedURL generates a presigned URL for a specific part in a multipart upload
+func GetS3PartPresignedURL(credentials map[string]interface{}, bucketName string, keyPath string, uploadId string, partNumber int32) (string, error) {
+	// Extract S3 credentials
+	accessKeyID, ok := credentials["access_key_id"].(string)
+	if !ok || accessKeyID == "" {
+		return "", fmt.Errorf("missing access_key_id in S3 credentials")
+	}
+
+	secretAccessKey, ok := credentials["secret_access_key"].(string)
+	if !ok || secretAccessKey == "" {
+		return "", fmt.Errorf("missing secret_access_key in S3 credentials")
+	}
+
+	region, ok := credentials["region"].(string)
+	if !ok || region == "" {
+		region = "us-east-1"
+	}
+
+	endpoint, _ := credentials["endpoint"].(string)
+
+	// Create AWS config
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx,
+		awsconfig.WithRegion(region),
+		awsconfig.WithCredentialsProvider(
+			awscredentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, ""),
+		),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to create AWS config: %v", err)
+	}
+
+	// Create S3 client
+	s3Options := func(o *s3.Options) {
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = true
+		}
+	}
+	s3Client := s3.NewFromConfig(cfg, s3Options)
+	presignClient := s3.NewPresignClient(s3Client)
+
+	// Generate presigned URL for this part
+	uploadPartRequest := &s3.UploadPartInput{
+		Bucket:     aws.String(bucketName),
+		Key:        aws.String(keyPath),
+		UploadId:   aws.String(uploadId),
+		PartNumber: aws.Int32(partNumber),
+	}
+
+	presignedReq, err := presignClient.PresignUploadPart(ctx, uploadPartRequest,
+		func(opts *s3.PresignOptions) {
+			opts.Expires = time.Duration(3600 * time.Second) // 1 hour expiry
+		})
+	if err != nil {
+		return "", fmt.Errorf("failed to create presigned URL for part %d: %v", partNumber, err)
+	}
+
+	return presignedReq.URL, nil
+}
+
 // generateS3PresignedURL generates presigned URLs for S3-compatible storage
 func generateS3PresignedURL(credentials map[string]interface{}, bucketName string, keyPath string, uploadId string) (map[string]interface{}, error) {
 	// Extract S3 credentials from the credential map (rclone format)
@@ -124,42 +240,8 @@ func generateS3PresignedURL(credentials map[string]interface{}, bucketName strin
 	// Create S3 presign client
 	presignClient := s3.NewPresignClient(s3Client)
 
-	// Check if this is a multipart upload request
-	if uploadId != "" {
-		// For multipart uploads, we need to return multiple presigned URLs for parts
-		// For now, we'll create a single part upload
-		// In production, you'd want to calculate the number of parts based on file size
-
-		// Generate presigned URL for uploading a part
-		partNumber := int32(1)
-		uploadPartRequest := &s3.UploadPartInput{
-			Bucket:     aws.String(bucketName),
-			Key:        aws.String(keyPath),
-			UploadId:   aws.String(uploadId),
-			PartNumber: aws.Int32(partNumber),
-		}
-
-		presignedReq, err := presignClient.PresignUploadPart(ctx, uploadPartRequest,
-			func(opts *s3.PresignOptions) {
-				opts.Expires = time.Duration(3600 * time.Second) // 1 hour expiry
-			})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create presigned URL for multipart upload: %v", err)
-		}
-
-		return map[string]interface{}{
-			"upload_type": "multipart",
-			"upload_id":   uploadId,
-			"parts": []map[string]interface{}{
-				{
-					"part_number":   partNumber,
-					"presigned_url": presignedReq.URL,
-					"headers":       presignedReq.SignedHeader,
-				},
-			},
-			"complete_multipart_endpoint": fmt.Sprintf("/s3/complete-multipart"),
-		}, nil
-	}
+	// Note: uploadId is now used to signal whether this is for multipart
+	// The actual multipart upload ID will be generated fresh
 
 	// Generate standard presigned PUT URL for single file upload
 	putObjectRequest := &s3.PutObjectInput{
@@ -262,28 +344,68 @@ func CompleteS3MultipartUpload(credentials map[string]interface{}, bucket, key, 
 	}
 	s3Client := s3.NewFromConfig(cfg, s3Options)
 
-	// Convert parts to CompletedPart format
+	// Convert parts to CompletedPart format and deduplicate
 	var completedParts []types.CompletedPart
-	for _, part := range parts {
-		partNumber, ok := part["part_number"].(int32)
-		if !ok {
-			if pn, ok := part["part_number"].(float64); ok {
-				partNumber = int32(pn)
-			} else {
-				continue
-			}
+	partMap := make(map[int32]string) // Track unique parts by number
+
+	for i, part := range parts {
+		// Try float64 first (most common from JSON)
+		var partNumber int32
+		if pn, ok := part["part_number"].(float64); ok {
+			partNumber = int32(pn)
+		} else if pn, ok := part["part_number"].(int); ok {
+			partNumber = int32(pn)
+		} else if pn, ok := part["part_number"].(int32); ok {
+			partNumber = pn
+		} else {
+			log.Warnf("Skipping part %d: invalid part_number type %T", i, part["part_number"])
+			continue
 		}
 
 		etag, ok := part["etag"].(string)
 		if !ok {
+			log.Warnf("Skipping part %d: missing or invalid etag", i)
 			continue
 		}
 
+		// Ensure ETag is properly formatted (with quotes)
+		if !strings.HasPrefix(etag, "\"") {
+			etag = "\"" + etag + "\""
+		}
+
+		// Check for duplicate part numbers
+		if existingEtag, exists := partMap[partNumber]; exists {
+			log.Warnf("Duplicate part number %d detected. Previous ETag: %s, New ETag: %s. Using latest.",
+				partNumber, existingEtag, etag)
+		}
+
+		partMap[partNumber] = etag
+		log.Infof("Added part %d with ETag %s to completion request", partNumber, etag)
+	}
+
+	// Convert map to sorted slice
+	var partNumbers []int32
+	for pn := range partMap {
+		partNumbers = append(partNumbers, pn)
+	}
+	sort.Slice(partNumbers, func(i, j int) bool {
+		return partNumbers[i] < partNumbers[j]
+	})
+
+	// Build completedParts in sorted order
+	for _, partNumber := range partNumbers {
 		completedParts = append(completedParts, types.CompletedPart{
-			ETag:       aws.String(etag),
+			ETag:       aws.String(partMap[partNumber]),
 			PartNumber: aws.Int32(partNumber),
 		})
 	}
+
+	if len(completedParts) == 0 {
+		return fmt.Errorf("no valid parts found for completion")
+	}
+
+	log.Infof("Completing multipart upload with %d parts for bucket: %s, key: %s, uploadId: %s",
+		len(completedParts), bucket, key, awsUploadId)
 
 	// Complete the multipart upload
 	_, err = s3Client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
