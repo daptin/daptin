@@ -154,9 +154,18 @@ type PaginationData struct {
 }
 
 type Query struct {
-	ColumnName string      `json:"column"`
-	Operator   string      `json:"operator"`
-	Value      interface{} `json:"value"`
+	ColumnName   string              `json:"column"`
+	Operator     string              `json:"operator"`
+	Value        interface{}         `json:"value"`
+	LogicalGroup string              `json:"logical_group,omitempty"` // For OR operations within groups
+	FuzzyOptions *FuzzySearchOptions `json:"fuzzy_options,omitempty"` // Configuration for fuzzy search
+}
+
+type FuzzySearchOptions struct {
+	Threshold    float64 `json:"threshold,omitempty"`     // Similarity threshold for PostgreSQL (0.0-1.0)
+	MaxDistance  int     `json:"max_distance,omitempty"`  // Max Levenshtein distance
+	SearchType   string  `json:"search_type,omitempty"`   // "trigram", "fulltext", "soundex", "partial"
+	FallbackMode string  `json:"fallback_mode,omitempty"` // "strict", "partial", "soundex" for non-PostgreSQL
 }
 
 type Group struct {
@@ -1305,8 +1314,395 @@ var OperatorMap = map[string]string{
 	"is empty":     "is nil",
 	"is true":      "is true",
 	"is false":     "is false",
+	"fuzzy":        "fuzzy",     // Single term fuzzy match
+	"fuzzy_any":    "fuzzy_any", // ANY keyword matches with fuzzy tolerance
+	"fuzzy_all":    "fuzzy_all", // ALL keywords must match with fuzzy tolerance
 }
 
+// Helper function to generate partial matches for non-postgres databases
+func generatePartialPatterns(keyword string) []string {
+	patterns := []string{keyword}
+
+	// For longer keywords, add prefix matching
+	if len(keyword) > 4 {
+		// Match words starting with the same prefix
+		prefix := keyword[:len(keyword)-1]
+		patterns = append(patterns, prefix)
+
+		if len(keyword) > 5 {
+			prefix = keyword[:len(keyword)-2]
+			patterns = append(patterns, prefix)
+		}
+	}
+
+	return patterns
+}
+
+// Process a single query filter and return the expression
+func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix string, transaction *sqlx.Tx) (goqu.Expression, error) {
+	columnName := filterQuery.ColumnName
+	tableInfo := dbResource.tableInfo
+
+	colInfo, ok := tableInfo.GetColumnByName(columnName)
+
+	if !ok {
+		log.Warnf("[1316] Table [%v] invalid column query [%v], skipping", dbResource.model.GetName(), columnName)
+		return nil, fmt.Errorf("table [%v] invalid column query [%v]", dbResource.model.GetName(), columnName)
+	}
+
+	// Handle foreign key columns
+	if colInfo.IsForeignKey {
+		refernceValueString := filterQuery.Value
+		var refUuid uuid.UUID
+		var err error
+		if refernceValueString != nil {
+			asStr, isStr := refernceValueString.(string)
+			if isStr {
+				refUuid, err = uuid.Parse(asStr)
+			} else {
+				err = fmt.Errorf("reference value is not uuid")
+			}
+		} else {
+			err = fmt.Errorf("reference value is nil")
+		}
+
+		valuesArray := []daptinid.DaptinReferenceId{}
+		if err != nil {
+			if !(refernceValueString == nil || refernceValueString == "null" || refernceValueString == "nil") {
+				log.Errorf("invalid value type in foreign key column [%v] filter: %v", columnName, refernceValueString)
+			}
+		} else {
+			valuesArray = append(valuesArray, daptinid.DaptinReferenceId(refUuid))
+			valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
+			if err != nil {
+				log.Warnf("[1334] failed to lookup foreign key value: %v => %v", refernceValueString, err)
+			} else {
+				refernceValueString = valueIds
+				refernceValueString, ok = valueIds[valuesArray[0]]
+				if !ok {
+					refernceValueString = valuesArray[0]
+				}
+				filterQuery.Value = refernceValueString
+			}
+		}
+	}
+
+	opValue, ok := OperatorMap[filterQuery.Operator]
+	if !ok {
+		opValue = filterQuery.Operator
+	}
+
+	var actualvalue interface{}
+	query := goqu.I(prefix + filterQuery.ColumnName)
+
+	actualvalue = filterQuery.Value
+
+	if filterQuery.ColumnName == "reference_id" {
+		i := daptinid.InterfaceToDIR(filterQuery.Value)
+		actualvalue = i[:]
+	}
+
+	// Handle "is" and "not" operators
+	if BeginsWith(opValue, "is") || BeginsWith(opValue, "not") {
+		parts := strings.Split(opValue, " ")
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "true":
+				actualvalue = true
+			case "false":
+				actualvalue = false
+			case "empty", "null", "nil":
+				actualvalue = nil
+			}
+		}
+		if len(parts) == 2 {
+			switch parts[0] {
+			case "is":
+				opValue = "#"
+				switch actualvalue {
+				case true:
+					actualvalue = query.IsTrue()
+				case false:
+					actualvalue = query.IsFalse()
+				case nil:
+					actualvalue = query.IsNull()
+				}
+			case "not":
+				opValue = "#"
+				switch actualvalue {
+				case true:
+					actualvalue = query.IsNotTrue()
+				case false:
+					actualvalue = query.IsNotFalse()
+				case nil:
+					actualvalue = query.IsNotNull()
+				}
+			}
+		} else {
+			switch opValue {
+			case "is":
+				opValue = "="
+			case "not":
+				opValue = "neq"
+			}
+		}
+	}
+
+	// Build and return the expression
+	if opValue == "=" {
+		return goqu.Ex{prefix + filterQuery.ColumnName: actualvalue}, nil
+	} else if opValue == "#" {
+		return actualvalue.(goqu.Expression), nil
+	} else {
+		return goqu.Ex{
+			prefix + filterQuery.ColumnName: goqu.Op{
+				opValue: actualvalue,
+			},
+		}, nil
+	}
+}
+
+// Process fuzzy search with database-specific implementations
+func (dbResource *DbResource) processFuzzySearch(filterQuery Query, prefix string, transaction *sqlx.Tx) (goqu.Expression, error) {
+	searchValue := fmt.Sprintf("%v", filterQuery.Value)
+	keywords := strings.Fields(searchValue) // Split by whitespace
+
+	if len(keywords) == 0 {
+		return nil, nil
+	}
+
+	// Check if column name contains comma-separated columns for multi-column search
+	columns := strings.Split(filterQuery.ColumnName, ",")
+	for i := range columns {
+		columns[i] = strings.TrimSpace(columns[i])
+	}
+
+	dbType := dbResource.Connection().DriverName()
+
+	switch dbType {
+	case "postgres":
+		return dbResource.processFuzzySearchPostgres(filterQuery, keywords, columns, prefix)
+	case "mysql":
+		return dbResource.processFuzzySearchMySQL(filterQuery, keywords, columns, prefix)
+	case "sqlite3", "sqlite":
+		return dbResource.processFuzzySearchSQLite(filterQuery, keywords, columns, prefix)
+	case "mssql", "sqlserver":
+		return dbResource.processFuzzySearchMSSQL(filterQuery, keywords, columns, prefix)
+	default:
+		// Generic fallback using LIKE
+		return dbResource.processFuzzySearchGeneric(filterQuery, keywords, columns, prefix)
+	}
+}
+
+// PostgreSQL fuzzy search using pg_trgm
+func (dbResource *DbResource) processFuzzySearchPostgres(filterQuery Query, keywords []string, columns []string, prefix string) (goqu.Expression, error) {
+	threshold := 0.3 // default similarity threshold
+	if filterQuery.FuzzyOptions != nil && filterQuery.FuzzyOptions.Threshold > 0 {
+		threshold = filterQuery.FuzzyOptions.Threshold
+	}
+
+	var allExpressions []goqu.Expression
+
+	for _, keyword := range keywords {
+		var columnExpressions []goqu.Expression
+
+		// For each keyword, check ALL specified columns
+		for _, col := range columns {
+			columnExpressions = append(columnExpressions,
+				goqu.L(
+					fmt.Sprintf("similarity(%s, ?) > ?", prefix+col),
+					keyword,
+					threshold,
+				))
+		}
+
+		// OR between columns for same keyword
+		if len(columnExpressions) == 1 {
+			allExpressions = append(allExpressions, columnExpressions[0])
+		} else {
+			allExpressions = append(allExpressions, goqu.Or(columnExpressions...))
+		}
+	}
+
+	// Combine based on operator
+	if filterQuery.Operator == "fuzzy_any" {
+		// ANY keyword in ANY column
+		return goqu.Or(allExpressions...), nil
+	} else if filterQuery.Operator == "fuzzy_all" {
+		// ALL keywords must appear (each can be in different columns)
+		return goqu.And(allExpressions...), nil
+	} else { // single fuzzy
+		return allExpressions[0], nil
+	}
+}
+
+// MySQL fuzzy search with fallbacks
+func (dbResource *DbResource) processFuzzySearchMySQL(filterQuery Query, keywords []string, columns []string, prefix string) (goqu.Expression, error) {
+	fallbackMode := "partial" // default
+	if filterQuery.FuzzyOptions != nil && filterQuery.FuzzyOptions.FallbackMode != "" {
+		fallbackMode = filterQuery.FuzzyOptions.FallbackMode
+	}
+
+	var allExpressions []goqu.Expression
+
+	for _, keyword := range keywords {
+		var columnExpressions []goqu.Expression
+
+		for _, col := range columns {
+			switch fallbackMode {
+			case "soundex":
+				// Use MySQL SOUNDEX for phonetic matching
+				columnExpressions = append(columnExpressions,
+					goqu.L(fmt.Sprintf("SOUNDEX(%s) = SOUNDEX(?)", prefix+col), keyword))
+			case "partial":
+				// Use partial matching
+				patterns := generatePartialPatterns(keyword)
+				var patternExprs []goqu.Expression
+				for _, pattern := range patterns {
+					patternExprs = append(patternExprs,
+						goqu.Ex{prefix + col: goqu.Op{"like": fmt.Sprintf("%%%s%%", pattern)}})
+				}
+				columnExpressions = append(columnExpressions, goqu.Or(patternExprs...))
+			default: // "strict"
+				// Simple LIKE matching
+				columnExpressions = append(columnExpressions,
+					goqu.Ex{prefix + col: goqu.Op{"like": fmt.Sprintf("%%%s%%", keyword)}})
+			}
+		}
+
+		if len(columnExpressions) == 1 {
+			allExpressions = append(allExpressions, columnExpressions[0])
+		} else {
+			allExpressions = append(allExpressions, goqu.Or(columnExpressions...))
+		}
+	}
+
+	if filterQuery.Operator == "fuzzy_any" {
+		return goqu.Or(allExpressions...), nil
+	} else if filterQuery.Operator == "fuzzy_all" {
+		return goqu.And(allExpressions...), nil
+	} else {
+		return allExpressions[0], nil
+	}
+}
+
+// SQLite fuzzy search with case-insensitive LIKE
+func (dbResource *DbResource) processFuzzySearchSQLite(filterQuery Query, keywords []string, columns []string, prefix string) (goqu.Expression, error) {
+	fallbackMode := "partial"
+	if filterQuery.FuzzyOptions != nil && filterQuery.FuzzyOptions.FallbackMode != "" {
+		fallbackMode = filterQuery.FuzzyOptions.FallbackMode
+	}
+
+	var allExpressions []goqu.Expression
+
+	for _, keyword := range keywords {
+		var columnExpressions []goqu.Expression
+
+		for _, col := range columns {
+			if fallbackMode == "partial" {
+				// SQLite LIKE is case-insensitive by default
+				patterns := generatePartialPatterns(strings.ToLower(keyword))
+				var patternExprs []goqu.Expression
+				for _, pattern := range patterns {
+					patternExprs = append(patternExprs,
+						goqu.L(fmt.Sprintf("LOWER(%s) LIKE ?", prefix+col),
+							fmt.Sprintf("%%%s%%", strings.ToLower(pattern))))
+				}
+				columnExpressions = append(columnExpressions, goqu.Or(patternExprs...))
+			} else {
+				// Simple case-insensitive LIKE
+				columnExpressions = append(columnExpressions,
+					goqu.L(fmt.Sprintf("LOWER(%s) LIKE ?", prefix+col),
+						fmt.Sprintf("%%%s%%", strings.ToLower(keyword))))
+			}
+		}
+
+		if len(columnExpressions) == 1 {
+			allExpressions = append(allExpressions, columnExpressions[0])
+		} else {
+			allExpressions = append(allExpressions, goqu.Or(columnExpressions...))
+		}
+	}
+
+	if filterQuery.Operator == "fuzzy_any" {
+		return goqu.Or(allExpressions...), nil
+	} else if filterQuery.Operator == "fuzzy_all" {
+		return goqu.And(allExpressions...), nil
+	} else {
+		return allExpressions[0], nil
+	}
+}
+
+// MSSQL fuzzy search
+func (dbResource *DbResource) processFuzzySearchMSSQL(filterQuery Query, keywords []string, columns []string, prefix string) (goqu.Expression, error) {
+	fallbackMode := "partial"
+	if filterQuery.FuzzyOptions != nil && filterQuery.FuzzyOptions.FallbackMode != "" {
+		fallbackMode = filterQuery.FuzzyOptions.FallbackMode
+	}
+
+	var allExpressions []goqu.Expression
+
+	for _, keyword := range keywords {
+		var columnExpressions []goqu.Expression
+
+		for _, col := range columns {
+			if fallbackMode == "soundex" {
+				// Use SOUNDEX DIFFERENCE for similarity
+				columnExpressions = append(columnExpressions,
+					goqu.L(fmt.Sprintf("DIFFERENCE(%s, ?) >= 3", prefix+col), keyword))
+			} else {
+				// Use LIKE with wildcards
+				columnExpressions = append(columnExpressions,
+					goqu.Ex{prefix + col: goqu.Op{"like": fmt.Sprintf("%%%s%%", keyword)}})
+			}
+		}
+
+		if len(columnExpressions) == 1 {
+			allExpressions = append(allExpressions, columnExpressions[0])
+		} else {
+			allExpressions = append(allExpressions, goqu.Or(columnExpressions...))
+		}
+	}
+
+	if filterQuery.Operator == "fuzzy_any" {
+		return goqu.Or(allExpressions...), nil
+	} else if filterQuery.Operator == "fuzzy_all" {
+		return goqu.And(allExpressions...), nil
+	} else {
+		return allExpressions[0], nil
+	}
+}
+
+// Generic fuzzy search fallback
+func (dbResource *DbResource) processFuzzySearchGeneric(filterQuery Query, keywords []string, columns []string, prefix string) (goqu.Expression, error) {
+	var allExpressions []goqu.Expression
+
+	for _, keyword := range keywords {
+		var columnExpressions []goqu.Expression
+
+		for _, col := range columns {
+			// Simple LIKE matching as fallback
+			columnExpressions = append(columnExpressions,
+				goqu.Ex{prefix + col: goqu.Op{"like": fmt.Sprintf("%%%s%%", keyword)}})
+		}
+
+		if len(columnExpressions) == 1 {
+			allExpressions = append(allExpressions, columnExpressions[0])
+		} else {
+			allExpressions = append(allExpressions, goqu.Or(columnExpressions...))
+		}
+	}
+
+	if filterQuery.Operator == "fuzzy_any" {
+		return goqu.Or(allExpressions...), nil
+	} else if filterQuery.Operator == "fuzzy_all" {
+		return goqu.And(allExpressions...), nil
+	} else {
+		return allExpressions[0], nil
+	}
+}
+
+// New addFilters implementation with OR support and fuzzy search
 func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, countQueryBuilder *goqu.SelectDataset,
 	queries []Query, prefix string, transaction *sqlx.Tx) (*goqu.SelectDataset, *goqu.SelectDataset, error) {
 
@@ -1314,155 +1710,62 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 		return queryBuilder, countQueryBuilder, nil
 	}
 
-	for _, filterQuery := range queries {
+	// Group queries by LogicalGroup
+	queryGroups := make(map[string][]Query)
+	var ungroupedQueries []Query
 
-		columnName := filterQuery.ColumnName
-		tableInfo := dbResource.tableInfo
-
-		colInfo, ok := tableInfo.GetColumnByName(columnName)
-
-		if !ok {
-			log.Warnf("[1316] Table [%v] invalid column query [%v], skipping", dbResource.model.GetName(), columnName)
-			return nil, nil, fmt.Errorf("table [%v] invalid column query [%v]", dbResource.model.GetName(), columnName)
-		}
-
-		if colInfo.IsForeignKey {
-
-			refernceValueString := filterQuery.Value
-			var refUuid uuid.UUID
-			var err error
-			if refernceValueString != nil {
-				asStr, isStr := refernceValueString.(string)
-				if isStr {
-					refUuid, err = uuid.Parse(asStr)
-				} else {
-					err = fmt.Errorf("reference value is not uuid")
-				}
-			} else {
-				err = fmt.Errorf("reference value is nil")
-
-			}
-
-			valuesArray := []daptinid.DaptinReferenceId{}
+	for _, q := range queries {
+		// Handle fuzzy search operators first
+		if q.Operator == "fuzzy_any" || q.Operator == "fuzzy_all" || q.Operator == "fuzzy" {
+			// Process fuzzy search separately
+			expr, err := dbResource.processFuzzySearch(q, prefix, transaction)
 			if err != nil {
-				if !(refernceValueString == nil || refernceValueString == "null" || refernceValueString == "nil") {
-					log.Errorf("invalid value type in forign key column [%v] filter: %v", columnName, refernceValueString)
-				}
-			} else {
-				valuesArray = append(valuesArray, daptinid.DaptinReferenceId(refUuid))
-				valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
-				if err != nil {
-					log.Warnf("[1334] failed to lookup foreign key value: %v => %v", refernceValueString, err)
-				} else {
-					refernceValueString = valueIds
-					refernceValueString, ok = valueIds[valuesArray[0]]
-					if !ok {
-						refernceValueString = valuesArray[0]
-					}
-					filterQuery.Value = refernceValueString
-				}
+				return nil, nil, err
 			}
-
-		}
-
-		opValue, ok := OperatorMap[filterQuery.Operator]
-		if !ok {
-			opValue = filterQuery.Operator
-		}
-
-		var actualvalue interface{}
-		query := goqu.I(prefix + filterQuery.ColumnName)
-
-		actualvalue = filterQuery.Value
-
-		if filterQuery.ColumnName == "reference_id" {
-			i := daptinid.InterfaceToDIR(filterQuery.Value)
-			actualvalue = i[:]
-		}
-
-		if BeginsWith(opValue, "is") || BeginsWith(opValue, "not") {
-			parts := strings.Split(opValue, " ")
-			if len(parts) > 1 {
-				switch parts[1] {
-				case "true":
-					actualvalue = true
-				case "false":
-					actualvalue = false
-				case "empty":
-					actualvalue = nil
-				case "null":
-					fallthrough
-				case "nil":
-					actualvalue = nil
-				}
+			if expr != nil {
+				queryBuilder = queryBuilder.Where(expr)
+				countQueryBuilder = countQueryBuilder.Where(expr)
 			}
-			if len(parts) == 2 {
-				switch parts[0] {
-				case "is":
-					opValue = "#"
-					switch actualvalue {
-					case true:
-						actualvalue = query.IsTrue()
-					case false:
-						actualvalue = query.IsFalse()
-					case nil:
-						actualvalue = query.IsNull()
-					}
-
-				case "not":
-					opValue = "#"
-					switch actualvalue {
-					case true:
-						actualvalue = query.IsNotTrue()
-					case false:
-						actualvalue = query.IsNotFalse()
-					case nil:
-						actualvalue = query.IsNotNull()
-
-					}
-				}
-			} else {
-				switch opValue {
-				case "is":
-					opValue = "="
-				case "not":
-					opValue = "neq"
-					//actualvalue = query.IsNot(actualvalue)
-				}
-			}
-		}
-
-		if opValue == "=" {
-
-			queryBuilder = queryBuilder.Where(goqu.Ex{
-				prefix + filterQuery.ColumnName: actualvalue,
-			})
-
-			countQueryBuilder = countQueryBuilder.Where(goqu.Ex{
-				prefix + filterQuery.ColumnName: actualvalue,
-			})
-
-		} else if opValue == "#" {
-			queryBuilder = queryBuilder.Where(actualvalue.(goqu.Expression))
-
-			countQueryBuilder = countQueryBuilder.Where(actualvalue.(goqu.Expression))
-
+		} else if q.LogicalGroup != "" {
+			queryGroups[q.LogicalGroup] = append(queryGroups[q.LogicalGroup], q)
 		} else {
+			ungroupedQueries = append(ungroupedQueries, q)
+		}
+	}
 
-			queryBuilder = queryBuilder.Where(goqu.Ex{
-				prefix + filterQuery.ColumnName: goqu.Op{
-					opValue: actualvalue,
-				},
-			})
+	// Process ungrouped queries (maintain backward compatibility - these use AND)
+	for _, filterQuery := range ungroupedQueries {
+		expr, err := dbResource.processQueryFilter(filterQuery, prefix, transaction)
+		if err != nil {
+			return nil, nil, err
+		}
+		if expr != nil {
+			queryBuilder = queryBuilder.Where(expr)
+			countQueryBuilder = countQueryBuilder.Where(expr)
+		}
+	}
 
-			countQueryBuilder = countQueryBuilder.Where(goqu.Ex{
-				prefix + filterQuery.ColumnName: goqu.Op{
-					opValue: actualvalue,
-				},
-			})
+	// Process grouped queries (OR logic within groups)
+	for _, groupQueries := range queryGroups {
+		var orExpressions []goqu.Expression
 
+		for _, filterQuery := range groupQueries {
+			expr, err := dbResource.processQueryFilter(filterQuery, prefix, transaction)
+			if err != nil {
+				// Log error but continue with other filters
+				log.Warnf("Error processing filter in group: %v", err)
+				continue
+			}
+			if expr != nil {
+				orExpressions = append(orExpressions, expr)
+			}
 		}
 
+		// Apply OR'd expressions as a single WHERE clause
+		if len(orExpressions) > 0 {
+			queryBuilder = queryBuilder.Where(goqu.Or(orExpressions...))
+			countQueryBuilder = countQueryBuilder.Where(goqu.Or(orExpressions...))
+		}
 	}
 
 	return queryBuilder, countQueryBuilder, nil

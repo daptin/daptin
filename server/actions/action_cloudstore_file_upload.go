@@ -3,7 +3,6 @@ package actions
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
@@ -138,7 +137,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 		}
 		resource.CheckErr(err, "Failed to remove cache folder: %s", tempDirectoryPath)
 	} else {
-		return nil, nil, []error{errors.New("improper file attachment")}
+		return nil, nil, []error{fmt.Errorf("improper file attachment, expected []interface{} got %v", inFields["file"])}
 	}
 
 	rootPath := inFields["root_path"].(string)
