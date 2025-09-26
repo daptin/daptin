@@ -1494,11 +1494,13 @@ func (dbResource *DbResource) processFuzzySearch(filterQuery Query, prefix strin
 	}
 }
 
-// PostgreSQL fuzzy search using pg_trgm
+// PostgreSQL fuzzy search - using ILIKE for case-insensitive pattern matching (no extensions required)
 func (dbResource *DbResource) processFuzzySearchPostgres(filterQuery Query, keywords []string, columns []string, prefix string) (goqu.Expression, error) {
-	threshold := 0.3 // default similarity threshold
-	if filterQuery.FuzzyOptions != nil && filterQuery.FuzzyOptions.Threshold > 0 {
-		threshold = filterQuery.FuzzyOptions.Threshold
+	// AWS RDS PostgreSQL - use standard SQL features without extensions
+	// Determine fallback mode - for PostgreSQL without extensions, use ILIKE
+	fallbackMode := "ilike" // default to case-insensitive pattern matching
+	if filterQuery.FuzzyOptions != nil && filterQuery.FuzzyOptions.FallbackMode != "" {
+		fallbackMode = filterQuery.FuzzyOptions.FallbackMode
 	}
 
 	var allExpressions []goqu.Expression
@@ -1508,23 +1510,54 @@ func (dbResource *DbResource) processFuzzySearchPostgres(filterQuery Query, keyw
 
 		// For each keyword, check ALL specified columns
 		for _, col := range columns {
-			columnExpressions = append(columnExpressions,
-				goqu.L(
-					fmt.Sprintf("similarity(%s, ?) > ?", prefix+col),
-					keyword,
-					threshold,
-				))
+			switch fallbackMode {
+			case "partial":
+				// Generate partial patterns for prefix matching
+				patterns := generatePartialPatterns(keyword)
+				var patternExprs []goqu.Expression
+				for _, pattern := range patterns {
+					// Use ILIKE for case-insensitive matching in PostgreSQL
+					patternExprs = append(patternExprs,
+						goqu.Ex{prefix + col: goqu.Op{"iLike": fmt.Sprintf("%%%s%%", pattern)}})
+				}
+				if len(patternExprs) > 1 {
+					columnExpressions = append(columnExpressions, goqu.Or(patternExprs...))
+				} else if len(patternExprs) == 1 {
+					columnExpressions = append(columnExpressions, patternExprs[0])
+				}
+			case "word_boundary":
+				// Match whole words using PostgreSQL regex (~* for case-insensitive)
+				columnExpressions = append(columnExpressions,
+					goqu.L(fmt.Sprintf("%s ~* ?", prefix+col),
+						fmt.Sprintf("\\y%s\\y", keyword))) // \y is word boundary in PostgreSQL
+			case "prefix":
+				// Match words starting with the keyword
+				columnExpressions = append(columnExpressions,
+					goqu.Ex{prefix + col: goqu.Op{"iLike": fmt.Sprintf("%s%%", keyword)}})
+			case "suffix":
+				// Match words ending with the keyword
+				columnExpressions = append(columnExpressions,
+					goqu.Ex{prefix + col: goqu.Op{"iLike": fmt.Sprintf("%%%s", keyword)}})
+			default: // "ilike" or fallback
+				// Simple ILIKE for case-insensitive substring matching
+				columnExpressions = append(columnExpressions,
+					goqu.Ex{prefix + col: goqu.Op{"iLike": fmt.Sprintf("%%%s%%", keyword)}})
+			}
 		}
 
 		// OR between columns for same keyword
 		if len(columnExpressions) == 1 {
 			allExpressions = append(allExpressions, columnExpressions[0])
-		} else {
+		} else if len(columnExpressions) > 1 {
 			allExpressions = append(allExpressions, goqu.Or(columnExpressions...))
 		}
 	}
 
 	// Combine based on operator
+	if len(allExpressions) == 0 {
+		return nil, nil
+	}
+
 	if filterQuery.Operator == "fuzzy_any" {
 		// ANY keyword in ANY column
 		return goqu.Or(allExpressions...), nil
