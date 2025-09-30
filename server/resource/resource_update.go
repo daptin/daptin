@@ -154,6 +154,10 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					uploadActionPerformer := ActionHandlerMap["cloudstore.file.upload"]
 
 					files, ok := val.([]interface{})
+					if !ok {
+						continue
+					}
+
 					uploadPath := ""
 
 					for i := range files {
