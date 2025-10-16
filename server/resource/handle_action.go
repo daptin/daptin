@@ -967,6 +967,27 @@ func runUnsafeJavascript(unsafe string, contextMap map[string]interface{}) (inte
 		u, _ := uuid.NewV7()
 		return u.String()
 	})
+
+	vm.Set("ToString", func(value interface{}) string {
+		switch v := value.(type) {
+		case string:
+			return v
+		case daptinid.DaptinReferenceId:
+			return v.String()
+		case []byte:
+			// Try to parse as UUID first, fallback to string conversion
+			if len(v) == 16 {
+				if uuid, err := uuid.FromBytes(v); err == nil {
+					return uuid.String()
+				}
+			}
+			return string(v)
+		case nil:
+			return ""
+		default:
+			return fmt.Sprintf("%v", v)
+		}
+	})
 	v, err := vm.RunString(unsafe) // Here be dragons (risky code)
 
 	if err != nil {
