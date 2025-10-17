@@ -435,17 +435,8 @@ func removeFromCache(cacheKey string) {
 		return
 	}
 
-	// Get entry size before removing for tracking
-	if entry, found := getFromCache(cacheKey); found {
-		cacheSizeMutex.Lock()
-		currentCacheSize -= entry.Size
-		if currentCacheSize < 0 {
-			currentCacheSize = 0
-		}
-		cacheSizeMutex.Unlock()
-	}
-
 	// Remove from Olric cache
+	// Note: Size tracking removed to prevent memory leak from unnecessary deserialization
 	_, err := SubsiteCache.Delete(context.Background(), cacheKey)
 	if err != nil && err != olric.ErrKeyNotFound {
 		log.Errorf("Error removing key %s from Olric subsite cache: %v", cacheKey, err)
