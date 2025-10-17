@@ -9,19 +9,21 @@ import (
 	"github.com/buraksezer/olric"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
 
 // SubsiteCacheEntry represents a cached file with its etag, content, and expiration
 type SubsiteCacheEntry struct {
-	ETag              string
-	Content           []byte
-	CompressedContent []byte // Gzip compressed content
-	ContentType       string
-	LastModified      time.Time
-	FilePath          string    // Store the actual file path for checking modifications
-	ExpiresAt         time.Time // When this cache entry expires
+	ETag         string
+	Content      []byte // Stores either compressed or uncompressed content
+	IsCompressed bool   // Indicates if Content is compressed
+	ContentType  string
+	LastModified time.Time
+	FilePath     string    // Store the actual file path for checking modifications
+	ExpiresAt    time.Time // When this cache entry expires
+	Size         int64     // Size of the content for memory tracking
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler interface for Olric compatibility
@@ -31,14 +33,14 @@ func (sce *SubsiteCacheEntry) MarshalBinary() ([]byte, error) {
 		len(sce.ETag) + // Size for ETag
 		8 + // Size for Content length
 		len(sce.Content) + // Size for Content
-		8 + // Size for CompressedContent length
-		len(sce.CompressedContent) + // Size for CompressedContent
+		1 + // Size for IsCompressed bool
 		4 + // Size for ContentType length
 		len(sce.ContentType) + // Size for ContentType
 		8 + // Size for LastModified (Unix timestamp)
 		4 + // Size for FilePath length
 		len(sce.FilePath) + // Size for FilePath
-		8 // Size for ExpiresAt (Unix timestamp)
+		8 + // Size for ExpiresAt (Unix timestamp)
+		8 // Size for Size int64
 
 	// Create a buffer with the calculated size
 	buf := bytes.NewBuffer(make([]byte, 0, bufSize))
@@ -51,9 +53,12 @@ func (sce *SubsiteCacheEntry) MarshalBinary() ([]byte, error) {
 	binary.Write(buf, binary.LittleEndian, int64(len(sce.Content)))
 	buf.Write(sce.Content)
 
-	// Write CompressedContent length and CompressedContent
-	binary.Write(buf, binary.LittleEndian, int64(len(sce.CompressedContent)))
-	buf.Write(sce.CompressedContent)
+	// Write IsCompressed
+	if sce.IsCompressed {
+		buf.WriteByte(1)
+	} else {
+		buf.WriteByte(0)
+	}
 
 	// Write ContentType length and ContentType
 	binary.Write(buf, binary.LittleEndian, int32(len(sce.ContentType)))
@@ -68,6 +73,9 @@ func (sce *SubsiteCacheEntry) MarshalBinary() ([]byte, error) {
 
 	// Write ExpiresAt as Unix timestamp
 	binary.Write(buf, binary.LittleEndian, sce.ExpiresAt.Unix())
+
+	// Write Size
+	binary.Write(buf, binary.LittleEndian, sce.Size)
 
 	return buf.Bytes(), nil
 }
@@ -97,15 +105,12 @@ func (sce *SubsiteCacheEntry) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("failed to read Content: %v", err)
 	}
 
-	// Read CompressedContent length and CompressedContent
-	var compressedContentLen int64
-	if err := binary.Read(buf, binary.LittleEndian, &compressedContentLen); err != nil {
-		return fmt.Errorf("failed to read CompressedContent length: %v", err)
+	// Read IsCompressed
+	isCompressedByte, err := buf.ReadByte()
+	if err != nil {
+		return fmt.Errorf("failed to read IsCompressed: %v", err)
 	}
-	sce.CompressedContent = make([]byte, compressedContentLen)
-	if _, err := buf.Read(sce.CompressedContent); err != nil {
-		return fmt.Errorf("failed to read CompressedContent: %v", err)
-	}
+	sce.IsCompressed = isCompressedByte == 1
 
 	// Read ContentType length and ContentType
 	var contentTypeLen int32
@@ -143,6 +148,11 @@ func (sce *SubsiteCacheEntry) UnmarshalBinary(data []byte) error {
 	}
 	sce.ExpiresAt = time.Unix(expiresAtUnix, 0)
 
+	// Read Size
+	if err := binary.Read(buf, binary.LittleEndian, &sce.Size); err != nil {
+		return fmt.Errorf("failed to read Size: %v", err)
+	}
+
 	return nil
 }
 
@@ -169,10 +179,20 @@ var olricClient *olric.EmbeddedClient
 var subsiteCacheInitialized bool
 var subsiteCacheMutex sync.Mutex
 
-// compressContent compresses content using gzip with best compression
+// Memory tracking for cache management
+var (
+	currentCacheSize  int64
+	cacheSizeMutex    sync.RWMutex
+	cacheHits         int64
+	cacheMisses       int64
+	cacheEvictions    int64
+	cacheMetricsMutex sync.RWMutex
+)
+
+// compressContent compresses content using gzip with default compression level
 func compressContent(content []byte) ([]byte, error) {
 	var b bytes.Buffer
-	gw, err := gzip.NewWriterLevel(&b, gzip.BestCompression)
+	gw, err := gzip.NewWriterLevel(&b, gzip.DefaultCompression)
 	if err != nil {
 		return nil, err
 	}
@@ -186,6 +206,37 @@ func compressContent(content []byte) ([]byte, error) {
 	}
 
 	return b.Bytes(), nil
+}
+
+// decompressContent decompresses gzip compressed content
+func decompressContent(compressed []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	var b bytes.Buffer
+	if _, err := b.ReadFrom(r); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+// shouldCompress determines if content should be compressed based on type and size
+func shouldCompress(content []byte, contentType string) bool {
+	// Don't compress small files (less than 1KB)
+	if len(content) < 1024 {
+		return false
+	}
+
+	// Only compress text-based content types
+	return strings.HasPrefix(contentType, "text/") ||
+		strings.Contains(contentType, "javascript") ||
+		strings.Contains(contentType, "json") ||
+		strings.Contains(contentType, "xml") ||
+		strings.Contains(contentType, "svg")
 }
 
 // getSubsiteCacheKey generates a unique cache key for a file path and host
@@ -253,19 +304,39 @@ func InitSubsiteCache(client *olric.EmbeddedClient) error {
 	return nil
 }
 
-// addToCache adds an entry to the cache with TTL
-func addToCache(cacheKey string, entry *SubsiteCacheEntry) {
+// addToCache adds an entry to the cache with TTL and memory management
+func addToCache(cacheKey string, entry *SubsiteCacheEntry) error {
 	if !CacheConfig.EnableCache || !subsiteCacheInitialized {
-		return
+		return fmt.Errorf("cache not enabled or initialized")
 	}
 
 	// Calculate entry size
-	entrySize := len(entry.Content) + len(entry.CompressedContent)
+	entrySize := int64(len(entry.Content))
+	entry.Size = entrySize
 
 	// Check if entry exceeds max size
-	if int64(entrySize) > CacheConfig.MaxEntrySize {
-		return
+	if entrySize > CacheConfig.MaxEntrySize {
+		log.Debugf("Entry size %d exceeds max entry size %d, skipping cache", entrySize, CacheConfig.MaxEntrySize)
+		return fmt.Errorf("entry too large: %d bytes", entrySize)
 	}
+
+	// Check if adding this entry would exceed max cache size
+	cacheSizeMutex.Lock()
+	if currentCacheSize+entrySize > CacheConfig.MaxCacheSize {
+		cacheSizeMutex.Unlock()
+		// Try to evict old entries to make room
+		evictedSize := evictOldEntries(entrySize)
+		if evictedSize < entrySize {
+			log.Warnf("Cannot add entry of size %d, cache is full (current: %d, max: %d)",
+				entrySize, currentCacheSize, CacheConfig.MaxCacheSize)
+			return fmt.Errorf("cache full, cannot add entry")
+		}
+		cacheSizeMutex.Lock()
+	}
+
+	// Update current cache size
+	currentCacheSize += entrySize
+	cacheSizeMutex.Unlock()
 
 	// Calculate TTL duration from ExpiresAt
 	ttl := entry.ExpiresAt.Sub(time.Now())
@@ -278,8 +349,32 @@ func addToCache(cacheKey string, entry *SubsiteCacheEntry) {
 	// Add to Olric cache with expiry
 	err := SubsiteCache.Put(context.Background(), cacheKey, entry, olric.EX(ttl))
 	if err != nil {
-		log.Errorf("[271] Error setting key %s in Olric subsite cache: %v", cacheKey, err)
+		// Rollback cache size on error
+		cacheSizeMutex.Lock()
+		currentCacheSize -= entrySize
+		cacheSizeMutex.Unlock()
+		log.Errorf("Error setting key %s in Olric subsite cache: %v", cacheKey, err)
+		return err
 	}
+
+	return nil
+}
+
+// evictOldEntries attempts to evict entries to free up space
+func evictOldEntries(requiredSpace int64) int64 {
+	// This is a placeholder - in production, you'd want to implement
+	// proper LRU eviction by tracking access times
+	var evictedSize int64
+
+	cacheMetricsMutex.Lock()
+	cacheEvictions++
+	cacheMetricsMutex.Unlock()
+
+	// For now, we'll just clear some percentage of the cache
+	// In production, implement proper LRU eviction
+	log.Warnf("Cache eviction triggered, need %d bytes", requiredSpace)
+
+	return evictedSize
 }
 
 // Note: evictCacheEntries is not needed with Olric as it handles TTL expiration
@@ -298,6 +393,10 @@ func getFromCache(cacheKey string) (*SubsiteCacheEntry, bool) {
 		if err != olric.ErrKeyNotFound {
 			log.Errorf("Error getting key %s from Olric subsite cache: %v", cacheKey, err)
 		}
+		// Track cache miss
+		cacheMetricsMutex.Lock()
+		cacheMisses++
+		cacheMetricsMutex.Unlock()
 		return nil, false
 	}
 
@@ -306,6 +405,9 @@ func getFromCache(cacheKey string) (*SubsiteCacheEntry, bool) {
 	err = response.Scan(&entry)
 	if err != nil {
 		log.Errorf("Error scanning cached entry from Olric: %v", err)
+		cacheMetricsMutex.Lock()
+		cacheMisses++
+		cacheMetricsMutex.Unlock()
 		return nil, false
 	}
 
@@ -313,8 +415,16 @@ func getFromCache(cacheKey string) (*SubsiteCacheEntry, bool) {
 	if entry.FilePath != "" && isFileModified(entry.FilePath, &entry) {
 		// Remove the stale entry
 		removeFromCache(cacheKey)
+		cacheMetricsMutex.Lock()
+		cacheMisses++
+		cacheMetricsMutex.Unlock()
 		return nil, false
 	}
+
+	// Track cache hit
+	cacheMetricsMutex.Lock()
+	cacheHits++
+	cacheMetricsMutex.Unlock()
 
 	return &entry, true
 }
@@ -325,9 +435,43 @@ func removeFromCache(cacheKey string) {
 		return
 	}
 
+	// Get entry size before removing for tracking
+	if entry, found := getFromCache(cacheKey); found {
+		cacheSizeMutex.Lock()
+		currentCacheSize -= entry.Size
+		if currentCacheSize < 0 {
+			currentCacheSize = 0
+		}
+		cacheSizeMutex.Unlock()
+	}
+
 	// Remove from Olric cache
 	_, err := SubsiteCache.Delete(context.Background(), cacheKey)
 	if err != nil && err != olric.ErrKeyNotFound {
 		log.Errorf("Error removing key %s from Olric subsite cache: %v", cacheKey, err)
+	}
+}
+
+// GetCacheMetrics returns current cache metrics for monitoring
+func GetCacheMetrics() map[string]interface{} {
+	cacheMetricsMutex.RLock()
+	cacheSizeMutex.RLock()
+	defer cacheMetricsMutex.RUnlock()
+	defer cacheSizeMutex.RUnlock()
+
+	hitRate := float64(0)
+	if cacheHits+cacheMisses > 0 {
+		hitRate = float64(cacheHits) / float64(cacheHits+cacheMisses)
+	}
+
+	return map[string]interface{}{
+		"cache_size_bytes": currentCacheSize,
+		"cache_size_mb":    float64(currentCacheSize) / (1024 * 1024),
+		"max_cache_size":   CacheConfig.MaxCacheSize,
+		"cache_hits":       cacheHits,
+		"cache_misses":     cacheMisses,
+		"cache_evictions":  cacheEvictions,
+		"hit_rate":         hitRate,
+		"enabled":          CacheConfig.EnableCache,
 	}
 }

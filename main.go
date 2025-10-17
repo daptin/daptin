@@ -222,6 +222,7 @@ func main() {
 		hostname, _ := os.Hostname()
 		cpuprofile := fmt.Sprintf("%sdaptin_%s_profile_cpu.%v", *profileDumpPath, hostname, profileDumpCount)
 		heapprofile := fmt.Sprintf("%sdaptin_%s_profile_heap.%v", *profileDumpPath, hostname, profileDumpCount)
+		log.Infof("Dumping CPU/Heap Profile at %s, %s", cpuprofile, heapprofile)
 		cpuFile, err1 := os.Create(cpuprofile)
 		heapFile, err2 := os.Create(heapprofile)
 		if err1 != nil || err2 != nil {
@@ -358,6 +359,16 @@ func main() {
 	olricConfig1.MemberlistConfig = memberlist.DefaultLocalConfig()
 	olricConfig1.MemberlistConfig.Name = fmt.Sprintf("%v:%v", olricConfig1.MemberlistConfig.BindAddr, olricConfig1.BindPort)
 
+	// Configure Olric for better memory management
+	// Note: Olric v0.5.7 has limited configuration options
+	// The memory limits will be enforced in our application layer
+	olricConfig1.ReplicaCount = 1 // Reduce replicas to save memory
+	olricConfig1.WriteQuorum = 1
+	olricConfig1.ReadQuorum = 1
+	// Set reasonable timeout to prevent hanging operations
+	//olricConfig1.RequestTimeout = 10 * time.Second
+	olricConfig1.PartitionCount = 23 // Reduced from default to save memory
+
 	olricConfig1.LogLevel = "INFO"
 	olricConfig1.LogVerbosity = 1
 	if len(*olricPeers) > 0 {
@@ -423,13 +434,13 @@ func main() {
 
 			for {
 				time.Sleep(time.Duration(*profileDumpPeriod) * time.Minute)
-				log.Infof("Dumping cpu and heap profile at %s", *profileDumpPath)
 				profileDumpCount += 1
 				pprof.StopCPUProfile()
 
 				hostname, _ := os.Hostname()
 				cpuprofile := fmt.Sprintf("%sdaptin_%s_profile_cpu.%v", *profileDumpPath, hostname, profileDumpCount)
 				heapprofile := fmt.Sprintf("%sdaptin_%s_profile_heap.%v", *profileDumpPath, hostname, profileDumpCount)
+				log.Infof("Dumping cpu and heap profile at %s, %s", cpuprofile, heapprofile)
 
 				cpuFile, err := os.Create(cpuprofile)
 				heapFile, err := os.Create(heapprofile)

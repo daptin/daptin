@@ -5,6 +5,7 @@ import (
 	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
@@ -51,14 +52,29 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
 			c.Writer.Header().Set("Content-Type", entry.ContentType)
 
-			// Check if client accepts gzip encoding and we have compressed content
-			if entry.CompressedContent != nil && len(entry.CompressedContent) > 0 &&
-				strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
-				c.Writer.Header().Set("Content-Encoding", "gzip")
-				c.Writer.Header().Set("Vary", "Accept-Encoding")
-				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(entry.CompressedContent)
+			// Check if we need to decompress or serve as-is
+			clientAcceptsGzip := strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip")
+
+			if entry.IsCompressed {
+				if clientAcceptsGzip {
+					// Client accepts gzip and we have compressed content
+					c.Writer.Header().Set("Content-Encoding", "gzip")
+					c.Writer.Header().Set("Vary", "Accept-Encoding")
+					c.Writer.WriteHeader(http.StatusOK)
+					c.Writer.Write(entry.Content)
+				} else {
+					// Need to decompress for client
+					decompressed, err := decompressContent(entry.Content)
+					if err != nil {
+						log.Errorf("Failed to decompress content: %v", err)
+						c.Writer.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+					c.Writer.WriteHeader(http.StatusOK)
+					c.Writer.Write(decompressed)
+				}
 			} else {
+				// Content is not compressed, serve as-is
 				c.Writer.WriteHeader(http.StatusOK)
 				c.Writer.Write(entry.Content)
 			}
@@ -83,28 +99,44 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			etag := cache.GenerateETag(content, fileInfo.ModTime())
 			lastModified := time.Now()
 
-			// Compress content if it's a compressible type
-			var compressedContent []byte
-			if cache.ShouldCompress(contentType) {
+			// Decide whether to store compressed or uncompressed based on content type and size
+			clientAcceptsGzip := strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip")
+			var cacheContent []byte
+			var isCompressed bool
+
+			if shouldCompress(content, contentType) && clientAcceptsGzip {
+				// Compress and store compressed version
 				compressed, err := compressContent(content)
-				if err == nil {
-					compressedContent = compressed
+				if err == nil && len(compressed) < len(content) {
+					// Only use compressed if it's actually smaller
+					cacheContent = compressed
+					isCompressed = true
+				} else {
+					cacheContent = content
+					isCompressed = false
 				}
+			} else {
+				// Store uncompressed
+				cacheContent = content
+				isCompressed = false
 			}
 
 			// Cache the file with expiration
 			cacheEntry := &SubsiteCacheEntry{
-				ETag:              etag,
-				Content:           content,
-				CompressedContent: compressedContent,
-				ContentType:       contentType,
-				LastModified:      lastModified,
-				FilePath:          filePath,
-				ExpiresAt:         time.Now().Add(CacheConfig.DefaultTTL),
+				ETag:         etag,
+				Content:      cacheContent,
+				IsCompressed: isCompressed,
+				ContentType:  contentType,
+				LastModified: lastModified,
+				FilePath:     filePath,
+				ExpiresAt:    time.Now().Add(CacheConfig.DefaultTTL),
 			}
 
 			// Add to cache with size management
-			addToCache(cacheKey, cacheEntry)
+			err = addToCache(cacheKey, cacheEntry)
+			if err != nil {
+				log.Debugf("Failed to add to cache: %v", err)
+			}
 
 			// Set cache headers
 			c.Writer.Header().Set("ETag", etag)
@@ -113,12 +145,15 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			c.Writer.Header().Set("Content-Type", contentType)
 			c.Writer.Header().Set("Vary", "Accept-Encoding")
 
-			// Check if client accepts gzip encoding and we have compressed content
-			if compressedContent != nil && len(compressedContent) > 0 &&
-				strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+			// Serve the content based on what we cached
+			if isCompressed && clientAcceptsGzip {
 				c.Writer.Header().Set("Content-Encoding", "gzip")
 				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(compressedContent)
+				c.Writer.Write(cacheContent)
+			} else if isCompressed && !clientAcceptsGzip {
+				// We compressed but client doesn't accept gzip, serve original
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(content)
 			} else {
 				c.Writer.WriteHeader(http.StatusOK)
 				c.Writer.Write(content)
@@ -136,27 +171,42 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			indexEtag := cache.GenerateETag(indexContent, fileinfo.ModTime())
 			indexLastModified := time.Now()
 
-			// Compress the index.html content
-			var compressedIndexContent []byte
-			compressedIndex, err := compressContent(indexContent)
-			if err == nil {
-				compressedIndexContent = compressedIndex
+			// Decide whether to cache compressed or uncompressed
+			clientAcceptsGzip := strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip")
+			var indexCacheContent []byte
+			var indexIsCompressed bool
+
+			if shouldCompress(indexContent, "text/html") && clientAcceptsGzip {
+				compressedIndex, err := compressContent(indexContent)
+				if err == nil && len(compressedIndex) < len(indexContent) {
+					indexCacheContent = compressedIndex
+					indexIsCompressed = true
+				} else {
+					indexCacheContent = indexContent
+					indexIsCompressed = false
+				}
+			} else {
+				indexCacheContent = indexContent
+				indexIsCompressed = false
 			}
 
 			// Cache the index.html with expiration
 			indexCacheKey := getSubsiteCacheKey(c.Request.Host, "/index.html")
 			indexCacheEntry := &SubsiteCacheEntry{
-				ETag:              indexEtag,
-				Content:           indexContent,
-				CompressedContent: compressedIndexContent,
-				ContentType:       "text/html; charset=utf-8",
-				LastModified:      indexLastModified,
-				FilePath:          indexPath,
-				ExpiresAt:         time.Now().Add(CacheConfig.DefaultTTL),
+				ETag:         indexEtag,
+				Content:      indexCacheContent,
+				IsCompressed: indexIsCompressed,
+				ContentType:  "text/html; charset=utf-8",
+				LastModified: indexLastModified,
+				FilePath:     indexPath,
+				ExpiresAt:    time.Now().Add(CacheConfig.DefaultTTL),
 			}
 
 			// Add to cache with size management
-			addToCache(indexCacheKey, indexCacheEntry)
+			err = addToCache(indexCacheKey, indexCacheEntry)
+			if err != nil {
+				log.Debugf("Failed to add index.html to cache: %v", err)
+			}
 
 			// Set cache headers
 			c.Writer.Header().Set("ETag", indexEtag)
@@ -165,11 +215,15 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 			c.Writer.Header().Set("Vary", "Accept-Encoding")
 
-			// Serve compressed content if client accepts it
-			if compressedIndexContent != nil && strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+			// Serve content based on what we cached
+			if indexIsCompressed && clientAcceptsGzip {
 				c.Writer.Header().Set("Content-Encoding", "gzip")
 				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(compressedIndexContent)
+				c.Writer.Write(indexCacheContent)
+			} else if indexIsCompressed && !clientAcceptsGzip {
+				// Serve original uncompressed
+				c.Writer.WriteHeader(http.StatusOK)
+				c.Writer.Write(indexContent)
 			} else {
 				c.Writer.WriteHeader(http.StatusOK)
 				c.Writer.Write(indexContent)
