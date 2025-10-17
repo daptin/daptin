@@ -219,10 +219,15 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					columnAssetCache, ok := dbResource.AssetFolderCache[dbResource.tableInfo.TableName][col.ColumnName]
 					if ok {
-						err = columnAssetCache.UploadFiles(val.([]interface{}))
-						CheckErr(err, "Failed to store uploaded file in column [%v]", col.ColumnName)
-						if err != nil {
-							return nil, err
+						valInterface, ok1 := val.([]interface{})
+						if ok1 {
+							err = columnAssetCache.UploadFiles(valInterface)
+							CheckErr(err, "Failed to store uploaded file in column [%v]", col.ColumnName)
+							if err != nil {
+								return nil, err
+							}
+						} else {
+							log.Warnf("Failed to store uploaded file in column [%v]", col.ColumnName)
 						}
 					}
 
