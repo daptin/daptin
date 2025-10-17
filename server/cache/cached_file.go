@@ -4,8 +4,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sync"
 	"time"
 )
+
+// Buffer pool for reducing allocations during marshaling/unmarshaling
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
 
 // CachedFile represents a cached file with its metadata
 type CachedFile struct {
@@ -24,7 +32,14 @@ type CachedFile struct {
 // MarshalBinary implements encoding.BinaryMarshaler interface for Olric compatibility
 // Custom binary format without using gob or other encoders
 func (cf *CachedFile) MarshalBinary() ([]byte, error) {
-	// Calculate the total size needed for the buffer
+	// Get a buffer from the pool
+	buf := bufferPool.Get().(*bytes.Buffer)
+	defer func() {
+		buf.Reset()
+		bufferPool.Put(buf)
+	}()
+
+	// Calculate the approximate size needed for the buffer
 	bufSize := 8 + // Size for Data length
 		len(cf.Data) + // Size for Data
 		4 + // Size for ETag length
@@ -43,8 +58,10 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 		8 + // Size for FileStat.Size (int64)
 		1 // Size for FileStat.Exists (bool)
 
-	// Create a buffer with the calculated size
-	buf := bytes.NewBuffer(make([]byte, 0, bufSize))
+	// Grow the buffer if needed
+	if buf.Cap() < bufSize {
+		buf.Grow(bufSize)
+	}
 
 	// Write Data length and Data
 	binary.Write(buf, binary.LittleEndian, int64(len(cf.Data)))
@@ -91,7 +108,10 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 		buf.WriteByte(0)
 	}
 
-	return buf.Bytes(), nil
+	// Make a copy of the bytes to return (since we're returning the buffer to the pool)
+	result := make([]byte, buf.Len())
+	copy(result, buf.Bytes())
+	return result, nil
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler interface for Olric compatibility

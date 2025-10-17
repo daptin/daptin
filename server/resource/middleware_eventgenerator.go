@@ -8,8 +8,125 @@ import (
 	"github.com/buraksezer/olric"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"strconv"
 	"strings"
+	"sync"
 )
+
+// EventWorkerPool manages event publishing workers
+type EventWorkerPool struct {
+	workers    chan struct{}
+	eventQueue chan EventJob
+	wg         sync.WaitGroup
+	shutdown   chan struct{}
+	metrics    EventMetrics
+}
+
+// EventJob represents an event publishing job
+type EventJob struct {
+	topic     *olric.PubSub
+	tableName string
+	message   EventMessage
+}
+
+// EventMetrics tracks event publishing metrics
+type EventMetrics struct {
+	published uint64
+	dropped   uint64
+	errors    uint64
+	mu        sync.RWMutex
+}
+
+var (
+	globalEventPool *EventWorkerPool
+	eventPoolOnce   sync.Once
+)
+
+// GetEventWorkerPool returns the global event worker pool (singleton)
+func GetEventWorkerPool() *EventWorkerPool {
+	eventPoolOnce.Do(func() {
+		poolSize := 50    // Default
+		queueSize := 1000 // Default
+
+		if val := os.Getenv("DAPTIN_EVENT_WORKER_POOL_SIZE"); val != "" {
+			if size, err := strconv.Atoi(val); err == nil {
+				poolSize = size
+			}
+		}
+
+		if val := os.Getenv("DAPTIN_EVENT_QUEUE_SIZE"); val != "" {
+			if size, err := strconv.Atoi(val); err == nil {
+				queueSize = size
+			}
+		}
+
+		globalEventPool = &EventWorkerPool{
+			workers:    make(chan struct{}, poolSize),
+			eventQueue: make(chan EventJob, queueSize),
+			shutdown:   make(chan struct{}),
+		}
+
+		// Start workers
+		for i := 0; i < poolSize; i++ {
+			globalEventPool.wg.Add(1)
+			go globalEventPool.worker()
+		}
+
+		log.Infof("Event worker pool initialized with %d workers and queue size %d", poolSize, queueSize)
+	})
+
+	return globalEventPool
+}
+
+// worker processes events from the queue
+func (p *EventWorkerPool) worker() {
+	defer p.wg.Done()
+
+	for {
+		select {
+		case job := <-p.eventQueue:
+			p.processEvent(job)
+		case <-p.shutdown:
+			return
+		}
+	}
+}
+
+// processEvent publishes an event
+func (p *EventWorkerPool) processEvent(job EventJob) {
+	_, err := job.topic.Publish(context.Background(), job.tableName, job.message)
+	if err != nil {
+		p.metrics.mu.Lock()
+		p.metrics.errors++
+		p.metrics.mu.Unlock()
+		log.Errorf("Failed to publish %s event: %v", job.message.EventType, err)
+	} else {
+		p.metrics.mu.Lock()
+		p.metrics.published++
+		p.metrics.mu.Unlock()
+	}
+}
+
+// PublishEvent queues an event for publishing
+func (p *EventWorkerPool) PublishEvent(topic *olric.PubSub, tableName string, message EventMessage) {
+	job := EventJob{
+		topic:     topic,
+		tableName: tableName,
+		message:   message,
+	}
+
+	select {
+	case p.eventQueue <- job:
+		// Successfully queued
+	default:
+		// Queue full, drop the event
+		p.metrics.mu.Lock()
+		p.metrics.dropped++
+		p.metrics.mu.Unlock()
+		log.Warnf("Event queue full, dropping %s event for %s", message.EventType, tableName)
+	}
+}
 
 type eventHandlerMiddleware struct {
 	dtopicMap *map[string]*olric.PubSub
@@ -126,43 +243,42 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		break
 	case "post":
 		messageBytes, err := json.Marshal(results[0])
-		go func() {
-			CheckErr(err, "Failed to serialize patch message")
-			_, err = topic.Publish(context.Background(), tableName, EventMessage{
+		if err != nil {
+			log.Errorf("Failed to serialize create message: %v", err)
+		} else {
+			GetEventWorkerPool().PublishEvent(topic, tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "create",
 				ObjectType:    dr.model.GetTableName(),
 				EventData:     messageBytes,
 			})
-			CheckErr(err, "Failed to publish create message")
-		}()
+		}
 		break
 	case "delete":
 		messageBytes, err := json.Marshal(results[0])
-		go func() {
-			CheckErr(err, "Failed to serialize patch message")
-			_, err = topic.Publish(context.Background(), tableName, EventMessage{
+		if err != nil {
+			log.Errorf("Failed to serialize delete message: %v", err)
+		} else {
+			GetEventWorkerPool().PublishEvent(topic, tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "delete",
 				ObjectType:    dr.model.GetTableName(),
 				EventData:     messageBytes,
 			})
-			CheckErr(err, "Failed to publish delete message")
-
-		}()
+		}
 		break
 	case "patch":
 		messageBytes, err := json.Marshal(results[0])
-		go func() {
-			CheckErr(err, "Failed to serialize patch message")
-			_, err = topic.Publish(context.Background(), tableName, EventMessage{
+		if err != nil {
+			log.Errorf("Failed to serialize update message: %v", err)
+		} else {
+			GetEventWorkerPool().PublishEvent(topic, tableName, EventMessage{
 				MessageSource: "database",
 				EventType:     "update",
 				ObjectType:    dr.model.GetTableName(),
 				EventData:     messageBytes,
 			})
-			CheckErr(err, "Failed to publish update message")
-		}()
+		}
 		break
 	default:
 		log.Errorf("Invalid method: %v", req.PlainRequest.Method)

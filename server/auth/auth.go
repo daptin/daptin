@@ -416,16 +416,15 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						}(stmt1)
 
 						rows, err := stmt1.Queryx(args1...)
-						defer func(rows *sqlx.Rows) {
-							err := rows.Close()
-							if err != nil {
-								log.Errorf("failed to close result after fetching user in auth")
-							}
-						}(rows)
-
 						if err != nil {
 							log.Errorf("Failed to get user group permissions: %v", err)
 						} else {
+							defer func() {
+								if err := rows.Close(); err != nil {
+									log.Errorf("failed to close result after fetching user in auth: %v", err)
+								}
+							}()
+
 							//cols, _ := rows.Columns()
 							//log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
 							for rows.Next() {

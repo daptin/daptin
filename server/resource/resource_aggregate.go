@@ -337,18 +337,19 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 	}(stmt1)
 
 	queryResult, err := stmt1.Queryx(args...)
-	CheckErr(err, "Failed to query stats: %v", sql)
 	if err != nil {
+		CheckErr(err, "Failed to query stats: %v", sql)
 		return nil, err
 	}
+	defer func() {
+		if err := queryResult.Close(); err != nil {
+			log.Errorf("failed to close aggregate query result - %v", err)
+		}
+	}()
 
 	returnModelName := "aggregate_" + req.RootEntity
 	rows, err := RowsToMap(queryResult, returnModelName)
 	CheckErr(err, "Failed to scan ")
-	err = queryResult.Close()
-	if err != nil {
-		log.Errorf("failed to close aggregate query result - %v", err)
-	}
 	stmt1.Close()
 
 	for _, groupedColumn := range requestedGroupBys {

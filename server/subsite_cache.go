@@ -151,12 +151,14 @@ var CacheConfig = struct {
 	DefaultTTL    time.Duration // Default time-to-live for cache entries
 	CheckInterval time.Duration // How often to check for file modifications
 	MaxCacheSize  int64         // Maximum size of the cache in bytes (0 for unlimited)
+	MaxEntrySize  int64         // Maximum size of a single cache entry (5MB)
 	EnableCache   bool          // Toggle to enable/disable caching
 	Namespace     string        // Olric cache namespace
 }{
 	DefaultTTL:    time.Minute * 30,  // Default to 30 minutes
 	CheckInterval: time.Minute * 5,   // Check every 5 minutes
-	MaxCacheSize:  100 * 1024 * 1024, // 100 MB max cache size
+	MaxCacheSize:  500 * 1024 * 1024, // 500MB total cache size
+	MaxEntrySize:  5 * 1024 * 1024,   // 5MB max entry size
 	EnableCache:   true,
 	Namespace:     "subsite-cache", // Separate namespace from assets cache
 }
@@ -254,6 +256,14 @@ func InitSubsiteCache(client *olric.EmbeddedClient) error {
 // addToCache adds an entry to the cache with TTL
 func addToCache(cacheKey string, entry *SubsiteCacheEntry) {
 	if !CacheConfig.EnableCache || !subsiteCacheInitialized {
+		return
+	}
+
+	// Calculate entry size
+	entrySize := len(entry.Content) + len(entry.CompressedContent)
+
+	// Check if entry exceeds max size
+	if int64(entrySize) > CacheConfig.MaxEntrySize {
 		return
 	}
 

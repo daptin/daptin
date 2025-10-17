@@ -16,7 +16,7 @@ import (
 
 const (
 	// Cache settings
-	MaxFileCacheSize = 2000 << 10 // 8MB max file size for caching
+	MaxFileCacheSize = 5 << 20 // 5MB max file size for caching
 
 	// Compression threshold - only compress files larger than this
 	CompressionThreshold = 5 << 10 // 5KB
@@ -26,6 +26,9 @@ const (
 	ImageCacheExpiry   = 7 * 24 * time.Hour  // 7 days for images
 	TextCacheExpiry    = 24 * time.Hour      // 1 day for text files
 	VideoCacheExpiry   = 14 * 24 * time.Hour // 14 days for videos
+
+	// Worker pool settings
+	WorkerPoolSize = 100
 
 	// Olric cache namespace
 	AssetsCacheNamespace = "assets-cache"
@@ -37,6 +40,7 @@ type FileCache struct {
 	cacheMutex sync.RWMutex
 	closed     bool
 	closeMutex sync.RWMutex
+	workerPool chan struct{}
 }
 
 // Get retrieves a file from cache if it exists and is valid
@@ -72,8 +76,8 @@ func (fc *FileCache) Get(key string) (*CachedFile, bool) {
 
 	// Check if expired (this should not happen with Olric's TTL, but just in case)
 	if time.Now().After(cachedFile.ExpiresAt) {
-		// Remove expired entry asynchronously
-		go fc.Remove(key)
+		// Remove expired entry asynchronously with worker pool
+		fc.RemoveAsync(key)
 		return nil, false
 	}
 
@@ -91,7 +95,8 @@ func (fc *FileCache) Set(key string, file *CachedFile) {
 	fc.closeMutex.RUnlock()
 
 	// Check file size - don't cache very large files
-	if len(file.Data) > MaxFileCacheSize {
+	totalEntrySize := len(file.Data) + len(file.GzipData)
+	if totalEntrySize > MaxFileCacheSize {
 		return
 	}
 
@@ -269,7 +274,13 @@ func NewFileCache(olricClient *olric.EmbeddedClient, namespace string) (*FileCac
 	}
 
 	fc := &FileCache{
-		cache: dmap,
+		cache:      dmap,
+		workerPool: make(chan struct{}, WorkerPoolSize),
+	}
+
+	// Initialize worker pool
+	for i := 0; i < WorkerPoolSize; i++ {
+		fc.workerPool <- struct{}{}
 	}
 
 	return fc, nil
@@ -321,5 +332,33 @@ func (fc *FileCache) Remove(key string) {
 	_, err := fc.cache.Delete(context.Background(), key)
 	if err != nil && err != olric.ErrKeyNotFound {
 		log.Printf("Error removing key %s from Olric cache: %v", key, err)
+	}
+}
+
+// RemoveAsync removes an entry from cache asynchronously using worker pool
+func (fc *FileCache) RemoveAsync(key string) {
+	// First check if cache is closed
+	fc.closeMutex.RLock()
+	if fc.closed {
+		fc.closeMutex.RUnlock()
+		return
+	}
+	fc.closeMutex.RUnlock()
+
+	// Try to acquire a worker from the pool
+	select {
+	case <-fc.workerPool:
+		// Got a worker, proceed with async removal
+		go func() {
+			defer func() {
+				// Return worker to pool
+				fc.workerPool <- struct{}{}
+			}()
+			fc.Remove(key)
+		}()
+	default:
+		// Worker pool exhausted, remove synchronously to prevent memory leak
+		log.Debugf("Worker pool exhausted, removing cache entry synchronously: %s", key)
+		fc.Remove(key)
 	}
 }
