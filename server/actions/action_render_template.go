@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"encoding/base64"
 	"errors"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -56,6 +57,14 @@ func (actionPerformer *renderTemplateActionPerformer) DoAction(
 	if !ok {
 		return nil, []actionresponse.ActionResponse{}, []error{errors.New("no template content found")}
 	}
+
+	// Check if templateContent is base64 encoded and decode it
+	decodedContent, err := base64.StdEncoding.DecodeString(templateContent)
+	if err == nil {
+		// Successfully decoded, use the decoded content
+		templateContent = string(decodedContent)
+	}
+	// If decoding fails, assume it's not base64 and use as-is
 
 	// Check if the template content is a reference to a subsite file
 	if strings.HasPrefix(templateContent, "subsite://") {
