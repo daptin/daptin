@@ -37,48 +37,29 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 		// Generate a cache key for this request
 		cacheKey := getSubsiteCacheKey(c.Request.Host, path)
 
-		// Check if we have this file in cache and if it's still valid
-		if entry, found := getFromCache(cacheKey); found {
-			// Valid cache entry, check if client has a valid cached version
-			clientETag := c.Request.Header.Get("If-None-Match")
-			if clientETag == entry.ETag {
-				c.Writer.WriteHeader(http.StatusNotModified)
+		// Check if another goroutine is already loading this file
+		loadChan := make(chan struct{})
+		if existingChan, loaded := inFlightLoads.LoadOrStore(cacheKey, loadChan); loaded {
+			// Another goroutine is loading this file, wait for it
+			<-existingChan.(chan struct{})
+			// Now check the cache again
+			if entry, found := getFromCache(cacheKey); found {
+				// Serve from cache after the other goroutine loaded it
+				serveFromCache(c, entry)
 				return
 			}
+			// If still not in cache, continue to load it ourselves
+		}
+		defer func() {
+			// Signal that we're done loading
+			close(loadChan)
+			inFlightLoads.Delete(cacheKey)
+		}()
 
-			// Set cache headers
-			c.Writer.Header().Set("ETag", entry.ETag)
-			c.Writer.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour
-			c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
-			c.Writer.Header().Set("Content-Type", entry.ContentType)
-
-			// Check if we need to decompress or serve as-is
-			clientAcceptsGzip := strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip")
-
-			if entry.IsCompressed {
-				if clientAcceptsGzip {
-					// Client accepts gzip and we have compressed content
-					c.Writer.Header().Set("Content-Encoding", "gzip")
-					c.Writer.Header().Set("Vary", "Accept-Encoding")
-					c.Writer.WriteHeader(http.StatusOK)
-					c.Writer.Write(entry.Content)
-				} else {
-					// Need to decompress for client
-					decompressed, err := decompressContent(entry.Content)
-					if err != nil {
-						log.Errorf("Failed to decompress content: %v", err)
-						c.Writer.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-					c.Writer.WriteHeader(http.StatusOK)
-					c.Writer.Write(decompressed)
-				}
-			} else {
-				// Content is not compressed, serve as-is
-				c.Writer.WriteHeader(http.StatusOK)
-				c.Writer.Write(entry.Content)
-			}
-			c.Abort()
+		// Check if we have this file in cache and if it's still valid
+		if entry, found := getFromCache(cacheKey); found {
+			// Serve from cache
+			serveFromCache(c, entry)
 			return
 		}
 
@@ -234,4 +215,49 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 		// If reading fails, fallback to standard file serving
 		c.File(indexPath)
 	}
+}
+
+// serveFromCache serves a cached entry to the client with proper headers
+func serveFromCache(c *gin.Context, entry *SubsiteCacheEntry) {
+	// Check if client has a valid cached version
+	clientETag := c.Request.Header.Get("If-None-Match")
+	if clientETag == entry.ETag {
+		c.Writer.WriteHeader(http.StatusNotModified)
+		c.Abort()
+		return
+	}
+
+	// Set cache headers
+	c.Writer.Header().Set("ETag", entry.ETag)
+	c.Writer.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour
+	c.Writer.Header().Set("Last-Modified", entry.LastModified.Format(http.TimeFormat))
+	c.Writer.Header().Set("Content-Type", entry.ContentType)
+
+	// Check if we need to decompress or serve as-is
+	clientAcceptsGzip := strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip")
+
+	if entry.IsCompressed {
+		if clientAcceptsGzip {
+			// Client accepts gzip and we have compressed content
+			c.Writer.Header().Set("Content-Encoding", "gzip")
+			c.Writer.Header().Set("Vary", "Accept-Encoding")
+			c.Writer.WriteHeader(http.StatusOK)
+			c.Writer.Write(entry.Content)
+		} else {
+			// Need to decompress for client
+			decompressed, err := decompressContent(entry.Content)
+			if err != nil {
+				log.Errorf("Failed to decompress content: %v", err)
+				c.Writer.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			c.Writer.WriteHeader(http.StatusOK)
+			c.Writer.Write(decompressed)
+		}
+	} else {
+		// Content is not compressed, serve as-is
+		c.Writer.WriteHeader(http.StatusOK)
+		c.Writer.Write(entry.Content)
+	}
+	c.Abort()
 }

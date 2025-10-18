@@ -53,6 +53,7 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 // downloadFileFromCloudStore downloads a specific file from cloud storage to local cache
 func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	// Setup credentials if available
+	fileName = strings.Trim(fileName, "/")
 	configSetName := afc.CloudStore.Name
 	if strings.Index(afc.CloudStore.RootPath, ":") > -1 {
 		configSetName = strings.Split(afc.CloudStore.RootPath, ":")[0]
@@ -68,7 +69,9 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	}
 
 	// Prepare source and destination paths
-	sourcePath := afc.CloudStore.RootPath + string(os.PathSeparator) + afc.Keyname
+	keyname := afc.Keyname
+	keyname = strings.Trim(keyname, "/")
+	sourcePath := afc.CloudStore.RootPath + string(os.PathSeparator) + keyname
 	destPathFolder := afc.LocalSyncPath + string(os.PathSeparator)
 	destFilePath := destPathFolder + string(os.PathSeparator) + fileName
 

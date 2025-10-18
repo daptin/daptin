@@ -83,7 +83,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 		requestPath := c.Request.Host + "/" + strings.Split(c.Request.RequestURI, "?")[0]
 		limitValue, ok := rateConfig.limits[requestPath]
 		if !ok {
-			limitValue = 100
+			limitValue = 10000
 		}
 
 		return rate.NewLimiter(rate.Every(100*time.Millisecond), limitValue), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour

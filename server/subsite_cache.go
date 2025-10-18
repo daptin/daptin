@@ -156,21 +156,20 @@ func (sce *SubsiteCacheEntry) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// Note: Removed MarshalBinary and UnmarshalBinary methods
+// Olric handles serialization automatically for struct types
+
 // CacheConfig holds configuration for the cache
 var CacheConfig = struct {
-	DefaultTTL    time.Duration // Default time-to-live for cache entries
-	CheckInterval time.Duration // How often to check for file modifications
-	MaxCacheSize  int64         // Maximum size of the cache in bytes (0 for unlimited)
-	MaxEntrySize  int64         // Maximum size of a single cache entry (5MB)
-	EnableCache   bool          // Toggle to enable/disable caching
-	Namespace     string        // Olric cache namespace
+	DefaultTTL   time.Duration // Default time-to-live for cache entries
+	MaxEntrySize int64         // Maximum size of a single cache entry (5MB)
+	EnableCache  bool          // Toggle to enable/disable caching
+	Namespace    string        // Olric cache namespace
 }{
-	DefaultTTL:    time.Minute * 30,  // Default to 30 minutes
-	CheckInterval: time.Minute * 5,   // Check every 5 minutes
-	MaxCacheSize:  500 * 1024 * 1024, // 500MB total cache size
-	MaxEntrySize:  5 * 1024 * 1024,   // 5MB max entry size
-	EnableCache:   true,
-	Namespace:     "subsite-cache", // Separate namespace from assets cache
+	DefaultTTL:   time.Minute * 30, // Default to 30 minutes
+	MaxEntrySize: 5 * 1024 * 1024,  // 5MB max entry size
+	EnableCache:  true,
+	Namespace:    "subsite-cache", // Separate namespace from assets cache
 }
 
 // SubsiteCache is a global cache for subsite files using Olric
@@ -179,13 +178,13 @@ var olricClient *olric.EmbeddedClient
 var subsiteCacheInitialized bool
 var subsiteCacheMutex sync.Mutex
 
-// Memory tracking for cache management
+// Track in-flight cache loading to prevent race conditions
+var inFlightLoads = &sync.Map{}
+
+// Cache metrics for monitoring
 var (
-	currentCacheSize  int64
-	cacheSizeMutex    sync.RWMutex
 	cacheHits         int64
 	cacheMisses       int64
-	cacheEvictions    int64
 	cacheMetricsMutex sync.RWMutex
 )
 
@@ -304,39 +303,18 @@ func InitSubsiteCache(client *olric.EmbeddedClient) error {
 	return nil
 }
 
-// addToCache adds an entry to the cache with TTL and memory management
+// addToCache adds an entry to the cache with TTL
 func addToCache(cacheKey string, entry *SubsiteCacheEntry) error {
 	if !CacheConfig.EnableCache || !subsiteCacheInitialized {
 		return fmt.Errorf("cache not enabled or initialized")
 	}
 
-	// Calculate entry size
-	entrySize := int64(len(entry.Content))
-	entry.Size = entrySize
-
 	// Check if entry exceeds max size
+	entrySize := int64(len(entry.Content))
 	if entrySize > CacheConfig.MaxEntrySize {
 		log.Debugf("Entry size %d exceeds max entry size %d, skipping cache", entrySize, CacheConfig.MaxEntrySize)
 		return fmt.Errorf("entry too large: %d bytes", entrySize)
 	}
-
-	// Check if adding this entry would exceed max cache size
-	cacheSizeMutex.Lock()
-	if currentCacheSize+entrySize > CacheConfig.MaxCacheSize {
-		cacheSizeMutex.Unlock()
-		// Try to evict old entries to make room
-		evictedSize := evictOldEntries(entrySize)
-		if evictedSize < entrySize {
-			log.Warnf("Cannot add entry of size %d, cache is full (current: %d, max: %d)",
-				entrySize, currentCacheSize, CacheConfig.MaxCacheSize)
-			return fmt.Errorf("cache full, cannot add entry")
-		}
-		cacheSizeMutex.Lock()
-	}
-
-	// Update current cache size
-	currentCacheSize += entrySize
-	cacheSizeMutex.Unlock()
 
 	// Calculate TTL duration from ExpiresAt
 	ttl := entry.ExpiresAt.Sub(time.Now())
@@ -346,13 +324,9 @@ func addToCache(cacheKey string, entry *SubsiteCacheEntry) error {
 		entry.ExpiresAt = time.Now().Add(ttl)
 	}
 
-	// Add to Olric cache with expiry
+	// Add to Olric cache with expiry - let Olric handle memory management
 	err := SubsiteCache.Put(context.Background(), cacheKey, entry, olric.EX(ttl))
 	if err != nil {
-		// Rollback cache size on error
-		cacheSizeMutex.Lock()
-		currentCacheSize -= entrySize
-		cacheSizeMutex.Unlock()
 		log.Errorf("Error setting key %s in Olric subsite cache: %v", cacheKey, err)
 		return err
 	}
@@ -360,26 +334,7 @@ func addToCache(cacheKey string, entry *SubsiteCacheEntry) error {
 	return nil
 }
 
-// evictOldEntries attempts to evict entries to free up space
-func evictOldEntries(requiredSpace int64) int64 {
-	// This is a placeholder - in production, you'd want to implement
-	// proper LRU eviction by tracking access times
-	var evictedSize int64
-
-	cacheMetricsMutex.Lock()
-	cacheEvictions++
-	cacheMetricsMutex.Unlock()
-
-	// For now, we'll just clear some percentage of the cache
-	// In production, implement proper LRU eviction
-	log.Warnf("Cache eviction triggered, need %d bytes", requiredSpace)
-
-	return evictedSize
-}
-
-// Note: evictCacheEntries is not needed with Olric as it handles TTL expiration
-
-// startCacheCleanupRoutine is not needed with Olric as it handles TTL expiration
+// Note: Removed evictOldEntries function - Olric handles eviction via TTL
 
 // getFromCache retrieves an entry from the cache
 func getFromCache(cacheKey string) (*SubsiteCacheEntry, bool) {
@@ -435,8 +390,7 @@ func removeFromCache(cacheKey string) {
 		return
 	}
 
-	// Remove from Olric cache
-	// Note: Size tracking removed to prevent memory leak from unnecessary deserialization
+	// Simply remove from Olric cache
 	_, err := SubsiteCache.Delete(context.Background(), cacheKey)
 	if err != nil && err != olric.ErrKeyNotFound {
 		log.Errorf("Error removing key %s from Olric subsite cache: %v", cacheKey, err)
@@ -446,9 +400,7 @@ func removeFromCache(cacheKey string) {
 // GetCacheMetrics returns current cache metrics for monitoring
 func GetCacheMetrics() map[string]interface{} {
 	cacheMetricsMutex.RLock()
-	cacheSizeMutex.RLock()
 	defer cacheMetricsMutex.RUnlock()
-	defer cacheSizeMutex.RUnlock()
 
 	hitRate := float64(0)
 	if cacheHits+cacheMisses > 0 {
@@ -456,13 +408,9 @@ func GetCacheMetrics() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"cache_size_bytes": currentCacheSize,
-		"cache_size_mb":    float64(currentCacheSize) / (1024 * 1024),
-		"max_cache_size":   CacheConfig.MaxCacheSize,
-		"cache_hits":       cacheHits,
-		"cache_misses":     cacheMisses,
-		"cache_evictions":  cacheEvictions,
-		"hit_rate":         hitRate,
-		"enabled":          CacheConfig.EnableCache,
+		"cache_hits":   cacheHits,
+		"cache_misses": cacheMisses,
+		"hit_rate":     hitRate,
+		"enabled":      CacheConfig.EnableCache,
 	}
 }

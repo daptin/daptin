@@ -71,12 +71,9 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 	}
 	is_hugo_site := daptinSite["site_type"] == "hugo"
 
-	path = siteCacheFolder.Keyname
-	if !EndsWithCheck(cloudStore.RootPath, "/") && !resource.BeginsWith(path, "/") {
-		path = "/" + path
-	}
+	path = strings.Trim(siteCacheFolder.Keyname, "/")
 	args := []string{
-		cloudStore.RootPath + path,
+		cloudStore.RootPath + "/" + path,
 		tempDirectoryPath,
 	}
 
@@ -85,8 +82,6 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Sync site storage [%v]", cloudStoreId),
 	}
-	defaultConfig := fs.GetConfig(nil)
-	defaultConfig.LogLevel = fs.LogLevelNotice
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
@@ -101,10 +96,11 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 		}
 		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 
-		defaultConfig := fs.GetConfig(nil)
+		defaultConfig := fs.GetConfig(ctx)
 		defaultConfig.LogLevel = fs.LogLevelNotice
-		defaultConfig.DeleteMode = fs.DeleteModeBefore
+		defaultConfig.DeleteMode = fs.DeleteModeAfter
 		defaultConfig.AutoConfirm = true
+		defaultConfig.NoUpdateModTime = true
 
 		if srcFileName == "" {
 			err = sync.Sync(ctx, fdst, fsrc, true)
