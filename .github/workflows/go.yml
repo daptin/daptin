@@ -68,6 +68,18 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Checkout
         uses: actions/checkout@v1
 
@@ -139,8 +151,9 @@ jobs:
         shell: bash
         run: |
           printf "npm and qusar to build dashboard in ./daptinweb"
-          wget https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
-          unzip shadcn-admin.zip -d daptinweb
+          wget -q https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
+          unzip -q shadcn-admin.zip -d daptinweb
+          rm shadcn-admin.zip
           ls -lah ./daptinweb
           go install github.com/GeertJohan/go.rice/rice@latest
           $GOPATH/bin/rice embed-go
@@ -163,6 +176,9 @@ jobs:
         run: |
           make
           make compile_all
+          # Clean up build artifacts to save space
+          rm -rf daptin
+          find build -type f -name '*.zip' -delete 2>/dev/null || true
         if: matrix.compile_all
 
       - name: Build and deploy built binaries
@@ -170,6 +186,8 @@ jobs:
         run: |
           make travis_beta
           ls -lah build/
+          # Clean up intermediate files
+          rm -rf daptin 2>/dev/null || true
         if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
@@ -260,6 +278,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false
+          swap-storage: true
 
       - name: Checkout
         uses: actions/checkout@v1
@@ -293,8 +321,9 @@ jobs:
         shell: bash
         run: |
           printf "npm and qusar to build dashboard in ./daptinweb"
-          wget https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
-          unzip shadcn-admin.zip -d daptinweb
+          wget -q https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
+          unzip -q shadcn-admin.zip -d daptinweb
+          rm shadcn-admin.zip
           ls -lah ./daptinweb
           go install github.com/GeertJohan/go.rice/rice@latest
           $GOPATH/bin/rice embed-go
@@ -349,6 +378,9 @@ jobs:
               --tags netgo -ldflags '-linkmode external' -dest build .
           $GOPATH/bin/xgo -targets='darwin/amd64,darwin/arm64,windows/*' \
               --tags netgo -ldflags '-linkmode external' -dest build .
+          # Clean up xgo build cache
+          rm -rf /tmp/xgo-cache 2>/dev/null || true
+          docker system prune -f || true
 
 
       - name: List built artifacts
@@ -362,22 +394,23 @@ jobs:
           docker build -t daptin/daptin:${{ github.ref_name }} .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:${{ github.ref_name }}
-          docker tag daptin/daptin:${{ github.ref_name }} daptin/daptin:${{ github.ref_name }}
-          docker push daptin/daptin:${{ github.ref_name }}
+          # Clean up Docker images after push
+          docker rmi daptin/daptin:${{ github.ref_name }} || true
+          docker system prune -af || true
 
       - uses: actions/upload-artifact@v4
         name: Upload linux amd64 artifact
         with:
           name: daptin-linux-amd64
           path: build/github.com/daptin/daptin-linux-amd64
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v4
         name: Upload darwin arm64 artifact
         with:
           name: daptin-darwin-arm64
           path: build/github.com/daptin/daptin-darwin-arm64
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
       - uses: actions/upload-artifact@v4
@@ -385,14 +418,14 @@ jobs:
         with:
           name: daptin-darwin-amd64
           path: build/github.com/daptin/daptin-darwin-amd64
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v4
         name: Upload linux arm64 artifact
         with:
           name: daptin-linux-arm64
           path: build/github.com/daptin/daptin-linux-arm64
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 #      - uses: actions/upload-artifact@v4
 #        name: Upload arm-5 artifact
@@ -421,7 +454,7 @@ jobs:
         with:
           name: daptin-windows-amd64.exe
           path: build/github.com/daptin/daptin-windows-amd64.exe
-        if: github.head_ref == '' && github.repository == 'daptin/daptin'
+        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -446,6 +479,7 @@ jobs:
           docker build -t daptin/daptin:${{ github.ref_name }} .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
           docker push daptin/daptin:${{ github.ref_name }}
-          docker tag daptin/daptin:${{ github.ref_name }} daptin/daptin:${{ github.ref_name }}
-          docker push daptin/daptin:${{ github.ref_name }}
+          # Clean up Docker images after push
+          docker rmi daptin/daptin:${{ github.ref_name }} || true
+          docker system prune -af || true
           
