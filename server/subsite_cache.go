@@ -162,12 +162,12 @@ func (sce *SubsiteCacheEntry) UnmarshalBinary(data []byte) error {
 // CacheConfig holds configuration for the cache
 var CacheConfig = struct {
 	DefaultTTL   time.Duration // Default time-to-live for cache entries
-	MaxEntrySize int64         // Maximum size of a single cache entry (10KB)
+	MaxEntrySize int64         // Maximum size of a single cache entry (100KB)
 	EnableCache  bool          // Toggle to enable/disable caching
 	Namespace    string        // Olric cache namespace
 }{
 	DefaultTTL:   time.Minute * 30, // Default to 30 minutes
-	MaxEntrySize: 10 * 1024,        // 10KB max entry size - only cache small assets
+	MaxEntrySize: 100 * 1024,       // 100KB max entry size - cache small to medium assets
 	EnableCache:  true,
 	Namespace:    "subsite-cache", // Separate namespace from assets cache
 }
@@ -185,6 +185,9 @@ var inFlightLoads = &sync.Map{}
 var (
 	cacheHits         int64
 	cacheMisses       int64
+	cacheBypassed     int64 // Files too large for cache
+	cacheRejected     int64 // Files rejected due to size
+	cacheAdded        int64 // Successfully cached files
 	cacheMetricsMutex sync.RWMutex
 )
 
@@ -299,6 +302,10 @@ func InitSubsiteCache(client *olric.EmbeddedClient) error {
 		return fmt.Errorf("failed to create Olric DMap for subsite cache: %v", err)
 	}
 
+	// Start periodic metrics logging
+	go logCacheMetricsPeriodically()
+
+	log.Infof("Subsite cache initialized with max entry size: %d KB", CacheConfig.MaxEntrySize/1024)
 	subsiteCacheInitialized = true
 	return nil
 }
@@ -324,13 +331,21 @@ func addToCache(cacheKey string, entry *SubsiteCacheEntry) error {
 		entry.ExpiresAt = time.Now().Add(ttl)
 	}
 
-	// Add to Olric cache with expiry - let Olric handle memory management
-	err := SubsiteCache.Put(context.Background(), cacheKey, entry, olric.EX(ttl))
+	// Add to Olric cache with expiry - use NX to prevent duplicates
+	err := SubsiteCache.Put(context.Background(), cacheKey, entry, olric.NX(), olric.EX(ttl))
 	if err != nil {
+		if err == olric.ErrKeyFound {
+			// Key already exists, this is fine - another goroutine beat us to it
+			log.Debugf("Cache key already exists (prevented duplicate): %s", cacheKey)
+			return nil
+		}
 		log.Errorf("Error setting key %s in Olric subsite cache: %v", cacheKey, err)
 		return err
 	}
 
+	cacheMetricsMutex.Lock()
+	cacheAdded++
+	cacheMetricsMutex.Unlock()
 	log.Debugf("Cache added: %s (size: %d bytes, TTL: %v)", cacheKey, entrySize, ttl)
 	return nil
 }
@@ -404,14 +419,46 @@ func GetCacheMetrics() map[string]interface{} {
 	defer cacheMetricsMutex.RUnlock()
 
 	hitRate := float64(0)
-	if cacheHits+cacheMisses > 0 {
-		hitRate = float64(cacheHits) / float64(cacheHits+cacheMisses)
+	totalRequests := cacheHits + cacheMisses
+	if totalRequests > 0 {
+		hitRate = float64(cacheHits) / float64(totalRequests)
 	}
 
 	return map[string]interface{}{
-		"cache_hits":   cacheHits,
-		"cache_misses": cacheMisses,
-		"hit_rate":     hitRate,
-		"enabled":      CacheConfig.EnableCache,
+		"cache_hits":     cacheHits,
+		"cache_misses":   cacheMisses,
+		"cache_bypassed": cacheBypassed,
+		"cache_rejected": cacheRejected,
+		"cache_added":    cacheAdded,
+		"hit_rate":       hitRate,
+		"total_requests": totalRequests,
+		"enabled":        CacheConfig.EnableCache,
+		"max_entry_size": CacheConfig.MaxEntrySize,
+	}
+}
+
+// TrackCacheBypassed increments the cache bypassed counter for large files
+func TrackCacheBypassed() {
+	cacheMetricsMutex.Lock()
+	cacheBypassed++
+	cacheMetricsMutex.Unlock()
+}
+
+// logCacheMetricsPeriodically logs cache performance metrics every 5 minutes
+func logCacheMetricsPeriodically() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		metrics := GetCacheMetrics()
+		log.WithFields(log.Fields{
+			"hits":       metrics["cache_hits"],
+			"misses":     metrics["cache_misses"],
+			"bypassed":   metrics["cache_bypassed"],
+			"rejected":   metrics["cache_rejected"],
+			"added":      metrics["cache_added"],
+			"hit_rate":   fmt.Sprintf("%.2f%%", metrics["hit_rate"].(float64)*100),
+			"total_reqs": metrics["total_requests"],
+		}).Info("Cache performance metrics")
 	}
 }

@@ -25,14 +25,66 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			filePath = path
 		}
 
+		// Check for pre-compressed .gz version first
+		gzFilePath := filePath + ".gz"
+		gzFile, gzErr := assetCache.GetFileByName(gzFilePath)
+		if gzErr == nil {
+			defer gzFile.Close()
+			// Serve pre-compressed file if client accepts gzip
+			if strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+				log.Debugf("Serving pre-compressed file: %s", gzFilePath)
+				c.Header("Content-Encoding", "gzip")
+				c.Header("Vary", "Accept-Encoding")
+				c.File(filepath.Join(assetCache.LocalSyncPath, gzFilePath))
+				return
+			}
+		}
+
 		// Handle directory paths by appending index.html
 		file, err := assetCache.GetFileByName(filePath)
+		if err != nil {
+			// Try index.html for directory paths
+			if strings.HasSuffix(path, "/") || path == "" {
+				filePath = filepath.Join(filePath, "index.html")
+				file, err = assetCache.GetFileByName(filePath)
+			}
+			if err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
+		}
 		fileInfo, err := file.Stat()
-		if err == nil && fileInfo.IsDir() {
+		if err != nil {
+			file.Close()
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		if fileInfo.IsDir() {
+			file.Close()
 			filePath = filepath.Join(filePath, "index.html")
 			file, err = assetCache.GetFileByName(filePath)
+			if err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
+			fileInfo, err = file.Stat()
+			if err != nil {
+				file.Close()
+				c.Status(http.StatusInternalServerError)
+				return
+			}
 		}
 		defer file.Close()
+
+		// For large files (>100KB), use efficient file serving
+		if fileInfo.Size() > CacheConfig.MaxEntrySize {
+			TrackCacheBypassed()
+			log.Debugf("Serving large file directly: %s (size: %d bytes)", filePath, fileInfo.Size())
+			fullPath := filepath.Join(assetCache.LocalSyncPath, filePath)
+			c.File(fullPath)
+			return
+		}
 
 		// Generate a cache key for this request
 		cacheKey := getSubsiteCacheKey(c.Request.Host, path)
@@ -142,11 +194,38 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			return
 		}
 
-		// Fallback to standard file serving if reading fails
-		// Try to read and cache index.html with compression
+		// Fallback: try to serve index.html
 		indexPath := filepath.Join(assetCache.LocalSyncPath, "index.html")
-		indexContent, err := os.ReadFile(indexPath)
+
+		// Check for pre-compressed index.html.gz
+		gzIndexPath := indexPath + ".gz"
+		if _, err := os.Stat(gzIndexPath); err == nil {
+			if strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+				log.Debugf("Serving pre-compressed index.html.gz")
+				c.Header("Content-Encoding", "gzip")
+				c.Header("Content-Type", "text/html; charset=utf-8")
+				c.Header("Vary", "Accept-Encoding")
+				c.File(gzIndexPath)
+				return
+			}
+		}
+
 		fileinfo, err := os.Stat(indexPath)
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		// For large index.html (>100KB), serve directly
+		if fileinfo.Size() > CacheConfig.MaxEntrySize {
+			TrackCacheBypassed()
+			log.Debugf("Serving large index.html directly: %d bytes", fileinfo.Size())
+			c.File(indexPath)
+			return
+		}
+
+		// For small index.html, read and cache
+		indexContent, err := os.ReadFile(indexPath)
 		if err == nil {
 			// Generate ETag
 			indexEtag := cache.GenerateETag(indexContent, fileinfo.ModTime())
@@ -212,7 +291,7 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			return
 		}
 
-		// If reading fails, fallback to standard file serving
+		// If all else fails, try to serve index.html directly
 		c.File(indexPath)
 	}
 }
