@@ -162,12 +162,12 @@ func (sce *SubsiteCacheEntry) UnmarshalBinary(data []byte) error {
 // CacheConfig holds configuration for the cache
 var CacheConfig = struct {
 	DefaultTTL   time.Duration // Default time-to-live for cache entries
-	MaxEntrySize int64         // Maximum size of a single cache entry (5MB)
+	MaxEntrySize int64         // Maximum size of a single cache entry (10KB)
 	EnableCache  bool          // Toggle to enable/disable caching
 	Namespace    string        // Olric cache namespace
 }{
 	DefaultTTL:   time.Minute * 30, // Default to 30 minutes
-	MaxEntrySize: 5 * 1024 * 1024,  // 5MB max entry size
+	MaxEntrySize: 10 * 1024,        // 10KB max entry size - only cache small assets
 	EnableCache:  true,
 	Namespace:    "subsite-cache", // Separate namespace from assets cache
 }
@@ -312,7 +312,7 @@ func addToCache(cacheKey string, entry *SubsiteCacheEntry) error {
 	// Check if entry exceeds max size
 	entrySize := int64(len(entry.Content))
 	if entrySize > CacheConfig.MaxEntrySize {
-		log.Debugf("Entry size %d exceeds max entry size %d, skipping cache", entrySize, CacheConfig.MaxEntrySize)
+		log.Infof("Cache rejected: %s (size: %d bytes > max: %d bytes)", cacheKey, entrySize, CacheConfig.MaxEntrySize)
 		return fmt.Errorf("entry too large: %d bytes", entrySize)
 	}
 
@@ -331,6 +331,7 @@ func addToCache(cacheKey string, entry *SubsiteCacheEntry) error {
 		return err
 	}
 
+	log.Debugf("Cache added: %s (size: %d bytes, TTL: %v)", cacheKey, entrySize, ttl)
 	return nil
 }
 
