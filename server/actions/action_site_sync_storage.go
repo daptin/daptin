@@ -97,10 +97,11 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 
 		defaultConfig := fs.GetConfig(ctx)
-		defaultConfig.LogLevel = fs.LogLevelNotice
+		defaultConfig.LogLevel = fs.LogLevelInfo
 		defaultConfig.DeleteMode = fs.DeleteModeAfter
 		defaultConfig.AutoConfirm = true
 		defaultConfig.NoUpdateModTime = true
+		defaultConfig.Inplace = true
 
 		if srcFileName == "" {
 			err = sync.Sync(ctx, fdst, fsrc, true)
