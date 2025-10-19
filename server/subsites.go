@@ -127,10 +127,10 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			continue
 		}
 
-		err = cruds["task"].SyncStorageToPath(cloudStore, site.Path, tempDirectoryPath, transaction)
-		if resource.CheckErr(err, "Failed to setup sync to path for subsite [%v]", site.Name) {
-			continue
-		}
+		//err = cruds["task"].SyncStorageToPath(cloudStore, site.Path, tempDirectoryPath, transaction)
+		//if resource.CheckErr(err, "Failed to setup sync to path for subsite [%v]", site.Name) {
+		//	continue
+		//}
 
 		syncTask := task.Task{
 			EntityName: "site",
