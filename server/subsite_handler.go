@@ -54,7 +54,8 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 		// Check negative cache first to avoid redundant cloud requests
 		negativeKey := host + ":" + filePath
 		if isNegativelyCached(negativeKey) {
-			c.Status(http.StatusNotFound)
+			// File known to be missing, serve root index.html instead of cloud request
+			serveRootIndexHtml(c, host, assetCache)
 			return
 		}
 
@@ -121,7 +122,8 @@ func serveIndexWithMemoryCache(c *gin.Context, host, filePath string, assetCache
 	if err != nil {
 		negativeKey := host + ":" + filePath
 		addToNegativeCache(negativeKey)
-		c.Status(http.StatusNotFound)
+		// Index.html not found, serve root index.html
+		serveRootIndexHtml(c, host, assetCache)
 		return
 	}
 	defer file.Close()
@@ -188,9 +190,9 @@ func serveStaticAsset(c *gin.Context, filePath string, assetCache *assetcachepoj
 	// Try to get file (cloud sync)
 	file, err := assetCache.GetFileByName(filePath)
 	if err != nil {
-		// Add to negative cache and return 404
+		// Add to negative cache and serve root index.html
 		addToNegativeCache(negativeKey)
-		c.Status(http.StatusNotFound)
+		serveRootIndexHtml(c, c.Request.Host, assetCache)
 		return
 	}
 	defer file.Close()
@@ -251,4 +253,35 @@ func serveStaticFileOptimal(c *gin.Context, fullPath string, fileInfo os.FileInf
 // generateETagFromStat creates an ETag from file metadata
 func generateETagFromStat(info os.FileInfo) string {
 	return fmt.Sprintf(`"%x-%x"`, info.ModTime().Unix(), info.Size())
+}
+
+// serveRootIndexHtml serves the root index.html as fallback (for SPA routing)
+func serveRootIndexHtml(c *gin.Context, host string, assetCache *assetcachepojo.AssetFolderCache) {
+	// Always serve root index.html for missing files (SPA compatibility)
+	rootIndexPath := "index.html"
+	
+	// Check if root index.html exists in cache first
+	if entry, exists := indexCache.Load(host); exists {
+		cacheEntry := entry.(*IndexCacheEntry)
+		if time.Now().Before(cacheEntry.ExpiresAt) {
+			serveIndexFromCache(c, cacheEntry)
+			return
+		}
+	}
+	
+	// Try to get root index.html
+	file, err := assetCache.GetFileByName(rootIndexPath)
+	if err != nil {
+		// Even root index.html doesn't exist, return a basic HTML response
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`<!DOCTYPE html>
+<html>
+<head><title>Site</title></head>
+<body><h1>Welcome</h1><p>Site is loading...</p></body>
+</html>`))
+		return
+	}
+	file.Close()
+	
+	// Serve root index.html with caching
+	serveIndexWithMemoryCache(c, host, rootIndexPath, assetCache)
 }
