@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/gin-gonic/gin"
@@ -35,8 +34,8 @@ var (
 
 // Cache durations
 const (
-	IndexCacheTTL    = 5 * time.Minute  // 5 minutes for index.html
-	NegativeCacheTTL = 2 * time.Minute  // 2 minutes for 404s
+	IndexCacheTTL    = 5 * time.Minute // 5 minutes for index.html
+	NegativeCacheTTL = 2 * time.Minute // 2 minutes for 404s
 )
 
 func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.AssetFolderCache) func(c *gin.Context) {
@@ -98,9 +97,9 @@ func addToNegativeCache(key string) {
 
 // isIndexFile checks if the file path is for index.html
 func isIndexFile(filePath string) bool {
-	return strings.HasSuffix(filePath, "index.html") || 
-		   strings.HasSuffix(filePath, "/index.html") ||
-		   filePath == "index.html"
+	return strings.HasSuffix(filePath, "index.html") ||
+		strings.HasSuffix(filePath, "/index.html") ||
+		filePath == "index.html"
 }
 
 // serveIndexWithMemoryCache serves index.html from memory cache with 5-minute TTL
@@ -240,7 +239,7 @@ func serveStaticFileOptimal(c *gin.Context, fullPath string, fileInfo os.FileInf
 	c.Header("ETag", etag)
 	c.Header("Cache-Control", "public, max-age=31536000") // 1 year
 	c.Header("Last-Modified", lastModified.Format(http.TimeFormat))
-	
+
 	// Set content type
 	if contentType := mime.TypeByExtension(filepath.Ext(fullPath)); contentType != "" {
 		c.Header("Content-Type", contentType)
@@ -250,16 +249,11 @@ func serveStaticFileOptimal(c *gin.Context, fullPath string, fileInfo os.FileInf
 	c.File(fullPath)
 }
 
-// generateETagFromStat creates an ETag from file metadata
-func generateETagFromStat(info os.FileInfo) string {
-	return fmt.Sprintf(`"%x-%x"`, info.ModTime().Unix(), info.Size())
-}
-
 // serveRootIndexHtml serves the root index.html as fallback (for SPA routing)
 func serveRootIndexHtml(c *gin.Context, host string, assetCache *assetcachepojo.AssetFolderCache) {
 	// Always serve root index.html for missing files (SPA compatibility)
 	rootIndexPath := "index.html"
-	
+
 	// Check if root index.html exists in cache first
 	if entry, exists := indexCache.Load(host); exists {
 		cacheEntry := entry.(*IndexCacheEntry)
@@ -268,7 +262,7 @@ func serveRootIndexHtml(c *gin.Context, host string, assetCache *assetcachepojo.
 			return
 		}
 	}
-	
+
 	// Try to get root index.html
 	file, err := assetCache.GetFileByName(rootIndexPath)
 	if err != nil {
@@ -281,7 +275,7 @@ func serveRootIndexHtml(c *gin.Context, host string, assetCache *assetcachepojo.
 		return
 	}
 	file.Close()
-	
+
 	// Serve root index.html with caching
 	serveIndexWithMemoryCache(c, host, rootIndexPath, assetCache)
 }

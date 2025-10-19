@@ -1,12 +1,9 @@
 package server
 
 import (
-	"github.com/daptin/daptin/server/cache"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
-	"io"
 	"net/http"
-	"time"
 )
 
 func CreateFaviconEndpoint(boxRoot http.FileSystem) gin.HandlerFunc {
@@ -46,29 +43,30 @@ func CreateFaviconEndpoint(boxRoot http.FileSystem) gin.HandlerFunc {
 			}
 		}
 
-		// Read file content
-		fileContents, err := io.ReadAll(file)
+		// Get file info for consistent caching
+		fileInfo, err := file.Stat()
 		if err != nil {
 			c.AbortWithStatus(404)
 			return
 		}
 
-		// Generate ETag for better caching
-		fileInfo, _ := file.Stat()
-		etag := cache.GenerateETag(fileContents, fileInfo.ModTime())
-		c.Header("ETag", etag)
-
-		// Check if client has this version cached
-		if match := c.Request.Header.Get("If-None-Match"); match != "" && match == etag {
-			c.AbortWithStatus(http.StatusNotModified) // 304
+		// Check client cache first (consistent with other handlers)
+		if checkClientCache(c, fileInfo) {
 			return
 		}
 
+		// Read file content with size limit protection
+		fileContents, err := readFileWithLimit(file, DefaultFileServingConfig.MaxMemoryReadSize)
+		if err != nil {
+			c.AbortWithStatus(404)
+			return
+		}
+
+		// Set optimal cache headers (already includes ETag, Last-Modified)
+		setOptimalCacheHeaders(c, fileInfo, DefaultFileServingConfig)
+
 		// Set content type based on format
 		c.Header("Content-Type", contentType)
-
-		// Set last modified
-		c.Header("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 
 		// Write response
 		_, err = c.Writer.Write(fileContents)

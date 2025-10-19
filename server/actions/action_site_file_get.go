@@ -3,6 +3,7 @@ package actions
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
@@ -40,8 +41,19 @@ func (d *cloudStoreFileGetActionPerformer) DoAction(request actionresponse.Outco
 	}
 
 	contents, _ := siteCacheFolder.GetFileByName(path)
-	data, _ := io.ReadAll(contents)
-	contents.Close()
+	defer contents.Close()
+
+	// Read with size limit protection (max 10MB for API responses)
+	limitedReader := io.LimitReader(contents, 10*1024*1024+1)
+	data, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, responses, []error{err}
+	}
+
+	// Check if file was too large
+	if len(data) > 10*1024*1024 {
+		return nil, responses, []error{fmt.Errorf("file too large: %d bytes > 10MB limit", len(data))}
+	}
 	dataBase64 := base64.StdEncoding.EncodeToString(data)
 	fileListResponse := resource.NewResponse(nil, api2go.NewApi2GoModelWithData("file", nil, 0, nil, map[string]interface{}{
 		"data": dataBase64,

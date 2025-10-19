@@ -7,7 +7,6 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -323,10 +322,8 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 		// Use optimized file serving for small files that can be cached
 		if fileInfo.Size() <= cache.MaxFileCacheSize {
-			// Open file
-
-			// Read file into memory
-			data, err := io.ReadAll(assetFileByName)
+			// Read file into memory with size limit protection
+			data, err := readFileWithLimit(assetFileByName, cache.MaxFileCacheSize)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return

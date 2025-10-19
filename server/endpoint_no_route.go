@@ -86,17 +86,21 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 				return
 			}
 
-			// Don't cache large files
+			// Check client cache first for consistent behavior
+			if checkClientCache(c, stat) {
+				return
+			}
+
+			// Don't cache large files in memory
 			if stat.Size() > maxFileSizeToCache {
-				// Still set client caching headers even if we don't cache it server-side
-				setClientCacheHeadersForFile(c, stat.ModTime(), generateETagWithData(filePath, stat.ModTime(), stat.Size()))
+				// Set optimal cache headers for large files
+				setOptimalCacheHeaders(c, stat, DefaultFileServingConfig)
 				c.FileFromFS(filePath, boxRoot)
 				return
 			}
 
-			// Read the file content
-			content := make([]byte, stat.Size())
-			_, readErr := file.Read(content)
+			// Read the file content with limit protection
+			content, readErr := readFileWithLimit(file, maxFileSizeToCache)
 			if readErr != nil {
 				logrus.Printf("[101] Error reading file [%v]: %v", filePath, readErr)
 				c.FileFromFS(filePath, boxRoot)
