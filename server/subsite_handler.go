@@ -10,12 +10,39 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
+)
+
+// IndexCacheEntry holds cached index.html content with TTL
+type IndexCacheEntry struct {
+	Content   []byte
+	ETag      string
+	ModTime   time.Time
+	ExpiresAt time.Time
+}
+
+// NegativeCacheEntry holds 404 cache information
+type NegativeCacheEntry struct {
+	ExpiresAt time.Time
+}
+
+// Cache management
+var (
+	indexCache    sync.Map // map[string]*IndexCacheEntry (keyed by host)
+	negativeCache sync.Map // map[string]*NegativeCacheEntry (keyed by host:path)
+)
+
+// Cache durations
+const (
+	IndexCacheTTL    = 5 * time.Minute  // 5 minutes for index.html
+	NegativeCacheTTL = 2 * time.Minute  // 2 minutes for 404s
 )
 
 func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.AssetFolderCache) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
+		host := c.Request.Host
 		var filePath string
 
 		if site.SiteType == "hugo" {
@@ -24,64 +51,180 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			filePath = path
 		}
 
-		// Ensure cloud-to-disk sync by calling GetFileByName (preserve existing business logic)
-		file, err := assetCache.GetFileByName(filePath)
-		if err != nil {
-			// Try index.html for directory paths
-			if strings.HasSuffix(path, "/") || path == "" {
-				filePath = filepath.Join(filePath, "index.html")
-				file, err = assetCache.GetFileByName(filePath)
-			}
-			if err != nil {
-				// Final fallback to index.html
-				serveIndexFallback(c, assetCache)
-				return
-			}
-		}
-		
-		// Get file info for ETag generation (don't read content)
-		fileInfo, err := file.Stat()
-		file.Close() // Close immediately - we don't need to read it
-		if err != nil {
-			c.Status(http.StatusInternalServerError)
+		// Check negative cache first to avoid redundant cloud requests
+		negativeKey := host + ":" + filePath
+		if isNegativelyCached(negativeKey) {
+			c.Status(http.StatusNotFound)
 			return
 		}
 
-		if fileInfo.IsDir() {
-			// Handle directory requests
+		// Handle directory paths by appending index.html
+		if strings.HasSuffix(path, "/") || path == "" {
 			filePath = filepath.Join(filePath, "index.html")
-			file, err = assetCache.GetFileByName(filePath)
-			if err != nil {
-				serveIndexFallback(c, assetCache)
-				return
-			}
-			fileInfo, err = file.Stat()
-			file.Close()
-			if err != nil {
-				c.Status(http.StatusInternalServerError)
-				return
-			}
 		}
 
-		// Serve file with zero-copy and client-side caching
-		fullPath := filepath.Join(assetCache.LocalSyncPath, filePath)
-		serveStaticFile(c, fullPath, fileInfo)
+		// Check if this is an index.html request
+		if isIndexFile(filePath) {
+			serveIndexWithMemoryCache(c, host, filePath, assetCache)
+			return
+		}
+
+		// Regular static asset serving with smart caching
+		serveStaticAsset(c, filePath, assetCache, negativeKey)
 	}
 }
 
-// serveStaticFile serves a static file with zero-copy and optimal client-side caching
-func serveStaticFile(c *gin.Context, fullPath string, fileInfo os.FileInfo) {
-	// Generate ETag from file metadata (no content reading required)
+// isNegativelyCached checks if a file is in the negative cache
+func isNegativelyCached(key string) bool {
+	if entry, exists := negativeCache.Load(key); exists {
+		negEntry := entry.(*NegativeCacheEntry)
+		if time.Now().Before(negEntry.ExpiresAt) {
+			return true
+		}
+		// Expired entry, remove it
+		negativeCache.Delete(key)
+	}
+	return false
+}
+
+// addToNegativeCache adds a 404 response to the negative cache
+func addToNegativeCache(key string) {
+	entry := &NegativeCacheEntry{
+		ExpiresAt: time.Now().Add(NegativeCacheTTL),
+	}
+	negativeCache.Store(key, entry)
+}
+
+// isIndexFile checks if the file path is for index.html
+func isIndexFile(filePath string) bool {
+	return strings.HasSuffix(filePath, "index.html") || 
+		   strings.HasSuffix(filePath, "/index.html") ||
+		   filePath == "index.html"
+}
+
+// serveIndexWithMemoryCache serves index.html from memory cache with 5-minute TTL
+func serveIndexWithMemoryCache(c *gin.Context, host, filePath string, assetCache *assetcachepojo.AssetFolderCache) {
+	// Check memory cache first
+	if entry, exists := indexCache.Load(host); exists {
+		cacheEntry := entry.(*IndexCacheEntry)
+		if time.Now().Before(cacheEntry.ExpiresAt) {
+			// Serve from memory cache
+			serveIndexFromCache(c, cacheEntry)
+			return
+		}
+		// Expired entry, remove it
+		indexCache.Delete(host)
+	}
+
+	// Cache miss or expired, fetch from cloud/disk
+	file, err := assetCache.GetFileByName(filePath)
+	if err != nil {
+		negativeKey := host + ":" + filePath
+		addToNegativeCache(negativeKey)
+		c.Status(http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	// Read index.html content into memory
+	content, err := os.ReadFile(filepath.Join(assetCache.LocalSyncPath, filePath))
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	// Create cache entry
+	etag := generateETagFromStat(fileInfo)
+	cacheEntry := &IndexCacheEntry{
+		Content:   content,
+		ETag:      etag,
+		ModTime:   fileInfo.ModTime(),
+		ExpiresAt: time.Now().Add(IndexCacheTTL),
+	}
+
+	// Store in cache
+	indexCache.Store(host, cacheEntry)
+
+	// Serve from cache
+	serveIndexFromCache(c, cacheEntry)
+}
+
+// serveIndexFromCache serves index.html from memory cache
+func serveIndexFromCache(c *gin.Context, entry *IndexCacheEntry) {
+	// Check client cache with ETag
+	if clientETag := c.Request.Header.Get("If-None-Match"); clientETag == entry.ETag {
+		c.Status(http.StatusNotModified)
+		return
+	}
+
+	// Check client cache with Last-Modified
+	if modSince := c.Request.Header.Get("If-Modified-Since"); modSince != "" {
+		if t, err := time.Parse(http.TimeFormat, modSince); err == nil {
+			if !entry.ModTime.After(t) {
+				c.Status(http.StatusNotModified)
+				return
+			}
+		}
+	}
+
+	// Set cache headers for index.html (5 minutes)
+	c.Header("ETag", entry.ETag)
+	c.Header("Cache-Control", "public, max-age=300") // 5 minutes
+	c.Header("Last-Modified", entry.ModTime.Format(http.TimeFormat))
+	c.Header("Content-Type", "text/html; charset=utf-8")
+
+	// Serve from memory
+	c.Data(http.StatusOK, "text/html; charset=utf-8", entry.Content)
+}
+
+// serveStaticAsset serves regular static assets with zero-copy
+func serveStaticAsset(c *gin.Context, filePath string, assetCache *assetcachepojo.AssetFolderCache, negativeKey string) {
+	// Try to get file (cloud sync)
+	file, err := assetCache.GetFileByName(filePath)
+	if err != nil {
+		// Add to negative cache and return 404
+		addToNegativeCache(negativeKey)
+		c.Status(http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	if fileInfo.IsDir() {
+		// Directory request, try index.html
+		indexPath := filepath.Join(filePath, "index.html")
+		serveIndexWithMemoryCache(c, c.Request.Host, indexPath, assetCache)
+		return
+	}
+
+	// Serve static file with zero-copy
+	fullPath := filepath.Join(assetCache.LocalSyncPath, filePath)
+	serveStaticFileOptimal(c, fullPath, fileInfo)
+}
+
+// serveStaticFileOptimal serves static files with zero-copy and long cache
+func serveStaticFileOptimal(c *gin.Context, fullPath string, fileInfo os.FileInfo) {
 	etag := generateETagFromStat(fileInfo)
 	lastModified := fileInfo.ModTime()
 
-	// Check client cache - ETag based conditional request
+	// Check client cache - ETag
 	if clientETag := c.Request.Header.Get("If-None-Match"); clientETag == etag {
 		c.Status(http.StatusNotModified)
 		return
 	}
 
-	// Check client cache - Last-Modified based conditional request
+	// Check client cache - Last-Modified
 	if modSince := c.Request.Header.Get("If-Modified-Since"); modSince != "" {
 		if t, err := time.Parse(http.TimeFormat, modSince); err == nil {
 			if !lastModified.After(t) {
@@ -91,44 +234,21 @@ func serveStaticFile(c *gin.Context, fullPath string, fileInfo os.FileInfo) {
 		}
 	}
 
-	// Set optimal cache headers for static assets
+	// Set long cache headers for static assets
 	c.Header("ETag", etag)
-	c.Header("Cache-Control", "public, max-age=31536000") // 1 year for static assets
+	c.Header("Cache-Control", "public, max-age=31536000") // 1 year
 	c.Header("Last-Modified", lastModified.Format(http.TimeFormat))
 	
-	// Set content type without reading file
+	// Set content type
 	if contentType := mime.TypeByExtension(filepath.Ext(fullPath)); contentType != "" {
 		c.Header("Content-Type", contentType)
 	}
 
-	// Zero-copy file serving using sendfile()
+	// Zero-copy serving
 	c.File(fullPath)
 }
 
-// generateETagFromStat creates an ETag from file metadata without reading content
+// generateETagFromStat creates an ETag from file metadata
 func generateETagFromStat(info os.FileInfo) string {
 	return fmt.Sprintf(`"%x-%x"`, info.ModTime().Unix(), info.Size())
-}
-
-// serveIndexFallback handles fallback to index.html
-func serveIndexFallback(c *gin.Context, assetCache *assetcachepojo.AssetFolderCache) {
-	indexPath := "index.html"
-	
-	// Ensure index.html is synced from cloud
-	file, err := assetCache.GetFileByName(indexPath)
-	if err != nil {
-		c.Status(http.StatusNotFound)
-		return
-	}
-	
-	fileInfo, err := file.Stat()
-	file.Close()
-	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		return
-	}
-
-	// Serve index.html with zero-copy
-	fullPath := filepath.Join(assetCache.LocalSyncPath, indexPath)
-	serveStaticFile(c, fullPath, fileInfo)
 }
