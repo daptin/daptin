@@ -5,48 +5,13 @@ import (
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/gin-gonic/gin"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"time"
 )
-
-// contentTypes maps file extensions to MIME types for zero-allocation content-type lookup
-var contentTypes = map[string]string{
-	".js":    "application/javascript",
-	".css":   "text/css",
-	".html":  "text/html; charset=utf-8",
-	".htm":   "text/html; charset=utf-8",
-	".png":   "image/png",
-	".jpg":   "image/jpeg",
-	".jpeg":  "image/jpeg",
-	".gif":   "image/gif",
-	".svg":   "image/svg+xml",
-	".ico":   "image/x-icon",
-	".json":  "application/json",
-	".xml":   "application/xml",
-	".txt":   "text/plain",
-	".pdf":   "application/pdf",
-	".woff":  "font/woff",
-	".woff2": "font/woff2",
-	".ttf":   "font/ttf",
-	".otf":   "font/otf",
-}
-
-// getContentTypeByExtension returns the MIME type for a file extension
-func getContentTypeByExtension(filePath string) string {
-	ext := strings.ToLower(filepath.Ext(filePath))
-	if contentType, ok := contentTypes[ext]; ok {
-		return contentType
-	}
-	return "application/octet-stream"
-}
-
-// generateETag creates a simple ETag from file info for client caching
-func generateETag(fileInfo os.FileInfo) string {
-	return fmt.Sprintf(`"%x-%x"`, fileInfo.Size(), fileInfo.ModTime().Unix())
-}
 
 func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.AssetFolderCache) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -59,81 +24,111 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			filePath = path
 		}
 
-		// Handle directory paths by appending index.html
-		if strings.HasSuffix(path, "/") || path == "" {
-			filePath = filepath.Join(filePath, "index.html")
-		}
-
-		// Use GetFileByName to handle cloud fetching if needed
+		// Ensure cloud-to-disk sync by calling GetFileByName (preserve existing business logic)
 		file, err := assetCache.GetFileByName(filePath)
 		if err != nil {
-			// Try index.html for files that don't exist
-			if !strings.HasSuffix(filePath, "index.html") {
-				indexPath := filepath.Join(filepath.Dir(filePath), "index.html")
-				file, err = assetCache.GetFileByName(indexPath)
-				if err != nil {
-					c.Status(http.StatusNotFound)
-					return
-				}
-				filePath = indexPath
-			} else {
-				c.Status(http.StatusNotFound)
+			// Try index.html for directory paths
+			if strings.HasSuffix(path, "/") || path == "" {
+				filePath = filepath.Join(filePath, "index.html")
+				file, err = assetCache.GetFileByName(filePath)
+			}
+			if err != nil {
+				// Final fallback to index.html
+				serveIndexFallback(c, assetCache)
 				return
 			}
 		}
-
-		// Get file info from the downloaded/cached file
+		
+		// Get file info for ETag generation (don't read content)
 		fileInfo, err := file.Stat()
+		file.Close() // Close immediately - we don't need to read it
 		if err != nil {
-			file.Close()
 			c.Status(http.StatusInternalServerError)
 			return
 		}
 
-		// Handle directory case
 		if fileInfo.IsDir() {
-			file.Close()
-			indexPath := filepath.Join(filePath, "index.html")
-			file, err = assetCache.GetFileByName(indexPath)
+			// Handle directory requests
+			filePath = filepath.Join(filePath, "index.html")
+			file, err = assetCache.GetFileByName(filePath)
 			if err != nil {
-				c.Status(http.StatusNotFound)
+				serveIndexFallback(c, assetCache)
 				return
 			}
 			fileInfo, err = file.Stat()
+			file.Close()
 			if err != nil {
-				file.Close()
 				c.Status(http.StatusInternalServerError)
 				return
 			}
-			filePath = indexPath
 		}
 
-		// Close the file handle - we only needed it for cloud fetching and stat
-		file.Close()
-		
-		// Build local file path for zero-copy serving
+		// Serve file with zero-copy and client-side caching
 		fullPath := filepath.Join(assetCache.LocalSyncPath, filePath)
-
-		// Generate ETag from file info for client caching
-		etag := generateETag(fileInfo)
-		
-		// Check if client has current version (304 optimization - zero CPU/network)
-		if c.GetHeader("If-None-Match") == etag {
-			c.Status(http.StatusNotModified)
-			return
-		}
-		
-		// Set content type based on file extension
-		contentType := getContentTypeByExtension(filePath)
-		
-		// Set caching headers for aggressive client caching
-		c.Header("Content-Type", contentType)
-		c.Header("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
-		c.Header("Cache-Control", "public, max-age=3600") // 1 hour cache
-		c.Header("ETag", etag)
-		c.Header("Last-Modified", fileInfo.ModTime().UTC().Format(http.TimeFormat))
-		
-		// Zero-copy serve using sendfile() - no memory allocation
-		c.File(fullPath)
+		serveStaticFile(c, fullPath, fileInfo)
 	}
+}
+
+// serveStaticFile serves a static file with zero-copy and optimal client-side caching
+func serveStaticFile(c *gin.Context, fullPath string, fileInfo os.FileInfo) {
+	// Generate ETag from file metadata (no content reading required)
+	etag := generateETagFromStat(fileInfo)
+	lastModified := fileInfo.ModTime()
+
+	// Check client cache - ETag based conditional request
+	if clientETag := c.Request.Header.Get("If-None-Match"); clientETag == etag {
+		c.Status(http.StatusNotModified)
+		return
+	}
+
+	// Check client cache - Last-Modified based conditional request
+	if modSince := c.Request.Header.Get("If-Modified-Since"); modSince != "" {
+		if t, err := time.Parse(http.TimeFormat, modSince); err == nil {
+			if !lastModified.After(t) {
+				c.Status(http.StatusNotModified)
+				return
+			}
+		}
+	}
+
+	// Set optimal cache headers for static assets
+	c.Header("ETag", etag)
+	c.Header("Cache-Control", "public, max-age=31536000") // 1 year for static assets
+	c.Header("Last-Modified", lastModified.Format(http.TimeFormat))
+	
+	// Set content type without reading file
+	if contentType := mime.TypeByExtension(filepath.Ext(fullPath)); contentType != "" {
+		c.Header("Content-Type", contentType)
+	}
+
+	// Zero-copy file serving using sendfile()
+	c.File(fullPath)
+}
+
+// generateETagFromStat creates an ETag from file metadata without reading content
+func generateETagFromStat(info os.FileInfo) string {
+	return fmt.Sprintf(`"%x-%x"`, info.ModTime().Unix(), info.Size())
+}
+
+// serveIndexFallback handles fallback to index.html
+func serveIndexFallback(c *gin.Context, assetCache *assetcachepojo.AssetFolderCache) {
+	indexPath := "index.html"
+	
+	// Ensure index.html is synced from cloud
+	file, err := assetCache.GetFileByName(indexPath)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	
+	fileInfo, err := file.Stat()
+	file.Close()
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	// Serve index.html with zero-copy
+	fullPath := filepath.Join(assetCache.LocalSyncPath, indexPath)
+	serveStaticFile(c, fullPath, fileInfo)
 }
