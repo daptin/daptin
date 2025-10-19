@@ -53,6 +53,7 @@ func (dbResource *DbResource) SyncStorageToPath(cloudStore rootpojo.CloudStore, 
 	}
 	defaultConfig := fs.GetConfig(nil)
 	defaultConfig.LogLevel = fs.LogLevelNotice
+	defaultConfig.Inplace = true
 
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
