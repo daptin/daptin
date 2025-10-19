@@ -64,29 +64,55 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			filePath = filepath.Join(filePath, "index.html")
 		}
 
-		// Build full file path
-		fullPath := filepath.Join(assetCache.LocalSyncPath, filePath)
-		
-		// Get file info (no content read - zero allocation)
-		fileInfo, err := os.Stat(fullPath)
+		// Use GetFileByName to handle cloud fetching if needed
+		file, err := assetCache.GetFileByName(filePath)
 		if err != nil {
 			// Try index.html for files that don't exist
 			if !strings.HasSuffix(filePath, "index.html") {
 				indexPath := filepath.Join(filepath.Dir(filePath), "index.html")
-				fullIndexPath := filepath.Join(assetCache.LocalSyncPath, indexPath)
-				if indexInfo, indexErr := os.Stat(fullIndexPath); indexErr == nil {
-					fullPath = fullIndexPath
-					fileInfo = indexInfo
-					filePath = indexPath
-				} else {
+				file, err = assetCache.GetFileByName(indexPath)
+				if err != nil {
 					c.Status(http.StatusNotFound)
 					return
 				}
+				filePath = indexPath
 			} else {
 				c.Status(http.StatusNotFound)
 				return
 			}
 		}
+
+		// Get file info from the downloaded/cached file
+		fileInfo, err := file.Stat()
+		if err != nil {
+			file.Close()
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		// Handle directory case
+		if fileInfo.IsDir() {
+			file.Close()
+			indexPath := filepath.Join(filePath, "index.html")
+			file, err = assetCache.GetFileByName(indexPath)
+			if err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
+			fileInfo, err = file.Stat()
+			if err != nil {
+				file.Close()
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+			filePath = indexPath
+		}
+
+		// Close the file handle - we only needed it for cloud fetching and stat
+		file.Close()
+		
+		// Build local file path for zero-copy serving
+		fullPath := filepath.Join(assetCache.LocalSyncPath, filePath)
 
 		// Generate ETag from file info for client caching
 		etag := generateETag(fileInfo)
