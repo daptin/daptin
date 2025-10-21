@@ -461,7 +461,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			log.Debugf("Update query [424]: %v", query)
 			_, err = updateTransaction.Exec(query, vals...)
 			if err != nil {
-				log.Errorf("Failed to execute update query [%s] [%v] 411: %v", query, vals, err)
+				log.Errorf("[464] Failed to execute update query [%s] [%v] 411: %v", query, vals, err)
 				return nil, err
 			}
 
@@ -499,7 +499,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				res, err := updateTransaction.Exec(query, vals...)
 				rowsAffected, err := res.RowsAffected()
 				if err != nil || rowsAffected == 0 {
-					log.Errorf("Failed to execute update query: %v", err)
+					log.Errorf("[502] Failed to execute update query: %v", err)
 
 					nuuid, _ := uuid.NewV7()
 
@@ -529,6 +529,20 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			if !ok {
 				log.Errorf("No creator for audit type: %v", auditModel.GetTableName())
 			} else {
+
+				auditAttrs := auditModel.GetAttributes()
+				for _, col := range dbResource.tableInfo.Columns {
+					if col.IsForeignKey {
+						value := auditAttrs[col.ColumnName]
+						asDir, isDir := value.(daptinid.DaptinReferenceId)
+						if isDir {
+							value = asDir.String()
+							auditModel.Set(col.ColumnName, value)
+						}
+					}
+
+				}
+				auditModel.Set("source_reference_id", updateObjectReferenceId.String())
 				pr := &http.Request{
 					URL:    req.PlainRequest.URL,
 					Method: "POST",
@@ -539,7 +553,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				}
 				_, err := creator.CreateWithTransaction(auditModel, auditCreateRequest, updateTransaction)
 				if err != nil {
-					log.Errorf("Failed to create audit entry: %v\n%v", err, auditModel)
+					log.Errorf("[542] Failed to create audit entry: %v\n%v", err, auditModel)
 					return nil, err
 				} else {
 					log.Printf("[%v][%v] Created audit record", auditModel.GetTableName(), data.GetID())

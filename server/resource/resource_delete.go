@@ -63,7 +63,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				}
 				_, err := creator.CreateWithTransaction(auditModel, createRequest, transaction)
 				if err != nil {
-					log.Errorf("Failed to create audit entry: %v", err)
+					log.Errorf("[66] Failed to create audit entry: %v", err)
 				} else {
 					log.Printf("[%v][%v] Created audit record", auditModel.GetTableName(), apiModel.GetID())
 					//log.Printf("ReferenceId for change: %v", resp.Result())

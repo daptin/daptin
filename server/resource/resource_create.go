@@ -399,6 +399,15 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 		}
 
+		_, isInterfaceArray := columnValue.([]interface{})
+		if isInterfaceArray {
+			columnValue, err = json.MarshalToString(columnValue)
+		}
+		_, isMapInterfaceArray := columnValue.([]map[string]interface{})
+		if isMapInterfaceArray {
+			columnValue, err = json.MarshalToString(columnValue)
+		}
+
 		dataToInsert[col.ColumnName] = columnValue
 		colsList = append(colsList, col.ColumnName)
 		valsList = append(valsList, columnValue)

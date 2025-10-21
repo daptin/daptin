@@ -85,7 +85,11 @@ func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table
 			}
 			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
 			existableTable.DefaultRelations = tableBeingModified.DefaultRelations
+			existableTable.StateMachines = tableBeingModified.StateMachines
+			existableTable.IsStateTrackingEnabled = tableBeingModified.IsStateTrackingEnabled
+			existableTable.TranslationsEnabled = tableBeingModified.TranslationsEnabled
 			existableTable.DefaultOrder = tableBeingModified.DefaultOrder
+			existableTable.IsAuditEnabled = tableBeingModified.IsAuditEnabled
 			existableTable.Conformations = tableBeingModified.Conformations
 			existableTable.Validations = tableBeingModified.Validations
 			existableTable.CompositeKeys = tableBeingModified.CompositeKeys

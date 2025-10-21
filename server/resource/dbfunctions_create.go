@@ -452,6 +452,7 @@ func CheckAuditTables(config *CmsConfig) {
 			if c.IsForeignKey {
 				c.IsForeignKey = false
 				c.ForeignKeyData = api2go.ForeignKeyData{}
+				c.DataType = "varchar"
 			}
 
 			c.IsUnique = false
@@ -467,7 +468,7 @@ func CheckAuditTables(config *CmsConfig) {
 			Name:       "source_reference_id",
 			ColumnName: "source_reference_id",
 			ColumnType: "label",
-			DataType:   "varchar(30)",
+			DataType:   "varchar(64)",
 			IsNullable: false,
 		})
 
@@ -491,8 +492,8 @@ func CheckAuditTables(config *CmsConfig) {
 		config.Tables = append(config.Tables, newTable)
 	}
 
-	log.Printf("%d Audit tables are new", len(createAuditTableFor))
-	log.Printf("%d Audit tables are updated", len(updateAuditTableFor))
+	log.Infof("%d Audit tables are new", len(createAuditTableFor))
+	log.Infof("%d Audit tables are updated", len(updateAuditTableFor))
 
 	for _, tableName := range updateAuditTableFor {
 
