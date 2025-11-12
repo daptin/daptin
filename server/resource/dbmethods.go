@@ -3480,7 +3480,21 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 					}
 
 					for _, incl := range localSubjectInclude {
-						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), incl["reference_id"].(string))
+						includedSubjectReferenceId := incl["reference_id"]
+						includedSubjectReferenceIdAsString, okIsStr := includedSubjectReferenceId.(string)
+						if okIsStr {
+							asDir, isDir := includedSubjectReferenceId.(daptinid.DaptinReferenceId)
+							if isDir {
+								includedSubjectReferenceId = asDir.String()
+							} else {
+								asDir2 := daptinid.InterfaceToDIR(includedSubjectReferenceId)
+								if asDir2 != daptinid.NullReferenceId {
+									includedSubjectReferenceIdAsString = asDir2.String()
+								}
+							}
+						}
+
+						row[relation.GetSubjectName()] = append(row[relation.GetSubjectName()].([]string), includedSubjectReferenceIdAsString)
 					}
 
 					localInclude = append(localInclude, localSubjectInclude...)
