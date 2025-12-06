@@ -755,7 +755,7 @@ var SystemActions = []actionresponse.Action{
 
 	{
 		Name:             "delete_path",
-		Label:            "Delete path on a cloud store",
+		Label:            "Delete path on a site",
 		OnType:           "cloud_store",
 		InstanceOptional: false,
 		InFields: []api2go.ColumnInfo{
@@ -769,7 +769,7 @@ var SystemActions = []actionresponse.Action{
 		},
 		OutFields: []actionresponse.Outcome{
 			{
-				Type:   "cloudstore.file.delete",
+				Type:   "site.file.delete",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"credential_name": "$.credential_name",

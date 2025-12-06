@@ -23,7 +23,7 @@ type cloudStoreFileDeleteActionPerformer struct {
 }
 
 func (d *cloudStoreFileDeleteActionPerformer) Name() string {
-	return "cloudstore.file.delete"
+	return "site.file.delete"
 }
 
 func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {

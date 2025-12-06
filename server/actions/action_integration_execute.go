@@ -739,10 +739,26 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 		}
 	}
 
-	err = openapi3.NewLoader().ResolveRefsIn(router, nil)
+	// Check if router was successfully parsed
+	if router == nil {
+		log.Errorf("Failed to parse OpenAPI specification for integration [%s]: specification could not be loaded (language=%s, format=%s)",
+			integration.Name, integration.SpecificationLanguage, integration.SpecificationFormat)
+		return nil, fmt.Errorf("OpenAPI specification is invalid or could not be parsed for integration [%s]", integration.Name)
+	}
+
+	// Resolve references with panic recovery for incomplete/invalid specs
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("Failed to resolve OpenAPI references for integration [%s]: %v", integration.Name, r)
+				err = fmt.Errorf("OpenAPI specification has invalid or unresolved references: %v", r)
+			}
+		}()
+		err = openapi3.NewLoader().ResolveRefsIn(router, nil)
+	}()
 
 	if err != nil {
-		log.Errorf("Failed to load swagger spec: %v", err)
+		log.Errorf("Failed to load swagger spec for integration [%s]: %v", integration.Name, err)
 		return nil, err
 	}
 	if router.Servers == nil || len(router.Servers) == 0 {
