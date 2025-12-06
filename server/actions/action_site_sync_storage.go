@@ -94,7 +94,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 			log.Errorf("Source[%s] or destination[%s] is null", cloudStore.RootPath+path, tempDirectoryPath)
 			return nil
 		}
-		log.Infof("Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
+		log.Infof("[97] Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())
 
 		defaultConfig := fs.GetConfig(ctx)
 		defaultConfig.LogLevel = fs.LogLevelDebug

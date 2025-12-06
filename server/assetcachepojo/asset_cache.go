@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -24,7 +25,10 @@ type AssetFolderCache struct {
 }
 
 func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
-	localFilePath := afc.LocalSyncPath + string(os.PathSeparator) + fileName
+	localFilePath := path.Join(afc.LocalSyncPath, fileName)
+	if afc.CloudStore.StoreType == "local" {
+		localFilePath = path.Join(afc.CloudStore.RootPath, afc.Keyname, fileName)
+	}
 
 	// Try to open the file from local cache first
 	file, err := os.Open(localFilePath)

@@ -61,7 +61,7 @@ func (dbResource *DbResource) SyncStorageToPath(cloudStore rootpojo.CloudStore, 
 			return nil
 		}
 		ctx := context.Background()
-		log.Infof("Starting to copy drive for path base from [%v] to [%v]", fsrc.String(), fdst.String())
+		log.Infof("[64] Starting to copy drive for path base from [%v] to [%v]", fsrc.String(), fdst.String())
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")
 			return nil

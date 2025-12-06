@@ -236,7 +236,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		filePath := assetCache.LocalSyncPath + string(os.PathSeparator) + fileNameToServe
 		assetFileByName, err := assetCache.GetFileByName(fileNameToServe)
 		if err != nil {
-			log.Errorf("Failed to get file [%s] from asset cache: %v", filePath, err)
+			log.Errorf("[239] Failed to get file [%s] from asset cache: %v", filePath, err)
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}

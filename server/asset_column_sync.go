@@ -68,7 +68,7 @@ func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterf
 
 				colCache[columnName] = assetCacheFolder
 
-				log.Infof("Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
+				log.Infof("[71] Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
 				if cloudStore.StoreProvider != "local" && cloudStore.StoreType == "cached" {
 					err = TaskScheduler.AddTask(task.Task{
 						EntityName: "world",
