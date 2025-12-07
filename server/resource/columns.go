@@ -1590,11 +1590,6 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType:        "file.*",
 				DataType:          "longblob",
 				ColumnDescription: "The actual binary content of the document, stored as a reference to cloud storage. Supports files of any type through the generic file.* handler.",
-				ForeignKeyData: api2go.ForeignKeyData{
-					DataSource: "cloud_store",
-					Namespace:  "localstore",
-					KeyName:    "documents",
-				},
 			},
 		},
 	},
@@ -1621,11 +1616,6 @@ var StandardTables = []table_info.TableInfo{
 				IsNullable:        false,
 				IsForeignKey:      true,
 				ColumnDescription: "The iCalendar (RFC 5545) format content of the calendar entry, stored as a binary blob. This contains all event details including dates, recurrence rules, and attendees.",
-				ForeignKeyData: api2go.ForeignKeyData{
-					DataSource: "cloud_store",
-					Namespace:  "localstore",
-					KeyName:    "caldav",
-				},
 			},
 		},
 	},

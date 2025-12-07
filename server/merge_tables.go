@@ -57,7 +57,9 @@ func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table
 						existableTable.Columns[colIndex].Options = newColumnDef.Options
 						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
 						existableTable.Columns[colIndex].ColumnDescription = newColumnDef.ColumnDescription
-						existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
+						if newColumnDef.ForeignKeyData.KeyName != "" {
+							existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
+						}
 						existableTable.Columns[colIndex].IsForeignKey = newColumnDef.IsForeignKey
 						existableTable.Columns[colIndex].IsPrimaryKey = newColumnDef.IsPrimaryKey
 
