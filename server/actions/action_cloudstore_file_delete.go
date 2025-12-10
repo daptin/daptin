@@ -16,6 +16,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"path"
 	"strings"
 )
 
@@ -68,6 +69,8 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 		}
 		rootPath = rootPath + atPath
 	}
+	rootPath = path.Clean(rootPath)
+	targetFileName := path.Base(rootPath)
 	args := []string{
 		rootPath,
 	}
@@ -97,6 +100,9 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 	}
 	ctx := context.Background()
 	newFilter, _ := filter.NewFilter(nil)
+	if ok {
+		newFilter.AddFile(targetFileName)
+	}
 	ctx = filter.ReplaceConfig(ctx, newFilter)
 	defaultConfig := fs.ConfigInfo{}
 	defaultConfig.LogLevel = fs.LogLevelNotice
@@ -109,6 +115,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 
 		err = operations.Delete(ctx, fsrc)
 		if err != nil {
+			log.Warnf("Failed to delete file at path [%v], triggering purge: %v", fsrc, err)
 			err = operations.Purge(ctx, fsrc, "")
 		}
 

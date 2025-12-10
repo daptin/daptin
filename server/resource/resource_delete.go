@@ -84,7 +84,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				continue
 			}
 
-			deleteFileActionPerformer := ActionHandlerMap["cloudstore.file.delete"]
+			deleteFileActionPerformer := ActionHandlerMap["site.file.delete"]
 
 			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
 			if !ok {
