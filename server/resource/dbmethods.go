@@ -8,7 +8,9 @@ import (
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
+	"io"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -3636,10 +3638,13 @@ func (dbResource *DbResource) GetFileFromLocalCloudStore(tableName string, colum
 
 		filePath := fileItem["src"].(string)
 		filePath = strings.ReplaceAll(filePath, "/", string(os.PathSeparator))
+		filePath = path.Clean(filePath)
 		if filePath[0] != os.PathSeparator {
 			filePath = string(os.PathSeparator) + filePath
 		}
-		bytes, err := os.ReadFile(assetFolder.LocalSyncPath + filePath)
+		file, err := assetFolder.GetFileByName(filePath)
+		bytes, err := io.ReadAll(file)
+		file.Close()
 		CheckErr(err, "Failed to read file on storage [%v]: %v", assetFolder.LocalSyncPath, filePath)
 		if err != nil {
 			continue

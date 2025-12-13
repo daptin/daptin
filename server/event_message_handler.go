@@ -25,6 +25,17 @@ func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message,
 		resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
 		referenceId := uuid.MustParse(eventDataMap["reference_id"].(string))
 
+		colData, ok := eventDataMap[columnInfo.ColumnName]
+		if ok {
+			colDataMap := colData.([]interface{})
+			for _, file := range colDataMap {
+				fileMap := file.(map[string]interface{})
+				if fileMap["type"] != "x-crdt/yjs" {
+					return nil
+				}
+			}
+		}
+
 		transaction1, err := cruds[typename].Connection().Beginx()
 		defer transaction1.Rollback()
 		if err != nil {
