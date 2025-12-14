@@ -26,12 +26,14 @@ func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message,
 		referenceId := uuid.MustParse(eventDataMap["reference_id"].(string))
 
 		colData, ok := eventDataMap[columnInfo.ColumnName]
-		if ok {
-			colDataMap := colData.([]interface{})
-			for _, file := range colDataMap {
-				fileMap := file.(map[string]interface{})
-				if fileMap["type"] != "x-crdt/yjs" {
-					return nil
+		if ok && colData != nil {
+			colDataMap, ok := colData.([]interface{})
+			if ok {
+				for _, file := range colDataMap {
+					fileMap := file.(map[string]interface{})
+					if fileMap["type"] != "x-crdt/yjs" {
+						return nil
+					}
 				}
 			}
 		}
