@@ -23,7 +23,13 @@ func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message,
 		eventDataMap := make(map[string]interface{})
 		err := json.Unmarshal(eventMessage.EventData, &eventDataMap)
 		resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
-		referenceId := uuid.MustParse(eventDataMap["reference_id"].(string))
+		stringReferenceId := eventDataMap["reference_id"]
+		if stringReferenceId == nil {
+			logrus.Warn("no reference id in event data map %v", eventDataMap)
+			return nil
+		}
+
+		referenceId := uuid.MustParse(stringReferenceId.(string))
 
 		colData, ok := eventDataMap[columnInfo.ColumnName]
 		if ok && colData != nil {
