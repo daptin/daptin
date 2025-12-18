@@ -58,6 +58,7 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	// Setup credentials if available
 	fileName = strings.Trim(fileName, "/")
+	fileName = path.Clean(fileName)
 	configSetName := afc.CloudStore.Name
 	if strings.Index(afc.CloudStore.RootPath, ":") > -1 {
 		configSetName = strings.Split(afc.CloudStore.RootPath, ":")[0]
@@ -75,9 +76,9 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	// Prepare source and destination paths
 	keyname := afc.Keyname
 	keyname = strings.Trim(keyname, "/")
-	sourcePath := afc.CloudStore.RootPath + string(os.PathSeparator) + keyname
+	sourcePath := path.Clean(afc.CloudStore.RootPath + string(os.PathSeparator) + keyname)
 	destPathFolder := afc.LocalSyncPath + string(os.PathSeparator)
-	destFilePath := destPathFolder + string(os.PathSeparator) + fileName
+	destFilePath := path.Clean(destPathFolder + string(os.PathSeparator) + fileName)
 
 	// Ensure destination directory exists
 	destDir := filepath.Dir(destPathFolder)
@@ -87,7 +88,7 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	}
 
 	// Create a temporary file for download
-	tmpFile := destPathFolder + string(os.PathSeparator) + fileName + ".tmp"
+	tmpFile := path.Clean(destPathFolder + string(os.PathSeparator) + fileName + ".tmp")
 	defer func() {
 		// Clean up temp file if it exists
 		if _, err := os.Stat(tmpFile); err == nil {
