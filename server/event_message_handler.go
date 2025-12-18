@@ -25,7 +25,7 @@ func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message,
 		resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
 		stringReferenceId := eventDataMap["reference_id"]
 		if stringReferenceId == nil {
-			logrus.Warn("no reference id in event data map %v", eventDataMap)
+			logrus.Warnf("no reference id in event data map %v", eventDataMap)
 			return nil
 		}
 
