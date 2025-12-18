@@ -31,7 +31,7 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 	}
 
 	// Try to open the file from local cache first
-	file, err := os.Open(localFilePath)
+	file, err := os.Open(path.Clean(localFilePath))
 	if err == nil {
 		return file, nil
 	}
