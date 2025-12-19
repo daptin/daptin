@@ -103,13 +103,13 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	// Parse remote filesystem
 	fsrc, err := fs.NewFs(ctx, sourcePath)
 	if err != nil {
-		return errors.Wrap(err, "failed to create source filesystem")
+		return errors.Wrapf(err, "failed to create source filesystem [%s]", sourcePath)
 	}
 
 	// Get the file object
 	srcObj, err := fsrc.NewObject(ctx, fileName)
 	if err != nil {
-		return errors.Wrap(err, "failed to create source object")
+		return errors.Wrapf(err, "failed to create source object [%s][%s]", sourcePath, fileName)
 	}
 
 	// Open destination file
@@ -117,7 +117,7 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	os.MkdirAll(tmpFileDir, 0755)
 	dst, err := os.Create(tmpFile)
 	if err != nil {
-		return errors.Wrap(err, "failed to create destination file")
+		return errors.Wrapf(err, "failed to create destination file [%s]", tmpFile)
 	}
 	defer dst.Close()
 
