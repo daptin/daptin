@@ -1550,7 +1550,7 @@ var StandardTables = []table_info.TableInfo{
 				ColumnName:        "document_name",
 				Name:              "document_name",
 				ColumnType:        "label",
-				DataType:          "varchar(100)",
+				DataType:          "varchar(99999)",
 				IsNullable:        false,
 				IsIndexed:         true,
 				ColumnDescription: "The name of the document file, used for identification and display purposes. This field is indexed for quick searching and retrieval.",
