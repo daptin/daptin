@@ -53,6 +53,8 @@ curl -X POST http://localhost:6336/api/mail_server \
 
 ## Creating Mail Account
 
+**Important:** The `password_md5` field is required for SMTP authentication. Set it to the same value as `password` - Daptin will automatically hash it (MD5 then bcrypt).
+
 ```bash
 curl -X POST http://localhost:6336/api/mail_account \
   -H "Authorization: Bearer $TOKEN" \
@@ -62,7 +64,8 @@ curl -X POST http://localhost:6336/api/mail_account \
       "type": "mail_account",
       "attributes": {
         "username": "noreply@example.com",
-        "password": "account-password"
+        "password": "account-password",
+        "password_md5": "account-password"
       },
       "relationships": {
         "mail_server_id": {
@@ -224,12 +227,19 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
 
 ## Sync Mail Servers
 
-Reload configuration:
+Reload mail server configuration after changes.
+
+**Important:** The SMTP daemon is initialized at Daptin startup. If no mail servers existed when Daptin started, the `sync_mail_servers` action will not start the SMTP daemon - you must restart Daptin.
 
 ```bash
 curl -X POST http://localhost:6336/action/mail_server/sync_mail_servers \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+**When to use:**
+- After updating mail server settings (hostname, ports, TLS)
+- After adding/removing mail accounts
+- After certificate changes
 
 ## Email Tables
 
@@ -244,6 +254,8 @@ curl -X POST http://localhost:6336/action/mail_server/sync_mail_servers \
 
 ### Create Mailbox
 
+**Required fields:** `name`, `attributes`, `flags`, `permanent_flags`
+
 ```bash
 curl -X POST http://localhost:6336/api/mail_box \
   -H "Authorization: Bearer $TOKEN" \
@@ -252,7 +264,13 @@ curl -X POST http://localhost:6336/api/mail_box \
     "data": {
       "type": "mail_box",
       "attributes": {
-        "name": "inbox"
+        "name": "INBOX",
+        "subscribed": true,
+        "uidvalidity": 1,
+        "nextuid": 1,
+        "attributes": "\\HasNoChildren",
+        "flags": "\\Seen \\Answered \\Flagged \\Deleted \\Draft",
+        "permanent_flags": "\\Seen \\Answered \\Flagged \\Deleted \\Draft \\*"
       },
       "relationships": {
         "mail_account_id": {
