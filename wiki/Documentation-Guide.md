@@ -1,6 +1,162 @@
 # Daptin Documentation Guide
 
-This guide captures effective techniques for understanding, testing, and documenting Daptin features.
+This guide captures effective techniques for understanding, testing, and documenting Daptin features. It evolves with each feature documented.
+
+## Documentation Map
+
+### Completed (In-Depth)
+| Feature | Wiki Files | Status |
+|---------|-----------|--------|
+| Mail (SMTP/IMAP) | SMTP-Server.md, IMAP-Support.md | ✅ Full lifecycle documented |
+
+### Breadth Coverage (Overview)
+| Feature | Wiki File | Depth |
+|---------|-----------|-------|
+| Authentication | Authentication.md | Setup + usage |
+| Permissions | Permissions.md | Concepts |
+| Cloud Storage | Cloud-Storage.md | Setup |
+| Actions | Actions-Overview.md | Reference |
+| 2FA/OTP | Two-Factor-Auth.md | Setup + usage |
+
+### Needs Documentation
+- GraphQL API
+- State Machines
+- Subsites
+- OAuth Providers
+- Data Import/Export
+- Marketplace
+
+---
+
+## Discoveries Log
+
+*Record observations made while documenting features. These inform future documentation.*
+
+### From Mail Feature Documentation
+
+**Discovery: Tables → Actions → Performers**
+```
+Tables (data storage)
+  └── mail_server, mail_account, mail_box, mail, outbox
+
+Actions (REST endpoints on tables)
+  └── POST /action/{table}/{action_name}
+  └── Defined in columns.go with OnType, InFields, OutFields
+
+Performers (internal executors called by actions)
+  └── mail.send, aws.mail.send, otp.generate, etc.
+  └── NOT directly callable via REST
+  └── Used in action OutFields
+```
+
+**Discovery: Two types of "mail sending"**
+- `TaskSaveMail` - stores email in local mailbox (used by password reset)
+- `mail.send` performer - sends externally via MTA
+
+**Discovery: Spam scoring is SPF + DKIM based**
+- SPF: 0 (valid), 50 (error), 200 (invalid)
+- DKIM: +100 per failed signature
+- Routing: >299 → Spam folder
+
+**Discovery: Custom actions use OutFields**
+```json
+{
+  "OutFields": [
+    {"Type": "mail.send", "Method": "EXECUTE", "Attributes": {...}}
+  ]
+}
+```
+
+---
+
+## Documentation Process
+
+### Phase 1: Discovery
+1. Find all related tables: `SELECT name FROM sqlite_master WHERE name LIKE '%feature%'`
+2. Find related actions: `SELECT action_name, world_id FROM action`
+3. Find related performers: `grep -r "func.*Name().*return" server/actions/`
+4. Trace entry points in code
+
+### Phase 2: Testing
+1. Set up prerequisites (users, config)
+2. Test happy path with real tools
+3. Test error conditions
+4. Verify database state
+5. Check logs for hidden behaviors
+
+### Phase 3: Documentation
+1. Document what works (verified)
+2. Document what doesn't work (bugs/limitations)
+3. Add troubleshooting for errors encountered
+4. Update this guide with new discoveries
+
+### Phase 4: Iteration
+After documenting a feature, ask:
+- What patterns did I see that apply elsewhere?
+- What connections between components did I find?
+- What was harder than expected? (improve guide)
+- What tools/techniques helped? (add to guide)
+
+---
+
+## Creating Custom Actions (Discovered via Mail)
+
+Users can create actions that use internal performers:
+
+```bash
+# 1. Find the world_id for your target table
+curl -s http://localhost:6336/api/world | jq '.data[] | select(.attributes.table_name=="user_account") | .id'
+
+# 2. Create action with OutFields calling a performer
+curl -X POST http://localhost:6336/api/action \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "action",
+      "attributes": {
+        "action_name": "send_welcome_email",
+        "label": "Send Welcome Email",
+        "instance_optional": false,
+        "in_fields": {"Attributes": [{"Name": "email", "ColumnType": "email"}]},
+        "out_fields": [
+          {
+            "Type": "mail.send",
+            "Method": "EXECUTE",
+            "Attributes": {
+              "to": "~email",
+              "subject": "Welcome!",
+              "body": "Welcome to our platform",
+              "from": "noreply@example.com"
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "world_id": {"data": {"type": "world", "id": "WORLD_ID_HERE"}}
+      }
+    }
+  }'
+
+# 3. Call the action
+curl -X POST http://localhost:6336/action/user_account/send_welcome_email \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"attributes": {"email": "user@example.com"}}'
+```
+
+**Known Performers** (discovered so far):
+| Performer | Purpose |
+|-----------|---------|
+| `mail.send` | Send email via SMTP |
+| `aws.mail.send` | Send email via AWS SES |
+| `otp.generate` | Generate TOTP secret |
+| `jwt.token` | Generate JWT token |
+| `self.tls.generate` | Generate self-signed cert |
+| `acme.tls.generate` | Generate Let's Encrypt cert |
+
+*Add more performers as discovered during documentation.*
+
+---
 
 ## Core Patterns to Understand First
 
