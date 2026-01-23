@@ -77,8 +77,10 @@ curl -X POST http://localhost:6336/action/user_account/generate_password_reset_f
   }'
 ```
 
+**Important:** The reset email is stored in the user's **local Daptin mailbox** (not sent externally). The user must retrieve it via IMAP.
+
 **Prerequisites:**
-- SMTP server configured
+- Mail server and mail account configured for the user
 - `password.reset.email.from` config set
 
 ```bash

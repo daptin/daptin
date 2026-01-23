@@ -189,13 +189,12 @@ Daptin's mail functionality (`mail.send` and `aws.mail.send`) are **internal per
 
 ### Built-in Usage
 
-The `mail.send` performer is used internally by:
-- `reset-password` action - sends OTP verification code
-- `reset-password-verify` action - sends new password
+**Password Reset Flow:**
+The `generate_password_reset_flow` action stores the reset email in the user's **local Daptin mailbox** (via `TaskSaveMail`), not sent externally. Users retrieve it via IMAP.
 
 ### Custom Actions
 
-To send emails programmatically, create a custom action with `mail.send` in its OutFields:
+To send emails externally, create a custom action with `mail.send` in its OutFields:
 
 ```json
 {
