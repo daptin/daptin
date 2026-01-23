@@ -388,8 +388,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							resource.CheckErr(err, "Failed to begin transaction [383]")
 							return nil, err
 						}
-
-						defer transaction.Commit()
 						user, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction("user_account",
 							daptinid.InterfaceToDIR(mailAccount["user_account_id"]), nil, transaction)
 						log.Tracef("Completed mailAdapter GetSingleRowByReferenceIdWithTransaction")
@@ -410,7 +408,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						if err != nil {
 							mailBox, err = dbResource.CreateMailAccountBox(
-								mailAccount["reference_id"].(string),
+								daptinid.InterfaceToDIR(mailAccount["reference_id"]).String(),
 								sessionUser,
 								mailboxName, transaction)
 							if err != nil {
@@ -472,7 +470,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"flags":            flags,
 								"size":             mailSize,
 							})
-						_, err = dbResource.Cruds["mail"].Create(&model, *req)
+						// Commit the transaction before Create to avoid SQLite deadlock
+						// (SQLite only allows one write transaction at a time)
+						transaction.Commit()
+						_, err = dbResource.Cruds["mail"].Create(model, *req)
 						resource.CheckErr(err, "Failed to store mail")
 						//err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
 						//resource.CheckErr(err1, "Failed to increment uid for mailbox")

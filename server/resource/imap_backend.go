@@ -74,7 +74,7 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		return &DaptinImapUser{
 			username:               username,
 			mailAccountId:          userMailAccount["id"].(int64),
-			mailAccountReferenceId: userMailAccount["reference_id"].(string),
+			mailAccountReferenceId: daptinid.InterfaceToDIR(userMailAccount["reference_id"]).String(),
 			dbResource:             be.cruds,
 			sessionUser:            sessionUser,
 		}, nil

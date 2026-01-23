@@ -5,6 +5,7 @@ import (
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -60,7 +61,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			dbResource:         diu.dbResource,
 			name:               box["name"].(string),
 			sessionUser:        diu.sessionUser,
-			mailBoxReferenceId: box["reference_id"].(string),
+			mailBoxReferenceId: daptinid.InterfaceToDIR(box["reference_id"]).String(),
 			sequenceToMail:     make(map[uint32]*imap.Message),
 			mailBoxId:          box["id"].(int64),
 			info: imap.MailboxInfo{
@@ -205,7 +206,7 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 		mailAccountId:      diu.mailAccountId,
 		lock:               sync.Mutex{},
 		sequenceToMail:     make(map[uint32]*imap.Message),
-		mailBoxReferenceId: box[0]["reference_id"].(string),
+		mailBoxReferenceId: daptinid.InterfaceToDIR(box[0]["reference_id"]).String(),
 		info: imap.MailboxInfo{
 			Attributes: strings.Split(box[0]["attributes"].(string), ","),
 			Delimiter:  "\\",
@@ -265,7 +266,7 @@ func (diu *DaptinImapUser) CreateMailboxWithTransaction(name string, transaction
 	mailAccount, err := diu.dbResource["mail_box"].GetUserMailAccountRowByEmail(diu.username, transaction)
 
 	_, err = diu.dbResource["mail_box"].CreateMailAccountBox(
-		mailAccount["reference_id"].(string),
+		daptinid.InterfaceToDIR(mailAccount["reference_id"]).String(),
 		diu.sessionUser,
 		name, transaction)
 
