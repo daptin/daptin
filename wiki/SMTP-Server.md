@@ -14,7 +14,7 @@ Daptin includes a full SMTP server for:
 
 ## Known Issue - Inbound Email Storage
 
-⚠️ **Critical Bug:** There is a known issue where inbound emails fail to store due to a type assertion error in the storage layer (`mail_adapter.go:475` passes a pointer but `resource_create.go:1014` expects a value). This causes a panic when receiving emails via SMTP.
+⚠️ **Critical Bug ([#164](https://github.com/daptin/daptin/issues/164)):** Inbound emails fail to store due to a type assertion error in the storage layer (`mail_adapter.go:475` passes a pointer but `resource_create.go:1014` expects a value). This causes a panic when receiving emails via SMTP.
 
 **Workaround:** Create emails via the REST API (see [Manual Email Creation](#manual-email-creation) section below). Outbound SMTP with authentication works correctly.
 
@@ -507,35 +507,48 @@ curl -X POST http://localhost:6336/api/mail \
 
 Daptin includes an IMAP server for email retrieval.
 
+### Known Issue - IMAP Authentication
+
+⚠️ **Bug ([#165](https://github.com/daptin/daptin/issues/165)):** IMAP login fails with a type conversion panic (`interface {} is daptinid.DaptinReferenceId, not string`). The IMAP server starts but authentication crashes the connection.
+
 ### Enable IMAP
 
+**Important:** Config values must be sent as plain text, not JSON-quoted strings.
+
 ```bash
-# Enable IMAP via config API
+# Enable IMAP via config API (use Content-Type: text/plain)
 curl -X POST 'http://localhost:6336/_config/backend/imap.enabled' \
   -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '"true"'
+  -H 'Content-Type: text/plain' \
+  -d 'true'
 
-# Set hostname
+# Set hostname (plain text)
 curl -X POST 'http://localhost:6336/_config/backend/hostname' \
   -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '"mail.example.com"'
+  -H 'Content-Type: text/plain' \
+  -d 'mail.example.com'
 
 # Optionally set listen interface (default :1143)
 curl -X POST 'http://localhost:6336/_config/backend/imap.listen_interface' \
   -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '":1143"'
+  -H 'Content-Type: text/plain' \
+  -d ':1143'
 ```
 
 **Restart Daptin after enabling IMAP.**
 
+### IMAP Prerequisites
+
+1. Create certificate for `imap.{hostname}` (e.g., `imap.mail.example.com`)
+2. Set `imap.enabled` to `true` (plain text, not `"true"`)
+3. Set `hostname` config value
+4. Restart Daptin
+
 ### IMAP Authentication
 
-Uses the same mail_account credentials as SMTP:
-- Username: `noreply@example.com`
-- Password: Plain password (not base64 encoded)
+- Requires TLS (STARTTLS or port 993)
+- Without TLS, server shows `LOGINDISABLED`
+- Uses mail_account credentials (username and plain password)
 
 ### IMAP Ports
 
@@ -544,6 +557,16 @@ Uses the same mail_account credentials as SMTP:
 | 143 | IMAP |
 | 993 | IMAPS (TLS) |
 | 1143 | Default Daptin IMAP |
+
+### Testing IMAP Connection
+
+```bash
+# Test capabilities (without TLS)
+echo "a001 CAPABILITY" | nc localhost 1143
+
+# Test with STARTTLS
+openssl s_client -starttls imap -connect localhost:1143 -quiet
+```
 
 ## Disable SMTP
 

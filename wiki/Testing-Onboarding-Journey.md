@@ -618,7 +618,7 @@ curl -X POST 'http://localhost:7337/_config/backend/hostname' \
 
 ## Code Bugs Found (Not Wiki)
 
-### BUG-001: SMTP Storage Panic
+### BUG-001: SMTP Storage Panic ([#164](https://github.com/daptin/daptin/issues/164))
 
 **File:** `server/resource/resource_create.go:1014`
 **Severity:** Critical
@@ -633,3 +633,31 @@ dbResource.Cruds["mail"].Create(&model, *req)
 ```
 
 **Fix:** Either change type assertion to handle pointer, or change caller to not pass pointer.
+
+### BUG-002: IMAP Authentication Panic ([#165](https://github.com/daptin/daptin/issues/165))
+
+**Location:** IMAP backend login handler
+**Severity:** Critical
+**Impact:** IMAP authentication completely broken
+
+```
+panic serving: interface conversion: interface {} is daptinid.DaptinReferenceId, not string
+```
+
+**Root Cause:** Similar type mismatch - code expects `string` but receives `daptinid.DaptinReferenceId`.
+
+### BUG-003: Config API Value Quoting
+
+**Severity:** Medium
+**Impact:** Config values with JSON Content-Type get double-quoted
+
+When using `Content-Type: application/json`:
+- Sent: `"true"` (JSON string)
+- Stored: `"\"true\""` (escaped quotes)
+
+**Workaround:** Use `Content-Type: text/plain` and send raw values:
+```bash
+curl -X POST '/_config/backend/imap.enabled' \
+  -H 'Content-Type: text/plain' \
+  -d 'true'
+```
