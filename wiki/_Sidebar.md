@@ -1,5 +1,6 @@
 ## Getting Started
 - [[Home]]
+- [[Getting-Started-Guide]] ⭐
 - [[Installation]]
 - [[Configuration]]
 - [[Database-Setup]]
@@ -67,3 +68,9 @@
 - [[API-Reference]]
 - [[Action-Reference]]
 - [[Column-Type-Reference]]
+
+## Contributing
+- [[Documentation-Guide]]
+
+## Meta
+- [[WIKI_AUDIT_REPORT]]
