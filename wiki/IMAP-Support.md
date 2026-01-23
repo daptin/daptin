@@ -132,24 +132,112 @@ curl -X POST 'http://localhost:6336/api/mail_account' \
 
 ### Supported Commands
 
-- LOGIN / AUTHENTICATE
-- SELECT / EXAMINE
-- LIST / LSUB
-- STATUS
-- FETCH
-- SEARCH
-- STORE
-- COPY
-- EXPUNGE
-- IDLE (push notifications)
+| Command | Description |
+|---------|-------------|
+| LOGIN | Authenticate with username/password |
+| SELECT | Open mailbox for read/write |
+| EXAMINE | Open mailbox read-only |
+| LIST | List available mailboxes |
+| LSUB | List subscribed mailboxes |
+| STATUS | Get mailbox status (EXISTS, RECENT, UNSEEN) |
+| FETCH | Retrieve message content and metadata |
+| SEARCH | Search messages by criteria |
+| STORE | Modify message flags |
+| COPY | Copy messages to another mailbox |
+| EXPUNGE | Permanently delete flagged messages |
+| IDLE | Real-time push notifications |
+| CREATE | Create new mailbox |
+| DELETE | Delete mailbox |
+| RENAME | Rename mailbox |
+| SUBSCRIBE | Subscribe to mailbox |
+| UNSUBSCRIBE | Unsubscribe from mailbox |
 
 ### Folder Structure
 
-Default mailboxes:
-- INBOX
-- Sent
-- Drafts
-- Trash
+Default mailboxes created automatically:
+- INBOX - Incoming mail
+- Spam - Messages with high spam score (>299)
+
+Additional folders can be created via IMAP or REST API.
+
+## Command Line Testing
+
+### Basic Connection Test
+
+```bash
+# Without TLS (shows LOGINDISABLED)
+echo "a CAPABILITY" | nc localhost 1143
+
+# Expected output:
+# * OK [CAPABILITY IMAP4rev1 ... LOGINDISABLED] IMAP4rev1 Service Ready
+```
+
+### Full IMAP Session with STARTTLS
+
+```bash
+printf 'a LOGIN user@example.com password\r\n\
+b SELECT INBOX\r\n\
+c SEARCH ALL\r\n\
+d FETCH 1 (FLAGS ENVELOPE BODY[HEADER.FIELDS (FROM TO SUBJECT DATE)])\r\n\
+e LOGOUT\r\n' | openssl s_client -connect localhost:1143 -starttls imap -quiet -ign_eof 2>/dev/null
+```
+
+### SEARCH Criteria
+
+```bash
+# Search all messages
+c SEARCH ALL
+
+# Search unseen messages
+c SEARCH UNSEEN
+
+# Search by sender
+c SEARCH FROM "sender@example.com"
+
+# Search by subject
+c SEARCH SUBJECT "keyword"
+
+# Search by date
+c SEARCH SINCE 01-Jan-2024
+
+# Combined search
+c SEARCH UNSEEN FROM "sender@example.com" SINCE 01-Jan-2024
+```
+
+### FETCH Items
+
+```bash
+# Fetch flags only
+d FETCH 1 FLAGS
+
+# Fetch envelope (parsed headers)
+d FETCH 1 ENVELOPE
+
+# Fetch specific headers
+d FETCH 1 BODY[HEADER.FIELDS (FROM TO SUBJECT DATE)]
+
+# Fetch full message
+d FETCH 1 BODY[]
+
+# Fetch by UID
+d UID FETCH 1 (FLAGS BODY[])
+```
+
+### STORE Flags
+
+```bash
+# Mark as seen
+e STORE 1 +FLAGS (\Seen)
+
+# Mark as deleted
+e STORE 1 +FLAGS (\Deleted)
+
+# Remove flag
+e STORE 1 -FLAGS (\Seen)
+
+# Replace all flags
+e STORE 1 FLAGS (\Seen \Flagged)
+```
 
 ## TLS Certificate
 

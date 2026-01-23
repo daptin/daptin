@@ -12,11 +12,6 @@ Daptin includes a full SMTP server for:
 
 **Note:** Direct email sending via REST API is not available. The `mail.send` and `aws.mail.send` are internal performers used by actions like password reset. To send emails programmatically, create a custom action that uses these performers in OutFields.
 
-## Known Issue - Inbound Email Storage
-
-⚠️ **Critical Bug ([#164](https://github.com/daptin/daptin/issues/164)):** Inbound emails fail to store due to a type assertion error in the storage layer (`mail_adapter.go:475` passes a pointer but `resource_create.go:1014` expects a value). This causes a panic when receiving emails via SMTP.
-
-**Workaround:** Create emails via the REST API (see [Manual Email Creation](#manual-email-creation) section below). Outbound SMTP with authentication works correctly.
 
 ## Complete Setup Guide
 
@@ -507,10 +502,6 @@ curl -X POST http://localhost:6336/api/mail \
 
 Daptin includes an IMAP server for email retrieval.
 
-### Known Issue - IMAP Authentication
-
-⚠️ **Bug ([#165](https://github.com/daptin/daptin/issues/165)):** IMAP login fails with a type conversion panic (`interface {} is daptinid.DaptinReferenceId, not string`). The IMAP server starts but authentication crashes the connection.
-
 ### Enable IMAP
 
 **Important:** Config values must be sent as plain text, not JSON-quoted strings.
@@ -576,6 +567,58 @@ Via environment variable:
 DAPTIN_DISABLE_SMTP=true ./daptin
 ```
 
+## Complete SMTP → IMAP Flow (Verified Working)
+
+This section documents the verified working flow from receiving email via SMTP to reading it via IMAP.
+
+### 1. Send Email via SMTP (using swaks)
+
+```bash
+swaks --to test@test.com --from sender@example.com \
+  --server localhost --port 2525 \
+  --auth LOGIN --auth-user test@test.com --auth-password testpass123 \
+  --header "Subject: Test email" \
+  --body "This is a test email body"
+```
+
+**Expected output:**
+```
+<- 235 Authentication succeeded
+<- 250 2.0.0 OK: queued as <hash>
+```
+
+### 2. Retrieve via IMAP (using openssl)
+
+```bash
+printf 'a LOGIN test@test.com testpass123\r\n\
+b SELECT INBOX\r\n\
+c SEARCH ALL\r\n\
+d FETCH 1 (FLAGS BODY[HEADER.FIELDS (FROM SUBJECT)])\r\n\
+e LOGOUT\r\n' | openssl s_client -connect localhost:1143 -starttls imap -quiet -ign_eof 2>/dev/null
+```
+
+**Expected output:**
+```
+a OK LOGIN completed
+* 1 EXISTS
+* 1 RECENT
+b OK SELECT completed
+* SEARCH 1
+c OK SEARCH completed
+* 1 FETCH (FLAGS (\Recent) BODY[HEADER.FIELDS (FROM SUBJECT)] {64}
+From: sender@example.com
+Subject: Test email
+)
+d OK FETCH completed
+e OK LOGOUT completed
+```
+
+### 3. Verify in Database
+
+```bash
+sqlite3 daptin.db "SELECT id, subject, from_address, to_address FROM mail ORDER BY id DESC LIMIT 5;"
+```
+
 ## Troubleshooting
 
 ### Check Server Status
@@ -622,9 +665,6 @@ INFO Listening on TCP 0.0.0.0:2525
 
 # SMTP disabled (no servers configured)
 INFO SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers configured
-
-# Storage error (known bug)
-panic: interface conversion: interface {} is *api2go.Api2GoModel, not api2go.Api2GoModel
 ```
 
 ### Common Issues
@@ -637,10 +677,6 @@ panic: interface conversion: interface {} is *api2go.Api2GoModel, not api2go.Api
 - Cause: SMTP daemon was not initialized (no servers existed at startup)
 - Solution: Restart Daptin
 
-**Issue: `554 5.5.0 Error: storage failed`**
-- Cause: Known bug in mail storage code
-- Workaround: Create emails via REST API instead
-
 **Issue: `554 5.7.1 Client host rejected: Access denied`**
 - Cause: Unauthenticated sender fails SPF validation
 - Solution: Use SMTP authentication (AUTH LOGIN)
@@ -652,3 +688,11 @@ panic: interface conversion: interface {} is *api2go.Api2GoModel, not api2go.Api
 **Issue: `NOT NULL constraint failed: mail_box.attributes`**
 - Cause: `attributes`, `flags`, `permanent_flags` fields are required
 - Solution: Include all required mailbox fields (see Step 5 in setup guide)
+
+**Issue: IMAP shows `LOGINDISABLED`**
+- Cause: IMAP requires TLS for authentication
+- Solution: Use STARTTLS or connect to port 993
+
+**Issue: IMAP FETCH hangs or returns internal error**
+- Cause: SQLite transaction deadlock (fixed in recent commits)
+- Solution: Update to latest Daptin version
