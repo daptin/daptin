@@ -1,160 +1,152 @@
 # Daptin Documentation Guide
 
-This guide captures effective techniques for understanding, testing, and documenting Daptin features. It evolves with each feature documented.
-
-## Documentation Map
-
-### Completed (In-Depth)
-| Feature | Wiki Files | Status |
-|---------|-----------|--------|
-| Mail (SMTP/IMAP) | SMTP-Server.md, IMAP-Support.md | ✅ Full lifecycle documented |
-
-### Breadth Coverage (Overview)
-| Feature | Wiki File | Depth |
-|---------|-----------|-------|
-| Authentication | Authentication.md | Setup + usage |
-| Permissions | Permissions.md | Concepts |
-| Cloud Storage | Cloud-Storage.md | Setup |
-| Actions | Actions-Overview.md | Reference |
-| 2FA/OTP | Two-Factor-Auth.md | Setup + usage |
-
-### Needs Documentation
-- GraphQL API
-- State Machines
-- Subsites
-- OAuth Providers
-- Data Import/Export
-- Marketplace
+This guide captures the documentation process itself - challenges, techniques, and learnings that apply across all features.
 
 ---
 
-## Discoveries Log
+## Getting Started with a Feature
 
-*Record observations made while documenting features. These inform future documentation.*
-
-### From Mail Feature Documentation
-
-**Discovery: Tables → Actions → Performers**
-```
-Tables (data storage)
-  └── mail_server, mail_account, mail_box, mail, outbox
-
-Actions (REST endpoints on tables)
-  └── POST /action/{table}/{action_name}
-  └── Defined in columns.go with OnType, InFields, OutFields
-
-Performers (internal executors called by actions)
-  └── mail.send, aws.mail.send, otp.generate, etc.
-  └── NOT directly callable via REST
-  └── Used in action OutFields
-```
-
-**Discovery: Two types of "mail sending"**
-- `TaskSaveMail` - stores email in local mailbox (used by password reset)
-- `mail.send` performer - sends externally via MTA
-
-**Discovery: Spam scoring is SPF + DKIM based**
-- SPF: 0 (valid), 50 (error), 200 (invalid)
-- DKIM: +100 per failed signature
-- Routing: >299 → Spam folder
-
-**Discovery: Custom actions use OutFields**
-```json
-{
-  "OutFields": [
-    {"Type": "mail.send", "Method": "EXECUTE", "Attributes": {...}}
-  ]
-}
-```
-
----
-
-## Documentation Process
-
-### Phase 1: Discovery
-1. Find all related tables: `SELECT name FROM sqlite_master WHERE name LIKE '%feature%'`
-2. Find related actions: `SELECT action_name, world_id FROM action`
-3. Find related performers: `grep -r "func.*Name().*return" server/actions/`
-4. Trace entry points in code
-
-### Phase 2: Testing
-1. Set up prerequisites (users, config)
-2. Test happy path with real tools
-3. Test error conditions
-4. Verify database state
-5. Check logs for hidden behaviors
-
-### Phase 3: Documentation
-1. Document what works (verified)
-2. Document what doesn't work (bugs/limitations)
-3. Add troubleshooting for errors encountered
-4. Update this guide with new discoveries
-
-### Phase 4: Iteration
-After documenting a feature, ask:
-- What patterns did I see that apply elsewhere?
-- What connections between components did I find?
-- What was harder than expected? (improve guide)
-- What tools/techniques helped? (add to guide)
-
----
-
-## Creating Custom Actions (Discovered via Mail)
-
-Users can create actions that use internal performers:
+### 1. Find What Exists
 
 ```bash
-# 1. Find the world_id for your target table
-curl -s http://localhost:6336/api/world | jq '.data[] | select(.attributes.table_name=="user_account") | .id'
+# Tables related to feature
+SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%keyword%';
 
-# 2. Create action with OutFields calling a performer
-curl -X POST http://localhost:6336/api/action \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "action",
-      "attributes": {
-        "action_name": "send_welcome_email",
-        "label": "Send Welcome Email",
-        "instance_optional": false,
-        "in_fields": {"Attributes": [{"Name": "email", "ColumnType": "email"}]},
-        "out_fields": [
-          {
-            "Type": "mail.send",
-            "Method": "EXECUTE",
-            "Attributes": {
-              "to": "~email",
-              "subject": "Welcome!",
-              "body": "Welcome to our platform",
-              "from": "noreply@example.com"
-            }
-          }
-        ]
-      },
-      "relationships": {
-        "world_id": {"data": {"type": "world", "id": "WORLD_ID_HERE"}}
-      }
-    }
-  }'
+# Actions related to feature
+SELECT action_name, world_id FROM action WHERE action_name LIKE '%keyword%';
 
-# 3. Call the action
-curl -X POST http://localhost:6336/action/user_account/send_welcome_email \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"email": "user@example.com"}}'
+# Code entry points
+grep -rn "keyword" server/ --include="*.go" | head -20
 ```
 
-**Known Performers** (discovered so far):
-| Performer | Purpose |
-|-----------|---------|
-| `mail.send` | Send email via SMTP |
-| `aws.mail.send` | Send email via AWS SES |
-| `otp.generate` | Generate TOTP secret |
-| `jwt.token` | Generate JWT token |
-| `self.tls.generate` | Generate self-signed cert |
-| `acme.tls.generate` | Generate Let's Encrypt cert |
+### 2. Understand the Layers
 
-*Add more performers as discovered during documentation.*
+Daptin has distinct layers - discovering which layer a feature lives in determines how to document it:
+
+| Layer | How to Find | Documentation Focus |
+|-------|-------------|---------------------|
+| Tables | `columns.go`, database schema | Data model, relationships |
+| Actions | `action` table, `columns.go` | REST endpoints, parameters |
+| Performers | `server/actions/*.go` | Internal behavior, not user-callable |
+| Config | `_config` table | Setup requirements |
+
+### 3. Trace Dependencies
+
+Features often depend on other features. Before testing:
+- What tables must exist first?
+- What config values are required?
+- Does it need a restart to take effect?
+
+---
+
+## Process Challenges & Solutions
+
+### Challenge: Feature works in code but not via API
+
+**Cause**: Permission model filters results without user context.
+
+**Solution**: Always test with authenticated user:
+```bash
+TOKEN=$(curl -s -X POST .../signin | jq -r '.[0].Attributes.value')
+curl -H "Authorization: Bearer $TOKEN" ...
+```
+
+### Challenge: Can't tell if data was created
+
+**Cause**: API returns success but permissions hide the record.
+
+**Solution**: Check database directly:
+```bash
+sqlite3 daptin.db "SELECT * FROM tablename ORDER BY id DESC LIMIT 1;"
+```
+
+### Challenge: Action exists but does nothing
+
+**Cause**: Actions call "performers" internally. The action may exist but performer may have conditions.
+
+**Solution**: Read the performer code in `server/actions/action_*.go` to understand what it actually does.
+
+### Challenge: Server must restart for changes
+
+**Cause**: Some features initialize at startup only (SMTP daemon, IMAP server).
+
+**Solution**: Document which features need restart vs runtime reload.
+
+### Challenge: Foreign key errors on queries
+
+**Cause**: Foreign key columns expect UUID reference_id, not numeric id.
+
+**Solution**: Always use reference_id when filtering:
+```go
+// Wrong: queries by numeric id
+// Right: queries by reference_id (UUID)
+```
+
+### Challenge: Transaction deadlocks
+
+**Cause**: SQLite allows only one write transaction at a time.
+
+**Solution**: Ensure all code paths commit/rollback transactions. Look for missing `defer tx.Commit()`.
+
+---
+
+## Discovering Feature Behavior from Code
+
+### Finding Entry Points
+
+| If documenting... | Start at |
+|-------------------|----------|
+| REST endpoint | `server/resource/resource_*.go` |
+| Action | `server/actions/action_*.go` |
+| Background process | `server/*.go` (look for goroutines) |
+| Config handling | `server/resource/config_*.go` |
+
+### Finding Relationships
+
+```bash
+# What tables reference this table?
+grep -rn "tablename" server/resource/columns.go
+
+# What actions use this performer?
+grep -rn "performer.name" server/resource/columns.go
+```
+
+### Finding Undocumented Behavior
+
+Look for:
+- `log.Printf` statements reveal hidden logic
+- Switch statements show different code paths
+- Error messages indicate failure conditions
+
+---
+
+## Documentation Depth Levels
+
+### Level 1: Reference
+- List of endpoints/actions
+- Parameter names and types
+- Quick start example
+
+### Level 2: Guide
+- Prerequisites and setup order
+- Complete working examples
+- Common errors and fixes
+
+### Level 3: Complete
+- Full lifecycle coverage
+- Internal behavior explanation
+- Edge cases and limitations
+- Verified with tests
+
+---
+
+## After Documenting a Feature
+
+Update this guide with:
+- New challenges encountered
+- New techniques that helped
+- Patterns that might apply elsewhere
+- Tools or commands that were useful
 
 ---
 
