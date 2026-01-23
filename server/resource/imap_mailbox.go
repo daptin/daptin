@@ -71,6 +71,7 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 	if err != nil {
 		return nil, err
 	}
+	defer transaction.Commit()
 	mbsCurrent, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, transaction)
 	dimb.status = mbsCurrent
 
@@ -105,6 +106,7 @@ func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
 	if err != nil {
 		return err
 	}
+	defer transaction.Commit()
 	return dimb.dbResource["mail_box"].SetMailBoxSubscribed(dimb.mailAccountId, dimb.name, subscribed, transaction)
 }
 
@@ -120,6 +122,7 @@ func (dimb *DaptinImapMailBox) Check() error {
 	if err != nil {
 		return err
 	}
+	defer transaction.Commit()
 	box, err := dimb.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
 			"mail_account_id": dimb.mailAccountId,
@@ -318,12 +321,26 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 // SearchMessages searches messages. The returned list must contain UIDs if
 // uid is set to true, or sequence numbers otherwise.
 func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCriteria) ([]uint32, error) {
+	log.Printf("[IMAP] SearchMessages called uid=%v mailBoxId=%v mailBoxReferenceId=%v", uid, dimb.mailBoxId, dimb.mailBoxReferenceId)
+	if dimb.sessionUser != nil {
+		log.Printf("[IMAP] SearchMessages sessionUser: id=%v email=%v", dimb.sessionUser.UserId, dimb.sessionUser.UserReferenceId)
+	} else {
+		log.Printf("[IMAP] SearchMessages sessionUser is NIL")
+	}
 
-	httpRequest := http.Request{}
+	httpRequest := &http.Request{}
+	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", dimb.sessionUser))
 
 	//filterParams := make(map[string][]string)
 
-	queries := make([]Query, 0)
+	// Always filter by current mailbox - use reference_id for foreign key filter
+	queries := []Query{
+		{
+			ColumnName: "mail_box_id",
+			Operator:   "is",
+			Value:      dimb.mailBoxReferenceId, // Use reference_id (UUID) for foreign key
+		},
+	}
 
 	if criteria.Uid != nil && len(criteria.Uid.Set) > 0 {
 		setRange := criteria.Uid.Set[0]
@@ -380,7 +397,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	queryJson, _ := json.Marshal(queries)
 
 	searchRequest := api2go.Request{
-		PlainRequest: &httpRequest,
+		PlainRequest: httpRequest,
 		QueryParams: map[string][]string{
 			"fields": {
 				"id",
@@ -391,12 +408,14 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		},
 	}
 
-	log.Printf("Search query for mail: %v", searchRequest.QueryParams)
+	log.Printf("[IMAP] Search query for mail: %v", searchRequest.QueryParams)
+	log.Printf("[IMAP] SearchMessages: attempting to begin transaction")
 	transaction, err := dimb.dbResource["mail"].Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [383]")
 		return nil, err
 	}
+	log.Printf("[IMAP] SearchMessages: transaction started")
 	defer transaction.Commit()
 
 	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest, transaction)
@@ -515,7 +534,9 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		sender = parsedmail.Sender.String()
 	}
 
-	model := api2go.NewApi2GoModelWithData("mail", nil, 0, nil, map[string]interface{}{
+	// Permission 768 = Owner read (256) + Owner write (512)
+	// This ensures only the mail owner can read/write their mail
+	model := api2go.NewApi2GoModelWithData("mail", nil, 768, nil, map[string]interface{}{
 		"message_id":       parsedmail.MessageID,
 		"mail_id":          hash,
 		"from_address":     fromAddress,
@@ -535,7 +556,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		"return_path":      "",
 		"is_tls":           false,
 		"mail_box_id":      dimb.mailBoxReferenceId,
-		"user_account_id":  dimb.sessionUser.UserId,
+		"user_account_id":  dimb.sessionUser.UserReferenceId.String(),
 		"seen":             false,
 		"recent":           true,
 		"flags":            strings.Join(flags, ","),

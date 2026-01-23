@@ -442,8 +442,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 						}
 
+						// Permission 768 = Owner read (256) + Owner write (512)
+						// This ensures only the mail owner can read/write their mail
 						model := api2go.NewApi2GoModelWithData("mail",
-							nil, 0, nil, map[string]interface{}{
+							nil, 768, nil, map[string]interface{}{
 								"message_id":       mid,
 								"mail_id":          hash,
 								"from_address":     trimToLimit(e.MailFrom.String(), 255),

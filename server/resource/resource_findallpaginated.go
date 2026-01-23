@@ -1352,6 +1352,7 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 
 	// Handle foreign key columns
 	if colInfo.IsForeignKey {
+		log.Debugf("[FK] Processing foreign key column [%v] with value [%v]", columnName, filterQuery.Value)
 		refernceValueString := filterQuery.Value
 		var refUuid uuid.UUID
 		var err error
@@ -1359,6 +1360,7 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 			asStr, isStr := refernceValueString.(string)
 			if isStr {
 				refUuid, err = uuid.Parse(asStr)
+				log.Debugf("[FK] Parsed UUID: %v, err: %v", refUuid, err)
 			} else {
 				err = fmt.Errorf("reference value is not uuid")
 			}
@@ -1374,6 +1376,7 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 		} else {
 			valuesArray = append(valuesArray, daptinid.DaptinReferenceId(refUuid))
 			valueIds, err := GetReferenceIdListToIdListWithTransaction(colInfo.ForeignKeyData.Namespace, valuesArray, transaction)
+			log.Debugf("[FK] Lookup result for %v: valueIds=%v, err=%v", refUuid, valueIds, err)
 			if err != nil {
 				log.Warnf("[1334] failed to lookup foreign key value: %v => %v", refernceValueString, err)
 			} else {
@@ -1383,6 +1386,7 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 					refernceValueString = valuesArray[0]
 				}
 				filterQuery.Value = refernceValueString
+				log.Debugf("[FK] Final filter value for [%v]: %v", columnName, filterQuery.Value)
 			}
 		}
 	}

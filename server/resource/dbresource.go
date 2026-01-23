@@ -715,7 +715,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
 
 	var uidNext int64
-	q5, v5, e5 := statementbuilder.Squirrel.Select("max(id)").From("mail").Prepared(true).Where(goqu.Ex{
+	q5, v5, e5 := statementbuilder.Squirrel.Select(goqu.L("COALESCE(MAX(id), 0)").As("max_id")).From("mail").Prepared(true).Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 	}).ToSQL()
 

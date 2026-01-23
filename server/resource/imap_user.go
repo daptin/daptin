@@ -33,13 +33,19 @@ func (diu *DaptinImapUser) Username() string {
 // ListMailboxes returns a list of mailboxes belonging to this user. If
 // subscribed is set to true, only returns subscribed mailboxes.
 func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
-
+	log.Printf("[IMAP] ListMailboxes: starting")
 	var boxes []backend.Mailbox
+	log.Printf("[IMAP] ListMailboxes: attempting to begin transaction")
 	transaction, err := diu.dbResource["mail_box"].Connection().Beginx()
-	defer transaction.Commit()
 	if err != nil {
+		log.Printf("[IMAP] ListMailboxes: failed to begin transaction: %v", err)
 		return nil, err
 	}
+	log.Printf("[IMAP] ListMailboxes: transaction started")
+	defer func() {
+		transaction.Commit()
+		log.Printf("[IMAP] ListMailboxes: transaction committed")
+	}()
 	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction(
 		"mail_box", transaction, goqu.Ex{"mail_account_id": diu.mailAccountId})
 	if err != nil || len(mailBoxes) == 0 {
@@ -222,14 +228,20 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 // GetMailbox returns a mailbox. If it doesn't exist, it returns
 // ErrNoSuchMailbox.
 func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
-
+	log.Printf("[IMAP] GetMailbox(%s): starting", name)
 	transaction, err := diu.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
+		log.Printf("[IMAP] GetMailbox(%s): failed to begin tx: %v", name, err)
 		return nil, err
 	}
-	defer transaction.Commit()
+	defer func() {
+		transaction.Commit()
+		log.Printf("[IMAP] GetMailbox(%s): transaction committed", name)
+	}()
 
-	return diu.GetMailboxWithTransaction(name, transaction)
+	result, err := diu.GetMailboxWithTransaction(name, transaction)
+	log.Printf("[IMAP] GetMailbox(%s): returning result=%v err=%v", name, result != nil, err)
+	return result, err
 }
 
 // CreateMailbox creates a new mailbox.
@@ -351,5 +363,6 @@ func (diu *DaptinImapUser) RenameMailbox(existingName, newName string) error {
 // Logout is called when this User will no longer be used, likely because the
 // client closed the connection.
 func (diu *DaptinImapUser) Logout() error {
+	log.Printf("[IMAP] Logout: called for user")
 	return nil
 }

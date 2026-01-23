@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	log "github.com/sirupsen/logrus"
 )
 
 type DaptinImapBackend struct {
@@ -45,14 +46,20 @@ func (be *DaptinImapBackend) LoginMd5(conn *imap.ConnInfo, username, challenge s
 }
 
 func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password string) (backend.User, error) {
-
+	log.Printf("[IMAP] Login: starting for user %s", username)
 	userAccountResource := be.cruds[USER_ACCOUNT_TABLE_NAME]
+	log.Printf("[IMAP] Login: attempting to begin transaction")
 	transaction, err := userAccountResource.Connection().Beginx()
 	if err != nil {
+		log.Printf("[IMAP] Login: failed to begin transaction: %v", err)
 		CheckErr(err, "Failed to begin transaction [51]")
 		return nil, err
 	}
-	defer transaction.Commit()
+	log.Printf("[IMAP] Login: transaction started")
+	defer func() {
+		transaction.Commit()
+		log.Printf("[IMAP] Login: transaction committed")
+	}()
 	userMailAccount, err := userAccountResource.GetUserMailAccountRowByEmail(username, transaction)
 	if err != nil {
 		return nil, err
