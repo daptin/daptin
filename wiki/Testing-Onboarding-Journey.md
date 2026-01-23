@@ -309,6 +309,9 @@ curl -X POST "http://localhost:7337/action/user_account/verify_otp" \
 | ACME cert action | `generate_acme_tls_certificate` | `generate_acme_certificate` |
 | Certificate actions OnType | `/action/world/generate_*` | **OnType is `certificate`, not `world`** |
 | Sync action | `mail.servers.sync` | `sync_mail_servers` |
+| mail_account password | Only `password` field | **Requires `password_md5` field (NOT NULL)** |
+| mail_box required fields | Only `name` field | **Requires `attributes`, `flags`, `permanent_flags`** |
+| SMTP daemon lifecycle | Not documented | **Must restart Daptin if no servers at startup** |
 
 ---
 
@@ -436,7 +439,7 @@ The action route is `/action/:typename/:actionName` (2 segments after `/action/`
 5. Response format wrong: `{"secret":"...","qr_code":"..."}` → **empty array `[]`**
 6. 2FA requirement wrong: "signin requires OTP" → **Signin does NOT verify OTP**
 
-### SMTP-Server.md - 7 bugs @ $10 each = $70
+### SMTP-Server.md - 10 bugs @ $10 each = $100
 
 1. `mail.send` documented as REST action → **NOT an action, performer only**
 2. `aws.mail.send` documented as REST action → **NOT an action, performer only**
@@ -445,5 +448,8 @@ The action route is `/action/:typename/:actionName` (2 segments after `/action/`
 5. ACME cert action wrong: `generate_acme_tls_certificate` → `generate_acme_certificate`
 6. Certificate actions OnType wrong: `world` → **`certificate`**
 7. Sync action wrong: `mail.servers.sync` → `sync_mail_servers`
+8. mail_account creation missing `password_md5` field → **Required (NOT NULL constraint)**
+9. mail_box creation missing required fields → **Needs `attributes`, `flags`, `permanent_flags`**
+10. SMTP daemon lifecycle not documented → **Requires Daptin restart if no servers at startup**
 
-### Total: 13 bugs = $130
+### Total: 16 bugs = $160
