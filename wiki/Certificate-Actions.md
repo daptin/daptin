@@ -50,23 +50,25 @@ Create a self-signed certificate for development/testing.
 **Performer:** `self.tls.generate`
 
 ```bash
-curl -X POST http://localhost:6336/action/certificate/generate_self_certificate/CERTIFICATE_REFERENCE_ID \
+curl -X POST http://localhost:6336/action/certificate/generate_self_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes":{}}'
+  -d '{"attributes":{}, "certificate_id": "CERTIFICATE_REFERENCE_ID"}'
 ```
 
 **Response:**
 
 ```json
-{
-  "ResponseType": "client.notify",
-  "Attributes": {
-    "type": "success",
-    "title": "Success",
-    "message": "Certificate generated for example.com"
+[
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {
+      "type": "message",
+      "title": "Success",
+      "message": "Certificate generated for example.com"
+    }
   }
-}
+]
 ```
 
 ## Generate ACME Certificate
@@ -86,13 +88,14 @@ Obtain a Let's Encrypt certificate for production use.
 ### Request
 
 ```bash
-curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate/CERTIFICATE_REFERENCE_ID \
+curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
       "email": "admin@example.com"
-    }
+    },
+    "certificate_id": "CERTIFICATE_REFERENCE_ID"
   }'
 ```
 
@@ -125,13 +128,13 @@ Download the certificate PEM file.
 **Entity:** `certificate`
 
 ```bash
-curl -X POST http://localhost:6336/action/certificate/download_certificate/CERTIFICATE_REFERENCE_ID \
+curl -X POST http://localhost:6336/action/certificate/download_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes":{}}'
+  -d '{"attributes":{}, "certificate_id": "CERTIFICATE_REFERENCE_ID"}'
 ```
 
-**Response:** Downloads `{hostname}.pem.crt`
+**Response:** Returns base64-encoded certificate file as `client.file.download` response type.
 
 ## Download Public Key
 
@@ -141,13 +144,13 @@ Download the public key PEM file.
 **Entity:** `certificate`
 
 ```bash
-curl -X POST http://localhost:6336/action/certificate/download_public_key/CERTIFICATE_REFERENCE_ID \
+curl -X POST http://localhost:6336/action/certificate/download_public_key \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes":{}}'
+  -d '{"attributes":{}, "certificate_id": "CERTIFICATE_REFERENCE_ID"}'
 ```
 
-**Response:** Downloads `{hostname}.pem.key.pub`
+**Response:** Returns base64-encoded public key file as `client.file.download` response type.
 
 ## List Certificates
 
@@ -213,13 +216,14 @@ Certificates provide keys for DKIM email signing.
 ACME certificates expire after 90 days. To renew:
 
 ```bash
-curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate/CERTIFICATE_REFERENCE_ID \
+curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
       "email": "admin@example.com"
-    }
+    },
+    "certificate_id": "CERTIFICATE_REFERENCE_ID"
   }'
 ```
 

@@ -623,13 +623,14 @@ Generate Let's Encrypt ACME certificate.
 **Action Performer:** `acme.tls.generate`
 
 ```bash
-curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate/CERT_ID \
+curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
       "email": "admin@example.com"
-    }
+    },
+    "certificate_id": "CERT_ID"
   }'
 ```
 
