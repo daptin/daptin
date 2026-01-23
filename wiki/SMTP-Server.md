@@ -223,7 +223,20 @@ To send emails programmatically, create a custom action with `mail.send` in its 
 | to | array | Yes | Recipients |
 | subject | string | Yes | Subject line |
 | body | string | Yes | Email content |
-| mail_server_hostname | string | No | Use specific mail server |
+| mail_server_hostname | string | No | Use specific mail server for DKIM signing |
+
+### mail.send Operation Modes
+
+**Mode 1: Direct Send** (no `mail_server_hostname`)
+- Sends via MTA directly to recipient's mail server
+- No DKIM signing
+- Simpler but may have lower deliverability
+
+**Mode 2: Via Mail Server** (with `mail_server_hostname`)
+- Uses configured mail server settings
+- Signs outgoing mail with DKIM
+- Requires valid certificate for sender's domain
+- Better deliverability and authenticity
 
 ### aws.mail.send Parameters
 
@@ -346,14 +359,92 @@ curl -X POST http://localhost:6336/action/mail_server/sync_mail_servers \
 - After adding/removing mail accounts
 - After certificate changes
 
+## Spam Scoring Algorithm
+
+Incoming emails are scored for spam based on SPF and DKIM verification.
+
+### Score Calculation
+
+| Check | Result | Score |
+|-------|--------|-------|
+| SPF Valid | Sender authorized | 0 |
+| SPF Error | Uncertain (network/lookup issue) | 50 |
+| SPF Invalid | Sender not authorized/blacklisted | 200 |
+| DKIM | Each failed/missing signature | +100 |
+
+**Routing by Score:**
+- `score > 299` → Spam folder
+- `score > 50` → INBOX with `\Spam` flag
+- `score ≤ 50` → INBOX with `\Recent` flag
+
+### Example Scores
+
+| Scenario | Score | Destination |
+|----------|-------|-------------|
+| Valid SPF, valid DKIM | 0 | INBOX |
+| SPF error, no DKIM | 150 | INBOX (\Spam flag) |
+| Invalid SPF, no DKIM | 300 | Spam folder |
+| Valid SPF, 2 failed DKIM | 200 | INBOX (\Spam flag) |
+
+### Spam Fields in Mail Table
+
+| Field | Type | Description |
+|-------|------|-------------|
+| spam_score | int | Calculated spam score |
+| spam | bool | true if score > 50 |
+| flags | varchar | IMAP flags including `\Spam` |
+
+## Mail Forwarding (Relay)
+
+Authenticated users can send emails to external recipients (not local accounts).
+
+### Requirements
+
+1. **Authentication** - Sender must be logged in via SMTP AUTH
+2. **Certificate** - Valid TLS certificate for sender's domain (for DKIM signing)
+3. **DKIM** - Outgoing mail is signed with domain's private key
+
+### Flow
+
+```
+Authenticated User → SMTP Server → DKIM Sign → External MTA
+```
+
+### Error: "private key not found for signing outgoing email"
+
+This occurs when forwarding mail from a domain without a certificate:
+
+```bash
+# Create certificate for your domain
+curl -X POST http://localhost:6336/api/certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{"data":{"type":"certificate","attributes":{"hostname":"yourdomain.com"}}}'
+
+# Generate the certificate
+curl -X POST http://localhost:6336/action/certificate/generate_self_certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"attributes":{},"certificate_id":"CERT_ID"}'
+```
+
+### Unauthenticated External Sender
+
+Without authentication, external senders are rejected:
+```
+554 5.7.1 Client host rejected: Access denied
+```
+
+This prevents open relay abuse.
+
 ## Email Tables
 
 | Table | Purpose |
 |-------|---------|
 | mail_server | Server configuration |
 | mail_account | User accounts |
-| mail_box | Mailboxes (inbox, sent) |
+| mail_box | Mailboxes (INBOX, Spam, etc.) |
 | mail | Stored messages |
+| outbox | Reserved for mail queue (not currently used) |
 
 ## Mailbox Management
 

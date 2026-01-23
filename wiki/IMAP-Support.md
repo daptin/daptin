@@ -160,6 +160,41 @@ Default mailboxes created automatically:
 
 Additional folders can be created via IMAP or REST API.
 
+### Mail Deletion Lifecycle
+
+IMAP uses a two-phase deletion model:
+
+1. **Mark for deletion**: `STORE +FLAGS (\Deleted)` sets `deleted=true` in database
+2. **Permanent removal**: `EXPUNGE` command removes marked messages
+
+```bash
+# Mark message 1 as deleted
+e STORE 1 +FLAGS (\Deleted)
+
+# Permanently remove all deleted messages
+f EXPUNGE
+```
+
+**Database changes:**
+- STORE: Sets `deleted=true` on mail record
+- EXPUNGE: Deletes mail record and usergroup relations
+
+### IDLE Extension
+
+IMAP IDLE allows clients to receive real-time notifications without polling.
+
+```bash
+# Enter IDLE mode
+a IDLE
+# Server will send EXISTS/EXPUNGE notifications
+# Type "DONE" to exit IDLE mode
+```
+
+**Use cases:**
+- Push notifications for new mail
+- Real-time folder synchronization
+- Mobile app background sync
+
 ## Command Line Testing
 
 ### Basic Connection Test
