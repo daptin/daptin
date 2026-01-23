@@ -2,6 +2,8 @@
 
 Define your data model using JSON, YAML, or TOML configuration files.
 
+**Related**: [Core Concepts](Core-Concepts.md) | [Column Types](Column-Types.md) | [Column Type Reference](Column-Type-Reference.md) | [Relationships](Relationships.md)
+
 ## Table Definition
 
 ```yaml
@@ -123,17 +125,20 @@ Columns:
 
 ## Default System Columns
 
-Every table automatically includes:
+Every table automatically includes these columns (you don't define them):
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | bigint | Auto-increment ID |
-| `reference_id` | varchar(40) | UUID reference |
-| `created_at` | datetime | Creation timestamp |
-| `updated_at` | datetime | Last update timestamp |
-| `permission` | int | Row permission bitmask |
-| `user_account_id` | varchar(40) | Owner reference |
-| `version` | int | Version number |
+| Column | SQL Type | Description | API Visible |
+|--------|----------|-------------|-------------|
+| `id` | INTEGER | Internal auto-increment primary key | No |
+| `reference_id` | BLOB (16 bytes) | External UUID identifier (shown as `id` in API) | Yes |
+| `created_at` | TIMESTAMP | Record creation time | Yes |
+| `updated_at` | TIMESTAMP | Last modification time (nullable) | Yes |
+| `permission` | INT(11) | Row-level permission bitmask | No |
+| `version` | INTEGER | Modification counter for optimistic locking | No |
+
+**Note**: When using the API, `reference_id` appears as `id` in JSON:API responses. Always use the UUID `reference_id` when referencing records, not the internal numeric `id`.
+
+See [Core Concepts](Core-Concepts.md) for details on how these columns work.
 
 ## Import Initial Data
 

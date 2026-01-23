@@ -1,6 +1,10 @@
 # Column Types
 
-Daptin supports 100+ column types for automatic validation, formatting, and UI rendering.
+Daptin supports **41 built-in column types** for automatic validation, storage, and API type mapping.
+
+**Related**: [Core Concepts](Core-Concepts.md) | [Column Type Reference](Column-Type-Reference.md) | [Schema Definition](Schema-Definition.md)
+
+**Source of truth**: `server/resource/column_types.go`
 
 ## Basic Types
 

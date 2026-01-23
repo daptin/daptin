@@ -20,13 +20,14 @@ Track documentation progress for all Daptin features.
 
 | Feature | Wiki File | Status | Notes |
 |---------|-----------|--------|-------|
+| Core Concepts | Core-Concepts.md | ✅ | Foundation doc with interlinking |
+| Column Types | Column-Types.md, Column-Type-Reference.md | ✅ | Verified against column_types.go |
+| Schema Definition | Schema-Definition.md | ✅ | Fixed standard columns |
 | CRUD Operations | CRUD-Operations.md | 📝 | Needs verification |
 | API Overview | API-Overview.md, API-Reference.md | 📝 | Reference exists |
 | Filtering/Pagination | Filtering-and-Pagination.md | 📝 | Needs verification |
 | Relationships | Relationships.md | 📝 | Needs verification |
-| Column Types | Column-Types.md, Column-Type-Reference.md | 📝 | Reference exists |
 | Aggregation | Aggregation-API.md | 📝 | Needs verification |
-| Schema Definition | Schema-Definition.md | 📝 | Needs verification |
 
 ### Authentication & Authorization
 
@@ -181,6 +182,9 @@ Track documentation progress for all Daptin features.
 |---------|------|--------|
 | Mail (SMTP/IMAP) | 2026-01-24 | Full lifecycle |
 | 2FA/OTP | 2026-01-24 | Verified and corrected |
+| Core Concepts | 2026-01-24 | Foundation doc |
+| Column Types | 2026-01-24 | Verified against code |
+| Schema Definition | 2026-01-24 | Fixed standard columns |
 
 ---
 

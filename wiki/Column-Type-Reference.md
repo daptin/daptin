@@ -2,6 +2,10 @@
 
 Complete reference of all column types supported by Daptin.
 
+**Related**: [Core Concepts](Core-Concepts.md) | [Column Types](Column-Types.md) | [Schema Definition](Schema-Definition.md)
+
+**Source of truth**: `server/resource/column_types.go`
+
 ## Overview
 
 Column types define data storage, validation, and GraphQL type mapping. Each type has:
