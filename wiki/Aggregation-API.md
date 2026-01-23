@@ -216,8 +216,52 @@ column=month(created_at),year(created_at),count"
 }
 ```
 
+## JOIN Support
+
+Aggregation queries support LEFT JOIN operations for cross-table analysis.
+
+### Join Syntax
+
+```
+join=table@eq(local_column,remote_table.remote_column)
+```
+
+### Join Examples
+
+```bash
+# Join orders with customers
+curl "http://localhost:6336/aggregate/order?\
+join=customer@eq(customer_id,customer.id)&\
+column=count,sum(total),customer.name&\
+group=customer.name"
+
+# Multiple join conditions (AND)
+curl "http://localhost:6336/aggregate/order?\
+join=customer@eq(customer_id,customer.id)&eq(region,customer.region)&\
+column=count,customer.name"
+```
+
+### Join with Reference IDs
+
+Reference entity values in join conditions using `entity@uuid` format:
+
+```bash
+curl "http://localhost:6336/aggregate/order?\
+join=customer@eq(customer_id,customer@abc-123-uuid)&\
+column=count"
+```
+
+## Time-Based Filtering
+
+```bash
+# Filter by time range
+curl "http://localhost:6336/aggregate/order?\
+filter=gte(created_at,2024-01-01)&\
+filter=lt(created_at,2024-02-01)&\
+column=count,sum(total)"
+```
+
 ## Limitations
 
 - Maximum 1000 result rows
-- Complex joins not supported
-- Use GraphQL for more complex queries
+- Use GraphQL for more complex nested queries

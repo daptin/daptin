@@ -31,14 +31,16 @@ Permissions apply at three scopes:
 
 ```
 Bits 0-6:   Guest permissions
-Bits 7-13:  Group permissions
-Bits 14-20: User permissions
+Bits 7-13:  User permissions (NOT Group!)
+Bits 14-20: Group permissions (NOT User!)
 ```
+
+**Important:** The order is Guest → User → Group (not Guest → Group → User).
 
 ### Permission Bits
 
-| Permission | Guest | Group | User |
-|------------|-------|-------|------|
+| Permission | Guest | User | Group |
+|------------|-------|------|-------|
 | Peek | 1 | 128 | 16384 |
 | Read | 2 | 256 | 32768 |
 | Create | 4 | 512 | 65536 |
@@ -200,11 +202,17 @@ Tables:
 ## Permission Calculation Helper
 
 ```javascript
-function calculatePermission(user, group, guest) {
+function calculatePermission(guest, user, group) {
   const levels = { none: 0, peek: 1, read: 2, create: 4, update: 8, delete: 16, execute: 32, refer: 64 };
-  return (levels[user] << 14) | (levels[group] << 7) | levels[guest];
+  // Order: Guest (bits 0-6) | User (bits 7-13) | Group (bits 14-20)
+  return levels[guest] | (levels[user] << 7) | (levels[group] << 14);
 }
 
-// Example: User full (127), Group read (2), Guest none (0)
-// = (127 << 14) | (2 << 7) | 0 = 2097408
+// Example: Guest none (0), User full (127), Group read (2)
+// = 0 | (127 << 7) | (2 << 14) = 16256 + 32768 = 49024
+
+// Common values:
+// User full only: calculatePermission('none', 'refer', 'none') = 0 | (127 << 7) | 0 = 16256
+// Public read: calculatePermission('read', 'read', 'read') = 2 | 256 | 32768 = 33026
+// All permissions: calculatePermission('refer', 'refer', 'refer') = 127 | 16256 | 2080768 = 2097151
 ```

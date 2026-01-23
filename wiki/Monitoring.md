@@ -4,15 +4,24 @@ System monitoring and health check endpoints.
 
 ## Health Check
 
+### Quick Health (Ping)
+
 ```bash
-curl http://localhost:6336/health
+curl http://localhost:6336/ping
 ```
 
 **Response:**
-```json
-{
-  "status": "ok"
-}
+```
+pong
+```
+
+### Dashboard
+
+The `/health` endpoint redirects to the web dashboard (HTML response).
+
+```bash
+curl http://localhost:6336/health
+# Returns: HTML dashboard
 ```
 
 ## Statistics
@@ -21,30 +30,68 @@ curl http://localhost:6336/health
 curl http://localhost:6336/statistics
 ```
 
-**Response:**
+**Response (Full Structure):**
 ```json
 {
   "cpu": {
-    "percent": 15.2,
-    "count": 8
+    "count": 8,
+    "info": [{"cpu": 0, "vendorId": "...", "cores": 8}],
+    "percent": [15.2]
   },
-  "memory": {
-    "used": 256000000,
-    "total": 16000000000,
-    "percent": 1.6
+  "db": {
+    "MaxOpenConnections": 50,
+    "OpenConnections": 5,
+    "InUse": 1,
+    "Idle": 4,
+    "WaitCount": 0,
+    "WaitDuration": 0,
+    "MaxIdleClosed": 0,
+    "MaxIdleTimeClosed": 0,
+    "MaxLifetimeClosed": 0
   },
   "disk": {
-    "used": 50000000000,
-    "total": 500000000000,
-    "percent": 10.0
+    "ioCounters": {"disk0": {...}},
+    "partitions": [{"device": "/dev/disk1", "mountpoint": "/"}],
+    "usage": {"path": "/", "total": 500000000000, "used": 50000000000, "usedPercent": 10.0}
   },
-  "runtime": {
-    "goroutines": 45,
-    "gc_pause_ns": 1234567,
-    "num_gc": 100
+  "host": {
+    "info": {"hostname": "server", "os": "darwin", "platform": "darwin"},
+    "temperatures": [],
+    "users": []
+  },
+  "load": {
+    "avg": {"load1": 2.5, "load5": 2.1, "load15": 1.8},
+    "misc": {"procsRunning": 250, "procsTotal": 600}
+  },
+  "memory": {
+    "swap": {"total": 8000000000, "used": 1000000000},
+    "virtual": {"total": 16000000000, "used": 8000000000, "usedPercent": 50.0}
+  },
+  "process": {
+    "count": {"total": 350},
+    "top_processes": [{"pid": 1234, "name": "daptin", "cpu": 5.2, "memory": 128000000}]
+  },
+  "web": {
+    "pid": 12345,
+    "uptime": "5d 12h 30m",
+    "status_codes": {"200": 50000, "404": 100, "500": 5},
+    "response_times": {"avg": 25.5, "p95": 100.0}
   }
 }
 ```
+
+### Key Statistics Fields
+
+| Section | Fields | Description |
+|---------|--------|-------------|
+| cpu | count, percent | CPU cores and utilization |
+| db | OpenConnections, InUse, Idle, WaitCount | Database pool stats |
+| disk | usage, partitions, ioCounters | Storage metrics |
+| host | info, temperatures | System information |
+| load | avg (1/5/15 min) | System load averages |
+| memory | virtual, swap | Memory utilization |
+| process | count, top_processes | Process information |
+| web | uptime, status_codes, response_times | HTTP server metrics |
 
 ## Meta Endpoint
 

@@ -616,48 +616,114 @@ curl -X POST 'http://localhost:7337/_config/backend/hostname' \
 
 ---
 
-## Code Bugs Found (Not Wiki)
+## Code Bugs Found During Testing
 
-### BUG-001: SMTP Storage Panic ([#164](https://github.com/daptin/daptin/issues/164))
+| Bug | Issue | Status |
+|-----|-------|--------|
+| SMTP Storage Panic | [#164](https://github.com/daptin/daptin/issues/164) | ✅ Fixed |
+| IMAP Authentication Panic | [#165](https://github.com/daptin/daptin/issues/165) | ✅ Fixed |
 
-**File:** `server/resource/resource_create.go:1014`
-**Severity:** Critical
-**Impact:** SMTP email receiving completely broken
+### Note: Config API Quoting
 
-```go
-// Current (broken):
-data := obj.(api2go.Api2GoModel)
-
-// Called with pointer from mail_adapter.go:475:
-dbResource.Cruds["mail"].Create(&model, *req)
-```
-
-**Fix:** Either change type assertion to handle pointer, or change caller to not pass pointer.
-
-### BUG-002: IMAP Authentication Panic ([#165](https://github.com/daptin/daptin/issues/165))
-
-**Location:** IMAP backend login handler
-**Severity:** Critical
-**Impact:** IMAP authentication completely broken
-
-```
-panic serving: interface conversion: interface {} is daptinid.DaptinReferenceId, not string
-```
-
-**Root Cause:** Similar type mismatch - code expects `string` but receives `daptinid.DaptinReferenceId`.
-
-### BUG-003: Config API Value Quoting
-
-**Severity:** Medium
-**Impact:** Config values with JSON Content-Type get double-quoted
-
-When using `Content-Type: application/json`:
-- Sent: `"true"` (JSON string)
-- Stored: `"\"true\""` (escaped quotes)
-
-**Workaround:** Use `Content-Type: text/plain` and send raw values:
+When setting config values, use `Content-Type: text/plain` instead of JSON to avoid double-quoting:
 ```bash
 curl -X POST '/_config/backend/imap.enabled' \
   -H 'Content-Type: text/plain' \
   -d 'true'
+```
+
+---
+
+## Mail Lifecycle - Verified Working
+
+### Setup Requirements
+
+1. **Certificate** - Self-signed TLS for SMTP hostname (e.g., `mail.test.local`)
+2. **Certificate** - Self-signed TLS for IMAP hostname (e.g., `imap.mail.test.local`)
+3. **Mail Server** - Configured with hostname, port, auth settings
+4. **Mail Account** - Created with bcrypt-hashed password
+5. **Config** - `imap.enabled=true` via config API
+
+### SMTP Inbound Flow
+
+```bash
+# 1. Authentication (LOGIN method with base64 credentials)
+AUTH LOGIN
+# username base64
+# password base64
+235 Authentication succeeded
+
+# 2. Send email
+MAIL FROM:<sender@example.com>
+RCPT TO:<noreply@mail.test.local>
+DATA
+Subject: Test
+Body content
+.
+250 2.0.0 OK: queued as [hash]
+```
+
+**Processing:**
+- SPF check (fails gracefully if DNS unavailable)
+- DKIM verification (adds to spam score if failed)
+- Spam scoring
+- Auto-creates mailbox (INBOX or Spam based on score)
+- Stores in `mail` table with full envelope data
+
+### IMAP Access Flow
+
+```bash
+# 1. Connect with STARTTLS
+openssl s_client -connect localhost:1143 -starttls imap
+
+# 2. Login
+a login user@domain.com password
+a OK LOGIN completed
+
+# 3. List mailboxes (auto-creates standard folders)
+b list "" "*"
+* LIST (\HasNoChildren) "\\" INBOX
+* LIST () "\\" "Draft"
+* LIST () "\\" "Spam"
+* LIST () "\\" "Archive"
+* LIST () "\\" "Trash"
+* LIST () "\\" "Sent"
+
+# 4. Select and fetch
+c select INBOX
+* 2 EXISTS
+* 2 RECENT
+```
+
+### Verified Features
+
+| Feature | Notes |
+|---------|-------|
+| SMTP AUTH LOGIN | bcrypt password verification |
+| SMTP inbound storage | Stores to database |
+| SPF checking | Graceful failure if DNS unavailable |
+| DKIM verification | Affects spam score |
+| Spam scoring | Threshold-based mailbox routing |
+| IMAP STARTTLS | Self-signed cert support |
+| IMAP LOGIN | bcrypt password verification |
+| IMAP LIST | Auto-creates standard folders |
+| IMAP SELECT | Returns EXISTS/RECENT counts |
+
+### What's Not Yet Tested
+
+- SMTP relay/forwarding (authenticated external delivery)
+- IMAP FETCH body content
+- IMAP SEARCH
+- IMAP STORE (flag changes)
+- IMAP COPY/MOVE
+- Email attachments handling
+- POP3 (if supported)
+
+### Password Management Note
+
+Mail account passwords must be bcrypt hashed. When creating via REST API, if the password isn't automatically hashed, generate manually:
+
+```go
+hash, _ := resource.BcryptHashString("password")
+// Then update via SQL or API
 ```

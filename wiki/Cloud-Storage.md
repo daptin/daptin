@@ -313,3 +313,93 @@ curl -X POST http://localhost:6336/action/cloud_store/cloudstore_sync \
     }
   }'
 ```
+
+## Static Site Hosting
+
+### Create Site on Cloud Storage
+
+Deploy a static website to cloud storage:
+
+```bash
+curl -X POST http://localhost:6336/action/cloud_store/cloudstore.site.create \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "attributes": {
+      "cloud_store_id": "STORE_ID",
+      "site_path": "/website",
+      "files": [{
+        "name": "index.html",
+        "file": "data:text/html;base64,..."
+      }]
+    }
+  }'
+```
+
+### Sync Site to Storage
+
+```bash
+curl -X POST http://localhost:6336/action/site/site.storage.sync \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "attributes": {
+      "site_id": "SITE_REFERENCE_ID"
+    }
+  }'
+```
+
+## Site File Operations
+
+### List Site Files
+
+```bash
+curl -X POST http://localhost:6336/action/site/site.file.list \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "attributes": {
+      "site_id": "SITE_REFERENCE_ID",
+      "path": "/"
+    }
+  }'
+```
+
+### Get Site File
+
+```bash
+curl -X POST http://localhost:6336/action/site/site.file.get \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "attributes": {
+      "site_id": "SITE_REFERENCE_ID",
+      "path": "/index.html"
+    }
+  }'
+```
+
+### Delete Site File
+
+```bash
+curl -X POST http://localhost:6336/action/site/site.file.delete \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "attributes": {
+      "site_id": "SITE_REFERENCE_ID",
+      "path": "/old-page.html"
+    }
+  }'
+```
+
+## Import Files from Cloud Storage
+
+Import files from an external cloud storage into Daptin:
+
+```bash
+curl -X POST http://localhost:6336/action/cloud_store/cloud_store.files.import \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "attributes": {
+      "cloud_store_id": "SOURCE_STORE_ID",
+      "path": "/import",
+      "target_table": "document"
+    }
+  }'
+```
