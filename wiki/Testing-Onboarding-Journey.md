@@ -452,4 +452,119 @@ The action route is `/action/:typename/:actionName` (2 segments after `/action/`
 9. mail_box creation missing required fields → **Needs `attributes`, `flags`, `permanent_flags`**
 10. SMTP daemon lifecycle not documented → **Requires Daptin restart if no servers at startup**
 
-### Total: 16 bugs = $160
+### Total: 16 wiki bugs = $160
+
+---
+
+## Test 8: SMTP Mail Send/Receive (LIVE TEST)
+
+### Setup Summary
+- Mail server: `mail.test.local` on port 2525
+- Mail account: `noreply@mail.test.local`
+- Mailbox: `INBOX`
+
+### SMTP Server Status
+After restart with mail_server configured:
+```
+SMTP server started on 0.0.0.0:2525
+TLS certificates auto-generated for mail.test.local
+```
+
+### SMTP Receive Test
+
+```bash
+echo "EHLO localhost" | nc localhost 2525
+# 220 mail.test.local SMTP Guerrilla(unknown)
+# 250-SIZE 10485760
+# 250-STARTTLS
+# 250-AUTH LOGIN
+```
+
+**Result:** SMTP server responds correctly.
+
+### SMTP Storage Bug (CRITICAL)
+
+When sending email via SMTP, storage fails with panic:
+
+```
+panic: interface conversion: interface {} is *api2go.Api2GoModel, not api2go.Api2GoModel
+```
+
+**Location:** `server/resource/resource_create.go:1014`
+
+**Root Cause:**
+- `mail_adapter.go:475` calls `dbResource.Cruds["mail"].Create(&model, *req)`
+- Passes pointer `*api2go.Api2GoModel`
+- But `resource_create.go:1014` expects non-pointer `api2go.Api2GoModel`
+
+**Impact:** SMTP email receiving is broken - emails cannot be stored.
+
+### Manual Email Creation (API Works)
+
+```bash
+curl -X POST http://localhost:7337/api/mail \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "mail",
+      "attributes": {
+        "message_id": "<test@local>",
+        "mail_id": "test-001",
+        "from_address": "sender@example.com",
+        "to_address": "noreply@mail.test.local",
+        "reply_to_address": "sender@example.com",
+        "sender_address": "sender@example.com",
+        "subject": "Test Email",
+        "body": "Email body",
+        "mail": "Raw email content",
+        ...
+      },
+      "relationships": {
+        "mail_box_id": {"data": {"type": "mail_box", "id": "MAILBOX_ID"}}
+      }
+    }
+  }'
+```
+
+**Result:** Email created successfully via REST API.
+
+### Required Fields for mail Table
+
+| Field | Type | Required |
+|-------|------|----------|
+| message_id | label | Yes |
+| mail_id | label | Yes |
+| from_address | label | Yes |
+| to_address | label | Yes |
+| reply_to_address | label | Yes |
+| sender_address | label | Yes |
+| subject | label | Yes |
+| body | label | Yes |
+| mail | gzip/blob | Yes (raw email) |
+| internal_date | datetime | Yes |
+| hash | label | Yes |
+| content_type | content | Yes |
+| recipient | label | Yes |
+| ip_addr | label | Yes |
+| return_path | label | Yes |
+
+---
+
+## Code Bugs Found (Not Wiki)
+
+### BUG-001: SMTP Storage Panic
+
+**File:** `server/resource/resource_create.go:1014`
+**Severity:** Critical
+**Impact:** SMTP email receiving completely broken
+
+```go
+// Current (broken):
+data := obj.(api2go.Api2GoModel)
+
+// Called with pointer from mail_adapter.go:475:
+dbResource.Cruds["mail"].Create(&model, *req)
+```
+
+**Fix:** Either change type assertion to handle pointer, or change caller to not pass pointer.
