@@ -8,8 +8,118 @@ Daptin includes a full SMTP server for:
 - Receiving emails
 - DKIM signing
 - TLS encryption
+- Authenticated SMTP relay
 
 **Note:** Direct email sending via REST API is not available. The `mail.send` and `aws.mail.send` are internal performers used by actions like password reset. To send emails programmatically, create a custom action that uses these performers in OutFields.
+
+## Known Issue - Inbound Email Storage
+
+⚠️ **Critical Bug:** There is a known issue where inbound emails fail to store due to a type assertion error in the storage layer (`mail_adapter.go:475` passes a pointer but `resource_create.go:1014` expects a value). This causes a panic when receiving emails via SMTP.
+
+**Workaround:** Create emails via the REST API (see [Manual Email Creation](#manual-email-creation) section below). Outbound SMTP with authentication works correctly.
+
+## Complete Setup Guide
+
+The SMTP server requires proper setup order. Follow these steps:
+
+### Step 1: Create TLS Certificate
+
+```bash
+# Create certificate record
+CERT_RESPONSE=$(curl -s -X POST http://localhost:6336/api/certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "certificate",
+      "attributes": {
+        "hostname": "mail.example.com"
+      }
+    }
+  }')
+CERT_ID=$(echo $CERT_RESPONSE | jq -r '.data.id')
+
+# Generate self-signed certificate
+curl -X POST http://localhost:6336/action/certificate/generate_self_certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"attributes\":{}, \"certificate_id\": \"$CERT_ID\"}"
+```
+
+### Step 2: Create Mail Server
+
+```bash
+curl -X POST http://localhost:6336/api/mail_server \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "mail_server",
+      "attributes": {
+        "hostname": "mail.example.com",
+        "is_enabled": true,
+        "listen_interface": "0.0.0.0:465",
+        "always_on_tls": false,
+        "max_size": 10485760,
+        "max_clients": 100
+      }
+    }
+  }'
+```
+
+### Step 3: Restart Daptin
+
+**Important:** The SMTP daemon is initialized at Daptin startup. After creating your first mail server, you must restart Daptin.
+
+### Step 4: Create Mail Account
+
+```bash
+curl -X POST http://localhost:6336/api/mail_account \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "mail_account",
+      "attributes": {
+        "username": "noreply@example.com",
+        "password": "account-password",
+        "password_md5": "account-password"
+      },
+      "relationships": {
+        "mail_server_id": {
+          "data": {"type": "mail_server", "id": "SERVER_ID"}
+        }
+      }
+    }
+  }'
+```
+
+### Step 5: Create Mailbox
+
+```bash
+curl -X POST http://localhost:6336/api/mail_box \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "mail_box",
+      "attributes": {
+        "name": "INBOX",
+        "subscribed": true,
+        "uidvalidity": 1,
+        "nextuid": 1,
+        "attributes": "\\HasNoChildren",
+        "flags": "\\Seen \\Answered \\Flagged \\Deleted \\Draft",
+        "permanent_flags": "\\Seen \\Answered \\Flagged \\Deleted \\Draft \\*"
+      },
+      "relationships": {
+        "mail_account_id": {
+          "data": {"type": "mail_account", "id": "ACCOUNT_ID"}
+        }
+      }
+    }
+  }'
+```
 
 ## Ports
 
@@ -288,6 +398,153 @@ curl 'http://localhost:6336/api/mail_box?query=[{"column":"mail_account_id","ope
   -H "Authorization: Bearer $TOKEN"
 ```
 
+## SMTP Authentication
+
+The SMTP server supports LOGIN authentication. Credentials are base64-encoded.
+
+### Testing Authenticated SMTP
+
+```bash
+# Base64 encode credentials
+USERNAME_B64=$(echo -n "noreply@example.com" | base64)
+PASSWORD_B64=$(echo -n "account-password" | base64)
+
+# Send authenticated email
+{
+  echo "EHLO client.example.com"
+  sleep 0.2
+  echo "AUTH LOGIN"
+  sleep 0.2
+  echo "$USERNAME_B64"
+  sleep 0.2
+  echo "$PASSWORD_B64"
+  sleep 0.2
+  echo "MAIL FROM:<noreply@example.com>"
+  sleep 0.2
+  echo "RCPT TO:<recipient@external.com>"
+  sleep 0.2
+  echo "DATA"
+  sleep 0.2
+  echo "Subject: Test Email"
+  echo "From: noreply@example.com"
+  echo "To: recipient@external.com"
+  echo ""
+  echo "Email body content."
+  echo "."
+  sleep 0.2
+  echo "QUIT"
+} | nc localhost 465
+```
+
+**Expected responses:**
+- `334 VXNlcm5hbWU6` - Server requesting username
+- `334 UGFzc3dvcmQ6` - Server requesting password
+- `235 Authentication succeeded` - Login successful
+- `250 2.0.0 OK: queued as HASH` - Email queued
+
+## Manual Email Creation
+
+Due to the inbound storage bug, create emails via REST API:
+
+```bash
+curl -X POST http://localhost:6336/api/mail \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "mail",
+      "attributes": {
+        "message_id": "<unique-id@example.com>",
+        "mail_id": "unique-hash",
+        "from_address": "sender@example.com",
+        "to_address": "noreply@example.com",
+        "sender_address": "sender@example.com",
+        "subject": "Email Subject",
+        "body": "Plain text body",
+        "mail": "From: sender@example.com\r\nTo: noreply@example.com\r\nSubject: Email Subject\r\n\r\nEmail body.",
+        "spam_score": 0,
+        "spam": false,
+        "hash": "unique-hash",
+        "content_type": "text/plain",
+        "reply_to_address": "sender@example.com",
+        "internal_date": "2026-01-23T12:00:00Z",
+        "recipient": "noreply@example.com",
+        "has_attachment": false,
+        "ip_addr": "127.0.0.1",
+        "return_path": "sender@example.com",
+        "is_tls": false,
+        "seen": false,
+        "recent": true,
+        "flags": "\\Recent",
+        "size": 100
+      },
+      "relationships": {
+        "mail_box_id": {"data": {"type": "mail_box", "id": "MAILBOX_ID"}},
+        "user_account_id": {"data": {"type": "user_account", "id": "USER_ID"}}
+      }
+    }
+  }'
+```
+
+**Required mail fields:**
+| Field | Description |
+|-------|-------------|
+| message_id | Unique message identifier |
+| mail_id | Hash identifier |
+| from_address | Sender email |
+| to_address | Recipient email |
+| sender_address | Sender for SMTP envelope |
+| subject | Email subject |
+| body | Plain text body |
+| mail | Full RFC 822 message (can be gzip compressed) |
+| reply_to_address | Reply-to address |
+| ip_addr | Sender IP |
+| return_path | Return path address |
+| mail_box_id | Relationship to mailbox |
+| user_account_id | Relationship to user |
+
+## IMAP Server
+
+Daptin includes an IMAP server for email retrieval.
+
+### Enable IMAP
+
+```bash
+# Enable IMAP via config API
+curl -X POST 'http://localhost:6336/_config/backend/imap.enabled' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '"true"'
+
+# Set hostname
+curl -X POST 'http://localhost:6336/_config/backend/hostname' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '"mail.example.com"'
+
+# Optionally set listen interface (default :1143)
+curl -X POST 'http://localhost:6336/_config/backend/imap.listen_interface' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '":1143"'
+```
+
+**Restart Daptin after enabling IMAP.**
+
+### IMAP Authentication
+
+Uses the same mail_account credentials as SMTP:
+- Username: `noreply@example.com`
+- Password: Plain password (not base64 encoded)
+
+### IMAP Ports
+
+| Port | Protocol |
+|------|----------|
+| 143 | IMAP |
+| 993 | IMAPS (TLS) |
+| 1143 | Default Daptin IMAP |
+
 ## Disable SMTP
 
 Via environment variable:
@@ -305,12 +562,70 @@ curl http://localhost:6336/api/mail_server \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-### Test Connection
+### Test SMTP Connection
 
 ```bash
+# Non-TLS test
+{
+  echo "EHLO test.local"
+  sleep 0.2
+  echo "QUIT"
+} | nc localhost 2525
+
+# TLS test
 openssl s_client -connect localhost:465
+```
+
+**Expected EHLO response:**
+```
+250-mail.example.com Hello
+250-SIZE 10485760
+250-PIPELINING
+250-STARTTLS
+250-AUTH LOGIN
+250-ENHANCEDSTATUSCODES
+250 HELP
 ```
 
 ### View Logs
 
-Check server logs for SMTP activity.
+Check server logs for SMTP activity. Key log messages:
+
+```
+# Successful startup
+INFO Setup SMTP server at [0.0.0.0:2525] for hostname [mail.example.com]
+INFO Starting: 0.0.0.0:2525
+INFO Listening on TCP 0.0.0.0:2525
+
+# SMTP disabled (no servers configured)
+INFO SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers configured
+
+# Storage error (known bug)
+panic: interface conversion: interface {} is *api2go.Api2GoModel, not api2go.Api2GoModel
+```
+
+### Common Issues
+
+**Issue: SMTP server doesn't start after creating mail_server**
+- Cause: SMTP daemon initializes at startup only
+- Solution: Restart Daptin after creating your first mail server
+
+**Issue: `sync_mail_servers` action returns empty response**
+- Cause: SMTP daemon was not initialized (no servers existed at startup)
+- Solution: Restart Daptin
+
+**Issue: `554 5.5.0 Error: storage failed`**
+- Cause: Known bug in mail storage code
+- Workaround: Create emails via REST API instead
+
+**Issue: `554 5.7.1 Client host rejected: Access denied`**
+- Cause: Unauthenticated sender fails SPF validation
+- Solution: Use SMTP authentication (AUTH LOGIN)
+
+**Issue: `NOT NULL constraint failed: mail_account.password_md5`**
+- Cause: `password_md5` field is required
+- Solution: Include `password_md5` with same value as `password`
+
+**Issue: `NOT NULL constraint failed: mail_box.attributes`**
+- Cause: `attributes`, `flags`, `permanent_flags` fields are required
+- Solution: Include all required mailbox fields (see Step 5 in setup guide)

@@ -529,6 +529,71 @@ curl -X POST http://localhost:7337/api/mail \
 
 **Result:** Email created successfully via REST API.
 
+### Authenticated SMTP Test (WORKS)
+
+```bash
+# Base64 credentials
+USERNAME_B64=$(echo -n "noreply@mail.test.local" | base64)
+PASSWORD_B64=$(echo -n "mailpassword123" | base64)
+
+# Send authenticated email
+{
+  echo "EHLO test.local"
+  sleep 0.2
+  echo "AUTH LOGIN"
+  sleep 0.2
+  echo "$USERNAME_B64"
+  sleep 0.2
+  echo "$PASSWORD_B64"
+  sleep 0.2
+  echo "MAIL FROM:<noreply@mail.test.local>"
+  sleep 0.2
+  echo "RCPT TO:<test@external.com>"
+  sleep 0.2
+  echo "DATA"
+  sleep 0.2
+  echo "Subject: Test"
+  echo ""
+  echo "Body"
+  echo "."
+  sleep 0.2
+  echo "QUIT"
+} | nc localhost 2525
+```
+
+**Result:**
+```
+334 VXNlcm5hbWU6
+334 UGFzc3dvcmQ6
+235 Authentication succeeded
+250 2.1.0 OK
+250 2.1.5 OK
+354 Enter message, ending with '.' on a line by itself
+250 2.0.0 OK: queued as <hash>
+```
+
+**Observation:** Authenticated SMTP for outbound works. Inbound storage fails.
+
+### IMAP Configuration
+
+IMAP requires explicit configuration:
+
+```bash
+# Enable IMAP
+curl -X POST 'http://localhost:7337/_config/backend/imap.enabled' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '"true"'
+
+# Set hostname
+curl -X POST 'http://localhost:7337/_config/backend/hostname' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '"mail.test.local"'
+```
+
+**Note:** Requires Daptin restart after enabling.
+
+**IMAP Port:** Default `:1143` (configurable via `imap.listen_interface`)
+
 ### Required Fields for mail Table
 
 | Field | Type | Required |
