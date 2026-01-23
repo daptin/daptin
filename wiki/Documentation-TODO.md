@@ -36,7 +36,7 @@ Track documentation progress for all Daptin features.
 | Users & Groups | Users-and-Groups.md | 📝 | Needs verification |
 | Permissions | Permissions.md | 📝 | Needs verification |
 | OAuth Providers | - | ❌ | 4 performers exist, no dedicated doc |
-| 2FA/OTP | Two-Factor-Auth.md | 📝 | Verified, needs depth |
+| 2FA/OTP | Two-Factor-Auth.md | ✅ | Complete - verified and corrected |
 | JWT Tokens | - | ❌ | `jwt.token` performer undocumented |
 
 ### Mail System
@@ -180,6 +180,7 @@ Track documentation progress for all Daptin features.
 | Feature | Date | Commit |
 |---------|------|--------|
 | Mail (SMTP/IMAP) | 2026-01-24 | Full lifecycle |
+| 2FA/OTP | 2026-01-24 | Verified and corrected |
 
 ---
 
