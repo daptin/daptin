@@ -391,10 +391,22 @@ func main() {
 		fmt.Printf("Failed to create olric cache: %v", err)
 	}
 
+	// Start Olric and wait for it to be ready
+	olricStarted := make(chan struct{})
 	go func() {
 		err = emb.Start()
 		resource.CheckErr(err, "failed to start cache server")
+		close(olricStarted)
 	}()
+
+	// Wait for Olric to start (with timeout)
+	select {
+	case <-olricStarted:
+		log.Infof("Olric started successfully")
+	case <-time.After(10 * time.Second):
+		log.Warnf("Olric start timeout, proceeding anyway")
+	}
+
 	olricDb = emb.NewEmbeddedClient()
 
 	var membersTopic *olric.PubSub

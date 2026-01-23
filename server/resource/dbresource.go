@@ -591,9 +591,9 @@ func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64, transa
 	return id
 
 }
-func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string) error {
+func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string, transaction *sqlx.Tx) error {
 
-	//log.Printf("Update mail flags for [%v][%v]: %v", mailBoxId, mailId, newFlags)
+	log.Tracef("[UpdateMailFlags] Updating flags for mailbox=%d mail=%d flags=%v", mailBoxId, mailId, newFlags)
 	seen := false
 	recent := false
 	deleted := false
@@ -607,13 +607,13 @@ func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, new
 	if HasAnyFlag(newFlags, []string{"\\seen"}) {
 		seen = true
 		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
-		log.Printf("New flags: [%v]", newFlags)
+		log.Tracef("[UpdateMailFlags] After removing Recent: %v", newFlags)
 	}
 
 	if HasAnyFlag(newFlags, []string{"\\expunge", "\\deleted"}) {
 		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
 		newFlags = backendutil.UpdateFlags(newFlags, imap.AddFlags, []string{"\\Seen"})
-		log.Printf("New flags: [%v]", newFlags)
+		log.Tracef("[UpdateMailFlags] After expunge/deleted: %v", newFlags)
 		deleted = true
 		seen = true
 	}
@@ -634,7 +634,12 @@ func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, new
 		return err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	if transaction != nil {
+		_, err = transaction.Exec(query, args...)
+	} else {
+		_, err = dbResource.db.Exec(query, args...)
+	}
+	log.Tracef("[UpdateMailFlags] Update complete, err=%v", err)
 	return err
 
 }

@@ -250,9 +250,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						mailSize = len(mailBytes)
 						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
-						ur, _ := url.Parse("/mail")
+						ur, _ := url.Parse("/api/mail")
 						pr := &http.Request{
-							URL: ur,
+							URL:    ur,
+							Method: "POST",
 						}
 
 						transaction, err := dbResource.Connection().Beginx()

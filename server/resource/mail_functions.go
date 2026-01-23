@@ -3,13 +3,15 @@ package resource
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
-	"net/http"
-	"time"
 )
 
 // Returns the user account row of a user by looking up on email
@@ -46,8 +48,10 @@ func (dbResource *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName
 func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 	sessionUser *auth.SessionUser, mailBoxName string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
+	mailBoxUrl, _ := url.Parse("/api/mail_box")
 	httpRequest := &http.Request{
 		Method: "POST",
+		URL:    mailBoxUrl,
 	}
 
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
