@@ -5,10 +5,11 @@ Built-in SMTP email server powered by go-guerrilla.
 ## Overview
 
 Daptin includes a full SMTP server for:
-- Sending emails
 - Receiving emails
 - DKIM signing
 - TLS encryption
+
+**Note:** Direct email sending via REST API is not available. The `mail.send` and `aws.mail.send` are internal performers used by actions like password reset. To send emails programmatically, create a custom action that uses these performers in OutFields.
 
 ## Ports
 
@@ -74,23 +75,51 @@ curl -X POST http://localhost:6336/api/mail_account \
 
 ## Sending Email
 
-### Via mail.send Action
+### About Email Sending
 
-```bash
-curl -X POST http://localhost:6336/action/world/mail.send \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "attributes": {
-      "from": "noreply@example.com",
-      "to": ["user@example.com"],
-      "subject": "Hello",
-      "body": "<h1>Hello World</h1>",
-      "mail_server_hostname": "mail.example.com"
+Daptin's mail functionality (`mail.send` and `aws.mail.send`) are **internal performers**, not standalone REST API endpoints. They are designed to be used within action OutFields.
+
+### Built-in Usage
+
+The `mail.send` performer is used internally by:
+- `reset-password` action - sends OTP verification code
+- `reset-password-verify` action - sends new password
+
+### Custom Actions
+
+To send emails programmatically, create a custom action with `mail.send` in its OutFields:
+
+```json
+{
+  "OutFields": [
+    {
+      "Type": "mail.send",
+      "Method": "EXECUTE",
+      "Attributes": {
+        "to": "~recipient_email",
+        "subject": "Your Subject",
+        "body": "Email body content",
+        "from": "noreply@example.com",
+        "mail_server_hostname": "mail.example.com"
+      }
     }
-  }'
+  ]
+}
 ```
 
-### Parameters
+### mail.send Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| from | string | Yes | Sender address |
+| to | array | Yes | Recipients |
+| subject | string | Yes | Subject line |
+| body | string | Yes | Email content |
+| mail_server_hostname | string | No | Use specific mail server |
+
+### aws.mail.send Parameters
+
+For AWS SES, the performer expects a stored credential reference:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -100,25 +129,9 @@ curl -X POST http://localhost:6336/action/world/mail.send \
 | bcc | array | No | BCC recipients |
 | subject | string | Yes | Subject line |
 | body | string | Yes | Email content |
-| mail_server_hostname | string | No | Specific server |
+| credential | string | Yes | Name of stored AWS credential |
 
-### AWS SES Alternative
-
-```bash
-curl -X POST http://localhost:6336/action/world/aws.mail.send \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "attributes": {
-      "from": "noreply@example.com",
-      "to": ["user@example.com"],
-      "subject": "Hello",
-      "body": "Plain text body",
-      "region": "us-east-1",
-      "access_key": "AKIAXXXXXXXX",
-      "secret_key": "secret"
-    }
-  }'
-```
+**Note:** Create an AWS credential first with `access_key`, `secret_key`, `region`, and `token` fields.
 
 ## DKIM Signing
 
@@ -157,22 +170,55 @@ _dmarc.example.com IN TXT "v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com"
 
 ### Generate Self-Signed
 
+**Note:** Certificate actions require an existing certificate record. First create a certificate record, then use this action to generate the actual certificate.
+
 ```bash
-curl -X POST http://localhost:6336/action/world/generate_self_tls_certificate \
+# First create a certificate record
+curl -X POST http://localhost:6336/api/certificate \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"hostname": "mail.example.com"}}'
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "certificate",
+      "attributes": {
+        "hostname": "mail.example.com"
+      }
+    }
+  }'
+
+# Then generate the certificate (use the certificate ID from above)
+curl -X POST http://localhost:6336/action/certificate/generate_self_certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {"hostname": "mail.example.com"}, "certificate_id": "CERTIFICATE_ID"}'
 ```
 
 ### Let's Encrypt
 
 ```bash
-curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
+# First create a certificate record (if not already created)
+curl -X POST http://localhost:6336/api/certificate \
   -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "certificate",
+      "attributes": {
+        "hostname": "mail.example.com"
+      }
+    }
+  }'
+
+# Then generate ACME certificate (use the certificate ID from above)
+curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
   -d '{
     "attributes": {
       "hostname": "mail.example.com",
       "email": "admin@example.com"
-    }
+    },
+    "certificate_id": "CERTIFICATE_ID"
   }'
 ```
 
@@ -181,7 +227,7 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 Reload configuration:
 
 ```bash
-curl -X POST http://localhost:6336/action/mail_server/mail_servers_sync \
+curl -X POST http://localhost:6336/action/mail_server/sync_mail_servers \
   -H "Authorization: Bearer $TOKEN"
 ```
 
