@@ -26,19 +26,19 @@ Track documentation progress for all Daptin features.
 | CRUD Operations | CRUD-Operations.md | 📝 | Needs verification |
 | API Overview | API-Overview.md, API-Reference.md | 📝 | Reference exists |
 | Filtering/Pagination | Filtering-and-Pagination.md | 📝 | Needs verification |
-| Relationships | Relationships.md | 📝 | Needs verification |
+| Relationships | Relationships.md | ✅ | Verified with API testing |
 | Aggregation | Aggregation-API.md | 📝 | Needs verification |
 
 ### Authentication & Authorization
 
 | Feature | Wiki File | Status | Notes |
 |---------|-----------|--------|-------|
-| Basic Auth | Authentication.md | 📝 | Needs verification |
+| Authentication | Authentication.md | ✅ | JWT, OAuth, 2FA overview documented |
 | Users & Groups | Users-and-Groups.md | 📝 | Needs verification |
-| Permissions | Permissions.md | 📝 | Needs verification |
-| OAuth Providers | - | ❌ | 4 performers exist, no dedicated doc |
+| Permissions | Permissions.md | ✅ | Verified: bit structure, check order, join table permissions |
+| OAuth Providers | Authentication.md | ✅ | Documented oauth_connect/oauth_token tables, flow, allow_login |
 | 2FA/OTP | Two-Factor-Auth.md | ✅ | Complete - verified and corrected |
-| JWT Tokens | - | ❌ | `jwt.token` performer undocumented |
+| JWT Tokens | Authentication.md | ✅ | Documented jwt.token action and config |
 
 ### Mail System
 
@@ -101,15 +101,22 @@ Track documentation progress for all Daptin features.
 | Caching | Caching.md | 📝 | Needs verification |
 | Encryption | Encryption.md | 📝 | Needs verification |
 
+### Meta Documentation
+
+| Feature | Wiki File | Status | Notes |
+|---------|-----------|--------|-------|
+| Documentation Guidelines | Documentation-Guidelines.md | ✅ | Admin setup, testing rules |
+| Getting Started | Getting-Started-Guide.md | ✅ | Fixed admin bootstrapping |
+
 ---
 
 ## Undocumented System Tables
 
 | Table | Purpose | Wiki Status |
 |-------|---------|-------------|
-| `integration` | External service integrations | ❌ Integrations.md is stub |
+| `integration` | External service integrations | ✅ Verified against code |
 | `marketplace` | Plugin/extension marketplace | ❌ None |
-| `data_exchange` | Import/export jobs | 📝 Data-Exchange.md shallow |
+| `data_exchange` | Import/export jobs | ✅ Data-Exchange.md + Data-Actions.md verified |
 | `template` | Rendering templates | ❌ None |
 | `feed` | RSS/Atom feeds | 📝 RSS-Atom-Feeds.md exists |
 | `collection` | Grouped items | ❌ None |
@@ -118,7 +125,7 @@ Track documentation progress for all Daptin features.
 | `stream` | Data streams | ❌ None |
 | `calendar` | Calendar entries | 📝 Only in CalDAV doc |
 | `json_schema` | Schema definitions | ❌ None |
-| `credential` | Stored credentials | ❌ Mentioned only |
+| `credential` | Stored credentials | ✅ Credentials.md created |
 
 ---
 
@@ -126,7 +133,7 @@ Track documentation progress for all Daptin features.
 
 | Performer | Purpose | Priority |
 |-----------|---------|----------|
-| `$network.request` | Make HTTP requests from actions | High |
+| `$network.request` | Make HTTP requests from actions | ✅ Documented in Custom-Actions.md |
 | `$transaction` | Database transactions in actions | Medium |
 | `command.execute` | Execute system commands | Medium |
 | `generate.random.data` | Generate test data | Low |
@@ -139,10 +146,10 @@ Track documentation progress for all Daptin features.
 | `site.file.list` | List site files | Medium |
 | `site.file.delete` | Delete site file | Medium |
 | `site.storage.sync` | Sync site storage | Medium |
-| `oauth.client.redirect` | OAuth redirect | High |
-| `oauth.login.response` | OAuth callback | High |
-| `oauth.profile.exchange` | Get OAuth profile | High |
-| `oauth.token` | Generate OAuth token | High |
+| `oauth.client.redirect` | OAuth redirect | ✅ Documented in Authentication.md |
+| `oauth.login.response` | OAuth callback | ✅ Documented in Authentication.md |
+| `oauth.profile.exchange` | Get OAuth profile | ✅ Documented in Authentication.md |
+| `oauth.token` | Generate OAuth token | ✅ Documented in Authentication.md |
 | `world.column.delete` | Delete table column | Low |
 | `world.column.rename` | Rename table column | Low |
 | `world.delete` | Delete table | Low |
@@ -154,11 +161,11 @@ Track documentation progress for all Daptin features.
 ## Priority Queue
 
 ### High Priority
-1. [ ] OAuth providers (login with Google/GitHub/etc)
-2. [ ] Integrations system
-3. [ ] Data import/export lifecycle
-4. [ ] Credentials management
-5. [ ] `$network.request` performer
+1. [x] OAuth providers (login with Google/GitHub/etc) - Documented in Authentication.md
+2. [x] Integrations system - Verified against code, install_integration action
+3. [x] Data import/export lifecycle - Fixed action URLs, removed non-existent actions
+4. [x] Credentials management - Created Credentials.md
+5. [x] `$network.request` performer - Documented in Custom-Actions.md
 
 ### Medium Priority
 6. [ ] Templates and rendering
@@ -185,6 +192,17 @@ Track documentation progress for all Daptin features.
 | Core Concepts | 2026-01-24 | Foundation doc |
 | Column Types | 2026-01-24 | Verified against code |
 | Schema Definition | 2026-01-24 | Fixed standard columns |
+| Documentation Guidelines | 2026-01-24 | Admin setup, testing rules |
+| Getting Started (admin) | 2026-01-24 | Fixed bootstrapping workflow |
+| Relationships | 2026-01-24 | Verified with API, fixed FK column names |
+| Permissions | 2026-01-24 | Verified bit structure, check order, join table permissions |
+| OAuth Providers | 2026-01-24 | Documented tables, flow, allow_login in Authentication.md |
+| Authentication | 2026-01-24 | JWT, OAuth, 2FA overview, WebSocket auth, password reset |
+| Integrations | 2026-01-24 | OpenAPI install, auth types, dynamic actions |
+| Data Actions | 2026-01-24 | Fixed action URLs, removed non-existent actions |
+| Credentials | 2026-01-24 | New wiki page for secure credential storage |
+| $network.request | 2026-01-24 | HTTP request performer in Custom-Actions.md |
+| Wiki Audit Report | 2026-01-24 | All critical issues resolved (90% complete) |
 
 ---
 
@@ -193,11 +211,27 @@ Track documentation progress for all Daptin features.
 *Add observations during documentation here*
 
 ### Process Learnings
-- Check `columns.go` for table definitions
-- Check `server/actions/` for performers
+- Check `columns.go` for table definitions AND action definitions (SystemActions array)
+- Check `server/actions/` for performers (internal executors)
+- **Critical distinction:**
+  - **Action names** = REST API endpoints (e.g., `register_otp`, `generate_self_certificate`)
+  - **Performer names** = Internal executors used in OutFields (e.g., `otp.generate`, `self.tls.generate`)
 - Performers are internal - not directly callable via REST
 - Actions link tables to performers via OutFields
 - Some features need server restart to take effect
+- Certificate actions have OnType=`certificate`, not `world`
+
+### Critical: Admin Setup for Documentation Sessions
+**ALWAYS set up admin FIRST before testing protected features**
+
+1. Sign up: `POST /action/user_account/signup`
+2. Sign in: `POST /action/user_account/signin`
+3. Become admin: `POST /action/world/become_an_administrator` (NOT user_account!)
+4. Wait for restart, re-signin
+
+See [Documentation-Guidelines.md](Documentation-Guidelines.md) for full setup script.
+
+**Common mistake**: `/action/user_account/become_an_administrator` fails with "no reference id" - the action is on `world` table, not `user_account`.
 
 ### Common Gaps Found
 - Wiki says action name X, code says Y

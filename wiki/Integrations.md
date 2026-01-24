@@ -1,113 +1,255 @@
 # Integrations
 
-API specifications for external service integration.
+External API integration via OpenAPI specifications.
+
+**Related**: [Authentication](Authentication.md) | [Actions Overview](Actions-Overview.md)
+
+**Source of truth**: `server/resource/columns.go` (integration table), `server/actions/action_integration_*.go` (performers)
+
+---
 
 ## Overview
 
-The `integration` table stores API specifications that define:
-- External API endpoints
-- Authentication methods
-- Request/response formats
-- Connection parameters
+The `integration` table stores OpenAPI specifications that define external APIs. When installed, each API operation becomes a callable Daptin action.
+
+**Key features**:
+- OpenAPI v2 (Swagger) and v3 support
+- JSON or YAML specification format
+- Multiple authentication methods
+- Dynamic action creation from API operations
+
+---
 
 ## Integration Table
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `name` | label | Unique integration name |
-| `specification_language` | label | API language (OpenAPI, GraphQL, WSDL) |
-| `specification_format` | label | Format (json, yaml, xml) |
-| `specification` | content | Full API specification |
-| `authentication_type` | label | Auth method |
-| `authentication_specification` | encrypted | Auth credentials |
-| `enable` | bool | Active/inactive |
+| `name` | label | Unique integration name (becomes performer name) |
+| `specification_language` | label | **Must be**: `openapiv2` or `openapiv3` |
+| `specification_format` | label | **Must be**: `json` or `yaml` |
+| `specification` | content | Full OpenAPI specification |
+| `authentication_type` | label | Auth method: `oauth2`, `http`, `apiKey` |
+| `authentication_specification` | encrypted | Auth credentials (JSON, encrypted) |
+| `enable` | truefalse | Active/inactive (default: true) |
+
+**Note**: This table has `DefaultGroups: adminsGroup` - only administrators can manage integrations.
+
+---
 
 ## Specification Languages
 
-| Language | Description |
-|----------|-------------|
-| OpenAPI | REST API specification (Swagger) |
-| GraphQL | GraphQL schema |
-| WSDL | SOAP web services |
-| Custom | Custom format |
+| Value | Description |
+|-------|-------------|
+| `openapiv2` | OpenAPI 2.0 (Swagger) specification |
+| `openapiv3` | OpenAPI 3.0 specification |
+
+**Important**: Values must be lowercase: `openapiv2` or `openapiv3` (not "OpenAPI" or "swagger").
+
+---
 
 ## Authentication Types
 
-| Type | Description |
-|------|-------------|
-| API Key | Header or query parameter API key |
-| OAuth2 | OAuth 2.0 flow |
-| Basic Auth | HTTP Basic Authentication |
-| JWT | JSON Web Token |
-| None | Public API |
+Authentication is configured via `authentication_type` and `authentication_specification` (JSON).
+
+### OAuth2
+
+Uses a stored OAuth token from the `oauth_token` table.
+
+```json
+{
+  "authentication_type": "oauth2",
+  "authentication_specification": {
+    "oauth_token_id": "OAUTH_TOKEN_REFERENCE_ID"
+  }
+}
+```
+
+**Prerequisites**: First configure OAuth provider via `oauth_connect`, complete OAuth flow to get token stored in `oauth_token`. See [Authentication](Authentication.md#oauth-authentication).
+
+### HTTP Basic
+
+```json
+{
+  "authentication_type": "http",
+  "authentication_specification": {
+    "scheme": "basic",
+    "username": "your-username",
+    "password": "your-password"
+  }
+}
+```
+
+### HTTP Bearer Token
+
+```json
+{
+  "authentication_type": "http",
+  "authentication_specification": {
+    "scheme": "bearer",
+    "token": "your-bearer-token"
+  }
+}
+```
+
+### API Key
+
+API key in header, query parameter, or cookie.
+
+**Header**:
+```json
+{
+  "authentication_type": "apiKey",
+  "authentication_specification": {
+    "name": "X-API-Key",
+    "in": "header",
+    "X-API-Key": "your-actual-api-key"
+  }
+}
+```
+
+**Query parameter**:
+```json
+{
+  "authentication_type": "apiKey",
+  "authentication_specification": {
+    "name": "api_key",
+    "in": "query",
+    "api_key": "your-actual-api-key"
+  }
+}
+```
+
+**Cookie**:
+```json
+{
+  "authentication_type": "apiKey",
+  "authentication_specification": {
+    "name": "session",
+    "in": "cookie",
+    "session": "your-session-value"
+  }
+}
+```
+
+---
 
 ## Create Integration
 
-### OpenAPI Integration
+**Admin required** - Only administrators can create integrations.
 
 ```bash
 curl -X POST http://localhost:6336/api/integration \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "integration",
       "attributes": {
-        "name": "payment-gateway",
-        "specification_language": "OpenAPI",
+        "name": "petstore",
+        "specification_language": "openapiv3",
         "specification_format": "json",
-        "specification": "{\"openapi\": \"3.0.0\", \"info\": {\"title\": \"Payment API\", \"version\": \"1.0\"}, \"servers\": [{\"url\": \"https://api.payment.com\"}], \"paths\": {...}}",
-        "authentication_type": "API Key",
-        "authentication_specification": "{\"header\": \"X-API-Key\", \"value\": \"your-api-key\"}",
+        "specification": "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Petstore\",\"version\":\"1.0\"},\"servers\":[{\"url\":\"https://petstore.swagger.io/v2\"}],\"paths\":{\"/pet/{petId}\":{\"get\":{\"operationId\":\"getPetById\",\"parameters\":[{\"name\":\"petId\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\"}}],\"responses\":{\"200\":{\"description\":\"Success\"}}}}}}",
+        "authentication_type": "apiKey",
+        "authentication_specification": "{\"name\":\"api_key\",\"in\":\"header\",\"api_key\":\"special-key\"}",
         "enable": true
       }
     }
   }'
 ```
 
-### API Key Authentication
-
+**Response** includes the `reference_id` needed for installation:
 ```json
 {
-  "authentication_type": "API Key",
-  "authentication_specification": {
-    "header": "X-API-Key",
-    "value": "your-secret-key"
+  "data": {
+    "type": "integration",
+    "id": "019bec12-3456-7890-abcd-ef1234567890",
+    "attributes": {
+      "name": "petstore",
+      "reference_id": "019bec12-3456-7890-abcd-ef1234567890"
+    }
   }
 }
 ```
 
-### OAuth2 Authentication
+---
 
-```json
-{
-  "authentication_type": "OAuth2",
-  "authentication_specification": {
-    "client_id": "your-client-id",
-    "client_secret": "your-client-secret",
-    "token_url": "https://auth.provider.com/token",
-    "scopes": ["read", "write"]
-  }
-}
+## Install Integration
+
+After creating an integration record, install it to create actions for each API operation.
+
+**Action**: `install_integration`
+**OnType**: `integration`
+**Requires instance**: Yes (integration reference_id)
+
+```bash
+curl -X POST "http://localhost:6336/action/integration/INTEGRATION_REF_ID/install_integration" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
-### Basic Auth
+**What happens**:
+1. Parses the OpenAPI specification
+2. Creates an action for each operation (identified by `operationId`)
+3. Maps path/query/body parameters to action input fields
+4. Registers the integration name as a performer
 
-```json
-{
-  "authentication_type": "Basic Auth",
-  "authentication_specification": {
-    "username": "user",
-    "password": "pass"
-  }
-}
+---
+
+## Execute Integration Actions
+
+After installation, each OpenAPI operation becomes a callable action.
+
+**Action names**: Use the `operationId` from the OpenAPI spec
+**OnType**: `integration`
+**InstanceOptional**: true (no instance ID required)
+
+```bash
+# Call the getPetById operation from petstore integration
+curl -X POST "http://localhost:6336/action/integration/getPetById" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "petId": "123"
+    }
+  }'
 ```
+
+**Response**:
+```json
+[
+  {
+    "ResponseType": "petstore.getPetById.response",
+    "Attributes": {
+      "id": 123,
+      "name": "doggie",
+      "status": "available"
+    }
+  },
+  {
+    "ResponseType": "petstore.getPetById.statusCode",
+    "Attributes": 200
+  }
+]
+```
+
+### Parameter Mapping
+
+| OpenAPI Location | Daptin Input |
+|------------------|--------------|
+| Path parameters | `attributes.{paramName}` |
+| Query parameters | `attributes.{paramName}` |
+| Header parameters | `attributes.{paramName}` |
+| Request body fields | `attributes.{fieldName}` |
+
+---
 
 ## Update Integration
 
 ```bash
 curl -X PATCH http://localhost:6336/api/integration/INTEGRATION_ID \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
@@ -120,28 +262,42 @@ curl -X PATCH http://localhost:6336/api/integration/INTEGRATION_ID \
   }'
 ```
 
+**Note**: After updating specification or authentication, re-run `install_integration` to regenerate actions.
+
+---
+
 ## List Integrations
 
 ```bash
 curl http://localhost:6336/api/integration \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+---
 
 ## Get Integration
 
 ```bash
 curl http://localhost:6336/api/integration/INTEGRATION_ID \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+---
 
 ## Delete Integration
 
 ```bash
 curl -X DELETE http://localhost:6336/api/integration/INTEGRATION_ID \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
+**Note**: This removes the integration record but does not automatically remove the installed actions.
+
+---
+
 ## OpenAPI Example
+
+### OpenAPI v3 (JSON)
 
 ```json
 {
@@ -155,6 +311,18 @@ curl -X DELETE http://localhost:6336/api/integration/INTEGRATION_ID \
       "url": "https://api.example.com/v1"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  },
+  "security": [
+    {"ApiKeyAuth": []}
+  ],
   "paths": {
     "/users": {
       "get": {
@@ -166,29 +334,112 @@ curl -X DELETE http://localhost:6336/api/integration/INTEGRATION_ID \
           }
         }
       }
+    },
+    "/users/{userId}": {
+      "get": {
+        "summary": "Get user by ID",
+        "operationId": "getUserById",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
     }
   }
 }
 ```
 
+### OpenAPI v2 (Swagger, YAML)
+
+```yaml
+swagger: "2.0"
+info:
+  title: External API
+  version: "1.0"
+host: api.example.com
+basePath: /v1
+schemes:
+  - https
+securityDefinitions:
+  ApiKeyAuth:
+    type: apiKey
+    in: header
+    name: X-API-Key
+security:
+  - ApiKeyAuth: []
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      responses:
+        200:
+          description: Success
+```
+
+---
+
 ## Security Notes
 
-- Authentication credentials stored encrypted
-- Use environment variables for sensitive values
+- Authentication credentials stored encrypted in `authentication_specification`
+- OAuth2 tokens automatically refresh when expired
+- Only administrators can create/modify integrations
+- Disable integrations when not in use (`enable: false`)
 - Rotate API keys periodically
-- Enable only necessary integrations
+
+---
 
 ## Troubleshooting
 
 ### Integration Not Working
 
-1. Check `enable` is true
-2. Verify specification format is valid
-3. Test authentication credentials
-4. Check API endpoint is reachable
+1. Verify `enable` is true
+2. Check `specification_language` is exactly `openapiv2` or `openapiv3`
+3. Check `specification_format` is exactly `json` or `yaml`
+4. Ensure specification has `servers` array (v3) or `host` (v2)
+5. Verify each operation has `operationId`
+
+### "No servers found" Error
+
+The OpenAPI spec must include server information:
+
+**v3**: `"servers": [{"url": "https://api.example.com"}]`
+**v2**: `"host": "api.example.com"` with `"schemes": ["https"]`
+
+### "no such method" Error
+
+The operation ID doesn't exist in the specification. Check:
+1. The `operationId` spelling matches exactly
+2. The integration was installed after the spec was updated
+3. The operation exists in the spec's `paths`
 
 ### Authentication Errors
 
-1. Verify credentials are correct
-2. Check token expiration
-3. Ensure proper authentication type selected
+1. For OAuth2: Verify `oauth_token_id` references a valid token
+2. For HTTP: Check `scheme`, `username`, `password` or `token` are correct
+3. For API Key: Ensure `name`, `in`, and the actual key value are all present
+
+### Actions Not Created
+
+After creating the integration, run `install_integration`:
+```bash
+curl -X POST "http://localhost:6336/action/integration/INTEGRATION_ID/install_integration" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{}'
+```
+
+---
+
+## See Also
+
+- [Authentication](Authentication.md) - OAuth for integration auth
+- [Actions Overview](Actions-Overview.md) - How actions work
+- [Data Exchange](Data-Exchange.md) - Import/export via integrations

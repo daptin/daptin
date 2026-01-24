@@ -147,96 +147,145 @@ curl -X POST http://localhost:6336/action/order/bulk_export \
   }'
 ```
 
-## Action with HTTP Call
+## Performers (OutFields)
 
-Integrate external APIs:
+Actions execute through **performers** defined in `OutFields`. Each performer type handles a specific operation.
 
+### $network.request
+
+Make HTTP requests to external APIs.
+
+**Performer**: `$network.request`
+
+**Attributes**:
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `Url` | string | Target URL (required) |
+| `Method` | string | HTTP method: GET, POST, PUT, PATCH, DELETE (default: GET) |
+| `Headers` | object | Request headers |
+| `Body` | object/array | Request body (for POST/PUT/PATCH) |
+| `FormData` | object | Form data (x-www-form-urlencoded) |
+| `Query` | object | URL query parameters |
+
+**Example - Webhook notification**:
 ```yaml
 Actions:
-  - Name: send_notification
-    Label: Send Notification
-    OnType: user_account
+  - Name: send_webhook
+    Label: Send Webhook
+    OnType: order
+    InstanceOptional: false
     InFields:
-      - Name: message
-        ColumnType: content
-    OutcomeAttributes:
-      - Type: http.post
+      - Name: webhook_url
+        ColumnType: url
+        IsNullable: false
+    OutFields:
+      - Type: $network.request
+        Method: EXECUTE
         Attributes:
-          Url: https://api.notifications.com/send
+          Url: "~webhook_url"
+          Method: "POST"
           Headers:
-            Authorization: "Bearer ${env.NOTIFICATION_API_KEY}"
+            Content-Type: "application/json"
+            X-Webhook-Event: "order.created"
           Body:
-            user_id: "{{.user_account.reference_id}}"
-            message: "{{.message}}"
+            order_id: "$.reference_id"
+            total: "$.total"
+            created_at: "$.created_at"
 ```
+
+**Response structure**:
+```json
+{
+  "body": {...},           // Parsed JSON or string
+  "bodyPlainText": "...",  // Raw response text
+  "base32EncodedBody": "...", // Base64-encoded binary
+  "headers": {...}         // Response headers
+}
+```
+
+**Using input fields** (prefix with `~`):
+- `~field_name` - Input field value from action call
+- `$.column_name` - Value from the target entity instance
+
+### Integration Performers
+
+For complex API integrations, use [Integrations](Integrations.md) which parse OpenAPI specs and create dynamic performers.
+
+---
 
 ## Action Chains
 
-Execute multiple steps:
+Execute multiple operations sequentially using multiple OutFields:
 
 ```yaml
 Actions:
   - Name: complete_order
     Label: Complete Order
     OnType: order
-    OutcomeAttributes:
-      - Type: action.execute
+    OutFields:
+      # First: Send notification
+      - Type: $network.request
+        Method: EXECUTE
         Attributes:
-          ActionName: send_confirmation_email
-          EntityName: order
+          Url: "https://api.notifications.com/send"
+          Method: "POST"
+          Body:
+            event: "order_completed"
+            order_id: "$.reference_id"
 
-      - Type: action.execute
-        Attributes:
-          ActionName: update_inventory
-          EntityName: product
-
-      - Type: conformation
-        Attributes:
-          status: completed
-          completed_at: "~now"
+      # Second: Update status via column conformation
+      # (Conformations handle this, not OutFields)
+    Conformations:
+      - Name: status
+        Value: "completed"
+      - Name: completed_at
+        Value: "~now"
 ```
 
-## Conditional Actions
+---
 
-Execute based on conditions:
+## JavaScript Expressions
+
+Use JavaScript expressions for dynamic values:
 
 ```yaml
-OutcomeAttributes:
-  - Type: condition
-    Condition: "{{.order.total}} > 1000"
+OutFields:
+  - Type: $network.request
+    Method: EXECUTE
     Attributes:
-      - Type: action.execute
-        Attributes:
-          ActionName: flag_for_review
+      Url: "!subject.webhook_url"  # JavaScript expression (prefix with !)
+      Body:
+        calculated_total: "!subject.price * subject.quantity"
+        timestamp: "!new Date().toISOString()"
 ```
+
+**Expression prefixes**:
+- `!expression` - JavaScript expression
+- `~field_name` - Input field from action call
+- `$.column_name` - Entity column value
 
 ## Action Permissions
 
-Control who can execute:
+Actions inherit permissions from their OnType table. The Execute permission bit must be set.
 
-```yaml
-Actions:
-  - Name: admin_only_action
-    Label: Admin Only
-    OnType: entity
-    ReferenceId: action-uuid
-    Permission: 262142  # Admin only
-```
+See [Permissions](Permissions.md) for permission calculation.
 
-## JavaScript Actions
+---
 
-Execute JavaScript:
+## Other Built-in Performers
 
-```yaml
-OutcomeAttributes:
-  - Type: js
-    Attributes:
-      Script: |
-        var result = {};
-        result.calculated = input.price * input.quantity;
-        result.tax = result.calculated * 0.1;
-        return result;
-```
+| Performer | Purpose |
+|-----------|---------|
+| `$network.request` | HTTP requests to external APIs |
+| `__data_export` | Export table data |
+| `__data_import` | Import data to table |
+| `mail.send` | Send email (internal, not REST) |
+| `otp.generate` | Generate 2FA code |
+| `integration.install` | Install OpenAPI integration |
+| `self.tls.generate` | Generate self-signed certificate |
+| `acme.tls.generate` | Generate Let's Encrypt certificate |
+
+See [Documentation-TODO](Documentation-TODO.md) for full performer list.
 
 ## Error Handling
 
