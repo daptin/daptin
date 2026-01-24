@@ -1,181 +1,104 @@
 # Permissions
 
-Daptin uses a Unix-like permission model with a 21-bit bitmask for fine-grained access control.
+Daptin uses a permission system to control who can access what data.
 
-**Related**: [Core Concepts](Core-Concepts.md) | [Users and Groups](Users-and-Groups.md) | [Getting Started](Getting-Started-Guide.md)
-
-**Source of truth**: `server/auth/auth.go` (constants), `server/permission/permission.go` (checking), `server/resource/dbmethods.go` (loading)
+**Related**: [Getting Started](Getting-Started-Guide.md) | [Users and Groups](Users-and-Groups.md)
 
 ---
 
-## Overview
+## Quick Start
 
-Every entity (table) and every row (record) in Daptin has:
+### Fresh Install
 
-1. **A permission value** - 21-bit bitmask controlling access
-2. **An owner** - `user_account_id` column (who created it)
-3. **Group associations** - via join table (which groups have access)
+On a fresh install, the system is **wide open** - anyone can do anything. This lets you:
 
-Permissions are checked at two levels:
-- **Table level**: Can you access this type of data at all?
-- **Row level**: Can you access this specific record?
+1. Sign up your first user
+2. Sign in
+3. Become administrator
+4. System locks down automatically
 
----
+### After Admin Setup
 
-## Permission Levels
-
-| Level | Description | Typical Use |
-|-------|-------------|-------------|
-| **Peek** | See that record exists | List filtering, existence checks |
-| **Read** | View full data | GET requests, viewing details |
-| **Create** | Create new records | POST requests |
-| **Update** | Modify records | PATCH/PUT requests |
-| **Delete** | Remove records | DELETE requests |
-| **Execute** | Run actions | Action execution |
-| **Refer** | Use in relationships | Foreign key references |
+Once an admin exists:
+- Public signup is disabled
+- Guests can only view public data
+- Only admins can create new users
 
 ---
 
-## Permission Scopes
+## Permission Basics
 
-| Scope | Who | Check Order |
-|-------|-----|-------------|
-| **Guest** | Unauthenticated users | Checked if owner/group checks fail |
-| **User** | Record owner | Checked first (owner has priority) |
-| **Group** | Users sharing a group with the record | Checked if owner check fails |
+Every table and every record has permissions controlling:
 
----
+| Permission | What it allows |
+|------------|----------------|
+| **Peek** | See that something exists (appears in lists) |
+| **Read** | View the full data |
+| **Create** | Make new records |
+| **Update** | Change existing records |
+| **Delete** | Remove records |
+| **Execute** | Run actions |
+| **Refer** | Use in relationships |
 
-## Permission Bitmask
+### Who Gets Checked
 
-21-bit value with three 7-bit scopes (max: 2097151):
+Permissions apply to three groups:
 
-```
-Bits 0-6:   Guest permissions
-Bits 7-13:  User (owner) permissions
-Bits 14-20: Group permissions
-```
-
-**Important**: Order is **Guest → User → Group** in the bits, but check order is **User → Guest → Group**.
-
-### Permission Bit Values
-
-| Permission | Guest | User | Group | Bit Position |
-|------------|-------|------|-------|--------------|
-| Peek | 1 | 128 | 16384 | 0 |
-| Read | 2 | 256 | 32768 | 1 |
-| Create | 4 | 512 | 65536 | 2 |
-| Update | 8 | 1024 | 131072 | 3 |
-| Delete | 16 | 2048 | 262144 | 4 |
-| Execute | 32 | 4096 | 524288 | 5 |
-| Refer | 64 | 8192 | 1048576 | 6 |
-
-### Default Permission: 561441
-
-The system default (from `auth.go`):
-
-```go
-DEFAULT_PERMISSION = GuestPeek | GuestExecute | UserRead | UserExecute | GroupRead | GroupExecute
-```
-
-| Scope | Permissions | Value |
-|-------|-------------|-------|
-| Guest | Peek + Execute | 33 |
-| User | Read + Execute | 34 (shifted to bits 7-13) = 4352 |
-| Group | Read + Execute | 34 (shifted to bits 14-20) = 557056 |
-
-Total: 33 + 4352 + 557056 = **561441**
-
-### Common Permission Values
-
-| Value | Meaning | Calculation |
-|-------|---------|-------------|
-| 2097151 | Full access (all bits set) | 127 + (127 << 7) + (127 << 14) |
-| 561441 | Default: Owner/Group read+execute, Guest peek+execute | See above |
-| 16256 | User full access only | 127 << 7 |
-| 33026 | Public read (everyone can read) | 2 + 256 + 32768 |
-| 0 | No access | |
+| Group | Who |
+|-------|-----|
+| **Guest** | Anyone not logged in |
+| **Owner** | The user who created the record |
+| **Group** | Users who share a group with the record |
 
 ---
 
-## Permission Check Flow
+## Default Behavior
 
-When a user requests an operation, Daptin checks permissions in this order:
+### Before First Admin
 
-### 1. Owner Check (User Scope)
+| Who | Can do |
+|-----|--------|
+| Guest | Everything (create, read, update, delete, execute) |
+| Users | Everything |
 
-```
-IF record.user_account_id == request.user_id
-   AND record.permission has User{Operation} bit
-THEN → ALLOW
-```
+### After First Admin
 
-### 2. Guest Check
-
-```
-IF record.permission has Guest{Operation} bit
-THEN → ALLOW
-```
-
-### 3. Administrator Check
-
-```
-IF request.user is member of "administrators" group
-THEN → ALLOW
-```
-
-### 4. Group Check
-
-```
-FOR each group the user belongs to:
-    FOR each group associated with the record (via join table):
-        IF groups match AND join_table.permission has Group{Operation} bit
-        THEN → ALLOW
-```
-
-### 5. Default Deny
-
-```
-→ DENY
-```
-
-**Key insight**: The group permission check uses the **join table's permission**, not the record's permission. This allows fine-grained per-group access control.
+| Who | Can do |
+|-----|--------|
+| Guest | Peek at public data, execute signin |
+| Owner | Read their own data, execute actions |
+| Group members | Read shared data, execute actions |
+| Administrators | Everything |
 
 ---
 
-## Table vs Row Permissions
+## Common Tasks
 
-### Table-Level Permission
-
-Controls access to the entire table. Stored in the `world` table.
-
-```yaml
-Tables:
-  - TableName: private_notes
-    DefaultPermission: 16256  # User full access only, no group/guest
-```
-
-Each row in `world` table has:
-- `permission` column: Who can access this table definition
-- `default_permission` column: Default for new records
-
-### Row-Level Permission
-
-Each record has its own `permission` column, initialized from `default_permission`.
+### Check Who Can Access a Table
 
 ```bash
-# Get a record's permission
-curl "http://localhost:6336/api/todo/TODO_UUID" \
-  -H "Authorization: Bearer $TOKEN" | jq '.data.attributes.permission'
+# Get table permission
+curl "http://localhost:6336/api/world?filter[table_name]=todo" \
+  -H "Authorization: Bearer $TOKEN" | jq '.data[0].attributes.permission'
+```
 
-# Modify row permission
-curl -X PATCH "http://localhost:6336/api/todo/TODO_UUID" \
+### Check Record Permission
+
+```bash
+curl "http://localhost:6336/api/todo/RECORD_ID" \
+  -H "Authorization: Bearer $TOKEN" | jq '.data.attributes.permission'
+```
+
+### Make a Record Public (Readable by Guests)
+
+```bash
+curl -X PATCH "http://localhost:6336/api/todo/RECORD_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "todo",
-      "id": "TODO_UUID",
+      "id": "RECORD_ID",
       "attributes": {
         "permission": 33026
       }
@@ -183,86 +106,10 @@ curl -X PATCH "http://localhost:6336/api/todo/TODO_UUID" \
   }'
 ```
 
----
-
-## Ownership
-
-Every table (except `usergroup` and join tables) automatically gets a `belongs_to user_account` relationship, creating a `user_account_id` column.
-
-### How Ownership is Set
-
-When you create a record while authenticated, Daptin automatically sets `user_account_id` to your user ID.
+### Share with a Group
 
 ```bash
-# Create record - owner is automatically set to current user
-curl -X POST http://localhost:6336/api/todo \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"todo","attributes":{"title":"My task"}}}'
-
-# Response shows owner in relationships
-# "user_account_id": {"data": {"type": "user_account", "id": "YOUR_UUID"}}
-```
-
-### Transfer Ownership
-
-Admin can change record ownership:
-
-```bash
-curl -X PATCH http://localhost:6336/api/todo/TODO_UUID \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "todo",
-      "id": "TODO_UUID",
-      "relationships": {
-        "user_account_id": {"data": {"type": "user_account", "id": "NEW_OWNER_UUID"}}
-      }
-    }
-  }'
-```
-
----
-
-## Group Permissions
-
-Every table automatically gets a `has_many usergroup` relationship via a join table.
-
-### Join Table Structure
-
-Join table name: `{table}_{table}_id_has_usergroup_usergroup_id`
-
-| Column | Description |
-|--------|-------------|
-| `{table}_id` | References the record |
-| `usergroup_id` | References the group |
-| `permission` | **Per-association permission** |
-| `reference_id` | Unique join table record ID |
-
-**Critical**: The join table has its OWN `permission` column. This controls what that specific group can do with that specific record.
-
-### View Record's Group Associations
-
-```bash
-curl "http://localhost:6336/api/mail_server/SERVER_UUID/usergroup_id" \
-  -H "Authorization: Bearer $TOKEN" | jq '.data[] | {name: .attributes.name, permission: .attributes.permission}'
-```
-
-Example response:
-```json
-{
-  "name": "administrators",
-  "permission": 2097151
-}
-```
-
-The `permission` value (2097151) means administrators have full access to this specific record via group membership.
-
-### Associate Record with Group
-
-```bash
-# Add record to a group with specific permission
+# Add record to a group
 curl -X POST "http://localhost:6336/api/todo_todo_id_has_usergroup_usergroup_id" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -273,89 +120,77 @@ curl -X POST "http://localhost:6336/api/todo_todo_id_has_usergroup_usergroup_id"
         "permission": 32768
       },
       "relationships": {
-        "todo_id": {"data": {"type": "todo", "id": "TODO_UUID"}},
-        "usergroup_id": {"data": {"type": "usergroup", "id": "GROUP_UUID"}}
+        "todo_id": {"data": {"type": "todo", "id": "RECORD_ID"}},
+        "usergroup_id": {"data": {"type": "usergroup", "id": "GROUP_ID"}}
       }
     }
   }'
+```
+
+---
+
+## Permission Values
+
+Permissions are stored as numbers. Here are common values:
+
+| Value | Meaning |
+|-------|---------|
+| 0 | No access |
+| 2 | Guest can read |
+| 256 | Owner can read |
+| 32768 | Group can read |
+| 33026 | Everyone can read |
+| 16256 | Owner has full access |
+| 561441 | Default (owner/group read, guest peek) |
+| 2097151 | Full access for everyone |
+
+### Calculate Your Own
+
+```javascript
+// Permission calculator
+function permission(guest, owner, group) {
+  return guest | (owner << 7) | (group << 14);
+}
+
+// Bit values: Peek=1, Read=2, Create=4, Update=8, Delete=16, Execute=32, Refer=64
+// Full = 127 (all bits)
+
+permission(2, 127, 0);    // 16258 - Guest read, owner full
+permission(0, 127, 127);  // 2080768 - Owner and group full, no guest
+permission(2, 2, 2);      // 33026 - Everyone can read
 ```
 
 ---
 
 ## Administrator Group
 
-The `administrators` usergroup has special privileges:
-- **Bypasses all permission checks**
-- Members can access any record regardless of permission settings
+Members of the `administrators` group bypass all permission checks.
 
-### First Admin Setup
+### Become First Admin
 
 ```bash
-# Action is on "world" table, NOT "user_account"
+# After signing up and signing in
 curl -X POST http://localhost:6336/action/world/become_an_administrator \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
-# Server restarts automatically. Re-signin after restart.
 ```
 
-See [Getting Started Guide](Getting-Started-Guide.md) for full admin bootstrapping workflow.
+Server restarts. Sign in again to get admin token.
 
-### Check User's Groups
-
-```bash
-curl "http://localhost:6336/api/user_account/USER_UUID/usergroup_id" \
-  -H "Authorization: Bearer $TOKEN" | jq '.data[] | .attributes.name'
-```
-
----
-
-## User Groups
-
-### System Groups
-
-| Group | Purpose |
-|-------|---------|
-| `administrators` | Full system access |
-| `guests` | Default group (all users) |
-| `users` | Authenticated users |
-
-### Create Custom Group
+### Add User to Admin Group
 
 ```bash
-curl -X POST http://localhost:6336/api/usergroup \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "usergroup",
-      "attributes": {
-        "name": "editors"
-      }
-    }
-  }'
-```
-
-### Add User to Group
-
-Use the user_account-usergroup join table relationship endpoint:
-
-```bash
-# Get user's current group associations
-curl "http://localhost:6336/api/user_account/USER_UUID/usergroup_id" \
-  -H "Authorization: Bearer $TOKEN"
-
-# Add user to group via PATCH on user_account
-curl -X PATCH "http://localhost:6336/api/user_account/USER_UUID" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X PATCH "http://localhost:6336/api/user_account/USER_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "user_account",
-      "id": "USER_UUID",
+      "id": "USER_ID",
       "relationships": {
         "usergroup_id": {
-          "data": [{"type": "usergroup", "id": "GROUP_UUID"}]
+          "data": [{"type": "usergroup", "id": "ADMIN_GROUP_ID"}]
         }
       }
     }
@@ -364,168 +199,57 @@ curl -X PATCH "http://localhost:6336/api/user_account/USER_UUID" \
 
 ---
 
-## Action Permissions
+## Enable Public Signup (After Admin Exists)
 
-Actions check the Execute permission bit on their OnType table.
+By default, signup is disabled after admin setup. To re-enable:
 
-```yaml
-Actions:
-  - Name: publish_article
-    OnType: article
-    # User needs Execute permission on article table to run this action
-```
+1. Find the signup action ID
+2. Add guest execute permission (value: current + 32)
 
-To allow guests to run an action, the table needs GuestExecute (bit 5 = 32).
+```bash
+# Find signup action
+curl "http://localhost:6336/api/action?filter[action_name]=signup" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 
----
-
-## Permission Examples
-
-### Private Table (Owner Only)
-
-```yaml
-Tables:
-  - TableName: private_notes
-    DefaultPermission: 16256  # User full (127 << 7)
-    # Calculation: 0 + (127 << 7) + 0 = 16256
-    # Guest: none, User: all, Group: none
-```
-
-### Public Read, Owner Write
-
-```yaml
-Tables:
-  - TableName: blog_posts
-    DefaultPermission: 16642  # Guest read, User read+update+delete
-    # Calculation: 2 + ((2|8|16) << 7) + 0 = 2 + (26 << 7) = 2 + 3328 = 3330
-    # Wait, let me recalculate properly:
-    # Guest Read: 2
-    # User Read|Update|Delete: 2|8|16 = 26, shifted by 7 = 3328
-    # Total: 2 + 3328 = 3330
-```
-
-### Team Collaboration
-
-```yaml
-Tables:
-  - TableName: team_documents
-    DefaultPermission: 491555  # User full, Group read+update+create
-    # Calculation:
-    # Guest: Peek = 1
-    # User: Full (127) << 7 = 16256
-    # Group: Read|Create|Update = 2|4|8 = 14, shifted by 14 = 229376
-    # Total: 1 + 16256 + 229376 = 245633
-```
-
----
-
-## Permission Calculation
-
-### JavaScript Helper
-
-```javascript
-function calculatePermission(guestBits, userBits, groupBits) {
-  // Each scope has 7 bits: Peek(0), Read(1), Create(2), Update(3), Delete(4), Execute(5), Refer(6)
-  return guestBits | (userBits << 7) | (groupBits << 14);
-}
-
-function decodeBits(val) {
-  const perms = ['Peek', 'Read', 'Create', 'Update', 'Delete', 'Execute', 'Refer'];
-  return perms.filter((_, i) => val & (1 << i));
-}
-
-function decodePermission(perm) {
-  return {
-    guest: decodeBits(perm & 127),
-    user: decodeBits((perm >> 7) & 127),
-    group: decodeBits((perm >> 14) & 127)
-  };
-}
-
-// Examples:
-console.log(calculatePermission(0, 127, 0));  // 16256 - User full only
-console.log(calculatePermission(2, 2, 2));    // 33026 - Everyone can read
-console.log(calculatePermission(127, 127, 127)); // 2097151 - Full access all
-console.log(decodePermission(561441));
-// { guest: ['Peek', 'Execute'], user: ['Read', 'Execute'], group: ['Read', 'Execute'] }
-```
-
-### Python Helper
-
-```python
-def calc_perm(guest, user, group):
-    return guest | (user << 7) | (group << 14)
-
-def decode_perm(perm):
-    perms = ['Peek', 'Read', 'Create', 'Update', 'Delete', 'Execute', 'Refer']
-    def decode(val):
-        return [p for i, p in enumerate(perms) if val & (1 << i)]
-    return {
-        'guest': decode(perm & 127),
-        'user': decode((perm >> 7) & 127),
-        'group': decode((perm >> 14) & 127)
+# Update permission
+curl -X PATCH "http://localhost:6336/api/action/ACTION_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "action",
+      "id": "ACTION_ID",
+      "attributes": {
+        "permission": 2085152
+      }
     }
-
-# Bit values for combining:
-PEEK, READ, CREATE, UPDATE, DELETE, EXECUTE, REFER = 1, 2, 4, 8, 16, 32, 64
-FULL = 127  # All bits
-
-print(calc_perm(0, FULL, 0))       # 16256
-print(decode_perm(561441))          # Default permission breakdown
+  }'
 ```
-
-### Quick Reference Table
-
-| Decimal | Binary (21 bits) | Meaning |
-|---------|------------------|---------|
-| 0 | 000000000000000000000 | No access |
-| 1 | 000000000000000000001 | Guest Peek only |
-| 2 | 000000000000000000010 | Guest Read only |
-| 33 | 000000000000000100001 | Guest Peek + Execute |
-| 127 | 000000000000001111111 | Guest full |
-| 256 | 000000000000010000000 | User Read only |
-| 16256 | 000000000011111110000000 | User full |
-| 32768 | 000001000000000000000 | Group Read only |
-| 561441 | 010001001000100100001 | Default (see above) |
-| 2097151 | 111111111111111111111 | All permissions |
 
 ---
 
 ## Troubleshooting
 
-### "Refer object not allowed"
+### 403 Forbidden
 
-Usually means you don't have `Refer` permission on the object you're trying to reference.
+You don't have permission for that operation. Check:
+- Are you logged in?
+- Do you own the record?
+- Are you in a group that has access?
+- Is the operation allowed for your role?
 
-**Solutions:**
-1. Set up admin first (see [Getting Started](Getting-Started-Guide.md))
-2. Check your user's groups
-3. Check the record's group associations
+### Can't Sign Up
 
-### 403 Forbidden on Action
+Signup is disabled after admin setup. Ask admin to create your account or enable public signup.
 
-The action's OnType table needs Execute permission for your user scope.
+### Can't See Records
 
-### Can Read but Can't Update
-
-Your permission scope (Guest/User/Group) has Read bit but not Update bit.
-
-**Check:**
-```bash
-# Decode the permission value
-python3 -c "print({
-  'guest': [(p, bool($PERM & (1<<i))) for i, p in enumerate(['Peek','Read','Create','Update','Delete','Execute','Refer'])],
-  'user': [(p, bool(($PERM>>7) & (1<<i))) for i, p in enumerate(['Peek','Read','Create','Update','Delete','Execute','Refer'])],
-  'group': [(p, bool(($PERM>>14) & (1<<i))) for i, p in enumerate(['Peek','Read','Create','Update','Delete','Execute','Refer'])]
-})"
-```
+The records exist but you don't have Peek permission. Contact the owner or admin.
 
 ---
 
 ## See Also
 
-- [Core Concepts](Core-Concepts.md) - Entity model and standard columns
-- [Users and Groups](Users-and-Groups.md) - User management
-- [Getting Started Guide](Getting-Started-Guide.md) - Admin bootstrapping
-- [Relationships](Relationships.md) - How join tables work
-- [Actions Overview](Actions-Overview.md) - Action permission requirements
+- [Getting Started Guide](Getting-Started-Guide.md) - First-time setup
+- [Users and Groups](Users-and-Groups.md) - Managing users
+- [Actions Overview](Actions-Overview.md) - Running actions

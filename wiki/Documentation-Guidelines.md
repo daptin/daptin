@@ -4,6 +4,28 @@ Guidelines for documenting Daptin features accurately.
 
 ---
 
+## Step Zero: Fresh Database
+
+**Before ANY testing session, start fresh:**
+
+```bash
+# 1. Stop Daptin (Ctrl+C)
+# 2. Delete the database
+rm daptin.db
+
+# 3. Restart Daptin
+go run main.go
+```
+
+This is mandatory because:
+- Existing admin locks down the system
+- Signup becomes disabled
+- You can't test the full user journey
+
+**Never try to test with an existing database where you don't have credentials.**
+
+---
+
 ## Golden Rule
 
 **ALWAYS test against the running API before documenting.**

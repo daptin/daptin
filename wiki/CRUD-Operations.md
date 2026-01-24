@@ -1,5 +1,11 @@
 # CRUD Operations
 
+Create, Read, Update, and Delete records via the REST API.
+
+Daptin uses [JSON:API](https://jsonapi.org/) format for all requests and responses.
+
+---
+
 ## Create (POST)
 
 ```bash
@@ -22,22 +28,22 @@ curl -X POST http://localhost:6336/api/todo \
 {
   "data": {
     "type": "todo",
-    "id": "01929123-abcd-7890-ef12-345678901234",
+    "id": "abc123-def456-...",
     "attributes": {
-      "__type": "todo",
       "title": "Buy groceries",
       "completed": false,
-      "reference_id": "01929123-abcd-7890-ef12-345678901234",
-      "created_at": "2024-01-15T10:30:00Z",
-      "updated_at": "2024-01-15T10:30:00Z",
-      "permission": 2097151,
-      "version": 1
+      "reference_id": "abc123-def456-...",
+      "created_at": "2026-01-24T10:30:00Z",
+      "updated_at": "2026-01-24T10:30:00Z",
+      "permission": 2097151
     }
   }
 }
 ```
 
-### Create with Relationships
+### Create with Relationship
+
+Link to an existing record:
 
 ```bash
 curl -X POST http://localhost:6336/api/todo \
@@ -50,34 +56,52 @@ curl -X POST http://localhost:6336/api/todo \
         "title": "Team task"
       },
       "relationships": {
-        "category": {
-          "data": {"type": "category", "id": "category-id"}
+        "project_id": {
+          "data": {"type": "project", "id": "PROJECT_REFERENCE_ID"}
         }
       }
     }
   }'
 ```
 
+---
+
 ## Read (GET)
 
-### List All
+### List All Records
 
 ```bash
 curl http://localhost:6336/api/todo \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-### Get by ID
+**Response:**
+```json
+{
+  "links": {
+    "current_page": 1,
+    "from": 0,
+    "per_page": 10,
+    "total": 25
+  },
+  "data": [
+    {"type": "todo", "id": "...", "attributes": {...}},
+    {"type": "todo", "id": "...", "attributes": {...}}
+  ]
+}
+```
+
+### Get Single Record
 
 ```bash
-curl http://localhost:6336/api/todo/01929123-abcd-7890-ef12-345678901234 \
+curl http://localhost:6336/api/todo/REFERENCE_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-### Include Relationships
+### Include Related Records
 
 ```bash
-curl "http://localhost:6336/api/todo/ID?include=category,user_account_id" \
+curl "http://localhost:6336/api/todo/REFERENCE_ID?include=project_id" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -89,29 +113,61 @@ curl "http://localhost:6336/api/todo/ID?include=category,user_account_id" \
     "id": "...",
     "attributes": {...},
     "relationships": {
-      "category": {"data": {"type": "category", "id": "cat123"}}
+      "project_id": {"data": {"type": "project", "id": "proj123"}}
     }
   },
   "included": [
     {
-      "type": "category",
-      "id": "cat123",
-      "attributes": {"name": "Work"}
+      "type": "project",
+      "id": "proj123",
+      "attributes": {"name": "My Project"}
     }
   ]
 }
 ```
 
-## Update (PATCH)
+### Filter Records
 
 ```bash
-curl -X PATCH http://localhost:6336/api/todo/01929123-abcd \
+curl 'http://localhost:6336/api/todo?query=[{"column":"completed","operator":"is","value":"false"}]' \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+See [Filtering and Pagination](Filtering-and-Pagination.md) for all filter options.
+
+### Sort Records
+
+```bash
+# Ascending
+curl "http://localhost:6336/api/todo?sort=created_at" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Descending (prefix with -)
+curl "http://localhost:6336/api/todo?sort=-created_at" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Paginate
+
+```bash
+curl "http://localhost:6336/api/todo?page[number]=2&page[size]=20" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Update (PATCH)
+
+Update only the fields you want to change:
+
+```bash
+curl -X PATCH http://localhost:6336/api/todo/REFERENCE_ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "todo",
-      "id": "01929123-abcd",
+      "id": "REFERENCE_ID",
       "attributes": {
         "completed": true
       }
@@ -119,119 +175,88 @@ curl -X PATCH http://localhost:6336/api/todo/01929123-abcd \
   }'
 ```
 
-### Partial Update
-
-Only include fields you want to change:
+### Update Relationship
 
 ```bash
-curl -X PATCH http://localhost:6336/api/todo/ID \
+curl -X PATCH http://localhost:6336/api/todo/REFERENCE_ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "todo",
-      "id": "ID",
-      "attributes": {
-        "title": "Updated title"
-      }
-    }
-  }'
-```
-
-### Update Relationships
-
-```bash
-curl -X PATCH http://localhost:6336/api/todo/ID \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "todo",
-      "id": "ID",
+      "id": "REFERENCE_ID",
       "relationships": {
-        "category": {
-          "data": {"type": "category", "id": "new-category-id"}
+        "project_id": {
+          "data": {"type": "project", "id": "NEW_PROJECT_ID"}
         }
       }
     }
   }'
 ```
 
+---
+
 ## Delete (DELETE)
 
 ```bash
-curl -X DELETE http://localhost:6336/api/todo/01929123-abcd \
+curl -X DELETE http://localhost:6336/api/todo/REFERENCE_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-**Response:** 204 No Content
+**Response:** 200 OK with empty data, or 204 No Content
 
-### Cascade Delete
+---
 
-When deleting records with relationships, cascade behavior depends on relation configuration.
+## Standard Fields
 
-## Bulk Operations
+Every record automatically has these fields:
 
-### Bulk Create (via Import)
+| Field | Description |
+|-------|-------------|
+| `reference_id` | Unique UUID (used as `id` in API) |
+| `created_at` | When the record was created |
+| `updated_at` | When the record was last modified |
+| `permission` | Access control value |
 
-```bash
-curl -X POST http://localhost:6336/action/todo/__data_import \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "attributes": {
-      "table_name": "todo",
-      "dump_file": [{
-        "name": "todos.json",
-        "file": "data:application/json;base64,W3sidGl0bGUiOiJUYXNrIDEifSx7InRpdGxlIjoiVGFzayAyIn1d"
-      }]
-    }
-  }'
-```
+---
 
-## Transactions
+## Common Errors
 
-Wrap operations in transactions:
+| Status | Meaning |
+|--------|---------|
+| 400 | Invalid JSON or missing required field |
+| 401 | Not authenticated (missing or invalid token) |
+| 403 | No permission for this operation |
+| 404 | Record or table not found |
+| 422 | Validation failed |
 
-```bash
-# Start transaction
-curl -X POST http://localhost:6336/action/world/transaction \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"action": "begin"}}'
-
-# Perform operations...
-
-# Commit
-curl -X POST http://localhost:6336/action/world/transaction \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"action": "commit"}}'
-
-# Or rollback
-curl -X POST http://localhost:6336/action/world/transaction \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"action": "rollback"}}'
-```
-
-## Version Control
-
-Each record has a `version` field that increments on update:
+### Example Error Response
 
 ```json
 {
-  "attributes": {
-    "version": 3
-  }
+  "errors": [
+    {
+      "status": "403",
+      "title": "Forbidden",
+      "detail": "Permission denied"
+    }
+  ]
 }
 ```
 
-## Timestamps
+---
 
-Automatic timestamps:
-- `created_at` - Set on creation
-- `updated_at` - Updated on each change
+## Tips
 
-## Reference ID
+1. **Always include the `type`** in your request body - it must match the table name
+2. **Use `reference_id`** (the UUID) as the `id` in URLs and request bodies
+3. **Set Content-Type header** to `application/vnd.api+json` for POST/PATCH
+4. **Include Authorization header** for any non-public data
 
-Every record has a unique `reference_id` (UUID v7):
-- Used as the `id` in API responses
-- Globally unique across all tables
-- Time-ordered for efficient indexing
+---
+
+## See Also
+
+- [Filtering and Pagination](Filtering-and-Pagination.md) - Query options
+- [Relationships](Relationships.md) - Linking tables
+- [Permissions](Permissions.md) - Access control

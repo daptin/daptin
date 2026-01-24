@@ -2,16 +2,23 @@
 
 File and media handling in Daptin.
 
+## Two Storage Modes
+
+Daptin supports two ways to store files:
+
+1. **Inline (Default)** - Files stored as base64 in database column
+2. **Cloud Storage** - Files stored in external storage (S3, GCS, local filesystem)
+
 ## Asset Column Types
 
-| Type | Description |
-|------|-------------|
-| `file` | General file upload |
-| `image` | Image with thumbnails |
-| `audio` | Audio files |
-| `video` | Video files |
-| `document` | Documents (PDF, DOC) |
-| `blob` | Binary data |
+| Type | Description | Storage |
+|------|-------------|---------|
+| `file` | General file upload | Inline base64 |
+| `image` | Image files | Inline base64 |
+| `video` | Video files | Inline base64 |
+| `blob` | Binary data | Inline base64 |
+
+**Note:** For large files, use Cloud Storage instead of inline storage.
 
 ## Defining Asset Columns
 
@@ -23,54 +30,95 @@ Tables:
         DataType: text
         ColumnType: image
 
-      - Name: manual
-        DataType: text
-        ColumnType: document
-
       - Name: attachment
         DataType: text
         ColumnType: file
 ```
 
-## Uploading Files
+## Uploading Files (Inline Storage)
 
-### Multipart Upload
-
-```bash
-curl -X POST http://localhost:6336/api/product \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "photo=@/path/to/image.jpg" \
-  -F "data={\"type\":\"product\",\"attributes\":{\"name\":\"Widget\"}};type=application/json"
-```
-
-### Base64 Upload
+### Base64 Upload (Recommended)
 
 ```bash
+# Encode file to base64
+IMG_BASE64=$(base64 < /path/to/image.png | tr -d '\n')
+
 curl -X POST http://localhost:6336/api/product \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "product",
-      "attributes": {
-        "name": "Widget",
-        "photo": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+  -d "{
+    \"data\": {
+      \"type\": \"product\",
+      \"attributes\": {
+        \"name\": \"Widget\",
+        \"photo\": \"data:image/png;base64,$IMG_BASE64\"
       }
     }
-  }'
+  }"
 ```
 
-## File Storage
+**Response:**
+```json
+{
+  "data": {
+    "type": "product",
+    "id": "abc123...",
+    "attributes": {
+      "name": "Widget",
+      "photo": "data:image/png;base64,iVBOR..."
+    }
+  }
+}
+```
 
-### Local Storage (Default)
+The file is stored directly in the database as a base64 string.
 
-Files stored in `./uploads/` directory.
+## Accessing Inline Files
 
-### Cloud Storage
-
-Link to cloud store:
+For inline storage, files are returned as base64 strings in the API response:
 
 ```bash
+curl http://localhost:6336/api/product/ID \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "data": {
+    "attributes": {
+      "photo": "data:image/png;base64,iVBOR..."
+    }
+  }
+}
+```
+
+Decode base64 to use the file:
+
+```bash
+# Extract and decode
+echo "iVBOR..." | base64 -d > image.png
+```
+
+---
+
+## Cloud Storage (For Large Files)
+
+For files larger than a few KB, use cloud storage instead of inline.
+
+See [Cloud Storage](Cloud-Storage.md) for setup instructions.
+
+### How Cloud Storage Works
+
+1. Create a `cloud_store` record (S3, GCS, local filesystem)
+2. Link the cloud store to your table column
+3. Files are uploaded to storage and only metadata is stored in DB
+
+### Link Column to Cloud Storage
+
+```bash
+# First, create a cloud_store (see Cloud-Storage.md)
+# Then link your table to use it
+
 curl -X PATCH http://localhost:6336/api/world/PRODUCT_TABLE_ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -78,101 +126,67 @@ curl -X PATCH http://localhost:6336/api/world/PRODUCT_TABLE_ID \
     "data": {
       "type": "world",
       "attributes": {
-        "default_storage": "CLOUD_STORE_ID"
+        "default_storage": "CLOUD_STORE_REFERENCE_ID"
       }
     }
   }'
 ```
 
-## Accessing Files
+### Cloud Storage Response Format
 
-### Direct URL
-
-Files accessible via:
-
-```
-http://localhost:6336/asset/{entity}/{id}/{column}
-```
-
-Example:
-```
-http://localhost:6336/asset/product/abc123/photo
-```
-
-### In API Response
+When cloud storage is configured, API returns metadata:
 
 ```json
 {
   "data": {
-    "type": "product",
     "attributes": {
       "photo": {
         "name": "image.jpg",
         "type": "image/jpeg",
         "size": 102400,
-        "path": "/uploads/product/abc123/photo/image.jpg",
-        "url": "http://localhost:6336/asset/product/abc123/photo"
+        "path": "/uploads/product/abc123/photo/image.jpg"
       }
     }
   }
 }
 ```
 
-## Image Thumbnails
+### Asset Endpoint (Cloud Storage Only)
 
-Image columns auto-generate thumbnails:
-
-| Size | Dimension |
-|------|-----------|
-| original | Full size |
-| large | 1024px |
-| medium | 512px |
-| small | 256px |
-| thumbnail | 128px |
-
-Access thumbnails:
+When using cloud storage, access files via:
 
 ```
-http://localhost:6336/asset/product/abc123/photo?size=thumbnail
-http://localhost:6336/asset/product/abc123/photo?size=medium
+http://localhost:6336/asset/{entity}/{id}/{column}
 ```
 
-## File Validation
+**Note:** This endpoint only works with cloud storage, not inline base64.
 
-### Size Limits
-
-```yaml
-Columns:
-  - Name: photo
-    ColumnType: image
-    MaxFileSize: 5242880  # 5MB
-```
-
-### Allowed Types
-
-```yaml
-Columns:
-  - Name: document
-    ColumnType: document
-    AllowedMimeTypes:
-      - application/pdf
-      - application/msword
-```
+---
 
 ## Update Files
 
-Replace file:
+Replace file with new base64 content:
 
 ```bash
+IMG_BASE64=$(base64 < /path/to/new-image.png | tr -d '\n')
+
 curl -X PATCH http://localhost:6336/api/product/ID \
   -H "Authorization: Bearer $TOKEN" \
-  -F "photo=@/path/to/new-image.jpg" \
-  -F "data={\"type\":\"product\",\"id\":\"ID\"};type=application/json"
+  -H "Content-Type: application/vnd.api+json" \
+  -d "{
+    \"data\": {
+      \"type\": \"product\",
+      \"id\": \"ID\",
+      \"attributes\": {
+        \"photo\": \"data:image/png;base64,$IMG_BASE64\"
+      }
+    }
+  }"
 ```
 
 ## Delete Files
 
-Clear file field:
+Clear file field by setting to null:
 
 ```bash
 curl -X PATCH http://localhost:6336/api/product/ID \
@@ -212,26 +226,41 @@ Tables:
         Relation: belongs_to
 ```
 
-## File Metadata
+## File Metadata (Cloud Storage)
 
-Asset columns store metadata:
+When using cloud storage, file metadata is tracked:
 
 ```json
 {
   "name": "photo.jpg",
   "type": "image/jpeg",
   "size": 102400,
-  "width": 1920,
-  "height": 1080,
-  "checksum": "abc123...",
-  "uploaded_at": "2024-01-15T10:00:00Z"
+  "md5": "abc123...",
+  "path": "/uploads/product/..."
 }
 ```
 
+**Note:** Inline storage (base64) does not generate separate metadata.
+
 ## Content Delivery
 
-For production, use CDN:
+For production, use cloud storage with CDN:
 
 1. Configure cloud storage (S3, GCS)
 2. Set up CloudFront/Cloud CDN
 3. Update asset URLs to use CDN
+
+---
+
+## Limitations
+
+| Limitation | Details |
+|------------|---------|
+| **Inline storage size** | Base64 increases size by ~33%. Use cloud storage for files > 100KB |
+| **No thumbnails** | Inline storage doesn't generate thumbnails |
+| **Asset endpoint** | Only works with cloud storage, not inline base64 |
+
+## See Also
+
+- [Cloud Storage](Cloud-Storage.md) - For large file storage
+- [Schema Definition](Schema-Definition.md) - Table and column setup

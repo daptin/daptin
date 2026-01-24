@@ -1,45 +1,40 @@
 # Users and Groups
 
+Manage user accounts and organize them into groups for access control.
+
+---
+
 ## User Registration
 
-### Signup Action
+### Sign Up (Fresh Install Only)
+
+On a fresh install, anyone can sign up:
 
 ```bash
 curl -X POST http://localhost:6336/action/user_account/signup \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "email": "user@example.com",
-      "password": "password123",
       "name": "John Doe",
+      "email": "john@example.com",
+      "password": "password123",
       "passwordConfirm": "password123"
     }
   }'
 ```
 
-**Requirements:**
-- Password minimum 8 characters
-- Email must be unique
-- passwordConfirm must match password
+**After admin exists**: Signup is disabled. See [Admin: Create a User](#admin-create-a-user).
 
-**Response:**
-```json
-[
-  {"ResponseType": "client.notify", "Attributes": {"message": "Sign-up successful", "type": "success"}},
-  {"ResponseType": "client.redirect", "Attributes": {"location": "/auth/signin"}}
-]
-```
+---
 
-## Authentication
-
-### Sign In
+## Sign In
 
 ```bash
 curl -X POST http://localhost:6336/action/user_account/signin \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "email": "user@example.com",
+      "email": "john@example.com",
       "password": "password123"
     }
   }'
@@ -54,83 +49,59 @@ curl -X POST http://localhost:6336/action/user_account/signin \
 ]
 ```
 
-### JWT Token Structure
+Extract the token from `client.store.set` response.
 
-```json
-{
-  "email": "user@example.com",
-  "exp": 1729321122,
-  "iat": 1729061922,
-  "iss": "daptin-019228",
-  "jti": "0192941f-260e-7b46-a1ae-f10fae700179",
-  "name": "John Doe",
-  "nbf": 1729061922,
-  "sub": "01922e1a-d5ea-71c9-bd3e-616d23780f93"
-}
-```
-
-Token validity: **3 days** (72 hours)
-
-### Using the Token
+### Use the Token
 
 ```bash
 export TOKEN="eyJhbG..."
 
-# In Authorization header
-curl http://localhost:6336/api/user_account \
-  -H "Authorization: Bearer $TOKEN"
-
-# In cookie (automatically set by signin)
-curl http://localhost:6336/api/user_account \
-  --cookie "token=$TOKEN"
-```
-
-## Administrator Setup
-
-### Become Administrator
-
-First user can become admin:
-
-```bash
-curl -X POST http://localhost:6336/action/world/become_an_administrator \
+curl http://localhost:6336/api/todo \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-**Effects:**
-- Creates `administrators` usergroup
-- Adds user to administrators
-- Locks down all tables (admin-only access)
+Token is valid for **3 days**.
 
-### Multi-Admin Setup
+---
 
-Add additional administrators:
+## Admin: Create a User
+
+After admin setup, signup is disabled. Create users directly:
 
 ```bash
-# Get the user's reference_id
-USER_ID=$(curl 'http://localhost:6336/api/user_account?query=[{"column":"email","operator":"is","value":"newadmin@example.com"}]' \
-  -H "Authorization: Bearer $TOKEN" | jq -r '.data[0].id')
-
-# Add to administrators group
-curl -X POST http://localhost:6336/api/user_account_administrators_has_usergroup_administrators \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X POST http://localhost:6336/api/user_account \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"user_account_administrators_has_usergroup_administrators\",
-      \"attributes\": {
-        \"user_account_id\": \"$USER_ID\"
+  -d '{
+    "data": {
+      "type": "user_account",
+      "attributes": {
+        "name": "New User",
+        "email": "newuser@example.com",
+        "password": "userpassword123"
       }
     }
-  }"
+  }'
 ```
+
+---
 
 ## User Groups
 
-### Create Group
+Groups let you share access to records with multiple users.
+
+### List Groups
+
+```bash
+curl http://localhost:6336/api/usergroup \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Create a Group
 
 ```bash
 curl -X POST http://localhost:6336/api/usergroup \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
@@ -144,141 +115,218 @@ curl -X POST http://localhost:6336/api/usergroup \
 
 ### Add User to Group
 
-Junction table format: `user_account_{groupname}_has_usergroup_{groupname}`
+Use the junction table `user_account_user_account_id_has_usergroup_usergroup_id`:
 
 ```bash
-curl -X POST http://localhost:6336/api/user_account_editors_has_usergroup_editors \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
-      "type": "user_account_editors_has_usergroup_editors",
-      "attributes": {
-        "user_account_id": "USER_REFERENCE_ID"
+      "type": "user_account_user_account_id_has_usergroup_usergroup_id",
+      "attributes": {},
+      "relationships": {
+        "user_account_id": {
+          "data": {"type": "user_account", "id": "USER_REFERENCE_ID"}
+        },
+        "usergroup_id": {
+          "data": {"type": "usergroup", "id": "GROUP_REFERENCE_ID"}
+        }
       }
     }
   }'
 ```
 
-### List User's Groups
+### Remove User from Group
+
+Delete the junction record:
 
 ```bash
-curl http://localhost:6336/api/user_account/USER_ID/usergroup \
-  -H "Authorization: Bearer $TOKEN"
+curl -X DELETE http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id/JUNCTION_ID \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-## Password Management
+---
 
-### Password Reset Flow
+## Administrators
 
-```bash
-# 1. Request reset
-curl -X POST http://localhost:6336/action/user_account/generate_password_reset_flow \
-  -d '{"attributes": {"email": "user@example.com"}}'
+The `administrators` group has full access to everything.
 
-# 2. User receives email with reset link
-# 3. Verify and set new password
-curl -X POST http://localhost:6336/action/user_account/generate_password_reset_verify_flow \
-  -d '{"attributes": {"email": "user@example.com", "verification": "TOKEN", "password": "newpassword123"}}'
-```
+### Become First Admin
 
-### Configure Reset Email
+On fresh install, the first user to run this becomes admin:
 
 ```bash
-curl -X POST http://localhost:6336/_config/backend/password.reset.email.from \
+curl -X POST http://localhost:6336/action/world/become_an_administrator \
   -H "Authorization: Bearer $TOKEN" \
-  -d '"noreply@yourdomain.com"'
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
-## OAuth Social Login
+Server restarts. Sign in again.
 
-### Configure OAuth
+### Add Another Admin
 
-```yaml
-Actions:
-  - Name: oauth_login_begin
-    OnType: oauth_connect
-    InFields:
-      - Name: provider
-        ColumnType: label
-    Outcomes:
-      - Type: oauth.client.redirect
-        Attributes:
-          client_id: YOUR_CLIENT_ID
-          client_secret: YOUR_CLIENT_SECRET
-          redirect_uri: http://localhost:6336/oauth/response
-```
-
-### Supported Providers
-
-- Google
-- GitHub
-- LinkedIn
-- Custom OAuth2 endpoints
-
-### OAuth Login Flow
+Add user to the administrators group:
 
 ```bash
-# 1. Begin OAuth
-curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
-  -d '{"attributes": {"provider": "google"}}'
+# 1. Find the administrators group ID
+curl "http://localhost:6336/api/usergroup?query=[{\"column\":\"name\",\"operator\":\"is\",\"value\":\"administrators\"}]" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 
-# 2. User redirected to provider
-# 3. Callback handled automatically
-# 4. JWT token issued
-```
-
-## Two-Factor Authentication
-
-### Generate OTP Secret
-
-```bash
-curl -X POST http://localhost:6336/action/user_account/otp_generate \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Response includes:**
-- QR code for authenticator app
-- Secret key for manual entry
-
-### Verify OTP
-
-```bash
-curl -X POST http://localhost:6336/action/user_account/otp_login_verify \
-  -d '{"attributes": {"email": "user@example.com", "otp": "123456"}}'
-```
-
-## Session Management
-
-### Switch Session User
-
-Admin can impersonate users:
-
-```bash
-curl -X POST http://localhost:6336/action/user_account/switch_session_user \
+# 2. Add user to group (same as adding to any group)
+curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{"attributes": {"user_account_id": "TARGET_USER_ID"}}'
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "user_account_user_account_id_has_usergroup_usergroup_id",
+      "attributes": {},
+      "relationships": {
+        "user_account_id": {
+          "data": {"type": "user_account", "id": "USER_REFERENCE_ID"}
+        },
+        "usergroup_id": {
+          "data": {"type": "usergroup", "id": "ADMIN_GROUP_ID"}
+        }
+      }
+    }
+  }'
 ```
 
-### Generate JWT Token
+---
 
-Create token for API access:
+## Password Reset
+
+**Important:** Password reset requires:
+1. SMTP configured (for sending verification email)
+2. Admin must initiate the reset (guest access is blocked by default permissions)
+
+### Admin-Initiated Reset
 
 ```bash
-curl -X POST http://localhost:6336/action/user_account/generate_jwt_token \
+# Admin requests password reset for a user
+curl -X POST http://localhost:6336/action/user_account/reset-password \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "email": "user@example.com"
+    }
+  }'
+```
+
+User receives email with verification code.
+
+### Verify and Set New Password
+
+```bash
+curl -X POST http://localhost:6336/action/user_account/reset-password-verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "email": "user@example.com",
+      "otp": "123456",
+      "password": "newpassword123"
+    }
+  }'
+```
+
+**Note**: See [SMTP Server](SMTP-Server.md) for email configuration.
+
+---
+
+## Two-Factor Authentication (2FA)
+
+Daptin supports TOTP-based OTP authentication.
+
+### Enable 2FA
+
+Requires the user's reference ID:
+
+```bash
+# Get user reference ID
+USER_REF=$(curl -s http://localhost:6336/api/user_account \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.data[0].id')
+
+# Register OTP
+curl -X POST http://localhost:6336/action/user_account/register_otp \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"attributes\": {
+      \"mobile_number\": \"1234567890\",
+      \"user_account_id\": \"$USER_REF\"
+    }
+  }"
+```
+
+### Sign In with OTP
+
+```bash
+curl -X POST http://localhost:6336/action/user_account/verify_otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "email": "user@example.com",
+      "otp": "1234"
+    }
+  }'
+```
+
+See [Two-Factor Auth](Two-Factor-Auth.md) for complete setup including OTP generation.
+
+---
+
+## View User Details
+
+### Get Current User
+
+Query by email from your token:
+
+```bash
+curl "http://localhost:6336/api/user_account?query=[{\"column\":\"email\",\"operator\":\"is\",\"value\":\"your@email.com\"}]" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## User Account Table
+### List All Users (Admin)
 
-Default columns:
+```bash
+curl http://localhost:6336/api/user_account \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
 
-| Column | Type | Description |
-|--------|------|-------------|
-| email | varchar(200) | Unique email |
-| name | varchar(200) | Display name |
-| password | varchar(200) | Bcrypt hash |
-| confirmed | bool | Email confirmed |
-| reference_id | varchar(40) | UUID |
-| permission | int | Row permission |
-| created_at | datetime | Registration time |
+---
+
+## User Account Fields
+
+| Field | Description |
+|-------|-------------|
+| `name` | Display name |
+| `email` | Login email (unique) |
+| `password` | Stored as bcrypt hash |
+| `confirmed` | Email verified (true/false) |
+| `reference_id` | UUID for API operations |
+| `created_at` | Registration timestamp |
+
+---
+
+## Common Issues
+
+| Problem | Solution |
+|---------|----------|
+| **403 on signup** | Admin exists, signup disabled. Ask admin to create account. |
+| **Invalid password** | Check email/password. Passwords are case-sensitive. |
+| **Can't add user to group** | Use full junction table name: `user_account_user_account_id_has_usergroup_usergroup_id` |
+| **403 on password reset** | Guest users cannot trigger password reset. Admin must initiate. |
+| **Password reset email not received** | SMTP not configured. See [SMTP Server](SMTP-Server.md). |
+| **OTP "no reference id"** | `register_otp` requires `user_account_id` in attributes. |
+
+---
+
+## See Also
+
+- [Getting Started](Getting-Started-Guide.md) - First admin setup
+- [Permissions](Permissions.md) - Control access with groups
+- [Two-Factor Auth](Two-Factor-Auth.md) - 2FA setup
+- [Authentication](Authentication.md) - OAuth and JWT details

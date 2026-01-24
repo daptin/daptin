@@ -4,6 +4,25 @@ This guide captures the documentation process itself - challenges, techniques, a
 
 ---
 
+## First: Fresh Database
+
+**Every documentation session must start with a fresh database.**
+
+```bash
+# Stop Daptin, delete db, restart
+rm daptin.db && go run main.go
+```
+
+Why:
+- Fresh system has no admin (wide open permissions)
+- Signup works for guests
+- You can test the complete user journey
+- No unknown credentials blocking you
+
+**If you forget this, you'll waste time debugging 403 errors.**
+
+---
+
 ## Getting Started with a Feature
 
 ### 1. Find What Exists
