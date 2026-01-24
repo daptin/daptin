@@ -113,7 +113,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 	if ok && credentialName != nil && credentialName != "" {
 		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
 		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
-		if cred.DataMap != nil {
+		if cred != nil && cred.DataMap != nil {
 			for key, val := range cred.DataMap {
 				config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
 			}
