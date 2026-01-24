@@ -123,8 +123,8 @@ This gives you a clean system where:
 | Guide | Status | Notes |
 |-------|--------|-------|
 | File Columns | ✅ | Asset-Columns.md - base64 inline storage tested |
-| Cloud Storage (S3, GCS, etc) | ✅ | Cloud-Storage.md - rewritten with correct action names, tested create_folder |
-| Serve Static Sites | 📝 | Subsites.md needs testing |
+| Cloud Storage (S3, GCS, etc) | ✅ | Cloud-Storage.md - all actions tested after bug fix |
+| Serve Static Sites | ✅ | Subsites.md - site creation tested, cache needs restart |
 
 ---
 
@@ -170,11 +170,11 @@ This gives you a clean system where:
 1. [x] CRUD Operations - rewritten, verified against code
 2. [x] Users & Groups - fixed junction tables, action names, removed fake features
 3. [x] Password Reset - documented in Users-and-Groups.md
-4. [ ] File Upload - how to store files
+4. [x] File Upload - inline (Asset-Columns) and cloud (Cloud-Storage) tested
 
 ### Should Have (common use cases)
 5. [ ] Actions Overview - verify examples
-6. [x] Cloud Storage - S3/GCS setup (documented, create_folder tested)
+6. [x] Cloud Storage - S3/GCS setup (all actions tested after bug fix)
 7. [ ] WebSocket - real-time subscriptions
 8. [ ] Configuration - all env vars/flags
 
@@ -190,7 +190,8 @@ This gives you a clean system where:
 
 | What | When |
 |------|------|
-| Cloud Storage (correct action names, tested create_folder) | 2026-01-24 |
+| Cloud Storage (all actions tested after bug fix) | 2026-01-24 |
+| Subsites (site creation, file upload) | 2026-01-24 |
 | Users & Groups (fixed junction tables, removed fake features) | 2026-01-24 |
 | CRUD Operations (removed false claims) | 2026-01-24 |
 | Getting Started (user journeys) | 2026-01-24 |

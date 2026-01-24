@@ -12,6 +12,8 @@ Subsites allow:
 - Cloud storage backend
 - Template support
 
+> **Important:** The site cache is built at server startup. New sites won't be served until you restart Daptin.
+
 ## Creating a Subsite
 
 ```bash
@@ -80,76 +82,99 @@ Access: `http://docs.example.com/api/`
 
 ### Upload Files
 
-Via action:
+Upload files to a site via the cloud_store upload_file action:
 
 ```bash
-curl -X POST http://localhost:6336/action/site/cloudstore_file_upload \
+# First get your cloud_store_id
+CLOUD_STORE_ID=$(curl -s http://localhost:6336/api/cloud_store \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.data[0].id')
+
+# Upload a file to the site path
+curl -X POST http://localhost:6336/action/cloud_store/upload_file \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "attributes": {
-      "site_id": "SITE_ID",
-      "path": "/index.html",
-      "file": [{
-        "name": "index.html",
-        "file": "data:text/html;base64,..."
+  -H "Content-Type: application/json" \
+  -d "{
+    \"attributes\": {
+      \"cloud_store_id\": \"$CLOUD_STORE_ID\",
+      \"path\": \"mysite\",
+      \"file\": [{
+        \"name\": \"index.html\",
+        \"file\": \"data:text/html;base64,$(echo -n '<h1>Hello</h1>' | base64)\"
       }]
     }
-  }'
+  }"
 ```
 
 ### List Files
 
 ```bash
-curl -X POST http://localhost:6336/action/site/site_file_list \
+curl -X POST http://localhost:6336/action/site/list_files \
   -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "site_id": "SITE_ID",
+      "site_id": "SITE_REFERENCE_ID",
       "path": "/"
     }
   }'
 ```
 
+> **Note:** list_files requires the site to be in the site cache. Restart Daptin after creating a new site.
+
 ### Get File
 
 ```bash
-curl -X POST http://localhost:6336/action/site/site_file_get \
+curl -X POST http://localhost:6336/action/site/get_file \
   -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "site_id": "SITE_ID",
+      "site_id": "SITE_REFERENCE_ID",
       "path": "/index.html"
     }
   }'
 ```
 
+Returns file content as base64.
+
 ## Cloud Storage Backend
 
-Link site to cloud storage:
+Create a site linked to cloud storage:
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/cloudstore_site_create \
+curl -X POST http://localhost:6336/action/cloud_store/create_site \
   -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "cloud_store_id": "STORE_ID",
-      "site_name": "static-site",
-      "hostname": "static.example.com"
+      "cloud_store_id": "CLOUD_STORE_REFERENCE_ID",
+      "hostname": "static.example.com",
+      "path": "static-site",
+      "site_type": "static"
     }
   }'
 ```
+
+This creates both a site record in the database AND syncs the initial folder structure.
 
 ### Sync Site Storage
 
+Sync site files from cloud storage to local cache:
+
 ```bash
-curl -X POST http://localhost:6336/action/site/site_sync_storage \
+curl -X POST http://localhost:6336/action/site/sync_storage \
   -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "site_id": "SITE_ID"
+      "site_id": "SITE_REFERENCE_ID",
+      "cloud_store_id": "CLOUD_STORE_REFERENCE_ID",
+      "path": ""
     }
   }'
 ```
+
+> **Note:** After creating a new site, restart Daptin to load it into the site cache.
 
 ## FTP Access
 
