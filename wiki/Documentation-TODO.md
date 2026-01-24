@@ -74,9 +74,9 @@ Track documentation progress for all Daptin features.
 | Feature | Wiki File | Status | Notes |
 |---------|-----------|--------|-------|
 | GraphQL | GraphQL-API.md | 📝 | Endpoint exists, needs testing |
-| State Machines | State-Machines.md | 📝 | `smd` table exists |
+| State Machines | State-Machines.md | ✅ | Verified against code - smd table, looplab/fsm, state endpoints |
 | Subsites | Subsites.md | 📝 | Complex, needs testing |
-| Task Scheduling | Task-Scheduling.md | 📝 | `task` table exists |
+| Task Scheduling | Task-Scheduling.md | ✅ | Verified against code - robfig/cron, task table, execution flow |
 | WebSocket | WebSocket-API.md | 📝 | Needs verification |
 | Event System | Event-System.md | 📝 | Needs verification |
 
@@ -169,8 +169,8 @@ Track documentation progress for all Daptin features.
 
 ### Medium Priority
 6. [ ] Templates and rendering
-7. [ ] Task scheduling verification
-8. [ ] State machines verification
+7. [x] Task scheduling verification - Complete
+8. [x] State machines verification - Complete
 9. [ ] Feeds (RSS/Atom)
 10. [ ] Cloud storage performers
 
@@ -203,6 +203,8 @@ Track documentation progress for all Daptin features.
 | Credentials | 2026-01-24 | New wiki page for secure credential storage |
 | $network.request | 2026-01-24 | HTTP request performer in Custom-Actions.md |
 | Wiki Audit Report | 2026-01-24 | All critical issues resolved (90% complete) |
+| State Machines | 2026-01-24 | Complete rewrite - smd table, endpoints, looplab/fsm |
+| Task Scheduling | 2026-01-24 | Complete rewrite - task table, robfig/cron, execution flow |
 
 ---
 
