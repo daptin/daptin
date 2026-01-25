@@ -415,7 +415,10 @@ func main() {
 
 		time.Sleep(5 * time.Second)
 		membersTopic, err := olricDb.NewPubSub()
-		resource.CheckErr(err, "failed to listen to _members topic")
+		if err != nil || membersTopic == nil {
+			log.Errorf("failed to create PubSub, skipping member subscription: %v", err)
+			return
+		}
 
 		sub := membersTopic.Subscribe(context.Background(), "members")
 		go func(pubsub *redis.PubSub) {

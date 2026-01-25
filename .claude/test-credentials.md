@@ -96,3 +96,33 @@ Fixed in 6 files by adding `cred != nil &&` check.
 - Scheduled tasks: Empty
 - Feeds: Empty (need to create feed linked to stream)
 - Streams: 2 default streams (table, transformed_user)
+
+---
+
+## Known Bugs Found
+
+### 1. Cloud Storage Credential Nil Check (FIXED)
+- **Location:** 6 files in server/actions/
+- **Issue:** `cred.DataMap` accessed without checking if `cred` is nil
+- **Status:** Fixed in commit 9173037e
+
+### 2. Olric PubSub Nil Pointer (NEW)
+- **Location:** main.go:420
+- **Issue:** `membersTopic.Subscribe()` called without nil check after `olricDb.NewPubSub()` fails
+- **Symptoms:** Server crashes on startup with "invalid memory address or nil pointer dereference"
+- **Stack trace:**
+  ```
+  panic: runtime error: invalid memory address or nil pointer dereference
+  github.com/buraksezer/olric.(*PubSub).Subscribe(...)
+    /Users/artpar/go/pkg/mod/github.com/buraksezer/olric@v0.5.7/pubsub.go:59
+  main.main.func2()
+    /Users/artpar/workspace/code/github.com/daptin/daptin/main.go:420 +0xb0
+  ```
+- **Fix needed:** Add nil check before calling `membersTopic.Subscribe()`:
+  ```go
+  membersTopic, err := olricDb.NewPubSub()
+  if err != nil || membersTopic == nil {
+      log.Errorf("failed to create PubSub: %v", err)
+      return
+  }
+  ```
