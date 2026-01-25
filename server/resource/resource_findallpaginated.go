@@ -477,18 +477,22 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	if req.QueryParams["page[after]"] != nil && len(req.QueryParams["page[after]"]) > 0 {
 		afterRefId := uuid.MustParse(req.QueryParams["page[after]"][0])
 		id, err := GetReferenceIdToIdWithTransaction(dbResource.TableInfo().TableName, daptinid.DaptinReferenceId(afterRefId), transaction)
-		if err != nil {
+		if err == nil {
 			queryBuilder = queryBuilder.Where(goqu.Ex{
 				dbResource.TableInfo().TableName + ".id": goqu.Op{"gt": id},
 			}).Limit(uint(pageSize))
+		} else {
+			log.Warnf("Failed to lookup cursor UUID for page[after]: %v", err)
 		}
 	} else if req.QueryParams["page[before]"] != nil && len(req.QueryParams["page[before]"]) > 0 {
 		beforeRefId := uuid.MustParse(req.QueryParams["page[before]"][0])
 		id, err := GetReferenceIdToIdWithTransaction(dbResource.TableInfo().TableName, daptinid.DaptinReferenceId(beforeRefId), transaction)
-		if err != nil {
+		if err == nil {
 			queryBuilder = queryBuilder.Where(goqu.Ex{
 				dbResource.TableInfo().TableName + ".id": goqu.Op{"lt": id},
 			}).Limit(uint(pageSize))
+		} else {
+			log.Warnf("Failed to lookup cursor UUID for page[before]: %v", err)
 		}
 	} else {
 		queryBuilder = queryBuilder.Offset(uint(pageNumber)).Limit(uint(pageSize))
@@ -1308,8 +1312,8 @@ var OperatorMap = map[string]string{
 	"before":       "lt",
 	"after":        "gt",
 	"more than":    "gt",
-	"any of":       "any of",
-	"none of":      "none of",
+	"any of":       "in",
+	"none of":      "notIn",
 	"less than":    "lt",
 	"is empty":     "is nil",
 	"is true":      "is true",
