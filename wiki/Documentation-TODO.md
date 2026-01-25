@@ -26,6 +26,59 @@ This gives you a clean system where:
 
 ---
 
+## How to Document Properly
+
+**Every wiki page must be based on actual testing, not assumptions.**
+
+### The Process
+
+1. **Test First, Write Second**
+   - Run the actual commands yourself
+   - Verify the response matches what you document
+   - If something doesn't work, investigate the code - don't guess
+
+2. **Include Real Examples**
+   - Copy actual curl commands you ran
+   - Copy actual responses you received
+   - Include error messages users might encounter
+
+3. **When Stuck, Read the Code**
+   - Don't document features you haven't verified
+   - If the API behaves differently than expected, check the handler
+   - Action names, column names, and endpoints must match the code
+
+4. **Mark Tested Examples**
+   - Add "**Tested ✓**" at the top of pages with verified examples
+   - Include the Daptin version or date of testing
+   - Note any prerequisites (admin access, SMTP config, etc.)
+
+### What Makes Bad Documentation
+
+- Documenting features that don't exist
+- Copying theoretical examples without testing
+- Wrong action names (e.g., `generate_password_reset_otp` vs `generate_password_reset`)
+- Wrong table/column names (e.g., `user_usergroup` vs `user_account_user_account_id_has_usergroup_usergroup_id`)
+- Claiming capabilities the system doesn't have
+- Omitting critical steps (like server restart after schema changes)
+
+### What Makes Good Documentation
+
+- Every example was actually run and verified
+- Error scenarios are documented with real error messages
+- Caching behavior and restart requirements are noted
+- Prerequisites are listed upfront
+- The user can follow step-by-step and succeed
+
+### When Features Don't Work
+
+If you find a feature that doesn't work as expected:
+1. Check if it's a bug or intentional behavior
+2. Document the actual behavior, not the expected behavior
+3. Add a troubleshooting section with workarounds
+4. File an issue if it's a bug
+
+---
+
 ## Status
 
 - ✅ Complete - Tested, works as documented
