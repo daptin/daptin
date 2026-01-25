@@ -302,18 +302,19 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	log.Tracef("Added ResourcesToApi2Go")
 	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub()
-	if err != nil || tablesPubSub == nil {
-		log.Warnf("Olric PubSub not available, skipping table topic subscription: %v", err)
-	} else {
-		tableTopicSubscription := tablesPubSub.Subscribe(context.Background(), "members")
-		go func(topicSubscription *redis.PubSub) {
-			channel := topicSubscription.Channel()
-			for {
-				msg := <-channel
-				log.Infof("[438] Received message on [%s]: [%v]", msg.Channel, msg.String())
-			}
-		}(tableTopicSubscription)
+	resource.CheckErr(err, "Failed to create topic")
+	if err != nil {
+		log.Fatalf("failed to create olric topic - %v", err)
 	}
+
+	tableTopicSubscription := tablesPubSub.Subscribe(context.Background(), "members")
+	go func(topicSubscription *redis.PubSub) {
+		channel := topicSubscription.Channel()
+		for {
+			msg := <-channel
+			log.Infof("[438] Received message on [%s]: [%v]", msg.Channel, msg.String())
+		}
+	}(tableTopicSubscription)
 
 	for key, val := range cruds {
 		dtopicMap[key] = tablesPubSub
