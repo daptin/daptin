@@ -96,9 +96,9 @@ This gives you a clean system where:
 | Guide | Status | Notes |
 |-------|--------|-------|
 | What Are Actions? | ✅ | Actions-Overview.md - rewritten for end users |
-| Create Custom Actions | 📝 | Custom-Actions.md needs testing |
+| Create Custom Actions | ✅ | Custom-Actions.md - complete performer reference, tested examples |
 | Make HTTP Requests | ✅ | In Custom-Actions.md ($network.request) |
-| Validate Data | 📝 | Not documented |
+| Validate Data | ✅ | In Custom-Actions.md (Validations section) |
 | State Machines | ✅ | State-Machines.md |
 | Scheduled Tasks | ✅ | Task-Scheduling.md |
 
@@ -190,6 +190,7 @@ This gives you a clean system where:
 
 | What | When |
 |------|------|
+| Custom Actions (complete performer reference, 40+ performers, tested examples) | 2026-01-25 |
 | Actions Overview (E2E permission testing, restart requirement documented) | 2026-01-25 |
 | Cloud Storage (all actions tested after bug fix) | 2026-01-24 |
 | Subsites (site creation, file upload) | 2026-01-24 |
