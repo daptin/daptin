@@ -404,6 +404,16 @@ When a user tries to execute an action, Daptin checks **three things**:
 
 All three must pass for the action to run.
 
+### Important: Restart Required
+
+**Tested ✓** - Permission changes to actions or entity tables (world) require a **server restart** to take effect. The permission cache is only refreshed on startup.
+
+```bash
+# After changing action or world table permissions:
+# 1. Save the permission change via API
+# 2. Restart Daptin server
+```
+
 ### View Action Permissions
 
 ```bash
