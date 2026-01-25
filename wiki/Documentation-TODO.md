@@ -190,7 +190,7 @@ This gives you a clean system where:
 
 | What | When |
 |------|------|
-| Actions Overview (rewritten for end users with tested examples) | 2026-01-25 |
+| Actions Overview (E2E permission testing, restart requirement documented) | 2026-01-25 |
 | Cloud Storage (all actions tested after bug fix) | 2026-01-24 |
 | Subsites (site creation, file upload) | 2026-01-24 |
 | Users & Groups (fixed junction tables, removed fake features) | 2026-01-24 |

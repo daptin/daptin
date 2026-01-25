@@ -31,7 +31,6 @@ curl -s http://localhost:6336/api/user_account \
 | Email | Password | Groups |
 |-------|----------|--------|
 | admin@admin.com | adminadmin | administrators, users |
-| newuser@example.com | userpassword123 | users, editors |
 
 ## Verified Documentation (2026-01-24)
 
@@ -88,6 +87,15 @@ Fixed in 6 files by adding `cred != nil &&` check.
 - ✅ Site record created in database
 - ❌ Site serving: Cache built at startup, new sites need restart
 - ✅ Upload files to site path via upload_file action
+
+**Actions-Overview.md (2026-01-25):**
+- ✅ E2E Permission Test: Verified three-level permission system
+- ✅ Permission changes require server restart to take effect
+- ✅ Guest denied when GuestExecute removed from world table permission
+- ✅ Non-admin user denied when action permission lacks UserExecute for non-owner
+- ✅ Admin always allowed (member of administrators group)
+- ✅ Junction table POST with relationships syntax
+- ❌ Junction table GET (not supported by design)
 
 **Other Features:**
 - OAuth connect: Empty (needs configuration)
