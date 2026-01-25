@@ -210,8 +210,8 @@ If you find a feature that doesn't work as expected:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| Configuration Options | 📝 | Configuration.md needs testing |
-| Database Setup | 📝 | Database-Setup.md needs testing |
+| Configuration Options | 📝 | Server-Configuration.md - config API tested, env vars/flags NOT tested |
+| Database Setup | 📝 | Database-Setup.md - connection strings NOT tested |
 | TLS/HTTPS | 📝 | TLS-Certificates.md needs testing |
 | Monitoring | 📝 | Monitoring.md needs testing |
 
@@ -229,7 +229,7 @@ If you find a feature that doesn't work as expected:
 5. [x] Actions Overview - rewritten for end users
 6. [x] Cloud Storage - S3/GCS setup (all actions tested after bug fix)
 7. [ ] WebSocket - real-time subscriptions
-8. [ ] Configuration - all env vars/flags
+8. [ ] Configuration - config API tested, env vars/flags/ports NOT tested yet
 
 ### Nice to Have (advanced)
 9. [ ] GraphQL API
@@ -243,6 +243,7 @@ If you find a feature that doesn't work as expected:
 
 | What | When |
 |------|------|
+| Server Configuration (config API, monitoring endpoints - partial) | 2026-01-25 |
 | Custom Actions (complete performer reference, 40+ performers, tested examples) | 2026-01-25 |
 | Actions Overview (E2E permission testing, restart requirement documented) | 2026-01-25 |
 | Cloud Storage (all actions tested after bug fix) | 2026-01-24 |
