@@ -95,7 +95,7 @@ This gives you a clean system where:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| What Are Actions? | 📝 | Actions-Overview.md needs testing |
+| What Are Actions? | ✅ | Actions-Overview.md - rewritten for end users |
 | Create Custom Actions | 📝 | Custom-Actions.md needs testing |
 | Make HTTP Requests | ✅ | In Custom-Actions.md ($network.request) |
 | Validate Data | 📝 | Not documented |
@@ -173,7 +173,7 @@ This gives you a clean system where:
 4. [x] File Upload - inline (Asset-Columns) and cloud (Cloud-Storage) tested
 
 ### Should Have (common use cases)
-5. [ ] Actions Overview - verify examples
+5. [x] Actions Overview - rewritten for end users
 6. [x] Cloud Storage - S3/GCS setup (all actions tested after bug fix)
 7. [ ] WebSocket - real-time subscriptions
 8. [ ] Configuration - all env vars/flags
@@ -190,6 +190,7 @@ This gives you a clean system where:
 
 | What | When |
 |------|------|
+| Actions Overview (rewritten for end users with tested examples) | 2026-01-25 |
 | Cloud Storage (all actions tested after bug fix) | 2026-01-24 |
 | Subsites (site creation, file upload) | 2026-01-24 |
 | Users & Groups (fixed junction tables, removed fake features) | 2026-01-24 |

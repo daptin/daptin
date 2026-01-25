@@ -1,193 +1,306 @@
 # Actions Overview
 
-Actions are Daptin's business logic layer for custom operations beyond CRUD.
+Actions are named operations you can invoke via API to perform specific tasks. Unlike CRUD operations (create, read, update, delete) which work on individual records, actions execute business logic - sending emails, uploading files, generating tokens, or calling external APIs.
 
-## Executing Actions
+---
+
+## Quick Start
+
+**Tested ✓** - All examples on this page were verified against a running Daptin instance.
+
+### Call an Action
 
 ```bash
+# Entity-level action (no specific record needed)
 curl -X POST http://localhost:6336/action/{entity}/{action_name} \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {...}}'
+
+# Instance action (operates on a specific record)
+curl -X POST http://localhost:6336/action/{entity}/{record_id}/{action_name} \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"attributes": {...}}'
 ```
 
-## Action Response Types
+### Example: Download System Schema
 
-| ResponseType | Description |
-|--------------|-------------|
-| `client.notify` | Show notification message |
-| `client.redirect` | Redirect to URL |
-| `client.store.set` | Store value (localStorage) |
-| `client.cookie.set` | Set browser cookie |
-| `client.file.download` | Trigger file download |
+```bash
+curl -X POST http://localhost:6336/action/world/download_system_schema \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {}}'
+```
 
-### Example Response
-
+Response:
 ```json
 [
   {
-    "ResponseType": "client.notify",
+    "ResponseType": "client.file.download",
     "Attributes": {
-      "type": "success",
-      "title": "Success",
-      "message": "Operation completed"
-    }
-  },
-  {
-    "ResponseType": "client.redirect",
-    "Attributes": {
-      "location": "/dashboard",
-      "delay": 2000
+      "content": "base64-encoded-schema-json",
+      "name": "schema.json",
+      "contentType": "application/json"
     }
   }
 ]
 ```
 
-## Built-in Actions (46 Total)
+---
 
-### User Management
+## Understanding Response Types
+
+Every action returns an array of responses. Each response has a `ResponseType` that tells clients what to do with the result.
+
+| ResponseType | What It Does |
+|--------------|--------------|
+| `client.notify` | Show a message (success, error, info) |
+| `client.redirect` | Navigate to a URL |
+| `client.file.download` | Download a file (content is base64) |
+| `client.store.set` | Store a value (for frontend localStorage) |
+| `client.cookie.set` | Set a cookie |
+
+### Response Examples
+
+**Notification:**
+```json
+{
+  "ResponseType": "client.notify",
+  "Attributes": {
+    "type": "success",
+    "title": "Success",
+    "message": "Operation completed"
+  }
+}
+```
+
+**File Download:**
+```json
+{
+  "ResponseType": "client.file.download",
+  "Attributes": {
+    "content": "SGVsbG8gV29ybGQ=",
+    "name": "data.txt",
+    "contentType": "text/plain"
+  }
+}
+```
+
+**Redirect:**
+```json
+{
+  "ResponseType": "client.redirect",
+  "Attributes": {
+    "location": "/dashboard",
+    "delay": 2000
+  }
+}
+```
+
+---
+
+## Built-in Actions by Category
+
+Daptin includes 40+ built-in actions. Here are the most commonly used ones grouped by purpose.
+
+### Authentication & Users
+
+| Action | Entity | Description | Instance Required |
+|--------|--------|-------------|-------------------|
+| `signup` | user_account | Register new user | No |
+| `signin` | user_account | Get JWT token | No |
+| `reset-password` | user_account | Request password reset email | No |
+| `reset-password-verify` | user_account | Complete password reset | No |
+| `generate_jwt_token` | user_account | Create API token for user | Yes |
+| `otp_generate` | user_account | Enable 2FA | Yes |
+| `otp_login_verify` | user_account | Verify 2FA code | No |
+
+**Example: Sign In**
+```bash
+curl -X POST http://localhost:6336/action/user_account/signin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "email": "admin@admin.com",
+      "password": "adminadmin"
+    }
+  }'
+```
+
+### OAuth Integration
 
 | Action | Entity | Description |
 |--------|--------|-------------|
-| `signup` | user_account | Register new user |
-| `signin` | user_account | Authenticate user |
-| `generate_password_reset_flow` | user_account | Request password reset |
-| `generate_password_reset_verify_flow` | user_account | Complete password reset |
-| `otp_generate` | user_account | Setup 2FA |
-| `otp_login_verify` | user_account | Verify 2FA code |
-| `switch_session_user` | user_account | Admin impersonation |
-| `generate_jwt_token` | user_account | Create JWT token |
+| `oauth_login_begin` | oauth_connect | Start OAuth flow (returns redirect URL) |
+| `oauth.login.response` | oauth_token | Handle OAuth callback |
 
-### OAuth
-
-| Action | Entity | Description |
-|--------|--------|-------------|
-| `oauth_login_begin` | oauth_connect | Start OAuth flow |
-| `oauth_login_response` | oauth_connect | Handle OAuth callback |
-| `oauth_profile_exchange` | oauth_connect | Get OAuth profile |
-| `generate_oauth2_token` | oauth_token | Generate OAuth token |
+See [Authentication](Authentication.md) for OAuth setup.
 
 ### Administration
 
 | Action | Entity | Description |
 |--------|--------|-------------|
-| `become_an_administrator` | world | First user becomes admin |
-| `restart_daptin` | world | Restart server |
-| `enable_graphql` | world | Enable GraphQL API |
-| `download_cms_config` | world | Export system config |
+| `become_an_administrator` | world | First user claims admin role |
+| `download_system_schema` | world | Export full schema as JSON |
+| `upload_csv_to_system_schema` | world | Create/update tables from CSV |
+| `restart` | world | Restart Daptin server |
+| `enable_graphql` | world | Enable GraphQL endpoint |
+
+**Example: Export Schema**
+```bash
+curl -X POST http://localhost:6336/action/world/download_system_schema \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {}}'
+```
 
 ### Data Import/Export
 
 | Action | Entity | Description |
 |--------|--------|-------------|
-| `import_data` | * | Import data (JSON/CSV/XLSX) |
-| `export_data` | * | Export data |
-| `export_csv_data` | * | Export as CSV |
-| `csv_to_entity` | world | Create table from CSV |
-| `xls_to_entity` | world | Create table from XLSX |
+| `__data_import` | any table | Import JSON/CSV/XLSX data |
+| `__data_export` | any table | Export table data |
+| `__csv_data_export` | any table | Export as CSV file |
 
-### Schema Operations
-
-| Action | Entity | Description |
-|--------|--------|-------------|
-| `delete_table` | world | Drop table |
-| `rename_column` | world | Rename column |
-| `delete_column` | world | Drop column |
+**Example: Export Data as CSV**
+```bash
+curl -X POST http://localhost:6336/action/user_account/__csv_data_export \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {}}'
+```
 
 ### Cloud Storage
 
+All cloud storage actions require `cloud_store_id` in attributes.
+
 | Action | Entity | Description |
 |--------|--------|-------------|
-| `cloudstore_file_upload` | cloud_store | Upload file |
-| `cloudstore_file_delete` | cloud_store | Delete file |
-| `cloudstore_folder_create` | cloud_store | Create folder |
-| `cloudstore_path_move` | cloud_store | Move file/folder |
-| `cloudstore_site_create` | cloud_store | Create subsite |
-| `column_sync_storage` | * | Sync asset column |
-| `import_cloudstore_files` | cloud_store | Import from storage |
-| `site_file_get` | site | Get subsite file |
-| `site_file_list` | site | List subsite files |
-| `site_sync_storage` | site | Sync subsite storage |
+| `upload_file` | cloud_store | Upload files (base64) |
+| `create_folder` | cloud_store | Create directory |
+| `delete_path` | cloud_store | Delete file or folder |
+| `move_path` | cloud_store | Move/rename file or folder |
+| `create_site` | cloud_store | Create a subsite |
+| `list_files` | site | List site files |
+| `get_file` | site | Get file content |
+
+See [Cloud Storage](Cloud-Storage.md) for full examples.
 
 ### Email
 
 | Action | Entity | Description |
 |--------|--------|-------------|
-| `mail.send` | world | Send email via SMTP |
-| `aws.mail.send` | world | Send email via AWS SES |
-| `mail_servers_sync` | mail_server | Sync mail config |
+| `mail.send` | mail_server | Send email via SMTP |
+| `aws.mail.send` | mail_server | Send via AWS SES |
 
-### Certificates
+See [Email-Actions](Email-Actions.md) for setup.
 
-| Action | Entity | Description |
-|--------|--------|-------------|
-| `generate_self_tls_certificate` | world | Generate self-signed cert |
-| `generate_acme_tls_certificate` | world | Get Let's Encrypt cert |
-| `download_certificate` | certificate | Export certificate |
-
-### Utilities
+### TLS Certificates
 
 | Action | Entity | Description |
 |--------|--------|-------------|
-| `network_request` | integration | HTTP request |
-| `render_template` | * | Template rendering |
-| `transaction` | world | Transaction control |
-| `execute_process` | world | Run external process |
-| `random_value_generate` | * | Generate random value |
-| `generate_random_data` | * | Generate test data |
-| `make_response` | * | Custom response |
-| `get_action_schema` | action | Export action schema |
-| `integration_install` | integration | Install integration |
-| `integration_execute` | integration | Run integration |
+| `generate_self_tls_certificate` | world | Generate self-signed certificate |
+| `generate_acme_tls_certificate` | world | Get Let's Encrypt certificate |
+| `download_certificate` | certificate | Download certificate files |
+
+### Data Exchange
+
+| Action | Entity | Description |
+|--------|--------|-------------|
+| `add_exchange` | world | Create data sync job |
+
+See [Data-Exchange](Data-Exchange.md) for details.
+
+### Integrations
+
+| Action | Entity | Description |
+|--------|--------|-------------|
+| `integration_install` | integration | Install OpenAPI integration |
+| `integration_execute` | integration | Execute integration action |
+
+See [Integrations](Integrations.md) for setup.
+
+---
 
 ## List Available Actions
 
-```bash
-# All actions
-curl http://localhost:6336/api/action \
-  -H "Authorization: Bearer $TOKEN"
+Query the `action` table to see all registered actions.
 
-# Actions for specific entity
-curl 'http://localhost:6336/api/action?query=[{"column":"on_type","operator":"is","value":"todo"}]' \
+```bash
+# List all actions
+curl http://localhost:6336/api/action \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## Action Definition
+Response includes:
+- `action_name` - API name to call
+- `label` - Human-readable name
+- `instance_optional` - 1 = no record needed, 0 = requires record ID
+- `world_id` - Which entity this action belongs to
 
-Actions defined in schema:
+---
+
+## Instance vs Entity Actions
+
+**Entity Actions** (instance_optional=1):
+- Called on the entity itself
+- No specific record needed
+- Example: `POST /action/user_account/signup`
+
+**Instance Actions** (instance_optional=0):
+- Called on a specific record
+- Requires record ID in URL
+- Example: `POST /action/user_account/{user_id}/generate_jwt_token`
+
+---
+
+## Defining Custom Actions
+
+You can define your own actions in your schema YAML file.
+
+### Basic Action
 
 ```yaml
-Actions:
-  - Name: publish_article
-    Label: Publish Article
-    OnType: article
-    InFields:
-      - Name: article_id
-        ColumnType: id
-        ColumnName: reference_id
-    OutFields:
-      - Type: client.notify
-        Attributes:
-          type: success
-          message: Article published
-    Validations: []
-    Conformations: []
+Tables:
+  - TableName: order
+    Columns:
+      - Name: status
+        DataType: varchar(100)
+
+    Actions:
+      - Name: mark_shipped
+        Label: Mark as Shipped
+        OnType: order
+        InstanceOptional: false
+        InFields:
+          - Name: tracking_number
+            ColumnType: label
+            IsNullable: false
+        OutFields:
+          - Type: client.notify
+            Attributes:
+              type: success
+              message: Order marked as shipped
+        Conformations:
+          - Name: status
+            Value: "shipped"
 ```
 
 ### Action Properties
 
-| Property | Description |
-|----------|-------------|
-| `Name` | Unique action identifier |
-| `Label` | Display name |
-| `OnType` | Entity this action belongs to |
-| `InFields` | Input parameters |
-| `OutFields` | Output responses |
-| `Validations` | Input validation rules |
-| `Conformations` | Data transformations |
-| `InstanceOptional` | Don't require record ID |
+| Property | Type | Description |
+|----------|------|-------------|
+| `Name` | string | Unique identifier (used in API) |
+| `Label` | string | Display name in UI |
+| `OnType` | string | Entity this action belongs to |
+| `InstanceOptional` | bool | `true` = no record needed |
+| `InFields` | array | Input parameters user provides |
+| `OutFields` | array | Responses to return |
+| `Conformations` | array | Auto-set field values |
+| `Validations` | array | Input validation rules |
 
-## InField Types
+### Input Field Types
 
 ```yaml
 InFields:
@@ -195,27 +308,108 @@ InFields:
     ColumnType: label
     IsNullable: false
 
-  - Name: category
-    ColumnType: enum
-    Values: [news, blog, review]
+  - Name: priority
+    ColumnType: label
+    DataType: enum('low','medium','high')
 
-  - Name: file
+  - Name: attachment
     ColumnType: file.document
 
-  - Name: publish_date
+  - Name: due_date
     ColumnType: datetime
 ```
 
-## Permission Control
+### Auto-Set Values (Conformations)
 
 ```yaml
-Actions:
-  - Name: admin_action
-    OnType: world
-    RequiredPermission: Execute
-    # Only users with Execute permission can run
+Conformations:
+  - Name: status
+    Value: "completed"
+
+  - Name: completed_at
+    Value: "~now"       # Current timestamp
+
+  - Name: completed_by
+    AttributeName: user_id  # Current user
 ```
 
-## Custom Actions
+---
 
-See [[Custom-Actions]] for creating your own actions.
+## Calling Actions Programmatically
+
+### JavaScript/Fetch
+
+```javascript
+const response = await fetch('http://localhost:6336/action/cloud_store/create_folder', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    attributes: {
+      cloud_store_id: 'your-store-id',
+      name: 'new-folder',
+      path: ''
+    }
+  })
+});
+
+const results = await response.json();
+// results is an array of ResponseType objects
+```
+
+### Python
+
+```python
+import requests
+
+response = requests.post(
+    'http://localhost:6336/action/user_account/signin',
+    json={
+        'attributes': {
+            'email': 'user@example.com',
+            'password': 'password123'
+        }
+    }
+)
+
+for result in response.json():
+    if result['ResponseType'] == 'client.store.set':
+        token = result['Attributes']['value']
+```
+
+---
+
+## Error Handling
+
+Failed actions return error notifications:
+
+```json
+[
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {
+      "type": "error",
+      "title": "failed",
+      "message": "required reference id not provided"
+    }
+  }
+]
+```
+
+Common errors:
+- Missing required attributes
+- Invalid record ID (for instance actions)
+- Permission denied
+- Validation failure
+
+---
+
+## See Also
+
+- [Custom-Actions](Custom-Actions.md) - Creating actions with workflows
+- [Cloud-Storage](Cloud-Storage.md) - Cloud storage action examples
+- [Authentication](Authentication.md) - Auth action details
+- [State-Machines](State-Machines.md) - Trigger actions on state changes
+- [Task-Scheduling](Task-Scheduling.md) - Run actions on schedule
