@@ -465,31 +465,43 @@ curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
 
 ### Assign Action to User Group
 
-To restrict an action to specific user groups:
+**Tested ✓** - To restrict an action to specific user groups:
 
-1. First, get the usergroup reference ID
-2. Create a relation between the action and the usergroup
+1. Get the action and usergroup reference IDs
+2. Create a relation via the junction table using relationships (not attributes)
 
 ```bash
+# Get action ID
+ACTION_ID=$(curl -s http://localhost:6336/api/action \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq -r '.data[] | select(.attributes.action_name == "your_action") | .id')
+
 # Get usergroup ID
 USERGROUP_ID=$(curl -s http://localhost:6336/api/usergroup \
   -H "Authorization: Bearer $TOKEN" | \
   jq -r '.data[] | select(.attributes.name == "editors") | .id')
 
-# Link action to usergroup (enables GroupExecute for this group)
+# Link action to usergroup using relationships
 curl -X POST http://localhost:6336/api/action_action_id_has_usergroup_usergroup_id \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "action_action_id_has_usergroup_usergroup_id",
-      "attributes": {
-        "action_id": "'$ACTION_ID'",
-        "usergroup_id": "'$USERGROUP_ID'"
+      "attributes": {},
+      "relationships": {
+        "action_id": {
+          "data": {"type": "action", "id": "'$ACTION_ID'"}
+        },
+        "usergroup_id": {
+          "data": {"type": "usergroup", "id": "'$USERGROUP_ID'"}
+        }
       }
     }
   }'
 ```
+
+**Note:** Junction tables can be created via POST but cannot be listed via GET.
 
 ### Permission Bits Reference
 
