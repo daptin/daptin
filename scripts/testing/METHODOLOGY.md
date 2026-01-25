@@ -4,16 +4,16 @@
 
 ```bash
 # 1. Check server
-.claude/testing/test-runner.sh check
+scripts/testing/test-runner.sh check
 
 # 2. Start if needed
-.claude/testing/test-runner.sh start
+scripts/testing/test-runner.sh start
 
 # 3. Get token
-.claude/testing/test-runner.sh token
+scripts/testing/test-runner.sh token
 
 # 4. Test API
-.claude/testing/test-runner.sh get /api/user_account
+scripts/testing/test-runner.sh get /api/user_account
 ```
 
 ---
@@ -55,7 +55,7 @@ These are created automatically on first signup if no admin exists.
 ### 1. Always Use Test Runner
 ```bash
 # GOOD
-.claude/testing/test-runner.sh action cloud_store upload_file '{"cloud_store_id":"..."}'
+scripts/testing/test-runner.sh action cloud_store upload_file '{"cloud_store_id":"..."}'
 
 # BAD - complex one-liners cause parsing issues
 TOKEN=$(curl...) && curl ... | jq ...
@@ -69,19 +69,19 @@ curl -s --max-time 5 --connect-timeout 5 ...
 
 ### 3. Check Server Before Testing
 ```bash
-.claude/testing/test-runner.sh check
+scripts/testing/test-runner.sh check
 # If "stopped", run:
-.claude/testing/test-runner.sh start
+scripts/testing/test-runner.sh start
 ```
 
 ### 4. One Command Per Line
 ```bash
 # GOOD
-.claude/testing/test-runner.sh check
-.claude/testing/test-runner.sh token
+scripts/testing/test-runner.sh check
+scripts/testing/test-runner.sh token
 
 # BAD
-.claude/testing/test-runner.sh check && .claude/testing/test-runner.sh token
+scripts/testing/test-runner.sh check && scripts/testing/test-runner.sh token
 ```
 
 ---
@@ -90,33 +90,33 @@ curl -s --max-time 5 --connect-timeout 5 ...
 
 ### Server Management
 ```bash
-.claude/testing/test-runner.sh check    # Check if running
-.claude/testing/test-runner.sh start    # Start server (waits for ready)
-.claude/testing/test-runner.sh stop     # Stop server
+scripts/testing/test-runner.sh check    # Check if running
+scripts/testing/test-runner.sh start    # Start server (waits for ready)
+scripts/testing/test-runner.sh stop     # Stop server
 ```
 
 ### Authentication
 ```bash
-.claude/testing/test-runner.sh token    # Get fresh JWT token
+scripts/testing/test-runner.sh token    # Get fresh JWT token
 ```
 
 ### API Calls
 ```bash
 # GET request
-.claude/testing/test-runner.sh get /api/user_account
+scripts/testing/test-runner.sh get /api/user_account
 
 # POST request
-.claude/testing/test-runner.sh post /api/entity '{"data":{...}}'
+scripts/testing/test-runner.sh post /api/entity '{"data":{...}}'
 
 # Action call
-.claude/testing/test-runner.sh action cloud_store upload_file '{"cloud_store_id":"..."}'
+scripts/testing/test-runner.sh action cloud_store upload_file '{"cloud_store_id":"..."}'
 ```
 
 ### Debugging
 ```bash
-.claude/testing/test-runner.sh logs      # Last 20 lines
-.claude/testing/test-runner.sh logs 50   # Last 50 lines
-.claude/testing/test-runner.sh errors    # Show errors only
+scripts/testing/test-runner.sh logs      # Last 20 lines
+scripts/testing/test-runner.sh logs 50   # Last 50 lines
+scripts/testing/test-runner.sh errors    # Show errors only
 ```
 
 ---
@@ -138,12 +138,12 @@ curl -s --max-time 5 --connect-timeout 5 ...
 
 1. **Start server**
    ```bash
-   .claude/testing/test-runner.sh start
+   scripts/testing/test-runner.sh start
    ```
 
 2. **Run test**
    ```bash
-   .claude/testing/test-runner.sh action entity action_name '{"param":"value"}'
+   scripts/testing/test-runner.sh action entity action_name '{"param":"value"}'
    ```
 
 3. **Record result** in `.claude/test-credentials.md`:
@@ -222,8 +222,8 @@ DELETE /api/{entity}/{id}      # Delete
 
 | File | Purpose |
 |------|---------|
-| `.claude/testing/test-runner.sh` | Test automation |
-| `.claude/testing/METHODOLOGY.md` | This document |
+| `scripts/testing/test-runner.sh` | Test automation |
+| `scripts/testing/METHODOLOGY.md` | This document |
 | `.claude/test-credentials.md` | Test results |
 | `wiki/Documentation-TODO.md` | Doc status |
 | `/tmp/daptin.log` | Server logs |
@@ -240,7 +240,7 @@ pkill -9 -f daptin
 lsof -i :5336 | awk 'NR>1 {print $2}' | xargs kill -9
 
 # Check errors
-.claude/testing/test-runner.sh errors
+scripts/testing/test-runner.sh errors
 ```
 
 ### Request Hangs
@@ -249,23 +249,23 @@ lsof -i :5336 | awk 'NR>1 {print $2}' | xargs kill -9
 pkill -9 -f "curl.*6336"
 
 # Restart server
-.claude/testing/test-runner.sh stop
-.claude/testing/test-runner.sh start
+scripts/testing/test-runner.sh stop
+scripts/testing/test-runner.sh start
 ```
 
 ### Database Locked
 ```bash
 # Stop server and wait
-.claude/testing/test-runner.sh stop
+scripts/testing/test-runner.sh stop
 sleep 5
-.claude/testing/test-runner.sh start
+scripts/testing/test-runner.sh start
 ```
 
 ### Fresh Database
 ```bash
-.claude/testing/test-runner.sh stop
+scripts/testing/test-runner.sh stop
 rm daptin.db
-.claude/testing/test-runner.sh start
+scripts/testing/test-runner.sh start
 ```
 
 ---
