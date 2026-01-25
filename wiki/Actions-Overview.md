@@ -381,6 +381,147 @@ for result in response.json():
 
 ---
 
+## Action Permissions
+
+Actions use the same permission system as tables. Each action has its own permission that controls who can execute it.
+
+### Permission Levels
+
+| Level | Who Can Execute | Use Case |
+|-------|-----------------|----------|
+| **Guest** | Anyone, no login required | Public actions (signup, signin) |
+| **User** | The action's owner only | Personal actions |
+| **Group** | Members of assigned groups | Team/role-based actions |
+| **Admin** | Administrators always | All actions |
+
+### Three Permission Checks
+
+When a user tries to execute an action, Daptin checks **three things**:
+
+1. **Entity Permission** - Can this user execute on this table type?
+2. **Action Permission** - Can this user execute this specific action?
+3. **Row Permission** (instance actions only) - Can this user execute on this specific record?
+
+All three must pass for the action to run.
+
+### View Action Permissions
+
+```bash
+# List actions with their permissions
+curl http://localhost:6336/api/action \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Each action has a `permission` field (integer). Common values:
+
+| Permission Value | Meaning |
+|------------------|---------|
+| 561441 | Guest can execute (public actions) |
+| 2085120 | Only owner/group/admin can execute |
+
+### Make an Action Public (Guest Accessible)
+
+To allow guests (unauthenticated users) to execute an action:
+
+```bash
+# Get the action ID first
+ACTION_ID=$(curl -s http://localhost:6336/api/action \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq -r '.data[] | select(.attributes.action_name == "your_action") | .id')
+
+# Update permission to include GuestExecute (561441)
+curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "action",
+      "id": "'$ACTION_ID'",
+      "attributes": {
+        "permission": 561441
+      }
+    }
+  }'
+```
+
+### Restrict Action to Admin Only
+
+To make an action admin-only, remove guest and group execute bits:
+
+```bash
+curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "action",
+      "id": "'$ACTION_ID'",
+      "attributes": {
+        "permission": 2085120
+      }
+    }
+  }'
+```
+
+### Assign Action to User Group
+
+To restrict an action to specific user groups:
+
+1. First, get the usergroup reference ID
+2. Create a relation between the action and the usergroup
+
+```bash
+# Get usergroup ID
+USERGROUP_ID=$(curl -s http://localhost:6336/api/usergroup \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq -r '.data[] | select(.attributes.name == "editors") | .id')
+
+# Link action to usergroup (enables GroupExecute for this group)
+curl -X POST http://localhost:6336/api/action_action_id_has_usergroup_usergroup_id \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "action_action_id_has_usergroup_usergroup_id",
+      "attributes": {
+        "action_id": "'$ACTION_ID'",
+        "usergroup_id": "'$USERGROUP_ID'"
+      }
+    }
+  }'
+```
+
+### Permission Bits Reference
+
+For advanced users, here are the individual permission bits:
+
+| Bit | Name | Value | Description |
+|-----|------|-------|-------------|
+| 5 | GuestExecute | 32 | Guests can execute |
+| 12 | UserExecute | 4096 | Owner can execute |
+| 19 | GroupExecute | 524288 | Group members can execute |
+
+Common permission values:
+- `561441` = GuestPeek + GuestExecute + UserRead + UserExecute + GroupRead + GroupExecute
+- `2085120` = UserCRUD + UserExecute + GroupCRUD + GroupExecute (no guest access)
+
+### Default Action Permissions
+
+Built-in actions have sensible defaults:
+
+| Action | Default Access |
+|--------|----------------|
+| `signup` | Guest (public) |
+| `signin` | Guest (public) |
+| `become_an_administrator` | Guest (first user only) |
+| `download_system_schema` | Admin/Owner |
+| `restart` | Admin only |
+| Cloud storage actions | Owner/Group/Admin |
+
+See [Permissions](Permissions.md) for the complete permission system.
+
+---
+
 ## Error Handling
 
 Failed actions return error notifications:
