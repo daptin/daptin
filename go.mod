@@ -12,6 +12,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/artpar/api2go v2.7.0+incompatible
 	github.com/artpar/api2go-adapter v1.0.2
+	github.com/artpar/api2go/v2 v2.7.3
 	github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.5
@@ -25,6 +26,10 @@ require (
 	github.com/artpar/ydb v0.1.31
 	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
 	github.com/aws/aws-sdk-go v1.49.24
+	github.com/aws/aws-sdk-go-v2 v1.36.3
+	github.com/aws/aws-sdk-go-v2/config v1.29.14
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.67
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.3
 	github.com/bep/gowebp v0.2.0
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.5.7
@@ -139,14 +144,10 @@ require (
 	github.com/appscode/go-querystring v0.0.0-20170504095604-0126cfb3f1dc // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/artpar/api2go/v2 v2.7.3 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.29.14 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.67 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.75 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.34 // indirect
@@ -157,7 +158,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.15 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.25.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect

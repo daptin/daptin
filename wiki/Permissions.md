@@ -78,8 +78,10 @@ Permissions apply to three groups:
 
 ```bash
 # Get table permission
-curl "http://localhost:6336/api/world?filter[table_name]=todo" \
-  -H "Authorization: Bearer $TOKEN" | jq '.data[0].attributes.permission'
+curl --get \
+  --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"todo"}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/world" | jq '.data[0].attributes.permission'
 ```
 
 ### Check Record Permission
@@ -108,23 +110,48 @@ curl -X PATCH "http://localhost:6336/api/todo/RECORD_ID" \
 
 ### Share with a Group
 
+**IMPORTANT**: POST requests to join tables ignore the `permission` attribute. You must:
+1. Create the join record first
+2. PATCH to set the permission
+
 ```bash
-# Add record to a group
-curl -X POST "http://localhost:6336/api/todo_todo_id_has_usergroup_usergroup_id" \
+# Step 1: Add record to a group
+JOIN_ID=$(curl -s -X POST "http://localhost:6336/api/todo_todo_id_has_usergroup_usergroup_id" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "todo_todo_id_has_usergroup_usergroup_id",
       "attributes": {
+        "todo_id": "RECORD_ID",
+        "usergroup_id": "GROUP_ID"
+      }
+    }
+  }' | jq -r '.data.id')
+
+# Step 2: Set permission on the join record
+# Permission 32768 = 2 << 14 (Read permission for group)
+curl -X PATCH "http://localhost:6336/api/todo_todo_id_has_usergroup_usergroup_id/$JOIN_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "todo_todo_id_has_usergroup_usergroup_id",
+      "id": "'$JOIN_ID'",
+      "attributes": {
         "permission": 32768
-      },
-      "relationships": {
-        "todo_id": {"data": {"type": "todo", "id": "RECORD_ID"}},
-        "usergroup_id": {"data": {"type": "usergroup", "id": "GROUP_ID"}}
       }
     }
   }'
+```
+
+**Permission values for join tables** (group permissions only):
+```javascript
+// Group permissions are bit-shifted to position 14-20
+const groupRead = 2 << 14;        // 32768
+const groupUpdate = 8 << 14;      // 131072
+const groupReadWrite = (2+8) << 14; // 163840 = 10 << 14
+const groupFull = 127 << 14;      // 2080768
 ```
 
 ---
@@ -208,10 +235,13 @@ By default, signup is disabled after admin setup. To re-enable:
 
 ```bash
 # Find signup action
-curl "http://localhost:6336/api/action?filter[action_name]=signup" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+curl --get \
+  --data-urlencode 'query=[{"column":"action_name","operator":"is","value":"signup"}]' \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/action" | jq '.data[0].id'
 
-# Update permission
+# Update permission to add guest execute (32)
+# Current permission + (32) = 2085120 + 32 = 2085152
 curl -X PATCH "http://localhost:6336/api/action/ACTION_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -228,14 +258,88 @@ curl -X PATCH "http://localhost:6336/api/action/ACTION_ID" \
 
 ---
 
+## Two-Level Permission Check (CRITICAL)
+
+**Important**: Daptin checks permissions at TWO levels for group-based access:
+
+1. **Table-level** (world record): Can this group access the table at all?
+2. **Record-level**: Can this group access this specific record?
+
+**Both levels must be configured**, or you'll get 403 Forbidden errors even when the record permissions look correct.
+
+### Example: Share Product Table with Marketing Group
+
+```bash
+# Get the table's world ID
+WORLD_ID=$(curl --get \
+  --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"product"}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/world" | jq -r '.data[0].id')
+
+# CRITICAL STEP 1: Share the TABLE (world record) with the group
+curl -X POST "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "world_world_id_has_usergroup_usergroup_id",
+      "attributes": {
+        "world_id": "'$WORLD_ID'",
+        "usergroup_id": "MARKETING_GROUP_ID"
+      }
+    }
+  }'
+
+# CRITICAL STEP 2: Set permission on the world-group join record
+# 688128 = 42 << 14 (Read + Update + Execute for group)
+WORLD_JOIN_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id" | \
+  jq -r '.data[0].id')
+
+curl -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$WORLD_JOIN_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "world_world_id_has_usergroup_usergroup_id",
+      "id": "'$WORLD_JOIN_ID'",
+      "attributes": {
+        "permission": 688128
+      }
+    }
+  }'
+
+# CRITICAL STEP 3: Restart server to clear Olric permission cache
+pkill -9 -f daptin
+sleep 2
+./daptin &
+sleep 10
+```
+
+**After this**, the marketing group can access records in the product table (subject to record-level permissions).
+
+---
+
 ## Troubleshooting
 
-### 403 Forbidden
+### 403 Forbidden (Most Common Causes)
 
-You don't have permission for that operation. Check:
+**1. Table not shared with group** (MOST COMMON)
+
+The user's group has permission on the record, but not on the table itself.
+
+**Solution**: Share the world (table) record with the group (see "Two-Level Permission Check" above), then restart the server.
+
+**2. Stale Olric permission cache**
+
+Permissions are cached for 10 minutes. After changing permissions, stale cache may cause 403 errors.
+
+**Solution**: Restart the server to clear the cache immediately.
+
+**3. Other checks**:
 - Are you logged in?
 - Do you own the record?
-- Are you in a group that has access?
+- Are you in a group that has access to the record?
 - Is the operation allowed for your role?
 
 ### Can't Sign Up

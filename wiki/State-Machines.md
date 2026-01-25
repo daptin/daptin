@@ -2,14 +2,18 @@
 
 Finite State Machines (FSM) for workflow automation using the `smd` table.
 
+> **⚠️ KNOWN ISSUE (2026-01-25):** State machine HTTP endpoints (`/track/start/`, `/track/event:`) currently return HTML instead of JSON due to a routing conflict with the admin UI. The infrastructure works correctly (tables auto-create, definitions load), but transitions must be applied via SQL workaround. See [Workarounds](#workarounds) section below.
+
 ## Overview
 
 Daptin provides a state machine system that:
-- Defines valid states for records
-- Controls transitions between states via events
-- Validates transitions based on current state
-- Tracks state history with audit trails
-- Uses the [looplab/fsm](https://github.com/looplab/fsm) Go library
+- ✅ Defines valid states for records
+- ✅ Auto-creates `{tablename}_state` tables when `IsStateTrackingEnabled: true`
+- ✅ Stores state machine definitions in `smd` table
+- ⚠️ **API endpoints currently non-functional** (routing bug)
+- ✅ Uses the [looplab/fsm](https://github.com/looplab/fsm) Go library
+
+**Last Tested:** 2026-01-25 | **Test Report:** `test-results/02-state-machines.md`
 
 ## Architecture
 
@@ -369,8 +373,61 @@ The current implementation:
 
 For complex workflows requiring guards or actions, combine state machines with [Custom Actions](Custom-Actions.md) that check state before executing.
 
+## Workarounds
+
+### SQL-Based State Transitions (Tested ✅)
+
+Since API endpoints currently have issues (see [#170](https://github.com/daptin/daptin/issues/170), [#171](https://github.com/daptin/daptin/issues/171)), you can manage state transitions via SQL:
+
+**Stop server (database locked while running):**
+```bash
+pkill -9 -f daptin && sleep 2
+```
+
+**Apply transition:**
+```bash
+# Check current state
+sqlite3 daptin.db "SELECT id, current_state, version FROM {typename}_state WHERE id = 1;"
+
+# Apply transition (update state + increment version)
+sqlite3 daptin.db "UPDATE {typename}_state SET current_state = 'new_state', version = version + 1, updated_at = current_timestamp WHERE id = 1 AND current_state = 'current_state';"
+
+# Verify
+sqlite3 daptin.db "SELECT id, current_state, version FROM {typename}_state;"
+```
+
+**Restart server:**
+```bash
+nohup ./daptin > /tmp/daptin.log 2>&1 &
+```
+
+**Limitations of SQL approach:**
+- No automatic validation of transition legality (you must check events JSON manually)
+- No automatic event logging/PubSub
+- Must manually increment version field
+- Server must be stopped (database locked)
+
+### Validate Transitions Before Applying
+
+Check which transitions are valid from current state:
+
+```bash
+# Get state machine events
+sqlite3 daptin.db "SELECT events FROM smd WHERE name = 'ticket_workflow';" | jq -r '.[] | "\(.Name): \(.Src[]) -> \(.Dst)"'
+
+# Example output:
+# assign: open -> assigned
+# resolve: assigned -> resolved
+# close: resolved -> closed
+```
+
+Only apply transitions where current state matches a source state in the event definition.
+
+**Tested:** 2026-01-25 | **Test Suite:** test-results/02-state-machines.md
+
 ## Related
 
 - [Custom Actions](Custom-Actions.md) - Define actions triggered by state
 - [Event System](Event-System.md) - Subscribe to state change events
 - [Permissions](Permissions.md) - Control who can transition states
+- **GitHub Issues:** [#170 (Routing bug)](https://github.com/daptin/daptin/issues/170), [#171 (Handler bugs)](https://github.com/daptin/daptin/issues/171)

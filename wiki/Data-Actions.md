@@ -111,8 +111,9 @@ Import data from files into a table.
 
 ```bash
 # First get the table's reference_id from the world table
-TABLE_REF=$(curl -s "http://localhost:6336/api/world?filter[table_name]=todo" \
-  -H "Authorization: Bearer $TOKEN" | jq -r '.data[0].id')
+TABLE_REF=$(curl -s "http://localhost:6336/api/world?page%5Bsize%5D=100" \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq -r '.data[] | select(.attributes.table_name == "todo") | .id')
 
 # Then import data
 curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
@@ -349,8 +350,9 @@ curl -X POST http://localhost:6336/action/world/export_data \
 
 ```bash
 # Get table reference_id
-TABLE_REF=$(curl -s "http://localhost:6336/api/world?filter[table_name]=todo" \
-  -H "Authorization: Bearer $TOKEN" | jq -r '.data[0].id')
+TABLE_REF=$(curl -s "http://localhost:6336/api/world?page%5Bsize%5D=100" \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq -r '.data[] | select(.attributes.table_name == "todo") | .id')
 
 # Import (truncate first for clean restore)
 curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
@@ -373,8 +375,9 @@ curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
 Import requires the table's world record reference_id:
 ```bash
 # Get the reference_id first
-curl "http://localhost:6336/api/world?filter[table_name]=todo" \
-  -H "Authorization: Bearer $TOKEN"
+curl -s "http://localhost:6336/api/world?page%5Bsize%5D=100" \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq -r '.data[] | select(.attributes.table_name == "todo") | .id'
 ```
 
 ### Import fails with "no files provided"

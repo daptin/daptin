@@ -1,5 +1,9 @@
 # Cloud Storage
 
+**Tested ✓** - Cloud store creation and listing verified on 2026-01-25.
+
+**Known Issue:** Cloud store actions (create_folder, upload_file, etc.) return empty responses. See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+
 Integrate with cloud storage providers via rclone.
 
 ## Supported Providers
@@ -25,9 +29,12 @@ Integrate with cloud storage providers via rclone.
 
 ### Local Filesystem
 
-For development and simple deployments:
+**Tested ✓** - For development and simple deployments:
 
 ```bash
+# First create the storage directory
+mkdir -p /tmp/my-storage
+
 curl -X POST http://localhost:6336/api/cloud_store \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -38,16 +45,38 @@ curl -X POST http://localhost:6336/api/cloud_store \
         "name": "local-storage",
         "store_type": "local",
         "store_provider": "local",
-        "root_path": "./storage"
+        "root_path": "/tmp/my-storage",
+        "store_parameters": "{}"
       }
     }
   }'
 ```
 
+**Response (tested):**
+```json
+{
+  "data": {
+    "type": "cloud_store",
+    "id": "019bf49e-b032-75fb-9f52-edfe1b7ddae2",
+    "attributes": {
+      "name": "local-storage",
+      "root_path": "/tmp/my-storage",
+      "store_provider": "local",
+      "store_type": "local",
+      "store_parameters": "{}"
+    }
+  }
+}
+```
+
+**Note:** `store_parameters` must be provided as a JSON string (e.g., `"{}"`) even if empty, otherwise you may get a database constraint error.
+
 ### Amazon S3
 
+**CRITICAL**: The credential `content` field must be a JSON string in rclone format.
+
 ```bash
-# First, create a credential
+# Step 1: Create credential with rclone-format content
 curl -X POST http://localhost:6336/api/credential \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -56,17 +85,12 @@ curl -X POST http://localhost:6336/api/credential \
       "type": "credential",
       "attributes": {
         "name": "aws-creds",
-        "credential_type": "aws",
-        "credential_value": {
-          "access_key_id": "AKIAXXXXXXXX",
-          "secret_access_key": "your-secret-key",
-          "region": "us-east-1"
-        }
+        "content": "{\"type\":\"s3\",\"provider\":\"AWS\",\"env_auth\":\"false\",\"access_key_id\":\"AKIAXXXXXXXX\",\"secret_access_key\":\"your-secret-key\",\"region\":\"us-east-1\"}"
       }
     }
   }'
 
-# Then create the cloud store linked to the credential
+# Step 2: Create the cloud store
 curl -X POST http://localhost:6336/api/cloud_store \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -76,17 +100,67 @@ curl -X POST http://localhost:6336/api/cloud_store \
       "attributes": {
         "name": "aws-storage",
         "store_type": "s3",
-        "store_provider": "AWS",
-        "root_path": "your-bucket-name:",
-        "credential_name": "aws-creds"
+        "store_provider": "s3",
+        "root_path": "aws-storage:your-bucket-name",
+        "store_parameters": "{}"
       }
     }
   }'
+
+# Step 3: Link credential to cloud store via relationship
+CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/credential | \
+  jq -r '.data[] | select(.attributes.name == "aws-creds") | .id')
+
+STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/cloud_store | \
+  jq -r '.data[] | select(.attributes.name == "aws-storage") | .id')
+
+curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d "{
+    \"data\": {
+      \"type\": \"cloud_store\",
+      \"id\": \"$STORE_ID\",
+      \"relationships\": {
+        \"credential_id\": {
+          \"data\": {\"type\": \"credential\", \"id\": \"$CRED_ID\"}
+        }
+      }
+    }
+  }"
+
+# Step 4: Restart server to load cloud storage
+pkill -9 -f daptin
+sleep 2
+./daptin &
+sleep 10
 ```
+
+**Important Notes**:
+- The `content` field is passed directly to rclone - it must include `type`, `provider`, and provider-specific fields
+- The `credential_name` attribute does NOT automatically link - you must use a relationship PATCH
+- Server restart is REQUIRED after creating/linking cloud storage
 
 ### S3 Compatible (MinIO, DigitalOcean, etc.)
 
 ```bash
+# Create credential with Minio endpoint
+curl -X POST http://localhost:6336/api/credential \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "credential",
+      "attributes": {
+        "name": "minio-creds",
+        "content": "{\"type\":\"s3\",\"provider\":\"Minio\",\"env_auth\":\"false\",\"access_key_id\":\"minioadmin\",\"secret_access_key\":\"minioadmin123\",\"endpoint\":\"http://localhost:9000\",\"region\":\"us-east-1\"}"
+      }
+    }
+  }'
+
+# Create cloud store
 curl -X POST http://localhost:6336/api/cloud_store \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -96,17 +170,39 @@ curl -X POST http://localhost:6336/api/cloud_store \
       "attributes": {
         "name": "minio-storage",
         "store_type": "s3",
-        "store_provider": "Other",
-        "root_path": "bucket-name:",
-        "store_parameters": "{\"endpoint\": \"http://minio:9000\", \"force_path_style\": true}"
+        "store_provider": "s3",
+        "root_path": "minio-storage:bucket-name",
+        "store_parameters": "{}"
       }
     }
   }'
+
+# Link credential (see AWS S3 example above for full linking steps)
 ```
+
+**Minio-specific rclone fields**:
+- `endpoint`: Minio server URL (e.g., `http://localhost:9000`)
+- `provider`: Must be `"Minio"` for Minio
 
 ### Google Cloud Storage
 
 ```bash
+# Create credential with service account JSON
+# CRITICAL: Escape the service account JSON properly
+curl -X POST http://localhost:6336/api/credential \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "credential",
+      "attributes": {
+        "name": "gcs-creds",
+        "content": "{\"type\":\"google cloud storage\",\"service_account_credentials\":\"{...ESCAPED_SERVICE_ACCOUNT_JSON...}\"}"
+      }
+    }
+  }'
+
+# Create cloud store
 curl -X POST http://localhost:6336/api/cloud_store \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -116,16 +212,69 @@ curl -X POST http://localhost:6336/api/cloud_store \
       "attributes": {
         "name": "gcs-storage",
         "store_type": "gcs",
-        "store_provider": "Google",
-        "root_path": "your-bucket-name:"
+        "store_provider": "gcs",
+        "root_path": "gcs-storage:your-bucket-name",
+        "store_parameters": "{}"
+      }
+    }
+  }'
+
+# Link credential (see AWS S3 example above for full linking steps)
+```
+
+**GCS-specific rclone fields**:
+- `type`: Must be `"google cloud storage"` exactly
+- `service_account_credentials`: JSON string of your GCS service account key
+
+---
+
+## CRUD Operations
+
+**Tested ✓** - Standard CRUD operations on cloud_store work correctly.
+
+### List All Cloud Stores
+
+```bash
+curl http://localhost:6336/api/cloud_store \
+  -H "Authorization: Bearer $TOKEN" | jq '.data'
+```
+
+### Get Single Cloud Store
+
+```bash
+curl http://localhost:6336/api/cloud_store/$STORE_ID \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Update Cloud Store
+
+```bash
+curl -X PATCH http://localhost:6336/api/cloud_store/$STORE_ID \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "cloud_store",
+      "id": "YOUR_STORE_ID",
+      "attributes": {
+        "name": "new-name"
       }
     }
   }'
 ```
 
+### Delete Cloud Store
+
+```bash
+curl -X DELETE http://localhost:6336/api/cloud_store/$STORE_ID \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ---
 
-## File Operations
+## File Operations (Not Working)
+
+**Warning:** The following actions are currently broken. See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
 
 All cloud store actions require `cloud_store_id` in the attributes.
 
@@ -139,15 +288,17 @@ curl http://localhost:6336/api/cloud_store \
 
 ### Create Folder
 
-**Tested ✓** - Creates folders on the cloud store.
+**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+
+The action is defined but returns an empty response (HTTP 200 with HTML fallback).
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/create_folder \
+# Expected format (instance-level action)
+curl -X POST http://localhost:6336/action/cloud_store/$STORE_ID/create_folder \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "cloud_store_id": "YOUR_CLOUD_STORE_ID",
       "name": "my-folder",
       "path": ""
     }
@@ -155,11 +306,12 @@ curl -X POST http://localhost:6336/action/cloud_store/create_folder \
 ```
 
 **Parameters:**
-- `cloud_store_id` (required) - Reference ID of the cloud store
 - `name` (required) - Folder name to create
 - `path` (optional) - Parent path where folder will be created
 
 ### Upload File
+
+**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
 
 Uploads files to the cloud store.
 
@@ -193,6 +345,8 @@ curl -X POST http://localhost:6336/action/cloud_store/upload_file \
 
 ### Delete Path
 
+**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+
 Deletes a file or folder from the cloud store.
 
 ```bash
@@ -208,6 +362,8 @@ curl -X POST http://localhost:6336/action/cloud_store/delete_path \
 ```
 
 ### Move/Rename Path
+
+**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
 
 Move or rename a file or folder.
 
@@ -232,8 +388,10 @@ Sites allow you to host static websites on cloud storage.
 
 ### Create Site
 
+**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/create_site \
+curl -X POST http://localhost:6336/action/cloud_store/$STORE_ID/create_site \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -286,53 +444,99 @@ Returns file content as base64.
 
 ## Link Cloud Storage to Table Columns
 
-For automatic file storage to cloud when uploading via API.
+**Tested ✓** - For automatic file storage when uploading via API.
 
-### 1. Create Cloud Store
+There are TWO ways to link cloud storage to tables:
 
-See examples above.
+### Method 1: Schema File (Recommended)
 
-### 2. Link Table to Cloud Store
+Define cloud storage in your schema YAML file before creating the table:
+
+```yaml
+Tables:
+  - TableName: product
+    Columns:
+      - Name: photo
+        DataType: text
+        ColumnType: file
+        IsNullable: true
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: product-images    # Must match cloud_store "name" field
+          KeyName: photos               # Subfolder within root_path
+```
+
+**How it works**:
+1. Create the cloud_store with `name: "product-images"` (see examples above)
+2. Restart server to load the schema
+3. Files uploaded to the `photo` column automatically go to cloud storage at `{root_path}/photos/`
+
+**File upload format** (CRITICAL):
+
+```bash
+# Files must be sent as an ARRAY of objects
+FILE_BASE64=$(base64 < /path/to/image.jpg | tr -d '\n')
+
+curl -X POST http://localhost:6336/api/product \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "product",
+      "attributes": {
+        "name": "Widget",
+        "photo": [
+          {
+            "name": "widget.jpg",
+            "file": "data:image/jpeg;base64,'$FILE_BASE64'",
+            "type": "image/jpeg"
+          }
+        ]
+      }
+    }
+  }'
+```
+
+**Common mistakes**:
+- ❌ Sending photo as a string
+- ❌ Sending photo as a single object
+- ✅ **Must be an array of objects**: `[{name, file, type}]`
+
+### Method 2: API (Runtime)
+
+Link cloud storage to existing table via default_storage:
 
 ```bash
 # Get your table's world record ID
-TABLE_WORLD_ID=$(curl -s http://localhost:6336/api/world \
-  -H "Authorization: Bearer $TOKEN" | \
-  jq -r '.data[] | select(.attributes.table_name == "product") | .id')
+TABLE_WORLD_ID=$(curl --get \
+  --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"product"}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/world" | jq -r '.data[0].id')
 
-# Link the cloud store as default storage
+# Get cloud store ID
+STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/cloud_store | \
+  jq -r '.data[] | select(.attributes.name == "product-images") | .id')
+
+# Link via relationship
 curl -X PATCH "http://localhost:6336/api/world/$TABLE_WORLD_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "world",
-      "attributes": {
-        "default_storage": "YOUR_CLOUD_STORE_ID"
+      "id": "'$TABLE_WORLD_ID'",
+      "relationships": {
+        "default_storage": {
+          "data": {"type": "cloud_store", "id": "'$STORE_ID'"}
+        }
       }
     }
   }'
-```
 
-### 3. Upload Files via Table API
-
-When cloud storage is linked, file columns store metadata and files go to cloud:
-
-```bash
-FILE_BASE64=$(base64 < /path/to/image.jpg | tr -d '\n')
-
-curl -X POST http://localhost:6336/api/product \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"product\",
-      \"attributes\": {
-        \"name\": \"Widget\",
-        \"image\": \"data:image/jpeg;base64,$FILE_BASE64\"
-      }
-    }
-  }"
+# Restart server
+pkill -9 -f daptin && sleep 2 && ./daptin &
 ```
 
 ---
@@ -355,11 +559,11 @@ curl http://localhost:6336/asset/product/PRODUCT_ID/image \
 
 ---
 
-## Credentials
+## Credential Format (CRITICAL)
 
-Store credentials separately for security.
+**Important**: Daptin uses rclone internally for cloud storage. The credential `content` field must be valid rclone configuration JSON.
 
-### Create Credential
+### Credential Structure
 
 ```bash
 curl -X POST http://localhost:6336/api/credential \
@@ -369,32 +573,88 @@ curl -X POST http://localhost:6336/api/credential \
     "data": {
       "type": "credential",
       "attributes": {
-        "name": "my-aws-creds",
-        "credential_type": "aws",
-        "credential_value": "{\"access_key_id\": \"AKIA...\", \"secret_access_key\": \"...\"}"
+        "name": "my-creds",
+        "content": "{RCLONE_JSON_CONFIG}"
       }
     }
   }'
 ```
+
+The `content` field must include:
+- `"type"`: The rclone remote type (`"s3"`, `"google cloud storage"`, etc.)
+- `"provider"`: Provider name (`"AWS"`, `"Minio"`, `"GCS"`, etc.)
+- Provider-specific fields (access keys, endpoints, etc.)
+
+**Common credential formats**:
+
+**S3/Minio**:
+```json
+{
+  "type": "s3",
+  "provider": "AWS",
+  "env_auth": "false",
+  "access_key_id": "YOUR_KEY",
+  "secret_access_key": "YOUR_SECRET",
+  "region": "us-east-1"
+}
+```
+
+**Minio with custom endpoint**:
+```json
+{
+  "type": "s3",
+  "provider": "Minio",
+  "env_auth": "false",
+  "access_key_id": "minioadmin",
+  "secret_access_key": "minioadmin123",
+  "endpoint": "http://localhost:9000",
+  "region": "us-east-1"
+}
+```
+
+**Google Cloud Storage**:
+```json
+{
+  "type": "google cloud storage",
+  "service_account_credentials": "{...SERVICE_ACCOUNT_JSON...}"
+}
+```
+
+**References**: See [rclone documentation](https://rclone.org/docs/) for all provider configurations.
 
 ### Link Credential to Cloud Store
 
-Update the cloud store to use the credential:
+**CRITICAL**: The `credential_name` field does NOT automatically link the credential. You must use a relationship PATCH:
 
 ```bash
-curl -X PATCH http://localhost:6336/api/cloud_store/STORE_ID \
+# Get credential ID
+CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/credential | \
+  jq -r '.data[] | select(.attributes.name == "my-creds") | .id')
+
+# Get cloud store ID
+STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/cloud_store | \
+  jq -r '.data[] | select(.attributes.name == "my-storage") | .id')
+
+# Link via relationship PATCH
+curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "cloud_store",
-      "id": "STORE_ID",
-      "attributes": {
-        "credential_name": "my-aws-creds"
+  -d "{
+    \"data\": {
+      \"type\": \"cloud_store\",
+      \"id\": \"$STORE_ID\",
+      \"relationships\": {
+        \"credential_id\": {
+          \"data\": {\"type\": \"credential\", \"id\": \"$CRED_ID\"}
+        }
       }
     }
-  }'
+  }"
 ```
+
+**After linking**: Restart the server for the credential link to take effect.
 
 ---
 
@@ -411,8 +671,80 @@ curl -X PATCH http://localhost:6336/api/cloud_store/STORE_ID \
 
 ---
 
+## Troubleshooting
+
+### Files Not Uploading to Cloud Storage
+
+**Check 1**: Verify cloud_store was created correctly
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/cloud_store | \
+  jq '.data[] | {name: .attributes.name, store_type: .attributes.store_type, root_path: .attributes.root_path}'
+```
+
+**Check 2**: Verify credential is linked
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/cloud_store/$STORE_ID" | \
+  jq '.data.relationships.credential_id'
+```
+
+If `null`, the credential is not linked. Use the relationship PATCH from the section above.
+
+**Check 3**: Check server logs for cloud storage initialization
+```bash
+grep -i "Sync table column" /tmp/daptin.log
+# Expected: [71] Sync table column [product][photo] at /path/to/storage
+```
+
+**Check 4**: Verify file upload format is an array
+```json
+// CORRECT
+{"photo": [{"name": "file.jpg", "file": "data:image/jpeg;base64,...", "type": "image/jpeg"}]}
+
+// WRONG
+{"photo": "data:image/jpeg;base64,..."}
+{"photo": {"name": "file.jpg", "file": "data:..."}}
+```
+
+### "content field is required" Error
+
+The credential `content` field cannot be empty. Provide valid rclone JSON configuration.
+
+### Files Go to Wrong Location
+
+**Problem**: Files are stored at the wrong path in cloud storage.
+
+**Cause**: The `KeyName` in ForeignKeyData creates a subfolder within `root_path`.
+
+**Example**:
+- `root_path`: `/tmp/product-images`
+- `KeyName`: `photos`
+- **Actual storage path**: `/tmp/product-images/photos/filename.jpg`
+
+### Credential Not Found After Linking
+
+**Cause**: Server hasn't reloaded the cloud_store configuration.
+
+**Solution**: Restart Daptin:
+```bash
+pkill -9 -f daptin
+sleep 2
+./daptin &
+sleep 10
+```
+
+### rclone Panic or Errors
+
+**Cause**: The `content` JSON is missing required rclone fields like `"type"` or `"provider"`.
+
+**Solution**: Ensure credential content includes all required rclone fields for your provider. Check [rclone docs](https://rclone.org/) for exact field names.
+
+---
+
 ## See Also
 
-- [Asset Columns](Asset-Columns.md) - Inline vs cloud file storage
+- [Asset Columns](Asset-Columns.md) - Inline vs cloud file storage configuration
 - [Subsites](Subsites.md) - Static site hosting details
 - [Credentials](Credentials.md) - Credential management
+- [Product Catalog Walkthrough](../docs_source/walkthrough-product-catalog-with-permissions.md) - Complete cloud storage setup example

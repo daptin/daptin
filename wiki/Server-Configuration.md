@@ -212,15 +212,123 @@ But the server does NOT actually restart. The `trigger.On("restart")` handler is
 
 ---
 
+## Command-Line Flags (Tested)
+
+### Port
+
+```bash
+go run main.go -port :8080
+```
+
+**Tested:** Server listens on port 8080, `/ping` returns `pong`.
+
+### Database Connection
+
+```bash
+go run main.go -db_connection_string ./myapp.db
+```
+
+**Tested:** Creates SQLite database at specified path.
+
+### Log Level
+
+```bash
+go run main.go -log_level debug
+```
+
+**Tested:** Shows `DEBU` log messages in addition to `INFO` and `WARN`.
+
+Valid values: `debug`, `info`, `warn`, `error`
+
+### Runtime Mode
+
+```bash
+go run main.go -runtime release
+```
+
+**Tested values:**
+
+| Mode | Effect |
+|------|--------|
+| `release` | Default. Standard logging, no debug features |
+| `debug` | Verbose Gin framework logging |
+| `test` | Test mode (minimal output) |
+| `profile` | Creates CPU/heap profile dump files |
+
+**Profile mode** creates files in current directory:
+- `daptin_hostname_profile_cpu.0` - CPU profile
+- `daptin_hostname_profile_heap.0` - Heap profile
+
+---
+
+## Environment Variables (Tested)
+
+### DAPTIN_PORT
+
+```bash
+DAPTIN_PORT=:9090 go run main.go
+```
+
+**Tested:** Server listens on port 9090. Overrides default port.
+
+### DAPTIN_SCHEMA_FOLDER
+
+```bash
+DAPTIN_SCHEMA_FOLDER=/path/to/schemas go run main.go
+```
+
+**Tested:**
+1. Created `/tmp/test-schemas/schema_mytest.yaml`:
+   ```yaml
+   Tables:
+     - TableName: test_products
+       Columns:
+         - Name: name
+           ColumnType: label
+           DataType: varchar(200)
+         - Name: price
+           ColumnType: measurement
+           DataType: int
+   ```
+
+2. Started server:
+   ```bash
+   DAPTIN_SCHEMA_FOLDER=/tmp/test-schemas go run main.go
+   ```
+
+3. Server logs show:
+   ```
+   Found files to load: [/tmp/test-schemas/schema_mytest.yaml]
+   Process file: /tmp/test-schemas/schema_mytest.yaml
+   ```
+
+4. API confirms table exists:
+   ```bash
+   curl http://localhost:6336/api/test_products
+   # Returns: {"data":[],...}  (empty but table exists)
+   ```
+
+5. Creating records works:
+   ```bash
+   curl -X POST http://localhost:6336/api/test_products \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/vnd.api+json" \
+     -d '{"data":{"type":"test_products","attributes":{"name":"Widget","price":999}}}'
+   # Returns: created record with id, reference_id, timestamps
+   ```
+
+**Schema file naming:** Must match pattern `schema_*.yaml`, `schema_*.json`, or `schema_*.toml`
+
+---
+
 ## Not Yet Tested
 
-The following are documented in code but not verified:
+The following are documented in code but not verified in this doc:
 
-- MySQL/PostgreSQL connection strings
-- Environment variables (DAPTIN_PORT, DAPTIN_DB_TYPE, etc.)
-- Command-line flags
-- TLS/HTTPS configuration
-- Olric clustering
-- SMTP/IMAP/FTP/CalDAV configuration
+- MySQL/PostgreSQL connection strings (`-db_type mysql -db_connection_string "user:pass@tcp(host:port)/dbname"`)
+- HTTPS port (`-https_port :443`)
+- TLS certificate paths
+- Olric clustering flags
+- FTP/CalDAV config values
 
-These will be documented after testing.
+**Note:** SMTP and IMAP are documented separately in [SMTP-Server.md](SMTP-Server.md) and [IMAP-Support.md](IMAP-Support.md).

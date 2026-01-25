@@ -20,7 +20,12 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 
 	return func(gincontext *gin.Context) {
 
-		sessionUser := gincontext.Request.Context().Value("user").(*auth.SessionUser)
+		userValue := gincontext.Request.Context().Value("user")
+		if userValue == nil {
+			gincontext.AbortWithStatus(401)
+			return
+		}
+		sessionUser := userValue.(*auth.SessionUser)
 
 		pr := &http.Request{
 			URL: gincontext.Request.URL,
@@ -34,7 +39,19 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 		objectStateMachineUuidString := gincontext.Param("objectStateId")
 		typename := gincontext.Param("typename")
 
-		objectStateMachineResponse, err := cruds[typename+"_state"].FindOne(objectStateMachineUuidString, req)
+		if cruds[typename] == nil {
+			log.Errorf("State transition failed: cruds['%s'] is nil. Available tables: %v", typename, func() []string {
+				keys := make([]string, 0, len(cruds))
+				for k := range cruds {
+					keys = append(keys, k)
+				}
+				return keys
+			}())
+			gincontext.AbortWithStatus(500)
+			return
+		}
+
+		objectStateMachineResponse, err := cruds[typename].FindOne(objectStateMachineUuidString, req)
 		if err != nil {
 			log.Errorf("Failed to get object state machine: %v", err)
 			gincontext.AbortWithError(400, err)

@@ -427,10 +427,14 @@ Creates `category.parent_id` → `category.id`
 curl "http://localhost:6336/api/category/CAT_UUID?include=category"
 
 # Find root categories (no parent)
-curl "http://localhost:6336/api/category?filter[parent_id]=null"
+curl --get \
+  --data-urlencode 'query=[{"column":"parent_id","operator":"is empty","value":""}]' \
+  "http://localhost:6336/api/category"
 
 # Find children of a category
-curl "http://localhost:6336/api/category?filter[parent_id]=PARENT_UUID"
+curl --get \
+  --data-urlencode 'query=[{"column":"parent_id","operator":"is","value":"PARENT_UUID"}]' \
+  "http://localhost:6336/api/category"
 ```
 
 ---
@@ -461,17 +465,100 @@ Relations:
 
 ---
 
-## Cascade Behavior
+## Cascade Behavior (OnDelete Property)
 
-The `table_info.TableRelation` struct supports `OnDelete`:
+The `table_info.TableRelation` struct includes an `OnDelete` field to control what happens when a referenced record is deleted.
 
-| OnDelete | Behavior |
-|----------|----------|
-| `cascade` | Delete related records |
-| `restrict` | Prevent delete if related records exist |
-| `set_null` | Set FK to NULL |
-| `set_default` | Set FK to default value |
-| `no_action` | Database default |
+**Defined in:** `server/table_info/tableinfo.go:10-13`
+
+### OnDelete Options
+
+| OnDelete Value | Behavior | Use Case |
+|----------------|----------|----------|
+| `cascade` | Delete related records automatically | Comments when post deleted |
+| `restrict` | Prevent delete if related records exist | Can't delete category with products |
+| `set_null` | Set FK to NULL (column must be nullable) | Optional author on blog post |
+| `set_default` | Set FK to default value | Reset to "uncategorized" |
+| `no_action` | Database default behavior | Let database handle it |
+
+### Example: Cascade Delete
+
+```yaml
+Relations:
+  - Subject: comment
+    Object: post
+    Relation: belongs_to
+    OnDelete: cascade  # Delete comments when post deleted
+```
+
+**Behavior:**
+```sql
+-- When you delete a post
+DELETE FROM post WHERE id = 1;
+
+-- All comments are automatically deleted
+-- No orphaned comments remain
+```
+
+### Example: Restrict Delete
+
+```yaml
+Relations:
+  - Subject: product
+    Object: category
+    Relation: belongs_to
+    OnDelete: restrict  # Prevent deleting categories with products
+```
+
+**Behavior:**
+```sql
+-- If category has products
+DELETE FROM category WHERE id = 1;
+-- Error: Cannot delete - products still reference this category
+
+-- Must delete products first
+DELETE FROM product WHERE category_id = 1;
+-- Now can delete category
+DELETE FROM category WHERE id = 1;  -- Success
+```
+
+### Example: Set NULL
+
+```yaml
+Relations:
+  - Subject: post
+    Object: user_account
+    Relation: belongs_to
+    SubjectName: author_id
+    OnDelete: set_null  # Keep posts when author deleted
+```
+
+**Requirements:**
+- FK column MUST be nullable (`IsNullable: true`)
+
+**Behavior:**
+```sql
+-- When author deleted
+DELETE FROM user_account WHERE id = 5;
+
+-- Posts remain but author_id set to NULL
+UPDATE post SET author_id = NULL WHERE author_id = 5;
+```
+
+### Important Notes
+
+**SQLite Limitation:**
+SQLite does not enforce foreign key constraints by default. For production with FK enforcement, use:
+- PostgreSQL
+- MySQL with `FOREIGN_KEY_CHECKS=1`
+
+**Daptin's Approach:**
+Daptin manages relationships at the application level, not relying solely on database FK constraints.
+
+**Default Behavior:**
+If `OnDelete` is not specified, database default behavior applies (typically `no_action`).
+
+**Tested:** Structure verified in `server/table_info/tableinfo.go` | Runtime behavior depends on database engine
 
 **Note**: SQLite does not enforce foreign key constraints by default.
 

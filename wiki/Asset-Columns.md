@@ -1,5 +1,7 @@
 # Asset Columns
 
+**Tested** - Inline and cloud storage verified on 2026-01-25
+
 File and media handling in Daptin.
 
 ## Two Storage Modes
@@ -37,7 +39,17 @@ Tables:
 
 ## Uploading Files (Inline Storage)
 
-### Base64 Upload (Recommended)
+### File Data Format
+
+Asset columns expect an **array of file objects**, each containing:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Filename with extension |
+| `file` | Yes | Data URL: `data:mimetype;base64,CONTENT` |
+| `type` | Optional | MIME type (e.g., `image/png`) |
+
+### Upload Example
 
 ```bash
 # Encode file to base64
@@ -46,15 +58,21 @@ IMG_BASE64=$(base64 < /path/to/image.png | tr -d '\n')
 curl -X POST http://localhost:6336/api/product \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"product\",
-      \"attributes\": {
-        \"name\": \"Widget\",
-        \"photo\": \"data:image/png;base64,$IMG_BASE64\"
+  -d '{
+    "data": {
+      "type": "product",
+      "attributes": {
+        "name": "Widget",
+        "photo": [
+          {
+            "name": "product-photo.png",
+            "file": "data:image/png;base64,'"$IMG_BASE64"'",
+            "type": "image/png"
+          }
+        ]
       }
     }
-  }"
+  }'
 ```
 
 **Response:**
@@ -62,20 +80,20 @@ curl -X POST http://localhost:6336/api/product \
 {
   "data": {
     "type": "product",
-    "id": "abc123...",
+    "id": "019bf4b2-f2b4-767c-b174-825880ac0fac",
     "attributes": {
       "name": "Widget",
-      "photo": "data:image/png;base64,iVBOR..."
+      "photo": "[{\"file\":\"data:image/png;base64,iVBOR...\",\"name\":\"product-photo.png\",\"type\":\"image/png\"}]"
     }
   }
 }
 ```
 
-The file is stored directly in the database as a base64 string.
+**Note:** The response stores files as a JSON string. Parse it to access individual files.
 
 ## Accessing Inline Files
 
-For inline storage, files are returned as base64 strings in the API response:
+For inline storage, files are returned as a JSON string containing the array:
 
 ```bash
 curl http://localhost:6336/api/product/ID \
@@ -86,17 +104,19 @@ curl http://localhost:6336/api/product/ID \
 {
   "data": {
     "attributes": {
-      "photo": "data:image/png;base64,iVBOR..."
+      "photo": "[{\"file\":\"data:image/png;base64,iVBOR...\",\"name\":\"product-photo.png\",\"type\":\"image/png\"}]"
     }
   }
 }
 ```
 
-Decode base64 to use the file:
+Parse and decode to use the file:
 
-```bash
-# Extract and decode
-echo "iVBOR..." | base64 -d > image.png
+```javascript
+// JavaScript example
+const photoData = JSON.parse(response.data.attributes.photo);
+const base64Content = photoData[0].file.split(',')[1];
+// Use base64Content as needed
 ```
 
 ---
@@ -110,53 +130,164 @@ See [Cloud Storage](Cloud-Storage.md) for setup instructions.
 ### How Cloud Storage Works
 
 1. Create a `cloud_store` record (S3, GCS, local filesystem)
-2. Link the cloud store to your table column
-3. Files are uploaded to storage and only metadata is stored in DB
+2. Define column with `ForeignKeyData` pointing to cloud store
+3. Files are uploaded to storage; only metadata is stored in DB
 
-### Link Column to Cloud Storage
+### Define Cloud Storage Column
+
+Configure cloud storage at schema level using `ForeignKeyData`:
+
+```json
+{
+  "Tables": [
+    {
+      "TableName": "product",
+      "Columns": [
+        {
+          "Name": "photo",
+          "DataType": "text",
+          "ColumnType": "file",
+          "IsForeignKey": true,
+          "ForeignKeyData": {
+            "DataSource": "cloud_store",
+            "Namespace": "my-storage",
+            "KeyName": "photo"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### ForeignKeyData Configuration
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `DataSource` | Yes | Must be `"cloud_store"` to trigger cloud storage logic |
+| `Namespace` | Yes | Name of the `cloud_store` record (matches `name` column in cloud_store table) |
+| `KeyName` | Yes | Subfolder within cloud storage root path. Files stored at `{root_path}/{KeyName}/` |
+
+**Path Construction:**
+```
+Final path = cloud_store.root_path + "/" + ForeignKeyData.KeyName + "/" + [file.path] + "/" + file.name
+```
+
+Example with `root_path="/tmp/storage"` and `KeyName="photo"`:
+- `/tmp/storage/photo/image.png`
+- `/tmp/storage/photo/thumbnails/thumb.png` (if `path: "thumbnails"` is set)
+
+### File Object Fields
+
+#### Input Fields (when creating/updating)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Filename with extension (e.g., `"image.png"`) |
+| `file` | Yes | Data URL containing base64 content: `data:mimetype;base64,CONTENT` |
+| `contents` | Alt | Alternative to `file` - just the base64 content without data URL prefix |
+| `type` | No | MIME type (e.g., `"image/png"`). Optional but recommended. |
+| `path` | No | Subdirectory within cloud storage. Allows organizing files in folders. |
+
+#### Output Fields (in API response)
+
+| Field | Description |
+|-------|-------------|
+| `name` | Filename |
+| `type` | MIME type |
+| `size` | File size in bytes (computed from decoded content) |
+| `md5` | MD5 hash of file content (for integrity/deduplication) |
+| `path` | Subdirectory path (empty string if not specified) |
+| `src` | Same as `name` - used by frontend for display |
+
+**Note:** The `file`/`contents` fields are **removed** from the stored data. Only metadata is kept in the database.
+
+### Upload Example
 
 ```bash
-# First, create a cloud_store (see Cloud-Storage.md)
-# Then link your table to use it
-
-curl -X PATCH http://localhost:6336/api/world/PRODUCT_TABLE_ID \
+curl -X POST http://localhost:6336/api/product \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
-      "type": "world",
+      "type": "product",
       "attributes": {
-        "default_storage": "CLOUD_STORE_REFERENCE_ID"
+        "name": "Widget",
+        "photo": [
+          {
+            "name": "product-photo.png",
+            "file": "data:image/png;base64,'"$IMG_BASE64"'",
+            "type": "image/png"
+          }
+        ]
       }
     }
   }'
 ```
 
+### Using the Path Field
+
+Organize files into subdirectories:
+
+```json
+{
+  "photo": [
+    {
+      "name": "original.png",
+      "file": "data:image/png;base64,...",
+      "path": "originals"
+    },
+    {
+      "name": "thumb.png",
+      "file": "data:image/png;base64,...",
+      "path": "thumbnails"
+    }
+  ]
+}
+```
+
+Results in cloud storage:
+```
+/root_path/KeyName/originals/original.png
+/root_path/KeyName/thumbnails/thumb.png
+```
+
 ### Cloud Storage Response Format
 
-When cloud storage is configured, API returns metadata:
+When cloud storage is configured, API returns metadata (not base64):
 
 ```json
 {
   "data": {
     "attributes": {
-      "photo": {
-        "name": "image.jpg",
-        "type": "image/jpeg",
-        "size": 102400,
-        "path": "/uploads/product/abc123/photo/image.jpg"
-      }
+      "photo": [
+        {
+          "name": "product-photo.png",
+          "type": "image/png",
+          "size": 70,
+          "md5": "02c4278e5dc76862c17c04b3bd51946d",
+          "src": "product-photo.png"
+        }
+      ]
     }
   }
 }
 ```
 
+**Note:** The `file` field (base64 content) is removed from the response.
+
 ### Asset Endpoint (Cloud Storage Only)
 
-When using cloud storage, access files via:
+Access files directly via the asset endpoint:
 
 ```
-http://localhost:6336/asset/{entity}/{id}/{column}
+GET http://localhost:6336/asset/{table}/{record_id}/{column}
+```
+
+Example:
+```bash
+curl -o photo.png "http://localhost:6336/asset/product/019bf4b7-3cb9-7c11-9b75-fdddd94daeec/photo" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 **Note:** This endpoint only works with cloud storage, not inline base64.
@@ -165,7 +296,7 @@ http://localhost:6336/asset/{entity}/{id}/{column}
 
 ## Update Files
 
-Replace file with new base64 content:
+Replace file with new content (same array format):
 
 ```bash
 IMG_BASE64=$(base64 < /path/to/new-image.png | tr -d '\n')
@@ -173,15 +304,21 @@ IMG_BASE64=$(base64 < /path/to/new-image.png | tr -d '\n')
 curl -X PATCH http://localhost:6336/api/product/ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"product\",
-      \"id\": \"ID\",
-      \"attributes\": {
-        \"photo\": \"data:image/png;base64,$IMG_BASE64\"
+  -d '{
+    "data": {
+      "type": "product",
+      "id": "ID",
+      "attributes": {
+        "photo": [
+          {
+            "name": "new-photo.png",
+            "file": "data:image/png;base64,'"$IMG_BASE64"'",
+            "type": "image/png"
+          }
+        ]
       }
     }
-  }"
+  }'
 ```
 
 ## Delete Files
@@ -226,21 +363,15 @@ Tables:
         Relation: belongs_to
 ```
 
-## File Metadata (Cloud Storage)
+## Inline vs Cloud Storage Comparison
 
-When using cloud storage, file metadata is tracked:
-
-```json
-{
-  "name": "photo.jpg",
-  "type": "image/jpeg",
-  "size": 102400,
-  "md5": "abc123...",
-  "path": "/uploads/product/..."
-}
-```
-
-**Note:** Inline storage (base64) does not generate separate metadata.
+| Feature | Inline | Cloud Storage |
+|---------|--------|---------------|
+| Storage location | Database column | External storage (S3, GCS, local) |
+| Response content | Full base64 data | Metadata only (md5, size, name) |
+| Asset endpoint | Not available | Available |
+| File size limit | Limited by DB column size | Unlimited |
+| Use case | Small files (<100KB) | Large files, CDN integration |
 
 ## Content Delivery
 

@@ -175,8 +175,8 @@ If you find a feature that doesn't work as expected:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| File Columns | ✅ | Asset-Columns.md - base64 inline storage tested |
-| Cloud Storage (S3, GCS, etc) | ✅ | Cloud-Storage.md - all actions tested after bug fix |
+| File Columns | ✅ | Asset-Columns.md - inline and cloud storage tested |
+| Cloud Storage (S3, GCS, etc) | 📝 | Cloud-Storage.md - CRUD works, actions broken (GitHub #166) |
 | Serve Static Sites | ✅ | Subsites.md - site creation tested, cache needs restart |
 
 ---
@@ -210,7 +210,7 @@ If you find a feature that doesn't work as expected:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| Configuration Options | 📝 | Server-Configuration.md - config API tested, env vars/flags NOT tested |
+| Configuration Options | 📝 | Server-Configuration.md - config API, port, log_level, runtime, schema folder tested. MySQL/PostgreSQL NOT tested |
 | Database Setup | 📝 | Database-Setup.md - connection strings NOT tested |
 | TLS/HTTPS | 📝 | TLS-Certificates.md needs testing |
 | Monitoring | 📝 | Monitoring.md needs testing |
@@ -243,10 +243,11 @@ If you find a feature that doesn't work as expected:
 
 | What | When |
 |------|------|
-| Server Configuration (config API, monitoring endpoints - partial) | 2026-01-25 |
+| Asset Columns (inline and cloud storage, correct array format) | 2026-01-25 |
+| Server Configuration (config API, port, log_level, runtime, schema folder) | 2026-01-25 |
 | Custom Actions (complete performer reference, 40+ performers, tested examples) | 2026-01-25 |
 | Actions Overview (E2E permission testing, restart requirement documented) | 2026-01-25 |
-| Cloud Storage (all actions tested after bug fix) | 2026-01-24 |
+| Cloud Storage (CRUD tested, actions broken - GitHub #166) | 2026-01-25 |
 | Subsites (site creation, file upload) | 2026-01-24 |
 | Users & Groups (fixed junction tables, removed fake features) | 2026-01-24 |
 | CRUD Operations (removed false claims) | 2026-01-24 |

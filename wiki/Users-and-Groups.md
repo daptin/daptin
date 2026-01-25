@@ -49,24 +49,38 @@ curl -X POST http://localhost:6336/action/user_account/signin \
 ]
 ```
 
-Extract the token from `client.store.set` response.
+### Extract the Token
+
+**Using jq** (recommended):
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"email":"john@example.com","password":"password123"}}' | \
+  jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
+
+echo "$TOKEN" > /tmp/daptin-token.txt
+echo "Token saved!"
+```
 
 ### Use the Token
 
 ```bash
-export TOKEN="eyJhbG..."
+TOKEN=$(cat /tmp/daptin-token.txt)
 
 curl http://localhost:6336/api/todo \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Token is valid for **3 days**.
+**Token validity**: 3 days (72 hours) from sign-in.
 
 ---
 
 ## Admin: Create a User
 
-After admin setup, signup is disabled. Create users directly:
+After admin setup, signup is disabled. Only admins can create new users via the API.
+
+**Option 1: With plain-text password** (Daptin hashes it automatically):
 
 ```bash
 curl -X POST http://localhost:6336/api/user_account \
@@ -83,6 +97,29 @@ curl -X POST http://localhost:6336/api/user_account \
     }
   }'
 ```
+
+**Option 2: With bcrypt hash** (for pre-hashed passwords):
+
+```bash
+# This hash = "password123"
+HASH='$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+
+curl -X POST http://localhost:6336/api/user_account \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "user_account",
+      "attributes": {
+        "name": "New User",
+        "email": "newuser@example.com",
+        "password": "'$HASH'"
+      }
+    }
+  }'
+```
+
+**Note**: Bcrypt hashes start with `$2a$` or `$2y$`. Use this when importing users from another system.
 
 ---
 
@@ -115,7 +152,38 @@ curl -X POST http://localhost:6336/api/usergroup \
 
 ### Add User to Group
 
-Use the junction table `user_account_user_account_id_has_usergroup_usergroup_id`:
+**Tested ✓** - Use the junction table `user_account_user_account_id_has_usergroup_usergroup_id`.
+
+**Method 1: Using attributes** (simpler, recommended):
+
+```bash
+# Get user and group IDs
+USER_ID=$(curl --get \
+  --data-urlencode 'query=[{"column":"email","operator":"is","value":"newuser@example.com"}]' \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/user_account" | jq -r '.data[0].id')
+
+GROUP_ID=$(curl --get \
+  --data-urlencode 'query=[{"column":"name","operator":"is","value":"editors"}]' \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/usergroup" | jq -r '.data[0].id')
+
+# Add user to group
+curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d "{
+    \"data\": {
+      \"type\": \"user_account_user_account_id_has_usergroup_usergroup_id\",
+      \"attributes\": {
+        \"user_account_id\": \"$USER_ID\",
+        \"usergroup_id\": \"$GROUP_ID\"
+      }
+    }
+  }"
+```
+
+**Method 2: Using relationships**:
 
 ```bash
 curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
@@ -124,7 +192,6 @@ curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergrou
   -d '{
     "data": {
       "type": "user_account_user_account_id_has_usergroup_usergroup_id",
-      "attributes": {},
       "relationships": {
         "user_account_id": {
           "data": {"type": "user_account", "id": "USER_REFERENCE_ID"}
@@ -137,12 +204,40 @@ curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergrou
   }'
 ```
 
+**Both methods work**, but the attributes method is easier to use with variables.
+
+### Verify Group Membership
+
+**Tested ✓** - Check which users are in which groups:
+
+```bash
+# Via API
+curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id?page%5Bsize%5D=100" | \
+  jq '.data[] | {user_id: .attributes.user_account_id, group_id: .attributes.usergroup_id}'
+
+# Or via database (more readable)
+sqlite3 daptin.db "
+SELECT u.name as User, ug.name as UserGroup
+FROM user_account_user_account_id_has_usergroup_usergroup_id j
+JOIN user_account u ON j.user_account_id = u.id
+JOIN usergroup ug ON j.usergroup_id = ug.id
+ORDER BY u.name, ug.name;
+"
+```
+
 ### Remove User from Group
 
 Delete the junction record:
 
 ```bash
-curl -X DELETE http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id/JUNCTION_ID \
+# Get the junction record ID
+JUNCTION_ID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id?page%5Bsize%5D=100" | \
+  jq -r '.data[] | select(.attributes.user_account_id == "USER_ID" and .attributes.usergroup_id == "GROUP_ID") | .id')
+
+# Delete it
+curl -X DELETE "http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id/$JUNCTION_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
@@ -171,27 +266,34 @@ Add user to the administrators group:
 
 ```bash
 # 1. Find the administrators group ID
-curl "http://localhost:6336/api/usergroup?query=[{\"column\":\"name\",\"operator\":\"is\",\"value\":\"administrators\"}]" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+ADMIN_GROUP_ID=$(curl --get \
+  --data-urlencode 'query=[{"column":"name","operator":"is","value":"administrators"}]' \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/usergroup" | jq -r '.data[0].id')
 
-# 2. Add user to group (same as adding to any group)
+echo "Administrators group ID: $ADMIN_GROUP_ID"
+
+# 2. Get the user ID to promote
+USER_ID=$(curl --get \
+  --data-urlencode 'query=[{"column":"email","operator":"is","value":"newuser@example.com"}]' \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/user_account" | jq -r '.data[0].id')
+
+echo "User ID: $USER_ID"
+
+# 3. Add user to administrators group
 curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "user_account_user_account_id_has_usergroup_usergroup_id",
-      "attributes": {},
-      "relationships": {
-        "user_account_id": {
-          "data": {"type": "user_account", "id": "USER_REFERENCE_ID"}
-        },
-        "usergroup_id": {
-          "data": {"type": "usergroup", "id": "ADMIN_GROUP_ID"}
-        }
+  -d "{
+    \"data\": {
+      \"type\": \"user_account_user_account_id_has_usergroup_usergroup_id\",
+      \"attributes\": {
+        \"user_account_id\": \"$USER_ID\",
+        \"usergroup_id\": \"$ADMIN_GROUP_ID\"
       }
     }
-  }'
+  }"
 ```
 
 ---
@@ -285,7 +387,16 @@ See [Two-Factor Auth](Two-Factor-Auth.md) for complete setup including OTP gener
 Query by email from your token:
 
 ```bash
-curl "http://localhost:6336/api/user_account?query=[{\"column\":\"email\",\"operator\":\"is\",\"value\":\"your@email.com\"}]" \
+curl --get \
+  --data-urlencode 'query=[{"column":"email","operator":"is","value":"your@email.com"}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/user_account"
+```
+
+Or if you know your user ID:
+
+```bash
+curl "http://localhost:6336/api/user_account/YOUR_USER_ID" \
   -H "Authorization: Bearer $TOKEN"
 ```
 

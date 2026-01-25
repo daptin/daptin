@@ -35,24 +35,38 @@ curl -X POST http://localhost:6336/action/user_account/signup \
     }
   }'
 
-# Sign in (save the token from response)
-curl -X POST http://localhost:6336/action/user_account/signin \
+# Sign in and extract token
+TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
       "email": "admin@example.com",
       "password": "yourpassword"
     }
-  }'
+  }' | jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
+
+echo "$TOKEN" > /tmp/daptin-token.txt
+echo "Token saved to /tmp/daptin-token.txt"
 
 # Become admin (NOTE: action is on "world", not "user_account")
 curl -X POST http://localhost:6336/action/world/become_an_administrator \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
-The server restarts. Sign in again - you're now admin.
+The server may restart. Sign in again to get a fresh token - you're now admin.
+
+```bash
+# Get fresh token after server restart
+sleep 5
+TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"email":"admin@example.com","password":"yourpassword"}}' | \
+  jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
+
+echo "$TOKEN" > /tmp/daptin-token.txt
+```
 
 **After this**: The system locks down. Public signup is disabled. Only you can create new users.
 
@@ -112,23 +126,29 @@ If you want anyone to sign up:
 
 ```bash
 # Find the signup action
-curl "http://localhost:6336/api/action?filter[action_name]=signup" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+ACTION_ID=$(curl --get \
+  --data-urlencode 'query=[{"column":"action_name","operator":"is","value":"signup"}]' \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:6336/api/action" | jq -r '.data[0].id')
 
-# Note the action ID, then update permission to allow guest execute
-curl -X PATCH "http://localhost:6336/api/action/ACTION_ID" \
+echo "Signup action ID: $ACTION_ID"
+
+# Update permission to allow guest execute (add 32 to guest bits)
+curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "action",
-      "id": "ACTION_ID",
+      "id": "'$ACTION_ID'",
       "attributes": {
         "permission": 2085152
       }
     }
   }'
 ```
+
+**Note**: After this change, restart the server for the permission update to take effect.
 
 ---
 

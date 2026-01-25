@@ -1,9 +1,9 @@
 # Daptin Wiki Audit Report
 
 **Audit Date:** 2026-01-23
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-01-25
 **Auditor:** Claude Code
-**Status:** ✅ ALL CRITICAL ISSUES RESOLVED
+**Status:** ✅ ALL CRITICAL ISSUES RESOLVED + NEW FINDINGS FROM WALKTHROUGH TESTING
 
 ---
 
@@ -348,5 +348,282 @@ Execute external processes (action_execute_process.go) - security-sensitive, not
 
 ---
 
+## NEW FINDINGS FROM WALKTHROUGH TESTING (2026-01-25)
+
+### Additional Critical Issues Found
+
+While testing the [Product Catalog Walkthrough](../docs_source/walkthrough-product-catalog-with-permissions.md), several new critical issues were discovered:
+
+#### 1. Filter Syntax Incorrect in Multiple Pages ✅ FIXED
+
+**Affected Pages:**
+- Filtering-and-Pagination.md
+- Data-Actions.md
+- Relationships.md
+- Users-and-Groups.md
+- Getting-Started-Guide.md
+- Permissions.md
+
+**Wrong Syntax (doesn't work)**:
+```bash
+curl "http://localhost:6336/api/world?filter[table_name]=product"
+```
+
+**Correct Syntax**:
+```bash
+curl --get \
+  --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"product"}]' \
+  "http://localhost:6336/api/world"
+```
+
+**Root Cause**: The code expects `query` parameter with JSON array, not `filter[field]` syntax. JSON must be URL-encoded to work correctly.
+
+**Status**: ✅ All instances fixed in affected pages.
+
+---
+
+#### 2. Two-Level Permission Check Not Documented ✅ FIXED
+
+**Impact**: CRITICAL - Users get 403 errors even when record permissions look correct.
+
+**Missing Information**: Daptin checks permissions at TWO levels:
+1. **Table-level** (world record) - Can the group access this table at all?
+2. **Record-level** - Can the group access this specific record?
+
+**Required Steps** (not previously documented):
+```bash
+# CRITICAL: Share the TABLE (world record) with group first
+curl -X POST http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id \
+  -d '{"data":{"type":"world_world_id_has_usergroup_usergroup_id","attributes":{"world_id":"...","usergroup_id":"..."}}}'
+
+# Set permission on world-group join (must PATCH)
+curl -X PATCH http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$JOIN_ID \
+  -d '{"data":{"attributes":{"permission":688128}}}'
+
+# CRITICAL: Restart server to clear Olric cache
+pkill -9 -f daptin && ./daptin &
+```
+
+**Status**: ✅ Documented in Permissions.md and walkthrough.
+
+---
+
+#### 3. POST Ignores Permission on Join Tables ✅ FIXED
+
+**Impact**: HIGH - Users set permission during POST and wonder why it's ignored.
+
+**Issue**: When creating join table records, the `permission` attribute is ignored and defaults to 2097151.
+
+**Solution**: Must use POST to create, then PATCH to set permission:
+```bash
+# Step 1: Create
+JOIN_ID=$(curl -X POST ... | jq -r '.data.id')
+
+# Step 2: PATCH to set permission
+curl -X PATCH "http://localhost:6336/api/join_table/$JOIN_ID" \
+  -d '{"data":{"attributes":{"permission":688128}}}'
+```
+
+**Status**: ✅ Documented in Permissions.md, Users-and-Groups.md, and walkthrough.
+
+---
+
+#### 4. Cloud Storage Credential Format Wrong ✅ FIXED
+
+**Impact**: CRITICAL - Credential creation examples won't work.
+
+**Wrong Fields** (don't exist):
+- `credential_type`
+- `credential_value`
+
+**Correct Format**:
+```json
+{
+  "name": "my-creds",
+  "content": "{\"type\":\"s3\",\"provider\":\"AWS\",\"access_key_id\":\"...\",\"secret_access_key\":\"...\"}"
+}
+```
+
+**Critical Details**:
+- Field name is `content` (not credential_value)
+- Content must be rclone JSON format as a string
+- Must include `"type"` and `"provider"` fields
+- Credential must be linked via relationship PATCH (credential_name doesn't auto-link)
+
+**Status**: ✅ Fixed in Cloud-Storage.md with complete examples.
+
+---
+
+#### 5. Credential Linking Not Documented ✅ FIXED
+
+**Impact**: HIGH - Cloud storage won't work without this step.
+
+**Missing Step**: Creating a cloud_store with `credential_name` does NOT automatically link the credential. Must use relationship PATCH:
+
+```bash
+curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
+  -d '{"data":{"relationships":{"credential_id":{"data":{"type":"credential","id":"$CRED_ID"}}}}}'
+```
+
+**Status**: ✅ Documented in Cloud-Storage.md and walkthrough.
+
+---
+
+#### 6. Server Restart Requirements Not Clear ✅ FIXED
+
+**Impact**: MEDIUM - Features don't work until restart, causing confusion.
+
+**Server restart required after**:
+- Creating cloud_store records
+- Linking credentials to cloud_store
+- Creating/modifying actions
+- Changing permissions (to clear Olric cache)
+- Creating tables via schema API
+
+**Status**: ✅ Added restart reminders in all affected documentation.
+
+---
+
+#### 7. Action Schema Format in API Documentation ✅ FIXED
+
+**Impact**: HIGH - API method for creating actions doesn't work.
+
+**Wrong** (separate fields):
+```json
+{
+  "in_fields": {...},
+  "out_fields": {...}
+}
+```
+
+**Correct** (single action_schema field):
+```json
+{
+  "action_schema": "{\"Name\":\"...\",\"InFields\":[],\"OutFields\":[...]}"
+}
+```
+
+**Recommendation**: Schema file approach is more reliable than API for creating actions.
+
+**Status**: ✅ Documented in Custom-Actions.md and walkthrough uses schema file approach.
+
+---
+
+#### 8. JavaScript Expression Syntax in Actions ✅ FIXED
+
+**Impact**: MEDIUM - Actions fail with "$ is not defined" error.
+
+**Wrong**:
+```yaml
+Attributes:
+  field: "!$.field_name"
+```
+
+**Correct**:
+```yaml
+Attributes:
+  field: '!subject.field_name'  # Note: single quotes for YAML strings with !
+```
+
+**Inside `!` expressions**:
+- Use `subject.field_name` to access target record fields
+- Use `input_field` to access InFields parameters
+- Use `previous_result[0].field` to access previous OutField results
+
+**Status**: ✅ Documented in Custom-Actions.md and walkthrough.
+
+---
+
+#### 9. Pagination Required for World API ✅ FIXED
+
+**Impact**: MEDIUM - Default page size is 10, but there are ~60 world records.
+
+**Issue**: Examples showing `curl http://localhost:6336/api/world` only return first 10 tables.
+
+**Solution**: Always use `page[size]=100` when querying world:
+```bash
+curl "http://localhost:6336/api/world?page%5Bsize%5D=100"
+```
+
+**Status**: ✅ Fixed in all examples that query world records.
+
+---
+
+### Summary of New Findings
+
+| Issue | Severity | Pages Affected | Status |
+|-------|----------|----------------|--------|
+| Filter syntax wrong | CRITICAL | 6 pages | ✅ Fixed |
+| Two-level permission check | CRITICAL | Permissions.md | ✅ Fixed |
+| POST ignores permission | HIGH | Permissions.md, Users-and-Groups.md | ✅ Fixed |
+| Credential format wrong | CRITICAL | Cloud-Storage.md | ✅ Fixed |
+| Credential linking missing | HIGH | Cloud-Storage.md | ✅ Fixed |
+| Server restart unclear | MEDIUM | Multiple | ✅ Fixed |
+| Action schema format | HIGH | Custom-Actions.md | ✅ Fixed |
+| JavaScript syntax | MEDIUM | Custom-Actions.md | ✅ Fixed |
+| World pagination | MEDIUM | Multiple | ✅ Fixed |
+
+**Total New Issues**: 9
+**All Fixed**: ✅ Yes
+
+---
+
+## Documentation Quality Improvements
+
+### New Resources Created
+
+1. **Documentation-Checklist.md** ✅
+   - Comprehensive testing workflow
+   - Syntax standards
+   - Common mistakes to avoid
+   - Review checklist
+
+2. **walkthrough-product-catalog-with-permissions.md** ✅
+   - Complete end-to-end tutorial (30-45 min)
+   - Tested every single command
+   - Beginner-friendly explanations
+   - Quick reference section
+   - All 8 steps verified working
+
+### Pages Significantly Improved
+
+1. **Home.md** ✅
+   - Added "What is Daptin" section
+   - Added "First Time Here?" navigation
+   - Added "Common Workflows" (I want to...)
+   - Added "Common Issues Quick Fix" table
+   - Restructured for beginners
+
+2. **Permissions.md** ✅
+   - Added two-level permission check section
+   - Added POST+PATCH join table pattern
+   - Added bit-shifted permission values
+   - Expanded troubleshooting
+
+3. **Cloud-Storage.md** ✅
+   - Fixed credential format completely
+   - Added credential linking steps
+   - Added ForeignKeyData documentation
+   - Added comprehensive troubleshooting
+
+4. **Filtering-and-Pagination.md** ✅
+   - Fixed all query examples
+   - Added three methods (quotes, URL-encoded, --data-urlencode)
+   - Added combined example
+
+5. **Getting-Started-Guide.md** ✅
+   - Added token extraction example
+   - Fixed filter syntax
+   - Added server restart notes
+
+6. **Users-and-Groups.md** ✅
+   - Added token extraction
+   - Added bcrypt password hash option
+   - Added both attributes and relationships methods
+   - Fixed filter syntax
+   - Added group membership verification
+
+---
+
 *Report generated by systematic comparison of wiki/*.md files against server/actions/*.go, server/auth/auth.go, and server/resource/*.go*
-*Last updated: 2026-01-24*
+*Updated with comprehensive walkthrough testing on 2026-01-25*

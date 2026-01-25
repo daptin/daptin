@@ -4,7 +4,39 @@ Daptin supports **41 built-in column types** for automatic validation, storage, 
 
 **Related**: [Core Concepts](Core-Concepts.md) | [Column Type Reference](Column-Type-Reference.md) | [Schema Definition](Schema-Definition.md)
 
-**Source of truth**: `server/resource/column_types.go`
+**Source of truth**: `server/resource/column_types.go` | **Tested:** 2026-01-25 (test-results/01-column-types-complete.md)
+
+---
+
+## Choosing the Right Column Type
+
+Start here if you're unsure which type to use:
+
+| If you need... | Use this type | Why |
+|----------------|---------------|-----|
+| Product name, title | `label` | Short text, single line, good for display |
+| Blog post, description | `content` | Long text, multi-line, unlimited length |
+| User email | `email` | Built-in validation, auto-lowercase |
+| Yes/no flag, checkbox | `truefalse` | Boolean values |
+| Price, quantity, count | `measurement` | Integer numbers |
+| Price with cents | `float` | Decimal precision (19.99) |
+| Profile photo, logo | `file` with cloud_store | Efficient storage, CDN-ready |
+| Small icon (< 100KB) | `file` inline | Base64 encoding, no extra setup |
+| Password | `bcrypt` | Secure hashing automatically |
+| Secret API key | `encrypted` | AES encryption at rest |
+| Date only | `date` | ISO format (2026-01-25) |
+| Date and time | `datetime` | Full timestamp with timezone |
+| GPS coordinates | `location.latitude`, `location.longitude` | Decimal degrees with validation |
+| Star rating (1-10) | `rating` | 0-10 range validation |
+| Hex color code | `color` | #RRGGBB format validation |
+| Dropdown select | `enum` | Restricted value list (use with Options) |
+| JSON data | `json` | Objects/arrays as text |
+| Unique identifier | `alias` | URL-safe slugs, SKUs |
+| Website URL | `url` | URL format validation |
+
+**Pro tip:** Start with `label` for most text, `content` for long text, and `measurement` for numbers. Refine as needed.
+
+---
 
 ## Basic Types
 
