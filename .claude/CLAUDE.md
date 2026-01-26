@@ -47,25 +47,67 @@ make quicktest   # Quick tests
 
 ## CRITICAL: Kill Stale Processes First
 
-**The #1 cause of "403 forbidden" errors on fresh DB is stale Olric cache from old processes.**
+**The #1 cause of "403 forbidden" and "Unauthorized" errors is stale Olric cache from old processes.**
+
+### Understanding Daptin's Two Ports
+
+Daptin uses TWO ports that must BOTH be killed:
+
+1. **Port 6336**: HTTP API
+2. **Port 5336**: Olric distributed cache ⚠️ **THIS IS THE CRITICAL ONE**
+
+### Why Port 5336 Matters
+
+The Olric distributed cache on port 5336 stores:
+- Administrator reference IDs (60-minute TTL)
+- Permission data
+- User-group memberships
+
+**If an old process holds port 5336**, its cache will:
+- ❌ Make `become_an_administrator` return "Unauthorized" EVEN WITH FRESH DATABASE
+- ❌ Cause 403 errors due to stale permission data
+- ❌ Show wrong user-group relationships
+
+### Always Kill Both Ports
 
 ```bash
-# PREFERRED: Use test-runner.sh
+# PREFERRED: Use test-runner.sh (now kills both ports)
 ./scripts/testing/test-runner.sh stop
 
-# MANUAL: Kill any running Daptin processes
+# MANUAL: Kill both ports explicitly
+lsof -i :6336 -t | xargs kill -9 2>/dev/null || true  # HTTP API
+lsof -i :5336 -t | xargs kill -9 2>/dev/null || true  # Olric cache ⚠️ CRITICAL!
+
+# Also kill by process name
 pkill -9 -f daptin 2>/dev/null || true
 pkill -9 -f "go run main" 2>/dev/null || true
+
 sleep 2
 
-# Verify ports are free
-lsof -i :6336 2>/dev/null || echo "Port 6336 free"
-lsof -i :5336 2>/dev/null || echo "Port 5336 free"
-
-# If ports still in use, kill by PID
-lsof -i :6336 -t | xargs kill -9 2>/dev/null || true
-lsof -i :5336 -t | xargs kill -9 2>/dev/null || true
+# VERIFY both ports are free
+lsof -i :6336 || echo "✓ Port 6336 free"
+lsof -i :5336 || echo "✓ Port 5336 free (CRITICAL!)"
 ```
+
+### Symptoms of Stale Olric Cache
+
+If you forget to kill port 5336, you'll see:
+
+**Symptom 1: "Unauthorized" on become_an_administrator**
+```json
+{"ResponseType": "client.notify", "Attributes": {"message": "Unauthorized"}}
+```
+
+**Symptom 2: 403 Forbidden on fresh database**
+```json
+{"errors": [{"status": "403", "title": "Forbidden"}]}
+```
+
+**Symptom 3: Wrong permissions**
+- User should have access but gets 403
+- Changes to permissions don't take effect
+
+**Solution**: Kill port 5336 and restart
 
 ---
 
@@ -408,7 +450,7 @@ Check with: `curl http://localhost:6336/api/world | head -c 50`
 
 ## Complete Documentation
 
-See `docs_source/cloud-storage-complete-guide.md` for comprehensive end-user documentation covering:
+See `wiki/Cloud-Storage-Complete-Guide.md` for comprehensive end-user documentation covering:
 - Core concepts and architecture
 - Step-by-step setup for all cloud providers
 - Credential format reference (rclone-compatible)

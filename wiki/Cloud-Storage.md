@@ -747,4 +747,4 @@ sleep 10
 - [Asset Columns](Asset-Columns.md) - Inline vs cloud file storage configuration
 - [Subsites](Subsites.md) - Static site hosting details
 - [Credentials](Credentials.md) - Credential management
-- [Product Catalog Walkthrough](../docs_source/walkthrough-product-catalog-with-permissions.md) - Complete cloud storage setup example
+- [[Walkthrough-Product-Catalog]] - Complete cloud storage setup example

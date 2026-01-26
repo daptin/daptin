@@ -20,18 +20,21 @@ schema.yaml → Daptin → REST/GraphQL API + Auth + Storage + Real-time
 - ✅ Email server (SMTP/IMAP)
 - ✅ Custom actions and workflows
 
-## First Time Here?
+## Start Here
 
-**Start with one of these**:
+### First Time Users
+→ **[[Installation]]** (2 min) → **[[First-Admin-Setup]]** (5 min)
 
-1. **Complete Walkthrough** → [Building a Product Catalog](../docs_source/walkthrough-product-catalog-with-permissions.md)
-   *Build a real product catalog with cloud storage and permissions (30-45 min, beginner-friendly)*
+### Having Issues?
+→ **[[Common-Errors]]** (troubleshooting guide)
 
-2. **Quick Start** → [Getting Started Guide](Getting-Started-Guide.md)
-   *Get Daptin running in 5 minutes*
+### Understanding Daptin
+→ **[[Key-Behaviors]]** (critical behaviors from testing)
+→ **[[Core-Concepts]]** (how it works)
+→ **[[Getting-Started-Guide]]** (quick reference)
 
-3. **Core Concepts** → [Understanding Daptin](Core-Concepts.md)
-   *Learn how Daptin works*
+### Complete Tutorial
+→ [[Walkthrough-Product-Catalog]] (30-45 min, tested end-to-end)
 
 ## Quick Start (5 Minutes)
 
@@ -71,6 +74,51 @@ echo "✓ Admin setup complete! Token saved to /tmp/daptin-token.txt"
 
 **Next**: Create your first table → [Schema Definition](Schema-Definition.md)
 
+---
+
+## ⚠️ Production Readiness
+
+**The Quick Start above uses SQLite and HTTP - NOT PRODUCTION READY!**
+
+Before deploying to production, you must:
+
+### 1. Switch to Production Database
+```bash
+# SQLite is DEVELOPMENT ONLY
+# Use PostgreSQL or MySQL for production
+
+DAPTIN_DB_TYPE=postgres \
+DAPTIN_DB_CONNECTION_STRING="host=db.example.com user=daptin password=SECRET dbname=daptin sslmode=require" \
+./daptin
+```
+→ **[[Database-Setup]]** for configuration
+
+### 2. Enable HTTPS/TLS
+```bash
+# Generate Let's Encrypt certificate (free)
+TOKEN=$(cat /tmp/daptin-token.txt)
+curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"attributes":{"hostname":"api.example.com","email":"admin@example.com"}}'
+```
+→ **[[TLS-Certificates]]** for details
+
+### 3. Security Hardening
+- Set JWT secret (`/_config/backend/jwt.secret`)
+- Set encryption secret (`/_config/backend/encryption.secret`)
+- Enable rate limiting
+- Configure firewall (block ports 5336, 5350)
+
+### 4. Monitoring & Backups
+- Set up health check monitoring (`/ping`)
+- Monitor `/statistics` endpoint
+- Configure daily database backups
+- Test backup restore monthly
+
+→ **[[Production-Deployment]]** for complete checklist
+
+---
+
 ## Common Workflows
 
 **Choose your path based on what you want to do**:
@@ -78,7 +126,7 @@ echo "✓ Admin setup complete! Token saved to /tmp/daptin-token.txt"
 ### I want to...
 
 **Build a complete app from scratch**
-→ Follow the [Product Catalog Walkthrough](../docs_source/walkthrough-product-catalog-with-permissions.md) (comprehensive tutorial)
+→ Follow the [[Walkthrough-Product-Catalog]] (comprehensive tutorial)
 
 **Set up user authentication**
 → [Users and Groups](Users-and-Groups.md) + [Authentication](Authentication.md)
@@ -222,24 +270,16 @@ Daptin creates these tables automatically:
 | `/_config` | Configuration API |
 | `/openapi.yaml` | OpenAPI spec |
 
-## Common Issues Quick Fix
 
-| Problem | Quick Solution |
-|---------|----------------|
-| 403 Forbidden on fresh DB | Kill old processes: `pkill -9 -f daptin`, remove `daptin.db`, restart |
-| 403 after permission change | Restart server to clear Olric cache |
-| Group members get 403 | Share the **table** (world record) with group, not just records |
-| Filter/query doesn't work | Use `curl --get --data-urlencode 'query=[...]'` syntax |
-| Action not found | Restart server after creating actions |
-| Can't sign up new users | After first admin, use API to create users (signup is locked) |
-| File upload fails | Format: `[{name, file, type}]` array, not string |
-| Permission ignored on POST | Use POST then PATCH to set permission on join tables |
+## Common Issues
+
+→ **[[Common-Errors]]** for complete troubleshooting guide
 
 ## Help and Resources
 
 - **Documentation Issues?** Submit at https://github.com/daptin/daptin/issues
-- **Questions?** Check [Troubleshooting](Troubleshooting.md) or ask on GitHub Discussions
-- **Examples?** See complete walkthrough in `docs_source/` directory
+- **Questions?** Check [[Troubleshooting]] or ask on GitHub Discussions
+- **Examples?** See [[Walkthrough-Product-Catalog]] and [[Cloud-Storage-Complete-Guide]]
 
 ## License
 

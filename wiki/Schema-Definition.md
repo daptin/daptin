@@ -128,7 +128,7 @@ Relations:
 
 ### ✅ Full Walkthrough
 
-`docs_source/walkthrough-product-catalog-with-permissions.md` is a complete tested example covering:
+[[Walkthrough-Product-Catalog]] is a complete tested example covering:
 - Cloud storage
 - Permissions
 - User groups

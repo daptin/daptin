@@ -352,7 +352,7 @@ Execute external processes (action_execute_process.go) - security-sensitive, not
 
 ### Additional Critical Issues Found
 
-While testing the [Product Catalog Walkthrough](../docs_source/walkthrough-product-catalog-with-permissions.md), several new critical issues were discovered:
+While testing the [[Walkthrough-Product-Catalog]], several new critical issues were discovered:
 
 #### 1. Filter Syntax Incorrect in Multiple Pages ✅ FIXED
 
