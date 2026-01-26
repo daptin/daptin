@@ -199,8 +199,9 @@ If you find a feature that doesn't work as expected:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| WebSocket API | 📝 | WebSocket-API.md needs testing |
-| GraphQL API | 📝 | GraphQL-API.md needs testing |
+| WebSocket API | ✅ | Tested 2026-01-26 - All methods working, 69 topics available |
+| YJS Collaboration | ✅ | Tested 2026-01-26 - Both direct and file column endpoints working |
+| GraphQL API | ✅ | Tested 2026-01-26 - Works correctly including subscriptions |
 
 ---
 
@@ -228,21 +229,25 @@ If you find a feature that doesn't work as expected:
 ### Should Have (common use cases)
 5. [x] Actions Overview - rewritten for end users
 6. [x] Cloud Storage - S3/GCS setup (all actions tested after bug fix)
-7. [ ] WebSocket - real-time subscriptions
-8. [ ] Configuration - config API tested, env vars/flags/ports NOT tested yet
+7. [x] WebSocket - tested and verified working (2026-01-26)
+8. [x] YJS - tested and verified working (2026-01-26)
+9. [ ] Configuration - config API tested, env vars/flags/ports NOT tested yet
 
 ### Nice to Have (advanced)
-9. [ ] GraphQL API
+9. [x] GraphQL API - tested 2026-01-26
 10. [ ] CalDAV/CardDAV
 11. [ ] FTP Server
-12. [ ] Collaborative Editing (YJS)
 
 ---
 
 ## Recently Completed
 
-| What | When |
-|------|------|
+| What | When | Key Learnings |
+|------|------|---------------|
+| Documentation Process Meta-Guide | 2026-01-26 | **CRITICAL**: Always check server logs vs client errors; use protocol-appropriate testing tools; search git history for usage examples; read auth middleware for each protocol; don't assume features are broken - verify testing approach first |
+| WebSocket API (tested and verified working, all 6 methods documented) | 2026-01-26 | Use proper clients for protocol, check server logs for actual responses, auth mechanisms vary by protocol, found examples in dadadash repo |
+| YJS Collaboration (tested and verified working, both endpoints documented) | 2026-01-26 | Check dadadash git history for usage examples including commented-out code |
+| GraphQL API (tested from previous session) | 2026-01-26 | Real-time features may use different auth mechanisms |
 | Asset Columns (inline and cloud storage, correct array format) | 2026-01-25 |
 | Server Configuration (config API, port, log_level, runtime, schema folder) | 2026-01-25 |
 | Custom Actions (complete performer reference, 40+ performers, tested examples) | 2026-01-25 |
