@@ -4,6 +4,42 @@ Get up and running with Daptin in minutes.
 
 ---
 
+## Before You Start: Kill Stale Processes
+
+**⚠️ CRITICAL:** Daptin uses a distributed cache (Olric) on port 5336. Stale processes will cause permission errors even with a fresh database.
+
+**Always run these commands before starting Daptin:**
+
+```bash
+# Kill all Daptin processes
+pkill -9 -f daptin 2>/dev/null || true
+pkill -9 -f "go run main" 2>/dev/null || true
+
+# Free both ports
+lsof -i :6336 -t | xargs kill -9 2>/dev/null || true  # HTTP API
+lsof -i :5336 -t | xargs kill -9 2>/dev/null || true  # Olric cache
+
+# Verify ports are free
+lsof -i :6336 || echo "✓ Port 6336 free"
+lsof -i :5336 || echo "✓ Port 5336 free"
+
+sleep 2
+```
+
+**Why This Matters:**
+- **Port 6336**: HTTP API
+- **Port 5336**: Olric distributed cache (stores permissions, admin IDs, user groups)
+- **Cache TTL**: 60 minutes
+- **Symptom if forgotten**: `become_an_administrator` returns "Unauthorized" even on fresh database
+
+**Alternative:** Use the test runner script which handles this automatically:
+```bash
+./scripts/testing/test-runner.sh stop
+./scripts/testing/test-runner.sh start
+```
+
+---
+
 ## 1. Start Daptin
 
 ```bash
@@ -92,6 +128,55 @@ rm daptin.db
 ```
 
 This wipes everything. Start fresh with step 2.
+
+---
+
+## 3.1. Troubleshooting: "Unauthorized" Error on become_an_administrator
+
+If you get an **"Unauthorized"** error when trying to become administrator on a **fresh database**, it's caused by stale Olric cache from a previous Daptin process.
+
+**Symptoms:**
+```json
+{
+  "ResponseType": "client.notify",
+  "Attributes": {
+    "message": "Unauthorized",
+    "title": "failed",
+    "type": "error"
+  }
+}
+```
+
+**Root Cause:**
+- Olric cache (port 5336) stores admin reference IDs with 60-minute TTL
+- Old process keeps cache alive even after "stopping" server
+- Cache says admin exists → become_an_administrator rejects you
+- **This happens even with a fresh database!**
+
+**Solution:**
+```bash
+# CRITICAL: Kill port 5336 (Olric cache)
+lsof -i :5336 -t | xargs kill -9 2>/dev/null || true
+
+# Also kill all Daptin processes
+pkill -9 -f daptin 2>/dev/null || true
+pkill -9 -f "go run main" 2>/dev/null || true
+
+# Verify port is free
+lsof -i :5336 || echo "✓ Port 5336 is free"
+
+sleep 2
+
+# Now start fresh
+./scripts/testing/test-runner.sh start
+```
+
+**Prevention:**
+Always use the test runner script, which now kills both ports:
+```bash
+./scripts/testing/test-runner.sh stop   # Kills ports 6336 AND 5336
+./scripts/testing/test-runner.sh start
+```
 
 ---
 

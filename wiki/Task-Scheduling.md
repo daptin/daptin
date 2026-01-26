@@ -1,5 +1,7 @@
 # Task Scheduling
 
+**Tested ✓ 2026-01-26**
+
 Cron-based job scheduling for automated background tasks using the `task` table.
 
 ## Overview
@@ -10,6 +12,23 @@ Daptin's task scheduling system:
 - Uses [robfig/cron/v3](https://github.com/robfig/cron) for scheduling
 - Supports any action defined in the system
 - Runs within database transactions for safety
+
+## Critical Requirements
+
+⚠️ **Tasks will NOT execute unless these requirements are met:**
+
+1. **`as_user_id` MUST be set** - Tasks without a user context won't execute
+2. **`active` must be `true`** - Inactive tasks are not registered with the scheduler
+3. **Server restart required** - New/updated tasks only load on server startup (no hot-reload)
+4. **Valid `action_name`** - Must reference an existing action in the system
+5. **Valid `schedule`** - Must be parseable by robfig/cron library
+
+**Quick Check:**
+```bash
+# Verify task will execute
+sqlite3 daptin.db "SELECT name, as_user_id, active FROM task WHERE name='your-task';"
+# as_user_id should NOT be NULL, active should be 1
+```
 
 ## The `task` Table
 
@@ -365,23 +384,95 @@ Tasks:
 
 ### Task Not Running
 
-1. Check `active` is `true`
-2. Verify `schedule` syntax is valid
-3. Confirm user relationship exists
-4. Check action exists on entity
+**Symptoms:** Task created but no execution logs, "Register task" log missing on startup
+
+**Solutions:**
+
+1. **Check `active` is `true`**
+   ```bash
+   sqlite3 daptin.db "SELECT name, active FROM task WHERE name='your-task';"
+   # Should show active=1, if not:
+   # PATCH /api/task/{id} with {"attributes": {"active": true}}
+   ```
+
+2. **Verify `as_user_id` is set** ⚠️ **CRITICAL**
+   ```bash
+   sqlite3 daptin.db "SELECT name, as_user_id FROM task WHERE name='your-task';"
+   # If NULL, task will NOT execute! Assign user via API relationship
+   ```
+
+3. **Restart server to load task**
+   ```bash
+   ./scripts/testing/test-runner.sh stop
+   ./scripts/testing/test-runner.sh start
+
+   # Verify registration
+   tail -f /tmp/daptin.log | grep "Register task"
+   # Expected: INFO[...] Register task [action_name] at schedule
+   ```
+
+4. **Verify `schedule` syntax is valid**
+   - Use `@every 1m` for quick testing
+   - Cron: 5 fields `* * * * *` (not 6!)
+   - Check [Schedule Syntax](#schedule-syntax) section
 
 ### Task Fails
 
-1. Check server logs for error details
-2. Test action manually with same parameters
-3. Verify user has required permissions
-4. Check attributes JSON is valid
+**Symptoms:** Task executes but logs show "Errors while executing action 109"
+
+**Solutions:**
+
+1. **Check server logs for error details**
+   ```bash
+   tail -f /tmp/daptin.log | grep -i error | grep task
+   ```
+
+2. **Test action manually with same parameters**
+   ```bash
+   curl -X POST http://localhost:6336/action/{entity_name}/{action_name} \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"attributes": YOUR_TASK_ATTRIBUTES}'
+   ```
+
+3. **Verify user has required permissions**
+   - User in `as_user_id` must have permission for the action
+   - Test with admin user first
+   - Check user's usergroup memberships
+
+4. **Check attributes JSON is valid**
+   ```bash
+   # Test JSON parsing
+   echo '{"your": "attributes"}' | jq .
+   ```
+
+### Monitoring Task Execution
+
+```bash
+# Real-time task monitoring
+tail -f /tmp/daptin.log | grep -E "Register task|Execute task"
+
+# Expected logs:
+# INFO[...] Register task [action_name] at schedule
+# INFO[...] [82] Execute task [ref_id][action_name] as user [user_id]
+
+# Check for errors
+tail -f /tmp/daptin.log | grep -i "error.*task"
+```
 
 ### View Task Configuration
 
 ```bash
+# Get all tasks
 curl "http://localhost:6336/api/task?include=as_user_id" \
   -H "Authorization: Bearer $TOKEN"
+
+# Get specific task
+curl "http://localhost:6336/api/task/{task_id}" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Database verification
+sqlite3 daptin.db "SELECT reference_id, name, action_name, schedule, active, as_user_id FROM task;"
 ```
 
 ## Related

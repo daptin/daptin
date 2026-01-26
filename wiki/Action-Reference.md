@@ -165,32 +165,124 @@ Verify a mobile number with OTP.
 
 ## OAuth Actions
 
+**See also:** [OAuth Authentication Guide](OAuth-Authentication.md) for complete setup and examples.
+
 ### oauth_login_begin
 
-Start OAuth authentication flow.
+Start OAuth authentication flow by generating authorization URL.
 
 | Property | Value |
 |----------|-------|
 | Entity | `oauth_connect` |
 | Instance Required | Yes |
+| Endpoint | `/action/oauth_connect/{ref_id}/oauth_login_begin` |
 
 **Action Performer:** `oauth.client.redirect`
 
+**Tested Example:**
+```bash
+curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"oauth_connect_id": "019bf936-3dc0-7105-9cf9-468d766cae66"}'
+```
+
+**Response:**
+```json
+[
+  {
+    "ResponseType": "client.store.set",
+    "Attributes": {
+      "key": "secret",
+      "value": "101004"
+    }
+  },
+  {
+    "ResponseType": "client.redirect",
+    "Attributes": {
+      "delay": 0,
+      "location": "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&client_id=...&state=101004",
+      "window": "self"
+    }
+  }
+]
+```
+
+Returns state token (5-minute TOTP) and OAuth provider authorization URL.
+
 ### oauth.login.response
 
-Handle OAuth callback with code and state.
+Handle OAuth callback with authorization code and state.
 
 | Property | Value |
 |----------|-------|
 | Entity | `oauth_token` |
 | Instance Required | No |
+| Endpoint | `/action/oauth_token/oauth.login.response` |
+
+**Action Performer:** `oauth.login.response`
 
 **Input Fields:**
-| Field | Type | Required |
-|-------|------|----------|
-| code | hidden | Yes |
-| state | hidden | Yes |
-| authenticator | hidden | Yes |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| code | hidden | Yes | Authorization code from OAuth provider |
+| state | hidden | Yes | State token from oauth_login_begin |
+| authenticator | hidden | Yes | Name of oauth_connect record |
+
+**Tested Example:**
+```bash
+curl -X POST http://localhost:6336/action/oauth_token/oauth.login.response \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "code": "4/0AfJohXm...",
+      "state": "101004",
+      "authenticator": "google-login"
+    }
+  }'
+```
+
+**Success Response:**
+```json
+[
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {
+      "title": "Successfully connected",
+      "message": "You can use this connection now",
+      "type": "success"
+    }
+  },
+  {
+    "ResponseType": "client.redirect",
+    "Attributes": {
+      "location": "/in/item/oauth_token"
+    }
+  }
+]
+```
+
+**Error Response (Invalid State):**
+```json
+[
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {
+      "message": "No ongoing authentication",
+      "title": "failed",
+      "type": "error"
+    }
+  }
+]
+```
+
+**Workflow:**
+1. Validates state token (TOTP, 5-minute window)
+2. Exchanges authorization code for tokens
+3. Stores access/refresh tokens (encrypted)
+4. If `allow_login=true`: fetches profile, creates/links user, generates JWT
+5. Returns success or error notification
 
 ## Admin Actions
 

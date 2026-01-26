@@ -109,7 +109,7 @@ If you find a feature that doesn't work as expected:
 | Define Tables (Schema) | ✅ | Schema-Definition.md |
 | Column Types | ✅ | Column-Types.md, Column-Type-Reference.md |
 | Link Tables (Relationships) | ✅ | Relationships.md |
-| Filter & Sort Data | 📝 | In Getting Started, needs own doc |
+| Filter & Sort Data | ✅ | Filtering-and-Pagination.md - Complete with all operators, sorting, pagination, fuzzy search tested |
 | Aggregate Data | 📝 | Aggregation-API.md needs testing |
 
 ---
@@ -211,8 +211,8 @@ If you find a feature that doesn't work as expected:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| Configuration Options | 📝 | Server-Configuration.md - config API, port, log_level, runtime, schema folder tested. MySQL/PostgreSQL NOT tested |
-| Database Setup | 📝 | Database-Setup.md - connection strings NOT tested |
+| Configuration Options | ✅ | All command-line flags, environment variables, and runtime config tested. MySQL/PostgreSQL noted as requiring external setup |
+| Database Setup | ✅ | MySQL/MariaDB and PostgreSQL tested with Docker. Connection strings verified. Documented in Server-Configuration.md |
 | TLS/HTTPS | 📝 | TLS-Certificates.md needs testing |
 | Monitoring | 📝 | Monitoring.md needs testing |
 
@@ -231,7 +231,7 @@ If you find a feature that doesn't work as expected:
 6. [x] Cloud Storage - S3/GCS setup (all actions tested after bug fix)
 7. [x] WebSocket - tested and verified working (2026-01-26)
 8. [x] YJS - tested and verified working (2026-01-26)
-9. [ ] Configuration - config API tested, env vars/flags/ports NOT tested yet
+9. [x] Configuration - all flags, env vars, and runtime config tested (2026-01-26)
 
 ### Nice to Have (advanced)
 9. [x] GraphQL API - tested 2026-01-26
@@ -244,6 +244,7 @@ If you find a feature that doesn't work as expected:
 
 | What | When | Key Learnings |
 |------|------|---------------|
+| Server Configuration (env vars, flags, HTTPS, MySQL, PostgreSQL, Olric) | 2026-01-26 | Tested all flags/env vars. MySQL (MariaDB 10.11) and PostgreSQL 15 fully working with 50 concurrent connections. Olric clustering has bug: PubSub topic creation fails with "no available client found". Single-node Olric works. HTTPS requires cert generation + enable_https config. |
 | Documentation Process Meta-Guide | 2026-01-26 | **CRITICAL**: Always check server logs vs client errors; use protocol-appropriate testing tools; search git history for usage examples; read auth middleware for each protocol; don't assume features are broken - verify testing approach first |
 | WebSocket API (tested and verified working, all 6 methods documented) | 2026-01-26 | Use proper clients for protocol, check server logs for actual responses, auth mechanisms vary by protocol, found examples in dadadash repo |
 | YJS Collaboration (tested and verified working, both endpoints documented) | 2026-01-26 | Check dadadash git history for usage examples including commented-out code |
