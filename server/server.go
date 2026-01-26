@@ -390,6 +390,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		err = configStore.SetConfigValueFor("caldav.enable", enableCaldav, "backend", transaction)
 		resource.CheckErr(err, "Failed to store caldav.enable in _config")
 	}
+	log.Printf("[CALDAV INIT] enableCaldav read from config: '%s', err: %v", enableCaldav, err)
 	transaction.Commit()
 
 	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
@@ -430,9 +431,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections, olricDb)
 	transaction.Commit()
 
+	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)
 	if enableCaldav == "true" {
-		InitializeCaldavResources(authMiddleware, defaultRouter)
-
+		log.Printf("[CALDAV INIT] Initializing CalDAV resources...")
+		// Pass cruds and certificateManager like FTP/IMAP/SMTP do
+		InitializeCaldavResources(authMiddleware, cruds, certificateManager, defaultRouter)
+		log.Printf("[CALDAV INIT] CalDAV initialization complete!")
+	} else {
+		log.Printf("[CALDAV INIT] CalDAV NOT enabled (value: '%s')", enableCaldav)
 	}
 	log.Tracef("Completed process caldav")
 

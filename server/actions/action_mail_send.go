@@ -33,7 +33,7 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	//log.Printf("Sync mail servers")
 	responses := make([]actionresponse.ActionResponse, 0)
 
-	mailTo := inFields["to"].([]string)
+	mailTo := GetValueAsArrayString(inFields, "to")
 	subject := inFields["subject"].(string)
 	mailFrom := inFields["from"].(string)
 	mailBody := inFields["body"].(string)

@@ -164,7 +164,7 @@ If you find a feature that doesn't work as expected:
 | Guide | Status | Notes |
 |-------|--------|-------|
 | Configure SMTP | ✅ | SMTP-Server.md |
-| Send Email from Actions | 📝 | Email-Actions.md needs sync |
+| Send Email from Actions | ✅ | Email-Actions.md - Complete rewrite with tested examples. Bug fixed in mail.send performer (type assertion). Documented performers vs actions, credential storage pattern, working examples for mail.send and aws.mail.send |
 | Receive Email (IMAP) | ✅ | IMAP-Support.md |
 
 ---
@@ -202,6 +202,7 @@ If you find a feature that doesn't work as expected:
 | WebSocket API | ✅ | Tested 2026-01-26 - All methods working, 69 topics available |
 | YJS Collaboration | ✅ | Tested 2026-01-26 - Both direct and file column endpoints working |
 | GraphQL API | ✅ | Tested 2026-01-26 - Works correctly including subscriptions |
+| FTP Server | ✅ | Tested 2026-01-26 - Site-based access, FTPS/TLS, all operations verified |
 
 ---
 
@@ -213,8 +214,8 @@ If you find a feature that doesn't work as expected:
 |-------|--------|-------|
 | Configuration Options | ✅ | All command-line flags, environment variables, and runtime config tested. MySQL/PostgreSQL noted as requiring external setup |
 | Database Setup | ✅ | MySQL/MariaDB and PostgreSQL tested with Docker. Connection strings verified. Documented in Server-Configuration.md |
-| TLS/HTTPS | 📝 | TLS-Certificates.md needs testing |
-| Monitoring | 📝 | Monitoring.md needs testing |
+| TLS/HTTPS | ✅ | Tested 2026-01-26 - Complete with self-signed and ACME workflows |
+| Monitoring | ✅ | Tested 2026-01-26 - All endpoints verified, profiling documented |
 
 ---
 
@@ -235,8 +236,8 @@ If you find a feature that doesn't work as expected:
 
 ### Nice to Have (advanced)
 9. [x] GraphQL API - tested 2026-01-26
-10. [ ] CalDAV/CardDAV
-11. [ ] FTP Server
+10. [x] CalDAV/CardDAV - tested 2026-01-26
+11. [x] FTP Server - tested 2026-01-26
 
 ---
 
@@ -244,6 +245,10 @@ If you find a feature that doesn't work as expected:
 
 | What | When | Key Learnings |
 |------|------|---------------|
+| CalDAV/CardDAV (basic WebDAV file storage for calendars/contacts) | 2026-01-26 | **NOT Full Protocol**: Implements basic WebDAV file storage only, NOT full CalDAV/CardDAV (missing REPORT, calendar-query). **Storage Directories Required**: Must create `./storage/caldav/` and `./storage/carddav/` or get 404 errors. **Configuration**: Disabled by default, enable via `_config/backend/caldav.enable`, requires restart. **Both Auth Methods**: Supports Bearer token (JWT) and Basic auth (email:password). **WebDAV Methods**: All core WebDAV methods work (PROPFIND, GET, PUT, DELETE, MKCOL, COPY, MOVE, PROPPATCH). **File Formats**: Stores .ics (iCalendar) and .vcf (vCard) files. **Client Compatibility**: May NOT work with standard clients (Apple Calendar, Thunderbird) that expect full CalDAV/CardDAV protocol features. **Use Cases**: Good for simple file storage/backup, NOT suitable for production calendar server. **No Multi-User Isolation**: All users share same storage directory. **Code**: Uses `github.com/emersion/go-webdav` library, `webdav.LocalFileSystem("./storage")` backend. |
+| FTP Server (site-based file access with FTPS/TLS) | 2026-01-26 | **Conditional Startup**: FTP server ONLY starts if sites with `ftp_enabled=true` exist. No sites = no FTP port listening. **Configuration**: Requires `ftp.enable=true` in _config AND at least one FTP-enabled site. **Site Directory Structure**: Root directory lists sites as subdirectories; each maps to `{cloud_store.root_path}/{site.path}/`. **LIST Quirk**: Directory listings may appear empty but files are accessible via direct RETR. **Authentication**: Uses Daptin user accounts (email/password). **FTPS/TLS**: Automatic using site certificates. **Port**: Default 2121 (non-standard). **Restart Required**: After creating FTP-enabled sites or changing ftp.enable config. **Dependencies**: Requires cloud_store → site → ftp_enabled chain. |
+| Monitoring (health checks, statistics, profiling) | 2026-01-26 | **Structure Corrections**: CPU uses `counts` not `count`, process.count is integer not object, disk.io not disk.ioCounters. **HTTP pprof doesn't exist**: Daptin uses file-based profiling via `-runtime=profile` flag, not HTTP endpoints. **Endpoint Clarifications**: /health returns admin HTML UI not simple health check, /meta returns empty body, /api/_config returns HTML not config data. **Statistics are comprehensive**: 8 sections including detailed temperature sensors (29 on macOS M1!), per-core CPU utilization, database connection pool stats, web server metrics. |
+| Email Actions (mail.send, aws.mail.send, custom actions) | 2026-01-26 | **Critical Bug Fixed**: mail.send had hard type assertion causing panic with YAML arrays. Used `GetValueAsArrayString()` helper. **Performers vs Actions**: mail.send/aws.mail.send are NOT direct REST endpoints - must use in custom actions' OutFields. **Credential Pattern**: aws.mail.send uses credential NAME to lookup stored credentials, not inline keys. **No fake features**: mail.send doesn't support contentType, attachments, cc, bcc (docs claimed this). |
 | Aggregation API (count, sum, avg, min, max, GROUP BY, filters, ORDER BY) | 2026-01-26 | All basic aggregations work correctly via GET method. All filter operators tested and working (eq, not, lt, lte, gt, gte, in, notin). GROUP BY and ORDER BY work perfectly. **Known bugs**: HAVING clause generates correct SQL but returns empty results (bug in result processing). POST method fails with "empty identifier" error. Use GET method for all queries. |
 | Server Configuration (env vars, flags, HTTPS, MySQL, PostgreSQL, Olric) | 2026-01-26 | Tested all flags/env vars. MySQL (MariaDB 10.11) and PostgreSQL 15 fully working with 50 concurrent connections. Olric clustering has bug: PubSub topic creation fails with "no available client found". Single-node Olric works. HTTPS requires cert generation + enable_https config. |
 | Documentation Process Meta-Guide | 2026-01-26 | **CRITICAL**: Always check server logs vs client errors; use protocol-appropriate testing tools; search git history for usage examples; read auth middleware for each protocol; don't assume features are broken - verify testing approach first |

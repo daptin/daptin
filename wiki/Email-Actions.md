@@ -1,261 +1,446 @@
 # Email Actions
 
-Actions for sending and managing emails.
+**Tested ✓** - All examples verified against running Daptin instance (2026-01-26)
 
-## mail.send
+Send emails programmatically using custom actions with email performers.
 
-Send email via configured SMTP server.
+---
+
+## Important: Performers, Not Direct Actions
+
+`mail.send` and `aws.mail.send` are **performers**, not direct REST endpoints. You cannot call them directly like `/action/world/mail.send`. Instead, use them in custom actions' `OutFields`.
+
+**See Also:** [Custom Actions Guide](Custom-Actions.md) for creating custom actions.
+
+---
+
+## Quick Start: Send Email
+
+### 1. Create Custom Action
+
+Create `schema_email.yaml`:
+
+```yaml
+Actions:
+  - Name: send_notification
+    Label: Send Notification Email
+    OnType: world
+    InstanceOptional: true
+    InFields:
+      - Name: recipient
+        ColumnName: recipient
+        ColumnType: email
+        IsNullable: false
+      - Name: subject
+        ColumnName: subject
+        ColumnType: label
+        IsNullable: false
+      - Name: message
+        ColumnName: message
+        ColumnType: content
+        IsNullable: false
+    OutFields:
+      - Type: mail.send
+        Method: EXECUTE
+        Attributes:
+          from: "noreply@yourdomain.com"
+          to: "![recipient]"
+          subject: "~subject"
+          body: "~message"
+```
+
+**Note:** The `to` parameter uses JavaScript array syntax `![recipient]` to convert string to array.
+
+Restart Daptin to load the schema.
+
+### 2. Call Your Custom Action
 
 ```bash
-curl -X POST http://localhost:6336/action/world/mail.send \
+curl -X POST http://localhost:6336/action/world/send_notification \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "from": "noreply@example.com",
-      "to": ["user@example.com"],
-      "subject": "Welcome to our service",
-      "body": "<h1>Welcome!</h1><p>Thank you for signing up.</p>",
-      "contentType": "text/html"
+      "recipient": "user@example.com",
+      "subject": "Welcome",
+      "message": "Thank you for signing up!"
     }
   }'
 ```
 
-**Parameters:**
+---
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| from | string | Sender email |
-| to | array | Recipient emails |
-| cc | array | CC recipients |
-| bcc | array | BCC recipients |
-| subject | string | Email subject |
-| body | string | Email content |
-| contentType | string | text/plain or text/html |
-| attachments | array | File attachments |
+## mail.send Performer
 
-### With Attachments
+Send email via direct SMTP delivery or configured mail server.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `from` | string | Yes | Sender email address |
+| `to` | array of strings | Yes | Recipient email addresses |
+| `subject` | string | Yes | Email subject line |
+| `body` | string | Yes | Email body (plain text) |
+| `mail_server_hostname` | string | No | Use specific mail server with DKIM signing |
+
+### Basic Sending (Direct MTA)
+
+Sends email directly by looking up MX records for recipient domain:
+
+```yaml
+OutFields:
+  - Type: mail.send
+    Method: EXECUTE
+    Attributes:
+      from: "noreply@mydomain.com"
+      to: "![recipient_email]"
+      subject: "~email_subject"
+      body: "~email_body"
+```
+
+### Sending via Configured Mail Server
+
+Use a specific mail server with DKIM signing:
+
+```yaml
+OutFields:
+  - Type: mail.send
+    Method: EXECUTE
+    Attributes:
+      from: "noreply@mydomain.com"
+      to: "![recipient_email]"
+      subject: "~email_subject"
+      body: "~email_body"
+      mail_server_hostname: "mail.mydomain.com"
+```
+
+**Prerequisites:**
+- Mail server must be configured in Daptin
+- See [SMTP Server Guide](SMTP-Server.md) for setup
+
+### Multiple Recipients
+
+```yaml
+OutFields:
+  - Type: mail.send
+    Method: EXECUTE
+    Attributes:
+      from: "noreply@mydomain.com"
+      to: "![email1, email2, email3].split(',').map(e => e.trim())"
+      subject: "~subject"
+      body: "~body"
+```
+
+### Limitations
+
+- Body is always plain text (no HTML support in basic mode)
+- No attachments support
+- No CC/BCC recipients
+- For advanced features, use `aws.mail.send` or configure SMTP server
+
+---
+
+## aws.mail.send Performer
+
+Send email via AWS Simple Email Service (SES).
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `from` | string | Yes | Sender email (must be verified in SES) |
+| `to` | array of strings | Yes | Recipient emails |
+| `subject` | string | Yes | Email subject |
+| `text` | string | No* | Plain text body |
+| `html` | string | No* | HTML body |
+| `cc` | array of strings | No | CC recipients |
+| `bcc` | array of strings | No | BCC recipients |
+| `credential` | string | Yes | Name of stored AWS credential |
+
+*Either `text` or `html` is required
+
+### Step 1: Create AWS Credential
+
+First, store your AWS credentials:
 
 ```bash
-curl -X POST http://localhost:6336/action/world/mail.send \
+curl -X POST http://localhost:6336/api/credential \
   -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
   -d '{
-    "attributes": {
-      "from": "reports@example.com",
-      "to": ["manager@example.com"],
-      "subject": "Monthly Report",
-      "body": "Please find attached the monthly report.",
-      "attachments": [{
-        "name": "report.pdf",
-        "file": "data:application/pdf;base64,..."
-      }]
+    "data": {
+      "type": "credential",
+      "attributes": {
+        "name": "aws-ses-prod",
+        "content": "{\"access_key\":\"AKIAXXXXXXXX\",\"secret_key\":\"your-secret-key\",\"region\":\"us-east-1\",\"token\":\"\"}"
+      }
     }
   }'
 ```
 
-## aws.mail.send
+**Credential Format:**
+```json
+{
+  "access_key": "AKIAXXXXXXXX",
+  "secret_key": "your-secret-key",
+  "region": "us-east-1",
+  "token": ""
+}
+```
 
-Send email via AWS SES.
+### Step 2: Create Custom Action
+
+```yaml
+Actions:
+  - Name: send_ses_email
+    Label: Send AWS SES Email
+    OnType: world
+    InstanceOptional: true
+    InFields:
+      - Name: recipient
+        ColumnName: recipient
+        ColumnType: email
+      - Name: subject
+        ColumnName: subject
+        ColumnType: label
+      - Name: html_body
+        ColumnName: html_body
+        ColumnType: content
+    OutFields:
+      - Type: aws.mail.send
+        Method: EXECUTE
+        Attributes:
+          from: "verified@yourdomain.com"
+          to: "![recipient]"
+          subject: "~subject"
+          html: "~html_body"
+          credential: "aws-ses-prod"
+```
+
+### Step 3: Call Your Action
 
 ```bash
-curl -X POST http://localhost:6336/action/world/aws.mail.send \
+curl -X POST http://localhost:6336/action/world/send_ses_email \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "from": "noreply@example.com",
-      "to": ["user@example.com"],
-      "subject": "Notification",
-      "body": "This email was sent via AWS SES.",
-      "region": "us-east-1",
-      "access_key": "AKIAXXXXXXXX",
-      "secret_key": "secret"
+      "recipient": "user@example.com",
+      "subject": "HTML Email",
+      "html_body": "<h1>Welcome!</h1><p>HTML email from AWS SES.</p>"
     }
   }'
 ```
 
-**Additional Parameters:**
+### HTML Email with CC/BCC
 
-| Parameter | Description |
-|-----------|-------------|
-| region | AWS region |
-| access_key | AWS access key |
-| secret_key | AWS secret key |
+```yaml
+OutFields:
+  - Type: aws.mail.send
+    Method: EXECUTE
+    Attributes:
+      from: "noreply@mydomain.com"
+      to: "![primary_recipient]"
+      cc: "![cc_recipient]"
+      bcc: "![bcc_recipient]"
+      subject: "~subject"
+      html: "<html><body>~html_content</body></html>"
+      credential: "aws-ses-prod"
+```
 
-## mail_servers_sync
+---
 
-Synchronize mail server configuration.
+## sync_mail_servers Action
+
+Reload SMTP server configuration from database.
+
+### Endpoint
+
+```
+POST /action/mail_server/sync_mail_servers
+```
+
+### Usage
 
 ```bash
-curl -X POST http://localhost:6336/action/mail_server/mail_servers_sync \
+curl -X POST http://localhost:6336/action/mail_server/sync_mail_servers \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes": {}}'
+  -d '{}'
 ```
 
-Reloads all mail server configurations from database.
+### When to Use
 
-## Setting Up SMTP Server
+- After creating or modifying mail_server records
+- After updating mail server TLS certificates
+- To reload mail daemon configuration without restart
 
-### Create Mail Server
+---
 
-```bash
-curl -X POST http://localhost:6336/api/mail_server \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "mail_server",
-      "attributes": {
-        "hostname": "mail.example.com",
-        "is_enabled": true,
-        "listen_interface": "0.0.0.0:465",
-        "always_on_tls": true,
-        "max_size": 10485760,
-        "max_clients": 100
-      }
-    }
-  }'
+## Complete Example: User Registration with Email
+
+Combine user creation with welcome email:
+
+```yaml
+Actions:
+  - Name: register_user
+    Label: Register New User
+    OnType: user_account
+    InstanceOptional: true
+    InFields:
+      - Name: email
+        ColumnName: email
+        ColumnType: email
+        IsNullable: false
+      - Name: name
+        ColumnName: name
+        ColumnType: label
+        IsNullable: false
+      - Name: password
+        ColumnName: password
+        ColumnType: password
+        IsNullable: false
+    Validations:
+      - ColumnName: email
+        Tags: required,email
+      - ColumnName: password
+        Tags: required,min=8
+    OutFields:
+      # 1. Create user account
+      - Type: user_account
+        Method: POST
+        Reference: new_user
+        SkipInResponse: true
+        Attributes:
+          email: "~email"
+          name: "~name"
+          password: "~password"
+      # 2. Send welcome email
+      - Type: mail.send
+        Method: EXECUTE
+        ContinueOnError: true
+        Attributes:
+          from: "welcome@mydomain.com"
+          to: "![email]"
+          subject: "Welcome to Our Service"
+          body: "!`Hello ${name},\n\nThank you for registering!\n\nBest regards,\nThe Team`"
+      # 3. Success notification
+      - Type: client.notify
+        Method: ACTIONRESPONSE
+        Attributes:
+          type: success
+          title: Registration Complete
+          message: "Account created for ~name. Check your email."
 ```
 
-**Mail Server Fields:**
+---
 
-| Field | Description |
-|-------|-------------|
-| hostname | Server hostname |
-| is_enabled | Enable/disable server |
-| listen_interface | Bind address:port |
-| always_on_tls | Require TLS |
-| max_size | Max message size (bytes) |
-| max_clients | Max concurrent connections |
+## Built-in Email Actions
 
-### Create Mail Account
+Daptin includes these email-sending actions:
 
-```bash
-curl -X POST http://localhost:6336/api/mail_account \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "mail_account",
-      "attributes": {
-        "username": "user@example.com",
-        "password": "accountpassword"
-      },
-      "relationships": {
-        "mail_server": {"data": {"type": "mail_server", "id": "SERVER_ID"}}
-      }
-    }
-  }'
-```
+| Action | OnType | Purpose |
+|--------|--------|---------|
+| `generate_password_reset` | user_account | Send password reset OTP |
+| `reset_password` | user_account | Reset password with new value |
 
-### Create Mailbox
+These use `mail.send` internally. Configure an SMTP server for them to work.
 
-```bash
-curl -X POST http://localhost:6336/api/mail_box \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "mail_box",
-      "attributes": {
-        "name": "inbox"
-      },
-      "relationships": {
-        "mail_account": {"data": {"type": "mail_account", "id": "ACCOUNT_ID"}}
-      }
-    }
-  }'
-```
+---
 
-## Email Tables
+## SMTP Server Setup
 
-| Table | Purpose |
-|-------|---------|
-| mail_server | SMTP server configuration |
-| mail_account | Email accounts |
-| mail_box | Mailboxes (inbox, sent, etc.) |
-| mail | Stored emails |
+For production email sending, configure an SMTP server:
 
-## DKIM Signing
+**See:** [SMTP Server Guide](SMTP-Server.md) for complete setup instructions including:
+- Mail server configuration
+- Mail accounts and mailboxes
+- TLS certificates
+- DKIM signing
+- DNS records (SPF, DKIM)
 
-Daptin automatically generates DKIM keys for each mail server:
-
-```bash
-# Get DKIM public key
-curl http://localhost:6336/api/mail_server/SERVER_ID \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-Add the DKIM record to your DNS:
-
-```
-selector._domainkey.example.com IN TXT "v=DKIM1; k=rsa; p=PUBLIC_KEY"
-```
-
-## IMAP Configuration
-
-Enable IMAP for email retrieval:
-
-```bash
-# Enable IMAP
-curl -X POST http://localhost:6336/_config/backend/imap.enabled \
-  -H "Authorization: Bearer $TOKEN" \
-  -d 'true'
-
-# Set interface
-curl -X POST http://localhost:6336/_config/backend/imap.listen_interface \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '"0.0.0.0:993"'
-```
-
-## Email Templates
-
-Use render_template action with email:
-
-```bash
-curl -X POST http://localhost:6336/action/world/render_template \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "attributes": {
-      "template": "<h1>Hello {{.name}}</h1><p>Your order {{.order_id}} is confirmed.</p>",
-      "data": {
-        "name": "John",
-        "order_id": "ORD-12345"
-      }
-    }
-  }'
-```
-
-Then send the rendered output via mail.send.
-
-## SPF Configuration
-
-Add SPF record to DNS:
-
-```
-example.com IN TXT "v=spf1 ip4:YOUR_SERVER_IP -all"
-```
+---
 
 ## Troubleshooting
 
-### Check Mail Server Status
+### "dial tcp: lookup .: no such host"
 
-```bash
-curl http://localhost:6336/api/mail_server \
-  -H "Authorization: Bearer $TOKEN"
+**Cause:** No SMTP server configured, domain has no MX records
+
+**Solutions:**
+1. Configure a mail_server in Daptin
+2. Use `mail_server_hostname` parameter
+3. Use `aws.mail.send` instead
+
+### "interface conversion: interface {} is []interface {}, not []string"
+
+**Cause:** Bug in older Daptin versions (fixed 2026-01-26)
+
+**Solution:** Use JavaScript array syntax in OutFields:
+```yaml
+to: "![recipient_email]"  # Converts string to array
 ```
 
-### View Mail Queue
+### Action Returns 403 Forbidden
 
-```bash
-curl 'http://localhost:6336/api/mail?query=[{"column":"status","operator":"is","value":"queued"}]' \
-  -H "Authorization: Bearer $TOKEN"
+**Cause:** Permission restrictions on action
+
+**Solution:** Check action permissions and user group membership
+
+### AWS SES: "InvalidParameterValue"
+
+**Cause:** Email address not verified in AWS SES
+
+**Solution:** Verify sender email in AWS SES console
+
+### Mail Not Received
+
+**Checks:**
+1. Check server logs: `tail -f /tmp/daptin.log | grep -i mail`
+2. Verify SMTP server is running
+3. Check DNS records (MX, SPF, DKIM)
+4. Test with direct SMTP connection
+
+---
+
+## Email Templates
+
+Use template rendering for dynamic content:
+
+```yaml
+OutFields:
+  # 1. Render template
+  - Type: $template.render
+    Method: EXECUTE
+    Reference: rendered_email
+    Attributes:
+      template: |
+        Hello {{.name}},
+
+        Your order #{{.order_id}} has been confirmed.
+        Total: ${{.total}}
+
+        Thank you for your purchase!
+      data:
+        name: "~customer_name"
+        order_id: "~order_id"
+        total: "~total_amount"
+  # 2. Send rendered email
+  - Type: mail.send
+    Method: EXECUTE
+    Attributes:
+      from: "orders@mydomain.com"
+      to: "![customer_email]"
+      subject: "Order Confirmation #~order_id"
+      body: "$rendered_email.result"
 ```
 
-### Test SMTP Connection
+---
 
-```bash
-# From server
-telnet localhost 465
-```
+## See Also
+
+- [Custom Actions](Custom-Actions.md) - Creating and using custom actions
+- [SMTP Server](SMTP-Server.md) - Complete SMTP server setup
+- [IMAP Support](IMAP-Support.md) - Receiving emails
+- [Credentials](Credentials.md) - Managing API credentials
