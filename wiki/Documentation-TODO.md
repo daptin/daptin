@@ -110,7 +110,7 @@ If you find a feature that doesn't work as expected:
 | Column Types | ✅ | Column-Types.md, Column-Type-Reference.md |
 | Link Tables (Relationships) | ✅ | Relationships.md |
 | Filter & Sort Data | ✅ | Filtering-and-Pagination.md - Complete with all operators, sorting, pagination, fuzzy search tested |
-| Aggregate Data | 📝 | Aggregation-API.md needs testing |
+| Aggregate Data | ✅ | Aggregation-API.md - All basic features tested. Known issues: HAVING clause and POST method not working |
 
 ---
 
@@ -244,6 +244,7 @@ If you find a feature that doesn't work as expected:
 
 | What | When | Key Learnings |
 |------|------|---------------|
+| Aggregation API (count, sum, avg, min, max, GROUP BY, filters, ORDER BY) | 2026-01-26 | All basic aggregations work correctly via GET method. All filter operators tested and working (eq, not, lt, lte, gt, gte, in, notin). GROUP BY and ORDER BY work perfectly. **Known bugs**: HAVING clause generates correct SQL but returns empty results (bug in result processing). POST method fails with "empty identifier" error. Use GET method for all queries. |
 | Server Configuration (env vars, flags, HTTPS, MySQL, PostgreSQL, Olric) | 2026-01-26 | Tested all flags/env vars. MySQL (MariaDB 10.11) and PostgreSQL 15 fully working with 50 concurrent connections. Olric clustering has bug: PubSub topic creation fails with "no available client found". Single-node Olric works. HTTPS requires cert generation + enable_https config. |
 | Documentation Process Meta-Guide | 2026-01-26 | **CRITICAL**: Always check server logs vs client errors; use protocol-appropriate testing tools; search git history for usage examples; read auth middleware for each protocol; don't assume features are broken - verify testing approach first |
 | WebSocket API (tested and verified working, all 6 methods documented) | 2026-01-26 | Use proper clients for protocol, check server logs for actual responses, auth mechanisms vary by protocol, found examples in dadadash repo |

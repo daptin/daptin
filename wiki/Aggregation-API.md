@@ -1,18 +1,32 @@
 # Aggregation API
 
+**Tested ✓** 2026-01-26
+
 SQL-like aggregation queries via REST API.
+
+**Status**:
+- ✅ Basic aggregations (count, sum, avg, min, max) - Working
+- ✅ GROUP BY - Working
+- ✅ Filters (eq, not, lt, lte, gt, gte, in) - Working
+- ✅ ORDER BY - Working
+- ❌ HAVING clause - Generates correct SQL but returns empty results ([Issue #173](https://github.com/daptin/daptin/issues/173))
+- ❌ POST method - Returns "empty identifier" error ([Issue #174](https://github.com/daptin/daptin/issues/174))
 
 ## Endpoint
 
 ```
-GET /aggregate/{entity}
-POST /aggregate/{entity}
+GET /aggregate/{entity}    ✅ Working
+POST /aggregate/{entity}   ❌ Not working (returns "empty identifier" error)
 ```
 
-## Basic Usage
+**Use GET method for all queries** - POST method currently has issues.
+
+## Quick Start (Tested)
+
+### Count all records
 
 ```bash
-curl "http://localhost:6336/aggregate/order?column=count" \
+curl "http://localhost:6336/aggregate/product?column=count" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -21,9 +35,70 @@ curl "http://localhost:6336/aggregate/order?column=count" \
 {
   "data": [
     {
-      "type": "aggregate_order",
+      "type": "aggregate_product",
+      "id": "019bfa88-8fc8-7242-bafc-5ca3da2a34fe",
       "attributes": {
-        "count": 150
+        "__type": "aggregate_product",
+        "count": 5
+      }
+    }
+  ]
+}
+```
+
+### Multiple aggregates at once
+
+```bash
+curl "http://localhost:6336/aggregate/product?\
+column=count,sum(price),avg(price),min(price),max(price)" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "type": "aggregate_product",
+      "attributes": {
+        "count": 5,
+        "sum(price)": 1559.95,
+        "avg(price)": 311.99,
+        "min(price)": 29.99,
+        "max(price)": 999.99
+      }
+    }
+  ]
+}
+```
+
+### Group by with aggregates
+
+```bash
+curl "http://localhost:6336/aggregate/product?\
+group=category&\
+column=category,count,avg(price)" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "type": "aggregate_product",
+      "attributes": {
+        "category": "Electronics",
+        "count": 3,
+        "avg(price)": 369.99
+      }
+    },
+    {
+      "type": "aggregate_product",
+      "attributes": {
+        "category": "Furniture",
+        "count": 2,
+        "avg(price)": 224.99
       }
     }
   ]
@@ -91,52 +166,78 @@ curl "http://localhost:6336/aggregate/order?group=status,payment_method&column=s
 | `is(col,null)` | Is null |
 | `not(col,null)` | Is not null |
 
-### Filter Examples
+### Filter Examples (Tested ✓)
 
 ```bash
-# Equals
-curl "http://localhost:6336/aggregate/order?filter=eq(status,completed)&column=count"
+# Equals - products in Electronics category
+curl "http://localhost:6336/aggregate/product?filter=eq(category,Electronics)&column=count,sum(price)"
+# Result: count=3, sum=1109.97
 
-# Greater than
-curl "http://localhost:6336/aggregate/order?filter=gt(total,100)&column=count,sum(total)"
+# Greater than - products with price > 100
+curl "http://localhost:6336/aggregate/product?filter=gt(price,100)&column=count,avg(price)"
+# Result: count=3, avg=483.32
 
-# Multiple filters (AND)
-curl "http://localhost:6336/aggregate/order?filter=eq(status,completed)&filter=gte(total,50)&column=count"
+# Greater than or equal
+curl "http://localhost:6336/aggregate/product?filter=gte(price,50)&column=count"
+# Result: count=4
 
-# In list
-curl "http://localhost:6336/aggregate/order?filter=in(status,pending,processing)&column=count"
+# Less than
+curl "http://localhost:6336/aggregate/product?filter=lt(price,100)&column=count"
+# Result: count=2
 
-# Date range
-curl "http://localhost:6336/aggregate/order?filter=gte(created_at,2024-01-01)&filter=lt(created_at,2024-02-01)&column=count,sum(total)"
+# Less than or equal
+curl "http://localhost:6336/aggregate/product?filter=lte(price,100)&column=count,avg(price)"
+# Result: count=2, avg=54.99
+
+# Not equals
+curl "http://localhost:6336/aggregate/product?filter=not(category,Electronics)&column=count"
+# Result: count=2 (Furniture products)
+
+# Multiple filters (AND) - Electronics AND price >= 50
+curl "http://localhost:6336/aggregate/product?filter=eq(category,Electronics)&filter=gte(price,50)&column=count"
+# Result: count=2
+
+# In list - orders with status in (completed, pending)
+curl "http://localhost:6336/aggregate/sales_order?filter=in(status,completed,pending)&column=count,sum(total)"
+# Result: count=4, sum=1929.94
 ```
 
 ## Having Clause
 
+**⚠️ Known Issue ([#173](https://github.com/daptin/daptin/issues/173))**: HAVING clause generates correct SQL but currently returns empty results. This is a bug in the result processing. Use filters on non-aggregated columns instead when possible.
+
 Filter on aggregated values:
 
 ```bash
+# This generates correct SQL but returns empty results (bug)
 curl "http://localhost:6336/aggregate/order?group=customer_id&column=customer_id,count,sum(total)&having=gt(count,5)"
 ```
 
+**Workaround**: Fetch all grouped results and filter client-side, or fix the bug in `server/resource/resource_aggregate.go`.
+
 ## POST Method
 
-For complex queries, use POST:
+**❌ Not Working ([#174](https://github.com/daptin/daptin/issues/174))**: POST method currently returns error: `"goqu: a empty identifier was encountered"`. Use GET method with query parameters instead.
 
 ```bash
+# This does NOT work (returns error)
 curl -X POST http://localhost:6336/aggregate/order \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "group": ["status", "payment_method"],
-    "column": ["status", "payment_method", "count", "sum(total)", "avg(total)"],
-    "filter": [
-      {"function": "gte", "column": "created_at", "value": "2024-01-01"},
-      {"function": "lt", "column": "created_at", "value": "2024-02-01"}
-    ],
-    "having": [
-      {"function": "gt", "column": "count", "value": 10}
-    ]
+    "column": ["status", "payment_method", "count", "sum(total)", "avg(total)"]
   }'
+# Error: "goqu: a empty identifier was encountered, please specify a schema, table or column"
+```
+
+**Workaround**: Use GET method with query parameters:
+```bash
+curl "http://localhost:6336/aggregate/order?\
+group=status&\
+group=payment_method&\
+column=status,payment_method,count,sum(total),avg(total)" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Time-Based Aggregation
