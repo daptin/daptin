@@ -55,6 +55,13 @@ call_action() {
 # Start server in background
 start_server() {
     echo "Stopping existing..."
+    # Kill HTTP API (port 6336)
+    lsof -ti:6336 | xargs kill -9 2>/dev/null || true
+
+    # CRITICAL: Kill Olric cache (port 5336)
+    lsof -ti:5336 | xargs kill -9 2>/dev/null || true
+
+    # Kill by process name
     pkill -9 -f "go run main.go" 2>/dev/null || true
     pkill -9 -f daptin 2>/dev/null || true
     sleep 2
@@ -87,8 +94,18 @@ case "$1" in
         start_server
         ;;
     stop)
-        pkill -9 -f "go run main.go" 2>/dev/null
-        pkill -9 -f daptin 2>/dev/null
+        # Kill HTTP API (port 6336)
+        lsof -ti:6336 | xargs kill -9 2>/dev/null || true
+
+        # CRITICAL: Kill Olric cache (port 5336)
+        # Stale Olric cache causes "Unauthorized" errors even with fresh DB
+        lsof -ti:5336 | xargs kill -9 2>/dev/null || true
+
+        # Kill by process name as fallback
+        pkill -9 -f "go run main.go" 2>/dev/null || true
+        pkill -9 -f daptin 2>/dev/null || true
+
+        sleep 2
         echo "stopped"
         ;;
     token)

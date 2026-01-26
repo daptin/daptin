@@ -258,6 +258,105 @@ curl -X PATCH "http://localhost:6336/api/action/ACTION_ID" \
 
 ---
 
+## State Machine Permissions
+
+State machines have special permission requirements for the **Refer** permission on the `smd` table.
+
+### The Refer Permission
+
+When creating a state machine instance with `/track/start/:smdId`, the system creates a relationship from `{table}_state` to the `smd` table. This requires **Refer** permission on the `smd` record.
+
+**Without Refer permission, you'll see:**
+```
+[ERROR] User cannot refer this object [smd][<uuid>]
+Failed to execute state insert query: refer object not allowed [smd][<uuid>]
+HTTP 500 Internal Server Error
+```
+
+### Grant Refer Permission to SMD
+
+**Option 1: Via API (Recommended)**
+
+```bash
+# Get your SMD ID
+SMD_ID=$(curl -s "http://localhost:6336/api/smd" \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq -r '.data[] | select(.attributes.name == "ticket_workflow") | .id')
+
+# Update SMD to allow users to reference it
+curl -X PATCH "http://localhost:6336/api/smd/$SMD_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "smd",
+      "id": "'$SMD_ID'",
+      "attributes": {
+        "permission": 1621954
+      }
+    }
+  }'
+# Permission 1621954 = Guest:Read|Refer (66) + Owner:Full (127) + Group:Read|Execute|Refer (98)
+# Calculation: 66 | (127 << 7) | (98 << 14) = 66 + 16256 + 1605632 = 1621954
+```
+
+**Option 2: Via SQL (If server stopped)**
+
+```bash
+# Stop server
+./scripts/testing/test-runner.sh stop
+
+# Get SMD reference_id
+sqlite3 daptin.db "SELECT hex(reference_id), name FROM smd;"
+
+# Update permission
+sqlite3 daptin.db "UPDATE smd SET permission = 1621954 WHERE reference_id = X'<UUID_HEX>';"
+
+# Restart server
+./scripts/testing/test-runner.sh start
+```
+
+### State Transition Permissions
+
+The `/track/event/:typename/:stateId/:eventName` endpoint requires **Execute** permission on the `smd` table:
+
+```bash
+# Verify SMD has execute permission
+curl "http://localhost:6336/api/smd/$SMD_ID" \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq '.data.attributes.permission'
+
+# Permission bits needed:
+# - Guest Execute: 32 (bit 5)
+# - Owner Execute: 4096 (32 << 7)
+# - Group Execute: 524288 (32 << 14)
+```
+
+**Full SMD Permission Example:**
+```javascript
+// Permission bits: Peek=1, Read=2, Create=4, Update=8, Delete=16, Execute=32, Refer=64
+const guestPerms = 2 | 64;        // Read + Refer = 66
+const ownerPerms = 127;           // Full access = 127
+const groupPerms = 2 | 32 | 64;   // Read + Execute + Refer = 98
+
+const smdPermission = guestPerms | (ownerPerms << 7) | (groupPerms << 14);
+// = 66 | 16256 | 1605632 = 1621954
+```
+
+### Why Two Permissions?
+
+1. **Refer (64)** - Required for `/track/start/:smdId`
+   - Allows creating relationships to the SMD
+   - Checked when creating state instances
+
+2. **Execute (32)** - Required for `/track/event/:typename/:stateId/:eventName`
+   - Allows applying state transitions
+   - Checked before executing FSM events
+
+**Related**: [State Machines](State-Machines.md) - Full state machine documentation
+
+---
+
 ## Two-Level Permission Check (CRITICAL)
 
 **Important**: Daptin checks permissions at TWO levels for group-based access:
