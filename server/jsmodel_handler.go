@@ -89,6 +89,7 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 				c.AbortWithStatus(400)
 				return
 			}
+			aggReq.RootEntity = typeName
 		}
 
 		if c.Request.Method == "GET" {
