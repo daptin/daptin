@@ -152,6 +152,7 @@ If you find a feature that doesn't work as expected:
 | Create Custom Actions | ✅ | Custom-Actions.md - complete performer reference, tested examples |
 | Make HTTP Requests | ✅ | In Custom-Actions.md ($network.request) |
 | Validate Data | ✅ | Validation-Reference.md - COMPLETE 2026-01-27: All 15+ validation tags tested (email, required, min/max, gt/gte/lt/lte, latitude/longitude, iscolor, url, len, oneof, omitempty), real API test results, error message formats, combining tags, complete examples. Also in Custom-Actions.md (Validations section) |
+| Transform Data (Conformations) | ✅ | Conformation-Reference.md - COMPLETE 2026-01-27: All 18 conformation tags documented and tested (trim/ltrim/rtrim, lower/upper/title/ucfirst, camel/snake/slug, name, email, num/!num/alpha/!alpha, !html/!js), verified against conform library source, combining tags, execution order, complete examples with real transformations |
 | State Machines | ✅ | State-Machines.md |
 | Scheduled Tasks | ✅ | Task-Scheduling.md |
 
