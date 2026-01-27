@@ -1,6 +1,6 @@
 # Aggregation API
 
-**Tested ✓** 2026-01-26
+**Tested ✓** 2026-01-27 (POST method and HAVING clause fixed ✅)
 
 SQL-like aggregation queries via REST API.
 
@@ -9,17 +9,17 @@ SQL-like aggregation queries via REST API.
 - ✅ GROUP BY - Working
 - ✅ Filters (eq, not, lt, lte, gt, gte, in) - Working
 - ✅ ORDER BY - Working
-- ❌ HAVING clause - Generates correct SQL but returns empty results ([Issue #173](https://github.com/daptin/daptin/issues/173))
-- ❌ POST method - Returns "empty identifier" error ([Issue #174](https://github.com/daptin/daptin/issues/174))
+- ✅ POST method - Fixed in commit 9e3b5650 ([Issue #174](https://github.com/daptin/daptin/issues/174))
+- ✅ HAVING clause - Fixed in commit e1c3017c ([Issue #173](https://github.com/daptin/daptin/issues/173))
 
 ## Endpoint
 
 ```
 GET /aggregate/{entity}    ✅ Working
-POST /aggregate/{entity}   ❌ Not working (returns "empty identifier" error)
+POST /aggregate/{entity}   ✅ Working (fixed in commit 9e3b5650)
 ```
 
-**Use GET method for all queries** - POST method currently has issues.
+Both GET and POST methods work identically. Use POST for complex queries that would exceed URL length limits.
 
 ## Quick Start (Tested)
 
@@ -204,41 +204,97 @@ curl "http://localhost:6336/aggregate/sales_order?filter=in(status,completed,pen
 
 ## Having Clause
 
-**⚠️ Known Issue ([#173](https://github.com/daptin/daptin/issues/173))**: HAVING clause generates correct SQL but currently returns empty results. This is a bug in the result processing. Use filters on non-aggregated columns instead when possible.
+**✅ Working** (Fixed in commit e1c3017c): HAVING clause now properly filters aggregated results.
 
 Filter on aggregated values:
 
 ```bash
-# This generates correct SQL but returns empty results (bug)
+# Filter groups with more than 5 orders
 curl "http://localhost:6336/aggregate/order?group=customer_id&column=customer_id,count,sum(total)&having=gt(count,5)"
+
+# Multiple HAVING conditions
+curl "http://localhost:6336/aggregate/order?group=status&column=status,count,sum(total)&having=gte(count,10)&having=gt(sum(total),1000)"
 ```
 
-**Workaround**: Fetch all grouped results and filter client-side, or fix the bug in `server/resource/resource_aggregate.go`.
+### HAVING Examples (Tested ✓)
+
+```bash
+TOKEN=$(cat /tmp/daptin-token.txt)
+
+# Groups with more than 1 user
+curl "http://localhost:6336/aggregate/user_account?group=permission&column=permission,count&having=gt(count,1)" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Categories with total price over $500
+curl "http://localhost:6336/aggregate/product?group=category&column=category,count,sum(price)&having=gt(sum(price),500)" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Average order value greater than $100
+curl "http://localhost:6336/aggregate/order?group=customer_id&column=customer_id,count,avg(total)&having=gt(avg(total),100)" \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ## POST Method
 
-**❌ Not Working ([#174](https://github.com/daptin/daptin/issues/174))**: POST method currently returns error: `"goqu: a empty identifier was encountered"`. Use GET method with query parameters instead.
+**✅ Working** (Fixed in commit 9e3b5650): POST method now properly handles JSON request bodies for complex aggregation queries.
+
+**Use POST for**:
+- Complex queries with many parameters
+- GROUP BY with multiple columns
+- Large filter conditions that exceed URL length limits
+- Better readability of complex queries
+
+### POST Examples (Now Working)
 
 ```bash
-# This does NOT work (returns error)
+# Simple count via POST
+curl -X POST http://localhost:6336/aggregate/order \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "column": ["count"]
+  }'
+```
+
+```bash
+# Complex query via POST
 curl -X POST http://localhost:6336/aggregate/order \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "group": ["status", "payment_method"],
-    "column": ["status", "payment_method", "count", "sum(total)", "avg(total)"]
+    "column": ["status", "payment_method", "count", "sum(total)", "avg(total)"],
+    "filter": ["eq(status,completed)"]
   }'
-# Error: "goqu: a empty identifier was encountered, please specify a schema, table or column"
 ```
 
-**Workaround**: Use GET method with query parameters:
-```bash
-curl "http://localhost:6336/aggregate/order?\
-group=status&\
-group=payment_method&\
-column=status,payment_method,count,sum(total),avg(total)" \
-  -H "Authorization: Bearer $TOKEN"
+**Response** (same as GET method):
+```json
+{
+  "data": [
+    {
+      "type": "aggregate_order",
+      "attributes": {
+        "status": "completed",
+        "payment_method": "credit_card",
+        "count": 50,
+        "sum(total)": 15000.00,
+        "avg(total)": 300.00
+      }
+    }
+  ]
+}
 ```
+
+### POST vs GET Comparison
+
+| Aspect | POST | GET |
+|--------|------|-----|
+| Readability | Better for complex queries | Simple for basic queries |
+| URL length limit | No limit | Limited by URL length |
+| Request body | JSON object | Query parameters |
+| Response | Identical | Identical |
+| Use case | Complex multi-parameter queries | Simple single-condition queries |
 
 ## Time-Based Aggregation
 
