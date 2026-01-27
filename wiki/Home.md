@@ -168,8 +168,8 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 - [[Users and Groups]] - Authentication and authorization
 
 ### Advanced Features
-- [[State Machines]] - Workflow automation ✅ Working
-- [[Audit Logging]] - Automatic change history ✅ Working
+- [[State Machines]] - Workflow automation
+- [[Audit Logging]] - Automatic change history
 - [[Relationships]] - Foreign keys and cascade behavior
 - [[Asset Columns]] - File storage (inline and cloud)
 
