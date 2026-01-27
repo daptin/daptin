@@ -226,11 +226,28 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 				})
 			} else {
 				leftValParts := strings.Split(leftVal, "(")
-				colName := strings.Split(leftValParts[1], ")")[0]
+				var colName string
+				var aggregateFunc string
+
+				// Handle both "count" and "count(column)" syntax
+				if len(leftValParts) > 1 {
+					// Complex form: sum(price), count(id), etc.
+					colName = strings.Split(leftValParts[1], ")")[0]
+					aggregateFunc = leftValParts[0]
+				} else {
+					// Simple form: count - use "*" for COUNT(*)
+					aggregateFunc = leftVal
+					if aggregateFunc == "count" {
+						colName = "*"
+					} else {
+						return nil, fmt.Errorf("aggregate function %s requires a column name in having clause", aggregateFunc)
+					}
+				}
+
 				var expr exp.SQLFunctionExpression
 				var finalExpr exp.Expression
 
-				switch leftValParts[0] {
+				switch aggregateFunc {
 				case "count":
 					expr = goqu.COUNT(colName)
 				case "sum":
@@ -246,20 +263,30 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 				case "last":
 					expr = goqu.LAST(colName)
 				default:
-					return nil, fmt.Errorf("invalid function name in having clause - %s", leftValParts[0])
+					return nil, fmt.Errorf("invalid function name in having clause - %s", aggregateFunc)
+				}
+
+				// Convert rightVal to appropriate type (try int, then float, fallback to string)
+				var rightValTyped interface{}
+				if intVal, err := strconv.ParseInt(rightVal, 10, 64); err == nil {
+					rightValTyped = intVal
+				} else if floatVal, err := strconv.ParseFloat(rightVal, 64); err == nil {
+					rightValTyped = floatVal
+				} else {
+					rightValTyped = rightVal
 				}
 
 				switch functionName {
 				case "lt":
-					finalExpr = expr.Lt(rightVal)
+					finalExpr = expr.Lt(rightValTyped)
 				case "lte":
-					finalExpr = expr.Lte(rightVal)
+					finalExpr = expr.Lte(rightValTyped)
 				case "gt":
-					finalExpr = expr.Gt(rightVal)
+					finalExpr = expr.Gt(rightValTyped)
 				case "gte":
-					finalExpr = expr.Gte(rightVal)
+					finalExpr = expr.Gte(rightValTyped)
 				case "eq":
-					finalExpr = expr.Eq(rightVal)
+					finalExpr = expr.Eq(rightValTyped)
 				}
 
 				havingExpressions = append(havingExpressions, finalExpr)
