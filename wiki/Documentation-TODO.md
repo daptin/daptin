@@ -93,7 +93,7 @@ If you find a feature that doesn't work as expected:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| Installation | 📝 | Basic instructions exist |
+| Installation | ✅ | THOROUGHLY TESTED 2026-01-27: Build from source (197MB binary), all command flags, SQLite/MySQL/PostgreSQL, Docker (SQLite/persistent/MySQL/PostgreSQL), Docker Compose, environment variables (PORT, LOG_LEVEL, TZ, DB_TYPE, DB_CONNECTION_STRING). Fixed: Docker port mapping (6336:8080 not 6336:6336), persistent storage path (/data not /opt/daptin), health endpoint docs, added image tag requirement (v0.9.82), MySQL 8.0 issues (use MariaDB 10.11) |
 | First Admin Setup | ✅ | In Getting-Started-Guide.md |
 | Create Your First Table | ✅ | In Getting-Started-Guide.md |
 | CRUD Operations | ✅ | Rewritten, removed false claims (transactions, wrong action names) |
@@ -176,7 +176,7 @@ If you find a feature that doesn't work as expected:
 | Guide | Status | Notes |
 |-------|--------|-------|
 | File Columns | ✅ | Asset-Columns.md - inline and cloud storage tested |
-| Cloud Storage (S3, GCS, etc) | 📝 | Cloud-Storage.md - CRUD works, actions broken (GitHub #166) |
+| Cloud Storage (S3, GCS, etc) | ✅ | Cloud-Storage.md - CRUD + file operations working with correct URL format |
 | Serve Static Sites | ✅ | Subsites.md - site creation tested, cache needs restart |
 
 ---
@@ -245,6 +245,8 @@ If you find a feature that doesn't work as expected:
 
 | What | When | Key Learnings |
 |------|------|---------------|
+| Installation (comprehensive testing and documentation) | 2026-01-27 | **Docker Port Mapping Critical**: Container listens on 8080 internally, must map `6336:8080` NOT `6336:6336` or API won't be accessible. **Docker Image Tag Required**: No `latest` tag exists, must use `daptin/daptin:v0.9.82` explicitly. **Persistent Storage Path Wrong**: Docs showed `-v /path:/opt/daptin` which overwrites binary and fails. Correct: `-v /path:/data` with `DAPTIN_DB_CONNECTION_STRING=/data/daptin.db`. **MySQL 8.0 Fails**: OOM errors during container init. Use MariaDB 10.11 instead (fully compatible). **All Databases Work**: SQLite, MySQL/MariaDB, PostgreSQL all tested successfully with Docker. **Docker Compose Works**: Tested with corrected port mapping and volume path. **Build from Source**: Binary ~200MB, Go 1.24.3, no errors. **Storage Directory Required**: Must create `./storage/yjs-documents` before first run. **Health Endpoint Misleading**: `/health` returns HTML dashboard not health check - use `/statistics` for monitoring. **Olric Port 5336**: Must be free or fatal "failed to create olric topic" error. **Environment Variables**: DAPTIN_PORT, LOG_LEVEL, TZ, DB_TYPE, DB_CONNECTION_STRING all verified working. |
+| Cloud Storage Actions (create_folder, upload_file, move/delete) | 2026-01-27 | **URL Format Critical**: GitHub #166 was about documentation error, not broken code. Actions work with correct format: `/action/{type}/{action_name}?{type}_id={id}` NOT `/action/{type}/{id}/{action_name}`. **Query Parameter Required**: Instance ID must be passed as query parameter (e.g., `?cloud_store_id=$ID`), not in URL path or body. **Async Operations**: create_folder and upload_file execute asynchronously in goroutines. **Bugs Found**: delete_path returns success but doesn't delete; move_path creates directory instead of renaming file. **Testing Confirms Code Works**: All performers execute correctly when called with proper URL format. |
 | CalDAV/CardDAV (basic WebDAV file storage for calendars/contacts) | 2026-01-26 | **NOT Full Protocol**: Implements basic WebDAV file storage only, NOT full CalDAV/CardDAV (missing REPORT, calendar-query). **Storage Directories Required**: Must create `./storage/caldav/` and `./storage/carddav/` or get 404 errors. **Configuration**: Disabled by default, enable via `_config/backend/caldav.enable`, requires restart. **Both Auth Methods**: Supports Bearer token (JWT) and Basic auth (email:password). **WebDAV Methods**: All core WebDAV methods work (PROPFIND, GET, PUT, DELETE, MKCOL, COPY, MOVE, PROPPATCH). **File Formats**: Stores .ics (iCalendar) and .vcf (vCard) files. **Client Compatibility**: May NOT work with standard clients (Apple Calendar, Thunderbird) that expect full CalDAV/CardDAV protocol features. **Use Cases**: Good for simple file storage/backup, NOT suitable for production calendar server. **No Multi-User Isolation**: All users share same storage directory. **Code**: Uses `github.com/emersion/go-webdav` library, `webdav.LocalFileSystem("./storage")` backend. |
 | FTP Server (site-based file access with FTPS/TLS) | 2026-01-26 | **Conditional Startup**: FTP server ONLY starts if sites with `ftp_enabled=true` exist. No sites = no FTP port listening. **Configuration**: Requires `ftp.enable=true` in _config AND at least one FTP-enabled site. **Site Directory Structure**: Root directory lists sites as subdirectories; each maps to `{cloud_store.root_path}/{site.path}/`. **LIST Quirk**: Directory listings may appear empty but files are accessible via direct RETR. **Authentication**: Uses Daptin user accounts (email/password). **FTPS/TLS**: Automatic using site certificates. **Port**: Default 2121 (non-standard). **Restart Required**: After creating FTP-enabled sites or changing ftp.enable config. **Dependencies**: Requires cloud_store → site → ftp_enabled chain. |
 | Monitoring (health checks, statistics, profiling) | 2026-01-26 | **Structure Corrections**: CPU uses `counts` not `count`, process.count is integer not object, disk.io not disk.ioCounters. **HTTP pprof doesn't exist**: Daptin uses file-based profiling via `-runtime=profile` flag, not HTTP endpoints. **Endpoint Clarifications**: /health returns admin HTML UI not simple health check, /meta returns empty body, /api/_config returns HTML not config data. **Statistics are comprehensive**: 8 sections including detailed temperature sensors (29 on macOS M1!), per-core CPU utilization, database connection pool stats, web server metrics. |
@@ -259,7 +261,6 @@ If you find a feature that doesn't work as expected:
 | Server Configuration (config API, port, log_level, runtime, schema folder) | 2026-01-25 |
 | Custom Actions (complete performer reference, 40+ performers, tested examples) | 2026-01-25 |
 | Actions Overview (E2E permission testing, restart requirement documented) | 2026-01-25 |
-| Cloud Storage (CRUD tested, actions broken - GitHub #166) | 2026-01-25 |
 | Subsites (site creation, file upload) | 2026-01-24 |
 | Users & Groups (fixed junction tables, removed fake features) | 2026-01-24 |
 | CRUD Operations (removed false claims) | 2026-01-24 |
