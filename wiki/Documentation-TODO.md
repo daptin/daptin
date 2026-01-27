@@ -151,7 +151,7 @@ If you find a feature that doesn't work as expected:
 | What Are Actions? | ✅ | Actions-Overview.md - rewritten for end users |
 | Create Custom Actions | ✅ | Custom-Actions.md - complete performer reference, tested examples |
 | Make HTTP Requests | ✅ | In Custom-Actions.md ($network.request) |
-| Validate Data | ✅ | In Custom-Actions.md (Validations section) |
+| Validate Data | ✅ | Validation-Reference.md - COMPLETE 2026-01-27: All 15+ validation tags tested (email, required, min/max, gt/gte/lt/lte, latitude/longitude, iscolor, url, len, oneof, omitempty), real API test results, error message formats, combining tags, complete examples. Also in Custom-Actions.md (Validations section) |
 | State Machines | ✅ | State-Machines.md |
 | Scheduled Tasks | ✅ | Task-Scheduling.md |
 
@@ -216,6 +216,52 @@ If you find a feature that doesn't work as expected:
 | Database Setup | ✅ | MySQL/MariaDB and PostgreSQL tested with Docker. Connection strings verified. Documented in Server-Configuration.md |
 | TLS/HTTPS | ✅ | Tested 2026-01-26 - Complete with self-signed and ACME workflows |
 | Monitoring | ✅ | Tested 2026-01-26 - All endpoints verified, profiling documented |
+
+---
+
+## Coverage Analysis
+
+**See**: [Feature-Documentation-Coverage.md](Feature-Documentation-Coverage.md) for complete analysis
+
+**Overall Documentation Coverage**: 85%
+- Tables: 68% (19/28 tables fully or partially documented)
+- Actions: 98% (46/47 actions documented)
+- Relations: 73% (11/15 relations documented)
+- TableInfo Fields: 86% (18/21 fields documented)
+
+---
+
+## Next Features to Document
+
+Based on systematic analysis of `server/resource/columns.go`:
+
+### Undocumented System Tables (HIGH Priority)
+
+| Table | Purpose | Why Important |
+|-------|---------|---------------|
+| ❌ `document` | File storage with MIME type detection, indexing | User-facing feature for document management beyond simple asset columns |
+| ❌ `mail_server` | SMTP server configuration | SMTP documented as feature but not data model |
+| ❌ `mail_account` | Email account management | IMAP documented but not data structure |
+| ❌ `mail_box` | Mailbox folders (INBOX, Sent, etc.) | Part of IMAP feature, users need table structure |
+| ❌ `mail` | Stored email messages | Core mail storage data model |
+| ❌ `outbox` | Outgoing mail queue | SMTP outbound queue |
+
+### Undocumented TableInfo Fields (MEDIUM Priority)
+
+| Field | Purpose | Impact |
+|-------|---------|--------|
+| ❌ `IsAuditEnabled` | Enable audit logging for table | Security/compliance feature |
+| ❌ `TranslationsEnabled` | Multi-language content support | i18n capability |
+| ❌ `CompositeKeys` | Multi-column unique constraints | Advanced schema definition |
+
+### Partially Documented Features (LOW Priority)
+
+| Feature | Status | Gap |
+|---------|--------|-----|
+| 📝 `template` table | Exists in code | Template system not documented as user feature |
+| 📝 `calendar` table | CalDAV documented | Calendar data model not explained |
+| 📝 `collection` table | Used internally | Generic collection patterns unclear |
+| 📝 `json_schema` table | Developer feature | Schema storage not documented |
 
 ---
 

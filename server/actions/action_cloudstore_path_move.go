@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
-	"github.com/artpar/rclone/fs/filter"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -14,6 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"path/filepath"
 	"strings"
 
 	"github.com/artpar/api2go/v2"
@@ -53,11 +53,15 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 		destinationPath = "/" + destinationPath
 	}
 
+	// For MoveFile, args[1] must be the destination DIRECTORY (parent of destination file),
+	// NOT the full destination file path. We'll pass the filename separately as destFileName.
+	destParentDir := filepath.Dir(rootPath + destinationPath)
+
 	args := []string{
-		rootPath + sourcePath,
-		rootPath + destinationPath,
+		rootPath + sourcePath, // Source file full path
+		destParentDir,         // Destination parent directory
 	}
-	log.Printf("Create move %v %v", sourcePath, destinationPath)
+	log.Printf("Create move %v to %v (destParent: %v)", sourcePath, destinationPath, destParentDir)
 
 	storeName := strings.Split(rootPath, ":")[0]
 	credentialName, ok := inFields["credential_name"]
@@ -71,32 +75,63 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 		}
 	}
 
-	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{
-		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
+		Use: fmt.Sprintf("File move action from [%v] to [%v]", sourcePath, destinationPath),
 	}
 	ctx := context.Background()
-	newFilter, _ := filter.NewFilter(nil)
-	ctx = filter.ReplaceConfig(ctx, newFilter)
-
+	// Don't use filter - it interferes with MoveFile operation
 	defaultConfig := fs.ConfigInfo{}
 	defaultConfig.LogLevel = fs.LogLevelNotice
 
-	fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
 	cmd.Run(true, true, cobraCommand, func() error {
+		// Create fsrc and fdst inside the callback to ensure fresh context
+		fsrc, srcFileName, fdst := cmd.NewFsSrcFileDst(args)
+
+		// Extract destination filename from the destination path
+		destFileName := filepath.Base(destinationPath)
+		if destFileName == "" || destFileName == "/" || destFileName == "." {
+			// If destination is a directory, keep original filename
+			destFileName = srcFileName
+		}
+
+		srcFullPath := rootPath + sourcePath
+		dstFullPath := rootPath + destinationPath
+
+		// For local filesystem, use OS operations directly (rclone has issues with MoveFile)
+		if !strings.Contains(rootPath, ":") {
+			log.Infof("Using OS rename for local filesystem: %v -> %v", srcFullPath, dstFullPath)
+			err := os.Rename(srcFullPath, dstFullPath)
+			if err != nil {
+				log.Errorf("OS rename failed: %v", err)
+				return err
+			}
+			log.Infof("Move operation completed successfully (OS level)")
+			return nil
+		}
+
+		// For remote cloud storage, use rclone operations
+		log.Infof("Inside callback - fsrc: %v, srcFileName: %v", fsrc, srcFileName)
+		log.Infof("Inside callback - fdst: %v, destFileName: %v", fdst, destFileName)
 		var err error
 		if srcFileName == "" {
+			// Moving entire directory
+			log.Infof("Using MoveDir for directory move")
 			err = sync.MoveDir(ctx, fdst, fsrc, false, true)
 		} else {
-			err = operations.MoveFile(ctx, fdst, fsrc, srcFileName, srcFileName)
+			// Moving/renaming file
+			log.Infof("Using MoveFile: srcRemote=%v, dstRemote=%v, srcFile=%v, dstFile=%v",
+				fsrc, fdst, srcFileName, destFileName)
+			err = operations.MoveFile(ctx, fdst, fsrc, srcFileName, destFileName)
 		}
 
 		if err != nil {
-			resource.InfoErr(err, "Failed to sync files for upload to cloud")
+			log.Errorf("Move operation failed: %v", err)
+			resource.InfoErr(err, "Failed to move file in cloud storage")
 			err = os.RemoveAll(tempDirectoryPath)
 			resource.InfoErr(err, "Failed to remove temp directory after path move")
 			return nil
 		}
+		log.Infof("Move operation completed successfully (rclone)")
 		return err
 	})
 

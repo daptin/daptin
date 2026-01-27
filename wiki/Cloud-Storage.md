@@ -1,8 +1,14 @@
 # Cloud Storage
 
-**Tested ✓** - Cloud store creation and listing verified on 2026-01-25.
+**Tested ✓** - Cloud store creation, listing, and file operations verified on 2026-01-27.
 
-**Known Issue:** Cloud store actions (create_folder, upload_file, etc.) return empty responses. See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+**Actions Status:**
+- ✅ **create_folder** - Working (correct URL format documented below)
+- ✅ **upload_file** - Working (correct URL format documented below)
+- ⚠️ **move_path** - Partially working (has bug: creates directory instead of renaming)
+- ❌ **delete_path** - Returns success but doesn't actually delete
+
+**Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The correct format is `/action/{type}/{action_name}?{type}_id={id}` NOT `/action/{type}/{id}/{action_name}`.
 
 Integrate with cloud storage providers via rclone.
 
@@ -272,11 +278,15 @@ curl -X DELETE http://localhost:6336/api/cloud_store/$STORE_ID \
 
 ---
 
-## File Operations (Not Working)
+## File Operations
 
-**Warning:** The following actions are currently broken. See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+**Status**: Most operations working with correct URL format (2026-01-27 testing).
 
-All cloud store actions require `cloud_store_id` in the attributes.
+**CRITICAL**: All cloud store actions require the `cloud_store_id` as a **query parameter**, NOT in the request body or URL path:
+
+```bash
+/action/cloud_store/{action_name}?cloud_store_id={STORE_ID}
+```
 
 ### Get Cloud Store ID
 
@@ -288,13 +298,13 @@ curl http://localhost:6336/api/cloud_store \
 
 ### Create Folder
 
-**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+**Tested ✓** - Creates folders successfully in cloud storage.
 
-The action is defined but returns an empty response (HTTP 200 with HTML fallback).
+**CRITICAL**: The instance ID must be passed as a query parameter, not in the URL path.
 
 ```bash
-# Expected format (instance-level action)
-curl -X POST http://localhost:6336/action/cloud_store/$STORE_ID/create_folder \
+# Correct format - instance ID as query parameter
+curl -X POST "http://localhost:6336/action/cloud_store/create_folder?cloud_store_id=$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -305,98 +315,124 @@ curl -X POST http://localhost:6336/action/cloud_store/$STORE_ID/create_folder \
   }'
 ```
 
+**Response:**
+```json
+[{
+  "ResponseType": "client.notify",
+  "Attributes": {
+    "message": "Cloud storage file upload queued",
+    "type": "success"
+  }
+}]
+```
+
 **Parameters:**
 - `name` (required) - Folder name to create
-- `path` (optional) - Parent path where folder will be created
+- `path` (optional) - Parent path where folder will be created (use empty string for root)
 
 ### Upload File
 
-**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+**Tested ✓** - Uploads files successfully to cloud storage.
 
-Uploads files to the cloud store.
+**CRITICAL**: The instance ID must be passed as a query parameter, not in the body.
 
 ```bash
 # Encode your file to base64
 FILE_BASE64=$(base64 < /path/to/file.txt | tr -d '\n')
 
-curl -X POST http://localhost:6336/action/cloud_store/upload_file \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"attributes\": {
-      \"cloud_store_id\": \"YOUR_CLOUD_STORE_ID\",
-      \"path\": \"uploads\",
-      \"file\": [
-        {
-          \"name\": \"file.txt\",
-          \"file\": \"data:text/plain;base64,$FILE_BASE64\"
-        }
-      ]
-    }
-  }"
-```
-
-**Parameters:**
-- `cloud_store_id` (required) - Reference ID of the cloud store
-- `path` (optional) - Target folder path
-- `file` (required) - Array of file objects with `name` and `file` (base64 data URI)
-
-**Note:** Multiple files can be uploaded in a single request.
-
-### Delete Path
-
-**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
-
-Deletes a file or folder from the cloud store.
-
-```bash
-curl -X POST http://localhost:6336/action/cloud_store/delete_path \
+# Correct format - instance ID as query parameter
+curl -X POST "http://localhost:6336/action/cloud_store/upload_file?cloud_store_id=$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "cloud_store_id": "YOUR_CLOUD_STORE_ID",
+      "path": "",
+      "file": [
+        {
+          "name": "file.txt",
+          "file": "data:text/plain;base64,'"$FILE_BASE64"'",
+          "type": "text/plain"
+        }
+      ]
+    }
+  }'
+```
+
+**Response:**
+```json
+[{
+  "ResponseType": "client.notify",
+  "Attributes": {
+    "message": "Cloud storage file upload queued",
+    "type": "success"
+  }
+}]
+```
+
+**Parameters:**
+- `path` (optional) - Target folder path (use empty string for root)
+- `file` (required) - Array of file objects with `name`, `file` (base64 data URI), and `type` (MIME type)
+
+**Note:** Multiple files can be uploaded in a single request. Files are uploaded asynchronously.
+
+### Delete Path
+
+**Not Working** - Returns success but doesn't actually delete files/folders.
+
+Deletes a file or folder from the cloud store.
+
+```bash
+# Correct URL format (but doesn't actually delete)
+curl -X POST "http://localhost:6336/action/cloud_store/delete_path?cloud_store_id=$STORE_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
       "path": "uploads/old-file.pdf"
     }
   }'
 ```
 
+**Known Issue**: Action returns success message but files/folders remain in storage. This is a bug in the delete performer.
+
 ### Move/Rename Path
 
-**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+**Partially Working** - Returns success but has incorrect behavior.
 
 Move or rename a file or folder.
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/move_path \
+# Correct URL format
+curl -X POST "http://localhost:6336/action/cloud_store/move_path?cloud_store_id=$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "cloud_store_id": "YOUR_CLOUD_STORE_ID",
       "source": "uploads/old-name.pdf",
       "destination": "archive/new-name.pdf"
     }
   }'
 ```
 
+**Known Issue**: Instead of renaming the file, this action creates a directory with the destination name and moves the source file inside it. For example, moving `test.txt` to `renamed.txt` creates `renamed.txt/` directory containing `test.txt`.
+
 ---
 
 ## Sites (Static Website Hosting)
 
-Sites allow you to host static websites on cloud storage.
+Sites allow you to host static websites on cloud storage. See [Subsites.md](Subsites.md) for detailed site management documentation.
 
 ### Create Site
 
-**Not Working** - See [GitHub Issue #166](https://github.com/daptin/daptin/issues/166).
+**Status Unknown** - Not tested yet, but likely requires correct URL format like other actions.
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/$STORE_ID/create_site \
+# Expected correct format (not yet verified)
+curl -X POST "http://localhost:6336/action/cloud_store/create_site?cloud_store_id=$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "cloud_store_id": "YOUR_CLOUD_STORE_ID",
       "hostname": "mysite.example.com",
       "path": "mysite",
       "site_type": "static"
@@ -405,10 +441,11 @@ curl -X POST http://localhost:6336/action/cloud_store/$STORE_ID/create_site \
 ```
 
 **Parameters:**
-- `cloud_store_id` (required) - Reference ID of the cloud store
 - `hostname` (required) - Domain name for the site
 - `path` (required) - Folder path within cloud store
 - `site_type` - Site type: `static`, `hugo`
+
+**Note**: Instance ID passed as query parameter, not in body.
 
 ### List Site Files
 

@@ -8,7 +8,6 @@ import (
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
-	"github.com/artpar/rclone/fs/filter"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -16,7 +15,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -31,7 +32,8 @@ func (d *cloudStoreFileDeleteActionPerformer) Name() string {
 func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
 	responses := make([]actionresponse.ActionResponse, 0)
-	var err error
+
+	log.Infof("[DELETE DEBUG] inFields: %+v", inFields)
 
 	atPath, ok := inFields["path"].(string)
 	if !ok {
@@ -70,7 +72,6 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 		rootPath = rootPath + atPath
 	}
 	rootPath = path.Clean(rootPath)
-	targetFileName := path.Base(rootPath)
 	args := []string{
 		rootPath,
 	}
@@ -99,33 +100,85 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 		Use: fmt.Sprintf("Delete file action at [%v]", atPath),
 	}
 	ctx := context.Background()
-	newFilter, _ := filter.NewFilter(nil)
-	if ok {
-		newFilter.AddFile(targetFileName)
-	}
-	ctx = filter.ReplaceConfig(ctx, newFilter)
+	// Don't use filter - the rootPath already specifies what to delete
+	// Using a filter can interfere with directory deletion
 	defaultConfig := fs.ConfigInfo{}
 	defaultConfig.LogLevel = fs.LogLevelNotice
 
+	// Execute delete asynchronously
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil {
 			log.Errorf("path is null for delete operation")
-			return nil
+			return errors.New("delete path is null")
 		}
 
-		err = operations.Delete(ctx, fsrc)
-		if err != nil {
-			log.Warnf("Failed to delete file at path [%v], triggering purge: %v", fsrc, err)
-			err = operations.Purge(ctx, fsrc, "")
+		var err error
+		if strings.Contains(rootPath, ":") {
+			// Remote storage (S3, MinIO, etc.)
+			// Detect if path is a directory (ends with / or has no extension)
+			isDirectory := strings.HasSuffix(atPath, "/") ||
+				(atPath != "" && !strings.Contains(filepath.Base(atPath), "."))
+
+			if isDirectory {
+				// Use Purge for directories
+				log.Infof("Purging directory: %v", rootPath)
+				err = operations.Purge(ctx, fsrc, "")
+				if err != nil {
+					log.Errorf("Purge failed for directory [%v]: %v", rootPath, err)
+					return err
+				}
+				log.Infof("Directory purged successfully: %v", rootPath)
+			} else {
+				// Use Delete for files
+				log.Infof("Deleting file: %v", rootPath)
+				err = operations.Delete(ctx, fsrc)
+				if err != nil {
+					log.Errorf("Delete failed for file [%v]: %v", rootPath, err)
+					return err
+				}
+				log.Infof("File deleted successfully: %v", rootPath)
+			}
+		} else {
+			// Local filesystem
+			absPath := rootPath
+			if !filepath.IsAbs(rootPath) {
+				absPath, _ = filepath.Abs(rootPath)
+			}
+			stat, statErr := os.Stat(absPath)
+			if statErr != nil {
+				log.Errorf("Cannot stat path [%v]: %v", absPath, statErr)
+				return statErr
+			}
+
+			if stat.IsDir() {
+				// Directory - use os.RemoveAll for complete removal
+				log.Infof("Removing directory tree: %v", absPath)
+				err = os.RemoveAll(absPath)
+				if err != nil {
+					log.Errorf("Failed to remove directory tree [%v]: %v", absPath, err)
+					return err
+				}
+				log.Infof("Directory removed successfully: %v", absPath)
+			} else {
+				// File - use os.Remove
+				log.Infof("Deleting file: %v", absPath)
+				err = os.Remove(absPath)
+				if err != nil {
+					log.Errorf("Failed to delete file [%v]: %v", absPath, err)
+					return err
+				}
+				log.Infof("File deleted successfully: %v", absPath)
+			}
 		}
 
-		resource.InfoErr(err, "Failed to delete purge path [%v] in cloud store", rootPath)
-		return err
+		log.Infof("Delete operation completed successfully for path: %v", rootPath)
+		return nil
 	})
 
+	// Return immediately with queued status
 	restartAttrs := make(map[string]interface{})
 	restartAttrs["type"] = "success"
-	restartAttrs["message"] = "Cloud storage path deleted"
+	restartAttrs["message"] = "Cloud storage deletion queued"
 	restartAttrs["title"] = "Success"
 	actionResponse := resource.NewActionResponse("client.notify", restartAttrs)
 	responses = append(responses, actionResponse)
