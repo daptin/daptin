@@ -93,17 +93,6 @@ curl http://localhost:6336/api/todo \
 
 **Default lifetime**: 3 days (72 hours)
 
-### Generate Custom JWT
-
-Generate a new JWT for the current user:
-
-```bash
-curl -X POST http://localhost:6336/action/user_account/jwt.token \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
 ### Configure JWT Settings
 
 ```bash
@@ -200,11 +189,11 @@ scope: user:email
 #### Step 1: Begin OAuth (Redirect to Provider)
 
 ```bash
-# Action requires an oauth_connect instance ID
-curl -X POST "http://localhost:6336/action/oauth_connect/OAUTH_CONNECT_ID/oauth_login_begin" \
+# Action requires an oauth_connect instance ID in the body
+curl -X POST "http://localhost:6336/action/oauth_connect/oauth_login_begin" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{"attributes": {"oauth_connect_id": "OAUTH_CONNECT_REFERENCE_ID"}}'
 ```
 
 **Response**: Returns redirect URL and stores state:
@@ -293,11 +282,13 @@ See [Two-Factor Auth](Two-Factor-Auth.md) for complete documentation.
 
 **Register OTP** (action name is `register_otp`, not `otp_generate`):
 ```bash
-curl -X POST "http://localhost:6336/action/user_account/USER_ID/register_otp" \
+curl -X POST "http://localhost:6336/action/user_account/register_otp" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes": {"email": "user@example.com"}}'
+  -d '{"attributes": {"user_account_id": "USER_REFERENCE_ID", "mobile_number": "1234567890"}}'
 ```
+
+**Note**: Instance actions pass the reference ID as `{typename}_id` in the body, not in the URL path.
 
 **Verify OTP** (separate flow after signin):
 ```bash
@@ -336,7 +327,7 @@ ws.send(JSON.stringify({
 ### Request Reset
 
 ```bash
-curl -X POST http://localhost:6336/action/user_account/generate_password_reset_flow \
+curl -X POST http://localhost:6336/action/user_account/reset-password \
   -H "Content-Type: application/json" \
   -d '{"attributes": {"email": "user@example.com"}}'
 ```
@@ -346,29 +337,17 @@ curl -X POST http://localhost:6336/action/user_account/generate_password_reset_f
 ### Complete Reset
 
 ```bash
-curl -X POST http://localhost:6336/action/user_account/generate_password_reset_verify_flow \
+curl -X POST http://localhost:6336/action/user_account/reset-password-verify \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
       "email": "user@example.com",
-      "verification": "RESET_TOKEN_FROM_EMAIL",
-      "password": "newpassword123"
+      "otp": "RESET_OTP_FROM_EMAIL"
     }
   }'
 ```
 
----
-
-## Session Impersonation (Admin)
-
-Administrators can impersonate users for debugging:
-
-```bash
-curl -X POST http://localhost:6336/action/user_account/switch_session_user \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"attributes": {"user_account_id": "TARGET_USER_REFERENCE_ID"}}'
-```
+**Note**: The OTP is sent via email and must be verified. After successful verification, the user can set a new password.
 
 ---
 
