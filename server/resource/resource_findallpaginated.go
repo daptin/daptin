@@ -206,7 +206,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	if dbResource.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
 		ok := false
 		for key := range req.QueryParams {
-			if relatedTableName, ok = EndsWith(key, "Name"); req.QueryParams[key][0] == "usergroup_id" && ok {
+			if relatedTableName, ok = EndsWith(key, "Name"); ok && len(req.QueryParams[key]) > 0 && req.QueryParams[key][0] == "usergroup_id" {
 				isRelatedGroupRequest = true
 				break
 			}
@@ -371,7 +371,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 	}
 
-	if _, ok := req.QueryParams["usergroup_id"]; ok && req.QueryParams["usergroupName"][0] == dbResource.model.GetName()+"_id" {
+	usergroupNameVals := req.QueryParams["usergroupName"]
+	if _, ok := req.QueryParams["usergroup_id"]; ok && len(usergroupNameVals) > 0 && usergroupNameVals[0] == dbResource.model.GetName()+"_id" {
 		isRelatedGroupRequest = true
 		if relatedTableName == "" {
 			relatedTableName = dbResource.model.GetTableName()

@@ -22,7 +22,7 @@ type switchSessionUserActionPerformer struct {
 }
 
 func (d *switchSessionUserActionPerformer) Name() string {
-	return "jwt.token"
+	return "session.user.switch"
 }
 
 func (d *switchSessionUserActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
