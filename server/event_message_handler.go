@@ -12,18 +12,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message, typename string, cruds map[string]*resource.DbResource, columnInfo api2go.ColumnInfo, store ydb.Store) error {
+func ProcessEventMessage(eventMessage resource.WsOutMessage, msg *redis.Message, typename string, cruds map[string]*resource.DbResource, columnInfo api2go.ColumnInfo, store ydb.Store) error {
 	var err error
 	err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
 	if err != nil {
 		resource.CheckErr(err, "Failed to read message on channel "+typename)
 		return nil
 	}
-	if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
+	if eventMessage.Event == "update" && eventMessage.Topic == typename {
 		eventDataMap := make(map[string]interface{})
-		err = json.Unmarshal(eventMessage.EventData, &eventDataMap)
+		err = json.Unmarshal(eventMessage.Data, &eventDataMap)
 		if err != nil {
-			resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
+			resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.Topic+"]")
 			return nil
 		}
 		stringReferenceId := eventDataMap["reference_id"]

@@ -1,6 +1,7 @@
 package websockets
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,7 +24,7 @@ type Client struct {
 	id                         int
 	ws                         *websocket.Conn
 	server                     *Server
-	ch                         chan resource.EventMessage
+	ch                         chan resource.WsOutMessage
 	doneCh                     chan bool
 	user                       *auth.SessionUser
 	webSocketConnectionHandler WebSocketConnectionHandler
@@ -46,10 +47,11 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 		subscribedTopics: make(map[string]*PubSubEntry),
 		olricDb:          server.olricDb,
 		cruds:            server.cruds,
+		sharedPubSub:     server.sharedPubSub,
 	}
 
 	id := int(maxId.Add(1))
-	ch := make(chan resource.EventMessage, channelBufSize)
+	ch := make(chan resource.WsOutMessage, channelBufSize)
 	doneCh := make(chan bool, 2)
 
 	u := ws.Request().Context().Value("user")
@@ -57,7 +59,8 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 		return nil, errors.New("{\"message\": \"unauthorized\"}")
 	}
 	user := u.(*auth.SessionUser)
-	return &Client{
+
+	client := &Client{
 		id:                         id,
 		ws:                         ws,
 		server:                     server,
@@ -65,14 +68,32 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 		doneCh:                     doneCh,
 		user:                       user,
 		webSocketConnectionHandler: webSocketConnectionHandler,
-	}, nil
+	}
+
+	// Send session-open message
+	groups := make([]string, 0, len(user.Groups))
+	for _, g := range user.Groups {
+		groups = append(groups, g.GroupReferenceId.String())
+	}
+	sessionData, _ := json.Marshal(map[string]interface{}{
+		"user":      user.UserReferenceId.String(),
+		"groups":    groups,
+		"sessionId": id,
+	})
+	client.Write(resource.WsOutMessage{
+		Type:   "session",
+		Status: "open",
+		Data:   sessionData,
+	})
+
+	return client, nil
 }
 
 func (c *Client) Conn() *websocket.Conn {
 	return c.ws
 }
 
-func (c *Client) Write(msg resource.EventMessage) {
+func (c *Client) Write(msg resource.WsOutMessage) {
 	select {
 	case c.ch <- msg:
 	default:
@@ -141,6 +162,8 @@ func (c *Client) listenRead() {
 				c.server.Err(err)
 				c.doneCh <- true
 				return
+			} else if msg.Method == "ping" {
+				c.Write(resource.WsOutMessage{Type: "pong"})
 			} else {
 				c.webSocketConnectionHandler.MessageFromClient(msg, c)
 			}

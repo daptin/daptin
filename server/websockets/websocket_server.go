@@ -12,6 +12,7 @@ import (
 )
 
 type WebSocketPayload struct {
+	Id      string  `json:"id,omitempty"`
 	Method  string  `json:"method"`
 	Payload Message `json:"attributes"`
 }
@@ -30,10 +31,11 @@ type Server struct {
 	dtopicMapLock sync.RWMutex
 	olricDb       *olric.EmbeddedClient
 	cruds         map[string]*resource.DbResource
+	sharedPubSub  *olric.PubSub
 }
 
 // Create new chat server.
-func NewServer(pattern string, dtopicMap *map[string]*olric.PubSub, cruds map[string]*resource.DbResource) *Server {
+func NewServer(pattern string, dtopicMap *map[string]*olric.PubSub, cruds map[string]*resource.DbResource, sharedPubSub *olric.PubSub) *Server {
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client, 256)
 	delCh := make(chan *Client, 16)
@@ -47,9 +49,10 @@ func NewServer(pattern string, dtopicMap *map[string]*olric.PubSub, cruds map[st
 		delCh:     delCh,
 		doneCh:    doneCh,
 		errCh:     errCh,
-		dtopicMap: dtopicMap,
-		olricDb:   cruds["world"].OlricDb,
-		cruds:     cruds,
+		dtopicMap:    dtopicMap,
+		olricDb:      cruds["world"].OlricDb,
+		cruds:        cruds,
+		sharedPubSub: sharedPubSub,
 	}
 }
 

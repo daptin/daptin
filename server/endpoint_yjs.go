@@ -56,7 +56,7 @@ func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
 					go func(rps *redis.PubSub) {
 						channel := rps.Channel()
 						for msg := range channel {
-							var eventMessage resource.EventMessage
+							var eventMessage resource.WsOutMessage
 							processErr := ProcessEventMessage(eventMessage, msg, typename, cruds, columnInfo, store)
 							CheckErr(processErr, "Failed to process message on OlricTopic[%v]", typename)
 						}

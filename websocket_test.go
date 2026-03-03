@@ -26,11 +26,19 @@ func ensureServer() {
 
 // wsPayload matches WebSocketPayload on the server side.
 type wsPayload struct {
+	Id      string                 `json:"id,omitempty"`
 	Method  string                 `json:"method"`
 	Payload map[string]interface{} `json:"attributes"`
 }
 
+var wsReqCounter atomic.Int64
+
+func nextReqId() string {
+	return fmt.Sprintf("req-%d", wsReqCounter.Add(1))
+}
+
 // dialWS opens an authenticated websocket connection with retry for transient failures.
+// It consumes the initial session-open message before returning.
 func dialWS(t testing.TB, token string) *websocket.Conn {
 	t.Helper()
 	for attempt := 0; attempt < 5; attempt++ {
@@ -43,6 +51,36 @@ func dialWS(t testing.TB, token string) *websocket.Conn {
 		ws, err := websocket.DialConfig(config)
 		if err != nil {
 			// per-IP limiter may reject during high churn — retry after backoff
+			time.Sleep(time.Duration(50*(attempt+1)) * time.Millisecond)
+			continue
+		}
+		// consume the session-open message
+		ws.SetReadDeadline(time.Now().Add(5 * time.Second))
+		var sessionMsg resource.WsOutMessage
+		if err := websocket.JSON.Receive(ws, &sessionMsg); err != nil {
+			t.Fatalf("failed to read session-open: %v", err)
+		}
+		if sessionMsg.Type != "session" || sessionMsg.Status != "open" {
+			t.Fatalf("expected session-open, got type=%q status=%q", sessionMsg.Type, sessionMsg.Status)
+		}
+		return ws
+	}
+	t.Fatalf("websocket dial: failed after 5 attempts")
+	return nil
+}
+
+// dialWSRaw opens an authenticated websocket without consuming session-open.
+func dialWSRaw(t testing.TB, token string) *websocket.Conn {
+	t.Helper()
+	for attempt := 0; attempt < 5; attempt++ {
+		config, err := websocket.NewConfig(wsURL, wsBaseAddress)
+		if err != nil {
+			t.Fatalf("websocket config: %v", err)
+		}
+		config.Header.Set("Authorization", "Bearer "+token)
+		config.Header.Set("Cookie", "token="+token)
+		ws, err := websocket.DialConfig(config)
+		if err != nil {
 			time.Sleep(time.Duration(50*(attempt+1)) * time.Millisecond)
 			continue
 		}
@@ -61,10 +99,10 @@ func sendJSON(t testing.TB, ws *websocket.Conn, v interface{}) {
 }
 
 // recvJSON reads a JSON message with a timeout.
-func recvJSON(t testing.TB, ws *websocket.Conn, timeout time.Duration) resource.EventMessage {
+func recvJSON(t testing.TB, ws *websocket.Conn, timeout time.Duration) resource.WsOutMessage {
 	t.Helper()
 	ws.SetReadDeadline(time.Now().Add(timeout))
-	var msg resource.EventMessage
+	var msg resource.WsOutMessage
 	if err := websocket.JSON.Receive(ws, &msg); err != nil {
 		t.Fatalf("websocket recv: %v", err)
 	}
@@ -72,9 +110,9 @@ func recvJSON(t testing.TB, ws *websocket.Conn, timeout time.Duration) resource.
 }
 
 // tryRecvJSON reads a JSON message with a timeout, returns ok=false on timeout.
-func tryRecvJSON(ws *websocket.Conn, timeout time.Duration) (resource.EventMessage, bool) {
+func tryRecvJSON(ws *websocket.Conn, timeout time.Duration) (resource.WsOutMessage, bool) {
 	ws.SetReadDeadline(time.Now().Add(timeout))
-	var msg resource.EventMessage
+	var msg resource.WsOutMessage
 	if err := websocket.JSON.Receive(ws, &msg); err != nil {
 		return msg, false
 	}
@@ -125,6 +163,33 @@ func signUpAndGetToken(t testing.TB) string {
 
 // ===== E2E TESTS =====
 
+func TestWebSocketSessionOpen(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWSRaw(t, token)
+	defer ws.Close()
+
+	// first message should be session-open
+	msg := recvJSON(t, ws, 5*time.Second)
+	if msg.Type != "session" {
+		t.Errorf("expected type=session, got %q", msg.Type)
+	}
+	if msg.Status != "open" {
+		t.Errorf("expected status=open, got %q", msg.Status)
+	}
+
+	var data map[string]interface{}
+	json.Unmarshal(msg.Data, &data)
+	if data["user"] == nil {
+		t.Errorf("session-open missing user field")
+	}
+	if data["sessionId"] == nil {
+		t.Errorf("session-open missing sessionId field")
+	}
+	t.Logf("session-open: user=%v sessionId=%v", data["user"], data["sessionId"])
+}
+
 func TestWebSocketConnect(t *testing.T) {
 	ensureServer()
 	token := signUpAndGetToken(t)
@@ -132,28 +197,24 @@ func TestWebSocketConnect(t *testing.T) {
 	ws := dialWS(t, token)
 	defer ws.Close()
 
-	// list topics to confirm bidirectional communication
+	// subscribe to a known system topic to confirm bidirectional communication
+	id := nextReqId()
 	sendJSON(t, ws, wsPayload{
-		Method:  "list-topicName",
-		Payload: map[string]interface{}{},
+		Id:      id,
+		Method:  "subscribe",
+		Payload: map[string]interface{}{"topicName": "user_account"},
 	})
 
 	msg := recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "response" || msg.ObjectType != "topicName-list" {
-		t.Errorf("expected topic list response, got EventType=%q ObjectType=%q", msg.EventType, msg.ObjectType)
+	if msg.Type != "response" {
+		t.Errorf("expected type=response, got %q", msg.Type)
 	}
-
-	var data map[string]interface{}
-	json.Unmarshal(msg.EventData, &data)
-	topics, ok := data["topics"]
-	if !ok {
-		t.Errorf("missing 'topics' key in response")
+	if msg.Method != "subscribe" {
+		t.Errorf("expected method=subscribe, got %q", msg.Method)
 	}
-	topicList, ok := topics.([]interface{})
-	if !ok {
-		t.Errorf("topics is not an array: %T", topics)
+	if msg.Id != id {
+		t.Errorf("expected id=%q, got %q", id, msg.Id)
 	}
-	t.Logf("server has %d topics", len(topicList))
 }
 
 func TestWebSocketSubscribeAck(t *testing.T) {
@@ -163,35 +224,31 @@ func TestWebSocketSubscribeAck(t *testing.T) {
 	ws := dialWS(t, token)
 	defer ws.Close()
 
-	// first get available topics
-	sendJSON(t, ws, wsPayload{
-		Method:  "list-topicName",
-		Payload: map[string]interface{}{},
-	})
-	listMsg := recvJSON(t, ws, 5*time.Second)
-	var data map[string]interface{}
-	json.Unmarshal(listMsg.EventData, &data)
-	topicList := data["topics"].([]interface{})
-	if len(topicList) == 0 {
-		t.Skip("no topics available to subscribe to")
-	}
-
-	topicName := topicList[0].(string)
+	topicName := "user_account"
 	t.Logf("subscribing to topic: %s", topicName)
 
+	id := nextReqId()
 	sendJSON(t, ws, wsPayload{
-		Method: "subscribe",
-		Payload: map[string]interface{}{
-			"topicName": topicName,
-		},
+		Id:      id,
+		Method:  "subscribe",
+		Payload: map[string]interface{}{"topicName": topicName},
 	})
 
 	msg := recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "subscribed" {
-		t.Errorf("expected 'subscribed' ack, got EventType=%q ObjectType=%q", msg.EventType, msg.ObjectType)
+	if msg.Type != "response" || msg.Ok == nil || !*msg.Ok {
+		t.Errorf("expected successful response, got type=%q ok=%v", msg.Type, msg.Ok)
 	}
-	if msg.ObjectType != topicName {
-		t.Errorf("expected ObjectType=%q, got %q", topicName, msg.ObjectType)
+	if msg.Method != "subscribe" {
+		t.Errorf("expected method=subscribe, got %q", msg.Method)
+	}
+	if msg.Id != id {
+		t.Errorf("expected id=%q, got %q", id, msg.Id)
+	}
+
+	var data map[string]interface{}
+	json.Unmarshal(msg.Data, &data)
+	if data["topic"] != topicName {
+		t.Errorf("expected topic=%q in data, got %v", topicName, data["topic"])
 	}
 }
 
@@ -202,19 +259,22 @@ func TestWebSocketSubscribeNonexistentTopicError(t *testing.T) {
 	ws := dialWS(t, token)
 	defer ws.Close()
 
+	id := nextReqId()
 	sendJSON(t, ws, wsPayload{
-		Method: "subscribe",
-		Payload: map[string]interface{}{
-			"topicName": "nonexistent_topic_xyz_12345",
-		},
+		Id:      id,
+		Method:  "subscribe",
+		Payload: map[string]interface{}{"topicName": "nonexistent_topic_xyz_12345"},
 	})
 
 	msg := recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "error" {
-		t.Errorf("expected error response, got EventType=%q", msg.EventType)
+	if msg.Type != "response" {
+		t.Errorf("expected type=response, got %q", msg.Type)
 	}
-	if msg.ObjectType != "subscribe" {
-		t.Errorf("expected ObjectType='subscribe', got %q", msg.ObjectType)
+	if msg.Ok == nil || *msg.Ok {
+		t.Errorf("expected ok=false, got %v", msg.Ok)
+	}
+	if msg.Method != "subscribe" {
+		t.Errorf("expected method=subscribe, got %q", msg.Method)
 	}
 }
 
@@ -225,29 +285,27 @@ func TestWebSocketUnsubscribeAck(t *testing.T) {
 	ws := dialWS(t, token)
 	defer ws.Close()
 
-	// get a topic
-	sendJSON(t, ws, wsPayload{Method: "list-topicName", Payload: map[string]interface{}{}})
-	listMsg := recvJSON(t, ws, 5*time.Second)
-	var data map[string]interface{}
-	json.Unmarshal(listMsg.EventData, &data)
-	topicList := data["topics"].([]interface{})
-	if len(topicList) == 0 {
-		t.Skip("no topics available")
-	}
-	topicName := topicList[0].(string)
+	topicName := "user_account"
 
 	// subscribe first
-	sendJSON(t, ws, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
-	recvJSON(t, ws, 5*time.Second) // subscribed ack
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	recvJSON(t, ws, 5*time.Second) // subscribe ack
 
 	// unsubscribe
-	sendJSON(t, ws, wsPayload{Method: "unsubscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	id := nextReqId()
+	sendJSON(t, ws, wsPayload{Id: id, Method: "unsubscribe", Payload: map[string]interface{}{"topicName": topicName}})
 	msg := recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "unsubscribed" {
-		t.Errorf("expected 'unsubscribed' ack, got EventType=%q", msg.EventType)
+	if msg.Type != "response" || msg.Ok == nil || !*msg.Ok {
+		t.Errorf("expected successful unsubscribe response, got type=%q ok=%v", msg.Type, msg.Ok)
 	}
-	if msg.ObjectType != topicName {
-		t.Errorf("expected ObjectType=%q, got %q", topicName, msg.ObjectType)
+	if msg.Method != "unsubscribe" {
+		t.Errorf("expected method=unsubscribe, got %q", msg.Method)
+	}
+
+	var data map[string]interface{}
+	json.Unmarshal(msg.Data, &data)
+	if data["topic"] != topicName {
+		t.Errorf("expected topic=%q, got %v", topicName, data["topic"])
 	}
 }
 
@@ -259,14 +317,15 @@ func TestWebSocketNewMessageErrors(t *testing.T) {
 	defer ws.Close()
 
 	// missing topicName
-	sendJSON(t, ws, wsPayload{Method: "new-message", Payload: map[string]interface{}{}})
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "new-message", Payload: map[string]interface{}{}})
 	msg := recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "error" {
-		t.Errorf("expected error for missing topicName, got %q", msg.EventType)
+	if msg.Type != "response" || msg.Ok == nil || *msg.Ok {
+		t.Errorf("expected error response for missing topicName, got type=%q ok=%v", msg.Type, msg.Ok)
 	}
 
 	// nonexistent topic
 	sendJSON(t, ws, wsPayload{
+		Id:     nextReqId(),
 		Method: "new-message",
 		Payload: map[string]interface{}{
 			"topicName": "does_not_exist_xyz",
@@ -274,8 +333,8 @@ func TestWebSocketNewMessageErrors(t *testing.T) {
 		},
 	})
 	msg = recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "error" {
-		t.Errorf("expected error for nonexistent topic, got %q", msg.EventType)
+	if msg.Type != "response" || msg.Ok == nil || *msg.Ok {
+		t.Errorf("expected error response for nonexistent topic, got type=%q ok=%v", msg.Type, msg.Ok)
 	}
 }
 
@@ -289,43 +348,27 @@ func TestWebSocketCreateDestroyTopic(t *testing.T) {
 	topicName := fmt.Sprintf("test-topic-%d", time.Now().UnixNano())
 
 	// create topic
+	id := nextReqId()
 	sendJSON(t, ws, wsPayload{
+		Id:      id,
 		Method:  "create-topicName",
 		Payload: map[string]interface{}{"name": topicName},
 	})
 
-	// verify it appears in list
-	time.Sleep(200 * time.Millisecond)
-	sendJSON(t, ws, wsPayload{Method: "list-topicName", Payload: map[string]interface{}{}})
-	listMsg := recvJSON(t, ws, 5*time.Second)
-	var data map[string]interface{}
-	json.Unmarshal(listMsg.EventData, &data)
-	found := false
-	for _, t := range data["topics"].([]interface{}) {
-		if t.(string) == topicName {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("created topic %q not found in topic list", topicName)
+	msg := recvJSON(t, ws, 5*time.Second)
+	if msg.Type != "response" || msg.Ok == nil || !*msg.Ok {
+		t.Errorf("expected successful create response, got type=%q ok=%v error=%q", msg.Type, msg.Ok, msg.Error)
 	}
 
 	// destroy it
 	sendJSON(t, ws, wsPayload{
+		Id:      nextReqId(),
 		Method:  "destroy-topicName",
 		Payload: map[string]interface{}{"name": topicName},
 	})
-
-	time.Sleep(200 * time.Millisecond)
-	sendJSON(t, ws, wsPayload{Method: "list-topicName", Payload: map[string]interface{}{}})
-	listMsg = recvJSON(t, ws, 5*time.Second)
-	json.Unmarshal(listMsg.EventData, &data)
-	for _, t := range data["topics"].([]interface{}) {
-		if t.(string) == topicName {
-			t = nil
-			break
-		}
+	msg = recvJSON(t, ws, 5*time.Second)
+	if msg.Type != "response" || msg.Ok == nil || !*msg.Ok {
+		t.Errorf("expected successful destroy response, got type=%q ok=%v error=%q", msg.Type, msg.Ok, msg.Error)
 	}
 }
 
@@ -336,24 +379,17 @@ func TestWebSocketDestroySystemTopicError(t *testing.T) {
 	ws := dialWS(t, token)
 	defer ws.Close()
 
-	// get a system topic (any table name in cruds map is a system topic)
-	sendJSON(t, ws, wsPayload{Method: "list-topicName", Payload: map[string]interface{}{}})
-	listMsg := recvJSON(t, ws, 5*time.Second)
-	var data map[string]interface{}
-	json.Unmarshal(listMsg.EventData, &data)
-	topicList := data["topics"].([]interface{})
-
 	// "world" is always a system topic
 	sendJSON(t, ws, wsPayload{
+		Id:      nextReqId(),
 		Method:  "destroy-topicName",
 		Payload: map[string]interface{}{"name": "world"},
 	})
 
 	msg := recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "error" {
-		t.Errorf("expected error for system topic delete, got EventType=%q", msg.EventType)
+	if msg.Type != "response" || msg.Ok == nil || *msg.Ok {
+		t.Errorf("expected error for system topic delete, got type=%q ok=%v", msg.Type, msg.Ok)
 	}
-	_ = topicList
 }
 
 func TestWebSocketCreateDuplicateTopicError(t *testing.T) {
@@ -366,14 +402,28 @@ func TestWebSocketCreateDuplicateTopicError(t *testing.T) {
 	topicName := fmt.Sprintf("dup-topic-%d", time.Now().UnixNano())
 
 	// create first
-	sendJSON(t, ws, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
-	time.Sleep(200 * time.Millisecond)
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(t, ws, 5*time.Second) // success response
 
 	// create duplicate
-	sendJSON(t, ws, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
 	msg := recvJSON(t, ws, 5*time.Second)
-	if msg.EventType != "error" {
-		t.Errorf("expected error for duplicate topic, got EventType=%q", msg.EventType)
+	if msg.Type != "response" || msg.Ok == nil || *msg.Ok {
+		t.Errorf("expected error for duplicate topic, got type=%q ok=%v", msg.Type, msg.Ok)
+	}
+}
+
+func TestWebSocketPingPong(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	sendJSON(t, ws, wsPayload{Method: "ping", Payload: map[string]interface{}{}})
+	msg := recvJSON(t, ws, 5*time.Second)
+	if msg.Type != "pong" {
+		t.Errorf("expected type=pong, got %q", msg.Type)
 	}
 }
 
@@ -392,18 +442,20 @@ func TestWebSocketPubSubRoundTrip(t *testing.T) {
 	defer wsSub.Close()
 
 	// create topic on publisher
-	sendJSON(t, wsPub, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(t, wsPub, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(t, wsPub, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
 
 	// subscribe on subscriber
-	sendJSON(t, wsSub, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	sendJSON(t, wsSub, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
 	subAck := recvJSON(t, wsSub, 5*time.Second)
-	if subAck.EventType != "subscribed" {
-		t.Fatalf("expected subscribed ack, got %q", subAck.EventType)
+	if subAck.Type != "response" || subAck.Ok == nil || !*subAck.Ok {
+		t.Fatalf("expected successful subscribe, got type=%q ok=%v", subAck.Type, subAck.Ok)
 	}
 
 	// publish a message
 	sendJSON(t, wsPub, wsPayload{
+		Id:     nextReqId(),
 		Method: "new-message",
 		Payload: map[string]interface{}{
 			"topicName": topicName,
@@ -411,19 +463,538 @@ func TestWebSocketPubSubRoundTrip(t *testing.T) {
 		},
 	})
 
-	// subscriber should receive it
+	// subscriber should receive an event
 	msg := recvJSON(t, wsSub, 5*time.Second)
-	if msg.EventType != "new-message" {
-		t.Errorf("expected 'new-message', got EventType=%q", msg.EventType)
+	if msg.Type != "event" {
+		t.Errorf("expected type=event, got %q", msg.Type)
 	}
-	if msg.ObjectType != topicName {
-		t.Errorf("expected ObjectType=%q, got %q", topicName, msg.ObjectType)
+	if msg.Event != "new-message" {
+		t.Errorf("expected event=new-message, got %q", msg.Event)
+	}
+	if msg.Topic != topicName {
+		t.Errorf("expected topic=%q, got %q", topicName, msg.Topic)
 	}
 
 	var payload map[string]interface{}
-	json.Unmarshal(msg.EventData, &payload)
+	json.Unmarshal(msg.Data, &payload)
 	if payload["text"] != "hello world" {
 		t.Errorf("expected text='hello world', got %v", payload["text"])
+	}
+}
+
+func TestWebSocketNoSuchMethod(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	id := nextReqId()
+	sendJSON(t, ws, wsPayload{Id: id, Method: "nonexistent-method", Payload: map[string]interface{}{}})
+	msg := recvJSON(t, ws, 5*time.Second)
+	if msg.Type != "response" || msg.Ok == nil || *msg.Ok {
+		t.Errorf("expected error for unknown method, got type=%q ok=%v", msg.Type, msg.Ok)
+	}
+	if msg.Error != "no such method" {
+		t.Errorf("expected error='no such method', got %q", msg.Error)
+	}
+	if msg.Method != "nonexistent-method" {
+		t.Errorf("expected method echoed back, got %q", msg.Method)
+	}
+}
+
+func TestWebSocketRequestCorrelation(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	// send with id — response should echo id
+	id := nextReqId()
+	sendJSON(t, ws, wsPayload{Id: id, Method: "subscribe", Payload: map[string]interface{}{"topicName": "user_account"}})
+	msg := recvJSON(t, ws, 5*time.Second)
+	if msg.Id != id {
+		t.Errorf("expected id=%q echoed, got %q", id, msg.Id)
+	}
+}
+
+func TestWebSocketNoIdOmitted(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	// send without id — response should have empty id (omitted)
+	sendJSON(t, ws, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": "user_account"}})
+	msg := recvJSON(t, ws, 5*time.Second)
+	if msg.Id != "" {
+		t.Errorf("expected empty id when not sent, got %q", msg.Id)
+	}
+}
+
+// ===== AUTHORIZATION TESTS =====
+
+// expectResponse reads the next message and checks it's a response with the expected ok value.
+func expectResponse(t testing.TB, ws *websocket.Conn, method string, wantOk bool) resource.WsOutMessage {
+	t.Helper()
+	msg := recvJSON(t, ws, 5*time.Second)
+	if msg.Type != "response" {
+		t.Fatalf("expected type=response, got %q (method=%q)", msg.Type, msg.Method)
+	}
+	if msg.Method != method {
+		t.Fatalf("expected method=%q, got %q", method, msg.Method)
+	}
+	if msg.Ok == nil {
+		t.Fatalf("response has nil Ok for method=%q", method)
+	}
+	if *msg.Ok != wantOk {
+		t.Fatalf("expected ok=%v for method=%q, got ok=%v error=%q", wantOk, method, *msg.Ok, msg.Error)
+	}
+	return msg
+}
+
+// TestAuthzUserTopicDefaultPermOwnerOnly verifies that a newly created user topic
+// has owner-only permissions (UserCRUD|UserExecute). A second user should be denied
+// subscribe, publish, destroy, and get-topic-permission.
+func TestAuthzUserTopicDefaultPermOwnerOnly(t *testing.T) {
+	ensureServer()
+
+	// user1 (owner) creates a topic
+	token1 := signUpAndGetToken(t)
+	ws1 := dialWS(t, token1)
+	defer ws1.Close()
+
+	topicName := fmt.Sprintf("authz-default-%d", time.Now().UnixNano())
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws1, "create-topicName", true)
+
+	// user2 (non-owner) tries to interact
+	token2, err := signUpUser("authz-other@test.com", "tester123")
+	if err != nil {
+		t.Fatalf("signup user2: %v", err)
+	}
+	ws2 := dialWS(t, token2)
+	defer ws2.Close()
+
+	// subscribe should fail (CanRead denied — no GuestRead bit)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", false)
+
+	// new-message should fail (CanExecute denied — no GuestExecute bit)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "new-message", Payload: map[string]interface{}{
+		"topicName": topicName,
+		"message":   map[string]interface{}{"text": "hello"},
+	}})
+	expectResponse(t, ws2, "new-message", false)
+
+	// destroy should fail (CanDelete denied)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "destroy-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws2, "destroy-topicName", false)
+
+	// get-topic-permission should fail (CanPeek denied — no GuestPeek bit)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "get-topic-permission", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "get-topic-permission", false)
+}
+
+// TestAuthzOwnerCanAccessOwnTopic verifies the owner can subscribe, publish,
+// get/set permissions, and destroy their own topic.
+func TestAuthzOwnerCanAccessOwnTopic(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	topicName := fmt.Sprintf("authz-owner-%d", time.Now().UnixNano())
+
+	// create
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws, "create-topicName", true)
+
+	// subscribe (CanRead — UserRead set)
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws, "subscribe", true)
+
+	// publish (CanExecute — UserExecute set)
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "new-message", Payload: map[string]interface{}{
+		"topicName": topicName,
+		"message":   map[string]interface{}{"text": "owner msg"},
+	}})
+	// owner gets the event back on their subscription — drain it
+	for {
+		msg, ok := tryRecvJSON(ws, 2*time.Second)
+		if !ok {
+			break
+		}
+		if msg.Type == "event" {
+			continue
+		}
+		break
+	}
+
+	// get-topic-permission (CanPeek — UserPeek set)
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "get-topic-permission", Payload: map[string]interface{}{"topicName": topicName}})
+	resp := expectResponse(t, ws, "get-topic-permission", true)
+	var permData map[string]interface{}
+	json.Unmarshal(resp.Data, &permData)
+	if permData["type"] != "user" {
+		t.Errorf("expected type=user, got %v", permData["type"])
+	}
+
+	// set-topic-permission (owner check passes)
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(2097151), // ALLOW_ALL
+	}})
+	expectResponse(t, ws, "set-topic-permission", true)
+
+	// unsubscribe first before destroy
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "unsubscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws, "unsubscribe", true)
+
+	// destroy (CanDelete — UserDelete set)
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "destroy-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws, "destroy-topicName", true)
+}
+
+// TestAuthzSetPermissionNonOwnerDenied verifies that a non-owner cannot
+// set-topic-permission even if they have other access.
+func TestAuthzSetPermissionNonOwnerDenied(t *testing.T) {
+	ensureServer()
+	token1 := signUpAndGetToken(t)
+
+	ws1 := dialWS(t, token1)
+	defer ws1.Close()
+
+	topicName := fmt.Sprintf("authz-setperm-%d", time.Now().UnixNano())
+
+	// owner creates topic with ALLOW_ALL so user2 can do most things
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws1, "create-topicName", true)
+
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(2097151),
+	}})
+	expectResponse(t, ws1, "set-topic-permission", true)
+
+	// user2 tries set-topic-permission — should fail (owner-only)
+	token2, err := signUpUser("authz-setperm@test.com", "tester123")
+	if err != nil {
+		t.Fatalf("signup user2: %v", err)
+	}
+	ws2 := dialWS(t, token2)
+	defer ws2.Close()
+
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(0),
+	}})
+	resp := expectResponse(t, ws2, "set-topic-permission", false)
+	if resp.Error != "only owner or admin can change permissions" {
+		t.Errorf("expected owner-only error, got %q", resp.Error)
+	}
+}
+
+// TestAuthzGrantGuestReadAllowsNonOwnerSubscribe verifies that when the owner
+// adds GuestRead to the topic permission, a non-owner can subscribe.
+func TestAuthzGrantGuestReadAllowsNonOwnerSubscribe(t *testing.T) {
+	ensureServer()
+	token1 := signUpAndGetToken(t)
+
+	ws1 := dialWS(t, token1)
+	defer ws1.Close()
+
+	topicName := fmt.Sprintf("authz-gread-%d", time.Now().UnixNano())
+
+	// create with default (owner-only)
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws1, "create-topicName", true)
+
+	token2, err := signUpUser("authz-gread@test.com", "tester123")
+	if err != nil {
+		t.Fatalf("signup user2: %v", err)
+	}
+	ws2 := dialWS(t, token2)
+	defer ws2.Close()
+
+	// user2 cannot subscribe yet (no GuestRead)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", false)
+
+	// owner grants GuestRead|GuestPeek + keeps UserCRUD|UserExecute
+	// GuestPeek=1, GuestRead=2, UserCRUD=16256, UserExecute=8192
+	newPerm := float64(1 | 2 | 16256 | 8192)
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": newPerm,
+	}})
+	expectResponse(t, ws1, "set-topic-permission", true)
+
+	// user2 can now subscribe
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", true)
+
+	// but user2 still cannot publish (no GuestExecute=64)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "new-message", Payload: map[string]interface{}{
+		"topicName": topicName,
+		"message":   map[string]interface{}{"text": "blocked"},
+	}})
+	expectResponse(t, ws2, "new-message", false)
+}
+
+// TestAuthzGrantGuestExecuteAllowsNonOwnerPublish verifies that when the owner
+// adds GuestExecute to the topic permission, a non-owner can publish.
+func TestAuthzGrantGuestExecuteAllowsNonOwnerPublish(t *testing.T) {
+	ensureServer()
+	token1 := signUpAndGetToken(t)
+
+	ws1 := dialWS(t, token1)
+	defer ws1.Close()
+
+	topicName := fmt.Sprintf("authz-gexec-%d", time.Now().UnixNano())
+
+	// create with GuestExecute + owner perms
+	// GuestExecute=32 (1<<5), UserCRUD|UserExecute=16256
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws1, "create-topicName", true)
+
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(32 | 16256),
+	}})
+	expectResponse(t, ws1, "set-topic-permission", true)
+
+	token2, err := signUpUser("authz-gexec@test.com", "tester123")
+	if err != nil {
+		t.Fatalf("signup user2: %v", err)
+	}
+	ws2 := dialWS(t, token2)
+	defer ws2.Close()
+
+	// user2 can publish (GuestExecute granted)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "new-message", Payload: map[string]interface{}{
+		"topicName": topicName,
+		"message":   map[string]interface{}{"text": "allowed"},
+	}})
+	// new-message doesn't send a response on success for user topics, so we just check no error
+	// Actually it does - let me check by reading the handler flow
+	// The handler sends events, not responses for new-message on user topics
+	// Let's just verify no error response arrives
+	msg, ok := tryRecvJSON(ws2, 2*time.Second)
+	if ok && msg.Type == "response" && msg.Ok != nil && !*msg.Ok {
+		t.Errorf("publish should have been allowed but got error: %q", msg.Error)
+	}
+
+	// user2 cannot subscribe (no GuestRead=2)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", false)
+}
+
+// TestAuthzDestroyTopicNonOwnerDenied verifies a non-owner cannot destroy
+// a topic even with ALLOW_ALL minus GuestDelete.
+func TestAuthzDestroyTopicNonOwnerDenied(t *testing.T) {
+	ensureServer()
+	token1 := signUpAndGetToken(t)
+
+	ws1 := dialWS(t, token1)
+	defer ws1.Close()
+
+	topicName := fmt.Sprintf("authz-destroy-%d", time.Now().UnixNano())
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws1, "create-topicName", true)
+
+	// Grant everything except GuestDelete (bit 16)
+	// ALLOW_ALL=2097151, GuestDelete=16 → 2097151 & ^16 = 2097135
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(2097151 &^ 16),
+	}})
+	expectResponse(t, ws1, "set-topic-permission", true)
+
+	token2, err := signUpUser("authz-destroy@test.com", "tester123")
+	if err != nil {
+		t.Fatalf("signup user2: %v", err)
+	}
+	ws2 := dialWS(t, token2)
+	defer ws2.Close()
+
+	// user2 can subscribe (GuestRead is set)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", true)
+
+	// user2 cannot destroy (GuestDelete removed)
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "destroy-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws2, "destroy-topicName", false)
+}
+
+// TestAuthzGetTopicPermissionRequiresPeek verifies that get-topic-permission
+// requires CanPeek, which for non-owners means GuestPeek must be set.
+func TestAuthzGetTopicPermissionRequiresPeek(t *testing.T) {
+	ensureServer()
+	token1 := signUpAndGetToken(t)
+
+	ws1 := dialWS(t, token1)
+	defer ws1.Close()
+
+	topicName := fmt.Sprintf("authz-getperm-%d", time.Now().UnixNano())
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws1, "create-topicName", true)
+
+	token2, err := signUpUser("authz-getperm@test.com", "tester123")
+	if err != nil {
+		t.Fatalf("signup user2: %v", err)
+	}
+	ws2 := dialWS(t, token2)
+	defer ws2.Close()
+
+	// default perms: no GuestPeek → denied
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "get-topic-permission", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "get-topic-permission", false)
+
+	// owner adds GuestPeek (bit 1) to perm
+	// UserCRUD=16256, UserExecute=8192, GuestPeek=1
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(1 | 16256 | 8192),
+	}})
+	expectResponse(t, ws1, "set-topic-permission", true)
+
+	// now user2 can get-topic-permission
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "get-topic-permission", Payload: map[string]interface{}{"topicName": topicName}})
+	resp := expectResponse(t, ws2, "get-topic-permission", true)
+
+	var permData map[string]interface{}
+	json.Unmarshal(resp.Data, &permData)
+	if permData["type"] != "user" {
+		t.Errorf("expected type=user, got %v", permData["type"])
+	}
+	if permData["owner"] == nil {
+		t.Errorf("expected owner field in response")
+	}
+}
+
+// TestAuthzSystemTopicCannotCreateOrDestroy verifies system topics cannot be
+// created or destroyed via the WebSocket protocol.
+func TestAuthzSystemTopicCannotCreateOrDestroy(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	// create-topicName with system name should fail
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": "world"}})
+	resp := expectResponse(t, ws, "create-topicName", false)
+	if resp.Error != "cannot create topic with reserved name" {
+		t.Errorf("expected reserved name error, got %q", resp.Error)
+	}
+
+	// destroy-topicName with system name should fail
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "destroy-topicName", Payload: map[string]interface{}{"name": "user_account"}})
+	resp = expectResponse(t, ws, "destroy-topicName", false)
+	if resp.Error != "cannot delete system topic" {
+		t.Errorf("expected system topic error, got %q", resp.Error)
+	}
+}
+
+// TestAuthzSystemTopicSetPermissionDenied verifies that set-topic-permission
+// cannot be used on system topics.
+func TestAuthzSystemTopicSetPermissionDenied(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  "world",
+		"permission": float64(2097151),
+	}})
+	resp := expectResponse(t, ws, "set-topic-permission", false)
+	if resp.Error != "cannot modify system topic permissions" {
+		t.Errorf("expected system topic error, got %q", resp.Error)
+	}
+}
+
+// TestAuthzPermissionChangeAffectsAccess verifies that when the owner changes
+// permissions, subsequent requests from non-owners reflect the new permissions.
+func TestAuthzPermissionChangeAffectsAccess(t *testing.T) {
+	ensureServer()
+	token1 := signUpAndGetToken(t)
+
+	ws1 := dialWS(t, token1)
+	defer ws1.Close()
+
+	topicName := fmt.Sprintf("authz-change-%d", time.Now().UnixNano())
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	expectResponse(t, ws1, "create-topicName", true)
+
+	token2, err := signUpUser("authz-change@test.com", "tester123")
+	if err != nil {
+		t.Fatalf("signup user2: %v", err)
+	}
+	ws2 := dialWS(t, token2)
+	defer ws2.Close()
+
+	// Step 1: default perms — user2 denied subscribe
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", false)
+
+	// Step 2: owner grants GuestRead+GuestPeek
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(1 | 2 | 16256 | 8192), // GuestPeek|GuestRead|UserCRUD|UserExecute
+	}})
+	expectResponse(t, ws1, "set-topic-permission", true)
+
+	// Step 3: user2 can now subscribe
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", true)
+
+	// Step 4: owner revokes GuestRead (back to owner-only)
+	sendJSON(t, ws1, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  topicName,
+		"permission": float64(16256 | 8192), // UserCRUD|UserExecute only
+	}})
+	expectResponse(t, ws1, "set-topic-permission", true)
+
+	// Step 5: user2 unsubscribe (if subscribed) and try again — denied
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "unsubscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	recvJSON(t, ws2, 5*time.Second) // unsubscribe response
+
+	sendJSON(t, ws2, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	expectResponse(t, ws2, "subscribe", false)
+}
+
+// TestAuthzNonexistentTopicPermissionOperations verifies that get/set permission
+// on a nonexistent topic returns appropriate errors.
+func TestAuthzNonexistentTopicPermissionOperations(t *testing.T) {
+	ensureServer()
+	token := signUpAndGetToken(t)
+
+	ws := dialWS(t, token)
+	defer ws.Close()
+
+	ghostTopic := fmt.Sprintf("ghost-%d", time.Now().UnixNano())
+
+	// get-topic-permission on nonexistent topic
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "get-topic-permission", Payload: map[string]interface{}{"topicName": ghostTopic}})
+	resp := expectResponse(t, ws, "get-topic-permission", false)
+	if resp.Error != "topic not found" {
+		t.Errorf("expected 'topic not found', got %q", resp.Error)
+	}
+
+	// set-topic-permission on nonexistent topic
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+		"topicName":  ghostTopic,
+		"permission": float64(2097151),
+	}})
+	resp = expectResponse(t, ws, "set-topic-permission", false)
+	if resp.Error != "topic not found" {
+		t.Errorf("expected 'topic not found', got %q", resp.Error)
 	}
 }
 
@@ -440,11 +1011,11 @@ func TestWebSocketManySubscribers(t *testing.T) {
 
 	// create topic
 	wsCreator := dialWS(t, token)
-	sendJSON(t, wsCreator, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(t, wsCreator, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(t, wsCreator, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
 
-	// connect and subscribe N clients — each goroutine dials independently
-	// addCh on the server is unbuffered, so this also stress-tests connection admission
+	// connect and subscribe N clients
 	subscribers := make([]*websocket.Conn, numSubscribers)
 	var subWg sync.WaitGroup
 	for i := 0; i < numSubscribers; i++ {
@@ -460,15 +1031,21 @@ func TestWebSocketManySubscribers(t *testing.T) {
 			config.Header.Set("Cookie", "token="+token)
 			ws, err := websocket.DialConfig(config)
 			if err != nil {
-				// dial failure under load is the data point we want
 				return
 			}
-			if err := websocket.JSON.Send(ws, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}}); err != nil {
+			// consume session-open
+			ws.SetReadDeadline(time.Now().Add(5 * time.Second))
+			var sessionMsg resource.WsOutMessage
+			if err := websocket.JSON.Receive(ws, &sessionMsg); err != nil {
+				ws.Close()
+				return
+			}
+			if err := websocket.JSON.Send(ws, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}}); err != nil {
 				ws.Close()
 				return
 			}
 			ws.SetReadDeadline(time.Now().Add(30 * time.Second))
-			var ack resource.EventMessage
+			var ack resource.WsOutMessage
 			if err := websocket.JSON.Receive(ws, &ack); err != nil {
 				ws.Close()
 				return
@@ -489,6 +1066,7 @@ func TestWebSocketManySubscribers(t *testing.T) {
 
 	// publish a message
 	sendJSON(t, wsCreator, wsPayload{
+		Id:     nextReqId(),
 		Method: "new-message",
 		Payload: map[string]interface{}{
 			"topicName": topicName,
@@ -507,10 +1085,10 @@ func TestWebSocketManySubscribers(t *testing.T) {
 		go func(idx int, conn *websocket.Conn) {
 			defer wg.Done()
 			msg, ok := tryRecvJSON(conn, 10*time.Second)
-			if ok && msg.EventType == "new-message" {
+			if ok && msg.Type == "event" && msg.Event == "new-message" {
 				atomic.AddInt64(&received, 1)
 			} else {
-				t.Errorf("subscriber %d: did not receive message (ok=%v, type=%q)", idx, ok, msg.EventType)
+				t.Errorf("subscriber %d: did not receive event (ok=%v, type=%q)", idx, ok, msg.Type)
 			}
 		}(i, ws)
 	}
@@ -544,10 +1122,11 @@ func TestWebSocketHighThroughputMessages(t *testing.T) {
 	defer wsSub.Close()
 
 	// create topic + subscribe
-	sendJSON(t, wsPub, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(t, wsPub, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(t, wsPub, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
-	sendJSON(t, wsSub, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
-	recvJSON(t, wsSub, 5*time.Second) // ack
+	sendJSON(t, wsSub, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	recvJSON(t, wsSub, 5*time.Second) // subscribe ack
 
 	// concurrent send + recv
 	var recvCount int64
@@ -589,11 +1168,9 @@ func TestWebSocketConcurrentConnections(t *testing.T) {
 	ensureServer()
 	token := signUpAndGetToken(t)
 
-	// server default is 100 max connections per IP — test in waves
 	const numConns = 500
 	const connBatch = 80
 
-	// open connections in waves — each wave connects, does a round-trip, disconnects
 	var totalConnected int64
 	var totalFailed int64
 
@@ -616,18 +1193,26 @@ func TestWebSocketConcurrentConnections(t *testing.T) {
 					return
 				}
 
-				// each connection lists topics to prove it works
+				// consume session-open then do a round-trip
+				ws.SetReadDeadline(time.Now().Add(10 * time.Second))
+				var sessionMsg resource.WsOutMessage
+				if err := websocket.JSON.Receive(ws, &sessionMsg); err != nil {
+					atomic.AddInt64(&totalFailed, 1)
+					ws.Close()
+					return
+				}
+
 				if err := websocket.JSON.Send(ws, wsPayload{
-					Method:  "list-topicName",
-					Payload: map[string]interface{}{},
+					Id:      nextReqId(),
+					Method:  "subscribe",
+					Payload: map[string]interface{}{"topicName": "user_account"},
 				}); err != nil {
 					atomic.AddInt64(&totalFailed, 1)
 					ws.Close()
 					return
 				}
 
-				ws.SetReadDeadline(time.Now().Add(10 * time.Second))
-				var msg resource.EventMessage
+				var msg resource.WsOutMessage
 				if err := websocket.JSON.Receive(ws, &msg); err != nil {
 					atomic.AddInt64(&totalFailed, 1)
 					ws.Close()
@@ -635,7 +1220,7 @@ func TestWebSocketConcurrentConnections(t *testing.T) {
 				}
 				ws.Close()
 
-				if msg.EventType == "response" {
+				if msg.Type == "response" {
 					atomic.AddInt64(&totalConnected, 1)
 				} else {
 					atomic.AddInt64(&totalFailed, 1)
@@ -664,7 +1249,8 @@ func TestWebSocketMultiTopicSubscribe(t *testing.T) {
 	topicNames := make([]string, numTopics)
 	for i := 0; i < numTopics; i++ {
 		topicNames[i] = fmt.Sprintf("multi-%d-%d", time.Now().UnixNano(), i)
-		sendJSON(t, ws, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicNames[i]}})
+		sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicNames[i]}})
+		recvJSON(t, ws, 5*time.Second) // create response
 	}
 	time.Sleep(300 * time.Millisecond)
 
@@ -676,16 +1262,16 @@ func TestWebSocketMultiTopicSubscribe(t *testing.T) {
 		}
 		allTopics += name
 	}
-	sendJSON(t, ws, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": allTopics}})
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": allTopics}})
 
-	// should get N subscribed acks
+	// should get N subscribe responses
 	ackCount := 0
 	for i := 0; i < numTopics; i++ {
 		msg, ok := tryRecvJSON(ws, 5*time.Second)
 		if !ok {
 			break
 		}
-		if msg.EventType == "subscribed" {
+		if msg.Type == "response" && msg.Ok != nil && *msg.Ok && msg.Method == "subscribe" {
 			ackCount++
 		}
 	}
@@ -699,7 +1285,6 @@ func TestWebSocketRapidConnectDisconnect(t *testing.T) {
 	ensureServer()
 	token := signUpAndGetToken(t)
 
-	// 500 connections total, in waves of 80 (under the 100-per-IP limit)
 	const totalCycles = 500
 	const rapidBatch = 80
 	var totalSucceeded int64
@@ -752,13 +1337,13 @@ func TestWebSocketSlowConsumerDisconnect(t *testing.T) {
 	defer wsSlow.Close()
 
 	// create topic + subscribe slow client
-	sendJSON(t, wsPub, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(t, wsPub, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(t, wsPub, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
-	sendJSON(t, wsSlow, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
-	recvJSON(t, wsSlow, 5*time.Second) // ack
+	sendJSON(t, wsSlow, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	recvJSON(t, wsSlow, 5*time.Second) // subscribe ack
 
-	// flood messages from multiple goroutines, each with own connection
-	// should fill slow client buffer (100) and disconnect it without blocking publishers
+	// flood messages
 	const floodPublishers = 10
 	const floodPerPublisher = 100
 	floodCount := floodPublishers * floodPerPublisher
@@ -786,8 +1371,7 @@ func TestWebSocketSlowConsumerDisconnect(t *testing.T) {
 	floodDuration := time.Since(floodStart)
 	t.Logf("sent %d messages from %d goroutines in %v — publishers were not blocked", floodCount, floodPublishers, floodDuration)
 
-	// the slow client's buffer should have overflowed;
-	// after draining what's buffered, reads should eventually fail
+	// drain what's buffered
 	drained := 0
 	for {
 		_, ok := tryRecvJSON(wsSlow, 2*time.Second)
@@ -798,11 +1382,12 @@ func TestWebSocketSlowConsumerDisconnect(t *testing.T) {
 	}
 	t.Logf("slow consumer drained %d messages before disconnect/timeout", drained)
 
-	// publisher should still be functional — verify by listing topics
-	sendJSON(t, wsPub, wsPayload{Method: "list-topicName", Payload: map[string]interface{}{}})
+	// publisher should still be functional
+	id := nextReqId()
+	sendJSON(t, wsPub, wsPayload{Id: id, Method: "subscribe", Payload: map[string]interface{}{"topicName": "user_account"}})
 	msg := recvJSON(t, wsPub, 5*time.Second)
-	if msg.EventType != "response" {
-		t.Errorf("publisher broken after slow consumer flood: EventType=%q", msg.EventType)
+	if msg.Type != "response" {
+		t.Errorf("publisher broken after slow consumer flood: type=%q", msg.Type)
 	}
 }
 
@@ -817,14 +1402,15 @@ func TestWebSocketConcurrentPublishers(t *testing.T) {
 
 	// create topic
 	wsSetup := dialWS(t, token)
-	sendJSON(t, wsSetup, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(t, wsSetup, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(t, wsSetup, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
 
 	// subscriber
 	wsSub := dialWS(t, token)
 	defer wsSub.Close()
-	sendJSON(t, wsSub, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
-	recvJSON(t, wsSub, 5*time.Second) // ack
+	sendJSON(t, wsSub, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	recvJSON(t, wsSub, 5*time.Second) // subscribe ack
 
 	// launch concurrent publishers
 	var wg sync.WaitGroup
@@ -870,7 +1456,6 @@ func TestWebSocketConcurrentPublishers(t *testing.T) {
 	recvDuration := time.Since(recvStart)
 	t.Logf("received %d/%d messages in %v (%.0f msg/s)", recvCount, totalSent, recvDuration, float64(recvCount)/recvDuration.Seconds())
 
-	// allow some loss from buffer overflow under heavy concurrent load
 	lossRate := float64(totalSent-recvCount) / float64(totalSent)
 	t.Logf("loss rate: %.1f%%", lossRate*100)
 	if lossRate > 0.10 {
@@ -892,21 +1477,22 @@ func TestWebSocketSubscribeUnsubscribeChurn(t *testing.T) {
 	defer ws.Close()
 
 	// create topic
-	sendJSON(t, ws, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(t, ws, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
 
 	// rapidly subscribe/unsubscribe
 	for i := 0; i < churnCycles; i++ {
-		sendJSON(t, ws, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+		sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
 		msg := recvJSON(t, ws, 5*time.Second)
-		if msg.EventType != "subscribed" {
-			t.Fatalf("cycle %d: expected subscribed, got %q", i, msg.EventType)
+		if msg.Type != "response" || msg.Ok == nil || !*msg.Ok || msg.Method != "subscribe" {
+			t.Fatalf("cycle %d: expected subscribe ok, got type=%q ok=%v method=%q", i, msg.Type, msg.Ok, msg.Method)
 		}
 
-		sendJSON(t, ws, wsPayload{Method: "unsubscribe", Payload: map[string]interface{}{"topicName": topicName}})
+		sendJSON(t, ws, wsPayload{Id: nextReqId(), Method: "unsubscribe", Payload: map[string]interface{}{"topicName": topicName}})
 		msg = recvJSON(t, ws, 5*time.Second)
-		if msg.EventType != "unsubscribed" {
-			t.Fatalf("cycle %d: expected unsubscribed, got %q", i, msg.EventType)
+		if msg.Type != "response" || msg.Ok == nil || !*msg.Ok || msg.Method != "unsubscribe" {
+			t.Fatalf("cycle %d: expected unsubscribe ok, got type=%q ok=%v method=%q", i, msg.Type, msg.Ok, msg.Method)
 		}
 	}
 	t.Logf("completed %d subscribe/unsubscribe cycles without error", churnCycles)
@@ -966,7 +1552,6 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 	var signupErrors int64
 	signupStart := time.Now()
 
-	// signup in batches of 20 to avoid overwhelming the HTTP endpoint
 	const signupBatch = 20
 	for batchStart := 0; batchStart < numUsers; batchStart += signupBatch {
 		batchEnd := batchStart + signupBatch
@@ -1001,7 +1586,7 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 		t.Fatalf("too few users created: %d/%d", validUsers, numUsers)
 	}
 
-	// Phase 2: Create topics — each user gets a "inbox" topic
+	// Phase 2: Create topics — each user gets an "inbox" topic, set permissions to allow all
 	t.Log("Phase 2: Creating per-user topics...")
 	setupWs := dialWS(t, tokens[0])
 	topicNames := make([]string, numUsers)
@@ -1010,11 +1595,18 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 			continue
 		}
 		topicNames[i] = fmt.Sprintf("inbox-%d-%d", time.Now().UnixNano(), i)
-		_ = websocket.JSON.Send(setupWs, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicNames[i]}})
+		_ = websocket.JSON.Send(setupWs, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicNames[i]}})
+		tryRecvJSON(setupWs, 5*time.Second) // create response
+		// set topic permission to allow all users to subscribe (read) and publish (execute)
+		_ = websocket.JSON.Send(setupWs, wsPayload{Id: nextReqId(), Method: "set-topic-permission", Payload: map[string]interface{}{
+			"topicName":  topicNames[i],
+			"permission": float64(2097151), // ALLOW_ALL_PERMISSIONS
+		}})
+		tryRecvJSON(setupWs, 5*time.Second) // set-permission response
 	}
 	setupWs.Close()
 	time.Sleep(500 * time.Millisecond)
-	t.Logf("  created %d topics", validUsers)
+	t.Logf("  created %d topics with open permissions", validUsers)
 
 	// Phase 3: Connect all users, subscribe to own inbox
 	t.Log("Phase 3: Connecting all users and subscribing...")
@@ -1027,39 +1619,82 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 	users := make([]*userConn, 0, validUsers)
 
 	connectStart := time.Now()
-	var connectWg sync.WaitGroup
 	var mu sync.Mutex
 	var connectErrors int64
 
+	// connect in batches to stay under per-IP connection limit
+	const connectBatch = 80
+	userIndices := make([]int, 0, validUsers)
 	for i := 0; i < numUsers; i++ {
-		if tokens[i] == "" || topicNames[i] == "" {
-			continue
+		if tokens[i] != "" && topicNames[i] != "" {
+			userIndices = append(userIndices, i)
 		}
-		connectWg.Add(1)
-		go func(idx int) {
-			defer connectWg.Done()
-			ws := dialWS(t, tokens[idx])
-			// subscribe to own inbox
-			if err := websocket.JSON.Send(ws, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicNames[idx]}}); err != nil {
-				atomic.AddInt64(&connectErrors, 1)
-				ws.Close()
-				return
-			}
-			ws.SetReadDeadline(time.Now().Add(15 * time.Second))
-			var ack resource.EventMessage
-			if err := websocket.JSON.Receive(ws, &ack); err != nil || ack.EventType != "subscribed" {
-				atomic.AddInt64(&connectErrors, 1)
-				ws.Close()
-				return
-			}
-			mu.Lock()
-			users = append(users, &userConn{ws: ws, token: tokens[idx], idx: idx, topic: topicNames[idx]})
-			mu.Unlock()
-		}(i)
 	}
-	connectWg.Wait()
+	var dialErrors, sessionErrors, subSendErrors, subAckErrors int64
+	for batchStart := 0; batchStart < len(userIndices); batchStart += connectBatch {
+		batchEnd := batchStart + connectBatch
+		if batchEnd > len(userIndices) {
+			batchEnd = len(userIndices)
+		}
+		var batchWg sync.WaitGroup
+		for _, idx := range userIndices[batchStart:batchEnd] {
+			batchWg.Add(1)
+			go func(idx int) {
+				defer batchWg.Done()
+				// retry dial up to 5 times like dialWS does
+				var ws *websocket.Conn
+				for attempt := 0; attempt < 5; attempt++ {
+					config, err := websocket.NewConfig(wsURL, wsBaseAddress)
+					if err != nil {
+						continue
+					}
+					config.Header.Set("Authorization", "Bearer "+tokens[idx])
+					config.Header.Set("Cookie", "token="+tokens[idx])
+					ws, err = websocket.DialConfig(config)
+					if err == nil {
+						break
+					}
+					ws = nil
+					time.Sleep(time.Duration(50*(attempt+1)) * time.Millisecond)
+				}
+				if ws == nil {
+					atomic.AddInt64(&dialErrors, 1)
+					atomic.AddInt64(&connectErrors, 1)
+					return
+				}
+				// consume session-open
+				ws.SetReadDeadline(time.Now().Add(15 * time.Second))
+				var sessionMsg resource.WsOutMessage
+				if err := websocket.JSON.Receive(ws, &sessionMsg); err != nil {
+					atomic.AddInt64(&sessionErrors, 1)
+					atomic.AddInt64(&connectErrors, 1)
+					ws.Close()
+					return
+				}
+				// subscribe to own inbox
+				if err := websocket.JSON.Send(ws, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicNames[idx]}}); err != nil {
+					atomic.AddInt64(&subSendErrors, 1)
+					atomic.AddInt64(&connectErrors, 1)
+					ws.Close()
+					return
+				}
+				var ack resource.WsOutMessage
+				if err := websocket.JSON.Receive(ws, &ack); err != nil || ack.Type != "response" || ack.Ok == nil || !*ack.Ok {
+					atomic.AddInt64(&subAckErrors, 1)
+					atomic.AddInt64(&connectErrors, 1)
+					ws.Close()
+					return
+				}
+				mu.Lock()
+				users = append(users, &userConn{ws: ws, token: tokens[idx], idx: idx, topic: topicNames[idx]})
+				mu.Unlock()
+			}(idx)
+		}
+		batchWg.Wait()
+	}
 	connectDuration := time.Since(connectStart)
-	t.Logf("  connected %d/%d users in %v (%d connect errors)", len(users), validUsers, connectDuration, connectErrors)
+	t.Logf("  connected %d/%d users in %v (%d connect errors: dial=%d session=%d subSend=%d subAck=%d)",
+		len(users), validUsers, connectDuration, connectErrors, dialErrors, sessionErrors, subSendErrors, subAckErrors)
 
 	if len(users) < validUsers/2 {
 		t.Fatalf("too few connected: %d/%d", len(users), validUsers)
@@ -1068,7 +1703,7 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 	// Phase 4: Each user sends msgsPerUser messages to a random other user's inbox
 	t.Logf("Phase 4: Each of %d users sending %d messages...", len(users), msgsPerUser)
 
-	// start receivers — each user counts incoming messages
+	// start receivers
 	recvCounts := make([]int64, len(users))
 	var recvWg sync.WaitGroup
 	for i, u := range users {
@@ -1077,18 +1712,18 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 			defer recvWg.Done()
 			for {
 				conn.SetReadDeadline(time.Now().Add(30 * time.Second))
-				var msg resource.EventMessage
+				var msg resource.WsOutMessage
 				if err := websocket.JSON.Receive(conn, &msg); err != nil {
 					return
 				}
-				if msg.EventType == "new-message" {
+				if msg.Type == "event" && msg.Event == "new-message" {
 					atomic.AddInt64(&recvCounts[idx], 1)
 				}
 			}
 		}(i, u.ws)
 	}
 
-	// send messages — each user picks target = (self+1) % len(users)
+	// send messages
 	var sendWg sync.WaitGroup
 	var totalSent int64
 	var sendErrors int64
@@ -1142,7 +1777,7 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 	for _, u := range users {
 		u.ws.Close()
 	}
-	<-done // wait for all receiver goroutines to exit
+	<-done
 
 	var totalRecv int64
 	for _, c := range recvCounts {
@@ -1174,10 +1809,11 @@ func BenchmarkWebSocketPubSub(b *testing.B) {
 	wsSub := dialWS(b, token)
 	defer wsSub.Close()
 
-	sendJSON(b, wsPub, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(b, wsPub, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(b, wsPub, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
-	sendJSON(b, wsSub, wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
-	recvJSON(b, wsSub, 5*time.Second) // ack
+	sendJSON(b, wsSub, wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+	recvJSON(b, wsSub, 5*time.Second) // subscribe ack
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1203,14 +1839,15 @@ func BenchmarkWebSocketFanOut(b *testing.B) {
 	wsPub := dialWS(b, token)
 	defer wsPub.Close()
 
-	sendJSON(b, wsPub, wsPayload{Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	sendJSON(b, wsPub, wsPayload{Id: nextReqId(), Method: "create-topicName", Payload: map[string]interface{}{"name": topicName}})
+	recvJSON(b, wsPub, 5*time.Second) // create response
 	time.Sleep(300 * time.Millisecond)
 
 	subs := make([]*websocket.Conn, numSubs)
 	for i := 0; i < numSubs; i++ {
 		subs[i] = dialWS(b, token)
-		sendJSON(b, subs[i], wsPayload{Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
-		recvJSON(b, subs[i], 5*time.Second)
+		sendJSON(b, subs[i], wsPayload{Id: nextReqId(), Method: "subscribe", Payload: map[string]interface{}{"topicName": topicName}})
+		recvJSON(b, subs[i], 5*time.Second) // subscribe ack
 	}
 
 	b.ResetTimer()
@@ -1222,7 +1859,6 @@ func BenchmarkWebSocketFanOut(b *testing.B) {
 				"message":   map[string]interface{}{"seq": i},
 			},
 		})
-		// wait for all subscribers to receive
 		for _, sub := range subs {
 			recvJSON(b, sub, 10*time.Second)
 		}

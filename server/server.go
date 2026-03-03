@@ -575,7 +575,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))
 
-	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds)
+	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds, tablesPubSub)
 
 	if enableYjs == "true" {
 		err = InitializeYjsResources(store, defaultRouter, cruds, dtopicMap)

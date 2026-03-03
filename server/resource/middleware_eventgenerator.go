@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -27,7 +28,7 @@ type EventWorkerPool struct {
 type EventJob struct {
 	topic     *olric.PubSub
 	tableName string
-	message   EventMessage
+	message   WsOutMessage
 }
 
 // EventMetrics tracks event publishing metrics
@@ -100,7 +101,7 @@ func (p *EventWorkerPool) processEvent(job EventJob) {
 		p.metrics.mu.Lock()
 		p.metrics.errors++
 		p.metrics.mu.Unlock()
-		log.Errorf("Failed to publish %s event: %v", job.message.EventType, err)
+		log.Errorf("Failed to publish %s event: %v", job.message.Event, err)
 	} else {
 		p.metrics.mu.Lock()
 		p.metrics.published++
@@ -109,7 +110,7 @@ func (p *EventWorkerPool) processEvent(job EventJob) {
 }
 
 // PublishEvent queues an event for publishing
-func (p *EventWorkerPool) PublishEvent(topic *olric.PubSub, tableName string, message EventMessage) {
+func (p *EventWorkerPool) PublishEvent(topic *olric.PubSub, tableName string, message WsOutMessage) {
 	job := EventJob{
 		topic:     topic,
 		tableName: tableName,
@@ -124,7 +125,7 @@ func (p *EventWorkerPool) PublishEvent(topic *olric.PubSub, tableName string, me
 		p.metrics.mu.Lock()
 		p.metrics.dropped++
 		p.metrics.mu.Unlock()
-		log.Warnf("Event queue full, dropping %s event for %s", message.EventType, tableName)
+		log.Warnf("Event queue full, dropping %s event for %s", message.Event, tableName)
 	}
 }
 
@@ -137,72 +138,86 @@ func (pc eventHandlerMiddleware) String() string {
 	return "EventGenerator"
 }
 
-type EventMessage struct {
-	MessageSource string
-	EventType     string
-	ObjectType    string
-	EventData     []byte
+// WsOutMessage is the single server→client message type on the WebSocket wire.
+// The Type field distinguishes response/event/session messages.
+type WsOutMessage struct {
+	// Common
+	Type string `json:"type"` // "response" | "event" | "session" | "pong"
+
+	// Response fields (type == "response")
+	Id     string `json:"id,omitempty"`     // echo of client request id
+	Method string `json:"method,omitempty"` // echo of client method
+	Ok     *bool  `json:"ok,omitempty"`     // success/failure
+	Error  string `json:"error,omitempty"`  // error message when ok=false
+
+	// Event fields (type == "event")
+	Topic  string `json:"topic,omitempty"`  // topic name
+	Event  string `json:"event,omitempty"`  // "create" | "update" | "delete" | "new-message"
+	Source string `json:"source,omitempty"` // "database" or user ref id
+
+	// Session fields (type == "session")
+	Status string `json:"status,omitempty"` // "open"
+
+	// Shared data payload — proper JSON object, not base64 bytes
+	Data jsoniter.RawMessage `json:"data,omitempty"`
 }
 
-// MarshalBinary encodes the struct into binary format manually
-func (e EventMessage) MarshalBinary() (data []byte, err error) {
+// MarshalBinary encodes the struct into binary format for Olric PubSub transport.
+func (e WsOutMessage) MarshalBinary() (data []byte, err error) {
 	buffer := new(bytes.Buffer)
 
-	// Encode MessageSource
-	if err := encodeString(buffer, e.MessageSource); err != nil {
+	if err := encodeString(buffer, e.Type); err != nil {
 		return nil, err
 	}
-
-	// Encode EventType
-	if err := encodeString(buffer, e.EventType); err != nil {
+	if err := encodeString(buffer, e.Topic); err != nil {
 		return nil, err
 	}
-
-	// Encode ObjectType
-	if err := encodeString(buffer, e.ObjectType); err != nil {
+	if err := encodeString(buffer, e.Event); err != nil {
 		return nil, err
 	}
-
-	// Simplified handling for EventData: encoding just the length (this should be replaced with actual data encoding logic)
-	jsonStr := string(e.EventData)
-	if err := encodeString(buffer, jsonStr); err != nil {
+	if err := encodeString(buffer, e.Source); err != nil {
+		return nil, err
+	}
+	if err := encodeString(buffer, string(e.Data)); err != nil {
 		return nil, err
 	}
 
 	return buffer.Bytes(), nil
 }
 
-// UnmarshalBinary decodes the data into the struct using manual binary decoding
-func (e *EventMessage) UnmarshalBinary(data []byte) error {
+// UnmarshalBinary decodes the data from Olric PubSub binary transport.
+func (e *WsOutMessage) UnmarshalBinary(data []byte) error {
 	buffer := bytes.NewBuffer(data)
 
-	// Decode MessageSource
-	if msgSource, err := decodeString(buffer); err != nil {
+	if v, err := decodeString(buffer); err != nil {
 		return err
 	} else {
-		e.MessageSource = msgSource
+		e.Type = v
 	}
 
-	// Decode EventType
-	if eventType, err := decodeString(buffer); err != nil {
+	if v, err := decodeString(buffer); err != nil {
 		return err
 	} else {
-		e.EventType = eventType
+		e.Topic = v
 	}
 
-	// Decode ObjectType
-	if objectType, err := decodeString(buffer); err != nil {
+	if v, err := decodeString(buffer); err != nil {
 		return err
 	} else {
-		e.ObjectType = objectType
+		e.Event = v
 	}
 
-	// Assume EventData is just the count of items (real logic needed to parse actual data)
-	if eventDataJson, err := decodeString(buffer); err != nil {
+	if v, err := decodeString(buffer); err != nil {
 		return err
 	} else {
-		e.EventData = []byte(eventDataJson)
+		e.Source = v
+	}
+
+	if v, err := decodeString(buffer); err != nil {
 		return err
+	} else {
+		e.Data = jsoniter.RawMessage(v)
+		return nil
 	}
 }
 
@@ -246,11 +261,12 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		if err != nil {
 			log.Errorf("Failed to serialize create message: %v", err)
 		} else {
-			GetEventWorkerPool().PublishEvent(topic, tableName, EventMessage{
-				MessageSource: "database",
-				EventType:     "create",
-				ObjectType:    dr.model.GetTableName(),
-				EventData:     messageBytes,
+			GetEventWorkerPool().PublishEvent(topic, tableName, WsOutMessage{
+				Type:   "event",
+				Topic:  dr.model.GetTableName(),
+				Event:  "create",
+				Source: "database",
+				Data:   messageBytes,
 			})
 		}
 		break
@@ -259,11 +275,12 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		if err != nil {
 			log.Errorf("Failed to serialize delete message: %v", err)
 		} else {
-			GetEventWorkerPool().PublishEvent(topic, tableName, EventMessage{
-				MessageSource: "database",
-				EventType:     "delete",
-				ObjectType:    dr.model.GetTableName(),
-				EventData:     messageBytes,
+			GetEventWorkerPool().PublishEvent(topic, tableName, WsOutMessage{
+				Type:   "event",
+				Topic:  dr.model.GetTableName(),
+				Event:  "delete",
+				Source: "database",
+				Data:   messageBytes,
 			})
 		}
 		break
@@ -272,11 +289,12 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		if err != nil {
 			log.Errorf("Failed to serialize update message: %v", err)
 		} else {
-			GetEventWorkerPool().PublishEvent(topic, tableName, EventMessage{
-				MessageSource: "database",
-				EventType:     "update",
-				ObjectType:    dr.model.GetTableName(),
-				EventData:     messageBytes,
+			GetEventWorkerPool().PublishEvent(topic, tableName, WsOutMessage{
+				Type:   "event",
+				Topic:  dr.model.GetTableName(),
+				Event:  "update",
+				Source: "database",
+				Data:   messageBytes,
 			})
 		}
 		break

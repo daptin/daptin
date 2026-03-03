@@ -2,10 +2,14 @@
 /**
  * WebSocket Testing Client for Daptin
  * Tests real-time features including subscriptions, custom topics, and event filtering
+ *
+ * Wire protocol (v2):
+ *   Client→Server: { id, method, attributes }
+ *   Server→Client: { type:"response"|"event"|"session"|"pong", ... }
  */
 
 const WebSocket = require('ws');
-const https = require('https');
+const http = require('http');
 
 // Configuration
 const BASE_URL = 'localhost:6336';
@@ -50,12 +54,18 @@ function log(type, message, data = null) {
   }
 }
 
+let reqCounter = 0;
+function nextId() {
+  return `req-${++reqCounter}`;
+}
+
 class DaptinWebSocketTester {
   constructor(token) {
     this.token = token;
     this.ws = null;
     this.receivedMessages = [];
     this.testResults = {};
+    this.sessionInfo = null;
   }
 
   connect() {
@@ -68,13 +78,23 @@ class DaptinWebSocketTester {
       this.ws.on('open', () => {
         log('success', 'WebSocket connection established');
         this.testResults['connection'] = true;
-        resolve();
+        // don't resolve yet — wait for session-open
       });
 
       this.ws.on('message', (data) => {
         const message = JSON.parse(data.toString());
         this.receivedMessages.push(message);
-        log('event', 'Message received', message);
+
+        // handle session-open as first message
+        if (message.type === 'session' && message.status === 'open' && !this.sessionInfo) {
+          this.sessionInfo = message.data;
+          log('success', 'Session opened', message.data);
+          this.testResults['session_open'] = true;
+          resolve();
+          return;
+        }
+
+        log('event', `Message received [type=${message.type}]`, message);
       });
 
       this.ws.on('error', (err) => {
@@ -88,85 +108,144 @@ class DaptinWebSocketTester {
 
       // Timeout after 5 seconds
       setTimeout(() => {
-        if (this.ws.readyState !== WebSocket.OPEN) {
-          reject(new Error('Connection timeout'));
+        if (!this.sessionInfo) {
+          reject(new Error('Connection/session timeout'));
         }
       }, 5000);
     });
   }
 
   send(method, attributes) {
-    const payload = { method, attributes };
-    log('info', `Sending: ${method}`, payload);
+    const id = nextId();
+    const payload = { id, method, attributes };
+    log('info', `Sending: ${method} (id=${id})`, payload);
     this.ws.send(JSON.stringify(payload));
+    return id;
+  }
+
+  async waitForResponse(sentId, timeout = 5000) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      const msg = this.receivedMessages.find(m =>
+        m.type === 'response' && m.id === sentId
+      );
+      if (msg) return msg;
+      await this.sleep(50);
+    }
+    return null;
+  }
+
+  async testPingPong() {
+    log('test', 'Test: Ping/Pong');
+    const beforeCount = this.receivedMessages.length;
+    this.ws.send(JSON.stringify({ method: 'ping' }));
+    await this.waitForMessage(beforeCount, 3000);
+    const response = this.receivedMessages[this.receivedMessages.length - 1];
+    if (response && response.type === 'pong') {
+      log('success', 'Pong received');
+      this.testResults['ping_pong'] = true;
+    } else {
+      log('error', 'Failed to get pong', response);
+      this.testResults['ping_pong'] = false;
+    }
   }
 
   async testSubscribe(topicName) {
     log('test', `Test: Subscribe to topic '${topicName}'`);
-    this.send('subscribe', { topicName });
-    await this.sleep(1000);
-    this.testResults[`subscribe_${topicName}`] = true;
+    const id = this.send('subscribe', { topicName });
+    const response = await this.waitForResponse(id);
+    if (response && response.ok === true && response.method === 'subscribe') {
+      log('success', `Subscribed to ${topicName}`, response.data);
+      this.testResults[`subscribe_${topicName}`] = true;
+    } else {
+      log('error', `Subscribe failed for ${topicName}`, response);
+      this.testResults[`subscribe_${topicName}`] = false;
+    }
   }
 
   async testSubscribeMultiple(topics) {
     log('test', `Test: Subscribe to multiple topics: ${topics.join(', ')}`);
-    this.send('subscribe', { topicName: topics.join(',') });
-    await this.sleep(1000);
-    this.testResults['subscribe_multiple'] = true;
-  }
-
-  async testListTopics() {
-    log('test', 'Test: List topics');
-    const beforeCount = this.receivedMessages.length;
-    this.send('list-topicName', {});
-
-    // Wait for response
-    await this.waitForMessage(beforeCount, 3000);
-
-    const response = this.receivedMessages[this.receivedMessages.length - 1];
-    if (response && response.ObjectType === 'topicName-list') {
-      log('success', 'Topics list received', response);
-      this.testResults['list_topics'] = true;
-      return response;
-    } else {
-      log('error', 'Failed to get topics list');
-      this.testResults['list_topics'] = false;
-    }
+    const id = this.send('subscribe', { topicName: topics.join(',') });
+    // expect one response per topic
+    await this.sleep(2000);
+    const responses = this.receivedMessages.filter(m =>
+      m.type === 'response' && m.method === 'subscribe'
+    );
+    this.testResults['subscribe_multiple'] = responses.length >= topics.length;
+    log(responses.length >= topics.length ? 'success' : 'error',
+      `Got ${responses.length} subscribe responses for ${topics.length} topics`);
   }
 
   async testCreateTopic(topicName) {
     log('test', `Test: Create custom topic '${topicName}'`);
-    this.send('create-topicName', { name: topicName });
-    await this.sleep(1000);
-    this.testResults[`create_topic_${topicName}`] = true;
+    const id = this.send('create-topicName', { name: topicName });
+    const response = await this.waitForResponse(id);
+    if (response && response.ok === true) {
+      log('success', `Topic ${topicName} created`, response.data);
+      this.testResults[`create_topic_${topicName}`] = true;
+    } else {
+      log('error', `Create topic failed`, response);
+      this.testResults[`create_topic_${topicName}`] = false;
+    }
   }
 
   async testPublishMessage(topicName, message) {
     log('test', `Test: Publish message to '${topicName}'`);
-    this.send('new-message', { topicName, message });
+    const id = this.send('new-message', { topicName, message });
     await this.sleep(1000);
     this.testResults[`publish_${topicName}`] = true;
   }
 
   async testUnsubscribe(topicName) {
     log('test', `Test: Unsubscribe from '${topicName}'`);
-    this.send('unsubscribe', { topicName });
-    await this.sleep(1000);
-    this.testResults[`unsubscribe_${topicName}`] = true;
+    const id = this.send('unsubscribe', { topicName });
+    const response = await this.waitForResponse(id);
+    if (response && response.ok === true && response.method === 'unsubscribe') {
+      log('success', `Unsubscribed from ${topicName}`);
+      this.testResults[`unsubscribe_${topicName}`] = true;
+    } else {
+      log('error', `Unsubscribe failed`, response);
+      this.testResults[`unsubscribe_${topicName}`] = false;
+    }
   }
 
   async testDestroyTopic(topicName) {
     log('test', `Test: Destroy custom topic '${topicName}'`);
-    this.send('destroy-topicName', { name: topicName });
-    await this.sleep(1000);
-    this.testResults[`destroy_topic_${topicName}`] = true;
+    const id = this.send('destroy-topicName', { name: topicName });
+    const response = await this.waitForResponse(id);
+    if (response && response.ok === true) {
+      log('success', `Topic ${topicName} destroyed`);
+      this.testResults[`destroy_topic_${topicName}`] = true;
+    } else {
+      log('error', `Destroy topic failed`, response);
+      this.testResults[`destroy_topic_${topicName}`] = false;
+    }
   }
 
   async testSubscribeWithFilter(topicName, filters) {
     log('test', `Test: Subscribe to '${topicName}' with filters`, filters);
-    this.send('subscribe', { topicName, filters });
-    await this.sleep(1000);
-    this.testResults[`subscribe_filter_${topicName}`] = true;
+    const id = this.send('subscribe', { topicName, filters });
+    const response = await this.waitForResponse(id);
+    if (response && response.ok === true) {
+      log('success', `Subscribed with filter to ${topicName}`);
+      this.testResults[`subscribe_filter_${topicName}`] = true;
+    } else {
+      log('error', `Subscribe with filter failed`, response);
+      this.testResults[`subscribe_filter_${topicName}`] = false;
+    }
+  }
+
+  async testNoSuchMethod() {
+    log('test', 'Test: Unknown method returns error');
+    const id = this.send('nonexistent-method', {});
+    const response = await this.waitForResponse(id);
+    if (response && response.ok === false && response.error === 'no such method') {
+      log('success', 'Got expected error for unknown method');
+      this.testResults['no_such_method'] = true;
+    } else {
+      log('error', 'Unexpected response for unknown method', response);
+      this.testResults['no_such_method'] = false;
+    }
   }
 
   async waitForMessage(beforeCount, timeout = 5000) {
@@ -211,46 +290,6 @@ class DaptinWebSocketTester {
   }
 }
 
-// API Helper to trigger events
-async function createTestRecord(token, tableName, data) {
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      data: {
-        type: tableName,
-        attributes: data
-      }
-    });
-
-    const options = {
-      hostname: 'localhost',
-      port: 6336,
-      path: `/api/${tableName}`,
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/vnd.api+json',
-        'Content-Length': postData.length
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(JSON.parse(body));
-        } else {
-          reject(new Error(`HTTP ${res.statusCode}: ${body}`));
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.write(postData);
-    req.end();
-  });
-}
-
 // Main test suite
 async function runTests() {
   const token = process.env.TOKEN || process.argv[2];
@@ -260,18 +299,18 @@ async function runTests() {
     process.exit(1);
   }
 
-  log('info', 'Starting WebSocket test suite');
+  log('info', 'Starting WebSocket test suite (v2 wire protocol)');
   log('info', `Server: ${BASE_URL}`);
 
   const tester = new DaptinWebSocketTester(token);
 
   try {
-    // Test 1: Connect
+    // Test 1: Connect + session-open
     await tester.connect();
-    await tester.sleep(1000);
+    await tester.sleep(500);
 
-    // Test 2: List topics
-    await tester.testListTopics();
+    // Test 2: Ping/Pong
+    await tester.testPingPong();
 
     // Test 3: Subscribe to user_account topic
     await tester.testSubscribe('user_account');
@@ -289,11 +328,11 @@ async function runTests() {
     // Test 7: Publish to custom topic
     await tester.testPublishMessage(customTopic, { text: 'Hello WebSocket!', timestamp: new Date().toISOString() });
 
-    // Test 8: List topics again (should include custom topic)
-    await tester.testListTopics();
+    // Test 8: Subscribe with filter
+    await tester.testSubscribeWithFilter('world', { EventType: 'create' });
 
-    // Test 9: Subscribe with filter
-    await tester.testSubscribeWithFilter('user_account', { EventType: 'create' });
+    // Test 9: Unknown method
+    await tester.testNoSuchMethod();
 
     // Test 10: Unsubscribe
     await tester.testUnsubscribe(customTopic);

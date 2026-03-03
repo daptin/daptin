@@ -2,8 +2,6 @@
 
 Real-time pub/sub messaging via WebSocket.
 
-**Tested ✓** (2026-01-26) - All features working and verified
-
 ## Endpoint
 
 ```
@@ -13,7 +11,7 @@ wss://localhost:6443/live
 
 ## Authentication
 
-Pass JWT token as query parameter:
+Pass JWT token via query parameter, header, or cookie:
 
 ```javascript
 const ws = new WebSocket(`ws://localhost:6336/live?token=${TOKEN}`);
@@ -24,335 +22,350 @@ const ws = new WebSocket(`ws://localhost:6336/live?token=${TOKEN}`);
 - Authorization header: `Bearer JWT_TOKEN`
 - Cookie: `token=JWT_TOKEN`
 
-## Message Format
+## Wire Protocol
 
-All messages are JSON:
+### Client → Server (request)
 
-```javascript
-{
-  "method": "method_name",
-  "attributes": {...}
-}
+All client messages are JSON with `method`, optional `id` for request correlation, and `attributes`:
+
+```json
+{ "id": "req-1", "method": "subscribe", "attributes": { "topicName": "user_account" } }
 ```
+
+If `id` is included, the server echoes it in the response. If omitted, the response has no `id` field.
+
+### Server → Client (four message types)
+
+All server messages have a `type` field that distinguishes the message category.
+
+**Session** — sent once on connection:
+```json
+{ "type": "session", "status": "open", "data": { "user": "uuid-string", "groups": ["group-ref-1"], "sessionId": 42 } }
+```
+
+**Response** — reply to a client request:
+```json
+{ "id": "req-1", "type": "response", "method": "subscribe", "ok": true, "data": { "topic": "user_account" } }
+{ "id": "req-1", "type": "response", "method": "subscribe", "ok": false, "error": "permission denied" }
+```
+
+**Event** — push from a subscription:
+```json
+{ "type": "event", "topic": "user_account", "event": "create", "data": { "id": 1, "name": "John", "__type": "user_account" }, "source": "database" }
+```
+
+**Pong** — reply to client ping:
+```json
+{ "type": "pong" }
+```
+
+Key difference from earlier protocol versions: `data` is always a proper JSON object, never base64-encoded.
+
+## Connection Lifecycle
+
+1. Client opens WebSocket with authentication
+2. Server sends `{"type": "session", "status": "open", ...}` with user info
+3. Client sends requests, server sends responses and push events
+4. Client can send `{"method": "ping"}` at any time to check liveness
 
 ## Methods
-
-All methods send JSON messages to the WebSocket. Responses are also JSON.
-
-### list-topicName
-
-List all available topics in the system.
-
-**Request:**
-```javascript
-ws.send(JSON.stringify({
-  "method": "list-topicName",
-  "attributes": {}
-}));
-```
-
-**Response:**
-```json
-{
-  "EventType": "response",
-  "ObjectType": "topicName-list",
-  "EventData": "eyJ0b3BpY3MiOlsidXNlcl9hY2NvdW50IiwidG9rZW4iLCJ3b3JsZCIsLi4uXX0="
-}
-```
-
-The `EventData` is base64-encoded JSON:
-```javascript
-const data = JSON.parse(Buffer.from(msg.EventData, 'base64').toString());
-console.log(data.topics); // Array of topic names
-```
-
-**Tested:** Returns 69 system topics including all database tables and join tables.
 
 ### subscribe
 
 Subscribe to one or more topics for real-time updates.
 
 **Single topic:**
-```javascript
-ws.send(JSON.stringify({
-  "method": "subscribe",
-  "attributes": {
-    "topicName": "user_account"
-  }
-}));
+```json
+{ "id": "req-1", "method": "subscribe", "attributes": { "topicName": "user_account" } }
 ```
 
 **Multiple topics (comma-separated):**
-```javascript
-ws.send(JSON.stringify({
-  "method": "subscribe",
-  "attributes": {
-    "topicName": "user_account,document,order"
-  }
-}));
-```
-
-**With event filter:**
-```javascript
-ws.send(JSON.stringify({
-  "method": "subscribe",
-  "attributes": {
-    "topicName": "order",
-    "EventType": "create"  // Only receive CREATE events
-  }
-}));
-```
-
-**Response:**
 ```json
-{
-  "EventType": "subscription-confirmed",
-  "ObjectType": "subscription-response"
-}
+{ "id": "req-2", "method": "subscribe", "attributes": { "topicName": "user_account,document,order" } }
 ```
 
-After subscribing, you'll receive real-time events when data changes:
+**Response (per topic):**
 ```json
-{
-  "EventType": "create",
-  "ObjectType": "order",
-  "EventData": "base64EncodedOrderData..."
-}
+{ "id": "req-1", "type": "response", "method": "subscribe", "ok": true, "data": { "topic": "user_account" } }
+```
+
+**Error (nonexistent or permission denied):**
+```json
+{ "id": "req-1", "type": "response", "method": "subscribe", "ok": false, "error": "permission denied: secret_table" }
+```
+
+After subscribing, you receive push events when data changes:
+```json
+{ "type": "event", "topic": "user_account", "event": "create", "data": { ... }, "source": "database" }
 ```
 
 ### unsubscribe
 
-Unsubscribe from topics.
+Stop receiving events from topics.
 
-**Request:**
-```javascript
-ws.send(JSON.stringify({
-  "method": "unsubscribe",
-  "attributes": {
-    "topicName": "user_account,document"
-  }
-}));
+```json
+{ "id": "req-3", "method": "unsubscribe", "attributes": { "topicName": "user_account" } }
+```
+
+**Response:**
+```json
+{ "id": "req-3", "type": "response", "method": "unsubscribe", "ok": true, "data": { "topic": "user_account" } }
 ```
 
 ### new-message
 
-Publish a message to a topic (custom topics only).
+Publish a message to a topic.
 
-**Request:**
-```javascript
-ws.send(JSON.stringify({
+```json
+{
+  "id": "req-4",
   "method": "new-message",
   "attributes": {
     "topicName": "chat-room-1",
-    "message": "Hello everyone!"
+    "message": { "text": "Hello everyone!", "from": "alice" }
   }
-}));
+}
 ```
 
-**Note:** You cannot publish to system topics (table names). Use custom topics created with `create-topicName`.
+Subscribers on that topic receive:
+```json
+{ "type": "event", "topic": "chat-room-1", "event": "new-message", "data": { "text": "Hello everyone!", "from": "alice" }, "source": "user-uuid" }
+```
+
+**Permission:** Requires CanExecute on user topics (GuestExecute bit for non-owners), CanCreate on system topics.
 
 ### create-topicName
 
 Create a custom PubSub topic for application-specific messaging.
 
-**Request:**
-```javascript
-ws.send(JSON.stringify({
-  "method": "create-topicName",
-  "attributes": {
-    "name": "chat-room-1"
-  }
-}));
+```json
+{ "id": "req-5", "method": "create-topicName", "attributes": { "name": "chat-room-1" } }
 ```
 
-System topics (database tables) are created automatically. Use this for custom topics like:
-- Chat rooms
-- Notification channels
-- Custom event streams
+**Response:**
+```json
+{ "id": "req-5", "type": "response", "method": "create-topicName", "ok": true, "data": { "topicName": "chat-room-1", "created": true } }
+```
+
+The creating user becomes the topic owner. Default permission is owner-only (UserCRUD|UserExecute).
+
+**Errors:**
+- Cannot use names that match database table names (reserved for system topics)
+- Cannot create a topic that already exists
 
 ### destroy-topicName
 
 Delete a custom topic.
 
-**Request:**
-```javascript
-ws.send(JSON.stringify({
-  "method": "destroy-topicName",
-  "attributes": {
-    "name": "chat-room-1"
-  }
-}));
+```json
+{ "id": "req-6", "method": "destroy-topicName", "attributes": { "name": "chat-room-1" } }
 ```
 
-**Note:** Cannot delete system topics (database tables).
+**Permission:** Requires CanDelete (owner by default). Cannot delete system topics.
+
+### set-topic-permission
+
+Change the permission bitmask on a user-created topic. Only the topic owner or an admin can call this.
+
+```json
+{
+  "id": "req-7",
+  "method": "set-topic-permission",
+  "attributes": {
+    "topicName": "chat-room-1",
+    "permission": 2097151
+  }
+}
+```
+
+**Response:**
+```json
+{ "id": "req-7", "type": "response", "method": "set-topic-permission", "ok": true, "data": { "topicName": "chat-room-1", "permission": 2097151 } }
+```
+
+Cannot modify system topic permissions.
+
+### get-topic-permission
+
+Read the permission bitmask and ownership info of a topic.
+
+```json
+{ "id": "req-8", "method": "get-topic-permission", "attributes": { "topicName": "chat-room-1" } }
+```
+
+**Response (user topic):**
+```json
+{ "id": "req-8", "type": "response", "method": "get-topic-permission", "ok": true, "data": { "topicName": "chat-room-1", "owner": "user-uuid", "permission": 2097151, "type": "user" } }
+```
+
+**Response (system topic):**
+```json
+{ "id": "req-8", "type": "response", "method": "get-topic-permission", "ok": true, "data": { "topicName": "user_account", "permission": 262206, "type": "system" } }
+```
+
+**Permission:** Requires CanPeek (GuestPeek bit for non-owners).
+
+### ping
+
+Check connection liveness.
+
+```json
+{ "method": "ping" }
+```
+
+**Response:**
+```json
+{ "type": "pong" }
+```
+
+## Topic Permissions
+
+User-created topics have a permission bitmask that controls access for non-owners. The permission model uses three tiers: Guest (any authenticated user), User (owner), and Group.
+
+### Permission Bits
+
+| Bit | Name | Value | Description |
+|-----|------|-------|-------------|
+| 0 | GuestPeek | 1 | Non-owner can get-topic-permission |
+| 1 | GuestRead | 2 | Non-owner can subscribe |
+| 2 | GuestCreate | 4 | Non-owner can publish (system topics) |
+| 3 | GuestUpdate | 8 | — |
+| 4 | GuestDelete | 16 | Non-owner can destroy |
+| 5 | GuestExecute | 32 | Non-owner can publish (user topics) |
+| 6 | GuestRefer | 64 | — |
+| 7 | UserPeek | 128 | Owner can get-topic-permission |
+| 8 | UserRead | 256 | Owner can subscribe |
+| 9 | UserCreate | 512 | Owner can publish (system topics) |
+| 10 | UserUpdate | 1024 | — |
+| 11 | UserDelete | 2048 | Owner can destroy |
+| 12 | UserExecute | 4096 | Owner can publish (user topics) |
+| 13 | UserRefer | 8192 | — |
+
+### Default Permissions
+
+| Topic Type | Default Permission | Effect |
+|------------|-------------------|--------|
+| User-created | UserCRUD \| UserExecute (16256) | Owner-only access |
+| System | Table permission from database | Follows table-level permissions |
+
+### Common Permission Values
+
+| Value | Name | Effect |
+|-------|------|--------|
+| 16256 | Owner-only | Only creator can access |
+| 16259 | Owner + public read | Anyone can subscribe, owner controls rest |
+| 16291 | Owner + public read/write | Anyone can subscribe and publish |
+| 2097151 | ALLOW_ALL | Full access for everyone |
+
+### Permission Checks by Method
+
+| Method | System Topic Check | User Topic Check |
+|--------|-------------------|-----------------|
+| subscribe | CanPeek (table permission) | CanRead (GuestRead for non-owner) |
+| new-message | CanCreate (table permission) | CanExecute (GuestExecute for non-owner) |
+| destroy-topicName | Always denied | CanDelete (GuestDelete for non-owner) |
+| set-topic-permission | Always denied | Owner or admin only |
+| get-topic-permission | CanPeek (table permission) | CanPeek (GuestPeek for non-owner) |
 
 ## System Topics
 
 Each database table automatically has a topic:
 
-- `user_account` - User account changes
-- `document` - Document changes
-- `order` - Order changes
-- `world` - Schema/table definition changes
-- `credential` - Credential changes
-- `cloud_store` - Cloud storage changes
-- Join tables also have topics (e.g., `user_account_user_account_id_has_usergroup_usergroup_id`)
+- `user_account` — User account changes
+- `document` — Document changes
+- `order` — Order changes
+- `world` — Schema/table definition changes
+- `credential` — Credential changes
+- `cloud_store` — Cloud storage changes
+- Join tables also have topics
 
-**69 topics available** in a default installation (varies by your schema).
+System topics:
+- Cannot be created or destroyed via WebSocket
+- Permissions come from the table-level permission in the database
+- Events are filtered per-row: users only receive events for records they can read
 
-## Event Messages
+## Event Types
 
-When data changes, subscribers receive real-time events:
-
-```json
-{
-  "EventType": "create",
-  "ObjectType": "order",
-  "EventData": "base64EncodedOrderData..."
-}
-```
-
-The `EventData` is base64-encoded JSON:
-```javascript
-const eventData = JSON.parse(
-  Buffer.from(msg.EventData, 'base64').toString()
-);
-```
-
-### Event Types
-
-| EventType | Description |
-|-----------|-------------|
-| `create` | New record created |
-| `update` | Record updated |
-| `delete` | Record deleted |
-
-## Permission-Aware Filtering
-
-Events are automatically filtered by user permissions:
-- Users only receive events for records they can read
-- Admins receive all events
-- No additional filtering configuration needed
+| Event | Description |
+|-------|-------------|
+| `create` | New record created (system topics) |
+| `update` | Record updated (system topics) |
+| `delete` | Record deleted (system topics) |
+| `new-message` | User-published message (user topics) |
 
 ## Complete Working Example
 
-Here's a complete Node.js example demonstrating all features:
-
 ```javascript
 const WebSocket = require('ws');
-
-// Get your JWT token (e.g., from signup/signin action)
 const TOKEN = process.env.DAPTIN_TOKEN;
 
-// Connect to WebSocket with token authentication
+let reqCounter = 0;
+function nextId() { return `req-${++reqCounter}`; }
+
 const ws = new WebSocket(`ws://localhost:6336/live?token=${TOKEN}`);
 
-ws.on('open', function open() {
-  console.log('Connected!');
+ws.on('open', () => console.log('WebSocket open, waiting for session...'));
 
-  // 1. List all available topics
-  ws.send(JSON.stringify({
-    method: 'list-topicName',
-    attributes: {}
-  }));
+ws.on('message', (raw) => {
+  const msg = JSON.parse(raw.toString());
 
-  // 2. Subscribe to user_account changes
-  setTimeout(() => {
-    ws.send(JSON.stringify({
-      method: 'subscribe',
-      attributes: {
-        topicName: 'user_account'
+  switch (msg.type) {
+    case 'session':
+      console.log(`Session opened: user=${msg.data.user} sessionId=${msg.data.sessionId}`);
+
+      // Subscribe to user_account changes
+      ws.send(JSON.stringify({
+        id: nextId(), method: 'subscribe',
+        attributes: { topicName: 'user_account' }
+      }));
+
+      // Create a custom topic
+      ws.send(JSON.stringify({
+        id: nextId(), method: 'create-topicName',
+        attributes: { name: 'app-notifications' }
+      }));
+      break;
+
+    case 'response':
+      const status = msg.ok ? 'OK' : `ERROR: ${msg.error}`;
+      console.log(`Response [${msg.id}] ${msg.method}: ${status}`);
+
+      // After create, subscribe and publish
+      if (msg.method === 'create-topicName' && msg.ok) {
+        ws.send(JSON.stringify({
+          id: nextId(), method: 'subscribe',
+          attributes: { topicName: 'app-notifications' }
+        }));
+        setTimeout(() => {
+          ws.send(JSON.stringify({
+            id: nextId(), method: 'new-message',
+            attributes: {
+              topicName: 'app-notifications',
+              message: { text: 'Hello from WebSocket!', ts: new Date().toISOString() }
+            }
+          }));
+        }, 500);
       }
-    }));
-  }, 1000);
+      break;
 
-  // 3. Create a custom topic for chat
-  setTimeout(() => {
-    ws.send(JSON.stringify({
-      method: 'create-topicName',
-      attributes: {
-        name: 'app-notifications'
-      }
-    }));
-  }, 2000);
+    case 'event':
+      console.log(`Event: ${msg.event} on ${msg.topic}`);
+      console.log('  Data:', JSON.stringify(msg.data));
+      break;
 
-  // 4. Subscribe to custom topic
-  setTimeout(() => {
-    ws.send(JSON.stringify({
-      method: 'subscribe',
-      attributes: {
-        topicName: 'app-notifications'
-      }
-    }));
-  }, 3000);
-
-  // 5. Publish to custom topic
-  setTimeout(() => {
-    ws.send(JSON.stringify({
-      method: 'new-message',
-      attributes: {
-        topicName: 'app-notifications',
-        message: JSON.stringify({
-          type: 'alert',
-          text: 'Server maintenance at 2am'
-        })
-      }
-    }));
-  }, 4000);
-});
-
-ws.on('message', function incoming(data) {
-  const msg = JSON.parse(data.toString());
-
-  // Handle topic list
-  if (msg.ObjectType === 'topicName-list') {
-    const topics = JSON.parse(
-      Buffer.from(msg.EventData, 'base64').toString()
-    );
-    console.log(`Available topics (${topics.topics.length}):`,
-      topics.topics.slice(0, 5).join(', '), '...');
-  }
-
-  // Handle subscription confirmation
-  else if (msg.ObjectType === 'subscription-response') {
-    console.log('Subscribed!', msg.EventType);
-  }
-
-  // Handle real-time events
-  else {
-    console.log('Event received:', msg.EventType, 'on', msg.ObjectType);
-    if (msg.EventData) {
-      const data = JSON.parse(
-        Buffer.from(msg.EventData, 'base64').toString()
-      );
-      console.log('Event data:', data);
-    }
+    case 'pong':
+      console.log('Pong received');
+      break;
   }
 });
 
-ws.on('error', function error(err) {
-  console.error('WebSocket error:', err.message);
-});
-
-ws.on('close', function close() {
-  console.log('Connection closed');
-});
+ws.on('error', (err) => console.error('Error:', err.message));
+ws.on('close', () => console.log('Connection closed'));
 ```
 
-**Run this example:**
+**Run:**
 ```bash
-# Save as test-websocket.js
-TOKEN=$(cat /tmp/daptin-token.txt) node test-websocket.js
-```
-
-**Expected output:**
-```
-Connected!
-Available topics (69): mail_box, ticket_state, certificate, user_otp_account, timeline ...
-Subscribed! user_account
-Subscribed! app-notifications
-Event received: new-message on app-notifications
-Event data: { type: 'alert', text: 'Server maintenance at 2am' }
+DAPTIN_TOKEN=$(cat /tmp/daptin-token.txt) node example.js
 ```
 
 ## JavaScript Client
@@ -362,114 +375,136 @@ class DaptinWebSocket {
   constructor(baseUrl, token) {
     this.url = `${baseUrl}/live?token=${token}`;
     this.handlers = {};
+    this.reqCounter = 0;
+    this.pendingRequests = {};
     this.connect();
   }
+
+  nextId() { return `req-${++this.reqCounter}`; }
 
   connect() {
     this.ws = new WebSocket(this.url);
 
-    this.ws.onopen = () => {
-      console.log('Connected to Daptin WebSocket');
-    };
-
     this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.handleMessage(data);
+      const msg = JSON.parse(event.data);
+
+      if (msg.type === 'session') {
+        console.log('Connected, session:', msg.data);
+        return;
+      }
+
+      if (msg.type === 'response' && msg.id && this.pendingRequests[msg.id]) {
+        this.pendingRequests[msg.id](msg);
+        delete this.pendingRequests[msg.id];
+        return;
+      }
+
+      if (msg.type === 'event' && this.handlers[msg.topic]) {
+        this.handlers[msg.topic](msg);
+      }
     };
 
     this.ws.onclose = () => {
-      // Reconnect after 5 seconds
       setTimeout(() => this.connect(), 5000);
     };
   }
 
-  handleMessage(data) {
-    if (data.type === 'event' && this.handlers[data.topic]) {
-      this.handlers[data.topic](data);
-    }
-  }
-
-  subscribe(topics, handler) {
-    const topicList = Array.isArray(topics) ? topics : [topics];
-    topicList.forEach(topic => {
-      this.handlers[topic] = handler;
+  send(method, attributes) {
+    const id = this.nextId();
+    return new Promise((resolve) => {
+      this.pendingRequests[id] = resolve;
+      this.ws.send(JSON.stringify({ id, method, attributes }));
     });
-
-    this.ws.send(JSON.stringify({
-      method: 'subscribe',
-      attributes: { topicName: topicList.join(',') }
-    }));
   }
 
-  publish(topic, message) {
-    this.ws.send(JSON.stringify({
-      method: 'new-message',
-      attributes: { topicName: topic, message }
-    }));
+  async subscribe(topics, handler) {
+    const topicList = Array.isArray(topics) ? topics : [topics];
+    topicList.forEach(topic => { this.handlers[topic] = handler; });
+    return this.send('subscribe', { topicName: topicList.join(',') });
   }
 
-  createTopic(name) {
-    this.ws.send(JSON.stringify({
-      method: 'create-topic',
-      attributes: { name }
-    }));
+  async publish(topic, message) {
+    return this.send('new-message', { topicName: topic, message });
+  }
+
+  async createTopic(name) {
+    return this.send('create-topicName', { name });
+  }
+
+  async setPermission(topicName, permission) {
+    return this.send('set-topic-permission', { topicName, permission });
+  }
+
+  ping() {
+    this.ws.send(JSON.stringify({ method: 'ping' }));
   }
 }
 
 // Usage
 const ws = new DaptinWebSocket('ws://localhost:6336', TOKEN);
 
-// Subscribe to order updates
 ws.subscribe('order', (event) => {
   console.log('Order event:', event.event, event.data);
 });
 
-// Subscribe to multiple tables
 ws.subscribe(['user_account', 'document'], (event) => {
   console.log('Event:', event.topic, event.event);
 });
 
-// Create custom chat topic
-ws.createTopic('chat-room-1');
-
-// Publish to custom topic
-ws.publish('chat-room-1', 'Hello!');
+// Create a public topic
+const resp = await ws.createTopic('chat-room-1');
+if (resp.ok) {
+  await ws.setPermission('chat-room-1', 2097151); // ALLOW_ALL
+  await ws.publish('chat-room-1', { text: 'Hello!' });
+}
 ```
 
 ## React Hook Example
 
 ```javascript
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 function useDaptinWebSocket(token) {
-  const [ws, setWs] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState(null);
   const [messages, setMessages] = useState([]);
+  const wsRef = useRef(null);
+  const reqCounter = useRef(0);
 
   useEffect(() => {
     const socket = new WebSocket(`ws://localhost:6336/live?token=${token}`);
 
-    socket.onopen = () => setConnected(true);
-    socket.onclose = () => setConnected(false);
     socket.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      setMessages(prev => [...prev, data]);
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === 'session') {
+        setSessionInfo(msg.data);
+        setConnected(true);
+        return;
+      }
+
+      if (msg.type === 'event') {
+        setMessages(prev => [...prev, msg]);
+      }
     };
 
-    setWs(socket);
+    socket.onclose = () => setConnected(false);
+    wsRef.current = socket;
     return () => socket.close();
   }, [token]);
 
   const subscribe = useCallback((topics) => {
-    if (ws && connected) {
-      ws.send(JSON.stringify({
+    if (wsRef.current && connected) {
+      const id = `req-${++reqCounter.current}`;
+      wsRef.current.send(JSON.stringify({
+        id,
         method: 'subscribe',
         attributes: { topicName: Array.isArray(topics) ? topics.join(',') : topics }
       }));
     }
-  }, [ws, connected]);
+  }, [connected]);
 
-  return { connected, messages, subscribe };
+  return { connected, sessionInfo, messages, subscribe };
 }
 ```
 
@@ -481,59 +516,15 @@ WebSocket events are distributed across cluster nodes using Olric pub/sub:
 - Clients can connect to any node
 - Messages propagate cluster-wide
 
----
+## Method Reference
 
-## Testing Status
-
-**Last Tested:** 2026-01-26
-**Status:** ✅ All features working
-
-### Verified Features
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| WebSocket connection | ✅ Working | Connects successfully with token query param |
-| list-topicName | ✅ Working | Returns 69 available topics |
-| subscribe | ✅ Working | Successfully subscribes to topics |
-| new-message | ✅ Working | Publishes messages to topics |
-| create-topicName | ✅ Working | Creates custom PubSub topics |
-| destroy-topicName | ✅ Working | Deletes custom topics |
-| unsubscribe | ✅ Working | Unsubscribes from topics |
-| Event filtering | ✅ Working | Permission-based event delivery |
-| Permission checks | ✅ Working | Users only receive events they can read |
-
-### Test Results
-
-Successfully tested with Node.js WebSocket client:
-
-```bash
-# Test connection and list topics
-node test-live-ws.js "$(cat /tmp/daptin-token.txt)"
-
-# Output:
-# ✓ /live WebSocket connected successfully!
-# ← Received 69 available topics
-# Sample topics: mail_box, ticket_state, certificate, user_otp_account, timeline
-
-# Full feature test
-node test-websocket-full.js "$(cat /tmp/daptin-token.txt)"
-
-# Output:
-# ✓ WebSocket connected successfully!
-# ✓ Received 69 available topics
-# ✓ Subscription confirmed: user_account
-# ✓ Subscription confirmed: ticket
-```
-
-### Method Name Reference
-
-**Important:** Method names use `topicName` suffix (not `topic`):
-
-| Method | Correct Name |
-|--------|-------------|
-| List topics | `list-topicName` |
-| Create topic | `create-topicName` |
-| Destroy topic | `destroy-topicName` |
-| Subscribe | `subscribe` |
-| Publish | `new-message` |
-| Unsubscribe | `unsubscribe` |
+| Method | Purpose | Attributes |
+|--------|---------|------------|
+| `subscribe` | Subscribe to topics | `{topicName: "topic1,topic2"}` |
+| `unsubscribe` | Unsubscribe from topics | `{topicName: "topic1"}` |
+| `create-topicName` | Create custom topic | `{name: "my-topic"}` |
+| `destroy-topicName` | Delete custom topic | `{name: "my-topic"}` |
+| `new-message` | Publish to topic | `{topicName: "my-topic", message: {...}}` |
+| `set-topic-permission` | Set topic permissions | `{topicName: "my-topic", permission: 2097151}` |
+| `get-topic-permission` | Get topic permissions | `{topicName: "my-topic"}` |
+| `ping` | Connection health check | `{}` |
