@@ -269,7 +269,7 @@ func createServer() (hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.Ta
 	configStore.SetConfigValueFor("imap.enabled", "true", "backend", transaction)
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend", transaction)
 	configStore.SetConfigValueFor("logs.enable", "true", "backend", transaction)
-	configStore.SetConfigValueFor("limit.max_connectioins", "5000", "backend", transaction)
+	configStore.SetConfigValueFor("limit.max_connections", "5000", "backend", transaction)
 	//configStore.SetConfigValueFor("limit.rate", "5000", "backend", transaction)
 	transaction.Commit()
 

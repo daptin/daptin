@@ -3,6 +3,8 @@ package websockets
 import (
 	"context"
 	"encoding/json"
+	"sync"
+
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/permission"
@@ -13,12 +15,39 @@ import (
 	"strings"
 )
 
+// PubSubEntry tracks a subscription and its cancel function
+type PubSubEntry struct {
+	pubsub *redis.PubSub
+	cancel context.CancelFunc
+}
+
 // WebSocketConnectionHandlerImpl : Each websocket connection has its own handler
 type WebSocketConnectionHandlerImpl struct {
 	DtopicMap        *map[string]*olric.PubSub
-	subscribedTopics map[string]*redis.PubSub
+	dtopicMapLock    *sync.RWMutex
+	subscribedTopics map[string]*PubSubEntry
 	olricDb          *olric.EmbeddedClient
 	cruds            map[string]*resource.DbResource
+}
+
+func (wsch *WebSocketConnectionHandlerImpl) Close() {
+	for topic, entry := range wsch.subscribedTopics {
+		entry.cancel()
+		entry.pubsub.Close()
+		delete(wsch.subscribedTopics, topic)
+	}
+}
+
+func sendError(client *Client, method string, message string) {
+	data, _ := json.Marshal(map[string]interface{}{
+		"error": message,
+	})
+	client.Write(resource.EventMessage{
+		EventType:     "error",
+		ObjectType:    method,
+		EventData:     data,
+		MessageSource: "system",
+	})
 }
 
 func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketPayload, client *Client) {
@@ -35,23 +64,39 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		filters, ok := message.Payload["filters"]
 		var filtersMap map[string]interface{}
 		if ok {
-			filtersMap = filters.(map[string]interface{})
+			filtersMap, ok = filters.(map[string]interface{})
+			if !ok {
+				filtersMap = nil
+			}
 		}
 
 		topicsList := strings.Split(topics, ",")
 		for _, topic := range topicsList {
 			_, ok := wsch.subscribedTopics[topic]
 			if !ok {
-				var err error
 				eventType, ok := filtersMap["EventType"]
 				eventTypeString := ""
 				if ok {
-					eventTypeString = eventType.(string)
+					eventTypeString, _ = eventType.(string)
 					delete(filtersMap, "EventType")
 				}
+
+				wsch.dtopicMapLock.RLock()
 				dTopic := (*wsch.DtopicMap)[topic]
-				subscription := dTopic.Subscribe(context.Background(), topic)
-				wsch.subscribedTopics[topic] = subscription
+				wsch.dtopicMapLock.RUnlock()
+
+				if dTopic == nil {
+					log.Warnf("topic not found, skipping subscribe: %v", topic)
+					sendError(client, "subscribe", "topic not found: "+topic)
+					continue
+				}
+
+				ctx, cancel := context.WithCancel(context.Background())
+				subscription := dTopic.Subscribe(ctx, topic)
+				wsch.subscribedTopics[topic] = &PubSubEntry{
+					pubsub: subscription,
+					cancel: cancel,
+				}
 				go func(pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}) {
 					listenChannel := pubsub.Channel()
 
@@ -62,7 +107,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 							return
 						}
 						var eventMessage resource.EventMessage
-						err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
+						err := eventMessage.UnmarshalBinary([]byte(msg.Payload))
 						resource.CheckErr(err, "Failed to unmarshal eventMessage")
 
 						eventDataMap := make(map[string]interface{})
@@ -72,7 +117,10 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 						typeName, _ := eventData["__type"]
 						tableExists := false
 						if typeName != nil {
-							_, tableExists = wsch.cruds[typeName.(string)]
+							typeStr, ok := typeName.(string)
+							if ok {
+								_, tableExists = wsch.cruds[typeStr]
+							}
 						}
 
 						permission := permission.PermissionInstance{Permission: auth.ALLOW_ALL_PERMISSIONS}
@@ -97,7 +145,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 
 								if eventType != "" {
 									if eventMessage.EventType != eventType {
-										return
+										continue
 									}
 								}
 
@@ -109,7 +157,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 								}
 							}
 							if sendMessage {
-								client.ch <- eventMessage
+								client.Write(eventMessage)
 							}
 
 						}
@@ -117,10 +165,11 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 					}
 
 				}(subscription, eventTypeString, filtersMap)
-
-				if err != nil {
-					log.Printf("Failed to add listener to topicName: %v", err)
-				}
+				client.Write(resource.EventMessage{
+					EventType:     "subscribed",
+					ObjectType:    topic,
+					MessageSource: "system",
+				})
 			}
 		}
 	case "create-topicName":
@@ -129,9 +178,12 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			return
 		}
 
+		wsch.dtopicMapLock.RLock()
 		_, exists := (*wsch.DtopicMap)[topicName]
+		wsch.dtopicMapLock.RUnlock()
 		if exists {
 			log.Printf("topicName already exists: %v", topicName)
+			sendError(client, "create-topicName", "topic already exists")
 			return
 		}
 
@@ -143,28 +195,35 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 			channel := pubsub.Channel()
 			for {
 				msg := <-channel
+				if msg == nil {
+					return
+				}
 				log.Println("[145] Member says: " + msg.String())
 			}
 		}(topicSubscription)
 
+		wsch.dtopicMapLock.Lock()
 		(*wsch.DtopicMap)[topicName] = newTopic
+		wsch.dtopicMapLock.Unlock()
 
 	case "list-topicName":
-		topics := make([]string, 0)
+		wsch.dtopicMapLock.RLock()
+		topics := make([]string, 0, len(*wsch.DtopicMap))
 		for t := range *wsch.DtopicMap {
 			topics = append(topics, t)
 		}
+		wsch.dtopicMapLock.RUnlock()
 
 		data, _ := json.Marshal(map[string]interface{}{
 			"topics": topics,
 		})
 
-		client.ch <- resource.EventMessage{
+		client.Write(resource.EventMessage{
 			EventData:     data,
 			MessageSource: "system",
 			EventType:     "response",
 			ObjectType:    "topicName-list",
-		}
+		})
 
 	case "destroy-topicName":
 		topic, ok := message.Payload["name"].(string)
@@ -176,28 +235,39 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		_, isSystemTopic := wsch.cruds[topic]
 		if isSystemTopic {
 			log.Printf("user can delete only user created topics: %v", topic)
+			sendError(client, "destroy-topicName", "cannot delete system topic")
 			return
 		}
 
-		//sub := (*wsch.DtopicMap)[topic]
-		//err := sub.Destroy()
-		//resource.CheckErr(err, "failed to destroy topicName")
+		wsch.dtopicMapLock.Lock()
 		delete(*wsch.DtopicMap, topic)
+		wsch.dtopicMapLock.Unlock()
 
 	case "new-message":
-		var err error
-		var topic *olric.PubSub
 		topicName, ok := message.Payload["topicName"].(string)
-		message, ok := message.Payload["message"].(map[string]interface{})
+		if !ok {
+			log.Printf("new-message: missing or invalid topicName")
+			sendError(client, "new-message", "missing or invalid topicName")
+			return
+		}
+		msgPayload, ok := message.Payload["message"].(map[string]interface{})
+		if !ok {
+			log.Printf("new-message: missing or invalid message payload")
+			sendError(client, "new-message", "missing or invalid message")
+			return
+		}
 
-		topic, ok = (*wsch.DtopicMap)[topicName]
+		wsch.dtopicMapLock.RLock()
+		topic, ok := (*wsch.DtopicMap)[topicName]
+		wsch.dtopicMapLock.RUnlock()
 
 		if !ok {
 			log.Printf("topicName does not exist: %v", topicName)
+			sendError(client, "new-message", "topic does not exist: "+topicName)
 			return
 		}
 
-		messageBytes, err := json.Marshal(message)
+		messageBytes, err := json.Marshal(msgPayload)
 		resource.CheckErr(err, "Failed to marshal message on topicName")
 		userRef, _ := uuid.FromBytes(client.user.UserReferenceId[:])
 		_, err = topic.Publish(context.Background(), topicName, resource.EventMessage{
@@ -210,20 +280,25 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 		resource.CheckErr(err, "Failed to publish message on ["+topicName+"]")
 
 	case "unsubscribe":
-		topics := message.Payload["topicName"].(string)
+		topics, ok := message.Payload["topicName"].(string)
+		if !ok {
+			return
+		}
 		if len(topics) < 1 {
 			return
 		}
 		topicsList := strings.Split(topics, ",")
 		for _, topic := range topicsList {
-			pubSubs, ok := wsch.subscribedTopics[topic]
+			entry, ok := wsch.subscribedTopics[topic]
 			if ok {
-				pubSubs.Close()
-				//err := (*wsch.DtopicMap)[topic].RemoveListener(subscriptionId)
+				entry.cancel()
+				entry.pubsub.Close()
 				delete(wsch.subscribedTopics, topic)
-				//if err != nil {
-				//	log.Printf("Failed to remove listener from topicName: %v", err)
-				//}
+				client.Write(resource.EventMessage{
+					EventType:     "unsubscribed",
+					ObjectType:    topic,
+					MessageSource: "system",
+				})
 			}
 		}
 	}

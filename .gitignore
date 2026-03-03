@@ -3,6 +3,7 @@ daptinweb/node_modules
 *.iml
 .idea/
 temp.*daptin.json
+.claude
 
 /dist
 storage

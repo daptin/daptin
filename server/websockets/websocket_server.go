@@ -1,6 +1,9 @@
 package websockets
 
 import (
+	"net/http"
+	"sync"
+
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
@@ -17,24 +20,25 @@ type Message map[string]interface{}
 
 // Chat server.
 type Server struct {
-	pattern   string
-	clients   map[int]*Client
-	addCh     chan *Client
-	delCh     chan *Client
-	doneCh    chan bool
-	errCh     chan error
-	dtopicMap *map[string]*olric.PubSub
-	olricDb   *olric.EmbeddedClient
-	cruds     map[string]*resource.DbResource
+	pattern       string
+	clients       map[int]*Client
+	addCh         chan *Client
+	delCh         chan *Client
+	doneCh        chan bool
+	errCh         chan error
+	dtopicMap     *map[string]*olric.PubSub
+	dtopicMapLock sync.RWMutex
+	olricDb       *olric.EmbeddedClient
+	cruds         map[string]*resource.DbResource
 }
 
 // Create new chat server.
 func NewServer(pattern string, dtopicMap *map[string]*olric.PubSub, cruds map[string]*resource.DbResource) *Server {
 	clients := make(map[int]*Client)
-	addCh := make(chan *Client)
-	delCh := make(chan *Client)
+	addCh := make(chan *Client, 256)
+	delCh := make(chan *Client, 16)
 	doneCh := make(chan bool)
-	errCh := make(chan error)
+	errCh := make(chan error, 16)
 
 	return &Server{
 		pattern:   pattern,
@@ -50,12 +54,6 @@ func NewServer(pattern string, dtopicMap *map[string]*olric.PubSub, cruds map[st
 }
 
 func (s *Server) Add(c *Client) {
-	//sessionUser := auth.SessionUser{}
-	//token, _, ok := c.ws.Request().BasicAuth()
-	//token  := c.ws.Request().FormValue("token")
-	//if ok {
-	//	log.Printf("New web socket connection token: %v", token)
-	//}
 	s.addCh <- c
 }
 
@@ -71,14 +69,9 @@ func (s *Server) Err(err error) {
 	s.errCh <- err
 }
 
-func (s *Server) sendAll(msg resource.EventMessage) {
-	for _, c := range s.clients {
-		c.Write(msg)
-	}
-}
-
 type WebSocketConnectionHandler interface {
 	MessageFromClient(message WebSocketPayload, client *Client)
+	Close()
 }
 
 // Listen and serve.
@@ -92,7 +85,10 @@ func (s *Server) Listen(router *gin.Engine) {
 		defer func() {
 			err := ws.Close()
 			if err != nil {
-				s.errCh <- err
+				select {
+				case s.errCh <- err:
+				default:
+				}
 			}
 		}()
 
@@ -105,7 +101,10 @@ func (s *Server) Listen(router *gin.Engine) {
 		s.Add(client)
 		client.Listen()
 	}
-	wsHandler := websocket.Handler(onConnected)
+	wsHandler := websocket.Server{
+		Handler:   onConnected,
+		Handshake: func(config *websocket.Config, req *http.Request) error { return nil },
+	}
 	router.GET(s.pattern, func(ginContext *gin.Context) {
 		wsHandler.ServeHTTP(ginContext.Writer, ginContext.Request)
 	})
@@ -119,18 +118,12 @@ func (s *Server) Listen(router *gin.Engine) {
 		case c := <-s.addCh:
 			s.clients[c.id] = c
 			log.Infof("Added new client, %d clients connected", len(s.clients))
-			//s.sendPastMessages(c)
 
 			// del a client
 		case c := <-s.delCh:
 			log.Infof("[126] delete client")
+			c.Close()
 			delete(s.clients, c.id)
-
-			//	// broadcast message for all clients
-			//case msg := <-s.sendAllCh:
-			//	log.Println("Send all:", msg)
-			//	s.messages = append(s.messages, msg)
-			//	s.sendAll(msg)
 
 		case err := <-s.errCh:
 			log.Infof("[136] error: %s", err.Error())

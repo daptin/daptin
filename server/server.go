@@ -154,7 +154,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	if enableGzip == "true" {
 		defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
 			gzip.WithExcludedExtensions([]string{".pdf", ".mp4", ".jpg", ".png", ".wav", ".gif", ".mp3"}),
-			gzip.WithExcludedPaths([]string{"/asset/"})),
+			gzip.WithExcludedPaths([]string{"/asset/", "/live"})),
 		)
 	}
 

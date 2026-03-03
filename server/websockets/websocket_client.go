@@ -3,17 +3,21 @@ package websockets
 import (
 	"errors"
 	"fmt"
+	"io"
+	"sync/atomic"
+	"time"
+
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
-	"io"
 )
+
+const readDeadline = 5 * time.Minute
 
 const channelBufSize = 100
 
-var maxId = 0
+var maxId atomic.Int64
 
 type Client struct {
 	id                         int
@@ -22,7 +26,7 @@ type Client struct {
 	ch                         chan resource.EventMessage
 	doneCh                     chan bool
 	user                       *auth.SessionUser
-	webSocketConnectionHandler WebSocketConnectionHandlerImpl
+	webSocketConnectionHandler WebSocketConnectionHandler
 }
 
 // Create new chat client.
@@ -36,16 +40,17 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 		panic("server cannot be nil")
 	}
 
-	webSocketConnectionHandler := WebSocketConnectionHandlerImpl{
+	webSocketConnectionHandler := &WebSocketConnectionHandlerImpl{
 		DtopicMap:        server.dtopicMap,
-		subscribedTopics: make(map[string]*redis.PubSub),
+		dtopicMapLock:    &server.dtopicMapLock,
+		subscribedTopics: make(map[string]*PubSubEntry),
 		olricDb:          server.olricDb,
 		cruds:            server.cruds,
 	}
 
-	maxId++
+	id := int(maxId.Add(1))
 	ch := make(chan resource.EventMessage, channelBufSize)
-	doneCh := make(chan bool)
+	doneCh := make(chan bool, 2)
 
 	u := ws.Request().Context().Value("user")
 	if u == nil {
@@ -53,7 +58,7 @@ func NewClient(ws *websocket.Conn, server *Server) (*Client, error) {
 	}
 	user := u.(*auth.SessionUser)
 	return &Client{
-		id:                         maxId,
+		id:                         id,
 		ws:                         ws,
 		server:                     server,
 		ch:                         ch,
@@ -81,6 +86,10 @@ func (c *Client) Done() {
 	c.doneCh <- true
 }
 
+func (c *Client) Close() {
+	c.webSocketConnectionHandler.Close()
+}
+
 // Listen Write and Read request via chanel
 func (c *Client) Listen() {
 	go c.listenWrite()
@@ -94,7 +103,6 @@ func (c *Client) listenWrite() {
 
 		// send message to the client
 		case msg := <-c.ch:
-			//log.Println("Send:", msg)
 			err := websocket.JSON.Send(c.ws, msg)
 			if err != nil {
 				log.Printf("Failed to to send message: %v", err)
@@ -123,15 +131,17 @@ func (c *Client) listenRead() {
 
 			// read data from websocket connection
 		default:
+			c.ws.SetReadDeadline(time.Now().Add(readDeadline))
 			var msg WebSocketPayload
 			err := websocket.JSON.Receive(c.ws, &msg)
 			if err == io.EOF {
 				c.doneCh <- true
+				return
 			} else if err != nil {
 				c.server.Err(err)
+				c.doneCh <- true
+				return
 			} else {
-				// everything went well, we have the message here
-				// TODO: process the incoming message
 				c.webSocketConnectionHandler.MessageFromClient(msg, c)
 			}
 		}
