@@ -287,17 +287,16 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "failed to store default value for yjs.enabled [true]")
 	}
 
-	var documentProvider ydb.DocumentProvider
-	documentProvider = nil
+	var store ydb.Store
 
 	if enableYjs == "true" {
-		documentProvider = CreateYjsDocumentProvider(configStore, transaction, localStoragePath, documentProvider, cruds)
+		store = CreateYjsStore(configStore, transaction, localStoragePath, cruds)
 	} else {
 		log.Infof("YJS endpoint is disabled in config")
 	}
 	transaction.Commit()
 
-	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
+	ms := BuildMiddlewareSet(&initConfig, &cruds, store, &dtopicMap)
 	log.Tracef("Created middleware set")
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	log.Tracef("Added ResourcesToApi2Go")
@@ -579,7 +578,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds)
 
 	if enableYjs == "true" {
-		err = InitializeYjsResources(documentProvider, defaultRouter, cruds, dtopicMap)
+		err = InitializeYjsResources(store, defaultRouter, cruds, dtopicMap)
 	}
 
 	go func() {

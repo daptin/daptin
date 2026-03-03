@@ -13,20 +13,20 @@ import (
 )
 
 type yjsHandlerMiddleware struct {
-	dtopicMap        *map[string]*olric.PubSub
-	cruds            *map[string]*DbResource
-	documentProvider ydb.DocumentProvider
+	dtopicMap *map[string]*olric.PubSub
+	cruds     *map[string]*DbResource
+	store     ydb.Store
 }
 
 func (pc yjsHandlerMiddleware) String() string {
 	return "EventGenerator"
 }
 
-func NewYJSHandlerMiddleware(documentProvider ydb.DocumentProvider) DatabaseRequestInterceptor {
+func NewYJSHandlerMiddleware(store ydb.Store) DatabaseRequestInterceptor {
 	return &yjsHandlerMiddleware{
-		dtopicMap:        nil,
-		cruds:            nil,
-		documentProvider: documentProvider,
+		dtopicMap: nil,
+		cruds:     nil,
+		store:     store,
 	}
 }
 
@@ -60,7 +60,6 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 					log.Infof("[60] Process file column with YJS [%s]", column.ColumnName)
 					fileColumnValueArray, ok := fileColumnValue.([]interface{})
 					if !ok {
-						//log.Info("file column value not []interface{}: %s", fileColumnValue)
 						continue
 					}
 					log.Infof("[66] yjs middleware for column [%v][%v]", dr.tableInfo.TableName, column.ColumnName)
@@ -117,35 +116,34 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						}
 
 						var documentName = fmt.Sprintf("%v.%v.%v", dr.tableInfo.TableName, referenceId, column.ColumnName)
-						document := pc.documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction)
-						if document != nil {
-							var documentHistory []byte
-							documentHistory = document.GetInitialContentBytes()
-
-							if len(documentHistory) < 1 {
-								continue
-							}
-
-							otherIdx := 1 - i
-							if !existingYjsDocument {
-								fileColumnValueArray = append(fileColumnValueArray, map[string]interface{}{
-									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
-									"name":     filenamestring + ".yjs",
-									"type":     "x-crdt/yjs",
-									"path":     file["path"],
-								})
-
-							} else if otherIdx >= 0 && otherIdx < len(fileColumnValueArray) {
-								fileColumnValueArray[otherIdx] = map[string]interface{}{
-									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
-									"name":     filenamestring + ".yjs",
-									"type":     "x-crdt/yjs",
-									"path":     file["path"],
-								}
-							}
-
-							obj[column.ColumnName] = fileColumnValueArray
+						documentHistory, _, readErr := pc.store.ReadFrom(ydb.YjsRoomName(documentName), 0)
+						if readErr != nil {
+							continue
 						}
+
+						if len(documentHistory) < 1 {
+							continue
+						}
+
+						otherIdx := 1 - i
+						if !existingYjsDocument {
+							fileColumnValueArray = append(fileColumnValueArray, map[string]interface{}{
+								"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
+								"name":     filenamestring + ".yjs",
+								"type":     "x-crdt/yjs",
+								"path":     file["path"],
+							})
+
+						} else if otherIdx >= 0 && otherIdx < len(fileColumnValueArray) {
+							fileColumnValueArray[otherIdx] = map[string]interface{}{
+								"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
+								"name":     filenamestring + ".yjs",
+								"type":     "x-crdt/yjs",
+								"path":     file["path"],
+							}
+						}
+
+						obj[column.ColumnName] = fileColumnValueArray
 
 					}
 				}
@@ -159,9 +157,6 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 	default:
 		log.Errorf("Invalid method: %v", req.PlainRequest.Method)
 	}
-
-	//currentUserId := context.Get(req.PlainRequest, "user_id").(string)
-	//currentUserGroupId := context.Get(req.PlainRequest, "usergroup_id").([]string)
 
 	return objects, nil
 

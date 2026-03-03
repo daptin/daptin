@@ -196,6 +196,10 @@ func (imtd *InMemoryTestDatabase) QueryRow(query string, args ...interface{}) *s
 func (imtd *InMemoryTestDatabase) Beginx() (*sqlx.Tx, error) {
 	return imtd.db.Beginx()
 }
+
+func (imtd *InMemoryTestDatabase) Stats() sql.DBStats {
+	return imtd.db.Stats()
+}
 func (database *InMemoryTestDatabase) ResetQueries() {
 	database.queries = make([]string, 0)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -23,7 +24,8 @@ func TestStream(t *testing.T) {
 
 	cruds := make(map[string]*resource.DbResource)
 
-	olricDb, _ := olric.New(&config.Config{})
+	olricDb1, _ := olric.New(config.New("local"))
+	olricDb := olricDb1.NewEmbeddedClient()
 
 	db, err := sqlx.Open("sqlite3", "daptin_test.db")
 	if err != nil {
@@ -32,7 +34,7 @@ func TestStream(t *testing.T) {
 
 	wrapper := NewInMemoryTestDatabase(db)
 
-	dBResource := resource.NewDbResource(model, wrapper, &resource.MiddlewareSet{
+	dBResource, _ := resource.NewDbResource(model, wrapper, &resource.MiddlewareSet{
 		BeforeCreate:  []resource.DatabaseRequestInterceptor{},
 		BeforeFindAll: []resource.DatabaseRequestInterceptor{},
 		BeforeFindOne: []resource.DatabaseRequestInterceptor{},
@@ -43,7 +45,7 @@ func TestStream(t *testing.T) {
 		AfterFindOne:  []resource.DatabaseRequestInterceptor{},
 		AfterUpdate:   []resource.DatabaseRequestInterceptor{},
 		AfterDelete:   []resource.DatabaseRequestInterceptor{},
-	}, cruds, &resource.ConfigStore{}, olricDb, resource.TableInfo{
+	}, cruds, &resource.ConfigStore{}, olricDb, table_info.TableInfo{
 		TableName: "test",
 		Columns: []api2go.ColumnInfo{
 			{
@@ -63,13 +65,13 @@ func TestStream(t *testing.T) {
 			},
 		},
 		QueryParams: map[string][]string{
-			"query": []string{
+			"query": {
 				"[{\"column\":\"col1\",\"operator\":\"like\",\"value\":\"$query\"}]",
 			},
-			"page[number]": []string{
+			"page[number]": {
 				"$page[number]",
 			},
-			"page[size]": []string{
+			"page[size]": {
 				"$page[size]",
 			},
 		},
@@ -85,9 +87,9 @@ func TestStream(t *testing.T) {
 	httpPlainRequest = httpPlainRequest.WithContext(context.Background())
 	findRequest := api2go.Request{
 		QueryParams: map[string][]string{
-			"query":        []string{"query1"},
-			"page[number]": []string{"5"},
-			"page[size]":   []string{"20"},
+			"query":        {"query1"},
+			"page[number]": {"5"},
+			"page[size]":   {"20"},
 		},
 		PlainRequest: httpPlainRequest,
 	}

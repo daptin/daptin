@@ -24,25 +24,27 @@ func PathExistsAndIsFolder(path string) bool {
 	return info.IsDir() // Check if it's a directory
 }
 
-func CreateYjsDocumentProvider(configStore *resource.ConfigStore, transaction *sqlx.Tx, localStoragePath string, documentProvider ydb.DocumentProvider, cruds map[string]*resource.DbResource) ydb.DocumentProvider {
+func CreateYjsStore(configStore *resource.ConfigStore, transaction *sqlx.Tx, localStoragePath string, cruds map[string]*resource.DbResource) ydb.Store {
 	logrus.Infof("YJS endpoint is enabled in config")
-	yjs_temp_directory, err := configStore.GetConfigValueFor("yjs.storage.path", "backend", transaction)
-	//if err != nil {
-	yjs_temp_directory = localStoragePath + "/yjs-documents"
-	configStore.SetConfigValueFor("yjs.storage.path", yjs_temp_directory, "backend", transaction)
-	//}
+	yjsDir := localStoragePath + "/yjs-documents"
+	configStore.SetConfigValueFor("yjs.storage.path", yjsDir, "backend", transaction)
 
-	if !PathExistsAndIsFolder(yjs_temp_directory) {
-		err = os.Mkdir(yjs_temp_directory, 0777)
+	if !PathExistsAndIsFolder(yjsDir) {
+		err := os.Mkdir(yjsDir, 0777)
 		if err != nil {
 			resource.CheckErr(err, "Failed to create yjs storage directory")
 		}
 	}
 
-	documentProvider = ydb.NewDiskDocumentProvider(yjs_temp_directory, 10000, ydb.DocumentListener{
-		GetDocumentInitialContent: func(documentPath string, transaction *sqlx.Tx) []byte {
+	return ydb.NewDiskStore(yjsDir,
+		ydb.WithMaxRoomSize(50*1024*1024),
+		ydb.WithInitialContentProvider(func(documentPath string) []byte {
 			logrus.Debugf("Get initial content for document: %v", documentPath)
 			pathParts := strings.Split(documentPath, ".")
+			if len(pathParts) < 3 {
+				logrus.Debugf("document path %v does not follow typename.referenceId.columnName format, returning empty content", documentPath)
+				return []byte{}
+			}
 			typeName := pathParts[0]
 			referenceId := pathParts[1]
 			columnName := pathParts[2]
@@ -53,21 +55,23 @@ func CreateYjsDocumentProvider(configStore *resource.ConfigStore, transaction *s
 				return []byte{}
 			}
 
-			if transaction == nil {
-				logrus.Tracef("start transaction for GetDocumentInitialContent")
-				var txErr error
-				transaction, txErr = crud.Connection().Beginx()
-				if txErr != nil {
-					return nil
-				}
-				defer transaction.Rollback()
+			parsedId, parseErr := uuid.Parse(referenceId)
+			if parseErr != nil {
+				logrus.Warnf("failed to parse reference_id as UUID: %v", referenceId)
+				return []byte{}
 			}
 
+			tx, txErr := crud.Connection().Beginx()
+			if txErr != nil {
+				return nil
+			}
+			defer tx.Rollback()
+
 			object, _, getErr := crud.GetSingleRowByReferenceIdWithTransaction(typeName,
-				daptinid.DaptinReferenceId(uuid.MustParse(referenceId)), map[string]bool{
+				daptinid.DaptinReferenceId(parsedId), map[string]bool{
 					columnName: true,
-				}, transaction)
-			logrus.Tracef("Completed NewDiskDocumentProvider GetSingleRowByReferenceIdWithTransaction")
+				}, tx)
+			logrus.Tracef("Completed NewDiskStore GetSingleRowByReferenceIdWithTransaction")
 			if getErr != nil {
 				logrus.Warnf("failed to get row in document provider: %v", getErr)
 				return []byte{}
@@ -108,8 +112,6 @@ func CreateYjsDocumentProvider(configStore *resource.ConfigStore, transaction *s
 
 			logrus.Debugf("Completed get initial content for document: %v", documentPath)
 			return fileContentsJson
-		},
-		SetDocumentInitialContent: nil,
-	})
-	return documentProvider
+		}),
+	)
 }

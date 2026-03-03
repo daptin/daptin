@@ -230,7 +230,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 
 func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	cruds *map[string]*resource.DbResource,
-	documentProvider ydb.DocumentProvider,
+	store ydb.Store,
 	dtopicMap *map[string]*olric.PubSub) resource.MiddlewareSet {
 
 	var ms resource.MiddlewareSet
@@ -248,8 +248,8 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	var yhsHandler resource.DatabaseRequestInterceptor
 	yhsHandler = nil
 
-	if documentProvider != nil {
-		yhsHandler = resource.NewYJSHandlerMiddleware(documentProvider)
+	if store != nil {
+		yhsHandler = resource.NewYJSHandlerMiddleware(store)
 	}
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{

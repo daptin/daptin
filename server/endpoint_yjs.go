@@ -15,12 +15,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func InitializeYjsResources(documentProvider ydb.DocumentProvider, defaultRouter *gin.Engine,
+func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
 	cruds map[string]*resource.DbResource, dtopicMap map[string]*olric.PubSub) error {
 	var err error
-	//var sessionFetcher *YjsConnectionSessionFetcher
-	//sessionFetcher = &YjsConnectionSessionFetcher{}
-	var ydbInstance = ydb.InitYdb(documentProvider)
+
+	broadcaster := ydb.NewLocalBroadcaster(64)
+	ydbInstance := ydb.InitYdb(store, broadcaster)
 
 	yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
 
@@ -57,7 +57,7 @@ func InitializeYjsResources(documentProvider ydb.DocumentProvider, defaultRouter
 						channel := rps.Channel()
 						for msg := range channel {
 							var eventMessage resource.EventMessage
-							processErr := ProcessEventMessage(eventMessage, msg, typename, cruds, columnInfo, documentProvider)
+							processErr := ProcessEventMessage(eventMessage, msg, typename, cruds, columnInfo, store)
 							CheckErr(processErr, "Failed to process message on OlricTopic[%v]", typename)
 						}
 					}(redisPubSub)
@@ -70,9 +70,19 @@ func InitializeYjsResources(documentProvider ydb.DocumentProvider, defaultRouter
 						ginContext.AbortWithStatus(403)
 						return
 					}
-					user := sessionUser.(*auth.SessionUser)
+					user, ok := sessionUser.(*auth.SessionUser)
+					if !ok || user == nil {
+						ginContext.AbortWithStatus(403)
+						return
+					}
 
 					referenceId := ginContext.Param("referenceId")
+
+					parsedId, parseErr := uuid.Parse(referenceId)
+					if parseErr != nil {
+						ginContext.AbortWithStatus(400)
+						return
+					}
 
 					tx, txErr := cruds[typename].Connection().Beginx()
 					if txErr != nil {
@@ -81,7 +91,7 @@ func InitializeYjsResources(documentProvider ydb.DocumentProvider, defaultRouter
 					}
 
 					object, _, getErr := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename,
-						daptinid.DaptinReferenceId(uuid.MustParse(referenceId)), nil, tx)
+						daptinid.DaptinReferenceId(parsedId), nil, tx)
 					tx.Rollback()
 					if getErr != nil {
 						ginContext.AbortWithStatus(404)

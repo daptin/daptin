@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message, typename string, cruds map[string]*resource.DbResource, columnInfo api2go.ColumnInfo, documentProvider ydb.DocumentProvider) error {
+func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message, typename string, cruds map[string]*resource.DbResource, columnInfo api2go.ColumnInfo, store ydb.Store) error {
 	var err error
 	err = eventMessage.UnmarshalBinary([]byte(msg.Payload))
 	if err != nil {
@@ -22,7 +22,10 @@ func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message,
 	if eventMessage.EventType == "update" && eventMessage.ObjectType == typename {
 		eventDataMap := make(map[string]interface{})
 		err = json.Unmarshal(eventMessage.EventData, &eventDataMap)
-		resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
+		if err != nil {
+			resource.CheckErr(err, "Failed to unmarshal message ["+eventMessage.ObjectType+"]")
+			return nil
+		}
 		stringReferenceId := eventDataMap["reference_id"]
 		if stringReferenceId == nil {
 			logrus.Warnf("no reference id in event data map %v", eventDataMap)
@@ -105,9 +108,8 @@ func ProcessEventMessage(eventMessage resource.EventMessage, msg *redis.Message,
 		}
 
 		documentName := fmt.Sprintf("%v.%v.%v", typename, referenceId, columnInfo.ColumnName)
-		document := documentProvider.GetDocument(ydb.YjsRoomName(documentName), transaction1)
-		if document != nil && len(fileContentsJson) > 0 {
-			document.SetInitialContent(fileContentsJson)
+		if len(fileContentsJson) > 0 {
+			store.SetInitialContent(ydb.YjsRoomName(documentName), fileContentsJson)
 		}
 
 	}

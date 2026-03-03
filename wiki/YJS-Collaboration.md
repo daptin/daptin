@@ -53,13 +53,7 @@ curl -X POST http://localhost:6336/_config/backend/yjs.enabled \
   -d 'true'
 ```
 
-Configure storage path:
-
-```bash
-curl -X POST http://localhost:6336/_config/backend/yjs.storage.path \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '"./yjs-documents"'
-```
+The storage path is determined by the `DAPTIN_STORAGE` environment variable (defaults to the current working directory). Documents are stored under `{storagePath}/yjs-documents`. This path is set at startup and cannot be changed at runtime via the config API.
 
 ## File Column Types
 
@@ -85,10 +79,7 @@ curl -X POST http://localhost:6336/_config/backend/yjs.enabled \
   -H "Authorization: Bearer $TOKEN" \
   -d 'true'
 
-# Set storage path (optional, defaults to ./yjs-documents)
-curl -X POST http://localhost:6336/_config/backend/yjs.storage.path \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '"./yjs-data"'
+# Storage path is {DAPTIN_STORAGE}/yjs-documents (set at startup, not configurable at runtime)
 ```
 
 ### 2. Test Connection
@@ -128,10 +119,12 @@ import { WebsocketProvider } from 'y-websocket';
 const ydoc = new Y.Doc();
 
 // Connect to Daptin (use direct endpoint)
+// WebsocketProvider appends roomname as path: serverUrl/roomname?params
 const provider = new WebsocketProvider(
-  `ws://localhost:6336/yjs/my-document?token=${token}`,
-  'room-name',  // Room identifier
-  ydoc
+  'ws://localhost:6336/yjs',
+  'my-document',  // Appended as path: /yjs/my-document
+  ydoc,
+  { params: { token } }
 );
 
 // Get shared text type
@@ -155,11 +148,13 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 
 // Connect to specific document record
+// WebsocketProvider appends roomname as path: serverUrl/roomname?params
 const documentId = 'abc-123-def';  // From database
 const provider = new WebsocketProvider(
-  `ws://localhost:6336/live/document/${documentId}/content/yjs?token=${token}`,
-  `doc-${documentId}`,  // Unique room per document
-  ydoc
+  `ws://localhost:6336/live/document/${documentId}/content`,
+  'yjs',  // Appended as path: /live/document/{id}/content/yjs
+  ydoc,
+  { params: { token } }
 );
 
 // Rest is the same as above
@@ -193,10 +188,12 @@ Simple collaborative text editor without rich text libraries:
     const ydoc = new Y.Doc();
 
     // Connect to Daptin
+    // WebsocketProvider appends roomname as path: serverUrl/roomname?params
     const provider = new WebsocketProvider(
-      `ws://localhost:6336/yjs/my-doc?token=${TOKEN}`,
+      'ws://localhost:6336/yjs',
       'my-document',
-      ydoc
+      ydoc,
+      { params: { token: TOKEN } }
     );
 
     const ytext = ydoc.getText('content');
@@ -258,10 +255,12 @@ const ydoc = new Y.Doc();
 const ytext = ydoc.getText('quill');
 
 // Connect to Daptin
+// WebsocketProvider appends roomname as path: serverUrl/roomname?params
 const provider = new WebsocketProvider(
-  `ws://localhost:6336/yjs/rich-document?token=${TOKEN}`,
-  'rich-doc-room',
-  ydoc
+  'ws://localhost:6336/yjs',
+  'rich-document',
+  ydoc,
+  { params: { token: TOKEN } }
 );
 
 // Initialize Quill
@@ -305,10 +304,12 @@ const ydoc = new Y.Doc();
 const ytext = ydoc.getText('monaco');
 
 // Connect to Daptin
+// WebsocketProvider appends roomname as path: serverUrl/roomname?params
 const provider = new WebsocketProvider(
-  `ws://localhost:6336/yjs/code-file?token=${TOKEN}`,
-  'code-room',
-  ydoc
+  'ws://localhost:6336/yjs',
+  'code-file',
+  ydoc,
+  { params: { token: TOKEN } }
 );
 
 // Initialize Monaco
@@ -368,11 +369,13 @@ const doc = await response.json();
 const documentId = doc.data.id;
 
 // 2. Connect to YJS endpoint for this specific record
+// WebsocketProvider appends roomname as path: serverUrl/roomname?params
 const ydoc = new Y.Doc();
 const provider = new WebsocketProvider(
-  `ws://localhost:6336/live/document/${documentId}/content/yjs?token=${TOKEN}`,
-  `doc-${documentId}`,
-  ydoc
+  `ws://localhost:6336/live/document/${documentId}/content`,
+  'yjs',  // Appended as path: /live/document/{id}/content/yjs
+  ydoc,
+  { params: { token: TOKEN } }
 );
 
 // 3. Use the shared document
@@ -407,11 +410,8 @@ provider.awareness.on('change', () => {
 ## Document Storage
 
 YJS documents are stored as:
-- ZIP archive containing:
-  - YJS binary state
-  - Plain text fallback
-- Automatic versioning
-- Conflict resolution built-in
+- Binary files on the server's filesystem (raw YJS update data)
+- Conflict resolution built-in (CRDT)
 
 ## React Component Example
 
@@ -429,10 +429,12 @@ function CollaborativeEditor({ documentId, token }) {
   useEffect(() => {
     const ydoc = new Y.Doc();
 
+    // WebsocketProvider appends roomname as path: serverUrl/roomname?params
     const provider = new WebsocketProvider(
-      `ws://localhost:6336/live/document/${documentId}/content/yjs?token=${token}`,
-      `doc-${documentId}`,
-      ydoc
+      `ws://localhost:6336/live/document/${documentId}/content`,
+      'yjs',
+      ydoc,
+      { params: { token } }
     );
 
     // Set user identity
@@ -561,12 +563,12 @@ YJS endpoints are auto-generated for any column with `ColumnType` starting with 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | YJS enabled | ✅ Working | Configured via config API |
-| Storage path | ✅ Working | Configured via config API |
+| Storage path | ✅ Working | Set at startup from DAPTIN_STORAGE env var |
 | Direct endpoint (`/yjs/:name`) | ✅ Working | Successfully connected |
 | File column endpoints | ✅ Working | Auto-generated for `file.*` columns |
 | WebSocket connection | ✅ Working | Connects with token query param |
 | Permission checks | ✅ Working | User context properly set |
-| Document storage | ✅ Working | ZIP format with YJS binary + plain text |
+| Document storage | ✅ Working | Binary files with raw YJS update data |
 | CRDT sync | ✅ Working | Conflict-free collaborative editing |
 
 ### Test Results
@@ -593,11 +595,10 @@ import {WebsocketProvider} from 'y-websocket'
 
 const ydoc = new Y.Doc()
 const provider = new WebsocketProvider(
-  'ws://localhost:6336/yjs/',
+  'ws://localhost:6336/yjs',
   'monaco-demo',
-  ydoc
+  ydoc,
+  { params: { token: 'JWT_TOKEN' } }
 )
 const ytext = ydoc.getText('monaco')
 ```
-
-**Note:** Remember to pass `?token=JWT_TOKEN` in production for authentication.

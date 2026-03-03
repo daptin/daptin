@@ -83,9 +83,8 @@ This walkthrough teaches you:
 │                      ▼                                    │
 │  ┌──────────────────────────────────────────────────┐    │
 │  │       YJS Document Storage                        │    │
-│  │  • ZIP files with YJS binary state                │    │
-│  │  • Plain text fallback                             │    │
-│  │  • Automatic versioning                            │    │
+│  │  • Binary files with raw YJS update data          │    │
+│  │  • Conflict-free CRDT merge                        │    │
 │  └──────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────┘
 
@@ -160,23 +159,16 @@ curl -X POST http://localhost:6336/_config/backend/yjs.enabled \
   -H "Authorization: Bearer $TOKEN" \
   -d 'true' | jq
 
-# Set storage path (optional, defaults to ./yjs-documents)
-curl -X POST http://localhost:6336/_config/backend/yjs.storage.path \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '"./yjs-data"' | jq
+# Storage path is {DAPTIN_STORAGE}/yjs-documents (set at startup, not configurable at runtime)
 
 # Verify configuration
 curl -s -H "Authorization: Bearer $TOKEN" \
   http://localhost:6336/_config/backend/yjs.enabled | jq
-
-curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/_config/backend/yjs.storage.path | jq
 ```
 
 **Expected output:**
 ```json
 true
-"./yjs-data"
 ```
 
 ---
@@ -347,10 +339,12 @@ cat > collaborative-editor.html << 'EOF'
     const ytext = ydoc.getText('content');
 
     // Connect to Daptin
+    // WebsocketProvider appends roomname as path: serverUrl/roomname?params
     const provider = new WebsocketProvider(
-      `ws://localhost:6336/yjs/my-document?token=${TOKEN}`,
+      'ws://localhost:6336/yjs',
       'my-document',
-      ydoc
+      ydoc,
+      { params: { token: TOKEN } }
     );
 
     // Get DOM elements
@@ -567,10 +561,12 @@ cat > rich-text-editor.html << 'EOF'
     const ytext = ydoc.getText('quill');
 
     // Connect to Daptin
+    // WebsocketProvider appends roomname as path: serverUrl/roomname?params
     const provider = new WebsocketProvider(
-      `ws://localhost:6336/yjs/rich-document?token=${TOKEN}`,
+      'ws://localhost:6336/yjs',
       'rich-document',
-      ydoc
+      ydoc,
+      { params: { token: TOKEN } }
     );
 
     // Set user info
@@ -739,10 +735,12 @@ cat > code-editor.html << 'EOF'
       const ytext = ydoc.getText('monaco');
 
       // Connect to Daptin
+      // WebsocketProvider appends roomname as path: serverUrl/roomname?params
       const provider = new WebsocketProvider(
-        `ws://localhost:6336/yjs/code-session?token=${TOKEN}`,
+        'ws://localhost:6336/yjs',
         'code-session',
-        ydoc
+        ydoc,
+        { params: { token: TOKEN } }
       );
 
       // Set user info
@@ -874,13 +872,15 @@ DOC_ID="<paste-id-here>"
 
 ```javascript
 // YJS endpoint for this specific document:
-// ws://localhost:6336/live/document/{DOC_ID}/content/yjs?token={TOKEN}
+// Final URL: ws://localhost:6336/live/document/{DOC_ID}/content/yjs?token={TOKEN}
+// WebsocketProvider appends roomname as path: serverUrl/roomname?params
 
 const ydoc = new Y.Doc();
 const provider = new WebsocketProvider(
-  `ws://localhost:6336/live/document/${DOC_ID}/content/yjs?token=${TOKEN}`,
-  `doc-${DOC_ID}`,
-  ydoc
+  `ws://localhost:6336/live/document/${DOC_ID}/content`,
+  'yjs',  // Appended as path: /live/document/{id}/content/yjs
+  ydoc,
+  { params: { token: TOKEN } }
 );
 
 const ytext = ydoc.getText('content');
@@ -957,9 +957,9 @@ curl -s -H "Authorization: Bearer $(cat /tmp/daptin-token.txt)" \
 
 **Check storage**:
 ```bash
-# View YJS documents
-ls -lh ./yjs-data/
-# Expected: ZIP files with document states
+# View YJS documents (path is {DAPTIN_STORAGE}/yjs-documents)
+ls -lh ./yjs-documents/
+# Expected: Binary files with YJS document states
 ```
 
 ---

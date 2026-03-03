@@ -319,7 +319,7 @@ func createServer() (hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.Ta
 
 func TestServerApis(t *testing.T) {
 
-	createServer()
+	ensureServer()
 	//_, _, _, _, _, _, _, _ := createServer()
 	err := runTests(t)
 	log.Printf("Test ended")
@@ -930,7 +930,7 @@ func BenchmarkCreate(m *testing.B) {
 
 	m.StopTimer()
 	const baseAddress = "http://localhost:6337"
-	createServer()
+	ensureServer()
 
 	requestClient := req.New()
 

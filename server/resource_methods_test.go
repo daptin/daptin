@@ -8,7 +8,10 @@ import (
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
@@ -37,7 +40,6 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	initConfig, _ := LoadConfigFiles()
 
 	existingTables, _ := GetTablesFromWorld(wrapper)
-	//initConfig.Tables = append(initConfig.Tables, existingTables...)
 
 	allTables := MergeTables(existingTables, initConfig.Tables)
 
@@ -48,31 +50,27 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	olricDb1, _ := olric.New(olricConfig.New("local"))
 	olricDb := olricDb1.NewEmbeddedClient()
 
-	dtopicMap := make(map[string]*olric.DTopic)
+	dtopicMap := make(map[string]*olric.PubSub)
 
-	documentProvider := ydb.NewDiskDocumentProvider("/tmp", 10000, ydb.DocumentListener{
-		GetDocumentInitialContent: func(string) []byte {
-			return []byte{}
-		},
-		SetDocumentInitialContent: func(string, []byte) {},
-	})
-	ms := BuildMiddlewareSet(&initConfig, &cruds, documentProvider, &dtopicMap)
+	store := ydb.NewDiskStore("/tmp")
+	ms := BuildMiddlewareSet(&initConfig, &cruds, store, &dtopicMap)
 	for _, table := range initConfig.Tables {
 		model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
-		res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, olricDb, table)
+		res, _ := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, olricDb, table)
 		cruds[table.TableName] = res
 	}
 
-	var err error
-	for key, crud := range cruds {
-		dtopicMap[key], err = crud.OlricDb.NewDTopic(key, 4, 1)
-		resource.CheckErr(err, "Failed to create topic for table: %v", key)
-		err = nil
+	for key := range cruds {
+		pubSub, err := olricDb.NewPubSub()
+		if err != nil {
+			resource.CheckErr(err, "Failed to create pubsub for table: %v", key)
+			continue
+		}
+		dtopicMap[key] = pubSub
 	}
 
 	resource.CheckRelations(&initConfig)
 	resource.CheckAuditTables(&initConfig)
-	//AddStateMachines(&initConfig, wrapper)
 
 	tx, errb := wrapper.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction [76]")
@@ -82,7 +80,7 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 
 	tx, errb = wrapper.Beginx()
 	resource.CheckErr(errb, "Failed to begin transaction [82]")
-	resource.CreateRelations(&initConfig, tx)
+	resource.CreateRelations(&initConfig, wrapper)
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
 
@@ -104,22 +102,23 @@ func GetResource() (*InMemoryTestDatabase, *resource.DbResource) {
 	errc = tx.Commit()
 	resource.CheckErr(errc, "Failed to commit transaction after updating world tables")
 
-	resource.UpdateStateMachineDescriptions(&initConfig, wrapper)
-	resource.UpdateExchanges(&initConfig, wrapper)
-	resource.UpdateStreams(&initConfig, wrapper)
-	//resource.UpdateMarketplaces(&initConfig, wrapper)
-	resource.UpdateStandardData(&initConfig, wrapper)
+	tx, errb = wrapper.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction [106]")
+	resource.UpdateStateMachineDescriptions(&initConfig, tx)
+	resource.UpdateExchanges(&initConfig, tx)
+	resource.UpdateStreams(&initConfig, tx)
+	errc = tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction after updates")
 
-	err = resource.UpdateActionTable(&initConfig, wrapper)
+	tx, errb = wrapper.Beginx()
+	resource.CheckErr(errb, "Failed to begin transaction [113]")
+	err := resource.UpdateActionTable(&initConfig, tx)
 	resource.CheckErr(err, "Failed to update action table")
+	errc = tx.Commit()
+	resource.CheckErr(errc, "Failed to commit transaction after updating action table")
 
-	//for _, table := range initConfig.Tables {
-	//	model := api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations)
-	//	res := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table)
-	//	cruds[table.TableName] = res
-	//}
-
-	dbResource := resource.NewDbResource(nil, wrapper, &ms, cruds, configStore, nil, resource.TableInfo{})
+	model := api2go.NewApi2GoModel("", nil, 0, nil)
+	dbResource, _ := resource.NewDbResource(model, wrapper, &ms, cruds, configStore, nil, table_info.TableInfo{})
 	return wrapper, dbResource
 }
 
@@ -128,12 +127,12 @@ func GetResourceWithName(name string) (*InMemoryTestDatabase, *resource.DbResour
 
 	var cols []api2go.ColumnInfo
 	model := api2go.NewApi2GoModel(name, cols, 0, nil)
-	tableInfo := resource.TableInfo{
+	tableInfo := table_info.TableInfo{
 		TableName: name,
 	}
 
 	cruds := make(map[string]*resource.DbResource)
-	dbResource := resource.NewDbResource(model, wrapper, nil, cruds, nil, nil, tableInfo)
+	dbResource, _ := resource.NewDbResource(model, wrapper, nil, cruds, nil, nil, tableInfo)
 	cruds[name] = dbResource
 	return wrapper, dbResource
 }
@@ -142,7 +141,10 @@ func TestGetReferenceIdToObject(t *testing.T) {
 
 	wrapper, dbResource := GetResource()
 	defer wrapper.db.Close()
-	dbResource.Cruds["world"].GetReferenceIdToObject("world", "refId")
+
+	tx, _ := wrapper.Beginx()
+	defer tx.Rollback()
+	_, _ = dbResource.Cruds["world"].GetReferenceIdToObjectWithTransaction("world", daptinid.DaptinReferenceId(uuid.New()), tx)
 
 	if !wrapper.HasExecuted("SELECT * FROM world WHERE reference_id =") {
 		t.Errorf("Expected query not fired")
@@ -171,29 +173,6 @@ func TestStoreToken(t *testing.T) {
 	wrapper.ResetQueries()
 	token := oauth2.Token{}
 
-	//newUser := map[string]interface{}{
-	//	"email":    "test@gmail.com",
-	//	"password": "test",
-	//	"name":     "test",
-	//}
-
-	//userModel := api2go.NewApi2GoModelWithData("user_account", nil, 0, nil, newUser)
-	//httpRequest := &http.Request{
-	//
-	//}
-
-	//ctx := context.Background()
-	//sessionUser := &auth.SessionUser{
-	//
-	//}
-	//httpRequest = httpRequest.WithContext(context.WithValue(ctx, "user", sessionUser))
-	//apiRequest := api2go.Request{
-	//	PlainRequest: httpRequest,
-	//}
-
-	//userResponse, err := dbResource.Cruds["user_account"].CreateWithoutFilter(userModel, apiRequest)
-	//log.Printf("New user: %v", userResponse)
-
 	users, err := dbResource.Cruds["user_account"].GetAllRawObjects("user_account")
 	if err != nil {
 		t.Errorf("Failed to get users: %v", err)
@@ -201,17 +180,17 @@ func TestStoreToken(t *testing.T) {
 		return
 	}
 	user := users[0]
-	err = dbResource.StoreToken(&token, "type", "ref_id", user["reference_id"].(string))
+	refIdStr := user["reference_id"].(string)
+	refId, _ := uuid.Parse(refIdStr)
+
+	tx, _ := wrapper.Beginx()
+	defer tx.Rollback()
+	err = dbResource.StoreToken(&token, "type", daptinid.DaptinReferenceId(refId), daptinid.DaptinReferenceId(refId), tx)
 
 	if !wrapper.HasExecuted("SELECT * FROM oauth_connect WHERE reference_id =") {
 		t.Errorf("Expected query not fired: %v", err)
 		t.FailNow()
 	}
-
-	//if !wrapper.HasExecuted("SELECT value FROM _config WHERE name = ? AND configstate = ? AND configenv = ? AND configtype = ?") {
-	//	t.Errorf("Expected query not fired")
-	//	t.FailNow()
-	//}
 
 }
 
@@ -219,7 +198,10 @@ func TestGetIdToObject(t *testing.T) {
 
 	wrapper, dbResource := GetResourceWithName("world")
 	defer wrapper.db.Close()
-	dbResource.GetIdToObject("world", 1)
+
+	tx, _ := wrapper.Beginx()
+	defer tx.Rollback()
+	dbResource.GetIdToObject("world", 1, tx)
 
 	if !wrapper.HasExecuted("SELECT * FROM world WHERE id =") {
 		t.Errorf("Expected query not fired")
@@ -254,7 +236,9 @@ func TestPaginatedFindAllWithoutFilters(t *testing.T) {
 		QueryParams: map[string][]string{},
 	}
 
-	dbResource.PaginatedFindAllWithoutFilters(req)
+	tx, _ := wrapper.Beginx()
+	defer tx.Rollback()
+	dbResource.PaginatedFindAllWithoutFilters(req, tx)
 
 	if !wrapper.HasExecuted("SELECT distinct(world.id) from world left join ") {
 		t.Errorf("Expected query not fired")
@@ -275,7 +259,10 @@ func TestPaginatedFindAllWithoutFilter(t *testing.T) {
 		},
 		QueryParams: map[string][]string{},
 	}
-	dbResource.PaginatedFindAllWithoutFilters(req)
+
+	tx, _ := wrapper.Beginx()
+	defer tx.Rollback()
+	dbResource.PaginatedFindAllWithoutFilters(req, tx)
 
 	if !wrapper.HasExecuted("SELECT distinct(world.id) FROM world LEFT JOIN world_world_id_") {
 		t.Errorf("Expected query not fired")
@@ -300,7 +287,12 @@ func TestDeleteWithoutFilter(t *testing.T) {
 	worlds, _ := dbResource.GetAllRawObjects("world")
 	log.Printf("%v", worlds[0]["reference_id"])
 
-	dbResource.DeleteWithoutFilters(worlds[0]["reference_id"].(string), req)
+	refIdStr := worlds[0]["reference_id"].(string)
+	refId, _ := uuid.Parse(refIdStr)
+
+	tx, _ := wrapper.Beginx()
+	defer tx.Rollback()
+	dbResource.DeleteWithoutFilters(daptinid.DaptinReferenceId(refId), req, tx)
 
 	if !wrapper.HasExecuted("DELETE FROM world WHERE reference_id =") {
 		t.Errorf("Expected query not fired")
