@@ -266,8 +266,10 @@ Add users to administrators group:
 
 ```bash
 # Get user ID
-USER_ID=$(curl 'http://localhost:6336/api/user_account?query=[{"column":"email","operator":"is","value":"newadmin@example.com"}]' \
-  -H "Authorization: Bearer $TOKEN" | jq -r '.data[0].id')
+USER_ID=$(curl --get -s \
+  --data-urlencode 'query=[{"column":"email","operator":"is","value":"newadmin@example.com"}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/user_account" | jq -r '.data[0].id')
 
 # Add to administrators
 curl -X POST http://localhost:6336/api/user_account_administrators_has_usergroup_administrators \

@@ -479,8 +479,10 @@ curl -X POST http://localhost:6336/api/mail_box \
 ### List Mailboxes
 
 ```bash
-curl 'http://localhost:6336/api/mail_box?query=[{"column":"mail_account_id","operator":"is","value":"ACCOUNT_ID"}]' \
-  -H "Authorization: Bearer $TOKEN"
+curl --get \
+  --data-urlencode 'query=[{"column":"mail_account_id","operator":"is","value":"ACCOUNT_ID"}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/mail_box"
 ```
 
 ## SMTP Authentication

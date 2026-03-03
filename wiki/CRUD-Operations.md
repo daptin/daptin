@@ -129,8 +129,10 @@ curl "http://localhost:6336/api/todo/REFERENCE_ID?include=project_id" \
 ### Filter Records
 
 ```bash
-curl 'http://localhost:6336/api/todo?query=[{"column":"completed","operator":"is","value":"false"}]' \
-  -H "Authorization: Bearer $TOKEN"
+curl --get \
+  --data-urlencode 'query=[{"column":"completed","operator":"is","value":0}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/todo"
 ```
 
 See [Filtering and Pagination](Filtering-and-Pagination.md) for all filter options.

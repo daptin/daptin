@@ -256,7 +256,18 @@ Tables:
         DefaultValue: "false"
 ```
 
-Upload it via dashboard or restart Daptin with schema file.
+**Place schema file in Daptin directory:**
+```bash
+# Copy schema file with schema_* prefix
+cp schema.yaml schema_todo.yaml
+
+# Restart Daptin to load schema
+pkill -f daptin
+./daptin &
+sleep 10
+```
+
+**Note:** The `upload_system_schema` action exists but currently does not create tables after upload. Use the file placement method above until this is fixed.
 
 ### Use the API
 
@@ -298,9 +309,11 @@ curl -X DELETE http://localhost:6336/api/todo/RECORD_ID \
 ## 7. Filter and Sort
 
 ```bash
-# Filter
-curl 'http://localhost:6336/api/todo?query=[{"column":"completed","operator":"is","value":"false"}]' \
-  -H "Authorization: Bearer $TOKEN"
+# Filter (use 0 for false, 1 for true on boolean fields)
+curl --get \
+  --data-urlencode 'query=[{"column":"completed","operator":"is","value":0}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/todo"
 
 # Sort (descending with -)
 curl 'http://localhost:6336/api/todo?sort=-created_at' \

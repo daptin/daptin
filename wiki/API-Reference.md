@@ -179,8 +179,10 @@ query=[{"column":"field","operator":"op","value":"val"}]
 ### Multiple Conditions
 
 ```bash
-curl 'http://localhost:6336/api/order?query=[{"column":"status","operator":"is","value":"pending"},{"column":"total","operator":"more than","value":100}]' \
-  -H "Authorization: Bearer $TOKEN"
+curl --get \
+  --data-urlencode 'query=[{"column":"status","operator":"is","value":"pending"},{"column":"total","operator":"more than","value":100}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/order"
 ```
 
 ## Relationships

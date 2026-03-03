@@ -797,8 +797,11 @@ Product table configuration:
 
 **Verify the columns exist:**
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/world?filter[table_name]=product&include=columns" | \
+curl --get -s \
+  --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"product"}]' \
+  --data-urlencode 'include=columns' \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/world" | \
   jq '.included[] | select(.type == "column") | .attributes.column_name'
 ```
 

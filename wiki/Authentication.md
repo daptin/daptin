@@ -25,6 +25,8 @@ curl -X POST http://localhost:6336/action/user_account/signup \
   }'
 ```
 
+**Note**: After the first admin user is created, signup may be restricted based on `user_account` table permissions. Subsequent users may need to be created by an admin or through OAuth.
+
 ### Sign In
 
 ```bash
@@ -38,7 +40,7 @@ curl -X POST http://localhost:6336/action/user_account/signin \
   }'
 ```
 
-**Response**: Returns a `client.store.set` response with the JWT token:
+**Response**: Returns multiple response types including the JWT token:
 ```json
 [
   {
@@ -47,6 +49,21 @@ curl -X POST http://localhost:6336/action/user_account/signin \
       "key": "token",
       "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     }
+  },
+  {
+    "ResponseType": "client.cookie.set",
+    "Attributes": {
+      "key": "token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; SameSite=Strict"
+    }
+  },
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {"message": "Logged in", "title": "Success", "type": "success"}
+  },
+  {
+    "ResponseType": "client.redirect",
+    "Attributes": {"delay": 2000, "location": "/", "window": "self"}
   }
 ]
 ```
@@ -297,12 +314,18 @@ curl -X POST http://localhost:6336/action/user_account/verify_otp \
   -d '{
     "attributes": {
       "email": "user@example.com",
-      "otp": "1234"
+      "otp": "1234",
+      "mobile_number": ""
     }
   }'
 ```
 
-**Important**: Daptin uses 4-digit codes with 300-second (5-minute) validity, not the standard 6-digit/30-second TOTP.
+**Parameters**:
+- `email` - User's email address (required if not providing mobile_number)
+- `otp` - The 4-digit OTP code
+- `mobile_number` - Optional, can be used instead of email for verification
+
+**Important**: Daptin uses 4-digit codes with 300-second (5-minute) validity, not the standard 6-digit/30-second TOTP. On successful verification, a JWT token is returned.
 
 ---
 
@@ -328,11 +351,14 @@ ws.send(JSON.stringify({
 
 ```bash
 curl -X POST http://localhost:6336/action/user_account/reset-password \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"attributes": {"email": "user@example.com"}}'
 ```
 
-**Note**: This requires mail configuration to send the reset email.
+**Requirements**:
+- Mail server must be configured to send the reset email
+- The action requires appropriate permissions (may need authentication depending on table permissions)
 
 ### Complete Reset
 
@@ -347,7 +373,7 @@ curl -X POST http://localhost:6336/action/user_account/reset-password-verify \
   }'
 ```
 
-**Note**: The OTP is sent via email and must be verified. After successful verification, the user can set a new password.
+**Note**: The OTP is sent via email and must be verified. After successful verification, the user receives a new JWT token and is logged in.
 
 ---
 
