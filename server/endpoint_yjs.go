@@ -29,6 +29,7 @@ func InitializeYjsResources(documentProvider ydb.DocumentProvider, defaultRouter
 		sessionUser := ginContext.Request.Context().Value("user")
 		if sessionUser == nil {
 			ginContext.AbortWithStatus(403)
+			return
 		}
 
 		logrus.Tracef("Handle new YJS client")
@@ -47,18 +48,20 @@ func InitializeYjsResources(documentProvider ydb.DocumentProvider, defaultRouter
 			logrus.Printf("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
 			defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
 
-				redisPubSub := dtopicMap[typename].Subscribe(context.Background(), typename)
-				go func(rps *redis.PubSub) {
-					channel := rps.Channel()
-					for {
-						msg := <-channel
-						var eventMessage resource.EventMessage
-						//log.Infof("Message received: %s", msg.Payload)
-						err = ProcessEventMessage(eventMessage, msg, typename, cruds, columnInfo, documentProvider)
-						CheckErr(err, "Failed to process message on OlricTopic[%v]", typename)
-
-					}
-				}(redisPubSub)
+				pubSub, ok := dtopicMap[typename]
+				if !ok || pubSub == nil {
+					logrus.Warnf("no pub/sub topic for type %v, skipping subscription", typename)
+				} else {
+					redisPubSub := pubSub.Subscribe(context.Background(), typename)
+					go func(rps *redis.PubSub) {
+						channel := rps.Channel()
+						for msg := range channel {
+							var eventMessage resource.EventMessage
+							processErr := ProcessEventMessage(eventMessage, msg, typename, cruds, columnInfo, documentProvider)
+							CheckErr(processErr, "Failed to process message on OlricTopic[%v]", typename)
+						}
+					}(redisPubSub)
+				}
 
 				return func(ginContext *gin.Context) {
 
@@ -71,27 +74,28 @@ func InitializeYjsResources(documentProvider ydb.DocumentProvider, defaultRouter
 
 					referenceId := ginContext.Param("referenceId")
 
-					tx, err := cruds[typename].Connection().Beginx()
-					if err != nil {
-						resource.CheckErr(err, "Failed to begin transaction [840]")
+					tx, txErr := cruds[typename].Connection().Beginx()
+					if txErr != nil {
+						resource.CheckErr(txErr, "Failed to begin transaction [840]")
 						return
 					}
 
-					object, _, err := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename,
+					object, _, getErr := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename,
 						daptinid.DaptinReferenceId(uuid.MustParse(referenceId)), nil, tx)
 					tx.Rollback()
-					if err != nil {
+					if getErr != nil {
 						ginContext.AbortWithStatus(404)
 						return
 					}
 
-					tx, err = cruds[typename].Connection().Beginx()
-					objectPermission := cruds[typename].GetRowPermission(object, tx)
-					tx.Rollback()
-					if err != nil {
+					tx2, txErr2 := cruds[typename].Connection().Beginx()
+					if txErr2 != nil {
+						resource.CheckErr(txErr2, "Failed to begin transaction [850]")
 						ginContext.AbortWithStatus(500)
 						return
 					}
+					objectPermission := cruds[typename].GetRowPermission(object, tx2)
+					tx2.Rollback()
 
 					if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups, cruds[typename].AdministratorGroupId) {
 						ginContext.AbortWithStatus(401)

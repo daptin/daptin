@@ -301,5 +301,11 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 				})
 			}
 		}
+	default:
+		client.Write(resource.EventMessage{
+			EventType:     "error",
+			ObjectType:    "no such method",
+			MessageSource: "system",
+		})
 	}
 }

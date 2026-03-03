@@ -46,26 +46,45 @@ func CreateYjsDocumentProvider(configStore *resource.ConfigStore, transaction *s
 			typeName := pathParts[0]
 			referenceId := pathParts[1]
 			columnName := pathParts[2]
+
+			crud, ok := cruds[typeName]
+			if !ok || crud == nil {
+				logrus.Warnf("no crud for type %v in document provider", typeName)
+				return []byte{}
+			}
+
 			if transaction == nil {
 				logrus.Tracef("start transaction for GetDocumentInitialContent")
-				transaction, err = cruds[typeName].Connection().Beginx()
-				if err != nil {
+				var txErr error
+				transaction, txErr = crud.Connection().Beginx()
+				if txErr != nil {
 					return nil
 				}
 				defer transaction.Rollback()
 			}
 
-			object, _, _ := cruds[typeName].GetSingleRowByReferenceIdWithTransaction(typeName,
+			object, _, getErr := crud.GetSingleRowByReferenceIdWithTransaction(typeName,
 				daptinid.DaptinReferenceId(uuid.MustParse(referenceId)), map[string]bool{
 					columnName: true,
 				}, transaction)
 			logrus.Tracef("Completed NewDiskDocumentProvider GetSingleRowByReferenceIdWithTransaction")
+			if getErr != nil {
+				logrus.Warnf("failed to get row in document provider: %v", getErr)
+				return []byte{}
+			}
+			if object == nil {
+				return []byte{}
+			}
 
 			originalFile := object[columnName]
 			if originalFile == nil {
 				return []byte{}
 			}
-			columnValueArray := originalFile.([]map[string]interface{})
+			columnValueArray, ok := originalFile.([]map[string]interface{})
+			if !ok {
+				logrus.Warnf("column value is not []map[string]interface{}: %v", originalFile)
+				return []byte{}
+			}
 
 			fileContentsJson := []byte{}
 			for _, file := range columnValueArray {
@@ -73,7 +92,17 @@ func CreateYjsDocumentProvider(configStore *resource.ConfigStore, transaction *s
 					continue
 				}
 
-				fileContentsJson, _ = base64.StdEncoding.DecodeString(file["contents"].(string))
+				contentsStr, ok := file["contents"].(string)
+				if !ok {
+					logrus.Warnf("file contents is not a string: %v", file["contents"])
+					continue
+				}
+				decoded, decodeErr := base64.StdEncoding.DecodeString(contentsStr)
+				if decodeErr != nil {
+					logrus.Warnf("failed to base64 decode file contents: %v", decodeErr)
+					continue
+				}
+				fileContentsJson = decoded
 
 			}
 

@@ -75,22 +75,32 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 
 					for _, fileInterface := range fileColumnValueArray {
 
-						file := fileInterface.(map[string]interface{})
+						file, ok := fileInterface.(map[string]interface{})
+						if !ok {
+							continue
+						}
 
 						if file["type"] == "x-crdt/yjs" {
 							filename, ok := file["name"]
 							if !ok {
 								continue
 							}
+							filenameStr, ok := filename.(string)
+							if !ok {
+								continue
+							}
 
-							stateFileExists[strings.Split(filename.(string), ".yjs")[0]] = true
+							stateFileExists[strings.Split(filenameStr, ".yjs")[0]] = true
 						}
 
 					}
 
 					for i, fileInterface := range fileColumnValueArray {
 
-						file := fileInterface.(map[string]interface{})
+						file, ok := fileInterface.(map[string]interface{})
+						if !ok {
+							continue
+						}
 						if file["type"] != "x-crdt/yjs" {
 							continue
 						}
@@ -98,7 +108,10 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 						if !ok {
 							filename = column.ColumnName + "_" + referenceId.String() + ".txt"
 						}
-						filenamestring := filename.(string)
+						filenamestring, ok := filename.(string)
+						if !ok {
+							continue
+						}
 						if stateFileExists[filenamestring] {
 							continue
 						}
@@ -113,6 +126,7 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 								continue
 							}
 
+							otherIdx := 1 - i
 							if !existingYjsDocument {
 								fileColumnValueArray = append(fileColumnValueArray, map[string]interface{}{
 									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
@@ -121,9 +135,8 @@ func (pc *yjsHandlerMiddleware) InterceptBefore(dr *DbResource, req *api2go.Requ
 									"path":     file["path"],
 								})
 
-							} else {
-								// yes remember the trick ?
-								fileColumnValueArray[1-i] = map[string]interface{}{
+							} else if otherIdx >= 0 && otherIdx < len(fileColumnValueArray) {
+								fileColumnValueArray[otherIdx] = map[string]interface{}{
 									"contents": "x-crdt/yjs," + base64.StdEncoding.EncodeToString(documentHistory),
 									"name":     filenamestring + ".yjs",
 									"type":     "x-crdt/yjs",
