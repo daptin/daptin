@@ -529,7 +529,7 @@ Logs: `/tmp/daptin-node{1,2,3}.log`
 |------|--------|
 | Outbox NX dedup | 5/5 PASS |
 | WebSocket PubSub | 6/6 PASS |
-| Mail (SMTP) | 0/5 FAIL (pre-existing SMTP listener bug) |
+| Mail (SMTP) | Fixed in 37863a7c (guerrilla listener bug resolved) |
 
 ### Key Details
 - `-olric_peers` must use **membership ports** (5337, 5339, 5341), not bind ports

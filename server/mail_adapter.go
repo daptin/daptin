@@ -382,7 +382,11 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								},
 							}
 							_, err = dbResource.Cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
-							resource.CheckErr(err, "Failed to queue outbound mail in outbox")
+							if err != nil {
+								resource.CheckErr(err, "Failed to queue outbound mail in outbox")
+								continue
+							}
+							transaction.Commit()
 							continue
 						}
 

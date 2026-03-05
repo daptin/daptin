@@ -767,9 +767,9 @@ func (dbResource *DbResource) ClearRecentFlags(mailBoxId int64, transaction *sql
 
 func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
 
-	var uidNext int64
-	q5, v5, e5 := statementbuilder.Squirrel.Select(goqu.L("COALESCE(MAX(id), 0)").As("max_id")).From("mail").Prepared(true).Where(goqu.Ex{
-		"mail_box_id": mailBoxId,
+	var nextuid int64
+	q5, v5, e5 := statementbuilder.Squirrel.Select(goqu.L("COALESCE(nextuid, 1)").As("nextuid")).From("mail_box").Prepared(true).Where(goqu.Ex{
+		"id": mailBoxId,
 	}).ToSQL()
 
 	if e5 != nil {
@@ -782,8 +782,30 @@ func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sq
 	} else {
 		r5 = dbResource.db.QueryRowx(q5, v5...)
 	}
-	err := r5.Scan(&uidNext)
-	return uint32(int32(uidNext) + 1), err
+	err := r5.Scan(&nextuid)
+	if err != nil {
+		return 1, err
+	}
+
+	// Also check MAX(id) as a floor to handle existing data without nextuid tracking
+	var maxId int64
+	q6, v6, e6 := statementbuilder.Squirrel.Select(goqu.L("COALESCE(MAX(id), 0)").As("max_id")).From("mail").Prepared(true).Where(goqu.Ex{
+		"mail_box_id": mailBoxId,
+	}).ToSQL()
+	if e6 == nil {
+		var r6 *sqlx.Row
+		if transaction != nil {
+			r6 = transaction.QueryRowx(q6, v6...)
+		} else {
+			r6 = dbResource.db.QueryRowx(q6, v6...)
+		}
+		r6.Scan(&maxId)
+	}
+
+	if maxId+1 > nextuid {
+		return uint32(maxId + 1), nil
+	}
+	return uint32(nextuid), nil
 
 }
 

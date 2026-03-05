@@ -74,6 +74,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			dbResource:         diu.dbResource,
 			name:               boxName,
 			sessionUser:        diu.sessionUser,
+			mailAccountId:      diu.mailAccountId,
 			mailBoxReferenceId: daptinid.InterfaceToDIR(box["reference_id"]).String(),
 			sequenceToMail:     make(map[uint32]*imap.Message),
 			knownKeywords:      make(map[string]bool),
@@ -204,7 +205,12 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 		return nil, errors.New("no such mailbox")
 	}
 
-	mbStatus, err := diu.dbResource["mail_box"].GetMailBoxStatus(diu.mailAccountId, box[0]["id"].(int64), transaction)
+	boxId, ok := box[0]["id"].(int64)
+	if !ok {
+		return nil, fmt.Errorf("invalid mailbox id type: %T", box[0]["id"])
+	}
+
+	mbStatus, err := diu.dbResource["mail_box"].GetMailBoxStatus(diu.mailAccountId, boxId, transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -218,22 +224,21 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 
 	// Load known keywords from existing messages
 	kwMap := make(map[string]bool)
-	kwList, kwErr := diu.dbResource["mail_box"].GetMailBoxKeywords(box[0]["id"].(int64), transaction)
+	kwList, kwErr := diu.dbResource["mail_box"].GetMailBoxKeywords(boxId, transaction)
 	if kwErr == nil {
 		for _, kw := range kwList {
 			kwMap[kw] = true
 		}
 	}
 
-	mbName, _ := box[0]["name"].(string)
-	mbId, _ := box[0]["id"].(int64)
+	mbName := boxName
 	mbAttrs, _ := box[0]["attributes"].(string)
 
 	mb := DaptinImapMailBox{
 		dbResource:         diu.dbResource,
 		name:               mbName,
 		sessionUser:        diu.sessionUser,
-		mailBoxId:          mbId,
+		mailBoxId:          boxId,
 		mailAccountId:      diu.mailAccountId,
 		lock:               sync.Mutex{},
 		sequenceToMail:     make(map[uint32]*imap.Message),

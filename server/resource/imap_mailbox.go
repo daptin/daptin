@@ -103,10 +103,12 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 	mbs := imap.NewMailboxStatus(dimb.name, items)
 
 	// Include cached keywords in FLAGS so clients know they exist
+	dimb.lock.Lock()
 	keywords := make([]string, 0, len(dimb.knownKeywords))
 	for k := range dimb.knownKeywords {
 		keywords = append(keywords, k)
 	}
+	dimb.lock.Unlock()
 	mbs.Flags = append(append([]string{}, dimb.status.Flags...), keywords...)
 	mbs.PermanentFlags = append(append([]string{}, dimb.status.PermanentFlags...), keywords...)
 	mbs.PermanentFlags = append(mbs.PermanentFlags, "\\*")
@@ -137,8 +139,13 @@ func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
 	if err != nil {
 		return err
 	}
-	defer transaction.Commit()
-	return dimb.dbResource["mail_box"].SetMailBoxSubscribed(dimb.mailAccountId, dimb.name, subscribed, transaction)
+	defer transaction.Rollback()
+	err = dimb.dbResource["mail_box"].SetMailBoxSubscribed(dimb.mailAccountId, dimb.name, subscribed, transaction)
+	if err != nil {
+		return err
+	}
+	transaction.Commit()
+	return nil
 }
 
 // Check requests a checkpoint of the currently selected mailbox. A checkpoint
@@ -153,7 +160,7 @@ func (dimb *DaptinImapMailBox) Check() error {
 	if err != nil {
 		return err
 	}
-	defer transaction.Commit()
+	defer transaction.Rollback()
 	box, err := dimb.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
 			"mail_account_id": dimb.mailAccountId,
@@ -164,8 +171,9 @@ func (dimb *DaptinImapMailBox) Check() error {
 		return err
 	}
 
+	attrs, _ := box[0]["attributes"].(string)
 	dimb.info = imap.MailboxInfo{
-		Attributes: strings.Split(box[0]["attributes"].(string), ";"),
+		Attributes: strings.Split(attrs, ";"),
 		Delimiter:  "\\",
 		Name:       box[0]["name"].(string),
 	}
@@ -174,6 +182,7 @@ func (dimb *DaptinImapMailBox) Check() error {
 	newStatus.Name = dimb.name
 	dimb.status = newStatus
 
+	transaction.Commit()
 	return nil
 }
 
@@ -188,7 +197,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 	if err != nil {
 		return err
 	}
-	defer transaction.Commit()
+	defer transaction.Rollback()
 
 	for _, seq := range seqset.Set {
 		//log.Printf("Fetch request [%v] from %v to %v", uid, seq.Start, seq.Stop)
@@ -356,6 +365,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 
 	close(ch)
 
+	transaction.Commit()
 	return nil
 }
 
@@ -384,15 +394,25 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 	}
 
 	if criteria.Uid != nil && len(criteria.Uid.Set) > 0 {
-		setRange := criteria.Uid.Set[0]
+		// Compute bounding box across all UID ranges for the DB query
+		minStart := criteria.Uid.Set[0].Start
+		maxStop := criteria.Uid.Set[0].Stop
+		for _, setRange := range criteria.Uid.Set[1:] {
+			if setRange.Start < minStart {
+				minStart = setRange.Start
+			}
+			if setRange.Stop > maxStop {
+				maxStop = setRange.Stop
+			}
+		}
 		queries = append(queries, Query{
 			ColumnName: "id",
 			Operator:   "after",
-			Value:      setRange.Start - 1,
+			Value:      minStart - 1,
 		}, Query{
 			ColumnName: "id",
 			Operator:   "before",
-			Value:      setRange.Stop + 1,
+			Value:      maxStop + 1,
 		})
 	}
 
@@ -491,20 +511,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		}
 	}
 
-	// Handle all UID set ranges (not just first)
-	if criteria.Uid != nil && len(criteria.Uid.Set) > 1 {
-		for _, setRange := range criteria.Uid.Set[1:] {
-			queries = append(queries, Query{
-				ColumnName: "id",
-				Operator:   "after",
-				Value:      setRange.Start - 1,
-			}, Query{
-				ColumnName: "id",
-				Operator:   "before",
-				Value:      setRange.Stop + 1,
-			})
-		}
-	}
+	// Post-filter for multi-range UID sets is done after query results come back
 
 	queryJson, _ := json.Marshal(queries)
 
@@ -528,12 +535,11 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		return nil, err
 	}
 	log.Printf("[IMAP] SearchMessages: transaction started")
-	defer transaction.Commit()
+	defer transaction.Rollback()
 
 	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest, transaction)
 
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
@@ -546,6 +552,19 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 			if err != nil {
 				CheckErr(err, "Failed to get id from reference id")
 				continue
+			}
+			// Post-filter: for multi-range UID sets, keep only UIDs within any specified range
+			if criteria.Uid != nil && len(criteria.Uid.Set) > 1 {
+				inRange := false
+				for _, setRange := range criteria.Uid.Set {
+					if uint32(id) >= setRange.Start && uint32(id) <= setRange.Stop {
+						inRange = true
+						break
+					}
+				}
+				if !inRange {
+					continue
+				}
 			}
 			ids = append(ids, uint32(id))
 		} else {
@@ -748,7 +767,7 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 	if err != nil {
 		return err
 	}
-	defer transaction.Commit()
+	defer transaction.Rollback()
 
 	var mails []map[string]interface{}
 	for _, seq := range seqset.Set {
@@ -783,6 +802,7 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 		}
 	}
 
+	transaction.Commit()
 	return nil
 }
 

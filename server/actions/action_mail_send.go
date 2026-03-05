@@ -56,8 +56,8 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 
 		var body bytes.Buffer
 
-		mimeHeaders := "MIME-version: 1.0;\r\nContent-Type: text/plain; charset=\"UTF-8\";\r\n\r\n"
-		body.Write([]byte(fmt.Sprintf("Subject: %v\r\n%s\r\n\r\n", subject, mimeHeaders)))
+		mimeHeaders := "MIME-version: 1.0;\r\nContent-Type: text/plain; charset=\"UTF-8\";\r\n"
+		body.Write([]byte(fmt.Sprintf("Subject: %v\r\n%s\r\n", subject, mimeHeaders)))
 
 		body.Write([]byte(mailBody))
 

@@ -62,7 +62,11 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 			}
 		}
 
-		mailId := pendingMail["id"].(int64)
+		mailId, ok := pendingMail["id"].(int64)
+		if !ok {
+			log.Errorf("Outbox entry has invalid id type: %T", pendingMail["id"])
+			continue
+		}
 
 		// Claim this mail via Olric NX — if another node already claimed it, skip
 		claimKey := fmt.Sprintf("outbox-claim-%v", mailId)
@@ -73,9 +77,21 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 			}
 		}
 
-		fromAddress := pendingMail["from_address"].(string)
-		toAddress := pendingMail["to_address"].(string)
-		mailBase64 := pendingMail["mail"].(string)
+		fromAddress, ok := pendingMail["from_address"].(string)
+		if !ok {
+			log.Errorf("Outbox entry [%v] has invalid from_address type: %T", mailId, pendingMail["from_address"])
+			continue
+		}
+		toAddress, ok := pendingMail["to_address"].(string)
+		if !ok {
+			log.Errorf("Outbox entry [%v] has invalid to_address type: %T", mailId, pendingMail["to_address"])
+			continue
+		}
+		mailBase64, ok := pendingMail["mail"].(string)
+		if !ok {
+			log.Errorf("Outbox entry [%v] has invalid mail type: %T", mailId, pendingMail["mail"])
+			continue
+		}
 		toHost := ""
 		if h, ok := pendingMail["to_host"]; ok && h != nil {
 			toHost = fmt.Sprintf("%v", h)
