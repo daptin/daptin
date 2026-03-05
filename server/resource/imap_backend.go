@@ -1,9 +1,14 @@
 package resource
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"time"
+
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	log "github.com/sirupsen/logrus"
@@ -47,27 +52,42 @@ func (be *DaptinImapBackend) LoginMd5(conn *imap.ConnInfo, username, challenge s
 
 func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password string) (backend.User, error) {
 	log.Printf("[IMAP] Login: starting for user %s", username)
+
+	// Brute force protection: check failed login count via Olric
+	if OlricCache != nil {
+		failKey := fmt.Sprintf("imap-fail-%s", username)
+		val, err := OlricCache.Get(context.Background(), failKey)
+		if err == nil && val != nil {
+			if count, err := val.Int(); err == nil && count >= 5 {
+				log.Printf("[IMAP] Login: user %s locked out due to too many failed attempts", username)
+				return nil, errors.New("too many failed login attempts, try again later")
+			}
+		}
+	}
+
 	userAccountResource := be.cruds[USER_ACCOUNT_TABLE_NAME]
-	log.Printf("[IMAP] Login: attempting to begin transaction")
 	transaction, err := userAccountResource.Connection().Beginx()
 	if err != nil {
-		log.Printf("[IMAP] Login: failed to begin transaction: %v", err)
 		CheckErr(err, "Failed to begin transaction [51]")
 		return nil, err
 	}
-	log.Printf("[IMAP] Login: transaction started")
-	defer func() {
-		transaction.Commit()
-		log.Printf("[IMAP] Login: transaction committed")
-	}()
+	defer transaction.Rollback()
+
 	userMailAccount, err := userAccountResource.GetUserMailAccountRowByEmail(username, transaction)
 	if err != nil {
+		be.recordFailedLogin(username)
 		return nil, err
 	}
 
 	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account",
 		daptinid.InterfaceToDIR(userMailAccount["user_account_id"]), nil, transaction)
-	userId, _ := userAccount["id"].(int64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user account: %w", err)
+	}
+	userId, ok := userAccount["id"].(int64)
+	if !ok {
+		return nil, errors.New("invalid user account id")
+	}
 	groups := userAccountResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId)
 
 	sessionUser := &auth.SessionUser{
@@ -76,7 +96,15 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		Groups:          groups,
 	}
 
-	if BcryptCheckStringHash(password, userMailAccount["password"].(string)) {
+	mailPassword, _ := userMailAccount["password"].(string)
+	if BcryptCheckStringHash(password, mailPassword) {
+		transaction.Commit()
+
+		// Clear failed login counter on success
+		if OlricCache != nil {
+			failKey := fmt.Sprintf("imap-fail-%s", username)
+			OlricCache.Delete(context.Background(), failKey)
+		}
 
 		return &DaptinImapUser{
 			username:               username,
@@ -87,7 +115,22 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		}, nil
 	}
 
+	be.recordFailedLogin(username)
 	return nil, errors.New("bad username or password")
+}
+
+func (be *DaptinImapBackend) recordFailedLogin(username string) {
+	if OlricCache == nil {
+		return
+	}
+	failKey := fmt.Sprintf("imap-fail-%s", username)
+	val, err := OlricCache.Get(context.Background(), failKey)
+	count := 0
+	if err == nil && val != nil {
+		count, _ = val.Int()
+	}
+	count++
+	OlricCache.Put(context.Background(), failKey, count, olric.EX(5*time.Minute))
 }
 
 func NewImapServer(cruds map[string]*DbResource) *DaptinImapBackend {

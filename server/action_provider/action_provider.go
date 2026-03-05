@@ -122,6 +122,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create mail send performer")
 	performers = append(performers, mailSendAction)
 
+	outboxProcessPerformer, err := actions.NewOutboxProcessActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create outbox process performer")
+	performers = append(performers, outboxProcessPerformer)
+
 	awsMailSendActionPerformer, err := actions.NewAwsMailSendActionPerformer(cruds, mailDaemon, configStore, transaction)
 	resource.CheckErr(err, "Failed to create mail send performer")
 	performers = append(performers, awsMailSendActionPerformer)

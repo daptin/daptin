@@ -542,7 +542,8 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
 				Insert(relationTableName).
 				Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").Prepared(true).
-				Vals([]interface{}{createdResource["id"], groupId, nuuid[:], relationTableModel.model.GetDefaultPermission()}).ToSQL()
+				Vals([]interface{}{createdResource["id"], groupId, nuuid[:], relationTableModel.model.GetDefaultPermission()}).
+				OnConflict(goqu.DoNothing()).ToSQL()
 
 			log.Tracef("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
 			_, err = createTransaction.Exec(belogsToUserGroupSql, q...)

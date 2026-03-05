@@ -14,7 +14,6 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-guerrilla/response"
-	"github.com/artpar/go-smtp-mta"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
@@ -23,7 +22,6 @@ import (
 	mailpacket "github.com/emersion/go-message/mail"
 	"github.com/emersion/go-msgauth/dkim"
 	log "github.com/sirupsen/logrus"
-	"github.com/smancke/mailck"
 	"io"
 	"net/http"
 	mail1 "net/mail"
@@ -146,7 +144,7 @@ func (dsa *DaptinSmtpAuthenticator) GetAdvertiseAuthentication(authType []string
 }
 
 func (dsa *DaptinSmtpAuthenticator) GetMailSize(login string, defaultSize int64) int64 {
-	return 10000
+	return defaultSize
 }
 
 func DaptinSmtpAuthenticatorCreator(dbResource *resource.DbResource) func(config backends.BackendConfig) authenticators.Authenticator {
@@ -244,6 +242,24 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 						log.Printf("Authorized login: %v", e.AuthorizedLogin)
 
+						// Extract text body from parsed mail parts
+						for {
+							part, partErr := parsedMail.NextPart()
+							if partErr != nil {
+								break
+							}
+							if _, ok := part.Header.(*mailpacket.InlineHeader); ok {
+								ct := part.Header.Get("Content-Type")
+								if strings.HasPrefix(ct, "text/plain") || ct == "" {
+									bodyBytes, readErr := io.ReadAll(part.Body)
+									if readErr == nil && len(bodyBytes) > 0 {
+										body = string(bodyBytes)
+									}
+									break
+								}
+							}
+						}
+
 						var mailBody interface{}
 						var mailSize int
 						// `mail` column
@@ -288,7 +304,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								return nil, err
 							}
 
-							defer transaction.Commit()
+							defer transaction.Rollback()
 							cert, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false, transaction)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
@@ -300,8 +316,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							//log.Printf("Public key [%v] %v", e.MailFrom.Host, string(publicKeyBytes))
 
 							block, _ := pem.Decode(cert.PrivatePEMDecrypted)
-							resource.CheckErr(err, "Failed to read pem bytes")
-							if err != nil {
+							if block == nil {
+								log.Errorf("Failed to decode PEM block for domain [%v]", e.MailFrom.Host)
 								continue
 							}
 							privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -311,8 +327,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								return nil, err
 							}
 
+							dkimSelector := "d1"
+							if sel, err := dbResource.ConfigStore.GetConfigValueFor("mail.dkim_selector", "backend", transaction); err == nil && sel != "" {
+								dkimSelector = sel
+							}
+
 							options := &dkim.SignOptions{
-								Selector:               "d1",
+								Selector:               dkimSelector,
 								HeaderCanonicalization: dkim.CanonicalizationRelaxed,
 								BodyCanonicalization:   dkim.CanonicalizationRelaxed,
 								Domain:                 e.MailFrom.Host,
@@ -342,40 +363,38 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							finalMail := b.Bytes()
-							fmt.Printf("Mail\n%s", string(finalMail))
-							log.Printf("Final Mail: From [%v] to [%v] [%v]", e.MailFrom.String(), rcpt.String(), string(finalMail))
+							log.Printf("Final Mail: From [%v] to [%v]", e.MailFrom.String(), rcpt.String())
 
-							i2 := mta.Sender{
-								Hostname: e.MailFrom.Host,
+							outboxModel := api2go.NewApi2GoModelWithData("outbox", nil, 0, nil, map[string]interface{}{
+								"from_address":  e.MailFrom.String(),
+								"to_address":    rcpt.String(),
+								"to_host":       rcpt.Host,
+								"mail":          base64.StdEncoding.EncodeToString(finalMail),
+								"sent":          false,
+								"retry_count":   0,
+								"next_retry_at": time.Now(),
+							})
+							outboxUrl, _ := url.Parse("/api/outbox")
+							outboxReq := api2go.Request{
+								PlainRequest: &http.Request{
+									Method: "POST",
+									URL:    outboxUrl,
+								},
 							}
-							err = (&i2).Send(e.MailFrom.String(), []string{rcpt.String()}, bytes.NewReader(finalMail))
-
-							resource.CheckErr(err, "[320] Failed to send mail to actual destination")
+							_, err = dbResource.Cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
+							resource.CheckErr(err, "Failed to queue outbound mail in outbox")
 							continue
 						}
 
-						result, _ := mailck.Check(rcpt.String(), sender)
-						spamScore := 100
-						switch {
-
-						case result.IsValid():
-							log.Printf("SPF check for [%v] was successful: %v", sender, result)
-							spamScore = 0
-						case result.IsError():
-							// something went wrong in the smtp communication
-							// we can't say for sure if the address is valid or not
-							log.Printf("SPF check for [%v] was failed: %v", sender, result)
-							spamScore = 50
-						case result.IsInvalid():
-
-							log.Printf("554 Error: blacked listed sender: %v", result)
-							spamScore = 200
-						}
+						// Score based on DKIM verification only (no blocking SMTP probe)
+						spamScore := 0
 
 						dkimResult, err := dkim.Verify(bytes.NewReader(mailBytes))
-
 						resource.CheckErr(err, "Failed to verify dkim signature in incoming mail")
 
+						if err != nil {
+							spamScore += 50
+						}
 						for _, res := range dkimResult {
 							if res == nil {
 								spamScore += 100
@@ -392,11 +411,21 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						user, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction("user_account",
 							daptinid.InterfaceToDIR(mailAccount["user_account_id"]), nil, transaction)
 						log.Tracef("Completed mailAdapter GetSingleRowByReferenceIdWithTransaction")
+						if err != nil || user == nil {
+							log.Errorf("Failed to get user account for mail recipient [%v]: %v", rcpt.String(), err)
+							continue
+						}
+
+						userId, ok := user["id"].(int64)
+						if !ok {
+							log.Errorf("Invalid user id type for mail recipient [%v]", rcpt.String())
+							continue
+						}
 
 						sessionUser := &auth.SessionUser{
-							UserId:          user["id"].(int64),
+							UserId:          userId,
 							UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
-							Groups:          dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", user["id"].(int64)),
+							Groups:          dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId),
 						}
 
 						mailboxName := "INBOX"
@@ -405,7 +434,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							mailboxName = "Spam"
 						}
 
-						mailBox, err := dbResource.GetMailAccountBox(mailAccount["id"].(int64), mailboxName, transaction)
+						mailAccountId, _ := mailAccount["id"].(int64)
+						mailBox, err := dbResource.GetMailAccountBox(mailAccountId, mailboxName, transaction)
 
 						if err != nil {
 							mailBox, err = dbResource.CreateMailAccountBox(
@@ -426,17 +456,17 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						spam := false
 						flags := "\\Recent"
 						if spamScore > 50 {
-							flags += ",\\Spam"
+							flags += ",Spam"
 							spam = true
 						}
 
 						hasAttachment := false
-						for part, err := parsedMail.NextPart(); err != nil; {
-							if err != nil {
+						for {
+							part, partErr := parsedMail.NextPart()
+							if partErr != nil {
 								break
 							}
-							a := part.Header
-							_, ok := a.(*mailpacket.AttachmentHeader)
+							_, ok := part.Header.(*mailpacket.AttachmentHeader)
 							if ok {
 								hasAttachment = true
 								break
@@ -489,7 +519,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 					// continue to the next Processor in the decorator chain
 					return p.Process(e, task)
 				} else if task == backends.TaskValidateRcpt {
-					// if you need to validate the e.Rcpt then change to:¬
+					// Limit recipients to prevent abuse
+					if len(e.RcptTo) > 100 {
+						return backends.NewResult(response.Canned.FailRcptCmd), backends.NoSuchUser
+					}
 					if len(e.RcptTo) > 0 {
 						// since this is called each time a recipient is added
 						// validate only the _last_ recipient that was appended

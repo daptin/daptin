@@ -13,10 +13,10 @@ import (
 	"github.com/daptin/daptin/server/task_scheduler"
 	server2 "github.com/fclairamb/ftpserver/server"
 	"github.com/go-redis/redis/v8"
-	"github.com/hashicorp/memberlist"
 	jsoniter "github.com/json-iterator/go"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
+	"net"
 	"net/url"
 	"path/filepath"
 	"runtime"
@@ -197,7 +197,7 @@ func main() {
 	var logLevel = flag.String("log_level", "info", "log level : debug, trace, info, warn, error, fatal")
 	var profileDumpPath = flag.String("profile_dump_path", "./", "location for dumping cpu/heap data in profile mode")
 	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
-	var olricPeers = flag.String("olric_peers", "", "list of olric peers, comma separated in ip:port")
+	var olricPeers = flag.String("olric_peers", "", "list of olric peers, comma separated in ip:membership_port")
 	var olricBindPort = flag.Int("olric_bind_port", 0, "port for olric server")
 	var olricMembershipPort = flag.Int("olric_membership_port", 0, "port for olric membership")
 	var olricConfigEnv = flag.String("olric_env", "local", "env value for olric: local/lan/wan, default: lan")
@@ -356,7 +356,8 @@ func main() {
 
 	olricConfig1.BindPort = olricBindPortValue
 
-	olricConfig1.MemberlistConfig = memberlist.DefaultLocalConfig()
+	// MemberlistConfig is already set by olricConfig.New(env) with the correct
+	// local/lan/wan settings. Do NOT overwrite it with memberlist.DefaultLocalConfig().
 	olricConfig1.MemberlistConfig.Name = fmt.Sprintf("%v:%v", olricConfig1.MemberlistConfig.BindAddr, olricConfig1.BindPort)
 
 	// Configure Olric for better memory management
@@ -383,8 +384,21 @@ func main() {
 	}
 
 	olricConfig1.MemberlistConfig.BindPort = olricMembershipPortValue
+
+	// Filter out self from peers list to avoid "cannot be peer with itself" error.
+	// olric.New() calls SetupNetworkConfig() which resolves BindAddr to the primary
+	// interface IP, so we must resolve it here too to match.
+	selfAddr := net.JoinHostPort(olricConfig1.MemberlistConfig.BindAddr, strconv.Itoa(olricMembershipPortValue))
+	var filteredPeers []string
+	for _, peer := range olricConfig1.Peers {
+		if peer != selfAddr {
+			filteredPeers = append(filteredPeers, peer)
+		}
+	}
+	olricConfig1.Peers = filteredPeers
 	log.Infof("Olric member name: %v => %v", olricConfig1.MemberlistConfig.Name, olricConfig1.BindPort)
-	log.Infof("Olric membership address: %v", olricConfig1.MemberlistConfig.Name)
+	log.Infof("Olric membership address: %v", selfAddr)
+	log.Infof("Olric peers (filtered): %v", olricConfig1.Peers)
 
 	emb, err := olric.New(olricConfig1)
 	if err != nil {

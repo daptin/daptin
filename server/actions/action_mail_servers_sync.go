@@ -58,11 +58,17 @@ func (d *mailServersSyncActionPerformer) DoAction(request actionresponse.Outcome
 
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
-		hostname := server["hostname"].(string)
+		hostnameVal, ok := server["hostname"].(string)
+		if !ok || hostnameVal == "" {
+			log.Printf("Skipping SMTP server entry with missing hostname")
+			continue
+		}
+		hostname := hostnameVal
 		cert, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
 
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
+			log.Printf("Failed to generate Certificates for SMTP server for %s, skipping", hostname)
+			continue
 		}
 
 		//certFilePath := filepath.Join(tempDirectoryPath, hostname+".cert.pem")
@@ -75,16 +81,16 @@ func (d *mailServersSyncActionPerformer) DoAction(request actionresponse.Outcome
 		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		//}
 
-		err = os.WriteFile(publicKeyFilePath, []byte(string(cert.PublicPEMDecrypted)+"\n"+string(cert.CertPEM)+"\n"+string(cert.RootCert)), 0666)
+		err = os.WriteFile(publicKeyFilePath, []byte(string(cert.PublicPEMDecrypted)+"\n"+string(cert.CertPEM)+"\n"+string(cert.RootCert)), 0600)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
-		err = os.WriteFile(rootCaFile, []byte(string(cert.RootCert)), 0666)
+		err = os.WriteFile(rootCaFile, []byte(string(cert.RootCert)), 0600)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
 
-		err = os.WriteFile(privateKeyFilePath, cert.PrivatePEMDecrypted, 0666)
+		err = os.WriteFile(privateKeyFilePath, cert.PrivatePEMDecrypted, 0600)
 		//err = os.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
 
 		if err != nil {
@@ -123,15 +129,32 @@ func (d *mailServersSyncActionPerformer) DoAction(request actionresponse.Outcome
 
 	}
 
-	hosts = append(hosts, "*")
+	saveWorkersSize := 1
+	if sws, err := d.cruds["mail"].ConfigStore.GetConfigValueFor("mail.save_workers_size", "backend", transaction); err == nil && sws != "" {
+		if parsed, err := strconv.Atoi(sws); err == nil && parsed > 0 {
+			saveWorkersSize = parsed
+		}
+	}
+
+	// Use first enabled server's hostname instead of hardcoded "localhost"
+	primaryMailHost := "localhost"
+	for _, srv := range servers {
+		if fmt.Sprintf("%v", srv["is_enabled"]) == "1" {
+			if h, ok := srv["hostname"].(string); ok && h != "" {
+				primaryMailHost = h
+				break
+			}
+		}
+	}
+
 	err = d.mailDaemon.ReloadConfig(guerrilla.AppConfig{
 		Servers:      serverConfig,
 		AllowedHosts: hosts,
 		BackendConfig: backends.BackendConfig{
 			"save_process":       "HeadersParser|Debugger|Hasher|Header|Compressor|DaptinSql",
 			"log_received_mails": true,
-			"save_workers_size":  1,
-			"primary_mail_host":  "localhost",
+			"save_workers_size":  saveWorkersSize,
+			"primary_mail_host":  primaryMailHost,
 		},
 	})
 

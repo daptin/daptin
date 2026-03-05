@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"github.com/daptin/daptin/server/id"
 	"io"
 	"net/http"
@@ -40,6 +41,23 @@ type DaptinImapMailBox struct {
 	info               imap.MailboxInfo
 	status             *imap.MailboxStatus
 	sequenceToMail     map[uint32]*imap.Message
+	lastKnownMessages  uint32
+	pendingUpdate      *imap.MailboxStatus
+	knownKeywords      map[string]bool
+}
+
+// ConsumePollUpdate returns the pending mailbox status if Poll() found new
+// messages, and clears the pending state. Returns nil if no update is pending.
+func (dimb *DaptinImapMailBox) ConsumePollUpdate() *imap.MailboxStatus {
+	dimb.lock.Lock()
+	defer dimb.lock.Unlock()
+	if dimb.pendingUpdate != nil {
+		st := dimb.pendingUpdate
+		dimb.pendingUpdate = nil
+		dimb.lastKnownMessages = st.Messages
+		return st
+	}
+	return nil
 }
 
 // Name returns this mailbox name.
@@ -67,20 +85,33 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 	//	iMap[item] = true
 	//}
 
-	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
-	if err != nil {
-		return nil, err
+	// Use direct queries (no transaction) for read-only Status to reduce lock contention
+	mbsCurrent, err := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, nil)
+	if err != nil || mbsCurrent == nil {
+		return nil, fmt.Errorf("failed to get mailbox status: %w", err)
 	}
-	defer transaction.Commit()
-	mbsCurrent, _ := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, transaction)
+	// Preserve base Flags/PermanentFlags (GetMailBoxStatus doesn't set them)
+	var baseFlags, basePermanentFlags []string
+	if dimb.status != nil {
+		baseFlags = dimb.status.Flags
+		basePermanentFlags = dimb.status.PermanentFlags
+	}
 	dimb.status = mbsCurrent
+	dimb.status.Flags = baseFlags
+	dimb.status.PermanentFlags = basePermanentFlags
 
 	mbs := imap.NewMailboxStatus(dimb.name, items)
-	mbs.Flags = dimb.status.Flags
-	mbs.PermanentFlags = dimb.status.PermanentFlags
 
-	mbs.UnseenSeqNum = dimb.dbResource["mail_box"].GetFirstUnseenMailSequence(dimb.mailBoxId, transaction)
-	//vals := make([]interface{}, 0)
+	// Include cached keywords in FLAGS so clients know they exist
+	keywords := make([]string, 0, len(dimb.knownKeywords))
+	for k := range dimb.knownKeywords {
+		keywords = append(keywords, k)
+	}
+	mbs.Flags = append(append([]string{}, dimb.status.Flags...), keywords...)
+	mbs.PermanentFlags = append(append([]string{}, dimb.status.PermanentFlags...), keywords...)
+	mbs.PermanentFlags = append(mbs.PermanentFlags, "\\*")
+
+	mbs.UnseenSeqNum = dimb.dbResource["mail_box"].GetFirstUnseenMailSequence(dimb.mailBoxId, nil)
 	for _, item := range items {
 		switch imap.StatusItem(item) {
 		case imap.StatusMessages:
@@ -90,7 +121,7 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 		case imap.StatusUnseen:
 			mbs.Unseen = dimb.status.Unseen
 		case imap.StatusUidNext:
-			nextUid, _ := dimb.dbResource["mail_box"].GetMailboxNextUid(dimb.mailBoxId, transaction)
+			nextUid, _ := dimb.dbResource["mail_box"].GetMailboxNextUid(dimb.mailBoxId, nil)
 			mbs.UidNext = nextUid
 		case imap.StatusUidValidity:
 			mbs.UidValidity = dimb.status.UidValidity
@@ -170,14 +201,20 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 			startAt := seq.Start
 			stopAt := seq.Stop
 
+			// Collect cached messages under lock, then send without lock
+			dimb.lock.Lock()
+			var cached []*imap.Message
 			for {
-
 				if dimb.sequenceToMail[startAt] == nil {
 					break
 				}
-
-				ch <- dimb.sequenceToMail[startAt]
+				cached = append(cached, dimb.sequenceToMail[startAt])
 				startAt = startAt + 1
+			}
+			dimb.lock.Unlock()
+
+			for _, msg := range cached {
+				ch <- msg
 			}
 
 			if startAt > stopAt {
@@ -270,17 +307,6 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 							break
 						}
 
-						if !section.Peek {
-							if HasAnyFlag(flagList, []string{imap.RecentFlag}) {
-								flagList = backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-								log.Printf("New flags: [%v]", flagList)
-								err := dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList, transaction)
-								if err != nil {
-									log.Printf("Failed to update recent flag for mail[%v]: %v", mailContent["id"], err)
-								}
-							}
-						}
-
 						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 						header, err := textproto.ReadHeader(bodyReader)
 
@@ -292,9 +318,17 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 							skipMail = true
 							break
 						}
-						flagList = backendutil.UpdateFlags(flagList, imap.AddFlags, []string{imap.SeenFlag})
-						err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList, transaction)
-						CheckErr(err, "Failed to update mail with seen flag")
+
+						if !section.Peek {
+							// Remove \Recent flag on non-PEEK fetch
+							if HasAnyFlag(flagList, []string{imap.RecentFlag}) {
+								flagList = backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+							}
+							// Set \Seen flag only on non-PEEK fetch
+							flagList = backendutil.UpdateFlags(flagList, imap.AddFlags, []string{imap.SeenFlag})
+							err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList, transaction)
+							CheckErr(err, "Failed to update mail flags after non-PEEK fetch")
+						}
 
 						returnMail.Body[section] = l
 						//responseItems = append(responseItems, string(item), l)
@@ -311,7 +345,9 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 			//	continue
 			//}
 
+			dimb.lock.Lock()
 			dimb.sequenceToMail[seqNo] = returnMail
+			dimb.lock.Unlock()
 			ch <- returnMail
 			seqNo += 1
 		}
@@ -369,12 +405,30 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 					Operator:   "is",
 					Value:      true,
 				})
+			case "\\seen":
+				queries = append(queries, Query{
+					ColumnName: "seen",
+					Operator:   "is",
+					Value:      true,
+				})
+			case "\\flagged":
+				queries = append(queries, Query{
+					ColumnName: "flags",
+					Operator:   "contains",
+					Value:      "\\Flagged",
+				})
+			case "\\answered":
+				queries = append(queries, Query{
+					ColumnName: "flags",
+					Operator:   "contains",
+					Value:      "\\Answered",
+				})
 			}
 		}
 	}
 
 	if len(criteria.WithoutFlags) > 0 {
-		for _, flag := range criteria.WithFlags {
+		for _, flag := range criteria.WithoutFlags {
 			switch strings.ToLower(flag) {
 			case "\\deleted":
 				queries = append(queries, Query{
@@ -382,20 +436,73 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 					Operator:   "is",
 					Value:      false,
 				})
+			case "\\seen":
+				queries = append(queries, Query{
+					ColumnName: "seen",
+					Operator:   "is",
+					Value:      false,
+				})
 			}
 		}
+	}
+
+	// Date range criteria
+	if !criteria.Since.IsZero() {
+		queries = append(queries, Query{
+			ColumnName: "internal_date",
+			Operator:   "after",
+			Value:      criteria.Since.Format("2006-01-02T15:04:05Z"),
+		})
+	}
+	if !criteria.Before.IsZero() {
+		queries = append(queries, Query{
+			ColumnName: "internal_date",
+			Operator:   "before",
+			Value:      criteria.Before.Format("2006-01-02T15:04:05Z"),
+		})
+	}
+
+	// Size criteria
+	if criteria.Larger > 0 {
+		queries = append(queries, Query{
+			ColumnName: "size",
+			Operator:   "after",
+			Value:      criteria.Larger,
+		})
+	}
+	if criteria.Smaller > 0 {
+		queries = append(queries, Query{
+			ColumnName: "size",
+			Operator:   "before",
+			Value:      criteria.Smaller,
+		})
 	}
 
 	if len(criteria.Header) > 0 {
 		for headerName, flag := range criteria.Header {
 			switch strings.ToLower(headerName) {
-			case "Message-ID":
+			case "message-id":
 				queries = append(queries, Query{
 					ColumnName: "message_id",
 					Operator:   "is",
 					Value:      flag,
 				})
 			}
+		}
+	}
+
+	// Handle all UID set ranges (not just first)
+	if criteria.Uid != nil && len(criteria.Uid.Set) > 1 {
+		for _, setRange := range criteria.Uid.Set[1:] {
+			queries = append(queries, Query{
+				ColumnName: "id",
+				Operator:   "after",
+				Value:      setRange.Start - 1,
+			}, Query{
+				ColumnName: "id",
+				Operator:   "before",
+				Value:      setRange.Stop + 1,
+			})
 		}
 	}
 
@@ -542,7 +649,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	// Permission 768 = Owner read (256) + Owner write (512)
 	// This ensures only the mail owner can read/write their mail
 	model := api2go.NewApi2GoModelWithData("mail", nil, 768, nil, map[string]interface{}{
-		"message_id":       parsedmail.MessageID,
+		"message_id":       msgId,
 		"mail_id":          hash,
 		"from_address":     fromAddress,
 		"to_address":       toAddress,
@@ -562,7 +669,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		"is_tls":           false,
 		"mail_box_id":      dimb.mailBoxReferenceId,
 		"user_account_id":  dimb.sessionUser.UserReferenceId.String(),
-		"seen":             false,
+		"seen":             HasAnyFlag(flags, []string{imap.SeenFlag}),
 		"recent":           true,
 		"flags":            strings.Join(flags, ","),
 		"size":             len(mailBody),
@@ -625,6 +732,18 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 
 	log.Printf("Update messages flags: [%v] :[%v]: %v", seqset, operation, flags)
 
+	// Track new keywords when flags are being set or added
+	if operation == imap.SetFlags || operation == imap.AddFlags {
+		dimb.lock.Lock()
+		for _, f := range flags {
+			f = strings.TrimSpace(f)
+			if f != "" && f[0] != '\\' {
+				dimb.knownKeywords[f] = true
+			}
+		}
+		dimb.lock.Unlock()
+	}
+
 	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
@@ -647,19 +766,16 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 			currentFlags := strings.Split(mailRow["flags"].(string), ",")
 			newFlags := backendutil.UpdateFlags(currentFlags, operation, flags)
 			log.Printf("New flags: [%v]", newFlags)
-			hasDupe := false
+			// Deduplicate flags
 			fla := map[string]bool{}
+			dedupedFlags := make([]string, 0, len(newFlags))
 			for _, f := range newFlags {
-				if fla[f] {
-					hasDupe = true
+				if !fla[f] {
 					fla[f] = true
-					log.Printf("Duplicate flag: %v", f)
+					dedupedFlags = append(dedupedFlags, f)
 				}
 			}
-
-			if hasDupe {
-				log.Printf("Duplicate flag: %v", newFlags)
-			}
+			newFlags = dedupedFlags
 			err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailRow["id"].(int64), newFlags, transaction)
 			if err != nil {
 				return err
@@ -729,7 +845,7 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 			}
 
 			_, err = dimb.dbResource["mail"].CreateWithoutFilter(api2go.NewApi2GoModelWithData(
-				"mail", nil, 0, nil, mail), req, transaction)
+				"mail", nil, 768, nil, mail), req, transaction)
 			if err != nil {
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "Failed to rollback")
@@ -755,5 +871,34 @@ func (dimb *DaptinImapMailBox) Expunge() error {
 	if err != nil {
 		log.Printf("Failed to expunge mails: %v", err)
 	}
+
+	// Clear sequence cache after expunge since sequence numbers shift
+	dimb.lock.Lock()
+	dimb.sequenceToMail = make(map[uint32]*imap.Message)
+	dimb.lock.Unlock()
+
+	return err
+}
+
+// Poll implements backend.MailboxPoller. Called by go-imap on NOOP to check
+// for new messages and send EXISTS updates to the client.
+func (dimb *DaptinImapMailBox) Poll() error {
+	// Read status without transaction to reduce lock contention
+	status, err := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, nil)
+	if err != nil {
+		return err
+	}
+
+	// Only signal update when count increases to avoid backwards EXISTS (Issue 6)
+	if status.Messages > dimb.lastKnownMessages {
+		status.Name = dimb.name
+		dimb.lock.Lock()
+		dimb.pendingUpdate = status
+		dimb.status = status
+		dimb.lock.Unlock()
+	}
+
+	// Clear recent flags (write operation, uses db directly)
+	err = dimb.dbResource["mail_box"].ClearRecentFlags(dimb.mailBoxId, nil)
 	return err
 }

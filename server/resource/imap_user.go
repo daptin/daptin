@@ -2,6 +2,7 @@ package resource
 
 import (
 	"errors"
+	"fmt"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
@@ -42,10 +43,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 		return nil, err
 	}
 	log.Printf("[IMAP] ListMailboxes: transaction started")
-	defer func() {
-		transaction.Commit()
-		log.Printf("[IMAP] ListMailboxes: transaction committed")
-	}()
+	defer transaction.Rollback()
 	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction(
 		"mail_box", transaction, goqu.Ex{"mail_account_id": diu.mailAccountId})
 	if err != nil || len(mailBoxes) == 0 {
@@ -63,17 +61,27 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 		if box["user_account_id"] == nil {
 			continue
 		}
+		boxName, _ := box["name"].(string)
+		if boxName == "" {
+			continue
+		}
+		boxId, _ := box["id"].(int64)
+		if boxId == 0 {
+			continue
+		}
+		boxAttrs, _ := box["attributes"].(string)
 		mb := DaptinImapMailBox{
 			dbResource:         diu.dbResource,
-			name:               box["name"].(string),
+			name:               boxName,
 			sessionUser:        diu.sessionUser,
 			mailBoxReferenceId: daptinid.InterfaceToDIR(box["reference_id"]).String(),
 			sequenceToMail:     make(map[uint32]*imap.Message),
-			mailBoxId:          box["id"].(int64),
+			knownKeywords:      make(map[string]bool),
+			mailBoxId:          boxId,
 			info: imap.MailboxInfo{
-				Attributes: strings.Split(box["attributes"].(string), ";"),
+				Attributes: strings.Split(boxAttrs, ","),
 				Delimiter:  "\\",
-				Name:       box["name"].(string),
+				Name:       boxName,
 			},
 		}
 
@@ -174,6 +182,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 
 	}
 
+	transaction.Commit()
 	return boxes, nil
 }
 
@@ -200,23 +209,41 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 		return nil, err
 	}
 
-	mbStatus.Name = box[0]["name"].(string)
-	mbStatus.Flags = strings.Split(box[0]["flags"].(string), ",")
-	mbStatus.PermanentFlags = strings.Split(box[0]["permanent_flags"].(string), ",")
+	boxName, _ := box[0]["name"].(string)
+	boxFlags, _ := box[0]["flags"].(string)
+	boxPermanentFlags, _ := box[0]["permanent_flags"].(string)
+	mbStatus.Name = boxName
+	mbStatus.Flags = strings.Split(boxFlags, ",")
+	mbStatus.PermanentFlags = strings.Split(boxPermanentFlags, ",")
+
+	// Load known keywords from existing messages
+	kwMap := make(map[string]bool)
+	kwList, kwErr := diu.dbResource["mail_box"].GetMailBoxKeywords(box[0]["id"].(int64), transaction)
+	if kwErr == nil {
+		for _, kw := range kwList {
+			kwMap[kw] = true
+		}
+	}
+
+	mbName, _ := box[0]["name"].(string)
+	mbId, _ := box[0]["id"].(int64)
+	mbAttrs, _ := box[0]["attributes"].(string)
 
 	mb := DaptinImapMailBox{
 		dbResource:         diu.dbResource,
-		name:               box[0]["name"].(string),
+		name:               mbName,
 		sessionUser:        diu.sessionUser,
-		mailBoxId:          box[0]["id"].(int64),
+		mailBoxId:          mbId,
 		mailAccountId:      diu.mailAccountId,
 		lock:               sync.Mutex{},
 		sequenceToMail:     make(map[uint32]*imap.Message),
+		knownKeywords:      kwMap,
+		lastKnownMessages:  mbStatus.Messages,
 		mailBoxReferenceId: daptinid.InterfaceToDIR(box[0]["reference_id"]).String(),
 		info: imap.MailboxInfo{
-			Attributes: strings.Split(box[0]["attributes"].(string), ","),
+			Attributes: strings.Split(mbAttrs, ","),
 			Delimiter:  "\\",
-			Name:       box[0]["name"].(string),
+			Name:       mbName,
 		},
 		status: mbStatus,
 	}
@@ -234,14 +261,15 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 		log.Printf("[IMAP] GetMailbox(%s): failed to begin tx: %v", name, err)
 		return nil, err
 	}
-	defer func() {
-		transaction.Commit()
-		log.Printf("[IMAP] GetMailbox(%s): transaction committed", name)
-	}()
+	defer transaction.Rollback()
 
 	result, err := diu.GetMailboxWithTransaction(name, transaction)
-	log.Printf("[IMAP] GetMailbox(%s): returning result=%v err=%v", name, result != nil, err)
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	transaction.Commit()
+	log.Printf("[IMAP] GetMailbox(%s): returning result=%v", name, result != nil)
+	return result, nil
 }
 
 // CreateMailbox creates a new mailbox.
@@ -271,11 +299,14 @@ func (diu *DaptinImapUser) CreateMailboxWithTransaction(name string, transaction
 			"name":            name,
 		},
 	)
-	if len(box) > 1 {
+	if len(box) > 0 {
 		return errors.New("mailbox already exists")
 	}
 
 	mailAccount, err := diu.dbResource["mail_box"].GetUserMailAccountRowByEmail(diu.username, transaction)
+	if err != nil {
+		return fmt.Errorf("failed to get mail account for %s: %w", diu.username, err)
+	}
 
 	_, err = diu.dbResource["mail_box"].CreateMailAccountBox(
 		daptinid.InterfaceToDIR(mailAccount["reference_id"]).String(),
@@ -310,8 +341,12 @@ func (diu *DaptinImapUser) CreateMailbox(name string) error {
 	if err != nil {
 		return err
 	}
-	defer transaction.Commit()
-	return diu.CreateMailboxWithTransaction(name, transaction)
+	defer transaction.Rollback()
+	err = diu.CreateMailboxWithTransaction(name, transaction)
+	if err != nil {
+		return err
+	}
+	return transaction.Commit()
 
 }
 
@@ -327,6 +362,9 @@ func (diu *DaptinImapUser) CreateMailbox(name string) error {
 // reuse the identifiers of the former incarnation, UNLESS the new incarnation
 // has a different unique identifier validity value.
 func (diu *DaptinImapUser) DeleteMailbox(name string) error {
+	if strings.EqualFold(name, "INBOX") {
+		return errors.New("cannot delete INBOX")
+	}
 	return diu.dbResource["mail"].DeleteMailAccountBox(diu.mailAccountId, name)
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/artpar/api2go/v2"
@@ -79,6 +80,8 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 	if err != nil {
 		return err
 	}
+	defer transaction.Rollback()
+
 	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
 			"mail_account_id": mailAccountId,
@@ -106,18 +109,23 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 	}
 
 	_, err = transaction.Exec(query, args...)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return transaction.Commit()
 
 }
 
-// Returns the user mail account box row of a user
+// RenameMailAccountBox renames a mailbox. Per RFC 3strstrings, renaming INBOX
+// moves all messages to the new mailbox and leaves INBOX empty.
 func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
 
 	transaction, err := dbResource.Cruds["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
 	}
+	defer transaction.Rollback()
 
 	box, err := dbResource.Cruds["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
@@ -129,17 +137,62 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 		return errors.New("mailbox does not exist")
 	}
 
-	query, args, err := statementbuilder.Squirrel.
-		Update("mail_box").Prepared(true).
-		Set(goqu.Record{"name": newBoxName}).
-		Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
-	if err != nil {
-		return err
+	if strings.EqualFold(oldBoxName, "INBOX") {
+		// RFC 3501: Renaming INBOX creates new mailbox and moves messages, INBOX stays empty
+		// First check if target already exists
+		existing, _ := dbResource.Cruds["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
+			goqu.Ex{"mail_account_id": mailAccountId, "name": newBoxName})
+		if len(existing) > 0 {
+			return errors.New("target mailbox already exists")
+		}
+
+		// Create the new mailbox by duplicating INBOX's row with new name
+		oldBoxId := box[0]["id"]
+		query, args, err := statementbuilder.Squirrel.
+			Insert("mail_box").Prepared(true).
+			Cols("name", "mail_account_id", "uidvalidity", "nextuid", "subscribed", "attributes", "flags", "permanent_flags", "reference_id", "permission").
+			Vals(goqu.Vals{newBoxName, mailAccountId, time.Now().Unix(), 1, true, "", "\\*", "\\*", goqu.L("lower(hex(randomblob(16)))"), box[0]["permission"]}).
+			ToSQL()
+		if err != nil {
+			return err
+		}
+		_, err = transaction.Exec(query, args...)
+		if err != nil {
+			return err
+		}
+
+		// Move all messages from INBOX to new mailbox
+		newBox, _ := dbResource.Cruds["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
+			goqu.Ex{"mail_account_id": mailAccountId, "name": newBoxName})
+		if len(newBox) > 0 {
+			moveQuery, moveArgs, moveErr := statementbuilder.Squirrel.
+				Update("mail").Prepared(true).
+				Set(goqu.Record{"mail_box_id": newBox[0]["id"]}).
+				Where(goqu.Ex{"mail_box_id": oldBoxId}).ToSQL()
+			if moveErr != nil {
+				return moveErr
+			}
+			_, err = transaction.Exec(moveQuery, moveArgs...)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		query, args, err := statementbuilder.Squirrel.
+			Update("mail_box").Prepared(true).
+			Set(goqu.Record{"name": newBoxName}).
+			Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
+		if err != nil {
+			return err
+		}
+
+		_, err = transaction.Exec(query, args...)
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err = transaction.Exec(query, args...)
-
-	return err
+	return transaction.Commit()
 
 }
 

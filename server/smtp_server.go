@@ -12,6 +12,11 @@ import (
 	"strconv"
 )
 
+func toBool(v interface{}) bool {
+	s := fmt.Sprintf("%v", v)
+	return s == "1" || s == "true"
+}
+
 func StartSMTPMailServer(resource *resource.DbResource, certificateManager *resource.CertificateManager, primaryHostname string, transaction *sqlx.Tx) (*guerrilla.Daemon, error) {
 
 	servers, err := resource.GetAllObjects("mail_server", transaction)
@@ -25,6 +30,9 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 	sourceDirectoryName := "daptin-certs"
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp directory for SMTP certs: %w", err)
+	}
 
 	for _, server := range servers {
 
@@ -34,16 +42,22 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 
 		maxSize, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
 		maxClients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
-		alwaysOnTls := fmt.Sprintf("%v", server["always_on_tls"]) == "1"
-		authenticationRequired := fmt.Sprintf("%v", server["authentication_required"]) == "1"
+		alwaysOnTls := toBool(server["always_on_tls"])
+		authenticationRequired := toBool(server["authentication_required"])
 
 		//authTypes := strings.Split(server["authentication_types"].(string), ",")
 
-		hostname := server["hostname"].(string)
+		hostnameVal, ok := server["hostname"].(string)
+		if !ok || hostnameVal == "" {
+			log.Printf("Skipping SMTP server entry with missing hostname")
+			continue
+		}
+		hostname := hostnameVal
 		cert, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 
 		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
+			log.Printf("Failed to generate Certificates for SMTP server for %s, skipping", hostname)
+			continue
 		}
 
 		//certFilePath := filepath.Join(tempDirectoryPath, hostname+".cert.pem")
@@ -56,16 +70,16 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
 		//}
 
-		err = os.WriteFile(publicKeyFilePath, []byte(string(cert.PublicPEMDecrypted)+"\n"+string(cert.CertPEM)), 0666)
+		err = os.WriteFile(publicKeyFilePath, []byte(string(cert.PublicPEMDecrypted)+"\n"+string(cert.CertPEM)), 0600)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
-		err = os.WriteFile(rootCaFile, []byte(cert.RootCert), 0666)
+		err = os.WriteFile(rootCaFile, []byte(cert.RootCert), 0600)
 		if err != nil {
 			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
 		}
 
-		err = os.WriteFile(privateKeyFilePath, cert.PrivatePEMDecrypted, 0666)
+		err = os.WriteFile(privateKeyFilePath, cert.PrivatePEMDecrypted, 0600)
 		//err = ioutil.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
 
 		if err != nil {
@@ -95,25 +109,33 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 		}
 
 		config := guerrilla.ServerConfig{
-			IsEnabled:       fmt.Sprintf("%v", server["is_enabled"]) == "1",
+			IsEnabled:       toBool(server["is_enabled"]),
 			ListenInterface: server["listen_interface"].(string),
 			Hostname:        hostname,
 			MaxSize:         maxSize,
 			Timeout:         30,
 			TLS:             serverTlsConfig,
 			MaxClients:      int(maxClients),
-			XClientOn:       fmt.Sprintf("%v", server["xclient_on"]) == "1",
+			XClientOn:       toBool(server["xclient_on"]),
 			AuthRequired:    authenticationRequired,
 			AuthTypes:       []string{"LOGIN"},
 		}
 		hosts = append(hosts, hostname)
 
-		log.Infof("Setup SMTP server at [%v] for hostname [%v]", server["listen_interface"], hostname)
+		log.Infof("Setup SMTP server at [%v] for hostname [%v] (enabled=%v)", server["listen_interface"], hostname, config.IsEnabled)
 		serverConfig = append(serverConfig, config)
 
 	}
 
-	hosts = append(hosts, "*")
+	// Do not add wildcard "*" — only accept mail for configured hostnames
+
+	saveWorkersSize := 1
+	if sws, err := resource.ConfigStore.GetConfigValueFor("mail.save_workers_size", "backend", transaction); err == nil && sws != "" {
+		if parsed, err := strconv.Atoi(sws); err == nil && parsed > 0 {
+			saveWorkersSize = parsed
+		}
+	}
+
 	d := guerrilla.Daemon{
 		Config: &guerrilla.AppConfig{
 			AllowedHosts: hosts,
@@ -122,7 +144,7 @@ func StartSMTPMailServer(resource *resource.DbResource, certificateManager *reso
 				"save_process":       "HeadersParser|Debugger|Hasher|Header|Compressor|DaptinSql",
 				"log_received_mails": true,
 				"mail_table":         "mail",
-				"save_workers_size":  1,
+				"save_workers_size":  saveWorkersSize,
 				"primary_mail_host":  primaryHostname,
 			},
 			Servers: serverConfig,

@@ -523,6 +523,20 @@ var SystemActions = []actionresponse.Action{
 		},
 	},
 	{
+		Name:             "process_outbox",
+		Label:            "Process Outbox Queue",
+		OnType:           "outbox",
+		InstanceOptional: true,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []actionresponse.Outcome{
+			{
+				Type:       "outbox.process",
+				Method:     "EXECUTE",
+				Attributes: map[string]interface{}{},
+			},
+		},
+	},
+	{
 		Name:             "restart_daptin",
 		Label:            "Restart system",
 		OnType:           "world",
@@ -2884,8 +2898,9 @@ var StandardTables = []table_info.TableInfo{
 			{
 				Name:       "message_id",
 				ColumnName: "message_id",
-				DataType:   "varchar(100)",
+				DataType:   "varchar(500)",
 				ColumnType: "label",
+				IsIndexed:  true,
 			},
 			{
 				Name:       "mail_id",
@@ -2904,6 +2919,7 @@ var StandardTables = []table_info.TableInfo{
 				ColumnName: "internal_date",
 				DataType:   "timestamp",
 				ColumnType: "datetime",
+				IsIndexed:  true,
 			},
 			{
 				Name:       "to_address",
@@ -2926,7 +2942,7 @@ var StandardTables = []table_info.TableInfo{
 			{
 				Name:       "subject",
 				ColumnName: "subject",
-				DataType:   "varchar(200)",
+				DataType:   "varchar(500)",
 				ColumnType: "label",
 			},
 			{
@@ -2997,6 +3013,7 @@ var StandardTables = []table_info.TableInfo{
 				DataType:     "bool",
 				ColumnType:   "truefalse",
 				DefaultValue: "false",
+				IsIndexed:    true,
 			},
 			{
 				Name:         "recent",
@@ -3004,6 +3021,7 @@ var StandardTables = []table_info.TableInfo{
 				DataType:     "bool",
 				ColumnType:   "truefalse",
 				DefaultValue: "true",
+				IsIndexed:    true,
 			},
 			{
 				Name:         "deleted",
@@ -3011,6 +3029,7 @@ var StandardTables = []table_info.TableInfo{
 				DataType:     "bool",
 				ColumnType:   "truefalse",
 				DefaultValue: "false",
+				IsIndexed:    true,
 			},
 			{
 				Name:         "spam",
@@ -3070,6 +3089,29 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType:   "truefalse",
 				DataType:     "bool",
 				DefaultValue: "false",
+				IsIndexed:    true,
+			},
+			{
+				Name:         "retry_count",
+				ColumnName:   "retry_count",
+				DataType:     "int(11)",
+				ColumnType:   "value",
+				DefaultValue: "0",
+			},
+			{
+				Name:       "last_error",
+				ColumnName: "last_error",
+				DataType:   "text",
+				ColumnType: "label",
+				IsNullable: true,
+			},
+			{
+				Name:       "next_retry_at",
+				ColumnName: "next_retry_at",
+				DataType:   "timestamp",
+				ColumnType: "datetime",
+				IsNullable: true,
+				IsIndexed:  true,
 			},
 		},
 	},

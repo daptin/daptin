@@ -490,3 +490,53 @@ Always array of objects: `[{name, file, type}]`
 ### Ports to Clear
 - 6336: HTTP API
 - 5336: Olric distributed cache (kills old process or 403 errors occur)
+
+---
+
+## Cluster Testing
+
+Multi-node cluster test infrastructure at `scripts/testing/cluster-test-*.sh`.
+
+### Quick Start
+```bash
+cd scripts/testing
+./cluster-test-runner.sh bootstrap   # PG Docker + 3 nodes + admin
+./cluster-test-outbox-dedup.sh       # Outbox NX claims
+./cluster-test-websocket-pubsub.sh   # Cross-node WebSocket
+./cluster-test-mail.sh               # Cross-node mail
+./cluster-test-runner.sh stop        # Teardown
+```
+
+### Port Layout
+| Node | HTTP | Olric | Membership |
+|------|------|-------|------------|
+| 1    | 6336 | 5336  | 5337       |
+| 2    | 6338 | 5338  | 5339       |
+| 3    | 6340 | 5340  | 5341       |
+
+PostgreSQL Docker on port **5433** (avoids Postgres.app on 5432).
+Token file: `/tmp/daptin-cluster-token.txt`
+Logs: `/tmp/daptin-node{1,2,3}.log`
+
+### Helper Functions (when sourcing cluster-test-runner.sh)
+- `api_get $port $path` / `api_post $port $path $body`
+- `call_action $port $entity $action $attrs`
+- `pg_exec $sql` — run SQL against shared PostgreSQL
+- `wait_for_port $port $label $max_seconds`
+
+### Test Status
+| Test | Status |
+|------|--------|
+| Outbox NX dedup | 5/5 PASS |
+| WebSocket PubSub | 6/6 PASS |
+| Mail (SMTP) | 0/5 FAIL (pre-existing SMTP listener bug) |
+
+### Key Details
+- `-olric_peers` must use **membership ports** (5337, 5339, 5341), not bind ports
+- Peers must use the **actual interface IP** (not 127.0.0.1) — auto-detected by test runner
+- `Olric start timeout, proceeding anyway` is expected (Start() is a blocking server loop)
+- Self-filtering removes the node's own address from peers automatically
+- See `wiki/Clustering.md` for full details
+
+### Prerequisites
+`docker`, `jq`, `websocat` (brew), `swaks` (brew), `psql` (brew install libpq), Go

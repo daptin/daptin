@@ -474,64 +474,41 @@ func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, star
 
 func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64, transaction *sqlx.Tx) (*imap.MailboxStatus, error) {
 
+	var messageCount uint32
 	var unseenCount uint32
 	var recentCount uint32
 	var uidValidity uint32
-	var uidNext uint32
-	var messgeCount uint32
 
-	q4, v4, e4 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From("mail").Where(goqu.Ex{
+	// Use db directly for reads when no transaction provided (reduces lock contention)
+	queryRow := func(query string, args ...interface{}) *sqlx.Row {
+		if transaction != nil {
+			return transaction.QueryRowx(query, args...)
+		}
+		return dbResource.db.QueryRowx(query, args...)
+	}
+
+	// Single combined query for message count, unseen count, and recent count
+	combinedQuery, combinedArgs, combinedErr := statementbuilder.Squirrel.Select(
+		goqu.L("COUNT(*)"),
+		goqu.L("SUM(CASE WHEN NOT seen THEN 1 ELSE 0 END)"),
+		goqu.L("SUM(CASE WHEN recent THEN 1 ELSE 0 END)"),
+	).Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
+		"deleted":     false,
 	}).ToSQL()
 
-	if e4 != nil {
-		return nil, e4
+	if combinedErr != nil {
+		return nil, combinedErr
 	}
 
-	stmt1, err := transaction.Preparex(q4)
-	if err != nil {
-		log.Errorf("[362] failed to prepare statment: %v", err)
+	var rawUnseen, rawRecent *uint32
+	queryRow(combinedQuery, combinedArgs...).Scan(&messageCount, &rawUnseen, &rawRecent)
+	if rawUnseen != nil {
+		unseenCount = *rawUnseen
 	}
-	defer stmt1.Close()
-
-	r4 := stmt1.QueryRowx(v4...)
-	r4.Scan(&messgeCount)
-
-	q1, v1, e1 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From("mail").Where(goqu.Ex{
-		"mail_box_id": mailBoxId,
-		"seen":        false,
-	}).ToSQL()
-
-	if e1 != nil {
-		return nil, e1
+	if rawRecent != nil {
+		recentCount = *rawRecent
 	}
-
-	stmt1, err = transaction.Preparex(q1)
-	if err != nil {
-		log.Errorf("[384] failed to prepare statment: %v", err)
-	}
-	defer stmt1.Close()
-
-	r := stmt1.QueryRowx(v1...)
-	r.Scan(&unseenCount)
-
-	q2, v2, e2 := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From("mail").Where(goqu.Ex{
-		"mail_box_id": mailBoxId,
-		"recent":      true,
-	}).ToSQL()
-
-	if e2 != nil {
-		return nil, e2
-	}
-
-	stmt1, err = transaction.Preparex(q2)
-	if err != nil {
-		log.Errorf("[405] failed to prepare statment: %v", err)
-	}
-	defer stmt1.Close()
-
-	r2 := stmt1.QueryRowx(v2...)
-	r2.Scan(&recentCount)
 
 	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").Prepared(true).From("mail_box").Where(goqu.Ex{
 		"id": mailBoxId,
@@ -541,21 +518,14 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 		return nil, e3
 	}
 
-	stmt1, err = transaction.Preparex(q3)
-	if err != nil {
-		log.Errorf("[425] failed to prepare statment: %v", err)
-	}
-	defer stmt1.Close()
+	queryRow(q3, v3...).Scan(&uidValidity)
 
-	r3 := stmt1.QueryRowx(v3...)
-	r3.Scan(&uidValidity)
-
-	uidNext, _ = dbResource.GetMailboxNextUid(mailBoxId, transaction)
+	uidNext, _ := dbResource.GetMailboxNextUid(mailBoxId, transaction)
 
 	st := imap.NewMailboxStatus("", []imap.StatusItem{imap.StatusUnseen, imap.StatusMessages, imap.StatusRecent, imap.StatusUidNext, imap.StatusUidValidity})
 
-	err = st.Parse([]interface{}{
-		string(imap.StatusMessages), messgeCount,
+	err := st.Parse([]interface{}{
+		string(imap.StatusMessages), messageCount,
 		string(imap.StatusUnseen), unseenCount,
 		string(imap.StatusRecent), recentCount,
 		string(imap.StatusUidValidity), uidValidity,
@@ -567,28 +537,55 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 
 func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64, transaction *sqlx.Tx) uint32 {
 
+	// Find the minimum ID of unseen mail
 	query, args, err := statementbuilder.Squirrel.Select(goqu.L("min(id)")).Prepared(true).From("mail").Where(
 		goqu.Ex{
 			"mail_box_id": mailBoxId,
 			"seen":        false,
+			"deleted":     false,
 		}).ToSQL()
 
 	if err != nil {
 		return 0
 	}
 
-	var id uint32
-	stmt1, err := transaction.Preparex(query)
-	if err != nil {
-		log.Errorf("[465] failed to prepare statment: %v", err)
+	var minUnseenId *int64
+	var row *sqlx.Row
+	if transaction != nil {
+		row = transaction.QueryRowx(query, args...)
+	} else {
+		row = dbResource.db.QueryRowx(query, args...)
 	}
-	defer stmt1.Close()
-	row := stmt1.QueryRowx(args...)
 	if row.Err() != nil {
 		return 0
 	}
-	row.Scan(&id)
-	return id
+	row.Scan(&minUnseenId)
+	if minUnseenId == nil {
+		return 0
+	}
+
+	// Convert UID to sequence number by counting non-deleted messages before it
+	seqQuery, seqArgs, seqErr := statementbuilder.Squirrel.Select(goqu.L("count(*)")).Prepared(true).From("mail").Where(
+		goqu.Ex{
+			"mail_box_id": mailBoxId,
+			"deleted":     false,
+		},
+		goqu.C("id").Lt(*minUnseenId),
+	).ToSQL()
+
+	if seqErr != nil {
+		return 0
+	}
+
+	var seqNum uint32
+	if transaction != nil {
+		row = transaction.QueryRowx(seqQuery, seqArgs...)
+	} else {
+		row = dbResource.db.QueryRowx(seqQuery, seqArgs...)
+	}
+	row.Scan(&seqNum)
+
+	return seqNum + 1 // 1-based sequence number
 
 }
 func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, newFlags []string, transaction *sqlx.Tx) error {
@@ -598,17 +595,8 @@ func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, new
 	recent := false
 	deleted := false
 
-	if HasAnyFlag(newFlags, []string{imap.RecentFlag}) {
-		recent = true
-	} else {
-		seen = true
-	}
-
-	if HasAnyFlag(newFlags, []string{"\\seen"}) {
-		seen = true
-		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
-		log.Tracef("[UpdateMailFlags] After removing Recent: %v", newFlags)
-	}
+	seen = HasAnyFlag(newFlags, []string{imap.SeenFlag})
+	recent = HasAnyFlag(newFlags, []string{imap.RecentFlag})
 
 	if HasAnyFlag(newFlags, []string{"\\expunge", "\\deleted"}) {
 		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
@@ -645,6 +633,12 @@ func (dbResource *DbResource) UpdateMailFlags(mailBoxId int64, mailId int64, new
 }
 func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
+	tx, err := dbResource.Connection().Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
 	selectQuery, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).From("mail").Where(
 		goqu.Ex{
 			"mail_box_id": mailBoxId,
@@ -656,18 +650,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	stmt1, err := dbResource.Connection().Preparex(selectQuery)
-	if err != nil {
-		log.Errorf("[544] failed to prepare statment: %v", err)
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
-	rows, err := stmt1.Queryx(args...)
+	rows, err := tx.Queryx(selectQuery, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -680,7 +663,6 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		ids = append(ids, id)
 	}
 	rows.Close()
-	stmt1.Close()
 
 	if len(ids) < 1 {
 		return 0, nil
@@ -695,7 +677,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	_, err = dbResource.db.Exec(query, args...)
+	_, err = tx.Exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -707,14 +689,80 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	result, err := dbResource.db.Exec(query, args...)
+	result, err := tx.Exec(query, args...)
 	if err != nil {
 		log.Printf("Query: %v", query)
 		return 0, err
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
 	return result.RowsAffected()
 
+}
+
+func (dbResource *DbResource) GetMailBoxKeywords(mailBoxId int64, transaction *sqlx.Tx) ([]string, error) {
+	query, args, err := statementbuilder.Squirrel.
+		Select(goqu.L("DISTINCT flags")).Prepared(true).
+		From("mail").
+		Where(goqu.Ex{"mail_box_id": mailBoxId, "deleted": false}).
+		ToSQL()
+	if err != nil {
+		return nil, err
+	}
+
+	var rows *sqlx.Rows
+	if transaction != nil {
+		rows, err = transaction.Queryx(query, args...)
+	} else {
+		rows, err = dbResource.db.Queryx(query, args...)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	keywordSet := make(map[string]bool)
+	for rows.Next() {
+		var flags string
+		rows.Scan(&flags)
+		for _, f := range strings.Split(flags, ",") {
+			f = strings.TrimSpace(f)
+			if f == "" {
+				continue
+			}
+			// Keywords are flags that don't start with \ (system flags)
+			if len(f) > 0 && f[0] != '\\' {
+				keywordSet[f] = true
+			}
+		}
+	}
+
+	keywords := make([]string, 0, len(keywordSet))
+	for k := range keywordSet {
+		keywords = append(keywords, k)
+	}
+	return keywords, nil
+}
+
+func (dbResource *DbResource) ClearRecentFlags(mailBoxId int64, transaction *sqlx.Tx) error {
+	query, args, err := statementbuilder.Squirrel.
+		Update("mail").Prepared(true).
+		Set(goqu.Record{"recent": false}).
+		Where(goqu.Ex{"mail_box_id": mailBoxId, "recent": true}).
+		ToSQL()
+	if err != nil {
+		return err
+	}
+	if transaction != nil {
+		_, err = transaction.Exec(query, args...)
+	} else {
+		_, err = dbResource.db.Exec(query, args...)
+	}
+	return err
 }
 
 func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
@@ -728,14 +776,13 @@ func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sq
 		return 1, e5
 	}
 
-	stmt1, err := transaction.Preparex(q5)
-	if err != nil {
-		log.Errorf("[615] failed to prepare statment: %v", err)
-		return 0, err
+	var r5 *sqlx.Row
+	if transaction != nil {
+		r5 = transaction.QueryRowx(q5, v5...)
+	} else {
+		r5 = dbResource.db.QueryRowx(q5, v5...)
 	}
-	defer stmt1.Close()
-	r5 := stmt1.QueryRowx(v5...)
-	err = r5.Scan(&uidNext)
+	err := r5.Scan(&uidNext)
 	return uint32(int32(uidNext) + 1), err
 
 }

@@ -482,6 +482,14 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction),
 		Schedule:    "@every 1h",
 	})
+
+	err = TaskScheduler.AddTask(task.Task{
+		EntityName:  "outbox",
+		ActionName:  "process_outbox",
+		Attributes:  map[string]interface{}{},
+		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction),
+		Schedule:    "@every 5m",
+	})
 	transaction.Rollback()
 
 	TaskScheduler.StartTasks()
