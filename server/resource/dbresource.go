@@ -490,8 +490,8 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	// Single combined query for message count, unseen count, and recent count
 	combinedQuery, combinedArgs, combinedErr := statementbuilder.Squirrel.Select(
 		goqu.L("COUNT(*)"),
-		goqu.L("SUM(CASE WHEN NOT seen THEN 1 ELSE 0 END)"),
-		goqu.L("SUM(CASE WHEN recent THEN 1 ELSE 0 END)"),
+		goqu.L("SUM(CASE WHEN seen = 0 THEN 1 ELSE 0 END)"),
+		goqu.L("SUM(CASE WHEN recent = 1 THEN 1 ELSE 0 END)"),
 	).Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"deleted":     false,
@@ -706,7 +706,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 
 func (dbResource *DbResource) GetMailBoxKeywords(mailBoxId int64, transaction *sqlx.Tx) ([]string, error) {
 	query, args, err := statementbuilder.Squirrel.
-		Select(goqu.L("DISTINCT flags")).Prepared(true).
+		Select(goqu.C("flags")).Distinct().Prepared(true).
 		From("mail").
 		Where(goqu.Ex{"mail_box_id": mailBoxId, "deleted": false}).
 		ToSQL()

@@ -12,6 +12,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -148,10 +149,11 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 
 		// Create the new mailbox by duplicating INBOX's row with new name
 		oldBoxId := box[0]["id"]
+		newRefId, _ := uuid.NewV7()
 		query, args, err := statementbuilder.Squirrel.
 			Insert("mail_box").Prepared(true).
 			Cols("name", "mail_account_id", "uidvalidity", "nextuid", "subscribed", "attributes", "flags", "permanent_flags", "reference_id", "permission").
-			Vals(goqu.Vals{newBoxName, mailAccountId, time.Now().Unix(), 1, true, "", "\\*", "\\*", goqu.L("lower(hex(randomblob(16)))"), box[0]["permission"]}).
+			Vals(goqu.Vals{newBoxName, mailAccountId, time.Now().Unix(), 1, true, "", "\\*", "\\*", newRefId.String(), box[0]["permission"]}).
 			ToSQL()
 		if err != nil {
 			return err
