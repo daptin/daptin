@@ -214,8 +214,8 @@ Run `./daptin -h` to see all available flags.
 | `-profile_dump_path` | ./ | CPU/heap profile location |
 | `-profile_dump_period` | 5 | Profile dump interval (minutes) |
 | `-olric_peers` | (empty) | Cluster peers (IP:port list) |
-| `-olric_bind_port` | 5336* | Olric cache port |
-| `-olric_membership_port` | 5350* | Cluster membership port |
+| `-olric_port` | 5336* | Olric port (membership is olric_port+1) |
+| `-olric_seed` | (empty) | DNS hostname for peer discovery |
 | `-olric_env` | local | Environment: local, lan, wan |
 
 \* Runtime defaults to these values when flag is not set
@@ -264,8 +264,9 @@ All command-line flags can be set via environment variables (see `-h` for full l
 | `DAPTIN_LOG_LEVEL` | ✅ | Log verbosity | `debug`, `info`, `warn`, `error` |
 | `DAPTIN_RUNTIME` | | Runtime mode | `release`, `debug`, `test`, `profile` |
 | `DAPTIN_LOCAL_STORAGE_PATH` | | File storage path | `./storage` |
-| `DAPTIN_OLRIC_BIND_PORT` | | Cache server port | `5336` |
+| `DAPTIN_OLRIC_PORT` | | Olric port (membership is olric_port+1) | `5336` |
 | `DAPTIN_OLRIC_PEERS` | | Cluster peers | `ip1:port1,ip2:port2` |
+| `DAPTIN_OLRIC_SEED` | | DNS hostname for peer discovery | `daptin-headless` |
 | `TZ` | ✅ | Timezone | `America/Los_Angeles`, `UTC` |
 
 **Additional environment variables** (documented in [Server-Configuration.md](Server-Configuration.md)):
@@ -318,7 +319,7 @@ lsof -i :6336 -t | xargs kill -9 2>/dev/null || true
 lsof -i :5336 -t | xargs kill -9 2>/dev/null || true
 
 # Or use different Olric port
-./daptin -olric_bind_port=5346
+./daptin -olric_port=5346
 ```
 
 ### Failed to Create YJS Storage Directory

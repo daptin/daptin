@@ -23,8 +23,8 @@
 | `-port_variable` | `DAPTIN_PORT` | Env var name to read port from |
 | `-database_url_variable` | `DAPTIN_DB_CONNECTION_STRING` | Env var name to read DB connection from |
 | `-olric_peers` | `""` | Comma-separated list of cluster peers |
-| `-olric_bind_port` | `5336` | Port for Olric cluster communication |
-| `-olric_membership_port` | `5336` | Port for membership protocol |
+| `-olric_port` | `5336` | Olric port (membership is automatically olric_port+1) |
+| `-olric_seed` | `""` | DNS hostname for peer discovery (resolves A records) |
 | `-olric_env` | `local` | Cluster environment: `local`, `lan`, `wan` |
 
 ### Environment Variables
@@ -562,30 +562,32 @@ Daptin uses Olric for distributed caching. These flags configure clustering acro
 ### olric_peers
 
 ```bash
-./daptin -olric_peers "192.168.1.10:5336,192.168.1.11:5336"
+./daptin -olric_peers "192.168.1.10:5337,192.168.1.11:5337"
 ```
 
-**Format:** Comma-separated list of `ip:port` addresses of other Daptin instances.
+**Format:** Comma-separated list of `ip:membership_port` addresses of other Daptin instances. The membership port is `olric_port + 1`.
 
-### olric_bind_port
+### olric_port
 
 ```bash
-./daptin -olric_bind_port 5336
+./daptin -olric_port 5336
 ```
 
-**Default:** `5336` (automatically calculated if not set)
+**Default:** `5336`
 
-**Purpose:** Port for Olric cluster communication.
+**Purpose:** Port for Olric cluster communication. The membership/gossip port is automatically derived as `olric_port + 1` (e.g., 5336 gives membership port 5337).
 
-### olric_membership_port
+### olric_seed
 
 ```bash
-./daptin -olric_membership_port 5336
+./daptin -olric_seed "daptin-headless.default.svc.cluster.local"
 ```
 
-**Default:** Same as `olric_bind_port`
+**Default:** `""` (disabled)
 
-**Purpose:** Port for membership protocol (cluster node discovery).
+**Purpose:** DNS hostname for automatic peer discovery. Daptin resolves the A records for this hostname and uses the returned IPs as cluster peers. This is the preferred method for Kubernetes (headless service) and Docker Compose deployments where peer IPs are not known in advance.
+
+When set, `-olric_peers` is not required -- peers are discovered dynamically via DNS.
 
 ### olric_env
 
@@ -604,15 +606,15 @@ Daptin uses Olric for distributed caching. These flags configure clustering acro
 
 **Node 1:**
 ```bash
-./daptin -olric_peers "192.168.1.11:5336" -olric_bind_port 5336 -olric_env lan
+./daptin -olric_peers "192.168.1.11:5337" -olric_port 5336 -olric_env lan
 ```
 
 **Node 2:**
 ```bash
-./daptin -olric_peers "192.168.1.10:5336" -olric_bind_port 5336 -olric_env lan
+./daptin -olric_peers "192.168.1.10:5337" -olric_port 5336 -olric_env lan
 ```
 
-**Logs show:** `olric peers: [192.168.1.11:5336]`
+**Logs show:** `olric peers: [192.168.1.11:5337]`
 
 ---
 

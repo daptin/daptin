@@ -181,7 +181,8 @@ stop_postgres() {
 # ── Start a single node ────────────────────────────────────────────────────
 
 start_node() {
-    local node_num="$1" http_port="$2" olric_port="$3" member_port="$4" logfile="$5"
+    local node_num="$1" http_port="$2" olric_port="$3" logfile="$4"
+    local member_port=$((olric_port + 1))
 
     log "Starting Node $node_num (HTTP=$http_port, Olric=$olric_port, Member=$member_port)..."
 
@@ -191,8 +192,7 @@ start_node() {
         -db_type postgres \
         -db_connection_string "$PG_CONN" \
         -olric_peers "$OLRIC_PEERS" \
-        -olric_bind_port "$olric_port" \
-        -olric_membership_port "$member_port" \
+        -olric_port "$olric_port" \
         -olric_env local \
         > "$logfile" 2>&1 &
 
@@ -210,7 +210,7 @@ start_cluster() {
     start_postgres
 
     # Node 1 first — it creates the schema
-    start_node 1 "$NODE1_HTTP" "$NODE1_OLRIC" "$NODE1_MEMBER" "$NODE1_LOG"
+    start_node 1 "$NODE1_HTTP" "$NODE1_OLRIC" "$NODE1_LOG"
     log "Waiting for Node 1 to initialize schema..."
     if ! wait_for_http "$NODE1_HTTP" "Node 1" 90; then
         log "ERROR: Node 1 failed to start. Check $NODE1_LOG"
@@ -220,8 +220,8 @@ start_cluster() {
     log "Node 1 ready"
 
     # Nodes 2 and 3 in parallel
-    start_node 2 "$NODE2_HTTP" "$NODE2_OLRIC" "$NODE2_MEMBER" "$NODE2_LOG"
-    start_node 3 "$NODE3_HTTP" "$NODE3_OLRIC" "$NODE3_MEMBER" "$NODE3_LOG"
+    start_node 2 "$NODE2_HTTP" "$NODE2_OLRIC" "$NODE2_LOG"
+    start_node 3 "$NODE3_HTTP" "$NODE3_OLRIC" "$NODE3_LOG"
 
     log "Waiting for Node 2..."
     if ! wait_for_http "$NODE2_HTTP" "Node 2" 60; then

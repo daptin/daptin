@@ -198,8 +198,8 @@ func main() {
 	var profileDumpPath = flag.String("profile_dump_path", "./", "location for dumping cpu/heap data in profile mode")
 	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
 	var olricPeers = flag.String("olric_peers", "", "list of olric peers, comma separated in ip:membership_port")
-	var olricBindPort = flag.Int("olric_bind_port", 0, "port for olric server")
-	var olricMembershipPort = flag.Int("olric_membership_port", 0, "port for olric membership")
+	var olricPort = flag.Int("olric_port", 0, "base port for olric cache (membership = olric_port+1). Default: auto-derived from HTTP port")
+	var olricSeed = flag.String("olric_seed", "", "hostname to resolve for cluster peer discovery (e.g., daptin-headless.default.svc.cluster.local)")
 	var olricConfigEnv = flag.String("olric_env", "local", "env value for olric: local/lan/wan, default: lan")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
@@ -339,56 +339,51 @@ func main() {
 			_ = os.Mkdir(*localStoragePath, 0644)
 		}
 	}
-	olricBindPortValue := *olricBindPort
-	if olricBindPortValue == 0 {
+	olricPortValue := *olricPort
+	if olricPortValue == 0 {
 		if portInt > 2000 {
-			olricBindPortValue = int(portInt - 1000)
+			olricPortValue = int(portInt - 1000)
 		} else {
-			olricBindPortValue = int(portInt + 1000)
+			olricPortValue = int(portInt + 1000)
 		}
 	}
+	membershipPort := olricPortValue + 1
 
-	log.Infof("Olric bind port is: %v", olricBindPortValue)
 	olricConfigEnvValue := *olricConfigEnv
 
 	olricConfig1 := olricConfig.New(olricConfigEnvValue)
 	err = olricConfig1.SetupNetworkConfig()
 
-	olricConfig1.BindPort = olricBindPortValue
+	olricConfig1.BindPort = olricPortValue
 
 	// MemberlistConfig is already set by olricConfig.New(env) with the correct
 	// local/lan/wan settings. Do NOT overwrite it with memberlist.DefaultLocalConfig().
 	olricConfig1.MemberlistConfig.Name = fmt.Sprintf("%v:%v", olricConfig1.MemberlistConfig.BindAddr, olricConfig1.BindPort)
 
-	// Configure Olric for better memory management
-	// Note: Olric v0.5.7 has limited configuration options
-	// The memory limits will be enforced in our application layer
-	olricConfig1.ReplicaCount = 1 // Reduce replicas to save memory
+	olricConfig1.ReplicaCount = 1
 	olricConfig1.WriteQuorum = 1
 	olricConfig1.ReadQuorum = 1
-	// Set reasonable timeout to prevent hanging operations
-	//olricConfig1.RequestTimeout = 10 * time.Second
-	olricConfig1.PartitionCount = 23 // Reduced from default to save memory
+	olricConfig1.PartitionCount = 23
 
 	olricConfig1.LogLevel = "INFO"
 	olricConfig1.LogVerbosity = 1
 	if len(*olricPeers) > 0 {
 		olricConfig1.Peers = strings.Split(*olricPeers, ",")
 	}
-	log.Infof("olric peers: %v", olricConfig1.Peers)
 	olricConfig1.LogOutput = os.Stdout
 
-	olricMembershipPortValue := *olricMembershipPort
-	if olricMembershipPortValue == 0 {
-		olricMembershipPortValue = olricBindPortValue + 1
+	olricConfig1.MemberlistConfig.BindPort = membershipPort
+
+	// Compute self address before peer resolution so we can filter it out
+	selfAddr := net.JoinHostPort(olricConfig1.MemberlistConfig.BindAddr, strconv.Itoa(membershipPort))
+
+	// Resolve DNS seed to peer addresses
+	if len(*olricSeed) > 0 {
+		seedPeers := resolveOlricPeers(*olricSeed, membershipPort, selfAddr)
+		olricConfig1.Peers = append(olricConfig1.Peers, seedPeers...)
 	}
 
-	olricConfig1.MemberlistConfig.BindPort = olricMembershipPortValue
-
-	// Filter out self from peers list to avoid "cannot be peer with itself" error.
-	// olric.New() calls SetupNetworkConfig() which resolves BindAddr to the primary
-	// interface IP, so we must resolve it here too to match.
-	selfAddr := net.JoinHostPort(olricConfig1.MemberlistConfig.BindAddr, strconv.Itoa(olricMembershipPortValue))
+	// Filter out self from static peers list
 	var filteredPeers []string
 	for _, peer := range olricConfig1.Peers {
 		if peer != selfAddr {
@@ -396,9 +391,7 @@ func main() {
 		}
 	}
 	olricConfig1.Peers = filteredPeers
-	log.Infof("Olric member name: %v => %v", olricConfig1.MemberlistConfig.Name, olricConfig1.BindPort)
-	log.Infof("Olric membership address: %v", selfAddr)
-	log.Infof("Olric peers (filtered): %v", olricConfig1.Peers)
+	log.Infof("Olric: port=%d, membership=%d, env=%s, peers=%v", olricPortValue, membershipPort, olricConfigEnvValue, olricConfig1.Peers)
 
 	emb, err := olric.New(olricConfig1)
 	if err != nil {
@@ -632,6 +625,45 @@ func main() {
 	}
 
 	log.Printf("Why quit now ?")
+}
+
+// resolveOlricPeers resolves a DNS hostname to olric peer addresses.
+// It retries up to 3 times with 2s delay for environments where DNS
+// propagates slowly (K8s headless services, Docker Compose scaling).
+func resolveOlricPeers(seed string, membershipPort int, selfAddr string) []string {
+	const maxRetries = 3
+	const retryDelay = 2 * time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		ips, err := net.LookupHost(seed)
+		if err != nil {
+			if attempt < maxRetries {
+				log.Warnf("Failed to resolve olric seed %q (attempt %d/%d): %v, retrying...", seed, attempt, maxRetries, err)
+				time.Sleep(retryDelay)
+				continue
+			}
+			log.Warnf("Failed to resolve olric seed %q after %d attempts: %v", seed, maxRetries, err)
+			return nil
+		}
+
+		var peers []string
+		for _, ip := range ips {
+			addr := net.JoinHostPort(ip, strconv.Itoa(membershipPort))
+			if addr != selfAddr {
+				peers = append(peers, addr)
+			}
+		}
+
+		if len(peers) == 0 && attempt < maxRetries {
+			log.Warnf("Olric seed %q resolved but no peers after self-filter (attempt %d/%d), retrying...", seed, attempt, maxRetries)
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		log.Infof("Resolved olric seed %q to peers: %v", seed, peers)
+		return peers
+	}
+	return nil
 }
 
 func CreateKeyPairFromTLSCertificate(backendHostnameCertificate *resource.TLSCertificate) (tls.Certificate, error) {

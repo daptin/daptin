@@ -35,7 +35,7 @@ Daptin supports clustering for:
 1. **Shared Database** — All nodes connect to the same PostgreSQL (or MySQL) instance
 2. **Load Balancer** — Distribute HTTP traffic across nodes
 3. **Shared Storage** — For file assets (use cloud storage)
-4. **Network** — Olric ports (bind + membership) must be reachable between all nodes
+4. **Network** — Olric ports (olric_port and olric_port+1 for membership) must be reachable between all nodes
 
 ## CLI Flags
 
@@ -45,8 +45,8 @@ Daptin supports clustering for:
 | `-db_type` | Database driver | `postgres` |
 | `-db_connection_string` | Database DSN | `host=... port=5432 ...` |
 | `-olric_peers` | Comma-separated peer list (ip:membership_port) | `10.0.0.1:5337,10.0.0.2:5339` |
-| `-olric_bind_port` | Olric data port | `5336` |
-| `-olric_membership_port` | Olric gossip/membership port | `5337` |
+| `-olric_port` | Olric port (membership is automatically olric_port+1) | `5336` |
+| `-olric_seed` | DNS hostname for peer discovery | `daptin-headless.default.svc.cluster.local` |
 | `-olric_env` | Discovery mode: `local`, `lan`, `wan` | `local` |
 
 ## Node Configuration
@@ -59,8 +59,7 @@ go run main.go \
   -db_type postgres \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
   -olric_peers "10.0.0.1:5337,10.0.0.2:5339,10.0.0.3:5341" \
-  -olric_bind_port 5336 \
-  -olric_membership_port 5337 \
+  -olric_port 5336 \
   -olric_env lan
 ```
 
@@ -72,8 +71,7 @@ go run main.go \
   -db_type postgres \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
   -olric_peers "10.0.0.1:5337,10.0.0.2:5339,10.0.0.3:5341" \
-  -olric_bind_port 5338 \
-  -olric_membership_port 5339 \
+  -olric_port 5338 \
   -olric_env lan
 ```
 
@@ -85,8 +83,7 @@ go run main.go \
   -db_type postgres \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
   -olric_peers "10.0.0.1:5337,10.0.0.2:5339,10.0.0.3:5341" \
-  -olric_bind_port 5340 \
-  -olric_membership_port 5341 \
+  -olric_port 5340 \
   -olric_env lan
 ```
 
@@ -99,8 +96,10 @@ Each node uses 3 ports:
 | Port Type | Default | Purpose |
 |-----------|---------|---------|
 | HTTP | 6336 | API, WebSocket (`/live`), dashboard |
-| Olric Bind | 5336 | Distributed cache data transfer |
-| Olric Membership | 5337 | Gossip protocol for cluster discovery |
+| Olric | 5336 | Distributed cache data transfer |
+| Olric Membership | 5337 (olric_port+1) | Gossip protocol for cluster discovery |
+
+The membership port is always `olric_port + 1` and is derived automatically. You only need to set `-olric_port`.
 
 **All three ports must be reachable between nodes.**
 
@@ -120,6 +119,86 @@ Each node uses 3 ports:
 ### Outbox Deduplication
 When multiple nodes run `process_outbox`, each mail is claimed via Olric NX (Not-if-eXists) with a 10-minute TTL. Only the node that successfully claims a mail ID processes it.
 
+## DNS-Based Peer Discovery
+
+Instead of listing peers explicitly with `-olric_peers`, you can use `-olric_seed` to discover peers via DNS. Daptin resolves the A records for the given hostname and uses the returned IPs (on the membership port, i.e., `olric_port + 1`) as cluster peers.
+
+This is the preferred approach for container orchestrators where pod IPs are dynamic.
+
+### Kubernetes (Headless Service)
+
+Create a headless service (ClusterIP: None) so that DNS returns individual pod IPs:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: daptin-headless
+spec:
+  clusterIP: None
+  ports:
+    - name: olric
+      port: 5336
+    - name: olric-member
+      port: 5337
+  selector:
+    app: daptin
+```
+
+Then configure each Daptin pod to use the headless service for discovery:
+
+```bash
+./daptin \
+  -port :6336 \
+  -db_type postgres \
+  -db_connection_string "host=postgres port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
+  -olric_seed "daptin-headless.default.svc.cluster.local" \
+  -olric_port 5336 \
+  -olric_env lan
+```
+
+Daptin resolves `daptin-headless.default.svc.cluster.local` to the set of pod IPs, filters out its own IP, and joins the cluster automatically.
+
+### Docker Compose
+
+Docker Compose DNS resolves a service name to the IPs of all its containers. Use the service name as the seed:
+
+```yaml
+version: '3.8'
+services:
+  daptin:
+    image: daptin/daptin
+    deploy:
+      replicas: 3
+    command: >
+      -port :6336
+      -db_type postgres
+      -db_connection_string "host=postgres port=5432 user=daptin password=pass dbname=daptin sslmode=disable"
+      -olric_seed "daptin"
+      -olric_port 5336
+      -olric_env lan
+    ports:
+      - "6336:6336"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: daptin
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: daptin
+```
+
+Each Daptin container resolves `daptin` to the IPs of all replicas and joins the cluster.
+
+### How It Works
+
+1. Daptin resolves all A records for the `-olric_seed` hostname
+2. Each resolved IP is paired with the membership port (`olric_port + 1`)
+3. The node's own IP is filtered out from the peer list
+4. The remaining IPs are used as peers for Olric cluster formation
+
+This replaces the need to manually maintain `-olric_peers` lists. Both flags can coexist -- if both are set, the resolved seed IPs are merged with the explicit peers.
+
 ## Docker Swarm
 
 ```yaml
@@ -136,9 +215,8 @@ services:
       -port :6336
       -db_type postgres
       -db_connection_string "host=postgres port=5432 user=daptin password=pass dbname=daptin sslmode=disable"
-      -olric_peers "daptin:5337"
-      -olric_bind_port 5336
-      -olric_membership_port 5337
+      -olric_seed "daptin"
+      -olric_port 5336
       -olric_env lan
     ports:
       - "6336:6336"
@@ -178,9 +256,8 @@ spec:
             - "-port=:6336"
             - "-db_type=postgres"
             - "-db_connection_string=host=postgres port=5432 user=daptin password=pass dbname=daptin sslmode=disable"
-            - "-olric_peers=daptin-0.daptin:5337,daptin-1.daptin:5339,daptin-2.daptin:5341"
-            - "-olric_bind_port=5336"
-            - "-olric_membership_port=5337"
+            - "-olric_seed=daptin-headless.default.svc.cluster.local"
+            - "-olric_port=5336"
             - "-olric_env=lan"
 ---
 apiVersion: v1
@@ -193,6 +270,17 @@ spec:
     - name: http
       port: 6336
       targetPort: 6336
+  selector:
+    app: daptin
+---
+# Headless service for DNS-based peer discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: daptin-headless
+spec:
+  clusterIP: None
+  ports:
     - name: olric
       port: 5336
       targetPort: 5336
@@ -352,9 +440,10 @@ grep "Joining from" /tmp/daptin-node*.log
 ```
 
 **Resolution:**
-- Verify `-olric_peers` uses **membership ports** (e.g., `10.0.0.1:5337`), NOT bind ports
+- Verify `-olric_peers` uses **membership ports** (e.g., `10.0.0.1:5337`, which is `olric_port + 1`), NOT the olric_port itself
+- Consider using `-olric_seed` for automatic DNS-based discovery instead of manual peer lists
 - Verify peers use the **actual interface IP** (not `127.0.0.1`) — Olric resolves `0.0.0.0` to the primary interface
-- Ensure all Olric ports (bind + membership) are reachable between nodes
+- Ensure all Olric ports (olric_port and olric_port+1) are reachable between nodes
 - Start Node 1 first, wait for it to be fully ready, then start others
 - Use `-olric_env lan` for local network, `-olric_env wan` for cross-datacenter
 
@@ -372,4 +461,4 @@ lsof -ti:5336 | xargs kill -9  # Olric cache (CRITICAL)
 If nodes can't communicate:
 1. Check network connectivity between all Olric ports
 2. Verify `-olric_peers` lists include all nodes
-3. Check firewall rules for both bind and membership ports
+3. Check firewall rules for both olric_port and olric_port+1 (membership)

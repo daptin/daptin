@@ -147,7 +147,7 @@ sleep 3
 tail -n +2 "$PID_FILE" > /tmp/cluster-pids-tmp.txt
 mv /tmp/cluster-pids-tmp.txt "$PID_FILE"
 
-start_node 1 "$NODE1_HTTP" "$NODE1_OLRIC" "$NODE1_MEMBER" "$NODE1_LOG"
+start_node 1 "$NODE1_HTTP" "$NODE1_OLRIC" "$NODE1_LOG"
 wait_for_http "$NODE1_HTTP" "Node 1 (restarted)" 60 || {
     log "ERROR: Node 1 failed to restart"
     exit 1
