@@ -122,43 +122,67 @@ func tryRecvJSON(ws *websocket.Conn, timeout time.Duration) (resource.WsOutMessa
 var wsTokenOnce sync.Once
 var wsToken string
 
-// signUpAndGetToken creates a test user (once) and returns a JWT token.
+// signUpAndGetToken returns a JWT token, creating a user if needed.
+// Works both standalone (guest signup open) and after TestServerApis (guest signup locked).
 func signUpAndGetToken(t testing.TB) string {
-	t.Helper()
+	if t != nil {
+		t.Helper()
+	}
 	wsTokenOnce.Do(func() {
 		client := req.New()
 		client.SetTimeout(30 * time.Second)
 
-		// signup — ignore error since user may already exist
+		// Try signing in as test@gmail.com (created by TestServerApis)
+		resp, err := client.Post(wsBaseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
+			"attributes": map[string]interface{}{
+				"email":    "test@gmail.com",
+				"password": "tester123",
+			},
+		}))
+		if err == nil {
+			if tok := extractToken(resp); tok != "" {
+				wsToken = tok
+				return
+			}
+		}
+
+		// TestServerApis hasn't run — sign up as guest
 		client.Post(wsBaseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
 			"attributes": map[string]interface{}{
-				"email":           "wstest@test.com",
-				"name":            "wstest",
+				"email":           "test@gmail.com",
+				"name":            "test",
 				"password":        "tester123",
 				"passwordConfirm": "tester123",
 			},
 		}))
 
-		// signin
-		resp, err := client.Post(wsBaseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
+		resp, err = client.Post(wsBaseAddress+"/action/user_account/signin", req.BodyJSON(map[string]interface{}{
 			"attributes": map[string]interface{}{
-				"email":    "wstest@test.com",
+				"email":    "test@gmail.com",
 				"password": "tester123",
 			},
 		}))
 		if err != nil {
 			panic(fmt.Sprintf("signin failed: %v", err))
 		}
-
-		var signInResp interface{}
-		resp.ToJSON(&signInResp)
-		attrs := signInResp.([]interface{})[0].(map[string]interface{})
-		if attrs["ResponseType"] != "client.store.set" {
-			panic(fmt.Sprintf("unexpected signin response: %v", attrs))
+		wsToken = extractToken(resp)
+		if wsToken == "" {
+			panic("no token after signup+signin")
 		}
-		wsToken = attrs["Attributes"].(map[string]interface{})["value"].(string)
 	})
 	return wsToken
+}
+
+func extractToken(resp *req.Resp) string {
+	var signInResp []interface{}
+	resp.ToJSON(&signInResp)
+	for _, item := range signInResp {
+		attrs, ok := item.(map[string]interface{})
+		if ok && attrs["ResponseType"] == "client.store.set" {
+			return attrs["Attributes"].(map[string]interface{})["value"].(string)
+		}
+	}
+	return ""
 }
 
 // ===== E2E TESTS =====
@@ -1505,8 +1529,12 @@ func signUpUser(email, password string) (string, error) {
 	client := req.New()
 	client.SetTimeout(30 * time.Second)
 
+	// Guest signup is locked after become_an_administrator, so use admin token
+	adminToken := signUpAndGetToken(nil)
+	adminHeader := req.Header{"Authorization": "Bearer " + adminToken}
+
 	// signup — ignore error (user may exist from previous run)
-	client.Post(wsBaseAddress+"/action/user_account/signup", req.BodyJSON(map[string]interface{}{
+	client.Post(wsBaseAddress+"/action/user_account/signup", adminHeader, req.BodyJSON(map[string]interface{}{
 		"attributes": map[string]interface{}{
 			"email":           email,
 			"name":            email,

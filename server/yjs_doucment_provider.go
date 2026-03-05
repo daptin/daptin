@@ -30,7 +30,7 @@ func CreateYjsStore(configStore *resource.ConfigStore, transaction *sqlx.Tx, loc
 	configStore.SetConfigValueFor("yjs.storage.path", yjsDir, "backend", transaction)
 
 	if !PathExistsAndIsFolder(yjsDir) {
-		err := os.Mkdir(yjsDir, 0777)
+		err := os.MkdirAll(yjsDir, 0777)
 		if err != nil {
 			resource.CheckErr(err, "Failed to create yjs storage directory")
 		}
