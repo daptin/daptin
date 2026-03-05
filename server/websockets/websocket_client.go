@@ -16,7 +16,7 @@ import (
 
 const readDeadline = 5 * time.Minute
 
-const channelBufSize = 100
+const channelBufSize = 512
 
 var maxId atomic.Int64
 
@@ -124,9 +124,12 @@ func (c *Client) listenWrite() {
 
 		// send message to the client
 		case msg := <-c.ch:
+			c.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			err := websocket.JSON.Send(c.ws, msg)
 			if err != nil {
-				log.Printf("Failed to to send message: %v", err)
+				log.Printf("Failed to send message: %v", err)
+				c.server.Del(c)
+				return
 			}
 
 			// receive done request
