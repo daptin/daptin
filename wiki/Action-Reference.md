@@ -284,6 +284,53 @@ curl -X POST http://localhost:6336/action/oauth_token/oauth.login.response \
 4. If `allow_login=true`: fetches profile, creates/links user, generates JWT
 5. Returns success or error notification
 
+### get_token
+
+Retrieve decrypted OAuth access and refresh tokens for a stored oauth_token record.
+
+| Property | Value |
+|----------|-------|
+| Entity | `oauth_token` |
+| Instance Required | Yes |
+| Endpoint | `/action/oauth_token/{referenceId}/get_token` |
+
+**Action Performer:** `oauth.token`
+
+**Input Fields:** None (uses the instance reference_id)
+
+**Example:**
+```bash
+# Get oauth_token reference ID
+TOKEN_REF=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/oauth_token | jq -r '.data[0].id')
+
+curl -X POST "http://localhost:6336/action/oauth_token/$TOKEN_REF/get_token" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {}}'
+```
+
+**Success Response:**
+```json
+[
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {
+      "access_token": "ya29.a0AfH6SM...",
+      "refresh_token": "1//0dx...",
+      "expiry": "2026-03-22T15:00:00Z"
+    }
+  }
+]
+```
+
+**Error Response (Missing Reference ID):**
+```json
+{
+  "errors": [{"title": "Token Reference id missing"}]
+}
+```
+
 ## Admin Actions
 
 ### become_an_administrator

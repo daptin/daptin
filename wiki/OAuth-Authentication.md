@@ -459,6 +459,43 @@ Stores OAuth access and refresh tokens for API access.
 | `expires_in` | integer | Token lifetime in seconds |
 | `token_type` | string | Token type (usually "Bearer") |
 
+### Retrieving Stored Tokens
+
+Use the `get_token` action to retrieve decrypted OAuth tokens for API calls:
+
+**Action:** `get_token`
+**On Type:** `oauth_token`
+**Endpoint:** `/action/oauth_token/{referenceId}/get_token`
+**Instance Required:** Yes (must specify the oauth_token record)
+
+```bash
+# Get the oauth_token reference ID
+TOKEN_REF=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/oauth_token | jq -r '.data[0].id')
+
+# Retrieve the decrypted token
+curl -X POST "http://localhost:6336/action/oauth_token/$TOKEN_REF/get_token" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {}}'
+```
+
+**Response:**
+```json
+[
+  {
+    "ResponseType": "client.notify",
+    "Attributes": {
+      "access_token": "ya29.a0AfH6SM...",
+      "refresh_token": "1//0dx...",
+      "expiry": "2026-03-22T15:00:00Z"
+    }
+  }
+]
+```
+
+The access and refresh tokens are stored encrypted in the database and decrypted only when retrieved through this action.
+
 ### Token Relationships
 
 - `oauth_token` belongs_to `oauth_connect`
