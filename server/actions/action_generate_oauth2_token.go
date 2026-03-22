@@ -28,14 +28,21 @@ func (d *generateOauth2TokenActionPerformer) DoAction(request actionresponse.Out
 	}
 
 	token, _, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(referenceId, transaction)
+	if err != nil {
+		return nil, responses, []error{err}
+	}
 
 	responseObject := api2go.NewApi2GoModelWithData("oauth_token", nil, 0, nil, map[string]interface{}{
 		"access_token":  token.AccessToken,
 		"refresh_token": token.RefreshToken,
 		"expiry":        token.Expiry,
 	})
-	responses = append(responses, resource.NewActionResponse("oauth_token", responseObject))
-	return resource.NewResponse(nil, responseObject, 200, nil), responses, []error{err}
+	responses = append(responses, resource.NewActionResponse("oauth_token", map[string]interface{}{
+		"access_token":  token.AccessToken,
+		"refresh_token": token.RefreshToken,
+		"expiry":        token.Expiry,
+	}))
+	return resource.NewResponse(nil, responseObject, 200, nil), responses, nil
 }
 
 func NewGenerateOauth2TokenPerformer(configStore *resource.ConfigStore, cruds map[string]*resource.DbResource) (actionresponse.ActionPerformerInterface, error) {
