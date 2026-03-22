@@ -29,31 +29,31 @@ func (d *oauthLoginResponseActionPerformer) Name() string {
 	return "oauth.login.response"
 }
 
-func GetOauthConnectionDescription(authenticator string, dbResource *resource.DbResource, transaction *sqlx.Tx) (*oauth2.Config, daptinid.DaptinReferenceId, error) {
+func GetOauthConnectionDescription(authenticator string, dbResource *resource.DbResource, transaction *sqlx.Tx) (*oauth2.Config, daptinid.DaptinReferenceId, map[string]interface{}, error) {
 
 	rows, _, err := dbResource.Cruds["oauth_connect"].GetRowsByWhereClauseWithTransaction("oauth_connect",
 		nil, transaction, goqu.Ex{"name": authenticator})
 
 	if err != nil {
 		log.Errorf("Failed to get oauth connection details for in response handler  [%v]", authenticator)
-		return nil, daptinid.NullReferenceId, err
+		return nil, daptinid.NullReferenceId, nil, err
 	}
 
 	if len(rows) < 1 {
 		log.Errorf("Failed to get oauth connection details for  [%v]", authenticator)
 		err = errors.New(fmt.Sprintf("No such authenticator [%v]", authenticator))
-		return nil, daptinid.NullReferenceId, err
+		return nil, daptinid.NullReferenceId, nil, err
 	}
 
 	secret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
 		log.Errorf("Failed to get secret: %v", err)
-		return nil, daptinid.NullReferenceId, err
+		return nil, daptinid.NullReferenceId, nil, err
 	}
 
 	conf, err := mapToOauthConfig(rows[0], secret)
 	log.Printf("[%v] oauth config: %v", authenticator, conf)
-	return conf, daptinid.InterfaceToDIR(rows[0]["reference_id"]), err
+	return conf, daptinid.InterfaceToDIR(rows[0]["reference_id"]), rows[0], err
 
 }
 
@@ -109,7 +109,7 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outc
 	code := inFieldMap["code"].(string)
 	user_reference_id := daptinid.InterfaceToDIR(inFieldMap["user_reference_id"])
 
-	conf, authReferenceId, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
+	conf, authReferenceId, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 
 	if err != nil {
 		return nil, nil, []error{err}

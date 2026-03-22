@@ -48,18 +48,17 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request actionresponse.Outcome
 	//	redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
 	//}
 
-	conf, _, err := GetOauthConnectionDescription(authConnectorData, d.cruds["oauth_connect"], transaction)
+	conf, _, row, err := GetOauthConnectionDescription(authConnectorData, d.cruds["oauth_connect"], transaction)
 	resource.CheckErr(err, "Failed to get oauth.conf from authenticator name")
 
 	// Redirect user to consent page to ask for permission
 	// for the scopes specified above.
-	var url string
-	if len(conf.Scopes) > 1 {
-		url = conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	} else {
-		url = conf.AuthCodeURL(state)
-
+	// Use access_type_offline from the oauth_connect config to request offline access.
+	opts := []oauth2.AuthCodeOption{}
+	if v := fmt.Sprintf("%v", row["access_type_offline"]); v == "1" || v == "true" {
+		opts = append(opts, oauth2.AccessTypeOffline)
 	}
+	url := conf.AuthCodeURL(state, opts...)
 	fmt.Printf("Visit the URL for the auth dialog: %v", url)
 
 	responseAttrs := make(map[string]interface{})

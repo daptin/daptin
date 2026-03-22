@@ -1422,7 +1422,7 @@ var SystemActions = []actionresponse.Action{
 			{
 				Type:           "oauth.login.response",
 				Method:         "EXECUTE",
-				SkipInResponse: true,
+				SkipInResponse: false,
 				Reference:      "auth",
 				Attributes: map[string]interface{}{
 					"authenticator":     "~authenticator",
@@ -1488,20 +1488,38 @@ var SystemActions = []actionresponse.Action{
 				},
 			},
 			{
-				Type:   "jwt.token",
-				Method: "EXECUTE",
+				Type:      "jwt.token",
+				Method:    "EXECUTE",
+				Condition: "$connection[0].allow_login",
 				Attributes: map[string]interface{}{
 					"email":             "!profile.email || profile.emailAddress",
 					"skipPasswordCheck": true,
 				},
 			},
 			{
-				Type:   "client.redirect",
-				Method: "ACTIONRESPONSE",
+				Type:      "client.redirect",
+				Method:    "ACTIONRESPONSE",
+				Condition: "$connection[0].allow_login",
 				Attributes: map[string]interface{}{
 					"location": "/",
 					"window":   "self",
 					"delay":    2000,
+				},
+			},
+		},
+	},
+	{
+		Name:             "get_token",
+		Label:            "Get decrypted OAuth token",
+		OnType:           "oauth_token",
+		InstanceOptional: false,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []actionresponse.Outcome{
+			{
+				Type:   "oauth.token",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"reference_id": "$.reference_id",
 				},
 			},
 		},

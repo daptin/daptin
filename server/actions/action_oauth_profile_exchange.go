@@ -86,7 +86,7 @@ func (d *ouathProfileExchangePerformer) DoAction(request actionresponse.Outcome,
 	authenticator := inFieldMap["authenticator"].(string)
 	token := inFieldMap["token"].(string)
 
-	conf, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
+	conf, _, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 
 	if err != nil {
 		return nil, nil, []error{err}
