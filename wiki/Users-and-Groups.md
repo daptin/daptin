@@ -334,7 +334,7 @@ curl -X POST http://localhost:6336/action/user_account/reset-password-verify \
   }'
 ```
 
-**Note**: See [SMTP Server](SMTP-Server.md) for email configuration.
+**Note**: See [[SMTP-Server|SMTP Server]] for email configuration.
 
 ---
 
@@ -376,7 +376,7 @@ curl -X POST http://localhost:6336/action/user_account/verify_otp \
   }'
 ```
 
-See [Two-Factor Auth](Two-Factor-Auth.md) for complete setup including OTP generation.
+See [[Two-Factor-Auth|Two-Factor Auth]] for complete setup including OTP generation.
 
 ---
 
@@ -430,14 +430,14 @@ curl http://localhost:6336/api/user_account \
 | **Invalid password** | Check email/password. Passwords are case-sensitive. |
 | **Can't add user to group** | Use full junction table name: `user_account_user_account_id_has_usergroup_usergroup_id` |
 | **403 on password reset** | Guest users cannot trigger password reset. Admin must initiate. |
-| **Password reset email not received** | SMTP not configured. See [SMTP Server](SMTP-Server.md). |
+| **Password reset email not received** | SMTP not configured. See [[SMTP-Server|SMTP Server]]. |
 | **OTP "no reference id"** | `register_otp` requires `user_account_id` in attributes. |
 
 ---
 
 ## See Also
 
-- [Getting Started](Getting-Started-Guide.md) - First admin setup
-- [Permissions](Permissions.md) - Control access with groups
-- [Two-Factor Auth](Two-Factor-Auth.md) - 2FA setup
-- [Authentication](Authentication.md) - OAuth and JWT details
+- [[Getting-Started-Guide|Getting Started]] - First admin setup
+- [[Permissions|Permissions]] - Control access with groups
+- [[Two-Factor-Auth|Two-Factor Auth]] - 2FA setup
+- [[Authentication|Authentication]] - OAuth and JWT details

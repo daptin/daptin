@@ -18,8 +18,8 @@ Daptin includes an FTP/FTPS server that provides file access to subsites. Featur
 
 Before using FTP, you must have:
 
-1. **Cloud storage configured** - See [Cloud Storage](Cloud-Storage.md)
-2. **At least one site with FTP enabled** - See [Subsites](Subsites.md)
+1. **Cloud storage configured** - See [[Cloud-Storage|Cloud Storage]]
+2. **At least one site with FTP enabled** - See [[Subsites|Subsites]]
 3. **FTP enabled in configuration** - Set `ftp.enable` to `true`
 
 ## Quick Start
@@ -337,7 +337,7 @@ Daptin automatically retrieves or generates certificates for FTP-enabled sites:
 
 1. On first FTP connection, looks up certificate for site's hostname
 2. If no certificate exists, generates a self-signed certificate
-3. For production, configure ACME/Let's Encrypt certificates via [TLS Certificates](TLS-Certificates.md)
+3. For production, configure ACME/Let's Encrypt certificates via [[TLS-Certificates|TLS Certificates]]
 
 **Self-signed certificates**: FTP clients may show warnings. Either:
 - Accept the certificate (for testing)
@@ -614,7 +614,7 @@ PassiveTransferPortRange: &server.PortRange{Start: 50000, End: 51000},
 
 ## See Also
 
-- [Subsites](Subsites.md) - Static site hosting (required for FTP)
-- [Cloud Storage](Cloud-Storage.md) - Storage configuration (required for FTP)
-- [TLS Certificates](TLS-Certificates.md) - ACME/Let's Encrypt setup for FTPS
-- [Authentication](Authentication.md) - User authentication details
+- [[Subsites|Subsites]] - Static site hosting (required for FTP)
+- [[Cloud-Storage|Cloud Storage]] - Storage configuration (required for FTP)
+- [[TLS-Certificates|TLS Certificates]] - ACME/Let's Encrypt setup for FTPS
+- [[Authentication|Authentication]] - User authentication details

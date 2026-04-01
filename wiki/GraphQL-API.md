@@ -636,6 +636,6 @@ Current limitations (as of 2026-01-26):
 ## Related
 
 - [REST API](Getting-Started-Guide.md#rest-api) - Traditional REST endpoints
-- [Actions Overview](Actions-Overview.md) - Available actions via GraphQL
-- [Permissions](Permissions.md) - Access control for GraphQL
-- [Task Scheduling](Task-Scheduling.md) - Automate actions tested via GraphQL
+- [[Actions-Overview|Actions Overview]] - Available actions via GraphQL
+- [[Permissions|Permissions]] - Access control for GraphQL
+- [[Task-Scheduling|Task Scheduling]] - Automate actions tested via GraphQL

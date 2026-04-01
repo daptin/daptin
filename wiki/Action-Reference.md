@@ -165,7 +165,7 @@ Verify a mobile number with OTP.
 
 ## OAuth Actions
 
-**See also:** [OAuth Authentication Guide](OAuth-Authentication.md) for complete setup and examples.
+**See also:** [[OAuth-Authentication|OAuth Authentication Guide]] for complete setup and examples.
 
 ### oauth_login_begin
 

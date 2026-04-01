@@ -79,7 +79,7 @@ Columns:
     ColumnDescription: "Help text"
 ```
 
-See [Column Properties Guide](Column-Properties-Guide.md) for complete column options.
+See [[Column-Properties-Guide|Column Properties Guide]] for complete column options.
 
 **System Columns (Auto-Added):**
 Every table automatically gets:
@@ -129,7 +129,7 @@ DefaultPermission: 16256   # 0 | (127 << 7) | (0 << 14)
 DefaultPermission: 524419  # 3 | (127 << 7) | (3 << 14)
 ```
 
-See [Permissions](Permissions.md) for detailed permission system.
+See [[Permissions|Permissions]] for detailed permission system.
 
 **Tested:** All suites | **Status:** ✅ Working
 
@@ -154,7 +154,7 @@ Relations:
     OnDelete: cascade      # Cascade behavior
 ```
 
-See [Relationships](Relationships.md) for complete relationship documentation.
+See [[Relationships|Relationships]] for complete relationship documentation.
 
 **Tested:** Existing docs | **Status:** ✅ Working
 
@@ -174,7 +174,7 @@ Enable state machine workflow tracking for this table.
 - Auto-creates `{tablename}_state` table
 - Adds `ticket_has_state` relationship to main table
 - Requires `StateMachineDescriptions` to be defined
-- See [State Machines](State-Machines.md) for usage
+- See [[State-Machines|State Machines]] for usage
 
 **Example:**
 ```yaml
@@ -249,7 +249,7 @@ Record updated → Audit record created with OLD values
 Record updated again → Another audit record with previous values
 ```
 
-See [Audit-Logging](Audit-Logging.md) for complete guide.
+See [[Audit-Logging|Audit-Logging]] for complete guide.
 
 **Tested:** Suite 3 | **Status:** ✅ Fully functional
 
@@ -767,13 +767,13 @@ Tables:
 
 ## Related Documentation
 
-- [Column Properties Guide](Column-Properties-Guide.md) - Complete column reference
-- [Column Types](Column-Types.md) - All 41 column types
-- [Relationships](Relationships.md) - Foreign keys and relations
-- [Permissions](Permissions.md) - Permission system
-- [State Machines](State-Machines.md) - Workflow automation
-- [Audit Logging](Audit-Logging.md) - Change history
-- [Schema Examples](Schema-Examples.md) - Complete use cases
+- [[Column-Properties-Guide|Column Properties Guide]] - Complete column reference
+- [[Column-Types|Column Types]] - All 41 column types
+- [[Relationships|Relationships]] - Foreign keys and relations
+- [[Permissions|Permissions]] - Permission system
+- [[State-Machines|State Machines]] - Workflow automation
+- [[Audit-Logging|Audit Logging]] - Change history
+- [[Schema-Examples|Schema Examples]] - Complete use cases
 
 ---
 

@@ -222,7 +222,7 @@ If you find a feature that doesn't work as expected:
 
 ## Coverage Analysis
 
-**See**: [Feature-Documentation-Coverage.md](Feature-Documentation-Coverage.md) for complete analysis
+**See**: [[Feature-Documentation-Coverage|Feature-Documentation-Coverage.md]] for complete analysis
 
 **Overall Documentation Coverage**: 85%
 - Tables: 68% (19/28 tables fully or partially documented)

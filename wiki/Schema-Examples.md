@@ -694,13 +694,13 @@ curl -X DELETE /api/your_table/ID ...
 
 ## Related Documentation
 
-- [Schema Reference Complete](Schema-Reference-Complete.md) - All TableInfo properties
-- [Column Types](Column-Types.md) - All 41 column types
-- [Column Type Reference](Column-Type-Reference.md) - Detailed per-type docs
-- [Relationships](Relationships.md) - Foreign keys and relations
-- [Permissions](Permissions.md) - Permission system
-- [State Machines](State-Machines.md) - Workflow automation
-- [Audit Logging](Audit-Logging.md) - Change history
+- [[Schema-Reference-Complete|Schema Reference Complete]] - All TableInfo properties
+- [[Column-Types|Column Types]] - All 41 column types
+- [[Column-Type-Reference|Column Type Reference]] - Detailed per-type docs
+- [[Relationships|Relationships]] - Foreign keys and relations
+- [[Permissions|Permissions]] - Permission system
+- [[State-Machines|State Machines]] - Workflow automation
+- [[Audit-Logging|Audit Logging]] - Change history
 
 ---
 

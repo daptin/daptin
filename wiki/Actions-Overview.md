@@ -135,7 +135,7 @@ curl -X POST http://localhost:6336/action/user_account/signin \
 | `oauth_login_begin` | oauth_connect | Start OAuth flow (returns redirect URL) |
 | `oauth.login.response` | oauth_token | Handle OAuth callback |
 
-See [Authentication](Authentication.md) for OAuth setup.
+See [[Authentication|Authentication]] for OAuth setup.
 
 ### Administration
 
@@ -185,7 +185,7 @@ All cloud storage actions require `cloud_store_id` in attributes.
 | `list_files` | site | List site files |
 | `get_file` | site | Get file content |
 
-See [Cloud Storage](Cloud-Storage.md) for full examples.
+See [[Cloud-Storage|Cloud Storage]] for full examples.
 
 ### Email
 
@@ -194,7 +194,7 @@ See [Cloud Storage](Cloud-Storage.md) for full examples.
 | `mail.send` | mail_server | Send email via SMTP |
 | `aws.mail.send` | mail_server | Send via AWS SES |
 
-See [Email-Actions](Email-Actions.md) for setup.
+See [[Email-Actions|Email-Actions]] for setup.
 
 ### TLS Certificates
 
@@ -210,7 +210,7 @@ See [Email-Actions](Email-Actions.md) for setup.
 |--------|--------|-------------|
 | `add_exchange` | world | Create data sync job |
 
-See [Data-Exchange](Data-Exchange.md) for details.
+See [[Data-Exchange|Data-Exchange]] for details.
 
 ### Integrations
 
@@ -219,7 +219,7 @@ See [Data-Exchange](Data-Exchange.md) for details.
 | `integration_install` | integration | Install OpenAPI integration |
 | `integration_execute` | integration | Execute integration action |
 
-See [Integrations](Integrations.md) for setup.
+See [[Integrations|Integrations]] for setup.
 
 ---
 
@@ -540,7 +540,7 @@ Built-in actions have sensible defaults:
 | `restart` | Admin only |
 | Cloud storage actions | Owner/Group/Admin |
 
-See [Permissions](Permissions.md) for the complete permission system.
+See [[Permissions|Permissions]] for the complete permission system.
 
 ---
 
@@ -571,8 +571,8 @@ Common errors:
 
 ## See Also
 
-- [Custom-Actions](Custom-Actions.md) - Creating actions with workflows
-- [Cloud-Storage](Cloud-Storage.md) - Cloud storage action examples
-- [Authentication](Authentication.md) - Auth action details
-- [State-Machines](State-Machines.md) - Trigger actions on state changes
-- [Task-Scheduling](Task-Scheduling.md) - Run actions on schedule
+- [[Custom-Actions|Custom-Actions]] - Creating actions with workflows
+- [[Cloud-Storage|Cloud-Storage]] - Cloud storage action examples
+- [[Authentication|Authentication]] - Auth action details
+- [[State-Machines|State-Machines]] - Trigger actions on state changes
+- [[Task-Scheduling|Task-Scheduling]] - Run actions on schedule

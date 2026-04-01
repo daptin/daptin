@@ -2,7 +2,7 @@
 
 **Quick Start:** Define your database tables using YAML files. Daptin reads them on startup and creates everything automatically.
 
-**Related:** [Complete Reference](Schema-Reference-Complete.md) | [Examples](Schema-Examples.md) | [Column Types](Column-Types.md) | [Relationships](Relationships.md)
+**Related:** [[Schema-Reference-Complete|Complete Reference]] | [[Schema-Examples|Examples]] | [[Column-Types|Column Types]] | [[Relationships|Relationships]]
 
 ---
 
@@ -87,7 +87,7 @@ Columns:
     IsIndexed: true          # Faster lookups
 ```
 
-See [Column Properties Guide](Column-Properties-Guide.md) for all options.
+See [[Column-Properties-Guide|Column Properties Guide]] for all options.
 
 ---
 
@@ -95,7 +95,7 @@ See [Column Properties Guide](Column-Properties-Guide.md) for all options.
 
 ### ✅ Learn by Example
 
-[Schema Examples](Schema-Examples.md) has 5 complete use cases:
+[[Schema-Examples|Schema Examples]] has 5 complete use cases:
 1. Blog Platform - Posts, categories, comments
 2. E-Commerce - Products, orders, workflow
 3. Task Management - Projects with state tracking
@@ -104,7 +104,7 @@ See [Column Properties Guide](Column-Properties-Guide.md) for all options.
 
 ### ✅ Browse Column Types
 
-[Column Types](Column-Types.md) lists all 41 types:
+[[Column-Types|Column Types]] lists all 41 types:
 - `label` - Short text (product name)
 - `content` - Long text (blog post)
 - `email` - Email with validation
@@ -114,7 +114,7 @@ See [Column Properties Guide](Column-Properties-Guide.md) for all options.
 
 ### ✅ Add Relationships
 
-[Relationships](Relationships.md) shows how to link tables:
+[[Relationships|Relationships]] shows how to link tables:
 ```yaml
 Relations:
   - Subject: comment
@@ -124,7 +124,7 @@ Relations:
 
 ### ✅ Complete Reference
 
-[Schema Reference Complete](Schema-Reference-Complete.md) documents all 18 TableInfo properties with test status.
+[[Schema-Reference-Complete|Schema Reference Complete]] documents all 18 TableInfo properties with test status.
 
 ### ✅ Full Walkthrough
 
@@ -195,7 +195,7 @@ StateMachineDescriptions:
 
 **Creates:** Order table + order_state table + workflow.
 
-Note: State machine API currently has bugs ([#170](https://github.com/daptin/daptin/issues/170), [#171](https://github.com/daptin/daptin/issues/171)). Use SQL workaround from [State Machines](State-Machines.md).
+Note: State machine API currently has bugs ([#170](https://github.com/daptin/daptin/issues/170), [#171](https://github.com/daptin/daptin/issues/171)). Use SQL workaround from [[State-Machines|State Machines]].
 
 ### Pattern 4: Table with Audit Trail
 
@@ -275,7 +275,7 @@ Tables:
     DefaultPermission: 16256  # Only owner can access
 ```
 
-See [Permissions](Permissions.md) for permission calculator.
+See [[Permissions|Permissions]] for permission calculator.
 
 ---
 

@@ -449,7 +449,7 @@ grep "Joining from" /tmp/daptin-node*.log
 
 ### Stale Olric Cache (403 / Unauthorized)
 
-See the [Caching](Caching.md) page. Key point: kill **both** the HTTP port and Olric bind port when restarting.
+See the [[Caching|Caching]] page. Key point: kill **both** the HTTP port and Olric bind port when restarting.
 
 ```bash
 lsof -ti:6336 | xargs kill -9  # HTTP

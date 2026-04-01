@@ -2,7 +2,7 @@
 
 Complete reference for querying, filtering, sorting, and paginating API requests in Daptin.
 
-**All examples tested ✓** - See [GET-API-Test-Results](GET-API-Test-Results.md) for full test documentation.
+**All examples tested ✓** - See [[GET-API-Test-Results|GET-API-Test-Results]] for full test documentation.
 
 ---
 
@@ -498,7 +498,7 @@ curl --get \
 
 ## See Also
 
-- [GET API Test Results](GET-API-Test-Results.md) - Complete test documentation with all operators
-- [CRUD Operations](CRUD-Operations.md) - Full API reference
-- [Relationships](Relationships.md) - Loading related data
-- [Core Concepts](Core-Concepts.md) - Understanding IDs and permissions
+- [[GET-API-Test-Results|GET API Test Results]] - Complete test documentation with all operators
+- [[CRUD-Operations|CRUD Operations]] - Full API reference
+- [[Relationships|Relationships]] - Loading related data
+- [[Core-Concepts|Core Concepts]] - Understanding IDs and permissions

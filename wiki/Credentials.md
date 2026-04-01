@@ -2,7 +2,7 @@
 
 Secure storage for sensitive authentication data.
 
-**Related**: [Cloud Storage](Cloud-Storage.md) | [Integrations](Integrations.md)
+**Related**: [[Cloud-Storage|Cloud Storage]] | [[Integrations|Integrations]]
 
 **Source of truth**: `server/resource/columns.go` (credential table)
 
@@ -94,7 +94,7 @@ curl -X POST http://localhost:6336/api/cloud_store \
   }'
 ```
 
-See [Cloud Storage](Cloud-Storage.md) for complete setup.
+See [[Cloud-Storage|Cloud Storage]] for complete setup.
 
 ---
 
@@ -243,6 +243,6 @@ Only administrators can access the credential table. Ensure your user is in the 
 
 ## See Also
 
-- [Cloud Storage](Cloud-Storage.md) - Using credentials with storage
-- [Integrations](Integrations.md) - OAuth authentication for APIs
-- [Encryption](Encryption.md) - Encryption configuration
+- [[Cloud-Storage|Cloud Storage]] - Using credentials with storage
+- [[Integrations|Integrations]] - OAuth authentication for APIs
+- [[Encryption|Encryption]] - Encryption configuration

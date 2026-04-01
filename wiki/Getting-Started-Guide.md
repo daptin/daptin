@@ -351,7 +351,7 @@ curl 'http://localhost:6336/api/todo?page[number]=1&page[size]=10' \
 
 ## Next Steps
 
-- [Permissions](Permissions.md) - Control who can access what
-- [Relationships](Relationships.md) - Link tables together
-- [Actions Overview](Actions-Overview.md) - Add business logic
-- [Schema Definition](Schema-Definition.md) - Full schema options
+- [[Permissions|Permissions]] - Control who can access what
+- [[Relationships|Relationships]] - Link tables together
+- [[Actions-Overview|Actions Overview]] - Add business logic
+- [[Schema-Definition|Schema Definition]] - Full schema options

@@ -2,7 +2,7 @@
 
 Actions for importing, exporting, and managing data.
 
-**Related**: [Data Exchange](Data-Exchange.md) | [Cloud Storage](Cloud-Storage.md) | [Actions Overview](Actions-Overview.md)
+**Related**: [[Data-Exchange|Data Exchange]] | [[Cloud-Storage|Cloud Storage]] | [[Actions-Overview|Actions Overview]]
 
 **Source of truth**: `server/resource/columns.go` (SystemActions), `server/actions/action_*_data.go` (performers)
 
@@ -283,7 +283,7 @@ curl -X POST "http://localhost:6336/action/cloud_store/$CLOUDSTORE_REF/upload_fi
 | `file` | array | File(s) to upload (base64-encoded) |
 | `path` | string | Destination path in cloud store |
 
-See [Cloud Storage](Cloud-Storage.md) for cloud_store setup.
+See [[Cloud-Storage|Cloud Storage]] for cloud_store setup.
 
 ---
 
@@ -402,6 +402,6 @@ Ensure `dump_file` is an array of file objects with `name` and `file` keys:
 
 ## See Also
 
-- [Data Exchange](Data-Exchange.md) - External API syncing
-- [Cloud Storage](Cloud-Storage.md) - File storage setup
-- [Actions Overview](Actions-Overview.md) - Action system details
+- [[Data-Exchange|Data Exchange]] - External API syncing
+- [[Cloud-Storage|Cloud Storage]] - File storage setup
+- [[Actions-Overview|Actions Overview]] - Action system details

@@ -524,7 +524,7 @@ MY_DB_PATH=/tmp/mydb.db ./daptin -database_url_variable MY_DB_PATH
 
 ## HTTPS/TLS Configuration
 
-HTTPS is controlled via database configuration and certificates. See [TLS-Certificates.md](TLS-Certificates.md) for complete TLS setup guide.
+HTTPS is controlled via database configuration and certificates. See [[TLS-Certificates|TLS-Certificates.md]] for complete TLS setup guide.
 
 ### Enable HTTPS
 
@@ -551,7 +551,7 @@ lsof -i :6443
 
 **Default:** `:6443`
 
-**Note:** Requires certificates in database and `enable_https=true`. See [TLS-Certificates.md](TLS-Certificates.md) for certificate generation.
+**Note:** Requires certificates in database and `enable_https=true`. See [[TLS-Certificates|TLS-Certificates.md]] for certificate generation.
 
 ---
 
@@ -749,4 +749,4 @@ host=hostname port=5432 user=username password=password dbname=database_name ssl
 
 - **FTP/CalDAV servers:** Runtime configuration values (documented in respective feature docs)
 
-**Note:** SMTP and IMAP are documented separately in [SMTP-Server.md](SMTP-Server.md) and [IMAP-Support.md](IMAP-Support.md).
+**Note:** SMTP and IMAP are documented separately in [[SMTP-Server|SMTP-Server.md]] and [[IMAP-Support|IMAP-Support.md]].

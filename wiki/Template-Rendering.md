@@ -51,7 +51,7 @@ Actions:
 
 Then call: `/action/user_account/generate_welcome_email`
 
-See [Custom Actions](Custom-Actions.md) for full guide.
+See [[Custom-Actions|Custom Actions]] for full guide.
 
 ## Template Table
 
@@ -379,7 +379,7 @@ OutFields:
 
 ## Related
 
-- [Custom Actions](Custom-Actions.md) - How to create actions with template.render
-- [Email Actions](Email-Actions.md) - Sending templated emails
-- [Subsites](Subsites.md) - Hosting template files in subsites
-- [Action Reference](Action-Reference.md) - All available internal outcomes
+- [[Custom-Actions|Custom Actions]] - How to create actions with template.render
+- [[Email-Actions|Email Actions]] - Sending templated emails
+- [[Subsites|Subsites]] - Hosting template files in subsites
+- [[Action-Reference|Action Reference]] - All available internal outcomes

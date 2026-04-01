@@ -2072,11 +2072,11 @@ Visit the URL for the auth dialog: https://accounts.google.com/o/oauth2/v2/auth?
 
 ## Related Documentation
 
-- [OAuth Authentication](OAuth-Authentication.md) - General OAuth setup guide
-- [Action Reference](Action-Reference.md) - All OAuth actions documented
-- [User Management](User-Management.md) - User account operations
-- [Permissions](Permissions.md) - Permission system details
-- [TLS Certificates](TLS-Certificates.md) - HTTPS setup for production
+- [[OAuth-Authentication|OAuth Authentication]] - General OAuth setup guide
+- [[Action-Reference|Action Reference]] - All OAuth actions documented
+- [[User-Management|User Management]] - User account operations
+- [[Permissions|Permissions]] - Permission system details
+- [[TLS-Certificates|TLS Certificates]] - HTTPS setup for production
 
 ---
 

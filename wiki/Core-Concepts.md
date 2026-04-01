@@ -9,9 +9,9 @@ Daptin is a headless CMS that turns your data schema into a full-featured API. U
 Every piece of data in Daptin lives in an **entity** (table). When you define a schema, Daptin automatically:
 
 1. Creates the database table with [Standard Columns](#standard-columns)
-2. Generates REST API endpoints (see [API Overview](API-Overview.md))
-3. Generates GraphQL schema (see [GraphQL API](GraphQL-API.md))
-4. Applies the [Permission Model](Permissions.md)
+2. Generates REST API endpoints (see [[API-Overview|API Overview]])
+3. Generates GraphQL schema (see [[GraphQL-API|GraphQL API]])
+4. Applies the [[Permissions|Permission Model]]
 5. Tracks ownership and audit data
 
 ---
@@ -36,7 +36,7 @@ Every table automatically includes these columns - you don't define them:
 curl http://localhost:6336/api/product/019BEBDB52B673EF8D1A46F9511858B2
 ```
 
-See: [Permissions](Permissions.md) for permission bitmask details.
+See: [[Permissions|Permissions]] for permission bitmask details.
 
 ---
 
@@ -48,7 +48,7 @@ Daptin supports **41 built-in column types** that provide:
 - **GraphQL** - Correct type mapping
 - **Fake data** - Test data generation
 
-Full reference: [Column Type Reference](Column-Type-Reference.md)
+Full reference: [[Column-Type-Reference|Column Type Reference]]
 
 ### Quick Reference
 
@@ -98,7 +98,7 @@ Full reference: [Column Type Reference](Column-Type-Reference.md)
   ColumnType: file
 ```
 
-See: [Column Types](Column-Types.md) for detailed usage.
+See: [[Column-Types|Column Types]] for detailed usage.
 
 ---
 
@@ -133,7 +133,7 @@ Tables:
 | `DefaultValue` | string | Default value expression |
 | `IsForeignKey` | bool | Foreign key column |
 
-Full reference: [Schema Definition](Schema-Definition.md)
+Full reference: [[Schema-Definition|Schema Definition]]
 
 ---
 
@@ -161,7 +161,7 @@ Relations:
 
 **Note**: Relationships automatically add `{relation}_id` columns referencing the target's `reference_id`.
 
-See: [Relationships](Relationships.md)
+See: [[Relationships|Relationships]]
 
 ---
 
@@ -171,21 +171,21 @@ Daptin includes built-in tables you can extend but not delete:
 
 | Table | Purpose | Documentation |
 |-------|---------|---------------|
-| `user_account` | User authentication | [Users and Groups](Users-and-Groups.md) |
-| `usergroup` | User groups | [Users and Groups](Users-and-Groups.md) |
+| `user_account` | User authentication | [[Users-and-Groups|Users and Groups]] |
+| `usergroup` | User groups | [[Users-and-Groups|Users and Groups]] |
 | `world` | Table metadata | Internal |
-| `action` | Action definitions | [Actions Overview](Actions-Overview.md) |
-| `certificate` | TLS certificates | [TLS Certificates](TLS-Certificates.md) |
-| `credential` | Stored credentials | [Cloud Storage](Cloud-Storage.md) |
-| `cloud_store` | Cloud storage connections | [Cloud Storage](Cloud-Storage.md) |
-| `site` | Static sites | [Subsites](Subsites.md) |
-| `mail_server` | Mail servers | [SMTP Server](SMTP-Server.md) |
-| `mail_account` | Mail accounts | [SMTP Server](SMTP-Server.md) |
-| `mail_box` | Mailboxes | [IMAP Support](IMAP-Support.md) |
-| `mail` | Emails | [IMAP Support](IMAP-Support.md) |
-| `task` | Scheduled tasks | [Task Scheduling](Task-Scheduling.md) |
-| `integration` | External integrations | [Integrations](Integrations.md) |
-| `oauth_connect` | OAuth providers | [Authentication](Authentication.md) |
+| `action` | Action definitions | [[Actions-Overview|Actions Overview]] |
+| `certificate` | TLS certificates | [[TLS-Certificates|TLS Certificates]] |
+| `credential` | Stored credentials | [[Cloud-Storage|Cloud Storage]] |
+| `cloud_store` | Cloud storage connections | [[Cloud-Storage|Cloud Storage]] |
+| `site` | Static sites | [[Subsites|Subsites]] |
+| `mail_server` | Mail servers | [[SMTP-Server|SMTP Server]] |
+| `mail_account` | Mail accounts | [[SMTP-Server|SMTP Server]] |
+| `mail_box` | Mailboxes | [[IMAP-Support|IMAP Support]] |
+| `mail` | Emails | [[IMAP-Support|IMAP Support]] |
+| `task` | Scheduled tasks | [[Task-Scheduling|Task Scheduling]] |
+| `integration` | External integrations | [[Integrations|Integrations]] |
+| `oauth_connect` | OAuth providers | [[Authentication|Authentication]] |
 
 ---
 
@@ -206,17 +206,17 @@ Actions can:
 - Chain multiple operations
 - Return various response types
 
-See: [Actions Overview](Actions-Overview.md), [User Actions](User-Actions.md)
+See: [[Actions-Overview|Actions Overview]], [[User-Actions|User Actions]]
 
 ---
 
 ## Where to Go Next
 
-1. **Setup** → [Installation](Installation.md), [Configuration](Configuration.md)
-2. **Define Data** → [Schema Definition](Schema-Definition.md), [Column Types](Column-Types.md)
-3. **Use API** → [CRUD Operations](CRUD-Operations.md), [Filtering and Pagination](Filtering-and-Pagination.md)
-4. **Secure** → [Authentication](Authentication.md), [Permissions](Permissions.md)
-5. **Extend** → [Actions Overview](Actions-Overview.md), [Custom Actions](Custom-Actions.md)
+1. **Setup** → [[Installation|Installation]], [[Configuration|Configuration]]
+2. **Define Data** → [[Schema-Definition|Schema Definition]], [[Column-Types|Column Types]]
+3. **Use API** → [[CRUD-Operations|CRUD Operations]], [[Filtering-and-Pagination|Filtering and Pagination]]
+4. **Secure** → [[Authentication|Authentication]], [[Permissions|Permissions]]
+5. **Extend** → [[Actions-Overview|Actions Overview]], [[Custom-Actions|Custom Actions]]
 
 ---
 

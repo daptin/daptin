@@ -369,9 +369,9 @@ Audit tables inherit permissions from the main table. Users need:
 
 ## Related
 
-- [State Machines](State-Machines.md) - Combine for workflow + history
-- [Permissions](Permissions.md) - Control audit record access
-- [Data Export](Data-Actions.md) - Export audit trails for archival
+- [[State-Machines|State Machines]] - Combine for workflow + history
+- [[Permissions|Permissions]] - Control audit record access
+- [[Data-Actions|Data Export]] - Export audit trails for archival
 
 ---
 

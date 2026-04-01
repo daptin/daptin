@@ -420,7 +420,7 @@ curl -X POST "http://localhost:6336/action/cloud_store/move_path?cloud_store_id=
 
 ## Sites (Static Website Hosting)
 
-Sites allow you to host static websites on cloud storage. See [Subsites.md](Subsites.md) for detailed site management documentation.
+Sites allow you to host static websites on cloud storage. See [[Subsites|Subsites.md]] for detailed site management documentation.
 
 ### Create Site
 
@@ -781,7 +781,7 @@ sleep 10
 
 ## See Also
 
-- [Asset Columns](Asset-Columns.md) - Inline vs cloud file storage configuration
-- [Subsites](Subsites.md) - Static site hosting details
-- [Credentials](Credentials.md) - Credential management
+- [[Asset-Columns|Asset Columns]] - Inline vs cloud file storage configuration
+- [[Subsites|Subsites]] - Static site hosting details
+- [[Credentials|Credentials]] - Credential management
 - [[Walkthrough-Product-Catalog]] - Complete cloud storage setup example

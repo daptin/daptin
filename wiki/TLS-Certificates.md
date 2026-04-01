@@ -693,8 +693,8 @@ curl -X DELETE "http://localhost:6336/api/certificate/$CERT_ID" \
 
 ## Related Documentation
 
-- [Authentication](Authentication.md) - User authentication with JWT
-- [OAuth Authentication](OAuth-Authentication.md) - Social login setup
-- [Production Deployment](Production-Deployment.md) - Production best practices
-- [Common Errors](Common-Errors.md) - Troubleshooting guide
-- [Action Reference](Action-Reference.md) - All available actions
+- [[Authentication|Authentication]] - User authentication with JWT
+- [[OAuth-Authentication|OAuth Authentication]] - Social login setup
+- [[Production-Deployment|Production Deployment]] - Production best practices
+- [[Common-Errors|Common Errors]] - Troubleshooting guide
+- [[Action-Reference|Action Reference]] - All available actions

@@ -2,7 +2,7 @@
 
 Define connections between tables to create linked data structures.
 
-**Related**: [Core Concepts](Core-Concepts.md) | [Schema Definition](Schema-Definition.md) | [CRUD Operations](CRUD-Operations.md)
+**Related**: [[Core-Concepts|Core Concepts]] | [[Schema-Definition|Schema Definition]] | [[CRUD-Operations|CRUD Operations]]
 
 **Source of truth**: `server/resource/columns.go` (StandardRelations), `github.com/artpar/api2go/v2` (TableRelation)
 
@@ -124,7 +124,7 @@ Daptin creates these relationships automatically between system tables:
 | `calendar` | has_one | `collection` | `calendar.collection_id` |
 | `user_otp_account` | belongs_to | `user_account` | `user_otp_account.otp_of_account` |
 
-See: [SMTP Server](SMTP-Server.md) (mail relationships), [Cloud Storage](Cloud-Storage.md), [Two-Factor Auth](Two-Factor-Auth.md)
+See: [[SMTP-Server|SMTP Server]] (mail relationships), [[Cloud-Storage|Cloud Storage]], [[Two-Factor-Auth|Two-Factor Auth]]
 
 ---
 
@@ -309,7 +309,7 @@ curl "http://localhost:6336/api/mail_account?include=mail_server_id,user_account
 - IDs are always `reference_id` UUIDs, not internal numeric IDs
 - Relationship keys use the FK column name (e.g., `mail_server_id`)
 - Empty relationships return `"data": []`
-- See [Core Concepts](Core-Concepts.md) for more on reference IDs
+- See [[Core-Concepts|Core Concepts]] for more on reference IDs
 
 ---
 
@@ -613,7 +613,7 @@ This creates:
 
 ## See Also
 
-- [Core Concepts](Core-Concepts.md) - Standard columns and entity model
-- [Schema Definition](Schema-Definition.md) - Full schema syntax
-- [CRUD Operations](CRUD-Operations.md) - API usage
-- [Filtering and Pagination](Filtering-and-Pagination.md) - Query related data
+- [[Core-Concepts|Core Concepts]] - Standard columns and entity model
+- [[Schema-Definition|Schema Definition]] - Full schema syntax
+- [[CRUD-Operations|CRUD Operations]] - API usage
+- [[Filtering-and-Pagination|Filtering and Pagination]] - Query related data

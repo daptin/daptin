@@ -12,7 +12,7 @@ Complete reference for validation tags you can use in Daptin schemas.
 Daptin uses [validator.v9](https://github.com/go-playground/validator) for input validation. Validation tags are applied in your schema's `Validations` section to enforce data quality rules.
 
 **Key Concepts:**
-- Validation happens AFTER conformation (data transformation) - see [Conformation Reference](Conformation-Reference.md)
+- Validation happens AFTER conformation (data transformation) - see [[Conformation-Reference|Conformation Reference]]
 - Failed validation returns a 400 error with the specific tag that failed
 - Use `omitempty` for optional fields that should skip validation when empty
 - Combine multiple tags with commas: `"required,email"`
@@ -720,7 +720,7 @@ curl -X POST http://localhost:6336/api/product \
 
 ## Related Documentation
 
-- [Conformation Reference](Conformation-Reference.md) - Data transformation before validation
-- [Custom Actions](Custom-Actions.md) - Using validations with actions
-- [Schema Definition](Schema-Definition.md) - Complete schema reference
-- [Column Types](Column-Types.md) - Available column types
+- [[Conformation-Reference|Conformation Reference]] - Data transformation before validation
+- [[Custom-Actions|Custom Actions]] - Using validations with actions
+- [[Schema-Definition|Schema Definition]] - Complete schema reference
+- [[Column-Types|Column Types]] - Available column types

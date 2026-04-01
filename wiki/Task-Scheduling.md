@@ -477,7 +477,7 @@ sqlite3 daptin.db "SELECT reference_id, name, action_name, schedule, active, as_
 
 ## Related
 
-- [Actions Overview](Actions-Overview.md) - Actions that tasks can execute
-- [Custom Actions](Custom-Actions.md) - Define custom actions for tasks
-- [Integrations](Integrations.md) - External service integration actions
-- [Cloud Storage](Cloud-Storage.md) - Cloud sync task configuration
+- [[Actions-Overview|Actions Overview]] - Actions that tasks can execute
+- [[Custom-Actions|Custom Actions]] - Define custom actions for tasks
+- [[Integrations|Integrations]] - External service integration actions
+- [[Cloud-Storage|Cloud Storage]] - Cloud sync task configuration

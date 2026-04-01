@@ -12,7 +12,7 @@ Complete reference for conformation (data transformation) tags you can use in Da
 Daptin uses [conform library](https://github.com/artpar/conform) for data transformations. Conformation tags are applied in your schema's `Conformations` section to automatically transform input data.
 
 **Key Concepts:**
-- Conformations transform data before validation - see [Validation Reference](Validation-Reference.md) for validation tags
+- Conformations transform data before validation - see [[Validation-Reference|Validation Reference]] for validation tags
 - Multiple tags can be combined with commas: `"trim,lower"`
 - Tags are applied in left-to-right order
 - Works with string data only
@@ -803,7 +803,7 @@ The conform library supports custom sanitizers via `AddSanitizer(key string, san
 
 ## Related Documentation
 
-- [Validation Reference](Validation-Reference.md) - Input validation tags (applied after conformations)
-- [Custom Actions](Custom-Actions.md) - Using conformations with actions
-- [Schema Definition](Schema-Definition.md) - Complete schema reference
-- [Column Types](Column-Types.md) - Column types with auto-conformations
+- [[Validation-Reference|Validation Reference]] - Input validation tags (applied after conformations)
+- [[Custom-Actions|Custom Actions]] - Using conformations with actions
+- [[Schema-Definition|Schema Definition]] - Complete schema reference
+- [[Column-Types|Column Types]] - Column types with auto-conformations

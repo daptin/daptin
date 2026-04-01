@@ -210,7 +210,7 @@ curl -X POST http://localhost:6336/action/world/acme.tls.generate \
   }'
 ```
 
-See [TLS Certificates](TLS-Certificates.md) for details.
+See [[TLS-Certificates|TLS Certificates]] for details.
 
 ### 3. Cloud Storage for Scale (Recommended)
 
@@ -243,7 +243,7 @@ aws s3 sync ./site-files/ s3://my-bucket/sites/my-site/
 - **Bandwidth efficiency**: Files served from edge locations (with CDN)
 - **Zero downtime updates**: Update S3, wait for hourly sync (or restart)
 
-See [Cloud Storage](Cloud-Storage.md) for provider setup.
+See [[Cloud-Storage|Cloud Storage]] for provider setup.
 
 ### 4. Performance Optimization for Large Sites
 
@@ -570,7 +570,7 @@ You may see `rclone session exitcode - 1` in logs. This is often non-critical:
 
 ## Related
 
-- [Cloud Storage](Cloud-Storage.md) - Storage provider setup
-- [Asset Columns](Asset-Columns.md) - File uploads via API
-- [TLS Certificates](TLS-Certificates.md) - HTTPS configuration
-- [Template Rendering](Template-Rendering.md) - Dynamic content generation (advanced)
+- [[Cloud-Storage|Cloud Storage]] - Storage provider setup
+- [[Asset-Columns|Asset Columns]] - File uploads via API
+- [[TLS-Certificates|TLS Certificates]] - HTTPS configuration
+- [[Template-Rendering|Template Rendering]] - Dynamic content generation (advanced)

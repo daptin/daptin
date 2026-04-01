@@ -240,7 +240,7 @@ Run `./daptin -h` to see all available flags.
 **Important**:
 - MySQL 8.0 may fail with OOM errors during container initialization
 - **Recommended**: Use MariaDB 10.11 instead (fully compatible, more stable)
-- See [Server-Configuration.md](Server-Configuration.md) for Docker setup
+- See [[Server-Configuration|Server-Configuration.md]] for Docker setup
 
 ### PostgreSQL - TESTED ✅
 
@@ -249,7 +249,7 @@ Run `./daptin -h` to see all available flags.
   -db_connection_string="host=localhost user=daptin password=secret dbname=daptin port=5432 sslmode=disable"
 ```
 
-**Note**: Works with PostgreSQL 15. See [Server-Configuration.md](Server-Configuration.md) for Docker setup.
+**Note**: Works with PostgreSQL 15. See [[Server-Configuration|Server-Configuration.md]] for Docker setup.
 
 ## Environment Variables
 
@@ -269,7 +269,7 @@ All command-line flags can be set via environment variables (see `-h` for full l
 | `DAPTIN_OLRIC_SEED` | | DNS hostname for peer discovery | `daptin-headless` |
 | `TZ` | ✅ | Timezone | `America/Los_Angeles`, `UTC` |
 
-**Additional environment variables** (documented in [Server-Configuration.md](Server-Configuration.md)):
+**Additional environment variables** (documented in [[Server-Configuration|Server-Configuration.md]]):
 - `DAPTIN_GOMAXPROCS` - Go runtime parallelism
 - `DAPTIN_LOG_LOCATION` - Log file path
 - `DAPTIN_LOG_MAX_SIZE` - Max log file size (MB)
@@ -349,7 +349,7 @@ sleep 2
 
 ### Database Connection Errors
 
-**For MySQL/PostgreSQL setup**, see [Server-Configuration.md](Server-Configuration.md) for:
+**For MySQL/PostgreSQL setup**, see [[Server-Configuration|Server-Configuration.md]] for:
 - Docker-based database setup
 - Connection string formats
 - Database initialization steps
@@ -359,6 +359,6 @@ sleep 2
 ## Next Steps
 
 After installation:
-1. [Getting Started Guide](Getting-Started-Guide.md) - Create your first admin user
-2. [Schema Definition](Schema-Definition.md) - Define your data models
-3. [Server Configuration](Server-Configuration.md) - Configure HTTPS, databases, clustering
+1. [[Getting-Started-Guide|Getting Started Guide]] - Create your first admin user
+2. [[Schema-Definition|Schema Definition]] - Define your data models
+3. [[Server-Configuration|Server Configuration]] - Configure HTTPS, databases, clustering

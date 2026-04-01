@@ -125,7 +125,7 @@ const base64Content = photoData[0].file.split(',')[1];
 
 For files larger than a few KB, use cloud storage instead of inline.
 
-See [Cloud Storage](Cloud-Storage.md) for setup instructions.
+See [[Cloud-Storage|Cloud Storage]] for setup instructions.
 
 ### How Cloud Storage Works
 
@@ -744,5 +744,5 @@ ForeignKeyData:
 
 ## See Also
 
-- [Cloud Storage](Cloud-Storage.md) - For large file storage
-- [Schema Definition](Schema-Definition.md) - Table and column setup
+- [[Cloud-Storage|Cloud Storage]] - For large file storage
+- [[Schema-Definition|Schema Definition]] - Table and column setup

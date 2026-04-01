@@ -766,7 +766,7 @@ Key points:
 
 ## See Also
 
-- [Actions-Overview](Actions-Overview.md) - Built-in actions and permissions
-- [State-Machines](State-Machines.md) - Trigger actions on state changes
-- [Task-Scheduling](Task-Scheduling.md) - Run actions on schedule
-- [Integrations](Integrations.md) - OpenAPI integrations for external APIs
+- [[Actions-Overview|Actions-Overview]] - Built-in actions and permissions
+- [[State-Machines|State-Machines]] - Trigger actions on state changes
+- [[Task-Scheduling|Task-Scheduling]] - Run actions on schedule
+- [[Integrations|Integrations]] - OpenAPI integrations for external APIs

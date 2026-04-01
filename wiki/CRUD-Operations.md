@@ -135,7 +135,7 @@ curl --get \
   "http://localhost:6336/api/todo"
 ```
 
-See [Filtering and Pagination](Filtering-and-Pagination.md) for all filter options.
+See [[Filtering-and-Pagination|Filtering and Pagination]] for all filter options.
 
 ### Sort Records
 
@@ -259,6 +259,6 @@ Every record automatically has these fields:
 
 ## See Also
 
-- [Filtering and Pagination](Filtering-and-Pagination.md) - Query options
-- [Relationships](Relationships.md) - Linking tables
-- [Permissions](Permissions.md) - Access control
+- [[Filtering-and-Pagination|Filtering and Pagination]] - Query options
+- [[Relationships|Relationships]] - Linking tables
+- [[Permissions|Permissions]] - Access control

@@ -72,7 +72,7 @@ echo "$TOKEN" > /tmp/daptin-token.txt
 echo "✓ Admin setup complete! Token saved to /tmp/daptin-token.txt"
 ```
 
-**Next**: Create your first table → [Schema Definition](Schema-Definition.md)
+**Next**: Create your first table → [[Schema-Definition|Schema Definition]]
 
 ---
 
@@ -129,25 +129,25 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 → Follow the [[Walkthrough-Product-Catalog]] (comprehensive tutorial)
 
 **Set up user authentication**
-→ [Users and Groups](Users-and-Groups.md) + [Authentication](Authentication.md)
+→ [[Users-and-Groups|Users and Groups]] + [[Authentication|Authentication]]
 
 **Upload files to S3/cloud storage**
-→ [Cloud Storage](Cloud-Storage.md) + [Asset Columns](Asset-Columns.md)
+→ [[Cloud-Storage|Cloud Storage]] + [[Asset-Columns|Asset Columns]]
 
 **Create custom business logic**
-→ [Custom Actions](Custom-Actions.md) + [Actions Overview](Actions-Overview.md)
+→ [[Custom-Actions|Custom Actions]] + [[Actions-Overview|Actions Overview]]
 
 **Control who can access what data**
-→ [Permissions](Permissions.md) + [Users and Groups](Users-and-Groups.md)
+→ [[Permissions|Permissions]] + [[Users-and-Groups|Users and Groups]]
 
 **Filter and search data**
-→ [Filtering and Pagination](Filtering-and-Pagination.md) + [Aggregation API](Aggregation-API.md)
+→ [[Filtering-and-Pagination|Filtering and Pagination]] + [[Aggregation-API|Aggregation API]]
 
 **Send emails from my app**
-→ [SMTP Server](SMTP-Server.md) + [Email Actions](Email-Actions.md)
+→ [[SMTP-Server|SMTP Server]] + [[Email-Actions|Email Actions]]
 
 **Build real-time features**
-→ [WebSocket API](WebSocket-API.md) + [YJS Collaboration](YJS-Collaboration.md)
+→ [[WebSocket-API|WebSocket API]] + [[YJS-Collaboration|YJS Collaboration]]
 
 ---
 

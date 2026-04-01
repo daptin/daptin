@@ -10,7 +10,7 @@ Send emails programmatically using custom actions with email performers.
 
 `mail.send` and `aws.mail.send` are **performers**, not direct REST endpoints. You cannot call them directly like `/action/world/mail.send`. Instead, use them in custom actions' `OutFields`.
 
-**See Also:** [Custom Actions Guide](Custom-Actions.md) for creating custom actions.
+**See Also:** [[Custom-Actions|Custom Actions Guide]] for creating custom actions.
 
 ---
 
@@ -117,7 +117,7 @@ OutFields:
 
 **Prerequisites:**
 - Mail server must be configured in Daptin
-- See [SMTP Server Guide](SMTP-Server.md) for setup
+- See [[SMTP-Server|SMTP Server Guide]] for setup
 
 ### Multiple Recipients
 
@@ -353,7 +353,7 @@ These use `mail.send` internally. Configure an SMTP server for them to work.
 
 For production email sending, configure an SMTP server:
 
-**See:** [SMTP Server Guide](SMTP-Server.md) for complete setup instructions including:
+**See:** [[SMTP-Server|SMTP Server Guide]] for complete setup instructions including:
 - Mail server configuration
 - Mail accounts and mailboxes
 - TLS certificates
@@ -440,7 +440,7 @@ OutFields:
 
 ## See Also
 
-- [Custom Actions](Custom-Actions.md) - Creating and using custom actions
-- [SMTP Server](SMTP-Server.md) - Complete SMTP server setup
-- [IMAP Support](IMAP-Support.md) - Receiving emails
-- [Credentials](Credentials.md) - Managing API credentials
+- [[Custom-Actions|Custom Actions]] - Creating and using custom actions
+- [[SMTP-Server|SMTP Server]] - Complete SMTP server setup
+- [[IMAP-Support|IMAP Support]] - Receiving emails
+- [[Credentials|Credentials]] - Managing API credentials

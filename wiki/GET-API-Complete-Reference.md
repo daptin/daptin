@@ -595,7 +595,7 @@ Implementation: `server/resource/resource_findallpaginated.go`
 
 ## See Also
 
-- [GET API Test Results](GET-API-Test-Results.md) - Detailed test log with all operators
-- [Filtering and Pagination](Filtering-and-Pagination.md) - User guide
-- [CRUD Operations](CRUD-Operations.md) - Full CRUD API reference
-- [Relationships](Relationships.md) - Working with related data
+- [[GET-API-Test-Results|GET API Test Results]] - Detailed test log with all operators
+- [[Filtering-and-Pagination|Filtering and Pagination]] - User guide
+- [[CRUD-Operations|CRUD Operations]] - Full CRUD API reference
+- [[Relationships|Relationships]] - Working with related data

@@ -507,6 +507,6 @@ Potential improvements (not currently implemented):
 
 ## See Also
 
-- [Cloud Storage](Cloud-Storage.md) - File storage backends
-- [Authentication](Authentication.md) - User authentication methods
-- [Permissions](Permissions.md) - Access control system
+- [[Cloud-Storage|Cloud Storage]] - File storage backends
+- [[Authentication|Authentication]] - User authentication methods
+- [[Permissions|Permissions]] - Access control system

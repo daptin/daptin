@@ -2,7 +2,7 @@
 
 Daptin supports multiple authentication methods: JWT tokens, OAuth providers, and Two-Factor Authentication.
 
-**Related**: [Permissions](Permissions.md) | [Users and Groups](Users-and-Groups.md) | [Two-Factor Auth](Two-Factor-Auth.md)
+**Related**: [[Permissions|Permissions]] | [[Users-and-Groups|Users and Groups]] | [[Two-Factor-Auth|Two-Factor Auth]]
 
 **Source of truth**: `server/resource/columns.go` (actions), `server/actions/action_oauth_*.go` (OAuth performers)
 
@@ -293,7 +293,7 @@ Tokens are stored in `oauth_token` and can be used for data exchange integration
 
 ## Two-Factor Authentication
 
-See [Two-Factor Auth](Two-Factor-Auth.md) for complete documentation.
+See [[Two-Factor-Auth|Two-Factor Auth]] for complete documentation.
 
 ### Quick Reference
 
@@ -392,7 +392,7 @@ curl -X POST http://localhost:6336/action/user_account/reset-password-verify \
 
 ## See Also
 
-- [Permissions](Permissions.md) - Access control system
-- [Users and Groups](Users-and-Groups.md) - User management
-- [Two-Factor Auth](Two-Factor-Auth.md) - Complete 2FA documentation
-- [Getting Started Guide](Getting-Started-Guide.md) - Admin bootstrapping
+- [[Permissions|Permissions]] - Access control system
+- [[Users-and-Groups|Users and Groups]] - User management
+- [[Two-Factor-Auth|Two-Factor Auth]] - Complete 2FA documentation
+- [[Getting-Started-Guide|Getting Started Guide]] - Admin bootstrapping

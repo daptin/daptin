@@ -2,7 +2,7 @@
 
 Daptin uses a permission system to control who can access what data.
 
-**Related**: [Getting Started](Getting-Started-Guide.md) | [Users and Groups](Users-and-Groups.md)
+**Related**: [[Getting-Started-Guide|Getting Started]] | [[Users-and-Groups|Users and Groups]]
 
 ---
 
@@ -353,7 +353,7 @@ const smdPermission = guestPerms | (ownerPerms << 7) | (groupPerms << 14);
    - Allows applying state transitions
    - Checked before executing FSM events
 
-**Related**: [State Machines](State-Machines.md) - Full state machine documentation
+**Related**: [[State-Machines|State Machines]] - Full state machine documentation
 
 ---
 
@@ -453,6 +453,6 @@ The records exist but you don't have Peek permission. Contact the owner or admin
 
 ## See Also
 
-- [Getting Started Guide](Getting-Started-Guide.md) - First-time setup
-- [Users and Groups](Users-and-Groups.md) - Managing users
-- [Actions Overview](Actions-Overview.md) - Running actions
+- [[Getting-Started-Guide|Getting Started Guide]] - First-time setup
+- [[Users-and-Groups|Users and Groups]] - Managing users
+- [[Actions-Overview|Actions Overview]] - Running actions

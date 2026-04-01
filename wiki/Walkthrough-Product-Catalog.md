@@ -1711,7 +1711,7 @@ The Olric cache has a 10-minute TTL, so alternatively you can wait for it to exp
 
 ### Photo Upload Fails
 
-See the [Cloud Storage Complete Guide](cloud-storage-complete-guide.md) for credential format and linking requirements.
+See the [[cloud-storage-complete-guide|Cloud Storage Complete Guide]] for credential format and linking requirements.
 
 ### Action Not Visible or Returns HTML
 

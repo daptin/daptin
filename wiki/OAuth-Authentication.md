@@ -703,11 +703,11 @@ fetch('/action/oauth_token/oauth.login.response', {
 
 ## Related Documentation
 
-- [Action Reference](Action-Reference.md) - All available actions
-- [User Management](User-Management.md) - User account operations
-- [Permissions](Permissions.md) - Access control
-- [TLS Certificates](TLS-Certificates.md) - HTTPS setup
-- [Security Best Practices](Security.md) - Security guidelines
+- [[Action-Reference|Action Reference]] - All available actions
+- [[User-Management|User Management]] - User account operations
+- [[Permissions|Permissions]] - Access control
+- [[TLS-Certificates|TLS Certificates]] - HTTPS setup
+- [[Security|Security Best Practices]] - Security guidelines
 
 ---
 
@@ -798,4 +798,4 @@ tail -f /tmp/daptin.log | grep oauth
 - Profile email path supports dot notation (e.g., "emails[0].value")
 - Token expiry is tracked but automatic refresh not shown in basic flow
 
-For questions or issues, see [Common Errors](Common-Errors.md) or file an issue on GitHub.
+For questions or issues, see [[Common-Errors|Common Errors]] or file an issue on GitHub.

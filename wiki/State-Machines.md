@@ -403,7 +403,7 @@ The current implementation:
 - **No parallel states** - One state per instance only
 - **No hierarchical states** - Flat state structure only
 
-For complex workflows requiring guards or actions, combine state machines with [Custom Actions](Custom-Actions.md) that check state before executing.
+For complex workflows requiring guards or actions, combine state machines with [[Custom-Actions|Custom Actions]] that check state before executing.
 
 ## Troubleshooting
 
@@ -601,6 +601,6 @@ Expected: HTTP 200 in ~2ms, database updated successfully.
 
 ## Related
 
-- [Custom Actions](Custom-Actions.md) - Define actions triggered by state
-- [Event System](Event-System.md) - Subscribe to state change events
-- [Permissions](Permissions.md) - Control who can transition states
+- [[Custom-Actions|Custom Actions]] - Define actions triggered by state
+- [[Event-System|Event System]] - Subscribe to state change events
+- [[Permissions|Permissions]] - Control who can transition states

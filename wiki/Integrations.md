@@ -2,7 +2,7 @@
 
 External API integration via OpenAPI specifications.
 
-**Related**: [Authentication](Authentication.md) | [Actions Overview](Actions-Overview.md)
+**Related**: [[Authentication|Authentication]] | [[Actions-Overview|Actions Overview]]
 
 **Source of truth**: `server/resource/columns.go` (integration table), `server/actions/action_integration_*.go` (performers)
 
@@ -440,6 +440,6 @@ curl -X POST "http://localhost:6336/action/integration/INTEGRATION_ID/install_in
 
 ## See Also
 
-- [Authentication](Authentication.md) - OAuth for integration auth
-- [Actions Overview](Actions-Overview.md) - How actions work
-- [Data Exchange](Data-Exchange.md) - Import/export via integrations
+- [[Authentication|Authentication]] - OAuth for integration auth
+- [[Actions-Overview|Actions Overview]] - How actions work
+- [[Data-Exchange|Data Exchange]] - Import/export via integrations
