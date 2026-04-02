@@ -1188,6 +1188,12 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		return false
 	}
 
+	// Invalidate auth cache so the user's new admin group is picked up immediately
+	email := dbResource.GetUserEmailByIdWithTransaction(userId, transaction)
+	if email != "" {
+		auth.InvalidateAuthCacheForEmail(email)
+	}
+
 	query, args, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 		Set(goqu.Record{
 			"permission":         int64(auth.DEFAULT_PERMISSION),
@@ -1754,6 +1760,28 @@ func (dbResource *DbResource) GetUserById(userId int64, transaction *sqlx.Tx) (m
 
 	return nil, errors.New("no such user")
 
+}
+
+func (dbResource *DbResource) GetUserEmailByIdWithTransaction(userId int64, transaction *sqlx.Tx) string {
+	s, q, err := statementbuilder.Squirrel.Select("email").Prepared(true).
+		From(USER_ACCOUNT_TABLE_NAME).Where(goqu.Ex{"id": userId}).ToSQL()
+	if err != nil {
+		log.Errorf("failed to create email lookup query: %v", err)
+		return ""
+	}
+	stmt1, err := transaction.Preparex(s)
+	if err != nil {
+		log.Errorf("failed to prepare email lookup statement: %v", err)
+		return ""
+	}
+	defer stmt1.Close()
+	var email string
+	err = stmt1.QueryRowx(q...).Scan(&email)
+	if err != nil {
+		log.Warnf("failed to get email for user_account_id %d: %v", userId, err)
+		return ""
+	}
+	return email
 }
 
 func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName string, referenceId daptinid.DaptinReferenceId,

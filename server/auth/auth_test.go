@@ -1,8 +1,12 @@
 package auth
 
 import (
+	"context"
 	"fmt"
+	"github.com/buraksezer/olric"
+	olricConfig "github.com/buraksezer/olric/config"
 	"testing"
+	"time"
 )
 
 func TestAllPermission(t *testing.T) {
@@ -88,4 +92,103 @@ func TestAuthPermissions(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestInvalidateAuthCacheForEmail_NilCache(t *testing.T) {
+	// Ensure olricCache is nil — should not panic
+	oldCache := olricCache
+	olricCache = nil
+	defer func() { olricCache = oldCache }()
+
+	InvalidateAuthCacheForEmail("test@example.com")
+}
+
+func TestInvalidateAuthCacheForEmail_RemovesEntry(t *testing.T) {
+	cfg := olricConfig.New("local")
+	cfg.LogOutput = nil
+	emb, err := olric.New(cfg)
+	if err != nil {
+		t.Fatalf("failed to create olric: %v", err)
+	}
+
+	go func() {
+		_ = emb.Start()
+	}()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = emb.Shutdown(ctx)
+	}()
+
+	// Give olric time to start
+	time.Sleep(500 * time.Millisecond)
+
+	client := emb.NewEmbeddedClient()
+	dm, err := client.NewDMap("auth-cache-test")
+	if err != nil {
+		t.Fatalf("failed to create DMap: %v", err)
+	}
+
+	// Set the package-level cache to our test DMap
+	oldCache := olricCache
+	olricCache = dm
+	defer func() { olricCache = oldCache }()
+
+	// Put a session user into cache
+	session := SessionUser{UserId: 42}
+	err = olricCache.Put(context.Background(), "user@test.com", session)
+	if err != nil {
+		t.Fatalf("failed to put session in cache: %v", err)
+	}
+
+	// Verify it's cached
+	val, err := olricCache.Get(context.Background(), "user@test.com")
+	if err != nil {
+		t.Fatalf("expected cached value, got error: %v", err)
+	}
+	if val == nil {
+		t.Fatal("expected non-nil cached value")
+	}
+
+	// Invalidate
+	InvalidateAuthCacheForEmail("user@test.com")
+
+	// Verify it's gone
+	_, err = olricCache.Get(context.Background(), "user@test.com")
+	if err == nil {
+		t.Error("expected cache miss after invalidation, but got a hit")
+	}
+}
+
+func TestInvalidateAuthCacheForEmail_NonExistentKey(t *testing.T) {
+	cfg := olricConfig.New("local")
+	cfg.LogOutput = nil
+	emb, err := olric.New(cfg)
+	if err != nil {
+		t.Fatalf("failed to create olric: %v", err)
+	}
+
+	go func() {
+		_ = emb.Start()
+	}()
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = emb.Shutdown(ctx)
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+
+	client := emb.NewEmbeddedClient()
+	dm, err := client.NewDMap("auth-cache-test-2")
+	if err != nil {
+		t.Fatalf("failed to create DMap: %v", err)
+	}
+
+	oldCache := olricCache
+	olricCache = dm
+	defer func() { olricCache = oldCache }()
+
+	// Should not panic or error when key doesn't exist
+	InvalidateAuthCacheForEmail("nonexistent@test.com")
 }

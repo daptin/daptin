@@ -517,6 +517,18 @@ type SessionUser struct {
 	Groups          GroupPermissionList
 }
 
+// InvalidateAuthCacheForEmail removes the cached SessionUser for the given email,
+// forcing the next request to re-fetch groups from the database.
+func InvalidateAuthCacheForEmail(email string) {
+	if olricCache == nil {
+		return
+	}
+	_, err := olricCache.Delete(context.Background(), email)
+	if err != nil {
+		log.Warnf("failed to invalidate auth cache for %s: %v", email, err)
+	}
+}
+
 func (s SessionUser) MarshalBinary() ([]byte, error) {
 	var data []byte
 

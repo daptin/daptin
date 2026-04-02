@@ -461,6 +461,18 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		return nil, err
 	}
 
+	// Invalidate auth cache when user-group membership changes
+	if dbResource.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
+		if userAccountId, ok := dataToInsert[USER_ACCOUNT_ID_COLUMN]; ok && userAccountId != nil {
+			if uid, ok := userAccountId.(int64); ok {
+				email := dbResource.GetUserEmailByIdWithTransaction(uid, createTransaction)
+				if email != "" {
+					auth.InvalidateAuthCacheForEmail(email)
+				}
+			}
+		}
+	}
+
 	if len(languagePreferences) > 0 {
 
 		for _, languagePreference := range languagePreferences {

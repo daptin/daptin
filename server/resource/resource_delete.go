@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
@@ -67,6 +68,18 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				} else {
 					log.Printf("[%v][%v] Created audit record", auditModel.GetTableName(), apiModel.GetID())
 					//log.Printf("ReferenceId for change: %v", resp.Result())
+				}
+			}
+		}
+	}
+
+	// Invalidate auth cache when user-group membership is removed
+	if dbResource.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
+		if userAccountId, ok := data[USER_ACCOUNT_ID_COLUMN]; ok && userAccountId != nil {
+			if uid, ok := userAccountId.(int64); ok {
+				email := dbResource.GetUserEmailByIdWithTransaction(uid, transaction)
+				if email != "" {
+					auth.InvalidateAuthCacheForEmail(email)
 				}
 			}
 		}

@@ -641,7 +641,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 					"world_id":          worldId,
 					"action_schema":     actionJson,
 					"instance_optional": action.InstanceOptional,
-				}).Where(goqu.Ex{"action_name": action.Name}).ToSQL()
+				}).Where(goqu.Ex{"action_name": action.Name, "world_id": worldId}).ToSQL()
 
 			_, err = transaction.Exec(s, v...)
 			if err != nil {

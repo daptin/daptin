@@ -300,3 +300,71 @@ func TestDeleteWithoutFilter(t *testing.T) {
 	}
 
 }
+
+func TestGetUserEmailByIdWithTransaction(t *testing.T) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open db: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(
+		"CREATE TABLE user_account (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, name TEXT, reference_id BLOB, permission INTEGER)",
+	)
+	if err != nil {
+		t.Fatalf("Failed to create table: %v", err)
+	}
+
+	refId, _ := uuid.NewV7()
+	_, err = db.Exec(
+		"INSERT INTO user_account (email, name, reference_id, permission) VALUES (?, ?, ?, ?)",
+		"testuser@example.com", "Test User", refId[:], 0,
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert test user: %v", err)
+	}
+
+	// Create a minimal DbResource with just db access
+	dbResource := &resource.DbResource{}
+
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("Failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	email := dbResource.GetUserEmailByIdWithTransaction(1, tx)
+
+	if email != "testuser@example.com" {
+		t.Errorf("Expected testuser@example.com, got: %s", email)
+	}
+}
+
+func TestGetUserEmailByIdWithTransaction_NonExistentUser(t *testing.T) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open db: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(
+		"CREATE TABLE user_account (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, name TEXT, reference_id BLOB, permission INTEGER)",
+	)
+	if err != nil {
+		t.Fatalf("Failed to create table: %v", err)
+	}
+
+	dbResource := &resource.DbResource{}
+
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("Failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	email := dbResource.GetUserEmailByIdWithTransaction(999999, tx)
+
+	if email != "" {
+		t.Errorf("Expected empty email for non-existent user, got: %s", email)
+	}
+}
