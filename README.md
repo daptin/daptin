@@ -344,6 +344,33 @@ Get Started
 - [Create a subsite](https://daptin.github.io/daptin/subsite/subsite)
 
 
+## CLI
+
+[daptin-cli](https://github.com/daptin/daptin-cli) is the official command-line client for Daptin.
+
+```bash
+# Install
+brew install daptin/tap/daptin-cli
+
+# Connect
+daptin-cli context add local http://localhost:6336
+
+# CRUD
+daptin-cli list --columns table_name,is_top_level world
+daptin-cli get world <reference_id>
+daptin-cli create document document_name=report.pdf
+
+# All actions (signin, signup, upload, export, etc.) via a single command
+daptin-cli execute user_account signin email=admin@example.com password=secret
+daptin-cli execute world export_data table_name=document format=json
+
+# Describe schemas
+daptin-cli describe table document
+daptin-cli describe action document createDocument
+```
+
+Available via [Homebrew](https://github.com/daptin/homebrew-tap), [Scoop](https://github.com/daptin/scoop-bucket), deb, rpm, and [binary downloads](https://github.com/daptin/daptin-cli/releases/latest).
+
 ## Client library
 
 |                                                                                |                                                                        |                                                                                |
