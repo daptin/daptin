@@ -76,7 +76,7 @@ var (
 	indexFileContents []byte
 )
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.EmbeddedClient) (
+func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.EmbeddedClient, localOlricAddr string) (
 	hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
 	*server2.FtpServer, *server.Server, *olric.EmbeddedClient) {
 
@@ -300,11 +300,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	log.Tracef("Created middleware set")
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	log.Tracef("Added ResourcesToApi2Go")
-	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub()
+	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub(olric.ToAddress(localOlricAddr))
 	resource.CheckErr(err, "Failed to create topic")
 	if err != nil {
 		log.Fatalf("failed to create olric topic - %v", err)
 	}
+	log.Infof("Created PubSub pinned to local Olric: %s", localOlricAddr)
 
 	tableTopicSubscription := tablesPubSub.Subscribe(context.Background(), "members")
 	go func(topicSubscription *redis.PubSub) {

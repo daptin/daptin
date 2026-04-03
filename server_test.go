@@ -273,7 +273,7 @@ func createServer() (hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.Ta
 	//configStore.SetConfigValueFor("limit.rate", "5000", "backend", transaction)
 	transaction.Commit()
 
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, tempDir, olricDb)
+	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, tempDir, olricDb, "")
 
 	rhs := TestRestartHandlerServer{
 		HostSwitch: &hostSwitch,
@@ -294,7 +294,7 @@ func createServer() (hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.Ta
 
 		//db, err = server.GetDbConnection(*dbType, *connectionString)
 
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, tempDir, olricDb)
+		hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, tempDir, olricDb, "")
 		rhs.HostSwitch = &hostSwitch
 	})
 

@@ -416,12 +416,15 @@ func main() {
 
 	olricDb = emb.NewEmbeddedClient()
 
+	localOlricAddr := olricConfig1.MemberlistConfig.Name
+	log.Infof("PubSub pinned to local Olric: %s", localOlricAddr)
+
 	var membersTopic *olric.PubSub
 
 	go func() {
 
 		time.Sleep(5 * time.Second)
-		membersTopic, err := olricDb.NewPubSub()
+		membersTopic, err := olricDb.NewPubSub(olric.ToAddress(localOlricAddr))
 		if err != nil || membersTopic == nil {
 			log.Errorf("failed to create PubSub, skipping member subscription: %v", err)
 			return
@@ -444,7 +447,7 @@ func main() {
 	}()
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
+		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb, localOlricAddr)
 	rhs := RestartHandlerServer{
 		HostSwitch: &hostSwitch,
 	}
@@ -524,7 +527,7 @@ func main() {
 		log.Printf("connection acquired from database [%s]", *dbType)
 
 		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb)
+			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb, localOlricAddr)
 		rhs.HostSwitch = &hostSwitch
 
 		secondsToRestart := float64(time.Now().UnixNano()-startTime.UnixNano()) / float64(1000000000)

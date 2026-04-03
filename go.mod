@@ -62,7 +62,6 @@ require (
 	github.com/graphql-go/handler v0.2.4
 	github.com/graphql-go/relay v0.0.0-20171208134043-54350098cfe5
 	github.com/hashicorp/golang-lru v1.0.2
-	github.com/hashicorp/memberlist v0.5.3
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/icrowley/fake v0.0.0-20240710202011-f797eb4a99c0
 	github.com/imroc/req v0.2.4
@@ -82,7 +81,6 @@ require (
 	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/shirou/gopsutil/v4 v4.25.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/smancke/mailck v0.0.0-20210414063430-0d8265f9633d
 	github.com/spf13/cobra v1.9.1
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.37.0
@@ -263,6 +261,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
+	github.com/hashicorp/memberlist v0.5.3 // indirect
 	github.com/henrybear327/Proton-API-Bridge v1.0.0 // indirect
 	github.com/henrybear327/go-proton-api v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -345,7 +344,6 @@ require (
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/sanity-io/litter v1.5.8 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
-	github.com/siebenmann/smtpd v0.0.0-20170816215504-b93303610bbe // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	github.com/sony/gobreaker v0.5.0 // indirect
@@ -418,6 +416,8 @@ require (
 	storj.io/picobuf v0.0.4 // indirect
 	storj.io/uplink v1.13.1 // indirect
 )
+
+replace github.com/buraksezer/olric v0.5.7 => github.com/daptin/olric v0.5.7-daptin.1
 
 //replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
 
