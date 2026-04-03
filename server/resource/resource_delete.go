@@ -31,15 +31,6 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 	}
 	apiModel := api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(), nil, 0, nil, data)
 
-	//user := req.PlainRequest.Context().Value("user")
-	//sessionUser := &auth.SessionUser{}
-
-	//if user != nil {
-	//	sessionUser = user.(*auth.SessionUser)
-	//
-	//}
-	//isAdmin := IsAdminWithTransaction(sessionUser, transaction)
-
 	m := dbResource.model
 	//log.Printf("Get all resource type: %v\n", m)
 

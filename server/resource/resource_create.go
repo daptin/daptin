@@ -41,7 +41,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	log.Tracef("Create object of type [%v]", dbResource.model.GetName())
 	data := obj.(api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")
-	sessionUser := &auth.SessionUser{}
+	var sessionUser *auth.SessionUser
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)

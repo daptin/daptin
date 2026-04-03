@@ -66,7 +66,7 @@ type ActiveTaskInstance struct {
 func (ati *ActiveTaskInstance) Run() {
 	log.Printf("[82] Execute task [%v][%v] as user [%v]", ati.Task.ReferenceId, ati.Task.ActionName, ati.Task.AsUserEmail)
 
-	sessionUser := &auth.SessionUser{}
+	var sessionUser *auth.SessionUser
 	transaction, err := ati.DbResource.Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction for ATI.run [88]")

@@ -44,8 +44,6 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 
 	resource.CheckErr(err, "Failed to create temp tempDirectoryPath for site create")
 	site_type, _ := inFields["site_type"].(string)
-	user_account_idStr, err := uuid.Parse(inFields["user_account_id"].(string))
-	user_account_id := user_account_idStr
 	cloud_store_idStr, err := uuid.Parse(inFields["cloud_store_id"].(string))
 	cloud_store_id := cloud_store_idStr
 
@@ -83,8 +81,10 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 		URL: ur,
 	}
 	ctx := context.Background()
+	userDir := daptinid.InterfaceToDIR(inFields["user_account_id"])
 	ctx = context.WithValue(ctx, "user", &auth.SessionUser{
-		UserReferenceId: daptinid.DaptinReferenceId(user_account_id),
+		UserReferenceId: userDir,
+		Groups:          d.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "reference_id", userDir),
 	})
 	plainRequest = plainRequest.WithContext(ctx)
 	createRequest := api2go.Request{

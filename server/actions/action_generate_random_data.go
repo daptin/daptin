@@ -39,7 +39,7 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request actionrespo
 	if inFields["user_reference_id"] != nil {
 		userReferenceId = daptinid.InterfaceToDIR(inFields["user_reference_id"])
 	}
-
+	groups := actionPerformer.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userReferenceId)
 	userIdInt, err := strconv.ParseInt(inFields[resource.USER_ACCOUNT_ID_COLUMN].(string), 10, 32)
 
 	//userIdInt, err = actionPerformer.Cruds["user"].GetReferenceIdToId("user", userReferenceId)
@@ -88,7 +88,7 @@ func (actionPerformer *randomDataGeneratePerformer) DoAction(request actionrespo
 	sessionUser := &auth.SessionUser{
 		UserId:          userIdInt,
 		UserReferenceId: userReferenceId,
-		Groups:          auth.GroupPermissionList{},
+		Groups:          groups,
 	}
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
