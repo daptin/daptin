@@ -183,7 +183,9 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 					pubsub: subscription,
 					cancel: cancel,
 				}
-				go wsch.systemTopicListener(subscription, eventTypeString, filtersMap, client)
+				ready := make(chan struct{})
+				go wsch.systemTopicListener(subscription, eventTypeString, filtersMap, client, ready)
+				<-ready
 			} else {
 				// User topic: check DMap meta CanRead
 				meta, found := wsch.getTopicMeta(topic)
@@ -207,7 +209,9 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 					pubsub: subscription,
 					cancel: cancel,
 				}
-				go wsch.userTopicListener(subscription, eventTypeString, filtersMap, client)
+				ready := make(chan struct{})
+				go wsch.userTopicListener(subscription, eventTypeString, filtersMap, client, ready)
+				<-ready
 			}
 
 			sendResponse(client, reqId, "subscribe", true, map[string]interface{}{
@@ -493,9 +497,10 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 
 // systemTopicListener handles messages for system topics with per-row CanRead checks
 func (wsch *WebSocketConnectionHandlerImpl) systemTopicListener(
-	pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client,
+	pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client, ready chan struct{},
 ) {
 	listenChannel := pubsub.Channel()
+	close(ready)
 	for {
 		msg := <-listenChannel
 		if msg == nil {
@@ -553,9 +558,10 @@ func (wsch *WebSocketConnectionHandlerImpl) systemTopicListener(
 
 // userTopicListener handles messages for user-created topics (no per-row permission check)
 func (wsch *WebSocketConnectionHandlerImpl) userTopicListener(
-	pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client,
+	pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client, ready chan struct{},
 ) {
 	listenChannel := pubsub.Channel()
+	close(ready)
 	for {
 		msg := <-listenChannel
 		if msg == nil {
