@@ -661,7 +661,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, errors.New("invalid parameter value for reference_id")
 					}
 
-					var sessionUser *auth.SessionUser
+					sessionUser := &auth.SessionUser{}
 					sessionUserInterface := params.Context.Value("user")
 					if sessionUserInterface != nil {
 						sessionUser = sessionUserInterface.(*auth.SessionUser)

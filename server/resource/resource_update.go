@@ -50,7 +50,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	}
 
 	user := req.PlainRequest.Context().Value("user")
-	var sessionUser *auth.SessionUser
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)

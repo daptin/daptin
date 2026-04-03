@@ -96,7 +96,7 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 		}
 
 		user := c.Request.Context().Value("user")
-		var sessionUser *auth.SessionUser
+		sessionUser := &auth.SessionUser{}
 
 		if user != nil {
 			sessionUser = user.(*auth.SessionUser)

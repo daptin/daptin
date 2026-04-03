@@ -12,7 +12,7 @@ func CreateConfigHandler(initConfig *resource.CmsConfig, cruds map[string]*resou
 	return func(c *gin.Context) {
 
 		user := c.Request.Context().Value("user")
-		var sessionUser *auth.SessionUser
+		sessionUser := &auth.SessionUser{}
 
 		if user != nil {
 			sessionUser = user.(*auth.SessionUser)

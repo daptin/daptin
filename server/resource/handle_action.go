@@ -213,7 +213,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	req api2go.Request, transaction *sqlx.Tx) ([]actionresponse.ActionResponse, error) {
 
 	user := req.PlainRequest.Context().Value("user")
-	var sessionUser *auth.SessionUser
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)

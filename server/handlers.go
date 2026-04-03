@@ -197,7 +197,7 @@ func CreateEventStartHandler(fsmManager fsm.FsmManager, cruds map[string]*resour
 	return func(gincontext *gin.Context) {
 
 		user := gincontext.Request.Context().Value("user")
-		var sessionUser *auth.SessionUser
+		sessionUser := &auth.SessionUser{}
 
 		if user != nil {
 			sessionUser = user.(*auth.SessionUser)

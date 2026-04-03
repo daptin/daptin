@@ -190,7 +190,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	var err error
 
 	user := req.PlainRequest.Context().Value("user")
-	var sessionUser *auth.SessionUser
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)

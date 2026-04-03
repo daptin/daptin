@@ -34,7 +34,7 @@ func (pc *TableAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api2
 	//returnMap := make([]map[string]interface{}, 0)
 
 	user := req.PlainRequest.Context().Value("user")
-	var sessionUser *auth.SessionUser
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
@@ -79,7 +79,7 @@ func (pc *TableAccessPermissionChecker) InterceptBefore(dr *DbResource, req *api
 	//log.Printf("context: %v", context.GetAll(req.PlainRequest))
 
 	user := req.PlainRequest.Context().Value("user")
-	var sessionUser *auth.SessionUser
+	sessionUser := &auth.SessionUser{}
 
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
