@@ -1119,8 +1119,8 @@ func TestWebSocketManySubscribers(t *testing.T) {
 	wg.Wait()
 
 	t.Logf("fan-out: %d/%d connected subscribers received the message", received, connectedCount)
-	if received < int64(connectedCount*9/10) {
-		t.Errorf("too many missed: only %d/%d received", received, connectedCount)
+	if received < int64(connectedCount) {
+		t.Errorf("missed: only %d/%d received", received, connectedCount)
 	}
 
 	// cleanup

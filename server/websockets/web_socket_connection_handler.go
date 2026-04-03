@@ -499,13 +499,15 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 func (wsch *WebSocketConnectionHandlerImpl) systemTopicListener(
 	pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client, ready chan struct{},
 ) {
+	// Wait for Olric to confirm the subscription before signaling ready.
+	// Without this, the SUBSCRIBE command may still be in-flight when PUBLISH fires.
+	_, err := pubsub.Receive(context.Background())
+	if err != nil {
+		log.Errorf("systemTopicListener: subscribe confirmation failed: %v", err)
+	}
 	listenChannel := pubsub.Channel()
 	close(ready)
-	for {
-		msg := <-listenChannel
-		if msg == nil {
-			return
-		}
+	for msg := range listenChannel {
 		var eventMessage resource.WsOutMessage
 		err := eventMessage.UnmarshalBinary([]byte(msg.Payload))
 		resource.CheckErr(err, "Failed to unmarshal eventMessage")
@@ -560,13 +562,15 @@ func (wsch *WebSocketConnectionHandlerImpl) systemTopicListener(
 func (wsch *WebSocketConnectionHandlerImpl) userTopicListener(
 	pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client, ready chan struct{},
 ) {
+	// Wait for Olric to confirm the subscription before signaling ready.
+	// Without this, the SUBSCRIBE command may still be in-flight when PUBLISH fires.
+	_, err := pubsub.Receive(context.Background())
+	if err != nil {
+		log.Errorf("userTopicListener: subscribe confirmation failed: %v", err)
+	}
 	listenChannel := pubsub.Channel()
 	close(ready)
-	for {
-		msg := <-listenChannel
-		if msg == nil {
-			return
-		}
+	for msg := range listenChannel {
 		var eventMessage resource.WsOutMessage
 		err := eventMessage.UnmarshalBinary([]byte(msg.Payload))
 		resource.CheckErr(err, "Failed to unmarshal eventMessage")
