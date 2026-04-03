@@ -430,8 +430,7 @@ func main() {
 		sub := membersTopic.Subscribe(context.Background(), "members")
 		go func(pubsub *redis.PubSub) {
 			channel := pubsub.Channel()
-			for {
-				msg := <-channel
+			for msg := range channel {
 				log.Printf("[402] [%s] Member says: [%v]", msg.Channel, msg.String())
 			}
 		}(sub)

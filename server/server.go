@@ -309,8 +309,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	tableTopicSubscription := tablesPubSub.Subscribe(context.Background(), "members")
 	go func(topicSubscription *redis.PubSub) {
 		channel := topicSubscription.Channel()
-		for {
-			msg := <-channel
+		for msg := range channel {
 			log.Infof("[438] Received message on [%s]: [%v]", msg.Channel, msg.String())
 		}
 	}(tableTopicSubscription)

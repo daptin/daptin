@@ -1185,6 +1185,13 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			table.IsJoinTable = true
 		}
 
+		if table.Permission == 0 {
+			table.Permission = defaultWorldPermission
+		}
+		if table.DefaultPermission == 0 {
+			table.DefaultPermission = defaultWorldPermission
+		}
+
 		schema, err := json.Marshal(table)
 
 		var cou int
@@ -1240,18 +1247,11 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 		} else {
 
-			if table.Permission == 0 {
-				table.Permission = defaultWorldPermission
-			}
-			if table.DefaultPermission == 0 {
-				table.DefaultPermission = defaultWorldPermission
-			}
-
 			log.Debugf("Insert table data (IsTopLevel[%v], IsHidden[%v]) [%v]", table.IsTopLevel, table.IsHidden, table.TableName)
 
 			s, v, err = statementbuilder.Squirrel.Insert("world").Prepared(true).
-				Cols("table_name", "world_schema_json", "permission", "reference_id", "default_permission", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order", "is_join_table").
-				Vals([]interface{}{table.TableName, string(schema), table.Permission, refId[:], table.DefaultPermission, userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder, table.IsJoinTable}).ToSQL()
+				Cols("table_name", "world_schema_json", "permission", "reference_id", USER_ACCOUNT_ID_COLUMN, "is_top_level", "is_hidden", "default_order", "is_join_table").
+				Vals([]interface{}{table.TableName, string(schema), table.Permission, refId[:], userId, table.IsTopLevel, table.IsHidden, table.DefaultOrder, table.IsJoinTable}).ToSQL()
 			_, err = transaction.Exec(s, v...)
 			CheckErr(err, "Failed to insert into world table about "+table.TableName)
 			//initConfig.Tables[i].DefaultPermission = defaultWorldPermission
@@ -1266,7 +1266,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	}
 
 	s, v, err = statementbuilder.Squirrel.
-		Select("world_schema_json", "permission", "default_permission", "is_top_level", "is_hidden", "is_join_table", "icon").Prepared(true).
+		Select("world_schema_json", "permission", "is_top_level", "is_hidden", "is_join_table", "icon").Prepared(true).
 		From("world").
 		ToSQL()
 
@@ -1293,14 +1293,13 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	for res.Next() {
 		var tabInfo table_info.TableInfo
 		var tableSchema, tableIcon []byte
-		var permission, defaultPermission int64
+		var permission int64
 		var isTopLevel, isHidden, isJoinTable bool
-		err = res.Scan(&tableSchema, &permission, &defaultPermission, &isTopLevel, &isHidden, &isJoinTable, &tableIcon)
+		err = res.Scan(&tableSchema, &permission, &isTopLevel, &isHidden, &isJoinTable, &tableIcon)
 		CheckErr(err, "Failed to scan table info")
 		err = json.Unmarshal(tableSchema, &tabInfo)
 		CheckErr(err, "Failed to convert json to table schema")
 		tabInfo.Permission = auth.AuthPermission(permission)
-		tabInfo.DefaultPermission = auth.AuthPermission(defaultPermission)
 		tabInfo.IsTopLevel = isTopLevel
 		tabInfo.IsHidden = isHidden
 		tabInfo.Icon = string(tableIcon)

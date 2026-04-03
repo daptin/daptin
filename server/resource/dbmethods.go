@@ -931,7 +931,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
-			var res []auth.GroupPermission
+			var res auth.GroupPermissionList
 			err = cachedValue.Scan(&res)
 			if err != nil {
 				log.Errorf("[933] Failed to scan permission from cache: %v", err)
@@ -1194,10 +1194,10 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		auth.InvalidateAuthCacheForEmail(email)
 	}
 
+	// Update permission on world rows (top-level column)
 	query, args, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 		Set(goqu.Record{
-			"permission":         int64(auth.DEFAULT_PERMISSION),
-			"default_permission": int64(auth.DEFAULT_PERMISSION),
+			"permission": int64(auth.DEFAULT_PERMISSION),
 		}).
 		Where(goqu.Ex{
 			"table_name": goqu.Op{"notlike": "%_audit"},
@@ -1216,8 +1216,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 
 	query, args, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 		Set(goqu.Record{
-			"permission":         int64(auth.UserCreate | auth.GroupCreate),
-			"default_permission": int64(auth.UserRead | auth.GroupRead),
+			"permission": int64(auth.UserCreate | auth.GroupCreate),
 		}).
 		Where(goqu.Ex{
 			"table_name": goqu.Op{"like": "%_audit"},
@@ -1229,6 +1228,12 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	_, err = transaction.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to world update audit permissions: %v", err)
+	}
+
+	// Update default_permission inside world_schema_json for all world rows
+	err = updateDefaultPermissionInSchemaJson(transaction, auth.DEFAULT_PERMISSION, auth.UserRead|auth.GroupRead)
+	if err != nil {
+		log.Errorf("Failed to update default_permission in schema json: %v", err)
 	}
 
 	query, args, err = statementbuilder.Squirrel.Update("action").Prepared(true).
@@ -1259,6 +1264,71 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	}
 
 	return true
+}
+
+func updateDefaultPermissionInSchemaJson(transaction *sqlx.Tx, nonAuditDefault auth.AuthPermission, auditDefault auth.AuthPermission) error {
+	selectSql, selectArgs, err := statementbuilder.Squirrel.
+		Select("table_name", "world_schema_json").Prepared(true).
+		From("world").
+		ToSQL()
+	if err != nil {
+		return err
+	}
+
+	rows, err := transaction.Query(selectSql, selectArgs...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type schemaRow struct {
+		tableName  string
+		schemaJson string
+	}
+	var allRows []schemaRow
+	for rows.Next() {
+		var r schemaRow
+		if err := rows.Scan(&r.tableName, &r.schemaJson); err != nil {
+			return err
+		}
+		allRows = append(allRows, r)
+	}
+
+	for _, r := range allRows {
+		var tabInfo map[string]interface{}
+		if err := json.Unmarshal([]byte(r.schemaJson), &tabInfo); err != nil {
+			log.Errorf("Failed to unmarshal schema json for %v: %v", r.tableName, err)
+			continue
+		}
+
+		newDefault := nonAuditDefault
+		if strings.HasSuffix(r.tableName, "_audit") {
+			newDefault = auditDefault
+		}
+		tabInfo["DefaultPermission"] = int64(newDefault)
+
+		updatedJson, err := json.Marshal(tabInfo)
+		if err != nil {
+			log.Errorf("Failed to marshal schema json for %v: %v", r.tableName, err)
+			continue
+		}
+
+		updateSql, updateArgs, err := statementbuilder.Squirrel.Update("world").Prepared(true).
+			Set(goqu.Record{"world_schema_json": string(updatedJson)}).
+			Where(goqu.Ex{"table_name": r.tableName}).
+			ToSQL()
+		if err != nil {
+			log.Errorf("Failed to create update sql for %v: %v", r.tableName, err)
+			continue
+		}
+
+		_, err = transaction.Exec(updateSql, updateArgs...)
+		if err != nil {
+			log.Errorf("Failed to update schema json for %v: %v", r.tableName, err)
+		}
+	}
+
+	return nil
 }
 
 func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, transaction *sqlx.Tx) permission.PermissionInstance {

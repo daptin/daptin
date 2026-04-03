@@ -16,7 +16,7 @@ type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
 	TableDescription       string
-	DefaultPermission      auth.AuthPermission `db:"default_permission"`
+	DefaultPermission      auth.AuthPermission
 	Columns                []api2go.ColumnInfo
 	StateMachines          []fsm.LoopbookFsmDescription
 	Relations              []api2go.TableRelation

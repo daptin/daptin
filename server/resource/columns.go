@@ -2183,16 +2183,7 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType:        "json",
 				ColumnDescription: "A JSON representation of the complete schema for this world entity, including all columns, relationships, validations, and other metadata needed to define the data model.",
 			},
-			{
-				Name:              "default_permission",
-				ColumnName:        "default_permission",
-				DataType:          "int(4)",
-				IsNullable:        false,
-				DefaultValue:      "644",
-				ColumnType:        "value",
-				ColumnDescription: "An integer representing the default Unix-style permission setting (e.g., 644) that controls the base access rights for records in this table for various user roles.",
-			},
-			{
+				{
 				Name:              "is_top_level",
 				ColumnName:        "is_top_level",
 				DataType:          "bool",

@@ -130,7 +130,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 	ts := make([]table_info.TableInfo, 0)
 
 	sql, args, err := statementbuilder.Squirrel.
-		Select("table_name", "permission", "default_permission",
+		Select("table_name", "permission",
 			"world_schema_json", "is_top_level", "is_hidden", "is_state_tracking_enabled", "default_order", "icon",
 		).Prepared(true).
 		From("world").
@@ -176,7 +176,6 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 	for res.Next() {
 		var table_name string
 		var permission int64
-		var default_permission int64
 		var world_schema_json string
 		var default_order string
 		var icon string
@@ -184,7 +183,7 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 		var is_hidden bool
 		var is_state_tracking_enabled bool
 
-		err = res.Scan(&table_name, &permission, &default_permission, &world_schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled, &default_order, &icon)
+		err = res.Scan(&table_name, &permission, &world_schema_json, &is_top_level, &is_hidden, &is_state_tracking_enabled, &default_order, &icon)
 		if err != nil {
 			log.Errorf("Failed to scan json schema from world: %v", err)
 			continue
@@ -212,7 +211,6 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 
 		t.TableName = table_name
 		t.Permission = auth.AuthPermission(permission)
-		t.DefaultPermission = auth.AuthPermission(default_permission)
 		t.IsHidden = is_hidden
 		t.IsTopLevel = is_top_level
 		t.Icon = icon
