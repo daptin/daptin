@@ -815,7 +815,7 @@ func (dbResource *DbResource) SetSubsitesFolderCache(cache map[daptinid.DaptinRe
 
 func (dbResource *DbResource) StoreToken(token *oauth2.Token,
 	token_type string, oauth_connect_reference_id daptinid.DaptinReferenceId,
-	user_reference_id daptinid.DaptinReferenceId, transaction *sqlx.Tx) error {
+	sessionUser *auth.SessionUser, transaction *sqlx.Tx) error {
 	storeToken := make(map[string]interface{})
 
 	storeToken["access_token"] = token.AccessToken
@@ -827,18 +827,6 @@ func (dbResource *DbResource) StoreToken(token *oauth2.Token,
 	storeToken["expires_in"] = expiry
 	storeToken["token_type"] = token_type
 	storeToken["oauth_connect_id"] = oauth_connect_reference_id
-
-	userId, err := dbResource.GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, user_reference_id, transaction)
-
-	if err != nil {
-		return err
-	}
-
-	sessionUser := &auth.SessionUser{
-		UserId:          userId,
-		UserReferenceId: user_reference_id,
-		Groups:          nil,
-	}
 
 	ur, _ := url.Parse("/oauth_token")
 
@@ -854,7 +842,7 @@ func (dbResource *DbResource) StoreToken(token *oauth2.Token,
 
 	model := api2go.NewApi2GoModelWithData("oauth_token", nil, int64(auth.DEFAULT_PERMISSION), nil, storeToken)
 
-	_, err = dbResource.Cruds["oauth_token"].CreateWithoutFilter(model, req, transaction)
+	_, err := dbResource.Cruds["oauth_token"].CreateWithoutFilter(model, req, transaction)
 	return err
 }
 

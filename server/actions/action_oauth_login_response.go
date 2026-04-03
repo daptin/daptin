@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/doug-martin/goqu/v9"
@@ -92,6 +93,8 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
+	user, ok := request.Attributes["user"]
+	sessionUser, _ := user.(*auth.SessionUser)
 	//user := inFieldMap["user"].(map[string]interface{})
 
 	ok, err := totp.ValidateCustom(state, d.otpKey, time.Now().UTC(), totp.ValidateOpts{
@@ -107,7 +110,6 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outc
 
 	authenticator := inFieldMap["authenticator"].(string)
 	code := inFieldMap["code"].(string)
-	user_reference_id := daptinid.InterfaceToDIR(inFieldMap["user_reference_id"])
 
 	conf, authReferenceId, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 
@@ -122,7 +124,7 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outc
 		return nil, nil, []error{err}
 	}
 
-	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId, user_reference_id, transaction)
+	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId, sessionUser, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}

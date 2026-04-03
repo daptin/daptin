@@ -8,6 +8,7 @@ import (
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/table_info"
@@ -185,7 +186,9 @@ func TestStoreToken(t *testing.T) {
 
 	tx, _ := wrapper.Beginx()
 	defer tx.Rollback()
-	err = dbResource.StoreToken(&token, "type", daptinid.DaptinReferenceId(refId), daptinid.DaptinReferenceId(refId), tx)
+	err = dbResource.StoreToken(&token, "type", daptinid.DaptinReferenceId(refId), &auth.SessionUser{
+		UserId: daptinid.DaptinReferenceId(refId),
+	}, tx)
 
 	if !wrapper.HasExecuted("SELECT * FROM oauth_connect WHERE reference_id =") {
 		t.Errorf("Expected query not fired: %v", err)
