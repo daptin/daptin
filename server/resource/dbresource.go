@@ -328,6 +328,9 @@ func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[uuid.UUID]bool
 }
 
 func IsAdminWithTransaction(userReferenceId *auth.SessionUser, transaction *sqlx.Tx) bool {
+	if userReferenceId == nil {
+		return false
+	}
 	userUUid, _ := uuid.FromBytes(userReferenceId.UserReferenceId[:])
 	key := "admin." + string(userReferenceId.UserReferenceId[:])
 	adminGroupId := CRUD_MAP[USER_ACCOUNT_TABLE_NAME].AdministratorGroupId
