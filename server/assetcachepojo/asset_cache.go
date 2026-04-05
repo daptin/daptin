@@ -25,10 +25,15 @@ type AssetFolderCache struct {
 }
 
 func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
-	localFilePath := path.Join(afc.LocalSyncPath, fileName)
+	baseDir := afc.LocalSyncPath
 	if afc.CloudStore.StoreType == "local" {
-		localFilePath = path.Join(afc.CloudStore.RootPath, afc.Keyname, fileName)
+		baseDir = path.Join(afc.CloudStore.RootPath, afc.Keyname)
 	}
+	fileName = filepath.Clean(fileName)
+	for strings.HasPrefix(fileName, "..") {
+		fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+	}
+	localFilePath := filepath.Join(baseDir, fileName)
 
 	// Try to open the file from local cache first
 	file, err := os.Open(path.Clean(localFilePath))
@@ -147,14 +152,19 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	return nil
 }
 func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
-
-	return os.Remove(afc.LocalSyncPath + string(os.PathSeparator) + fileName)
-
+	fileName = filepath.Clean(fileName)
+	for strings.HasPrefix(fileName, "..") {
+		fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+	}
+	return os.Remove(filepath.Join(afc.LocalSyncPath, fileName))
 }
 
 func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interface{}, error) {
-
-	fileInfo, err := os.ReadDir(afc.LocalSyncPath + string(os.PathSeparator) + path)
+	path = filepath.Clean(path)
+	for strings.HasPrefix(path, "..") {
+		path = strings.TrimPrefix(strings.TrimPrefix(path, ".."), string(filepath.Separator))
+	}
+	fileInfo, err := os.ReadDir(filepath.Join(afc.LocalSyncPath, path))
 	if err != nil {
 		return nil, err
 	}
@@ -204,12 +214,26 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 				if file["name"] == nil {
 					return errors.WithMessage(errors.New("file name cannot be null"), "File name is null")
 				}
-				filePath := string(os.PathSeparator)
-				if file["path"] != nil {
-					filePath = strings.Replace(file["path"].(string), "/", string(os.PathSeparator), -1) + string(os.PathSeparator)
+				safeName := filepath.Clean(file["name"].(string))
+				for strings.HasPrefix(safeName, "..") {
+					safeName = strings.TrimPrefix(strings.TrimPrefix(safeName, ".."), string(filepath.Separator))
 				}
-				localPath := afc.LocalSyncPath + string(os.PathSeparator) + filePath
-				localFilePath := localPath + file["name"].(string)
+				if safeName == "" || safeName == "." {
+					continue
+				}
+				subDir := ""
+				if file["path"] != nil {
+					subDir = filepath.Clean(file["path"].(string))
+					for strings.HasPrefix(subDir, "..") {
+						subDir = strings.TrimPrefix(strings.TrimPrefix(subDir, ".."), string(filepath.Separator))
+					}
+				}
+				var localFilePath string
+				if subDir != "" {
+					localFilePath = filepath.Join(afc.LocalSyncPath, subDir, safeName)
+				} else {
+					localFilePath = filepath.Join(afc.LocalSyncPath, safeName)
+				}
 				dirPath := filepath.Dir(localFilePath)
 				createDirIfNotExist(dirPath)
 				err := os.WriteFile(localFilePath, fileBytes, os.ModePerm)

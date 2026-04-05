@@ -9,6 +9,7 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	"os"
+	"path/filepath"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
@@ -836,7 +837,11 @@ func BuildOutcome(inFieldMap map[string]interface{},
 		}
 		for _, file := range files {
 			f := file.(map[string]interface{})
-			fileName := f["name"].(string)
+			fileName := filepath.Base(filepath.Clean(f["name"].(string)))
+			if fileName == "." || fileName == ".." {
+				log.Errorf("Invalid schema upload filename rejected: %v", f["name"])
+				continue
+			}
 			log.Printf("File name: %v", fileName)
 			fileNameParts := strings.Split(fileName, ".")
 			fileFormat := fileNameParts[len(fileNameParts)-1]

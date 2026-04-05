@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -321,31 +322,39 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 // OpenFile opens a file in 3 possible modes: read, write, appending write (use appropriate flags)
 func (driver *ClientDriver) OpenFile(cc server.ClientContext, path string, flag int) (server.FileStream, error) {
 
-	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
+	baseDir := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath
+	relPath := filepath.Clean(strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator)))
+	for strings.HasPrefix(relPath, "..") {
+		relPath = strings.TrimPrefix(strings.TrimPrefix(relPath, ".."), string(filepath.Separator))
+	}
+	fullPath := filepath.Join(baseDir, relPath)
 
 	// If we are writing and we are not in append mode, we should remove the file
 	if (flag & os.O_WRONLY) != 0 {
 		flag |= os.O_CREATE
 		if (flag & os.O_APPEND) == 0 {
-			if err := os.Remove(path); err != nil {
-				fmt.Println("Problem removing file", path, "err:", err)
+			if err := os.Remove(fullPath); err != nil {
+				fmt.Println("Problem removing file", fullPath, "err:", err)
 			}
 		}
 	}
 
-	return os.OpenFile(path, flag, 0600)
+	return os.OpenFile(fullPath, flag, 0600)
 }
 
 // GetFileInfo gets some info around a file or a directory
 func (driver *ClientDriver) GetFileInfo(cc server.ClientContext, path string) (os.FileInfo, error) {
 
-	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
+	baseDir := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath
+	relPath := filepath.Clean(strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator)))
+	for strings.HasPrefix(relPath, "..") {
+		relPath = strings.TrimPrefix(strings.TrimPrefix(relPath, ".."), string(filepath.Separator))
+	}
+	fullPath := filepath.Join(baseDir, relPath)
 
-	log.Printf("Get file info [%v]", path)
+	log.Printf("Get file info [%v]", fullPath)
 
-	return os.Stat(path)
+	return os.Stat(fullPath)
 }
 
 // CanAllocate gives the approval to allocate some data

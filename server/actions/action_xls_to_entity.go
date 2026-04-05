@@ -14,6 +14,7 @@ import (
 	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -127,7 +128,12 @@ func (d *uploadXlsFileToEntityPerformer) DoAction(request actionresponse.Outcome
 nextFile:
 	for _, fileInterface := range files {
 		file := fileInterface.(map[string]interface{})
-		fileName := "_uploaded_" + file["name"].(string)
+		rawName := filepath.Base(filepath.Clean(file["name"].(string)))
+		if rawName == "." || rawName == ".." {
+			log.Errorf("Invalid xls filename rejected: %v", file["name"])
+			continue nextFile
+		}
+		fileName := "_uploaded_" + rawName
 		fileContentsBase64 := file["file"].(string)
 		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
 		log.Printf("Processing file: %v", fileName)

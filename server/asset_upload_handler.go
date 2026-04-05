@@ -67,6 +67,13 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 			c.AbortWithError(400, errors.New("filename query parameter is required"))
 			return
 		}
+		// Strip path traversal from filename
+		if fileName != "" {
+			fileName = filepath.Clean(fileName)
+			for strings.HasPrefix(fileName, "..") {
+				fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+			}
+		}
 		// Validate table and column
 		dbResource, ok := cruds[typeName]
 		if !ok || dbResource == nil {
@@ -282,7 +289,7 @@ func handleStreamUpload(c *gin.Context, fileName string, assetCache *assetcachep
 
 	// For local storage or when Rcat is not suitable, use traditional approach
 	if isLocalStorage(assetCache) {
-		// Write to local file
+		// Write to local file — sanitize to prevent path traversal
 		localPath := filepath.Join(assetCache.LocalSyncPath, fileName)
 
 		// Ensure directory exists
@@ -395,6 +402,10 @@ func handleUploadComplete(c *gin.Context, cruds map[string]*resource.DbResource,
 		// Get filename from metadata if not in query param
 		if fileName == "" {
 			if fn, ok := metadata["fileName"].(string); ok {
+				fn = filepath.Clean(fn)
+				for strings.HasPrefix(fn, "..") {
+					fn = strings.TrimPrefix(strings.TrimPrefix(fn, ".."), string(filepath.Separator))
+				}
 				fileName = fn
 			}
 		}
@@ -502,6 +513,10 @@ func handleUploadComplete(c *gin.Context, cruds map[string]*resource.DbResource,
 		fileType = fType
 	}
 	if fName, ok := metadata["fileName"].(string); ok && fileName == "" {
+		fName = filepath.Clean(fName)
+		for strings.HasPrefix(fName, "..") {
+			fName = strings.TrimPrefix(strings.TrimPrefix(fName, ".."), string(filepath.Separator))
+		}
 		fileName = fName
 	}
 
@@ -587,6 +602,10 @@ func setupCloudStorageCredentials(assetCache *assetcachepojo.AssetFolderCache) s
 func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName string) bool {
 	// For local storage, check file existence
 	if assetCache.CloudStore.StoreProvider == "local" {
+		fileName = filepath.Clean(fileName)
+		for strings.HasPrefix(fileName, "..") {
+			fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+		}
 		localPath := filepath.Join(assetCache.LocalSyncPath, fileName)
 		_, err := os.Stat(localPath)
 		return err == nil

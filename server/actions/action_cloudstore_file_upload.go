@@ -47,9 +47,16 @@ func unzip(archive, target string) error {
 	}
 
 	for _, file := range reader.File {
-		path := filepath.Join(target, file.Name)
+		entryName := filepath.Clean(file.Name)
+		for strings.HasPrefix(entryName, "..") {
+			entryName = strings.TrimPrefix(strings.TrimPrefix(entryName, ".."), string(filepath.Separator))
+		}
+		if entryName == "" || entryName == "." {
+			continue
+		}
+		safePath := filepath.Join(target, entryName)
 		if file.FileInfo().IsDir() {
-			os.MkdirAll(path, file.Mode())
+			os.MkdirAll(safePath, file.Mode())
 			continue
 		}
 
@@ -59,7 +66,8 @@ func unzip(archive, target string) error {
 		}
 		defer fileReader.Close()
 
-		targetFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+		os.MkdirAll(filepath.Dir(safePath), 0755)
+		targetFile, err := os.OpenFile(safePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 		if err != nil {
 			return err
 		}
@@ -97,6 +105,13 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 			fileName, ok := file["name"].(string)
 			if !ok {
 				log.Errorf("Name is missing for file")
+				continue
+			}
+			fileName = filepath.Clean(fileName)
+			for strings.HasPrefix(fileName, "..") {
+				fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+			}
+			if fileName == "" || fileName == "." {
 				continue
 			}
 			temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
@@ -142,7 +157,10 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 
 	rootPath := inFields["root_path"].(string)
 	if atPath != "" {
-
+		atPath = filepath.Clean(atPath)
+		for strings.HasPrefix(atPath, "..") {
+			atPath = strings.TrimPrefix(strings.TrimPrefix(atPath, ".."), string(filepath.Separator))
+		}
 		if !EndsWithCheck(rootPath, "/") && len(atPath) > 0 && atPath[0] != '/' {
 			rootPath = rootPath + "/"
 		}

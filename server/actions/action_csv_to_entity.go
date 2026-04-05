@@ -9,6 +9,7 @@ import (
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/table_info"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/artpar/api2go/v2"
@@ -74,7 +75,12 @@ func (d *uploadCsvFileToEntityPerformer) DoAction(request actionresponse.Outcome
 		if !ok {
 			continue
 		}
-		fileName := "_uploaded_" + file["name"].(string)
+		rawName := filepath.Base(filepath.Clean(file["name"].(string)))
+		if rawName == "." || rawName == ".." {
+			log.Errorf("Invalid csv filename rejected: %v", file["name"])
+			continue
+		}
+		fileName := "_uploaded_" + rawName
 		fileContentsBase64 := file["file"].(string)
 		fileBytes, err := base64.StdEncoding.DecodeString(strings.Split(fileContentsBase64, ",")[1])
 		log.Printf("Processing file: %v", fileName)

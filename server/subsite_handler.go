@@ -50,6 +50,12 @@ func SubsiteRequestHandler(site subsite.SubSite, assetCache *assetcachepojo.Asse
 			filePath = path
 		}
 
+		// Strip traversal from path
+		filePath = filepath.Clean(filePath)
+		for strings.HasPrefix(filePath, "..") {
+			filePath = strings.TrimPrefix(strings.TrimPrefix(filePath, ".."), string(filepath.Separator))
+		}
+
 		// Check negative cache first to avoid redundant cloud requests
 		negativeKey := host + ":" + filePath
 		if isNegativelyCached(negativeKey) {
