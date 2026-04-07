@@ -318,6 +318,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	for key, val := range cruds {
 		dtopicMap[key] = tablesPubSub
 		crudsInterface[key] = val
+		val.PubSub = tablesPubSub
 	}
 	log.Tracef("Crated olric topics")
 

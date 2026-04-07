@@ -216,6 +216,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 		}
 
 	}
+	publishToTopicPerformer, err := actions.NewPublishToTopicPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create publish to topic performer")
+	performers = append(performers, publishToTopicPerformer)
+
 	log.Tracef("Completed GetActionPerformers")
 
 	for _, performer := range performers {

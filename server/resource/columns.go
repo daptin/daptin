@@ -1075,6 +1075,36 @@ var SystemActions = []actionresponse.Action{
 		},
 	},
 	{
+		Name:             "publish_to_topic",
+		Label:            "Publish message to topic",
+		InstanceOptional: true,
+		OnType:           "world",
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "topicName",
+				ColumnName: "topicName",
+				ColumnType: "label",
+				IsNullable: false,
+			},
+			{
+				Name:       "message",
+				ColumnName: "message",
+				ColumnType: "content",
+				IsNullable: false,
+			},
+		},
+		OutFields: []actionresponse.Outcome{
+			{
+				Type:   "__publish_to_topic",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"topicName": "~topicName",
+					"message":   "~message",
+				},
+			},
+		},
+	},
+	{
 		Name:             "become_an_administrator",
 		Label:            "Become Daptin Administrator",
 		InstanceOptional: true,
@@ -2183,7 +2213,7 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType:        "json",
 				ColumnDescription: "A JSON representation of the complete schema for this world entity, including all columns, relationships, validations, and other metadata needed to define the data model.",
 			},
-				{
+			{
 				Name:              "is_top_level",
 				ColumnName:        "is_top_level",
 				DataType:          "bool",

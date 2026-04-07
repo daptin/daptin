@@ -48,6 +48,7 @@ type DbResource struct {
 	defaultRelations     map[string][]int64
 	contextLock          sync.RWMutex
 	OlricDb              *olric.EmbeddedClient
+	PubSub               *olric.PubSub
 	AssetFolderCache     map[string]map[string]*assetcachepojo.AssetFolderCache
 	subsiteFolderCache   map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache
 	MailSender           func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error)
