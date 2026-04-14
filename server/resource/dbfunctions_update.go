@@ -58,7 +58,7 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenId(id int64, accessToken s
 }
 
 func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(
-	referenceId daptinid.DaptinReferenceId, accessToken string, expiresIn int64, transaction *sqlx.Tx) error {
+	referenceId daptinid.DaptinReferenceId, accessToken string, refreshToken string, expiresIn int64, transaction *sqlx.Tx) error {
 
 	encryptionSecret, err := dbResource.ConfigStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
@@ -70,11 +70,21 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(
 		return err
 	}
 
+	record := goqu.Record{
+		"access_token": accessToken,
+		"expires_in":   expiresIn,
+	}
+
+	if refreshToken != "" {
+		encryptedRefreshToken, err := Encrypt([]byte(encryptionSecret), refreshToken)
+		if err != nil {
+			return err
+		}
+		record["refresh_token"] = encryptedRefreshToken
+	}
+
 	s, v, err := statementbuilder.Squirrel.Update("oauth_token").Prepared(true).
-		Set(goqu.Record{
-			"access_token": accessToken,
-			"expires_in":   expiresIn,
-		}).
+		Set(record).
 		Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 
 	if err != nil {

@@ -57,6 +57,7 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request actionresponse.Outcome
 	opts := []oauth2.AuthCodeOption{}
 	if v := fmt.Sprintf("%v", row["access_type_offline"]); v == "1" || v == "true" {
 		opts = append(opts, oauth2.AccessTypeOffline)
+		opts = append(opts, oauth2.SetAuthURLParam("prompt", "consent"))
 	}
 	url := conf.AuthCodeURL(state, opts...)
 	fmt.Printf("Visit the URL for the auth dialog: %v", url)

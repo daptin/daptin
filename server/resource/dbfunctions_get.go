@@ -499,7 +499,7 @@ func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId daptinid.Da
 				return nil, oauthConf, err
 			} else {
 				token = *refreshedToken
-				err = dbResource.UpdateAccessTokenByTokenReferenceId(referenceId, refreshedToken.AccessToken, refreshedToken.Expiry.Unix(), transaction)
+				err = dbResource.UpdateAccessTokenByTokenReferenceId(referenceId, refreshedToken.AccessToken, refreshedToken.RefreshToken, refreshedToken.Expiry.Unix(), transaction)
 				CheckErr(err, "failed to update access token")
 			}
 		}

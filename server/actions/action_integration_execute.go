@@ -199,7 +199,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 							if err != nil {
 								break
 							}
-							err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix(), transaction)
+							err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.AccessToken, oauthToken.RefreshToken, oauthToken.Expiry.Unix(), transaction)
 							resource.CheckErr(err, "Failed to update access token by reference id [%s]", oauthTokenId)
 						}
 
@@ -301,7 +301,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 						log.Printf("Token[%s] has expired for action [%v][%v][%v], generating new token", oauthTokenId, operation, method, d.integration.Name)
 						oauthToken, err = tokenSource.Token()
 						resource.CheckErr(err, "Failed to generate token from source")
-						err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.Type(), oauthToken.Expiry.Unix(), transaction)
+						err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.AccessToken, oauthToken.RefreshToken, oauthToken.Expiry.Unix(), transaction)
 					}
 
 					arguments = append(arguments, req.Header{
