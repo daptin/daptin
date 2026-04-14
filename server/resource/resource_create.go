@@ -461,13 +461,33 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		return nil, err
 	}
 
-	// Invalidate auth cache when user-group membership changes
+	// Invalidate auth + admin caches when user-group membership changes
 	if dbResource.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
 		if userAccountId, ok := dataToInsert[USER_ACCOUNT_ID_COLUMN]; ok && userAccountId != nil {
 			if uid, ok := userAccountId.(int64); ok {
 				email := dbResource.GetUserEmailByIdWithTransaction(uid, createTransaction)
 				if email != "" {
 					auth.InvalidateAuthCacheForEmail(email)
+				}
+				userRefId, refErr := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, uid, createTransaction)
+				if refErr == nil {
+					InvalidateAdminCacheForUser(userRefId)
+				}
+			}
+		}
+	}
+
+	// Invalidate object-groups when any usergroup relation row is created
+	if strings.HasSuffix(dbResource.model.GetName(), "_has_usergroup_usergroup_id") {
+		doubledEntity := strings.TrimSuffix(dbResource.model.GetName(), "_id_has_usergroup_usergroup_id")
+		parentType := doubledEntity[:len(doubledEntity)/2]
+		parentIdCol := parentType + "_id"
+		if parentId, ok := dataToInsert[parentIdCol]; ok && parentId != nil {
+			if pid, ok := parentId.(int64); ok {
+				InvalidateObjectGroupsCache(parentType, pid)
+				parentRefId, refErr := GetIdToReferenceIdWithTransaction(parentType, pid, createTransaction)
+				if refErr == nil {
+					InvalidateObjectPermissionCache(parentType, parentRefId)
 				}
 			}
 		}

@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/url"
 	"os"
+	"strings"
 
 	"fmt"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -64,13 +65,37 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 		}
 	}
 
-	// Invalidate auth cache when user-group membership is removed
+	// Invalidate permission caches for the deleted object
+	InvalidateObjectPermissionCache(dbResource.model.GetName(), id)
+	InvalidateRowPermissionCache(dbResource.model.GetName(), id)
+
+	// Invalidate auth + admin caches when user-group membership is removed
 	if dbResource.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
 		if userAccountId, ok := data[USER_ACCOUNT_ID_COLUMN]; ok && userAccountId != nil {
 			if uid, ok := userAccountId.(int64); ok {
 				email := dbResource.GetUserEmailByIdWithTransaction(uid, transaction)
 				if email != "" {
 					auth.InvalidateAuthCacheForEmail(email)
+				}
+				userRefId, refErr := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, uid, transaction)
+				if refErr == nil {
+					InvalidateAdminCacheForUser(userRefId)
+				}
+			}
+		}
+	}
+
+	// Invalidate object-groups when any usergroup relation row is deleted
+	if strings.HasSuffix(dbResource.model.GetName(), "_has_usergroup_usergroup_id") {
+		doubledEntity := strings.TrimSuffix(dbResource.model.GetName(), "_id_has_usergroup_usergroup_id")
+		parentType := doubledEntity[:len(doubledEntity)/2]
+		parentIdCol := parentType + "_id"
+		if parentIdVal, ok := data[parentIdCol]; ok && parentIdVal != nil {
+			if pid, ok := parentIdVal.(int64); ok {
+				InvalidateObjectGroupsCache(parentType, pid)
+				parentRefId, refErr := GetIdToReferenceIdWithTransaction(parentType, pid, transaction)
+				if refErr == nil {
+					InvalidateObjectPermissionCache(parentType, parentRefId)
 				}
 			}
 		}

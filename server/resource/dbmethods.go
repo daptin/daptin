@@ -380,8 +380,8 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 	}
 
 	if OlricCache != nil {
-		cachePutErr := OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(30*time.Minute), olric.NX())
-		CheckErr(cachePutErr, "[374] failed to store cloud store in cache")
+		cachePutErr := OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(5*time.Minute), olric.NX())
+		CheckErr(cachePutErr, "[374] failed to store object permission in cache")
 	}
 
 	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
@@ -516,6 +516,60 @@ func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType 
 }
 
 var OlricCache olric.DMap
+
+// InvalidateObjectPermissionCache removes the cached PermissionInstance for a specific object,
+// forcing the next access to re-fetch from the database.
+func InvalidateObjectPermissionCache(objectType string, referenceId daptinid.DaptinReferenceId) {
+	if OlricCache == nil {
+		return
+	}
+	cacheKey := fmt.Sprintf("object-permission-%v-%v", objectType, referenceId)
+	_, err := OlricCache.Delete(context.Background(), cacheKey)
+	if err != nil {
+		log.Warnf("failed to invalidate object permission cache for %s: %v", cacheKey, err)
+	}
+}
+
+// InvalidateRowPermissionCache removes the cached row-level permission for a specific object.
+func InvalidateRowPermissionCache(objectType string, referenceId daptinid.DaptinReferenceId) {
+	if OlricCache == nil {
+		return
+	}
+	cacheKey := fmt.Sprintf("row-permission-%v-%v", objectType, referenceId)
+	_, err := OlricCache.Delete(context.Background(), cacheKey)
+	if err != nil {
+		log.Warnf("failed to invalidate row permission cache for %s: %v", cacheKey, err)
+	}
+}
+
+// InvalidateObjectGroupsCache removes the cached group permissions for a specific object.
+func InvalidateObjectGroupsCache(objectType string, objectId int64) {
+	if OlricCache == nil {
+		return
+	}
+	cacheKey := fmt.Sprintf("object-groups-%v-%v", objectType, objectId)
+	_, err := OlricCache.Delete(context.Background(), cacheKey)
+	if err != nil {
+		log.Warnf("failed to invalidate object groups cache for %s: %v", cacheKey, err)
+	}
+}
+
+// InvalidateAdminCacheForUser removes both the bulk administrator reference ID cache
+// and the per-user admin status cache, forcing re-evaluation from the database.
+func InvalidateAdminCacheForUser(userReferenceId daptinid.DaptinReferenceId) {
+	if OlricCache == nil {
+		return
+	}
+	_, err := OlricCache.Delete(context.Background(), "administrator_reference_id")
+	if err != nil {
+		log.Warnf("failed to invalidate administrator_reference_id cache: %v", err)
+	}
+	key := "admin." + string(userReferenceId[:])
+	_, err = OlricCache.Delete(context.Background(), key)
+	if err != nil {
+		log.Warnf("failed to invalidate admin cache for user: %v", err)
+	}
+}
 
 // GetObjectPermissionByWhereClause Gets permission of an Object by typeName and string referenceId with a simple where clause colName = colValue
 // Use carefully

@@ -1,9 +1,9 @@
 package actions
 
 import (
-	"context"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -43,7 +43,8 @@ func (d *becomeAdminActionPerformer) DoAction(request actionresponse.Outcome, in
 		responseAttrs["delay"] = 7000
 		//go Restart()
 		actionResponse = resource.NewActionResponse("client.redirect", responseAttrs)
-		_ = resource.OlricCache.Destroy(context.Background())
+		userRefId := daptinid.InterfaceToDIR(user["reference_id"])
+		resource.InvalidateAdminCacheForUser(userRefId)
 	} else {
 		rollbackError := transaction.Rollback()
 		resource.CheckErr(rollbackError, "failed to rollback")

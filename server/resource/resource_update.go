@@ -520,6 +520,43 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 	}
 
+	// Invalidate permission caches for the updated object
+	updatedRefId := daptinid.DaptinReferenceId(updateObjectReferenceId)
+	InvalidateObjectPermissionCache(dbResource.model.GetName(), updatedRefId)
+	InvalidateRowPermissionCache(dbResource.model.GetName(), updatedRefId)
+
+	// Invalidate auth + admin caches when user-group membership is updated
+	if dbResource.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
+		if userAccountId, ok := data.GetAllAsAttributes()[USER_ACCOUNT_ID_COLUMN]; ok && userAccountId != nil {
+			if uid, ok := userAccountId.(int64); ok {
+				email := dbResource.GetUserEmailByIdWithTransaction(uid, updateTransaction)
+				if email != "" {
+					auth.InvalidateAuthCacheForEmail(email)
+				}
+				userRefId, err := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, uid, updateTransaction)
+				if err == nil {
+					InvalidateAdminCacheForUser(userRefId)
+				}
+			}
+		}
+	}
+
+	// Invalidate object-groups when any usergroup relation row is updated
+	if strings.HasSuffix(dbResource.model.GetName(), "_has_usergroup_usergroup_id") {
+		doubledEntity := strings.TrimSuffix(dbResource.model.GetName(), "_id_has_usergroup_usergroup_id")
+		parentType := doubledEntity[:len(doubledEntity)/2]
+		parentIdCol := parentType + "_id"
+		if parentId, ok := data.GetAllAsAttributes()[parentIdCol]; ok && parentId != nil {
+			if pid, ok := parentId.(int64); ok {
+				InvalidateObjectGroupsCache(parentType, pid)
+				parentRefId, refErr := GetIdToReferenceIdWithTransaction(parentType, pid, updateTransaction)
+				if refErr == nil {
+					InvalidateObjectPermissionCache(parentType, parentRefId)
+				}
+			}
+		}
+	}
+
 	if data.IsDirty() && dbResource.tableInfo.IsAuditEnabled {
 
 		auditModel := data.GetAuditModel()
