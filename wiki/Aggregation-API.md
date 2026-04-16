@@ -1,6 +1,6 @@
 # Aggregation API
 
-**Tested ✓** 2026-01-27 (POST method and HAVING clause fixed ✅)
+**Tested ✓** 2026-04-16
 
 SQL-like aggregation queries via REST API.
 
@@ -11,6 +11,7 @@ SQL-like aggregation queries via REST API.
 - ✅ ORDER BY - Working
 - ✅ POST method - Fixed in commit 9e3b5650 ([Issue #174](https://github.com/daptin/daptin/issues/174))
 - ✅ HAVING clause - Fixed in commit e1c3017c ([Issue #173](https://github.com/daptin/daptin/issues/173))
+- ✅ Security: column/group expressions validated against schema (CWE-89 fix, v0.11.4)
 
 ## Endpoint
 
@@ -105,17 +106,52 @@ column=category,count,avg(price)" \
 }
 ```
 
+## Allowed Expression Forms
+
+The `column` and `group` parameters accept a strict, validated set of expression forms. Arbitrary SQL expressions are rejected — column names are validated against the entity schema and function names are checked against an explicit allowlist.
+
+### column parameter
+
+| Form | Example | Notes |
+|------|---------|-------|
+| `count` | `count` | Shorthand for COUNT(*) |
+| Column name | `status` | Must exist in entity schema |
+| Aggregate function | `sum(price)` | Column schema-validated |
+| Aggregate with alias | `sum(price) as total` | Alias: letters/digits/underscore only |
+| Scalar function | `date(created_at)` | Column schema-validated |
+| Scalar with alias | `date(created_at) as day` | |
+| Scalar with literal | `strftime('%Y-%m', created_at) as month` | String literals must be single-quoted |
+| Joined column | `customer.name` | Table must be in `join=` list |
+
+### group parameter
+
+Same forms as `column`, except aggregate functions (`sum`, `avg`, etc.) are not permitted in GROUP BY.
+
 ## Aggregate Functions
 
 | Function | Syntax | Description |
 |----------|--------|-------------|
-| Count | `count` | Count records |
+| Count | `count` | Count all rows (shorthand) |
+| Count | `count(column)` | Count non-null values |
 | Sum | `sum(column)` | Sum of values |
 | Average | `avg(column)` | Average value |
 | Minimum | `min(column)` | Minimum value |
 | Maximum | `max(column)` | Maximum value |
 | First | `first(column)` | First value |
 | Last | `last(column)` | Last value |
+
+## Scalar Functions (allowed in column and group)
+
+These safe data-transformation functions are permitted. System functions, I/O functions, and anything not in this list is rejected.
+
+| Category | Functions |
+|----------|-----------|
+| Date/time | `date`, `time`, `datetime`, `strftime`, `julianday`, `month`, `year`, `day` |
+| String | `upper`, `lower`, `length`, `substr`, `trim`, `ltrim`, `rtrim`, `replace`, `hex` |
+| Math | `abs`, `round` |
+| Null handling | `coalesce`, `ifnull`, `nullif` |
+
+Scalar functions require at least one schema column argument. Zero-argument calls (e.g. `random()`, `sqlite_version()`) are rejected.
 
 ### Examples
 

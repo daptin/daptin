@@ -40,26 +40,29 @@ All server messages have a `type` field that distinguishes the message category.
 
 **Session** — sent once on connection:
 ```json
-{ "type": "session", "status": "open", "data": { "user": "uuid-string", "groups": ["group-ref-1"], "sessionId": 42 } }
+{ "type": "session", "status": "open", "data": "eyJ1c2VyIjoiMDE5Li4uIiwiZ3JvdXBzIjpbIjAxOS4uLiJdLCJzZXNzaW9uSWQiOjF9" }
 ```
+Decoded `data`: `{"user": "uuid-string", "groups": ["group-ref-1"], "sessionId": 1}`
 
 **Response** — reply to a client request:
 ```json
-{ "id": "req-1", "type": "response", "method": "subscribe", "ok": true, "data": { "topic": "user_account" } }
+{ "id": "req-1", "type": "response", "method": "subscribe", "ok": true, "data": "eyJ0b3BpYyI6InVzZXJfYWNjb3VudCJ9" }
 { "id": "req-1", "type": "response", "method": "subscribe", "ok": false, "error": "permission denied" }
 ```
+Decoded `data`: `{"topic": "user_account"}`
 
 **Event** — push from a subscription:
 ```json
-{ "type": "event", "topic": "user_account", "event": "create", "data": { "id": 1, "name": "John", "__type": "user_account" }, "source": "database" }
+{ "type": "event", "topic": "user_account", "event": "create", "data": "eyJpZCI6MSwibmFtZSI6IkpvaG4iLCJfX3R5cGUiOiJ1c2VyX2FjY291bnQifQ==", "source": "database" }
 ```
+Decoded `data`: `{"id": 1, "name": "John", "__type": "user_account"}`
 
 **Pong** — reply to client ping:
 ```json
 { "type": "pong" }
 ```
 
-Key difference from earlier protocol versions: `data` is always a proper JSON object, never base64-encoded.
+**Note:** The `data` field is base64-encoded on the wire. The server stores `data` as `[]byte` internally, which Go's JSON encoder base64-encodes during serialization. Clients must base64-decode `data` and then JSON-parse the result to access the payload.
 
 ## Connection Lifecycle
 
@@ -133,6 +136,37 @@ Subscribers on that topic receive:
 ```
 
 **Permission:** Requires CanExecute on user topics (GuestExecute bit for non-owners), CanCreate on system topics.
+
+### publish_to_topic (HTTP Action)
+
+Publish a message to a topic via HTTP without a WebSocket connection. This enables mobile apps, serverless functions, and CLI scripts to push real-time events to WebSocket subscribers.
+
+```
+POST /action/world/publish_to_topic
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "attributes": {
+    "topicName": "chat-room-1",
+    "message": { "command": "open_tab", "url": "https://example.com" }
+  }
+}
+```
+
+WebSocket subscribers on `chat-room-1` receive the same event as a WebSocket `new-message`:
+```json
+{ "type": "event", "topic": "chat-room-1", "event": "new-message", "data": "<base64>", "source": "user-uuid" }
+```
+
+**Using daptin-cli:**
+```bash
+daptin-cli execute world publish_to_topic topicName=chat-room-1 message='{"command":"open_tab","url":"https://example.com"}'
+```
+
+**Permission:** Same as WebSocket `new-message` — CanExecute on user topics, CanCreate on system topics.
 
 ### create-topicName
 
@@ -263,6 +297,7 @@ User-created topics have a permission bitmask that controls access for non-owner
 |--------|-------------------|-----------------|
 | subscribe | CanPeek (table permission) | CanRead (GuestRead for non-owner) |
 | new-message | CanCreate (table permission) | CanExecute (GuestExecute for non-owner) |
+| publish_to_topic (HTTP) | CanCreate (table permission) | CanExecute (GuestExecute for non-owner) |
 | destroy-topicName | Always denied | CanDelete (GuestDelete for non-owner) |
 | set-topic-permission | Always denied | Owner or admin only |
 | get-topic-permission | CanPeek (table permission) | CanPeek (GuestPeek for non-owner) |
@@ -311,7 +346,8 @@ ws.on('message', (raw) => {
 
   switch (msg.type) {
     case 'session':
-      console.log(`Session opened: user=${msg.data.user} sessionId=${msg.data.sessionId}`);
+      const session = JSON.parse(atob(msg.data));
+      console.log(`Session opened: user=${session.user} sessionId=${session.sessionId}`);
 
       // Subscribe to user_account changes
       ws.send(JSON.stringify({
@@ -349,8 +385,9 @@ ws.on('message', (raw) => {
       break;
 
     case 'event':
+      const eventData = JSON.parse(atob(msg.data));
       console.log(`Event: ${msg.event} on ${msg.topic}`);
-      console.log('  Data:', JSON.stringify(msg.data));
+      console.log('  Data:', JSON.stringify(eventData));
       break;
 
     case 'pong':
@@ -387,6 +424,11 @@ class DaptinWebSocket {
 
     this.ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
+
+      // Decode base64 data field
+      if (msg.data) {
+        try { msg.data = JSON.parse(atob(msg.data)); } catch(e) {}
+      }
 
       if (msg.type === 'session') {
         console.log('Connected, session:', msg.data);
@@ -477,6 +519,11 @@ function useDaptinWebSocket(token) {
     socket.onmessage = (e) => {
       const msg = JSON.parse(e.data);
 
+      // Decode base64 data field
+      if (msg.data) {
+        try { msg.data = JSON.parse(atob(msg.data)); } catch(e) {}
+      }
+
       if (msg.type === 'session') {
         setSessionInfo(msg.data);
         setConnected(true);
@@ -524,7 +571,8 @@ WebSocket events are distributed across cluster nodes using Olric pub/sub:
 | `unsubscribe` | Unsubscribe from topics | `{topicName: "topic1"}` |
 | `create-topicName` | Create custom topic | `{name: "my-topic"}` |
 | `destroy-topicName` | Delete custom topic | `{name: "my-topic"}` |
-| `new-message` | Publish to topic | `{topicName: "my-topic", message: {...}}` |
+| `new-message` | Publish to topic (WebSocket) | `{topicName: "my-topic", message: {...}}` |
+| `publish_to_topic` | Publish to topic (HTTP) | `POST /action/world/publish_to_topic` |
 | `set-topic-permission` | Set topic permissions | `{topicName: "my-topic", permission: 2097151}` |
 | `get-topic-permission` | Get topic permissions | `{topicName: "my-topic"}` |
 | `ping` | Connection health check | `{}` |

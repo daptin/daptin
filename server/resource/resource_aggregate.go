@@ -74,12 +74,15 @@ func ToInterfaceArray(s []string) []interface{} {
 }
 
 func ToOrderedExpressionArray(s []string) []exp.OrderedExpression {
-	r := make([]exp.OrderedExpression, len(s))
-	for i, e := range s {
+	r := make([]exp.OrderedExpression, 0, len(s))
+	for _, e := range s {
+		if e == "" {
+			continue
+		}
 		if e[0] == '-' {
-			r[i] = goqu.C(e[1:]).Desc()
+			r = append(r, goqu.C(e[1:]).Desc())
 		} else {
-			r[i] = goqu.C(e).Asc()
+			r = append(r, goqu.C(e).Asc())
 		}
 	}
 	return r
@@ -109,14 +112,261 @@ func ColumnToInterfaceArray(s []column) []interface{} {
 	return r
 }
 
+// aggregateFuncs maps aggregate function names to their safe goqu typed constructors.
+// Exact map key lookup — no pattern matching.
+var aggregateFuncs = map[string]func(interface{}) exp.SQLFunctionExpression{
+	"count": func(col interface{}) exp.SQLFunctionExpression { return goqu.COUNT(col) },
+	"sum":   func(col interface{}) exp.SQLFunctionExpression { return goqu.SUM(col) },
+	"min":   func(col interface{}) exp.SQLFunctionExpression { return goqu.MIN(col) },
+	"max":   func(col interface{}) exp.SQLFunctionExpression { return goqu.MAX(col) },
+	"avg":   func(col interface{}) exp.SQLFunctionExpression { return goqu.AVG(col) },
+	"first": func(col interface{}) exp.SQLFunctionExpression { return goqu.FIRST(col) },
+	"last":  func(col interface{}) exp.SQLFunctionExpression { return goqu.LAST(col) },
+}
+
+// scalarFuncs is the allowlist of safe data-transformation SQL functions.
+// System functions, I/O functions, and anything that can read from other sources are excluded.
+// Exact map key lookup — no pattern matching.
+var scalarFuncs = map[string]bool{
+	"date": true, "time": true, "datetime": true, "strftime": true, "julianday": true,
+	"month": true, "year": true, "day": true,
+	"upper": true, "lower": true, "length": true, "substr": true, "trim": true,
+	"ltrim": true, "rtrim": true, "replace": true, "hex": true,
+	"abs": true, "round": true,
+	"coalesce": true, "ifnull": true, "nullif": true,
+}
+
+// isSimpleIdentifier returns true if s is a valid SQL identifier:
+// only letters, digits, underscores; first character not a digit.
+// Used to validate alias names. Character loop — no regex.
+func isSimpleIdentifier(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i, c := range s {
+		if i == 0 && c >= '0' && c <= '9' {
+			return false
+		}
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+// splitFuncArgs splits a comma-separated argument string while respecting single-quoted strings.
+// E.g.: "'%Y-%m', created_at" → ["'%Y-%m'", "created_at"]
+func splitFuncArgs(argsStr string) []string {
+	var args []string
+	depth, start := 0, 0
+	inQuote := false
+	for i, c := range argsStr {
+		switch {
+		case c == '\'' && depth == 0:
+			inQuote = !inQuote
+		case !inQuote && c == '(':
+			depth++
+		case !inQuote && c == ')':
+			depth--
+		case !inQuote && c == ',' && depth == 0:
+			args = append(args, strings.TrimSpace(argsStr[start:i]))
+			start = i + 1
+		}
+	}
+	return append(args, strings.TrimSpace(argsStr[start:]))
+}
+
+// validateColumnRef checks that col (a simple identifier or "table.col") exists in the schema
+// of one of the listed tables. It accepts only plain identifiers — no expressions, no operators.
+// For qualified names (table.col), the table must be in the tables allowlist (root entity or
+// an explicitly joined table) — not just any entity in the system.
+func (dbResource *DbResource) validateColumnRef(col string, tables []string) error {
+	if strings.Contains(col, ".") {
+		parts := strings.SplitN(col, ".", 2)
+		tbl, field := parts[0], parts[1]
+		inScope := false
+		for _, t := range tables {
+			if t == tbl {
+				inScope = true
+				break
+			}
+		}
+		if !inScope {
+			return fmt.Errorf("table %q is not in scope (must be the root entity or a joined table)", tbl)
+		}
+		crud := dbResource.Cruds[tbl]
+		if crud == nil {
+			return fmt.Errorf("unknown table %q", tbl)
+		}
+		if _, ok := crud.TableInfo().GetColumnByName(field); !ok {
+			return fmt.Errorf("unknown column %q in table %q", field, tbl)
+		}
+		return nil
+	}
+	for _, tbl := range tables {
+		if crud := dbResource.Cruds[tbl]; crud != nil {
+			if _, ok := crud.TableInfo().GetColumnByName(col); ok {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("unknown column: %q", col)
+}
+
+// buildFuncArgs converts raw argument strings into safe goqu expressions.
+// Each argument is classified as: "*" (star, count only), 'quoted string' (passed as Go value,
+// parameterized by goqu), or a column reference (schema-validated, wrapped in goqu.I).
+func (dbResource *DbResource) buildFuncArgs(funcName string, rawArgs []string, tables []string) ([]interface{}, error) {
+	built := make([]interface{}, 0, len(rawArgs))
+	for _, arg := range rawArgs {
+		arg = strings.TrimSpace(arg)
+		if arg == "*" {
+			if funcName != "count" {
+				return nil, fmt.Errorf("'*' only valid in count()")
+			}
+			built = append(built, goqu.Star())
+			continue
+		}
+		if strings.HasPrefix(arg, "'") && strings.HasSuffix(arg, "'") && len(arg) >= 2 {
+			// Quoted string literal: strip quotes, pass as Go string.
+			// goqu will parameterize it in prepared-statement mode — no injection possible.
+			literal := arg[1 : len(arg)-1]
+			if strings.Contains(literal, "'") {
+				return nil, fmt.Errorf("invalid string literal in %s()", funcName)
+			}
+			built = append(built, literal)
+			continue
+		}
+		// Column reference: must exist in schema.
+		if err := dbResource.validateColumnRef(arg, tables); err != nil {
+			return nil, fmt.Errorf("arg %q in %s(): %w", arg, funcName, err)
+		}
+		built = append(built, goqu.I(arg))
+	}
+	return built, nil
+}
+
+// parseAggExpr converts a user-supplied aggregation expression string into a safe goqu expression.
+// Supported forms:
+//   - "count"                          → COUNT(*)
+//   - "col" / "table.col"              → identifier (schema-validated)
+//   - "agg_func(col)"                  → aggregate function (allowlist + schema)
+//   - "scalar_func(col)"               → scalar function (allowlist + schema)
+//   - "scalar_func('lit', col)"        → scalar with string literal + column
+//   - any of the above + " as alias"   → with alias (simple identifier check)
+//
+// allowAggregate controls whether aggregate functions are permitted (false for GROUP BY).
+// goqu.L() is never used — all output uses goqu's typed safe constructors.
+func (dbResource *DbResource) parseAggExpr(expr string, tables []string, allowAggregate bool) (interface{}, error) {
+	expr = strings.TrimSpace(expr)
+
+	// Special shorthand: bare "count" → COUNT(*)
+	if expr == "count" && allowAggregate {
+		return goqu.COUNT(goqu.Star()).As("count"), nil
+	}
+
+	// Peel off trailing " as alias" if present
+	var alias string
+	if idx := strings.LastIndex(expr, " as "); idx > 0 {
+		maybeAlias := strings.TrimSpace(expr[idx+4:])
+		if !isSimpleIdentifier(maybeAlias) {
+			return nil, fmt.Errorf("invalid alias: %q", maybeAlias)
+		}
+		alias = maybeAlias
+		expr = strings.TrimSpace(expr[:idx])
+	}
+
+	// Function call: funcname(args...)
+	if openParen := strings.Index(expr, "("); openParen > 0 {
+		if expr[len(expr)-1] != ')' {
+			return nil, fmt.Errorf("malformed function call: %q", expr)
+		}
+		funcName := strings.TrimSpace(expr[:openParen])
+		argsStr := expr[openParen+1 : len(expr)-1]
+		rawArgs := splitFuncArgs(argsStr)
+
+		// Aggregate function path
+		if aggBuilder, ok := aggregateFuncs[funcName]; ok {
+			if !allowAggregate {
+				return nil, fmt.Errorf("aggregate function %q not allowed in group-by", funcName)
+			}
+			if len(rawArgs) != 1 {
+				return nil, fmt.Errorf("%s() takes exactly one argument", funcName)
+			}
+			builtArgs, err := dbResource.buildFuncArgs(funcName, rawArgs, tables)
+			if err != nil {
+				return nil, err
+			}
+			result := aggBuilder(builtArgs[0])
+			if alias != "" {
+				return result.As(alias), nil
+			}
+			return result, nil
+		}
+
+		// Scalar function path
+		if !scalarFuncs[funcName] {
+			return nil, fmt.Errorf("unsupported function: %q", funcName)
+		}
+		// Scalar functions must reference at least one schema column.
+		// This blocks zero-argument system functions (e.g. sqlite_version()).
+		hasColumnArg := false
+		for _, raw := range rawArgs {
+			raw = strings.TrimSpace(raw)
+			if raw != "*" && !(strings.HasPrefix(raw, "'") && strings.HasSuffix(raw, "'")) {
+				hasColumnArg = true
+				break
+			}
+		}
+		if !hasColumnArg {
+			return nil, fmt.Errorf("scalar function %q requires at least one column argument", funcName)
+		}
+		builtArgs, err := dbResource.buildFuncArgs(funcName, rawArgs, tables)
+		if err != nil {
+			return nil, err
+		}
+		result := goqu.Func(funcName, builtArgs...)
+		if alias != "" {
+			return result.As(alias), nil
+		}
+		return result, nil
+	}
+
+	// Plain column reference — no parentheses permitted
+	if strings.ContainsAny(expr, "(),") {
+		return nil, fmt.Errorf("invalid expression: %q", expr)
+	}
+	if err := dbResource.validateColumnRef(expr, tables); err != nil {
+		return nil, err
+	}
+	col := goqu.I(expr)
+	if alias != "" {
+		return col.As(alias), nil
+	}
+	return col, nil
+}
+
 func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sqlx.Tx) (*AggregateData, error) {
 
 	requestedGroupBys := req.GroupBy
-
 	projections := req.ProjectColumn
-
 	joinedTables := make([]string, 0)
 
+	// Pre-pass: validate join table names and build allowedTables.
+	// Projections and group-by are validated against this set so cross-table
+	// column references (e.g. "customer.name") can be schema-checked.
+	allowedTables := []string{req.RootEntity}
+	for _, join := range req.Join {
+		joinParts := strings.Split(join, "@")
+		joinTable := joinParts[0]
+		if dbResource.Cruds[joinTable] == nil {
+			return nil, fmt.Errorf("unknown join table: %q", joinTable)
+		}
+		allowedTables = append(allowedTables, joinTable)
+	}
+
+	// Parse and validate projections (column param).
+	// Top-level comma-splitting is preserved for the "column=a,b,c" shorthand.
 	projectionsAdded := make([]interface{}, 0)
 	updatedProjections := make([]string, 0)
 	for _, project := range projections {
@@ -129,29 +379,29 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 	}
 	projections = updatedProjections
 
-	for i, project := range projections {
-		if project == "count" {
-			projections[i] = "count(*) as count"
-			projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
-		} else {
-			if strings.Index(project, " as ") > -1 {
-				parts := strings.Split(project, " as ")
-				projectionsAdded = append(projectionsAdded, goqu.L(parts[0]).As(parts[1]))
-			} else {
-				projectionsAdded = append(projectionsAdded, goqu.L(project))
-			}
+	for _, project := range projections {
+		project = strings.TrimSpace(project)
+		expr, err := dbResource.parseAggExpr(project, allowedTables, true)
+		if err != nil {
+			return nil, fmt.Errorf("invalid column %q: %w", project, err)
 		}
+		projectionsAdded = append(projectionsAdded, expr)
 	}
 
+	// Parse and validate group-by expressions.
+	// Aggregate functions are not permitted in GROUP BY (allowAggregate=false).
 	groupBysAdded := make([]interface{}, 0)
 	for _, group := range requestedGroupBys {
-		projections = append(projections, group)
-		projectionsAdded = append(projectionsAdded, goqu.L(group))
-		groupBysAdded = append(groupBysAdded, goqu.L(group))
+		expr, err := dbResource.parseAggExpr(group, allowedTables, false)
+		if err != nil {
+			return nil, fmt.Errorf("invalid group-by %q: %w", group, err)
+		}
+		projectionsAdded = append(projectionsAdded, expr)
+		groupBysAdded = append(groupBysAdded, expr)
 	}
 
-	if len(projections) == 0 {
-		projectionsAdded = append(projectionsAdded, goqu.L("count(*)").As("count"))
+	if len(projectionsAdded) == 0 {
+		projectionsAdded = append(projectionsAdded, goqu.COUNT(goqu.Star()).As("count"))
 	}
 
 	selectBuilder := statementbuilder.Squirrel.Select(projectionsAdded...).Prepared(true)
@@ -181,7 +431,10 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 			if strings.Index(rightVal.(string), "@") > -1 {
 				rightValParts := strings.Split(rightVal.(string), "@")
 				entityName := rightValParts[0]
-				entityReferenceId := uuid.MustParse(rightValParts[1])
+				entityReferenceId, err := uuid.Parse(rightValParts[1])
+				if err != nil {
+					return nil, fmt.Errorf("invalid reference id in where clause - [%v][%v]: %v", entityName, rightValParts[1], err)
+				}
 				entityId, err := GetReferenceIdToIdWithTransaction(entityName, daptinid.DaptinReferenceId(entityReferenceId), transaction)
 				if err != nil {
 					return nil, fmt.Errorf("referenced entity in where clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
@@ -320,7 +573,10 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 					if strings.Index(parts[3], "@") > -1 {
 						rightValParts := strings.Split(parts[3], "@")
 						entityName := rightValParts[0]
-						entityReferenceId := uuid.MustParse(rightValParts[1])
+						entityReferenceId, err := uuid.Parse(rightValParts[1])
+						if err != nil {
+							return nil, fmt.Errorf("invalid reference id in join clause - [%v][%v]: %v", entityName, rightValParts[1], err)
+						}
 						entityId, err := GetReferenceIdToIdWithTransaction(entityName, daptinid.DaptinReferenceId(entityReferenceId), transaction)
 						if err != nil {
 							return nil, fmt.Errorf("referenced entity in join clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
