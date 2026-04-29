@@ -315,6 +315,14 @@ func (dbResource *DbResource) GetLLMProviderByNameWithTransaction(name string, t
 	}
 	llmProvider.ProviderParameters = params
 
+	pricing := make(map[string]rootpojo.ModelPricing)
+	pricingStr := StringOrEmpty(row["model_pricing"])
+	if pricingStr != "" {
+		err = json.Unmarshal([]byte(pricingStr), &pricing)
+		CheckInfo(err, "Failed to unmarshal llm model_pricing [%v]", llmProvider.Name)
+	}
+	llmProvider.ModelPricing = pricing
+
 	enableVal, ok := row["enable"].(int64)
 	if !ok {
 		enableInt, ok := row["enable"].(int)
@@ -365,6 +373,13 @@ func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]roo
 			CheckInfo(err, "Failed to unmarshal llm provider parameters [%v]", row["name"])
 		}
 
+		pricing := make(map[string]rootpojo.ModelPricing)
+		pricingStr := StringOrEmpty(row["model_pricing"])
+		if pricingStr != "" {
+			err = json.Unmarshal([]byte(pricingStr), &pricing)
+			CheckInfo(err, "Failed to unmarshal llm model_pricing [%v]", row["name"])
+		}
+
 		provider := rootpojo.LLMProvider{
 			Name:               row["name"].(string),
 			ProviderType:       row["provider_type"].(string),
@@ -372,6 +387,7 @@ func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]roo
 			Models:             row["models"].(string),
 			CredentialName:     StringOrEmpty(row["credential_name"]),
 			ProviderParameters: params,
+			ModelPricing:       pricing,
 			Enable:             true,
 			Id:                 row["id"].(int64),
 			ReferenceId:        daptinid.InterfaceToDIR(row["reference_id"]),

@@ -9,6 +9,7 @@ import (
 
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/rootpojo"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/zendev-sh/goai"
@@ -385,8 +386,17 @@ func buildGoAIOptions(req OpenAIChatRequest, providerParams map[string]interface
 		}
 	}
 
+	// Prompt caching — enable via provider_parameters or request extra_params
+	if promptCaching, ok := providerParams["prompt_caching"].(bool); ok && promptCaching {
+		opts = append(opts, goai.WithPromptCaching(true))
+	}
+
 	// Provider-specific options passthrough (request-level overrides provider defaults)
 	if len(req.ExtraParams) > 0 {
+		// Check for prompt_caching in request-level extra_params
+		if pc, ok := req.ExtraParams["prompt_caching"].(bool); ok && pc {
+			opts = append(opts, goai.WithPromptCaching(true))
+		}
 		opts = append(opts, goai.WithProviderOptions(req.ExtraParams))
 	}
 
@@ -395,6 +405,7 @@ func buildGoAIOptions(req OpenAIChatRequest, providerParams map[string]interface
 
 // ChatCompletion performs a non-streaming chat completion.
 func (p *GoAIProvider) ChatCompletion(ctx context.Context, llmProvider rootpojo.LLMProvider, req OpenAIChatRequest, tx *sqlx.Tx) (*OpenAIChatResponse, error) {
+	startTime := time.Now()
 	model, err := p.ResolveChatModel(llmProvider, req.Model, tx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve model: %v", err)
@@ -452,17 +463,25 @@ func (p *GoAIProvider) ChatCompletion(ctx context.Context, llmProvider rootpojo.
 			PromptTokens:     result.TotalUsage.InputTokens,
 			CompletionTokens: result.TotalUsage.OutputTokens,
 			TotalTokens:      result.TotalUsage.InputTokens + result.TotalUsage.OutputTokens,
+			ReasoningTokens:  result.TotalUsage.ReasoningTokens,
+			CacheReadTokens:  result.TotalUsage.CacheReadTokens,
+			CacheWriteTokens: result.TotalUsage.CacheWriteTokens,
 		},
 	}
 
-	log.Infof("[llm] chat response: model=%s finish=%s tokens_in=%d tokens_out=%d",
-		req.Model, finishReason, result.TotalUsage.InputTokens, result.TotalUsage.OutputTokens)
+	log.Infof("[llm] chat response: model=%s finish=%s tokens_in=%d tokens_out=%d cache_read=%d cache_write=%d",
+		req.Model, finishReason, result.TotalUsage.InputTokens, result.TotalUsage.OutputTokens,
+		result.TotalUsage.CacheReadTokens, result.TotalUsage.CacheWriteTokens)
+
+	// Async usage logging
+	p.logUsageAsync(llmProvider, req.Model, "chat", result.TotalUsage, finishReason, time.Since(startTime))
 
 	return response, nil
 }
 
 // ChatCompletionStream performs a streaming chat completion, calling flush for each chunk.
 func (p *GoAIProvider) ChatCompletionStream(ctx context.Context, llmProvider rootpojo.LLMProvider, req OpenAIChatRequest, tx *sqlx.Tx, flush func(chunk OpenAIChatChunk)) error {
+	startTime := time.Now()
 	model, err := p.ResolveChatModel(llmProvider, req.Model, tx)
 	if err != nil {
 		return fmt.Errorf("failed to resolve model: %v", err)
@@ -507,18 +526,28 @@ func (p *GoAIProvider) ChatCompletionStream(ctx context.Context, llmProvider roo
 		ID: responseID, Object: "chat.completion.chunk", Created: created, Model: req.Model,
 		Choices: []OpenAIChunkChoice{{Index: 0, Delta: OpenAIDelta{}, FinishReason: &finishReason}},
 		Usage: &OpenAIUsage{
-			PromptTokens: result.TotalUsage.InputTokens, CompletionTokens: result.TotalUsage.OutputTokens,
-			TotalTokens: result.TotalUsage.InputTokens + result.TotalUsage.OutputTokens,
+			PromptTokens:     result.TotalUsage.InputTokens,
+			CompletionTokens: result.TotalUsage.OutputTokens,
+			TotalTokens:      result.TotalUsage.InputTokens + result.TotalUsage.OutputTokens,
+			ReasoningTokens:  result.TotalUsage.ReasoningTokens,
+			CacheReadTokens:  result.TotalUsage.CacheReadTokens,
+			CacheWriteTokens: result.TotalUsage.CacheWriteTokens,
 		},
 	})
 
-	log.Infof("[llm] stream complete: model=%s chunks=%d tokens_in=%d tokens_out=%d",
-		req.Model, chunkCount, result.TotalUsage.InputTokens, result.TotalUsage.OutputTokens)
+	log.Infof("[llm] stream complete: model=%s chunks=%d tokens_in=%d tokens_out=%d cache_read=%d cache_write=%d",
+		req.Model, chunkCount, result.TotalUsage.InputTokens, result.TotalUsage.OutputTokens,
+		result.TotalUsage.CacheReadTokens, result.TotalUsage.CacheWriteTokens)
+
+	// Async usage logging
+	p.logUsageAsync(llmProvider, req.Model, "chat", result.TotalUsage, finishReason, time.Since(startTime))
+
 	return nil
 }
 
 // Embedding generates embeddings for the given input.
 func (p *GoAIProvider) Embedding(ctx context.Context, llmProvider rootpojo.LLMProvider, req OpenAIEmbeddingRequest, tx *sqlx.Tx) (*OpenAIEmbeddingResponse, error) {
+	startTime := time.Now()
 	model, err := p.ResolveEmbeddingModel(llmProvider, req.Model, tx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve embedding model: %v", err)
@@ -549,7 +578,11 @@ func (p *GoAIProvider) Embedding(ctx context.Context, llmProvider rootpojo.LLMPr
 		data = append(data, OpenAIEmbedding{Object: "embedding", Embedding: emb, Index: i})
 	}
 
-	log.Infof("[llm] embedding response: model=%s embeddings=%d", req.Model, len(data))
+	log.Infof("[llm] embedding response: model=%s embeddings=%d tokens=%d", req.Model, len(data), result.Usage.InputTokens)
+
+	// Async usage logging
+	p.logUsageAsync(llmProvider, req.Model, "embedding", result.Usage, "stop", time.Since(startTime))
+
 	return &OpenAIEmbeddingResponse{
 		Object: "list", Data: data, Model: req.Model,
 		Usage: OpenAIEmbeddingUsage{PromptTokens: result.Usage.InputTokens, TotalTokens: result.Usage.InputTokens},
@@ -578,6 +611,66 @@ func extractContentString(content interface{}) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+// logUsageAsync inserts a row into llm_usage asynchronously via direct SQL.
+// Single insertion point for all LLM operations — endpoints and performers both flow through here.
+func (p *GoAIProvider) logUsageAsync(llmProvider rootpojo.LLMProvider, model, requestType string, usage provider.Usage, finishReason string, duration time.Duration) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("[llm] usage logging panic: %v", r)
+			}
+		}()
+
+		worldCrud, ok := p.cruds["world"]
+		if !ok {
+			return
+		}
+
+		costMicros := computeCostMicros(llmProvider.ModelPricing, model, usage)
+		refId, _ := uuid.NewV7()
+		now := time.Now()
+
+		_, err := worldCrud.Connection().Exec(
+			`INSERT INTO llm_usage (provider_name, model, request_type, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, reasoning_tokens, total_tokens, cost_micros, duration_ms, finish_reason, reference_id, permission, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			llmProvider.Name, model, requestType,
+			usage.InputTokens, usage.OutputTokens,
+			usage.CacheReadTokens, usage.CacheWriteTokens,
+			usage.ReasoningTokens,
+			usage.InputTokens+usage.OutputTokens,
+			costMicros,
+			int(duration.Milliseconds()),
+			finishReason,
+			refId.String(),
+			2097151,
+			now, now,
+		)
+		if err != nil {
+			log.Errorf("[llm] usage logging: insert failed: %v", err)
+			return
+		}
+
+		log.Debugf("[llm] usage logged: provider=%s model=%s tokens=%d cost_micros=%d duration=%dms",
+			llmProvider.Name, model, usage.InputTokens+usage.OutputTokens, costMicros, int(duration.Milliseconds()))
+	}()
+}
+
+// computeCostMicros calculates cost in 1/1,000,000 USD from model pricing and token usage.
+func computeCostMicros(pricing map[string]rootpojo.ModelPricing, model string, usage provider.Usage) int {
+	mp, ok := pricing[model]
+	if !ok {
+		return 0
+	}
+
+	// Pricing is per million tokens, cost_micros is in 1/1,000,000 USD
+	// cost_micros = tokens * (price_per_mtok / 1,000,000) * 1,000,000 = tokens * price_per_mtok
+	cost := float64(usage.InputTokens) * mp.Input
+	cost += float64(usage.OutputTokens) * mp.Output
+	cost += float64(usage.CacheReadTokens) * mp.CacheRead
+	cost += float64(usage.CacheWriteTokens) * mp.CacheWrite
+
+	return int(cost)
 }
 
 func mapFinishReason(reason provider.FinishReason) string {
