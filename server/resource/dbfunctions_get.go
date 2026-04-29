@@ -275,6 +275,153 @@ func StringOrEmpty(i interface{}) string {
 	return ""
 }
 
+func (dbResource *DbResource) GetLLMProviderByNameWithTransaction(name string, transaction *sqlx.Tx) (rootpojo.LLMProvider, error) {
+	var llmProvider rootpojo.LLMProvider
+
+	cacheKey := fmt.Sprintf("llm-provider-%v", name)
+	if OlricCache != nil {
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
+		if err == nil {
+			bytes, err := cachedValue.Byte()
+			if err == nil {
+				err = json.Unmarshal(bytes, &llmProvider)
+				if err == nil {
+					return llmProvider, nil
+				}
+			}
+		}
+	}
+
+	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("llm_provider", nil, transaction, goqu.Ex{"name": name})
+	if err != nil || len(rows) == 0 {
+		return llmProvider, fmt.Errorf("llm provider not found [%v]", name)
+	}
+
+	row := rows[0]
+	llmProvider.Name = row["name"].(string)
+	llmProvider.ProviderType = row["provider_type"].(string)
+	llmProvider.BaseUrl = StringOrEmpty(row["base_url"])
+	llmProvider.Models = row["models"].(string)
+	llmProvider.CredentialName = StringOrEmpty(row["credential_name"])
+	llmProvider.Id = row["id"].(int64)
+	llmProvider.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
+	llmProvider.Version = int(row["version"].(int64))
+
+	params := make(map[string]interface{})
+	providerParamsStr := StringOrEmpty(row["provider_parameters"])
+	if providerParamsStr != "" {
+		err = json.Unmarshal([]byte(providerParamsStr), &params)
+		CheckInfo(err, "Failed to unmarshal llm provider parameters [%v]", llmProvider.Name)
+	}
+	llmProvider.ProviderParameters = params
+
+	enableVal, ok := row["enable"].(int64)
+	if !ok {
+		enableInt, ok := row["enable"].(int)
+		if ok {
+			enableVal = int64(enableInt)
+		}
+	}
+	llmProvider.Enable = enableVal == 1
+
+	if OlricCache != nil {
+		asJson := ToJson(llmProvider)
+		OlricCache.Put(context.Background(), cacheKey, asJson, olric.EX(10*time.Minute), olric.NX())
+	}
+
+	log.Debugf("[llm] loaded provider: name=%s type=%s models=%s", llmProvider.Name, llmProvider.ProviderType, llmProvider.Models)
+	return llmProvider, nil
+}
+
+func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]rootpojo.LLMProvider, error) {
+	providers := make([]rootpojo.LLMProvider, 0)
+	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("llm_provider", nil, transaction)
+	if err != nil {
+		return providers, err
+	}
+
+	for _, row := range rows {
+		enableVal, ok := row["enable"].(int64)
+		if !ok {
+			enableInt, ok := row["enable"].(int)
+			if ok {
+				enableVal = int64(enableInt)
+			} else {
+				strI, ok := row["enable"].(string)
+				if ok {
+					enableVal, err = strconv.ParseInt(strI, 10, 32)
+					CheckErr(err, "Failed to convert llm_provider 'enable' value to int")
+				}
+			}
+		}
+		if enableVal != 1 {
+			continue
+		}
+
+		params := make(map[string]interface{})
+		providerParamsStr := StringOrEmpty(row["provider_parameters"])
+		if providerParamsStr != "" {
+			err = json.Unmarshal([]byte(providerParamsStr), &params)
+			CheckInfo(err, "Failed to unmarshal llm provider parameters [%v]", row["name"])
+		}
+
+		provider := rootpojo.LLMProvider{
+			Name:               row["name"].(string),
+			ProviderType:       row["provider_type"].(string),
+			BaseUrl:            StringOrEmpty(row["base_url"]),
+			Models:             row["models"].(string),
+			CredentialName:     StringOrEmpty(row["credential_name"]),
+			ProviderParameters: params,
+			Enable:             true,
+			Id:                 row["id"].(int64),
+			ReferenceId:        daptinid.InterfaceToDIR(row["reference_id"]),
+			Version:            int(row["version"].(int64)),
+		}
+		providers = append(providers, provider)
+	}
+
+	log.Infof("[llm] loaded %d active LLM providers", len(providers))
+	return providers, nil
+}
+
+func (dbResource *DbResource) ResolveLLMProviderByModel(modelName string, transaction *sqlx.Tx) (rootpojo.LLMProvider, error) {
+	cacheKey := fmt.Sprintf("llm-model-%v", modelName)
+	if OlricCache != nil {
+		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
+		if err == nil {
+			bytes, err := cachedValue.Byte()
+			if err == nil {
+				var provider rootpojo.LLMProvider
+				err = json.Unmarshal(bytes, &provider)
+				if err == nil {
+					return provider, nil
+				}
+			}
+		}
+	}
+
+	providers, err := dbResource.GetActiveLLMProviders(transaction)
+	if err != nil {
+		return rootpojo.LLMProvider{}, fmt.Errorf("failed to get active llm providers: %v", err)
+	}
+
+	for _, provider := range providers {
+		models := strings.Split(provider.Models, ",")
+		for _, model := range models {
+			if strings.TrimSpace(model) == modelName {
+				log.Debugf("[llm] resolved model=%s to provider=%s type=%s", modelName, provider.Name, provider.ProviderType)
+				if OlricCache != nil {
+					asJson := ToJson(provider)
+					OlricCache.Put(context.Background(), cacheKey, asJson, olric.EX(10*time.Minute), olric.NX())
+				}
+				return provider, nil
+			}
+		}
+	}
+
+	return rootpojo.LLMProvider{}, fmt.Errorf("no llm provider found for model [%v]", modelName)
+}
+
 func (dbResource *DbResource) GetAllTasks() ([]task.Task, error) {
 
 	var tasks []task.Task

@@ -1,6 +1,6 @@
 module github.com/daptin/daptin
 
-go 1.24.3
+go 1.25.0
 
 // +heroku goVersion go1.15
 
@@ -85,7 +85,7 @@ require (
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	golang.org/x/crypto v0.37.0
 	golang.org/x/net v0.38.0
-	golang.org/x/oauth2 v0.27.0
+	golang.org/x/oauth2 v0.36.0
 	golang.org/x/text v0.24.0
 	golang.org/x/time v0.10.0
 	gopkg.in/go-playground/validator.v9 v9.30.2
@@ -376,6 +376,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
+	github.com/zendev-sh/goai v0.7.3 // indirect
 	go.etcd.io/bbolt v1.4.0 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
@@ -386,6 +387,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
 	gocloud.dev v0.24.0 // indirect
 	golang.org/x/arch v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect

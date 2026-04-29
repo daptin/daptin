@@ -9,6 +9,7 @@ import (
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	"github.com/daptin/daptin/server/fsm"
 	"github.com/daptin/daptin/server/hostswitch"
+	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/daptin/daptin/server/task"
@@ -521,6 +522,10 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 		ftpServer = InitializeFtpResources(configStore, transaction, ftpServer, cruds, crudsInterface, certificateManager)
 	}
+
+	// Register OpenAI-compatible LLM endpoints (drop-in replacement)
+	goaiProvider := llm.NewGoAIProvider(cruds)
+	RegisterLLMEndpoints(defaultRouter, goaiProvider, cruds)
 
 	defaultRouter.GET("/ping", func(c *gin.Context) {
 		transaction, err := cruds["world"].Connection().Beginx()

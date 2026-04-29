@@ -5,6 +5,7 @@ import (
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/actions"
 	"github.com/daptin/daptin/server/hostswitch"
+	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
 	log "github.com/sirupsen/logrus"
 )
@@ -101,6 +102,17 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	NewNetworkRequestPerformer, err := actions.NewNetworkRequestPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create generate network request performer")
 	performers = append(performers, NewNetworkRequestPerformer)
+
+	// LLM performers (GoAI SDK — like rclone for cloud storage)
+	goaiProvider := llm.NewGoAIProvider(cruds)
+
+	llmChatPerformer, err := actions.NewLLMChatPerformer(initConfig, cruds, goaiProvider)
+	resource.CheckErr(err, "Failed to create LLM chat performer")
+	performers = append(performers, llmChatPerformer)
+
+	llmEmbeddingPerformer, err := actions.NewLLMEmbeddingPerformer(initConfig, cruds, goaiProvider)
+	resource.CheckErr(err, "Failed to create LLM embedding performer")
+	performers = append(performers, llmEmbeddingPerformer)
 
 	randomDataGenerator, err := actions.NewRandomDataGeneratePerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create random data generator")

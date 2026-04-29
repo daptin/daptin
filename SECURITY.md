@@ -3,7 +3,7 @@
 ## Supported Versions
 
 | Version | Supported |
-|-------|----------|
+|---------|-----------|
 | Latest (main) | ✅ |
 | < 0.11.4 | ❌ |
 
@@ -29,7 +29,7 @@ Published advisories are listed at:
 https://github.com/daptin/daptin/security/advisories
 
 | Advisory | CVE | Severity | Fixed In | Summary |
-|----------|-----|---------|---------|--------|
+|----------|-----|----------|----------|---------|
 | [GHSA-rw2c-8rfq-gwfv](https://github.com/daptin/daptin/security/advisories/GHSA-rw2c-8rfq-gwfv) | Pending | High (8.3) | v0.11.4 | SQL injection via unvalidated `goqu.L()` calls in aggregate API (CWE-89) |
 
 ## Scope
