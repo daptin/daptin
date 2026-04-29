@@ -2,9 +2,9 @@
 
 Daptin supports multiple authentication methods: JWT tokens, OAuth providers, and Two-Factor Authentication.
 
-**Related**: [[Permissions|Permissions]] | [[Users-and-Groups|Users and Groups]] | [[Two-Factor-Auth|Two-Factor Auth]]
+**Related**: [[Permissions|Permissions]] | [[Users-and-Groups|Users and Groups]] | [[Two-Factor-Auth|Two-Factor Auth]] | [[OAuth-Provider|OAuth Provider]]
 
-**Source of truth**: `server/resource/columns.go` (actions), `server/actions/action_oauth_*.go` (OAuth performers)
+**Source of truth**: `server/resource/columns.go` (actions), `server/actions/action_oauth_*.go` (OAuth consumer performers), `server/endpoint_oauth.go` and `server/resource/oauth_provider.go` (OAuth provider)
 
 ---
 
@@ -129,6 +129,8 @@ curl -X POST http://localhost:6336/_config/backend/jwt.token.issuer \
 ## OAuth Authentication
 
 Daptin supports OAuth 2.0 for authenticating users via external providers (Google, GitHub, etc.) or for obtaining API tokens for integrations.
+
+This section covers Daptin as an OAuth consumer. If you want Daptin to issue OAuth/OIDC tokens to another application, use [[OAuth-Provider|OAuth Provider]].
 
 ### System Tables
 

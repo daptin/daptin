@@ -35,6 +35,7 @@ pages:
   - OAuth:
     - OAuth Connections: extend/oauth_connection.md
     - OAuth Tokens: extend/oauth_token.md
+    - OAuth Provider: extend/oauth_provider.md
   - 3rd party API Integrations: integrations/overview.md
   - Cloud store:
     - Cloud store: cloudstore/index.md

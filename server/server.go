@@ -560,6 +560,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.PUT("/_config/:end/:key", configHandler)
 	defaultRouter.DELETE("/_config/:end/:key", configHandler)
 
+	InitializeOAuthResources(cruds, configStore, defaultRouter)
+
 	resource.RegisterTranslations()
 
 	if initConfig.EnableGraphQL {

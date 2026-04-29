@@ -131,6 +131,9 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 **Set up user authentication**
 → [[Users-and-Groups|Users and Groups]] + [[Authentication|Authentication]]
 
+**Let another app sign users in through Daptin**
+→ [[OAuth-Provider|OAuth Provider]]
+
 **Upload files to S3/cloud storage**
 → [[Cloud-Storage|Cloud Storage]] + [[Asset-Columns|Asset Columns]]
 
@@ -215,6 +218,8 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 
 ### Security
 - [[Authentication]] - JWT tokens, OAuth
+- [[OAuth Provider]] - Daptin as OAuth 2.0/OIDC provider
+- [[OAuth Provider Technical KT]] - Maintainer notes for provider internals
 - [[TLS Certificates]] - HTTPS, Let's Encrypt
 - [[Two-Factor Auth]] - TOTP/OTP support
 - [[Encryption]] - Data encryption at rest

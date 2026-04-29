@@ -19,6 +19,7 @@ import (
 	"github.com/jlaffaye/ftp"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -791,6 +792,12 @@ func runTests(t *testing.T) error {
 	}
 	t.Logf("Hostname from config: %v", resp.String())
 
+	if err := runOAuthProviderE2ETests(t, baseAddress, token); err != nil {
+		t.Errorf("OAuth provider e2e failed: %v", err)
+		t.FailNow()
+		return err
+	}
+
 	graphqlResponse, err := requestClient.Post(baseAddress+"/graphql",
 		`{"query":"query {\n  action (filter:\"become_an_administrator\")  {\n    action_name\n  }\n}","variables":null}`,
 		authTokenHeader)
@@ -917,6 +924,322 @@ func runTests(t *testing.T) error {
 
 	return nil
 
+}
+
+func runOAuthProviderE2ETests(t *testing.T, baseAddress string, daptinToken string) error {
+	noRedirectClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Timeout: 30 * time.Second,
+	}
+
+	redirectURI := "https://client.example/callback"
+	appPayload := `{"attributes":{"name":"Daptin E2E OAuth App","redirect_uris":"` + redirectURI + `","scopes":"openid profile email","grants":"authorization_code,refresh_token","is_confidential":true}}`
+	appReq, err := http.NewRequest("POST", baseAddress+"/action/oauth_app/register_client", strings.NewReader(appPayload))
+	if err != nil {
+		return err
+	}
+	appReq.Header.Set("Authorization", "Bearer "+daptinToken)
+	appReq.Header.Set("Content-Type", "application/json")
+	appResp, err := noRedirectClient.Do(appReq)
+	if err != nil {
+		return err
+	}
+	defer appResp.Body.Close()
+	if appResp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(appResp.Body)
+		return fmt.Errorf("oauth_app register action failed: %d %s", appResp.StatusCode, string(body))
+	}
+	var appActionResponses []map[string]interface{}
+	if err := json.NewDecoder(appResp.Body).Decode(&appActionResponses); err != nil {
+		return err
+	}
+	appActionAttrs := actionResponseAttributes(appActionResponses, "oauth_app")
+	clientID, _ := appActionAttrs["client_id"].(string)
+	clientSecret, _ := appActionAttrs["client_secret"].(string)
+	oauthAppRef, _ := appActionAttrs["reference_id"].(string)
+	if clientID == "" || clientSecret == "" || oauthAppRef == "" {
+		return fmt.Errorf("oauth_app register action missing client credentials: %v", appActionResponses)
+	}
+
+	rotateAttrs, err := oauthAppAction(noRedirectClient, baseAddress, daptinToken, "rotate_client_secret", oauthAppRef, nil)
+	if err != nil {
+		return err
+	}
+	rotatedSecret, _ := rotateAttrs["client_secret"].(string)
+	if rotatedSecret == "" || rotatedSecret == clientSecret {
+		return fmt.Errorf("oauth_app rotate_client_secret did not return a new secret: %v", rotateAttrs)
+	}
+	clientSecret = rotatedSecret
+
+	if _, err := oauthAppAction(noRedirectClient, baseAddress, daptinToken, "disable_client", oauthAppRef, nil); err != nil {
+		return err
+	}
+	disabledAuthorizeURL := baseAddress + "/oauth/authorize?response_type=code&client_id=" + url.QueryEscape(clientID) + "&redirect_uri=" + url.QueryEscape(redirectURI) + "&scope=openid&code_challenge=disabled&code_challenge_method=plain"
+	disabledAuthorizeReq, err := http.NewRequest("GET", disabledAuthorizeURL, nil)
+	if err != nil {
+		return err
+	}
+	disabledAuthorizeReq.Header.Set("Authorization", "Bearer "+daptinToken)
+	disabledAuthorizeResp, err := noRedirectClient.Do(disabledAuthorizeReq)
+	if err != nil {
+		return err
+	}
+	disabledAuthorizeResp.Body.Close()
+	if disabledAuthorizeResp.StatusCode != http.StatusBadRequest {
+		return fmt.Errorf("expected disabled oauth client to fail authorize with 400, got %d", disabledAuthorizeResp.StatusCode)
+	}
+	if _, err := oauthAppAction(noRedirectClient, baseAddress, daptinToken, "enable_client", oauthAppRef, nil); err != nil {
+		return err
+	}
+
+	badAuthorizeURL := baseAddress + "/oauth/authorize?response_type=code&client_id=" + url.QueryEscape(clientID) + "&redirect_uri=" + url.QueryEscape("https://evil.example/callback") + "&scope=openid"
+	badAuthorizeReq, err := http.NewRequest("GET", badAuthorizeURL, nil)
+	if err != nil {
+		return err
+	}
+	badAuthorizeReq.Header.Set("Authorization", "Bearer "+daptinToken)
+	badAuthorizeResp, err := noRedirectClient.Do(badAuthorizeReq)
+	if err != nil {
+		return err
+	}
+	badAuthorizeResp.Body.Close()
+	if badAuthorizeResp.StatusCode != http.StatusBadRequest {
+		return fmt.Errorf("expected invalid redirect_uri to fail with 400, got %d", badAuthorizeResp.StatusCode)
+	}
+
+	missingPKCEURL := baseAddress + "/oauth/authorize?response_type=code&client_id=" + url.QueryEscape(clientID) +
+		"&redirect_uri=" + url.QueryEscape(redirectURI) +
+		"&scope=" + url.QueryEscape("openid profile email") +
+		"&state=missing-pkce"
+	missingPKCEReq, err := http.NewRequest("GET", missingPKCEURL, nil)
+	if err != nil {
+		return err
+	}
+	missingPKCEReq.Header.Set("Authorization", "Bearer "+daptinToken)
+	missingPKCEResp, err := noRedirectClient.Do(missingPKCEReq)
+	if err != nil {
+		return err
+	}
+	missingPKCEResp.Body.Close()
+	if missingPKCEResp.StatusCode != http.StatusFound {
+		return fmt.Errorf("expected missing PKCE challenge to redirect with oauth error, got %d", missingPKCEResp.StatusCode)
+	}
+	missingPKCERedirect, err := url.Parse(missingPKCEResp.Header.Get("Location"))
+	if err != nil {
+		return err
+	}
+	if missingPKCERedirect.Query().Get("error") != "invalid_request" || missingPKCERedirect.Query().Get("code") != "" {
+		return fmt.Errorf("missing PKCE challenge did not fail cleanly: %s", missingPKCEResp.Header.Get("Location"))
+	}
+
+	codeVerifier := "daptin-e2e-s256-verifier"
+	authorizeURL := baseAddress + "/oauth/authorize?response_type=code&client_id=" + url.QueryEscape(clientID) +
+		"&redirect_uri=" + url.QueryEscape(redirectURI) +
+		"&scope=" + url.QueryEscape("openid profile email") +
+		"&state=e2e-state&code_challenge=" + url.QueryEscape(resource.OAuthPKCES256(codeVerifier)) +
+		"&code_challenge_method=S256&nonce=e2e-nonce"
+	authorizeReq, err := http.NewRequest("GET", authorizeURL, nil)
+	if err != nil {
+		return err
+	}
+	authorizeReq.Header.Set("Authorization", "Bearer "+daptinToken)
+	authorizeResp, err := noRedirectClient.Do(authorizeReq)
+	if err != nil {
+		return err
+	}
+	authorizeResp.Body.Close()
+	if authorizeResp.StatusCode != http.StatusFound {
+		return fmt.Errorf("expected authorize redirect, got %d", authorizeResp.StatusCode)
+	}
+	location := authorizeResp.Header.Get("Location")
+	locationURL, err := url.Parse(location)
+	if err != nil {
+		return err
+	}
+	code := locationURL.Query().Get("code")
+	if code == "" || locationURL.Query().Get("state") != "e2e-state" {
+		return fmt.Errorf("authorize redirect missing code/state: %s", location)
+	}
+
+	tokenResponse, err := oauthTokenRequest(noRedirectClient, baseAddress, clientID, clientSecret, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"redirect_uri":  {redirectURI},
+		"code_verifier": {codeVerifier},
+	})
+	if err != nil {
+		return err
+	}
+	accessToken, _ := tokenResponse["access_token"].(string)
+	refreshToken, _ := tokenResponse["refresh_token"].(string)
+	if accessToken == "" || refreshToken == "" || tokenResponse["token_type"] != "Bearer" {
+		return fmt.Errorf("token response missing bearer tokens: %v", tokenResponse)
+	}
+	if tokenResponse["id_token"] == nil {
+		return fmt.Errorf("openid token response missing id_token")
+	}
+
+	_, replayErr := oauthTokenRequest(noRedirectClient, baseAddress, clientID, clientSecret, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"redirect_uri":  {redirectURI},
+		"code_verifier": {codeVerifier},
+	})
+	if replayErr == nil {
+		return fmt.Errorf("authorization code replay unexpectedly succeeded")
+	}
+
+	refreshResponse, err := oauthTokenRequest(noRedirectClient, baseAddress, clientID, clientSecret, url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {refreshToken},
+	})
+	if err != nil {
+		return err
+	}
+	refreshedAccessToken, _ := refreshResponse["access_token"].(string)
+	if refreshedAccessToken == "" || refreshedAccessToken == accessToken {
+		return fmt.Errorf("refresh did not rotate access token: %v", refreshResponse)
+	}
+	if _, err := oauthTokenRequest(noRedirectClient, baseAddress, clientID, clientSecret, url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {refreshToken},
+	}); err == nil {
+		return fmt.Errorf("refresh token replay unexpectedly succeeded")
+	}
+
+	userinfoReq, err := http.NewRequest("GET", baseAddress+"/oauth/userinfo", nil)
+	if err != nil {
+		return err
+	}
+	userinfoReq.Header.Set("Authorization", "Bearer "+refreshedAccessToken)
+	userinfoResp, err := noRedirectClient.Do(userinfoReq)
+	if err != nil {
+		return err
+	}
+	var userinfo map[string]interface{}
+	err = json.NewDecoder(userinfoResp.Body).Decode(&userinfo)
+	userinfoResp.Body.Close()
+	if err != nil {
+		return err
+	}
+	if userinfoResp.StatusCode != http.StatusOK || userinfo["sub"] == "" || userinfo["email"] != "test@gmail.com" {
+		return fmt.Errorf("unexpected userinfo response %d %v", userinfoResp.StatusCode, userinfo)
+	}
+
+	introspection, err := oauthFormRequest(noRedirectClient, baseAddress+"/oauth/introspect", clientID, clientSecret, url.Values{"token": {refreshedAccessToken}})
+	if err != nil {
+		return err
+	}
+	if introspection["active"] != true {
+		return fmt.Errorf("expected active introspection response: %v", introspection)
+	}
+	if _, err := oauthFormRequest(noRedirectClient, baseAddress+"/oauth/revoke", clientID, clientSecret, url.Values{"token": {refreshedAccessToken}}); err != nil {
+		return err
+	}
+	inactiveIntrospection, err := oauthFormRequest(noRedirectClient, baseAddress+"/oauth/introspect", clientID, clientSecret, url.Values{"token": {refreshedAccessToken}})
+	if err != nil {
+		return err
+	}
+	if inactiveIntrospection["active"] != false {
+		return fmt.Errorf("expected inactive introspection response: %v", inactiveIntrospection)
+	}
+
+	jwksReq, err := http.NewRequest("GET", baseAddress+"/oauth/jwks", nil)
+	if err != nil {
+		return err
+	}
+	jwksResp, err := noRedirectClient.Do(jwksReq)
+	if err != nil {
+		return err
+	}
+	var jwks map[string]interface{}
+	err = json.NewDecoder(jwksResp.Body).Decode(&jwks)
+	jwksResp.Body.Close()
+	if err != nil {
+		return err
+	}
+	keys, _ := jwks["keys"].([]interface{})
+	if jwksResp.StatusCode != http.StatusOK || len(keys) == 0 {
+		return fmt.Errorf("expected jwks keys, got %d %v", jwksResp.StatusCode, jwks)
+	}
+	return nil
+}
+
+func oauthTokenRequest(client *http.Client, baseAddress string, clientID string, clientSecret string, form url.Values) (map[string]interface{}, error) {
+	return oauthFormRequest(client, baseAddress+"/oauth/token", clientID, clientSecret, form)
+}
+
+func oauthFormRequest(client *http.Client, endpoint string, clientID string, clientSecret string, form url.Values) (map[string]interface{}, error) {
+	httpReq, err := http.NewRequest("POST", endpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.SetBasicAuth(clientID, clientSecret)
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var body map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			return map[string]interface{}{}, nil
+		}
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		return body, fmt.Errorf("oauth form request failed: %d %v", resp.StatusCode, body)
+	}
+	return body, nil
+}
+
+func oauthAppAction(client *http.Client, baseAddress string, daptinToken string, actionName string, oauthAppRef string, attributes map[string]interface{}) (map[string]interface{}, error) {
+	if attributes == nil {
+		attributes = map[string]interface{}{}
+	}
+	if oauthAppRef != "" {
+		attributes["oauth_app_id"] = oauthAppRef
+	}
+	payload, err := json.Marshal(map[string]interface{}{"attributes": attributes})
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", baseAddress+"/action/oauth_app/"+actionName, bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+daptinToken)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var actionResponses []map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&actionResponses); err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("oauth_app %s action failed: %d %v", actionName, resp.StatusCode, actionResponses)
+	}
+	return actionResponseAttributes(actionResponses, "oauth_app"), nil
+}
+
+func actionResponseAttributes(actionResponses []map[string]interface{}, responseType string) map[string]interface{} {
+	for _, actionResponse := range actionResponses {
+		if actionResponse["ResponseType"] == responseType {
+			attrs, _ := actionResponse["Attributes"].(map[string]interface{})
+			if attrs != nil {
+				return attrs
+			}
+		}
+	}
+	return map[string]interface{}{}
 }
 
 func CreateObject(typeName string, attributes map[string]interface{}) map[string]interface{} {

@@ -110,6 +110,30 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create oauth2 token generator")
 	performers = append(performers, oauth2tokenGenerator)
 
+	oauthClientRegisterPerformer, err := actions.NewOAuthClientRegisterPerformer(cruds)
+	resource.CheckErr(err, "Failed to create oauth client register performer")
+	performers = append(performers, oauthClientRegisterPerformer)
+
+	oauthClientUpdatePerformer, err := actions.NewOAuthClientUpdatePerformer(cruds)
+	resource.CheckErr(err, "Failed to create oauth client update performer")
+	performers = append(performers, oauthClientUpdatePerformer)
+
+	oauthClientRotateSecretPerformer, err := actions.NewOAuthClientRotateSecretPerformer(cruds)
+	resource.CheckErr(err, "Failed to create oauth client rotate secret performer")
+	performers = append(performers, oauthClientRotateSecretPerformer)
+
+	oauthClientDisablePerformer, err := actions.NewOAuthClientDisablePerformer(cruds)
+	resource.CheckErr(err, "Failed to create oauth client disable performer")
+	performers = append(performers, oauthClientDisablePerformer)
+
+	oauthClientEnablePerformer, err := actions.NewOAuthClientEnablePerformer(cruds)
+	resource.CheckErr(err, "Failed to create oauth client enable performer")
+	performers = append(performers, oauthClientEnablePerformer)
+
+	oauthClientRevokeTokensPerformer, err := actions.NewOAuthClientRevokeTokensPerformer(cruds)
+	resource.CheckErr(err, "Failed to create oauth client revoke tokens performer")
+	performers = append(performers, oauthClientRevokeTokensPerformer)
+
 	//marketplacePackage, err := resource.NewMarketplacePackageInstaller(initConfig, cruds)
 	//resource.CheckErr(err, "Failed to create marketplace package install performer")
 	//performers = append(performers, marketplacePackage)
