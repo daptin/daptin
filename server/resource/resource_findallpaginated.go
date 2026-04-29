@@ -1486,6 +1486,22 @@ func (dbResource *DbResource) processFuzzySearch(filterQuery Query, prefix strin
 		columns[i] = strings.TrimSpace(columns[i])
 	}
 
+	// Validate each column against table schema (prevents SQL injection via goqu.L)
+	tableInfo := dbResource.tableInfo
+	var validColumns []string
+	for _, col := range columns {
+		if _, ok := tableInfo.GetColumnByName(col); ok {
+			validColumns = append(validColumns, col)
+		} else {
+			log.Warnf("[1484] Table [%v] invalid fuzzy search column [%v], skipping", dbResource.model.GetName(), col)
+		}
+	}
+	if len(validColumns) == 0 {
+		log.Warnf("[1484] Table [%v] no valid columns for fuzzy search from [%v]", dbResource.model.GetName(), filterQuery.ColumnName)
+		return nil, fmt.Errorf("table [%v] no valid columns for fuzzy search", dbResource.model.GetName())
+	}
+	columns = validColumns
+
 	dbType := dbResource.Connection().DriverName()
 
 	switch dbType {
