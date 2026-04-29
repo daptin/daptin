@@ -83,6 +83,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
+	github.com/zendev-sh/goai v0.7.3
 	golang.org/x/crypto v0.37.0
 	golang.org/x/net v0.38.0
 	golang.org/x/oauth2 v0.36.0
@@ -376,7 +377,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
-	github.com/zendev-sh/goai v0.7.3 // indirect
 	go.etcd.io/bbolt v1.4.0 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
