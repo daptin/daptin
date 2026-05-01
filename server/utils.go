@@ -238,6 +238,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	tablePermissionChecker := &resource.TableAccessPermissionChecker{}
 	objectPermissionChecker := &resource.ObjectAccessPermissionChecker{}
 	dataValidationMiddleware := resource.NewDataValidationMiddleware(cmsConfig, cruds)
+	meteringMiddleware := resource.NewMeteringMiddleware(cruds)
 
 	createEventHandler := resource.NewCreateEventHandler(cruds, dtopicMap)
 	updateEventHandler := resource.NewUpdateEventHandler(cruds, dtopicMap)
@@ -254,17 +255,20 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		tablePermissionChecker,
 		exchangeMiddleware,
 		objectPermissionChecker,
+		meteringMiddleware,
 	}
 
 	ms.AfterFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		exchangeMiddleware,
 		objectPermissionChecker,
+		meteringMiddleware,
 	}
 
 	ms.BeforeCreate = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
+		meteringMiddleware,
 		dataValidationMiddleware,
 		createEventHandler,
 		exchangeMiddleware,
@@ -274,11 +278,13 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		objectPermissionChecker,
 		createEventHandler,
 		exchangeMiddleware,
+		meteringMiddleware,
 	}
 
 	ms.BeforeDelete = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
+		meteringMiddleware,
 		deleteEventHandler,
 		exchangeMiddleware,
 	}
@@ -287,12 +293,14 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		objectPermissionChecker,
 		deleteEventHandler,
 		exchangeMiddleware,
+		meteringMiddleware,
 	}
 
 	if yhsHandler != nil {
 		ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
 			tablePermissionChecker,
 			objectPermissionChecker,
+			meteringMiddleware,
 			dataValidationMiddleware,
 			yhsHandler,
 			updateEventHandler,
@@ -302,6 +310,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
 			tablePermissionChecker,
 			objectPermissionChecker,
+			meteringMiddleware,
 			dataValidationMiddleware,
 			updateEventHandler,
 			exchangeMiddleware,
@@ -313,17 +322,20 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		objectPermissionChecker,
 		updateEventHandler,
 		exchangeMiddleware,
+		meteringMiddleware,
 	}
 
 	ms.BeforeFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
 		exchangeMiddleware,
+		meteringMiddleware,
 	}
 	ms.AfterFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
 		exchangeMiddleware,
+		meteringMiddleware,
 	}
 	return ms
 }

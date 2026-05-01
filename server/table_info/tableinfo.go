@@ -12,6 +12,15 @@ type TableRelation struct {
 	OnDelete string
 }
 
+type MeteringConfig struct {
+	Enabled            bool                      `json:"enabled,omitempty"`
+	CostExpr           string                    `json:"cost_expr,omitempty"`
+	MeterType          string                    `json:"meter_type,omitempty"`
+	PostMeteringAction string                    `json:"post_metering_action,omitempty"`
+	EnforceMode        string                    `json:"enforce_mode,omitempty"`
+	OnActions          map[string]MeteringConfig `json:"on_actions,omitempty"`
+}
+
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
@@ -35,6 +44,7 @@ type TableInfo struct {
 	DefaultOrder           string
 	Icon                   string
 	CompositeKeys          [][]string
+	Metering               *MeteringConfig `json:"metering,omitempty"`
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {

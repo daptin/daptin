@@ -32,6 +32,7 @@ Every table in Daptin can use these fields from the `TableInfo` struct:
 | `DefaultOrder` | Default sort order (`+col` or `-col`) | ✅ Filtering-and-Pagination.md |
 | `Icon` | FontAwesome icon for UI | ✅ Schema-Definition.md |
 | `CompositeKeys` | Multi-column unique constraints | ❌ **UNDOCUMENTED** |
+| `Metering` | API usage metering, quotas, rate limits, and credit hooks | ✅ API-Metering.md, API-Metering-Technical-KT.md |
 
 **Missing Documentation**: 3 features
 1. **IsAuditEnabled** - Audit logging configuration
@@ -76,6 +77,10 @@ From `StandardTables` array (lines 1542-3076):
 | `task` | Scheduled jobs | fa-tasks | ✅ Task-Scheduling.md | Cron-based scheduling |
 | `oauth_connect` | OAuth provider configs | fa-plug | ✅ Authentication.md (OAuth section) | Google, GitHub, etc. |
 | `oauth_token` | OAuth access/refresh tokens | fa-shield-alt | ✅ Authentication.md (OAuth section) | Token storage |
+| `api_plan` | API metering plans | fa-layer-group | ✅ API-Metering.md, API-Metering-Technical-KT.md | Request, compute, rate, and pricing settings |
+| `api_member` | API plan membership | fa-id-card | ✅ API-Metering.md, API-Metering-Technical-KT.md | Short name for API subscription |
+| `api_usage` | API usage events | fa-chart-line | ✅ API-Metering.md, API-Metering-Technical-KT.md | Per-request metering log |
+| `api_quota` | API quota counters | fa-gauge-high | ✅ API-Metering.md, API-Metering-Technical-KT.md | Per-member period counters |
 | `integration` | OpenAPI integrations | fa-exchange-alt | ✅ Integrations.md | API specification imports |
 | `data_exchange` | Data sync configurations | fa-sync | ✅ Data-Actions.md | Import/export workflows |
 | `feed` | RSS/Atom/JSON feeds | fa-rss | ✅ Documented in FTP-Server.md context | Feed generation |

@@ -134,6 +134,9 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 **Let another app sign users in through Daptin**
 → [[OAuth-Provider|OAuth Provider]]
 
+**Meter API usage, quotas, and credits**
+→ [[API-Metering|API Metering]]
+
 **Upload files to S3/cloud storage**
 → [[Cloud-Storage|Cloud Storage]] + [[Asset-Columns|Asset Columns]]
 
@@ -228,6 +231,8 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 - [[Monitoring]] - Statistics and health endpoints
 - [[Caching]] - Olric distributed cache
 - [[Rate Limiting]] - API throttling
+- [[API Metering]] - Usage metering, quotas, and credit hooks
+- [[API Metering Technical KT]] - Maintainer notes for metering internals
 - [[Clustering]] - Multi-node deployment
 
 ## System Tables
@@ -245,6 +250,10 @@ Daptin creates these tables automatically:
 | `document` | File storage |
 | `site` | Subsite configuration |
 | `cloud_store` | Storage backends |
+| `api_plan` | API metering plans |
+| `api_member` | User membership in a metering plan |
+| `api_usage` | Metered API usage events |
+| `api_quota` | Metering quota counters |
 | `mail_server` | Email servers |
 | `_config` | Runtime configuration |
 

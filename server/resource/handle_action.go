@@ -29,6 +29,7 @@ import (
 	"io"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/artpar/conform"
 	"gopkg.in/go-playground/validator.v9"
@@ -213,6 +214,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.ActionRequest,
 	req api2go.Request, transaction *sqlx.Tx) ([]actionresponse.ActionResponse, error) {
 
+	start := time.Now()
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
 
@@ -345,6 +347,31 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	if subjectInstanceMap != nil {
 		inFieldMap[actionRequest.Type+"_id"] = subjectInstanceMap["reference_id"]
 		inFieldMap["subject"] = subjectInstanceMap
+	}
+
+	var meteringService *MeteringService
+	var meteringDecision *MeteringDecision
+	actionMetering := meteringConfigForAction(dbResource.TableInfo().Metering, actionRequest.Action)
+	if actionMetering != nil && actionMetering.Enabled && req.PlainRequest != nil && !IsMeteringInternalRequest(req.PlainRequest) {
+		meteringService = NewMeteringService(&dbResource.Cruds)
+		var meteringErr error
+		meteringDecision, meteringErr = meteringService.Preflight(MeteringContext{
+			Request:     req.PlainRequest,
+			User:        sessionUser,
+			Endpoint:    req.PlainRequest.URL.Path,
+			Method:      req.PlainRequest.Method,
+			EntityType:  actionRequest.Type,
+			ActionName:  actionRequest.Action,
+			RequestType: "action",
+			Metering:    actionMetering,
+			Metadata: map[string]interface{}{
+				"action_type": actionRequest.Type,
+				"action_name": actionRequest.Action,
+			},
+		}, transaction)
+		if meteringErr != nil {
+			return nil, meteringErr
+		}
 	}
 
 	responses := make([]actionresponse.ActionResponse, 0)
@@ -699,6 +726,39 @@ OutFields:
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	if meteringService != nil && actionMetering != nil {
+		responseTypes := make([]string, 0, len(responses))
+		for _, response := range responses {
+			responseTypes = append(responseTypes, response.ResponseType)
+		}
+		recordErr := meteringService.Record(MeteringContext{
+			Request:       req.PlainRequest,
+			User:          sessionUser,
+			Endpoint:      req.PlainRequest.URL.Path,
+			Method:        req.PlainRequest.Method,
+			EntityType:    actionRequest.Type,
+			ActionName:    actionRequest.Action,
+			RequestType:   "action",
+			StatusCode:    200,
+			LatencyMS:     int(time.Since(start).Milliseconds()),
+			RequestBytes:  len(actionRequest.RawBodyBytes),
+			ResponseBytes: len(ToJson(responses)),
+			Metering:      actionMetering,
+			Metadata: map[string]interface{}{
+				"action_type":    actionRequest.Type,
+				"action_name":    actionRequest.Action,
+				"outcome_count":  len(responses),
+				"response_types": responseTypes,
+			},
+			Response: map[string]interface{}{
+				"responses": responses,
+			},
+		}, meteringDecision, transaction)
+		if recordErr != nil {
+			log.Errorf("[metering] failed to record action usage for %s:%s: %v", actionRequest.Type, actionRequest.Action, recordErr)
+		}
 	}
 
 	return responses, nil

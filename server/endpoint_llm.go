@@ -7,9 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -71,6 +75,13 @@ func createChatCompletionHandler(goaiProvider *llm.GoAIProvider, cruds map[strin
 			return
 		}
 
+		meteringService := resource.NewMeteringService(&cruds)
+		meteringDecision, err := preflightLLMMetering(c, meteringService, cruds["world"].ConfigStore, req.Model, "llm_chat", transaction)
+		if err != nil {
+			writeLLMMeteringError(c, err)
+			return
+		}
+
 		if req.Stream {
 			// Streaming response via SSE
 			c.Header("Content-Type", "text/event-stream")
@@ -81,7 +92,15 @@ func createChatCompletionHandler(goaiProvider *llm.GoAIProvider, cruds map[strin
 			log.Infof("[llm] /v1/chat/completions: streaming provider=%s model=%s", llmProvider.Name, req.Model)
 
 			c.Stream(func(w io.Writer) bool {
+				var finalUsage *llm.OpenAIUsage
+				finishReason := ""
 				err := goaiProvider.ChatCompletionStream(c.Request.Context(), llmProvider, req, transaction, func(chunk llm.OpenAIChatChunk) {
+					if chunk.Usage != nil {
+						finalUsage = chunk.Usage
+					}
+					if len(chunk.Choices) > 0 && chunk.Choices[0].FinishReason != nil {
+						finishReason = *chunk.Choices[0].FinishReason
+					}
 					chunkBytes, marshalErr := json.Marshal(chunk)
 					if marshalErr != nil {
 						log.Errorf("[llm] stream: failed to marshal chunk: %v", marshalErr)
@@ -95,6 +114,9 @@ func createChatCompletionHandler(goaiProvider *llm.GoAIProvider, cruds map[strin
 					errChunk := fmt.Sprintf(`{"error": {"message": "%s", "type": "server_error"}}`, err.Error())
 					fmt.Fprintf(w, "data: %s\n\n", errChunk)
 					c.Writer.Flush()
+				}
+				if finalUsage != nil {
+					recordLLMMetering(c, meteringService, meteringDecision, cruds["world"].ConfigStore, transaction, req.Model, "llm_chat", finalUsage, finishReason, http.StatusOK)
 				}
 				fmt.Fprintf(w, "data: [DONE]\n\n")
 				c.Writer.Flush()
@@ -116,6 +138,11 @@ func createChatCompletionHandler(goaiProvider *llm.GoAIProvider, cruds map[strin
 				return
 			}
 
+			finishReason := ""
+			if len(response.Choices) > 0 {
+				finishReason = response.Choices[0].FinishReason
+			}
+			recordLLMMetering(c, meteringService, meteringDecision, cruds["world"].ConfigStore, transaction, req.Model, "llm_chat", response.Usage, finishReason, http.StatusOK)
 			c.JSON(http.StatusOK, response)
 		}
 	}
@@ -175,6 +202,13 @@ func createCompletionHandler(goaiProvider *llm.GoAIProvider, cruds map[string]*r
 			return
 		}
 
+		meteringService := resource.NewMeteringService(&cruds)
+		meteringDecision, err := preflightLLMMetering(c, meteringService, cruds["world"].ConfigStore, req.Model, "llm_completion", transaction)
+		if err != nil {
+			writeLLMMeteringError(c, err)
+			return
+		}
+
 		response, err := goaiProvider.ChatCompletion(c.Request.Context(), llmProvider, req, transaction)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -183,6 +217,11 @@ func createCompletionHandler(goaiProvider *llm.GoAIProvider, cruds map[string]*r
 			return
 		}
 
+		finishReason := ""
+		if len(response.Choices) > 0 {
+			finishReason = response.Choices[0].FinishReason
+		}
+		recordLLMMetering(c, meteringService, meteringDecision, cruds["world"].ConfigStore, transaction, req.Model, "llm_completion", response.Usage, finishReason, http.StatusOK)
 		c.JSON(http.StatusOK, response)
 	}
 }
@@ -217,6 +256,13 @@ func createEmbeddingHandler(goaiProvider *llm.GoAIProvider, cruds map[string]*re
 			return
 		}
 
+		meteringService := resource.NewMeteringService(&cruds)
+		meteringDecision, err := preflightLLMMetering(c, meteringService, cruds["world"].ConfigStore, req.Model, "llm_embedding", transaction)
+		if err != nil {
+			writeLLMMeteringError(c, err)
+			return
+		}
+
 		response, err := goaiProvider.Embedding(c.Request.Context(), llmProvider, req, transaction)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -225,8 +271,115 @@ func createEmbeddingHandler(goaiProvider *llm.GoAIProvider, cruds map[string]*re
 			return
 		}
 
+		recordLLMMetering(c, meteringService, meteringDecision, cruds["world"].ConfigStore, transaction, req.Model, "llm_embedding", &llm.OpenAIUsage{
+			PromptTokens: response.Usage.PromptTokens,
+			TotalTokens:  response.Usage.TotalTokens,
+		}, "stop", http.StatusOK)
 		c.JSON(http.StatusOK, response)
 	}
+}
+
+func preflightLLMMetering(c *gin.Context, service *resource.MeteringService, configStore *resource.ConfigStore, model string, requestType string, tx *sqlx.Tx) (*resource.MeteringDecision, error) {
+	user, _ := c.Request.Context().Value("user").(*auth.SessionUser)
+	return service.Preflight(resource.MeteringContext{
+		Request:     c.Request,
+		User:        user,
+		Endpoint:    c.Request.URL.Path,
+		Method:      c.Request.Method,
+		RequestType: requestType,
+		Metering:    llmMeteringConfig(configStore, tx),
+		Metadata: map[string]interface{}{
+			"model":        model,
+			"request_type": requestType,
+		},
+	}, tx)
+}
+
+func recordLLMMetering(c *gin.Context, service *resource.MeteringService, decision *resource.MeteringDecision, configStore *resource.ConfigStore, tx *sqlx.Tx, model string, requestType string, usage *llm.OpenAIUsage, finishReason string, statusCode int) {
+	if usage == nil {
+		return
+	}
+	user, _ := c.Request.Context().Value("user").(*auth.SessionUser)
+	metadata := map[string]interface{}{
+		"model":              model,
+		"request_type":       requestType,
+		"prompt_tokens":      usage.PromptTokens,
+		"completion_tokens":  usage.CompletionTokens,
+		"total_tokens":       usage.TotalTokens,
+		"reasoning_tokens":   usage.ReasoningTokens,
+		"cache_read_tokens":  usage.CacheReadTokens,
+		"cache_write_tokens": usage.CacheWriteTokens,
+		"finish_reason":      finishReason,
+	}
+	err := service.Record(resource.MeteringContext{
+		Request:       c.Request,
+		User:          user,
+		Endpoint:      c.Request.URL.Path,
+		Method:        c.Request.Method,
+		RequestType:   requestType,
+		StatusCode:    statusCode,
+		RequestBytes:  resourceRequestContentLength(c.Request.ContentLength),
+		ResponseBytes: len(resource.ToJson(metadata)),
+		Metering:      llmMeteringConfig(configStore, tx),
+		Metadata:      metadata,
+		Response: map[string]interface{}{
+			"usage": metadata,
+		},
+	}, decision, tx)
+	if err != nil {
+		log.Errorf("[metering] failed to record LLM usage: %v", err)
+	}
+}
+
+func llmMeteringConfig(configStore *resource.ConfigStore, tx *sqlx.Tx) *table_info.MeteringConfig {
+	cfg := &table_info.MeteringConfig{
+		Enabled:   true,
+		CostExpr:  "response.usage.total_tokens",
+		MeterType: "compute_units",
+	}
+	if configStore == nil || tx == nil {
+		return cfg
+	}
+	if enabled, err := configStore.GetConfigValueFor("metering.llm.enabled", "backend", tx); err == nil && strings.EqualFold(enabled, "false") {
+		cfg.Enabled = false
+	}
+	if costExpr, err := configStore.GetConfigValueFor("metering.llm.cost_expr", "backend", tx); err == nil && costExpr != "" {
+		cfg.CostExpr = costExpr
+	}
+	if meterType, err := configStore.GetConfigValueFor("metering.llm.meter_type", "backend", tx); err == nil && meterType != "" {
+		cfg.MeterType = meterType
+	}
+	if enforceMode, err := configStore.GetConfigValueFor("metering.llm.enforce_mode", "backend", tx); err == nil && enforceMode != "" {
+		cfg.EnforceMode = enforceMode
+	}
+	if postAction, err := configStore.GetConfigValueFor("metering.llm.post_metering_action", "backend", tx); err == nil && postAction != "" {
+		cfg.PostMeteringAction = postAction
+	}
+	return cfg
+}
+
+func resourceRequestContentLength(contentLength int64) int {
+	if contentLength < 0 {
+		return 0
+	}
+	return int(contentLength)
+}
+
+func writeLLMMeteringError(c *gin.Context, err error) {
+	status := http.StatusPaymentRequired
+	errorType := "insufficient_quota"
+	if httpErr, ok := err.(api2go.HTTPError); ok {
+		status = httpErr.Status()
+		if status == http.StatusTooManyRequests {
+			errorType = "rate_limit_exceeded"
+		}
+	}
+	c.JSON(status, gin.H{
+		"error": gin.H{
+			"message": err.Error(),
+			"type":    errorType,
+		},
+	})
 }
 
 func createModelsHandler(cruds map[string]*resource.DbResource) gin.HandlerFunc {

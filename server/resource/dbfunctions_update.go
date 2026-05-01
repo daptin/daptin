@@ -1240,6 +1240,7 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			s, v, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 				Set(goqu.Record{
 					"world_schema_json": string(schema),
+					"permission":        table.Permission,
 					"is_top_level":      table.IsTopLevel,
 					"is_hidden":         table.IsHidden,
 					"is_join_table":     table.IsJoinTable,
