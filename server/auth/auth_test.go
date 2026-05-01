@@ -12,11 +12,77 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 )
+
+func startTestOlric(t *testing.T) (*olric.Olric, *olric.EmbeddedClient) {
+	t.Helper()
+	port, err := freeTCPPort(t)
+	if err != nil {
+		t.Fatalf("failed to allocate olric port: %v", err)
+	}
+	started := make(chan struct{})
+	cfg := olricConfig.New("local")
+	cfg.BindAddr = "127.0.0.1"
+	cfg.BindPort = port
+	cfg.MemberlistConfig.BindAddr = "127.0.0.1"
+	cfg.MemberlistConfig.BindPort = 0
+	cfg.MemberlistConfig.Name = net.JoinHostPort(cfg.BindAddr, strconv.Itoa(cfg.BindPort))
+	cfg.LogOutput = nil
+	cfg.Started = func() {
+		close(started)
+	}
+	emb, err := olric.New(cfg)
+	if err != nil {
+		t.Fatalf("failed to create olric: %v", err)
+	}
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- emb.Start() }()
+
+	select {
+	case <-started:
+	case err := <-errCh:
+		t.Fatalf("failed to start olric: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatalf("timed out waiting for olric to start")
+	}
+
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = emb.Shutdown(ctx)
+		select {
+		case err := <-errCh:
+			if err != nil {
+				t.Logf("olric stopped with error: %v", err)
+			}
+		case <-time.After(5 * time.Second):
+			t.Log("timed out waiting for olric shutdown")
+		}
+	})
+
+	return emb, emb.NewEmbeddedClient()
+}
+
+func freeTCPPort(t *testing.T) (int, error) {
+	t.Helper()
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer listener.Close()
+	return listener.Addr().(*net.TCPAddr).Port, nil
+}
 
 func TestAllPermission(t *testing.T) {
 
@@ -212,22 +278,6 @@ func TestAuthCheckMiddlewareJWTAuthVersionLifecycle(t *testing.T) {
 		t.Fatalf("insert usergroup relation: %v", err)
 	}
 
-	cfg := olricConfig.New("local")
-	cfg.LogOutput = nil
-	emb, err := olric.New(cfg)
-	if err != nil {
-		t.Fatalf("create olric: %v", err)
-	}
-	go func() {
-		_ = emb.Start()
-	}()
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = emb.Shutdown(ctx)
-	}()
-	time.Sleep(500 * time.Millisecond)
-
 	oldJWTMiddleware := jwtMiddleware
 	oldAuthCache := olricCache
 	oldTokenCache := jwtmiddleware.TokenCache
@@ -241,8 +291,9 @@ func TestAuthCheckMiddlewareJWTAuthVersionLifecycle(t *testing.T) {
 
 	secret := []byte("jwt-secret")
 	issuer := "issuer"
-	InitJwtMiddleware(secret, issuer, emb.NewEmbeddedClient())
-	authMiddleware := &AuthMiddleware{db: db, olricDb: emb.NewEmbeddedClient()}
+	_, olricClient := startTestOlric(t)
+	InitJwtMiddleware(secret, issuer, olricClient)
+	authMiddleware := &AuthMiddleware{db: db, olricDb: olricClient}
 
 	newRequest := func(authVersion interface{}) *http.Request {
 		claims := jwt.MapClaims{
@@ -377,26 +428,7 @@ func TestInvalidateAuthCacheForEmail_NilCache(t *testing.T) {
 }
 
 func TestInvalidateAuthCacheForEmail_RemovesEntry(t *testing.T) {
-	cfg := olricConfig.New("local")
-	cfg.LogOutput = nil
-	emb, err := olric.New(cfg)
-	if err != nil {
-		t.Fatalf("failed to create olric: %v", err)
-	}
-
-	go func() {
-		_ = emb.Start()
-	}()
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = emb.Shutdown(ctx)
-	}()
-
-	// Give olric time to start
-	time.Sleep(500 * time.Millisecond)
-
-	client := emb.NewEmbeddedClient()
+	_, client := startTestOlric(t)
 	dm, err := client.NewDMap("auth-cache-test")
 	if err != nil {
 		t.Fatalf("failed to create DMap: %v", err)
@@ -434,25 +466,7 @@ func TestInvalidateAuthCacheForEmail_RemovesEntry(t *testing.T) {
 }
 
 func TestInvalidateAuthCacheForEmail_NonExistentKey(t *testing.T) {
-	cfg := olricConfig.New("local")
-	cfg.LogOutput = nil
-	emb, err := olric.New(cfg)
-	if err != nil {
-		t.Fatalf("failed to create olric: %v", err)
-	}
-
-	go func() {
-		_ = emb.Start()
-	}()
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = emb.Shutdown(ctx)
-	}()
-
-	time.Sleep(500 * time.Millisecond)
-
-	client := emb.NewEmbeddedClient()
+	_, client := startTestOlric(t)
 	dm, err := client.NewDMap("auth-cache-test-2")
 	if err != nil {
 		t.Fatalf("failed to create DMap: %v", err)

@@ -339,7 +339,13 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 	if olricCache == nil {
 		log.Infof("Create olric default-cache for auth")
-		olricCache, _ = a.olricDb.NewDMap("auth-cache")
+		if a.olricDb != nil {
+			var cacheErr error
+			olricCache, cacheErr = a.olricDb.NewDMap("auth-cache")
+			if cacheErr != nil {
+				log.Warnf("failed to create auth cache: %v", cacheErr)
+			}
+		}
 	}
 
 	hasUser := false
@@ -404,7 +410,12 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 
 			if !ok {
 
-				cachedUser, err := olricCache.Get(context.Background(), email)
+				var cachedUser *olric.GetResponse
+				if olricCache != nil {
+					cachedUser, err = olricCache.Get(context.Background(), email)
+				} else {
+					err = errors.New("auth cache unavailable")
+				}
 				var referenceIdBytes []byte
 				var userId int64
 				var userGroups []GroupPermission
@@ -551,10 +562,12 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//j, _ := json.Marshal(*sessionUser)
 					//strJ := string(j)
 					//log.Errorf("cache user account auth [%v] -> %v", len(strJ), strJ)
-					repeatCheck, err := olricCache.Get(context.Background(), email)
-					if err != nil || repeatCheck == nil {
-						err = olricCache.Put(context.Background(), email, *sessionUser, olric.EX(10*time.Minute), olric.NX())
-						CheckErr(err, "failed to put user in cache %s", email)
+					if olricCache != nil {
+						repeatCheck, err := olricCache.Get(context.Background(), email)
+						if err != nil || repeatCheck == nil {
+							err = olricCache.Put(context.Background(), email, *sessionUser, olric.EX(10*time.Minute), olric.NX())
+							CheckErr(err, "failed to put user in cache %s", email)
+						}
 					}
 					//}
 					LocalUserCacheLock.Unlock()
