@@ -43,7 +43,7 @@ type DbResource struct {
 	EncryptionSecret     []byte
 	contextCache         map[string]interface{}
 	envMap               map[string]string
-	defaultGroups        []int64
+	defaultGroups        []ResolvedDefaultGroup
 	AdministratorGroupId daptinid.DaptinReferenceId
 	defaultRelations     map[string][]int64
 	contextLock          sync.RWMutex
@@ -103,7 +103,7 @@ func NewDbResource(model api2go.Api2GoModel, db database.DatabaseConnection,
 		return nil, err
 	}
 
-	defaultgroupIds, err := GroupNamesToIds(db, tableInfo.DefaultGroups)
+	defaultgroupIds, err := ResolveDefaultGroups(db, tableInfo.DefaultGroups, false)
 	if err != nil {
 		return nil, err
 	}
@@ -205,21 +205,32 @@ func RelationNamesToIds(db database.DatabaseConnection, tableInfo table_info.Tab
 
 }
 
-func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) ([]int64, error) {
+type ResolvedDefaultGroup struct {
+	GroupId    int64
+	Permission *auth.AuthPermission
+}
 
-	if len(groupsName) == 0 {
-		return []int64{}, nil
+func ResolveDefaultGroups(db database.DatabaseConnection, groups table_info.DefaultGroupList, strict bool) ([]ResolvedDefaultGroup, error) {
+	if len(groups) == 0 {
+		return []ResolvedDefaultGroup{}, nil
 	}
 
-	query, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).
-		From("usergroup").Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).ToSQL()
+	groupsName := groups.Names()
+	if len(groupsName) == 0 {
+		return []ResolvedDefaultGroup{}, nil
+	}
+
+	query, args, err := statementbuilder.Squirrel.Select("id", "name").Prepared(true).
+		From("usergroup").
+		Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).
+		ToSQL()
 	CheckErr(err, "[165] failed to convert usergroup names to ids")
 	query = db.Rebind(query)
 
 	stmt1, err := db.Preparex(query)
 	if err != nil {
 		log.Errorf("[170] failed to prepare statment: %v", err)
-		return []int64{}, fmt.Errorf("failed to prepare statment to convert usergroup name to ids for default usergroup")
+		return []ResolvedDefaultGroup{}, fmt.Errorf("failed to prepare statment to convert usergroup name to ids for default usergroup")
 	}
 	defer func(stmt1 *sqlx.Stmt) {
 		err := stmt1.Close()
@@ -234,22 +245,135 @@ func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) ([]int
 		return nil, err
 	}
 
-	retInt := make([]int64, 0)
+	groupIdByName := make(map[string]int64)
 
 	for rows.Next() {
-		//iVal, _ := strconv.ParseInt(val, 10, 64)
 		var id int64
-		err := rows.Scan(&id)
+		var name string
+		err := rows.Scan(&id, &name)
 		if err != nil {
 			log.Errorf("[185] failed to scan value after query: %v", err)
 			return nil, err
 		}
-		retInt = append(retInt, id)
+		groupIdByName[name] = id
 	}
 	err = rows.Close()
 	CheckErr(err, "[206] Failed to close rows after default group name conversation")
 
-	return retInt, nil
+	resolved := make([]ResolvedDefaultGroup, 0, len(groups))
+	seenGroups := make(map[string]bool)
+	for _, group := range groups {
+		if group.Name == "" || seenGroups[group.Name] {
+			continue
+		}
+		seenGroups[group.Name] = true
+
+		groupId, ok := groupIdByName[group.Name]
+		if !ok {
+			if strict {
+				return nil, fmt.Errorf("default group [%s] not found", group.Name)
+			}
+			log.Warnf("Default group [%s] not found, skipping", group.Name)
+			continue
+		}
+		resolved = append(resolved, ResolvedDefaultGroup{
+			GroupId:    groupId,
+			Permission: group.Permission,
+		})
+	}
+
+	return resolved, nil
+}
+
+func ResolveDefaultGroupsWithTransaction(transaction *sqlx.Tx, groups table_info.DefaultGroupList, strict bool) ([]ResolvedDefaultGroup, error) {
+	if len(groups) == 0 {
+		return []ResolvedDefaultGroup{}, nil
+	}
+
+	groupsName := groups.Names()
+	if len(groupsName) == 0 {
+		return []ResolvedDefaultGroup{}, nil
+	}
+
+	query, args, err := statementbuilder.Squirrel.Select("id", "name").Prepared(true).
+		From("usergroup").
+		Where(goqu.Ex{"name": goqu.Op{"in": groupsName}}).
+		ToSQL()
+	CheckErr(err, "[165] failed to convert usergroup names to ids")
+
+	stmt, err := transaction.Preparex(query)
+	if err != nil {
+		log.Errorf("[171] failed to prepare statment: %v", err)
+		return nil, err
+	}
+
+	defer func(stmt *sqlx.Stmt) {
+		err := stmt.Close()
+		if err != nil {
+			log.Errorf("[188] failed to close prepared statement: %v", err)
+		}
+	}(stmt)
+
+	rows, err := stmt.Queryx(args...)
+	if err != nil {
+		log.Errorf("Failed to execute query %v => %v", query, args)
+		return nil, err
+	}
+	defer func() {
+		err = rows.Close()
+		CheckErr(err, "[206] Failed to close rows after default group name conversion")
+	}()
+
+	groupIdByName := make(map[string]int64)
+	for rows.Next() {
+		var id int64
+		var name string
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			log.Errorf("[185] failed to scan value after query: %v", err)
+			return nil, err
+		}
+		groupIdByName[name] = id
+	}
+
+	resolved := make([]ResolvedDefaultGroup, 0, len(groups))
+	seenGroups := make(map[string]bool)
+	for _, group := range groups {
+		if group.Name == "" || seenGroups[group.Name] {
+			continue
+		}
+		seenGroups[group.Name] = true
+
+		groupId, ok := groupIdByName[group.Name]
+		if !ok {
+			if strict {
+				return nil, fmt.Errorf("default group [%s] not found", group.Name)
+			}
+			log.Warnf("Default group [%s] not found, skipping", group.Name)
+			continue
+		}
+		resolved = append(resolved, ResolvedDefaultGroup{
+			GroupId:    groupId,
+			Permission: group.Permission,
+		})
+	}
+
+	return resolved, nil
+}
+
+func GroupNamesToIds(db database.DatabaseConnection, groupsName []string) ([]int64, error) {
+	groups := table_info.DefaultGroups(groupsName...)
+	resolvedGroups, err := ResolveDefaultGroups(db, groups, false)
+	if err != nil {
+		return nil, err
+	}
+
+	groupIds := make([]int64, 0, len(resolvedGroups))
+	for _, group := range resolvedGroups {
+		groupIds = append(groupIds, group.GroupId)
+	}
+
+	return groupIds, nil
 
 }
 

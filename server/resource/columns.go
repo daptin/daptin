@@ -1723,7 +1723,7 @@ var SystemActions = []actionresponse.Action{
 	},
 }
 
-var adminsGroup = []string{"administrators"}
+var adminsGroup = table_info.DefaultGroups("administrators")
 
 var StandardTasks []task.Task
 
@@ -2430,7 +2430,7 @@ var StandardTables = []table_info.TableInfo{
 		TableName:     "user_otp_account",
 		Icon:          "fa-sms",
 		IsHidden:      false,
-		DefaultGroups: []string{},
+		DefaultGroups: table_info.DefaultGroups(),
 		Columns: []api2go.ColumnInfo{
 			{
 				ColumnName:        "mobile_number",
@@ -2461,7 +2461,7 @@ var StandardTables = []table_info.TableInfo{
 	{
 		TableName:     USER_ACCOUNT_TABLE_NAME,
 		Icon:          "fa-user",
-		DefaultGroups: []string{"users"},
+		DefaultGroups: table_info.DefaultGroups("users"),
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:              "name",

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -600,6 +601,158 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.Tx) {
 	}
 }
 
+func schemaSyncInt64(value interface{}) (int64, error) {
+	switch typedValue := value.(type) {
+	case int64:
+		return typedValue, nil
+	case int:
+		return int64(typedValue), nil
+	case int32:
+		return int64(typedValue), nil
+	case uint64:
+		return int64(typedValue), nil
+	case []uint8:
+		return strconv.ParseInt(string(typedValue), 10, 64)
+	case string:
+		return strconv.ParseInt(typedValue, 10, 64)
+	default:
+		return 0, fmt.Errorf("cannot convert [%T] to int64", value)
+	}
+}
+
+func schemaSyncTableInfo(tableName string, transaction *sqlx.Tx) (table_info.TableInfo, error) {
+	var tableInfo table_info.TableInfo
+	rows, err := GetObjectByWhereClauseWithTransaction("world", transaction, goqu.Ex{"table_name": tableName})
+	if err != nil {
+		return tableInfo, err
+	}
+	if len(rows) == 0 {
+		return tableInfo, fmt.Errorf("table info for [%s] not found", tableName)
+	}
+
+	schemaBytes, ok := rows[0]["world_schema_json"].([]byte)
+	if !ok {
+		schemaString, ok := rows[0]["world_schema_json"].(string)
+		if !ok {
+			return tableInfo, fmt.Errorf("world_schema_json for [%s] has unexpected type [%T]", tableName, rows[0]["world_schema_json"])
+		}
+		schemaBytes = []byte(schemaString)
+	}
+
+	err = json.Unmarshal(schemaBytes, &tableInfo)
+	if err != nil {
+		return tableInfo, err
+	}
+	return tableInfo, nil
+}
+
+func schemaSyncTableDefaultGroups(tableName string, transaction *sqlx.Tx) (table_info.DefaultGroupList, error) {
+	tableInfo, err := schemaSyncTableInfo(tableName, transaction)
+	if err != nil {
+		return nil, err
+	}
+	return tableInfo.DefaultGroups, nil
+}
+
+func schemaSyncTableDefaultPermission(tableName string, transaction *sqlx.Tx) (auth.AuthPermission, error) {
+	tableInfo, err := schemaSyncTableInfo(tableName, transaction)
+	if err != nil {
+		return auth.DEFAULT_PERMISSION, err
+	}
+	if tableInfo.DefaultPermission != 0 {
+		return tableInfo.DefaultPermission, nil
+	}
+	if tableInfo.Permission != 0 {
+		return tableInfo.Permission, nil
+	}
+	return auth.DEFAULT_PERMISSION, nil
+}
+
+func getSchemaManagedActionRow(actionName string, worldId interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
+	rows, err := GetObjectByWhereClauseWithTransaction("action", transaction, goqu.Ex{
+		"action_name": actionName,
+		"world_id":    worldId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("action [%s] for world [%v] not found", actionName, worldId)
+	}
+	return rows[0], nil
+}
+
+func syncDefaultUsergroupRelationsForObject(entityName string, objectRow map[string]interface{}, groups table_info.DefaultGroupList, transaction *sqlx.Tx) error {
+	objectId, err := schemaSyncInt64(objectRow["id"])
+	if err != nil {
+		return err
+	}
+
+	relationTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", entityName, entityName)
+	relationColumnName := fmt.Sprintf("%s_id", entityName)
+
+	relationDefaultPermission, err := schemaSyncTableDefaultPermission(relationTableName, transaction)
+	if err != nil {
+		return err
+	}
+
+	s, v, err := statementbuilder.Squirrel.Delete(relationTableName).Prepared(true).
+		Where(goqu.Ex{relationColumnName: objectId}).ToSQL()
+	if err != nil {
+		return err
+	}
+	_, err = transaction.Exec(s, v...)
+	if err != nil {
+		return err
+	}
+
+	resolvedGroups, err := ResolveDefaultGroupsWithTransaction(transaction, groups, true)
+	if err != nil {
+		return err
+	}
+
+	for _, group := range resolvedGroups {
+		nuuid, _ := uuid.NewV7()
+		relationPermission := relationDefaultPermission
+		if group.Permission != nil {
+			relationPermission = *group.Permission
+		}
+
+		s, v, err = statementbuilder.Squirrel.Insert(relationTableName).Prepared(true).
+			Cols(relationColumnName, "usergroup_id", "reference_id", "permission").
+			Vals([]interface{}{objectId, group.GroupId, nuuid[:], relationPermission}).
+			OnConflict(goqu.DoNothing()).ToSQL()
+		if err != nil {
+			return err
+		}
+		_, err = transaction.Exec(s, v...)
+		if err != nil {
+			return err
+		}
+	}
+
+	InvalidateObjectGroupsCache(entityName, objectId)
+	if referenceId, ok := objectRow["reference_id"]; ok {
+		InvalidateObjectPermissionCache(entityName, daptinid.InterfaceToDIR(referenceId))
+	}
+	return nil
+}
+
+func invalidateSchemaManagedActionCaches(actionOnType string, actionName string, actionRow map[string]interface{}) {
+	InvalidateActionCache(actionOnType, actionName)
+	InvalidateObjectPermissionWhereCache("action", "action_name", actionName)
+	if actionRow == nil {
+		return
+	}
+
+	if objectId, err := schemaSyncInt64(actionRow["id"]); err == nil {
+		InvalidateObjectGroupsCache("action", objectId)
+	}
+	if referenceId, ok := actionRow["reference_id"]; ok {
+		InvalidateObjectPermissionCache("action", daptinid.InterfaceToDIR(referenceId))
+	}
+}
+
 func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 	log.Tracef("UpdateActionTable")
@@ -608,6 +761,13 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	adminUserId, _ := GetAdminUserIdAndUserGroupId(transaction)
 
 	currentActions, err := GetActionMapByTypeName(transaction)
+	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "Failed to rollback")
+		return err
+	}
+
+	actionDefaultGroups, err := schemaSyncTableDefaultGroups("action", transaction)
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "Failed to rollback")
@@ -639,19 +799,25 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 		} else {
 			worldIdString = string(worldIdUint8)
 		}
-		_, ok = currentActions[worldIdString][action.Name]
+		worldActions := currentActions[worldIdString]
+		existingActionValue, ok := worldActions[action.Name]
 		if ok {
 			log.Debugf("Action [%v][%v] available in database", action.OnType, action.Name)
 
 			actionJson, err := json.Marshal(action)
 			CheckErr(err, "Failed to marshal action infields")
+			updateRecord := goqu.Record{
+				"label":             action.Label,
+				"world_id":          worldId,
+				"action_schema":     actionJson,
+				"instance_optional": action.InstanceOptional,
+			}
+			if action.Permission != nil {
+				updateRecord["permission"] = *action.Permission
+			}
+
 			s, v, err := statementbuilder.Squirrel.Update("action").Prepared(true).
-				Set(goqu.Record{
-					"label":             action.Label,
-					"world_id":          worldId,
-					"action_schema":     actionJson,
-					"instance_optional": action.InstanceOptional,
-				}).Where(goqu.Ex{"action_name": action.Name, "world_id": worldId}).ToSQL()
+				Set(updateRecord).Where(goqu.Ex{"action_name": action.Name, "world_id": worldId}).ToSQL()
 
 			_, err = transaction.Exec(s, v...)
 			if err != nil {
@@ -660,12 +826,34 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				log.Errorf("[650] Failed to insert action [%v]: %v", action.Name, err)
 				return err
 			}
+
+			existingAction, ok := existingActionValue.(map[string]interface{})
+			if !ok {
+				existingAction, err = getSchemaManagedActionRow(action.Name, worldId, transaction)
+				if err != nil {
+					rollbackErr := transaction.Rollback()
+					CheckErr(rollbackErr, "Failed to rollback")
+					return err
+				}
+			}
+
+			err = syncDefaultUsergroupRelationsForObject("action", existingAction, actionDefaultGroups, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
+			}
+			invalidateSchemaManagedActionCaches(action.OnType, action.Name, existingAction)
 		} else {
 			log.Printf("[649] Adding new action [%50v][%50v]", action.OnType, action.Name)
 
 			actionSchema, _ := json.Marshal(action)
 
 			u, _ := uuid.NewV7()
+			actionPermission := auth.ALLOW_ALL_PERMISSIONS
+			if action.Permission != nil {
+				actionPermission = *action.Permission
+			}
 			s, v, err := statementbuilder.Squirrel.Insert("action").Prepared(true).Cols(
 				"action_name",
 				"label",
@@ -682,7 +870,7 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				action.InstanceOptional,
 				adminUserId,
 				u[:],
-				auth.ALLOW_ALL_PERMISSIONS}).ToSQL()
+				actionPermission}).ToSQL()
 
 			_, err = transaction.Exec(s, v...)
 			if err != nil {
@@ -691,6 +879,20 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				log.Errorf("[681] Failed to insert action [%v]: %v", action.Name, err)
 				return err
 			}
+
+			createdAction, err := getSchemaManagedActionRow(action.Name, worldId, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
+			}
+			err = syncDefaultUsergroupRelationsForObject("action", createdAction, actionDefaultGroups, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
+			}
+			invalidateSchemaManagedActionCaches(action.OnType, action.Name, createdAction)
 		}
 	}
 	commitErr := transaction.Commit()

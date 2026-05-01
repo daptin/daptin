@@ -121,6 +121,33 @@ The primary type of entity on which the action happens. This is used to know whe
 
 If the action requires an "instance" of that type on which the action is defined (more about this below). So "Sign up" is defined on "user" table, but an instance of "user" is not required to initiate the action. This is why the "Sign up" doesnt ask you to select a user (which wouldn't make sense either)
 
+## Action permission
+
+Schema-defined actions can declare their row permission directly:
+
+```yaml
+Actions:
+- Name: post_gig
+  Label: Post gig
+  OnType: gig
+  InstanceOptional: true
+  Permission: 32
+```
+
+Daptin syncs this value into the `action.permission` column at startup for both new and existing schema-managed actions. If `Permission` is omitted, new actions keep the historical `ALLOW_ALL_PERMISSIONS` default and existing actions keep their current stored permission.
+
+Action usergroup membership is configured on the `action` table, because every entity has the default `has_many usergroup` relation:
+
+```yaml
+Tables:
+- TableName: action
+  DefaultGroups:
+  - Name: administrators
+    Permission: 524288
+```
+
+This creates or updates rows in `action_action_id_has_usergroup_usergroup_id`. The optional `Permission` value belongs to the relation row. Do not put usergroup membership inside an individual action definition.
+
 
 ## Input fields
 

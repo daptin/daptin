@@ -734,7 +734,8 @@ See [Actions-Overview](Actions-Overview.md#action-permissions) for permission co
 Key points:
 - Actions use the same permission system as tables
 - Both entity permission AND action permission must allow execution
-- Permission changes require server restart
+- Schema actions can declare `Permission` directly; startup sync writes it to `action.permission`
+- Action usergroup membership is configured on `TableName: action` through `DefaultGroups`, not inside each action definition
 
 ---
 

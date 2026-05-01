@@ -1,6 +1,8 @@
 package table_info
 
 import (
+	"encoding/json"
+
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/columns"
@@ -10,6 +12,87 @@ import (
 type TableRelation struct {
 	api2go.TableRelation
 	OnDelete string
+}
+
+type DefaultGroupBinding struct {
+	Name       string
+	Permission *auth.AuthPermission
+}
+
+type DefaultGroupList []DefaultGroupBinding
+
+func DefaultGroups(names ...string) DefaultGroupList {
+	groups := make(DefaultGroupList, 0, len(names))
+	for _, name := range names {
+		groups = append(groups, DefaultGroupBinding{Name: name})
+	}
+	return groups
+}
+
+func (groups DefaultGroupList) Names() []string {
+	names := make([]string, 0, len(groups))
+	for _, group := range groups {
+		if group.Name != "" {
+			names = append(names, group.Name)
+		}
+	}
+	return names
+}
+
+func (groups *DefaultGroupList) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*groups = nil
+		return nil
+	}
+
+	var rawGroups []json.RawMessage
+	if err := json.Unmarshal(data, &rawGroups); err != nil {
+		return err
+	}
+
+	result := make(DefaultGroupList, 0, len(rawGroups))
+	for _, rawGroup := range rawGroups {
+		var name string
+		if err := json.Unmarshal(rawGroup, &name); err == nil {
+			result = append(result, DefaultGroupBinding{Name: name})
+			continue
+		}
+
+		var binding DefaultGroupBinding
+		if err := json.Unmarshal(rawGroup, &binding); err != nil {
+			return err
+		}
+		result = append(result, binding)
+	}
+
+	*groups = result
+	return nil
+}
+
+func (groups DefaultGroupList) MarshalJSON() ([]byte, error) {
+	if groups == nil {
+		return []byte("null"), nil
+	}
+
+	allStringForm := true
+	names := make([]string, 0, len(groups))
+	for _, group := range groups {
+		if group.Permission != nil {
+			allStringForm = false
+			break
+		}
+		names = append(names, group.Name)
+	}
+	if allStringForm {
+		return json.Marshal(names)
+	}
+
+	type defaultGroupBinding DefaultGroupBinding
+	bindings := make([]defaultGroupBinding, 0, len(groups))
+	for _, group := range groups {
+		bindings = append(bindings, defaultGroupBinding(group))
+	}
+	return json.Marshal(bindings)
 }
 
 type MeteringConfig struct {
@@ -37,7 +120,7 @@ type TableInfo struct {
 	IsStateTrackingEnabled bool                `db:"is_state_tracking_enabled"`
 	IsAuditEnabled         bool                `db:"is_audit_enabled"`
 	TranslationsEnabled    bool                `db:"translation_enabled"`
-	DefaultGroups          []string            `db:"default_groups"`
+	DefaultGroups          DefaultGroupList    `db:"default_groups"`
 	DefaultRelations       map[string][]string `db:"default_relations"`
 	Validations            []columns.ColumnTag
 	Conformations          []columns.ColumnTag

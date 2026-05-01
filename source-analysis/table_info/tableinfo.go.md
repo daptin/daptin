@@ -1,8 +1,8 @@
 # Security Analysis: server/table_info/tableinfo.go
 
-**File:** `server/table_info/tableinfo.go`  
-**Type:** Table metadata and relationship management structure  
-**Lines of Code:** 87  
+**File:** `server/table_info/tableinfo.go`
+**Type:** Table metadata and relationship management structure
+**Lines of Code:** 166
 
 ## Overview
 This file defines the TableInfo structure which represents database table metadata including columns, relationships, permissions, and configuration settings. It provides methods for managing table relations and column lookups.
@@ -10,26 +10,30 @@ This file defines the TableInfo structure which represents database table metada
 ## Key Components
 
 ### TableRelation struct
-**Lines:** 10-13  
-**Purpose:** Extends api2go.TableRelation with deletion behavior configuration  
+**Lines:** 10-13
+**Purpose:** Extends api2go.TableRelation with deletion behavior configuration
 
 ### TableInfo struct
-**Lines:** 15-38  
-**Purpose:** Comprehensive table metadata structure with permissions, columns, and relationships  
+**Lines:** 103-127
+**Purpose:** Comprehensive table metadata structure with permissions, columns, and relationships
+
+### DefaultGroupBinding and DefaultGroupList
+**Lines:** 17-92
+**Purpose:** Backward-compatible `DefaultGroups` schema support. Accepts the historical string list and the object form with per-relation permission.
 
 ### Column and Relation Lookup Methods
-**Lines:** 40-61  
-**Purpose:** Methods to find columns and relations by name  
+**Lines:** 40-61
+**Purpose:** Methods to find columns and relations by name
 
 ### AddRelation method
-**Lines:** 63-86  
-**Purpose:** Adds relations to table with duplicate detection  
+**Lines:** 63-86
+**Purpose:** Adds relations to table with duplicate detection
 
 ## Security Analysis
 
 ### 1. LOW: Missing Input Validation - LOW RISK
-**Severity:** LOW  
-**Lines:** 40-49, 51-59  
+**Severity:** LOW
+**Lines:** 40-49, 51-59
 **Issue:** No validation of input parameters in lookup methods.
 
 ```go
@@ -50,8 +54,8 @@ func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {
 - **No sanitization** of input names
 
 ### 2. LOW: Pointer Return Security - LOW RISK
-**Severity:** LOW  
-**Lines:** 44, 55  
+**Severity:** LOW
+**Lines:** 44, 55
 **Issue:** Returns pointers to internal slice elements.
 
 ```go
@@ -66,8 +70,8 @@ return &relation, true // Returns pointer to slice element
 - **Race conditions** in concurrent access scenarios
 
 ### 3. LOW: Hash Collision Handling - LOW RISK
-**Severity:** LOW  
-**Lines:** 71-79  
+**Severity:** LOW
+**Lines:** 71-79
 **Issue:** Duplicate detection relies on hash comparison without collision handling.
 
 ```go
@@ -87,8 +91,8 @@ for _, existingRelation := range ti.Relations {
 - **No fallback validation** beyond hash comparison
 
 ### 4. LOW: Slice Management Issues - LOW RISK
-**Severity:** LOW  
-**Lines:** 65-67, 82  
+**Severity:** LOW
+**Lines:** 65-67, 82
 **Issue:** Manual slice management without bounds checking.
 
 ```go
@@ -132,7 +136,7 @@ import (
     "fmt"
     "strings"
     "unicode/utf8"
-    
+
     "github.com/artpar/api2go/v2"
     "github.com/daptin/daptin/server/auth"
     "github.com/daptin/daptin/server/columns"
@@ -156,11 +160,11 @@ func (tr *TableRelation) Validate() error {
     if len(tr.Subject) == 0 || len(tr.Object) == 0 {
         return fmt.Errorf("subject and object cannot be empty")
     }
-    
+
     if len(tr.Subject) > MaxNameLength || len(tr.Object) > MaxNameLength {
         return fmt.Errorf("subject and object names too long")
     }
-    
+
     validOnDeleteActions := []string{"cascade", "restrict", "set_null", "set_default", "no_action"}
     if tr.OnDelete != "" {
         valid := false
@@ -174,7 +178,7 @@ func (tr *TableRelation) Validate() error {
             return fmt.Errorf("invalid OnDelete action: %s", tr.OnDelete)
         }
     }
-    
+
     return nil
 }
 
@@ -195,7 +199,7 @@ type TableInfo struct {
     IsStateTrackingEnabled bool                `db:"is_state_tracking_enabled"`
     IsAuditEnabled         bool                `db:"is_audit_enabled"`
     TranslationsEnabled    bool                `db:"translation_enabled"`
-    DefaultGroups          []string            `db:"default_groups"`
+    DefaultGroups          DefaultGroupList    `db:"default_groups"`
     DefaultRelations       map[string][]string `db:"default_relations"`
     Validations            []columns.ColumnTag
     Conformations          []columns.ColumnTag
@@ -209,15 +213,15 @@ func validateName(name string) error {
     if len(name) == 0 {
         return fmt.Errorf("name cannot be empty")
     }
-    
+
     if len(name) > MaxNameLength {
         return fmt.Errorf("name too long: %d characters", len(name))
     }
-    
+
     if !utf8.ValidString(name) {
         return fmt.Errorf("name contains invalid UTF-8")
     }
-    
+
     // Check for SQL injection characters
     dangerousChars := []string{";", "--", "/*", "*/", "'", "\"", "\\", "\x00"}
     for _, dangerous := range dangerousChars {
@@ -225,7 +229,7 @@ func validateName(name string) error {
             return fmt.Errorf("name contains dangerous characters")
         }
     }
-    
+
     return nil
 }
 
@@ -234,15 +238,15 @@ func (ti *TableInfo) GetColumnByNameSecure(name string) (*api2go.ColumnInfo, boo
     if err := validateName(name); err != nil {
         return nil, false, fmt.Errorf("invalid column name: %v", err)
     }
-    
+
     if ti.Columns == nil {
         return nil, false, nil
     }
-    
+
     if len(ti.Columns) > MaxColumnCount {
         return nil, false, fmt.Errorf("too many columns to search")
     }
-    
+
     for _, col := range ti.Columns {
         if col.Name == name || col.ColumnName == name {
             // Return a copy to prevent external modification
@@ -263,7 +267,7 @@ func (ti *TableInfo) GetColumnByNameSecure(name string) (*api2go.ColumnInfo, boo
             return &colCopy, true, nil
         }
     }
-    
+
     return nil, false, nil
 }
 
@@ -281,15 +285,15 @@ func (ti *TableInfo) GetRelationByNameSecure(name string) (*api2go.TableRelation
     if err := validateName(name); err != nil {
         return nil, false, fmt.Errorf("invalid relation name: %v", err)
     }
-    
+
     if ti.Relations == nil {
         return nil, false, nil
     }
-    
+
     if len(ti.Relations) > MaxRelationCount {
         return nil, false, fmt.Errorf("too many relations to search")
     }
-    
+
     for _, relation := range ti.Relations {
         if relation.SubjectName == name || relation.ObjectName == name {
             // Return a copy to prevent external modification
@@ -305,7 +309,7 @@ func (ti *TableInfo) GetRelationByNameSecure(name string) (*api2go.TableRelation
             return &relationCopy, true, nil
         }
     }
-    
+
     return nil, false, nil
 }
 
@@ -323,22 +327,22 @@ func (ti *TableInfo) AddRelationSecure(relations ...api2go.TableRelation) error 
     if ti.Relations == nil {
         ti.Relations = make([]api2go.TableRelation, 0)
     }
-    
+
     // Check total relation count limit
     if len(ti.Relations)+len(relations) > MaxRelationCount {
-        return fmt.Errorf("too many relations: current=%d, adding=%d, maximum=%d", 
+        return fmt.Errorf("too many relations: current=%d, adding=%d, maximum=%d",
             len(ti.Relations), len(relations), MaxRelationCount)
     }
-    
+
     for _, relation := range relations {
         // Validate relation
         if err := validateRelation(&relation); err != nil {
             return fmt.Errorf("invalid relation: %v", err)
         }
-        
+
         exists := false
         hash := relation.Hash()
-        
+
         // Check for duplicates using both hash and content comparison
         for _, existingRelation := range ti.Relations {
             if existingRelation.Hash() == hash {
@@ -349,12 +353,12 @@ func (ti *TableInfo) AddRelationSecure(relations ...api2go.TableRelation) error 
                 }
             }
         }
-        
+
         if !exists {
             ti.Relations = append(ti.Relations, relation)
         }
     }
-    
+
     return nil
 }
 
@@ -363,23 +367,23 @@ func validateRelation(relation *api2go.TableRelation) error {
     if relation == nil {
         return fmt.Errorf("relation cannot be nil")
     }
-    
+
     if err := validateName(relation.Subject); err != nil {
         return fmt.Errorf("invalid subject: %v", err)
     }
-    
+
     if err := validateName(relation.Object); err != nil {
         return fmt.Errorf("invalid object: %v", err)
     }
-    
+
     if err := validateName(relation.SubjectName); err != nil {
         return fmt.Errorf("invalid subject name: %v", err)
     }
-    
+
     if err := validateName(relation.ObjectName); err != nil {
         return fmt.Errorf("invalid object name: %v", err)
     }
-    
+
     return nil
 }
 
@@ -409,22 +413,22 @@ func (ti *TableInfo) Validate() error {
     if err := validateName(ti.TableName); err != nil {
         return fmt.Errorf("invalid table name: %v", err)
     }
-    
+
     if len(ti.Columns) > MaxColumnCount {
         return fmt.Errorf("too many columns: %d", len(ti.Columns))
     }
-    
+
     if len(ti.Relations) > MaxRelationCount {
         return fmt.Errorf("too many relations: %d", len(ti.Relations))
     }
-    
+
     // Validate all relations
     for i, relation := range ti.Relations {
         if err := validateRelation(&relation); err != nil {
             return fmt.Errorf("invalid relation at index %d: %v", i, err)
         }
     }
-    
+
     return nil
 }
 
@@ -480,6 +484,6 @@ func (ti *TableInfo) GetStats() map[string]interface{} {
 4. **Slice Management Issues:** No bounds checking on relation additions
 
 ---
-**Analysis Date:** 2025-01-27  
-**Analyst:** Claude  
+**Analysis Date:** 2025-01-27
+**Analyst:** Claude
 **Priority:** LOW - Data structure with minor security considerations requiring input validation improvements

@@ -530,6 +530,36 @@ func InvalidateObjectPermissionCache(objectType string, referenceId daptinid.Dap
 	}
 }
 
+// InvalidateObjectPermissionWhereCache removes permission caches keyed by a where clause.
+func InvalidateObjectPermissionWhereCache(objectType string, colName string, colValue string) {
+	if OlricCache == nil {
+		return
+	}
+
+	cacheKeys := []string{
+		fmt.Sprintf("%s_%s_%s", objectType, colName, colValue),
+		fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue),
+	}
+	for _, cacheKey := range cacheKeys {
+		_, err := OlricCache.Delete(context.Background(), cacheKey)
+		if err != nil {
+			log.Warnf("failed to invalidate object permission where cache for %s: %v", cacheKey, err)
+		}
+	}
+}
+
+// InvalidateActionCache removes the cached action schema row.
+func InvalidateActionCache(typeName string, actionName string) {
+	if OlricCache == nil {
+		return
+	}
+	cacheKey := fmt.Sprintf("action-%v-%v", typeName, actionName)
+	_, err := OlricCache.Delete(context.Background(), cacheKey)
+	if err != nil {
+		log.Warnf("failed to invalidate action cache for %s: %v", cacheKey, err)
+	}
+}
+
 // InvalidateRowPermissionCache removes the cached row-level permission for a specific object.
 func InvalidateRowPermissionCache(objectType string, referenceId daptinid.DaptinReferenceId) {
 	if OlricCache == nil {

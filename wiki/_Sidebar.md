@@ -28,6 +28,7 @@
 
 ## Actions
 - [[Actions-Overview]]
+- [[Action-Permission-Schema-Sync-Technical-KT]]
 - [[User-Actions]]
 - [[Admin-Actions]]
 - [[Data-Actions]]

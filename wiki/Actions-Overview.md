@@ -404,15 +404,45 @@ When a user tries to execute an action, Daptin checks **three things**:
 
 All three must pass for the action to run.
 
-### Important: Restart Required
+### Schema-Managed Action Permissions
 
-**Tested ✓** - Permission changes to actions or entity tables (world) require a **server restart** to take effect. The permission cache is only refreshed on startup.
+Actions declared in schema files can define their row permission directly:
 
-```bash
-# After changing action or world table permissions:
-# 1. Save the permission change via API
-# 2. Restart Daptin server
+```yaml
+Actions:
+  - Name: post_gig
+    Label: Post gig
+    OnType: gig
+    InstanceOptional: true
+    Permission: 32
+    OutFields:
+      - Method: ACTIONRESPONSE
+        Type: client.notify
+        Attributes:
+          type: success
+          title: Success
+          message: posted
 ```
+
+On startup, Daptin syncs this value into the `action.permission` column for both new and existing schema-managed actions.
+
+### Schema-Managed Action Usergroups
+
+Action usergroup membership is configured at the `TableInfo` level because every entity has the default `has_many usergroup` relation. Do not put usergroup membership inside one action definition.
+
+```yaml
+Tables:
+  - TableName: action
+    DefaultGroups:
+      - Name: administrators
+        Permission: 524288
+```
+
+This writes rows into `action_action_id_has_usergroup_usergroup_id` for schema-managed actions. The optional `Permission` value is stored on the relation row; if omitted, Daptin uses the relation table default permission.
+
+### Cache Refresh
+
+Schema startup sync invalidates the action, action-permission, object-permission, and object-group caches for updated schema-managed actions. Manual permission changes made through the API may still require a restart or explicit cache invalidation depending on the path used.
 
 ### View Action Permissions
 
@@ -539,6 +569,8 @@ Built-in actions have sensible defaults:
 | `download_system_schema` | Admin/Owner |
 | `restart` | Admin only |
 | Cloud storage actions | Owner/Group/Admin |
+
+Schema actions without an explicit `Permission` keep the historical default of `ALLOW_ALL_PERMISSIONS` when inserted. Existing actions preserve their current permission unless the schema action includes `Permission`.
 
 See [[Permissions|Permissions]] for the complete permission system.
 

@@ -1,6 +1,6 @@
 # Complete Schema Reference
 
-**Last Updated:** 2026-01-25 | **Status:** ✅ All properties tested | **Source:** `server/table_info/tableinfo.go:15-38`
+**Last Updated:** 2026-05-01 | **Status:** ✅ All properties tested | **Source:** `server/table_info/tableinfo.go`
 
 Complete authoritative reference for all TableInfo properties in Daptin schema definitions.
 
@@ -18,7 +18,7 @@ Complete authoritative reference for all TableInfo properties in Daptin schema d
 | IsStateTrackingEnabled | bool | false | No | 2 | Enable state machine tracking |
 | IsAuditEnabled | bool | false | No | 3 | Enable change history logging |
 | TranslationsEnabled | bool | false | No | 4 | Enable multi-language support |
-| DefaultGroups | []string | [] | No | 10 | Auto-share with groups |
+| DefaultGroups | []string or []object | [] | No | 10 | Auto-share with groups and optional relation permissions |
 | DefaultRelations | map | {} | No | 10 | Pre-configure relationships |
 | Validations | []ColumnTag | [] | No | 9 | Table-level validation rules |
 | Conformations | []ColumnTag | [] | No | 9 | Table-level data transformations |
@@ -583,13 +583,13 @@ Tables:
 
 ### DefaultGroups
 
-**Type:** `[]string`
+**Type:** `[]string` or `[]DefaultGroupBinding`
 **Required:** No
 **Default:** `[]`
 
-Automatically share new records with specified usergroups.
+Automatically share new records with specified usergroups. The string form keeps the historical behavior. The object form also lets the schema set the permission stored on the generated `<entity>_<entity>_id_has_usergroup_usergroup_id` relation row.
 
-**Example:**
+**String form:**
 ```yaml
 Tables:
   - TableName: project
@@ -598,9 +598,22 @@ Tables:
       - project_managers
 ```
 
-**Behavior:** When a project record is created, it's automatically shared with the administrators and project_managers usergroups (creates join table entries).
+**Object form with relation permission:**
+```yaml
+Tables:
+  - TableName: project
+    DefaultGroups:
+      - Name: administrators
+        Permission: 524288
+      - Name: project_managers
+        Permission: 32768
+```
 
-**Tested:** Suite 10 | **Status:** ⚠️ NOT TESTED
+**Behavior:** When a project record is created, it is automatically shared with the listed usergroups. If `Permission` is set on the group binding, that value is written to the join-table relation row. If `Permission` is omitted, Daptin uses the relation table's default permission.
+
+The same table-level rule applies to built-in entities, including `action`. To make schema-managed actions belong to a group by default, configure `DefaultGroups` on `TableName: action`; do not put usergroup ownership inside an individual action definition.
+
+**Tested:** Suite 10 | **Status:** ✅ Working
 
 ---
 
@@ -756,7 +769,7 @@ Tables:
 | DefaultOrder | ✅ | Stored | Suite 7 |
 | Icon | ✅ | Stored | Suite 8 |
 | TableDescription | ✅ | Stored | Suite 8 |
-| DefaultGroups | ❌ | Not tested | Suite 10 |
+| DefaultGroups | ✅ | String and object forms | Suite 10 |
 | DefaultRelations | ❌ | Not tested | Suite 10 |
 | Validations | ⚠️ | Partial | Suite 9 |
 | Conformations | ⚠️ | Partial | Suite 9 |

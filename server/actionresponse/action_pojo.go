@@ -2,6 +2,7 @@ package actionresponse
 
 import (
 	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/columns"
 	"github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
@@ -55,6 +56,7 @@ type Action struct {
 	InstanceOptional        bool                       // if true a "reference_id" parameter is expected to a value of a an existing <entityType> object, the entity object looked up by this reference_id will be passed on in the Context for outcome evaluations
 	RequestSubjectRelations []string                   // if above is true and, this array of strings defined what relations to be fecthed when the subject (above) is fetched and also provided in the context
 	ReferenceId             daptinid.DaptinReferenceId // uuid of this action
+	Permission              *auth.AuthPermission       // row permission for this schema-managed action instance
 	InFields                []api2go.ColumnInfo        // {ColumnName: '', ... }
 	OutFields               []Outcome                  // {Action: '', Type: '', Attributes: {...} }
 	Validations             []columns.ColumnTag

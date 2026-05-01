@@ -563,7 +563,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	}
 
 	groupsToAdd := dbResource.defaultGroups
-	for _, groupId := range groupsToAdd {
+	for _, group := range groupsToAdd {
 		nuuid, _ := uuid.NewV7()
 
 		relationTableName := dbResource.model.GetName() + "_" + dbResource.model.GetName() + "_id" + "_has_usergroup_usergroup_id"
@@ -571,15 +571,19 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 		if !ok {
 			log.Errorf("Relation table model not found [%s]", relationTableName)
 		} else {
+			relationPermission := auth.AuthPermission(relationTableModel.model.GetDefaultPermission())
+			if group.Permission != nil {
+				relationPermission = *group.Permission
+			}
 			belogsToUserGroupSql, q, _ := statementbuilder.Squirrel.
 				Insert(relationTableName).
 				Cols(dbResource.model.GetName()+"_id", "usergroup_id", "reference_id", "permission").Prepared(true).
-				Vals([]interface{}{createdResource["id"], groupId, nuuid[:], relationTableModel.model.GetDefaultPermission()}).
+				Vals([]interface{}{createdResource["id"], group.GroupId, nuuid[:], relationPermission}).
 				OnConflict(goqu.DoNothing()).ToSQL()
 
-			log.Tracef("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
+			log.Tracef("Add new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], group.GroupId)
 			_, err = createTransaction.Exec(belogsToUserGroupSql, q...)
-			log.Tracef("Added new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], groupId)
+			log.Tracef("Added new object [%v][%v] to usergroup [%v]", dbResource.tableInfo.TableName, createdResource["reference_id"], group.GroupId)
 
 			if err != nil {
 				log.Errorf("Failed to insert add user group relation for [%v]: %v", dbResource.model.GetName(), err)
