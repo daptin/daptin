@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
-	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/doug-martin/goqu/v9"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -67,23 +65,11 @@ func (d *generateJwtTokenActionPerformer) DoAction(request actionresponse.Outcom
 
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.
-			u, _ := uuid.NewV7()
 			timeNow := time.Now().UTC()
-
 			timeNow.Add(-2 * time.Minute) // allow clock skew of 2 minutes
-			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-				"email": existingUser["email"],
-				"sub":   daptinid.InterfaceToDIR(existingUser["reference_id"]).String(),
-				"name":  existingUser["name"],
-				"nbf":   timeNow.Unix(),
-				"exp":   timeNow.Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
-				"iss":   d.jwtTokenIssuer,
-				"iat":   timeNow.Unix(),
-				"jti":   u.String(),
-			})
 
 			// Sign and get the complete encoded token as a string using the secret
-			tokenString, err := token.SignedString(d.secret)
+			tokenString, err := newAuthSessionToken(d.secret, d.tokenLifeTime, d.jwtTokenIssuer, existingUser, timeNow, nil)
 			//fmt.Printf("%v %v", tokenString, err)
 			if err != nil {
 				log.Errorf("Failed to sign string: %v", err)

@@ -2497,6 +2497,16 @@ var StandardTables = []table_info.TableInfo{
 				DefaultValue:      "false",
 				ColumnDescription: "Indicates whether the user has confirmed their account, typically through email verification. Defaults to false until the confirmation process is completed.",
 			},
+			{
+				Name:              "auth_version",
+				ColumnName:        "auth_version",
+				DataType:          "INTEGER",
+				ColumnType:        "measurement",
+				IsNullable:        false,
+				DefaultValue:      "1",
+				ExcludeFromApi:    true,
+				ColumnDescription: "Server-owned authentication lifecycle counter. Incremented when credentials change so older JWT sessions can be rejected.",
+			},
 		},
 		Validations: []columns.ColumnTag{
 			{

@@ -1192,6 +1192,7 @@
 <li>If true, issue a JWT token, which is used for future calls</li>
 </ul>
 <p>The main outcome of the Sign In action is the jwt token, which is to be used in the <code>Authorization</code> header of following calls.</p>
+<p>The token includes the current <code>auth_version</code> for the user account. When the user's password is changed or reset, Daptin increments this server-owned version and all older JWTs for that user stop working. Clients should treat a <code>401 Unauthorized</code> response as a signal to remove the stored token and ask the user to sign in again.</p>
 <h4 id="sign-in-curl-example">Sign in CURL example</h4>
 <div class="admonition example">
 <p class="admonition-title">POST call for sign in</p>

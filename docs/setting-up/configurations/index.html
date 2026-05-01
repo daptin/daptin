@@ -1334,7 +1334,7 @@ trigger a lookup in corresponding translations table if enabled.</p>
 <h2 id="enable-imap">Enable IMAP</h2>
 <p>IMAP interface is disabled by default. Set to true to start listening to IMAP port</p>
 <h2 id="jwt-token-lifetime-hours">JWT token lifetime (hours)</h2>
-<p>Life time in hours of JWT tokens generated for login</p>
+<p>Life time in hours of JWT tokens generated for login. This is the maximum lifetime: a token can become invalid earlier if the user's password is changed or reset, because Daptin increments the account <code>auth_version</code> and rejects older JWTs.</p>
 <h2 id="totp-secret">TOTP secret</h2>
 <p>TOTP secret used for CSRF token generation and 2factor token generator</p>
 <h2 id="enable-ftp">Enable FTP</h2>

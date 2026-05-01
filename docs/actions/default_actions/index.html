@@ -1554,6 +1554,7 @@ response = requests.post(&#39;http://localhost:6336/action/world/upload_csv_to_s
 <li>email</li>
 <li>password</li>
 </ul>
+<p>The token is bound to the user's current <code>auth_version</code>. Password changes and password reset verification increment <code>auth_version</code>, so older JWTs are rejected with <code>401 Unauthorized</code> and the client should sign in again.</p>
 </div>
 <h3 id="oauth-login">Oauth login</h3>
 <div class="admonition example">
@@ -1703,7 +1704,7 @@ response = requests.post(&#39;http://localhost:6336/action/world/upload_csv_to_s
 <tr>
 <td>jwt.token</td>
 <td>email and password of the user account</td>
-<td>generates a JWT token valid for 4 days (configurable)</td>
+<td>generates a JWT token valid until expiry unless the user's auth_version changes after a password change/reset</td>
 <td></td>
 <td></td>
 </tr>
@@ -1724,7 +1725,7 @@ response = requests.post(&#39;http://localhost:6336/action/world/upload_csv_to_s
 <tr>
 <td>password.reset.verify</td>
 <td>email id, token, new password</td>
-<td>verify password reset and let the user set a new password if token is valid</td>
+<td>verify password reset, set a new password, and invalidate previously issued JWTs for that user</td>
 <td></td>
 <td></td>
 </tr>
@@ -1815,7 +1816,7 @@ response = requests.post(&#39;http://localhost:6336/action/world/upload_csv_to_s
 <tr>
 <td>otp.login.verify</td>
 <td>email/mobile and otp code</td>
-<td>verify a TOTP code presented by the user, generate a JWT token if valid</td>
+<td>verify a TOTP code presented by the user, generate an auth_version-bound JWT token if valid</td>
 <td></td>
 <td></td>
 </tr>

@@ -22,10 +22,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
+
+const AuthVersionClaim = "auth_version"
+const AuthVersionColumn = "auth_version"
 
 type AuthPermission int64
 
@@ -203,6 +207,80 @@ func BcryptCheckStringHash(newString, hash string) bool {
 	return err == nil
 }
 
+func AuthVersionFromValue(value interface{}) (int64, bool) {
+	switch v := value.(type) {
+	case int:
+		return int64(v), true
+	case int8:
+		return int64(v), true
+	case int16:
+		return int64(v), true
+	case int32:
+		return int64(v), true
+	case int64:
+		return v, true
+	case uint:
+		return int64(v), true
+	case uint8:
+		return int64(v), true
+	case uint16:
+		return int64(v), true
+	case uint32:
+		return int64(v), true
+	case uint64:
+		return int64(v), true
+	case float32:
+		return int64(v), true
+	case float64:
+		return int64(v), true
+	case string:
+		if v == "" {
+			return 0, false
+		}
+		parsed, err := strconv.ParseInt(v, 10, 64)
+		return parsed, err == nil
+	default:
+		return 0, false
+	}
+}
+
+func AuthVersionOrDefault(value interface{}) int64 {
+	if authVersion, ok := AuthVersionFromValue(value); ok && authVersion > 0 {
+		return authVersion
+	}
+	return 1
+}
+
+func AuthVersionFromJWTToken(token *jwt.Token) (int64, error) {
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, errors.New("JWT claims missing")
+	}
+
+	tokenAuthVersion, ok := AuthVersionFromValue(claims[AuthVersionClaim])
+	if !ok || tokenAuthVersion < 1 {
+		return 0, errors.New("JWT auth_version claim missing")
+	}
+
+	return tokenAuthVersion, nil
+}
+
+func ValidateJWTAuthVersion(token *jwt.Token, sessionUser *SessionUser) error {
+	if sessionUser == nil {
+		return errors.New("session user missing")
+	}
+
+	tokenAuthVersion, err := AuthVersionFromJWTToken(token)
+	if err != nil {
+		return err
+	}
+	if tokenAuthVersion != sessionUser.AuthVersion {
+		return fmt.Errorf("stale JWT auth_version for session user")
+	}
+
+	return nil
+}
+
 func CheckErr(err error, message ...interface{}) {
 	if err != nil {
 		fmtString := message[0].(string)
@@ -265,6 +343,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 	}
 
 	hasUser := false
+	hasJWTUser := false
 
 	userJwtToken, err := jwtMiddleware.CheckJWT(writer, req)
 
@@ -285,6 +364,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 		}
 	} else {
 		hasUser = true
+		hasJWTUser = true
 	}
 
 	if hasUser {
@@ -298,6 +378,14 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 		} else {
 
 			userToken := userJwtToken
+			var tokenAuthVersion int64
+			if hasJWTUser {
+				tokenAuthVersion, err = AuthVersionFromJWTToken(userToken)
+				if err != nil {
+					log.Warnf("JWT auth version check failed: %v", err)
+					return false, false, req
+				}
+			}
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
 			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
 			//log.Printf("User is not nil: %v", email)
@@ -324,7 +412,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					//log.Errorf("cached user [%v] is nil", email)
 
 					sql, args, err := statementbuilder.Squirrel.Select(goqu.I("u.id"),
-						goqu.I("u.reference_id")).Prepared(true).
+						goqu.I("u.reference_id"),
+						goqu.I("u."+AuthVersionColumn)).Prepared(true).
 						From(goqu.T("user_account").As("u")).Where(
 						goqu.Ex{"email": email}).ToSQL()
 					if err != nil {
@@ -339,7 +428,8 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 					}
 
 					rowx := stmt1.QueryRowx(args...)
-					err = rowx.Scan(&userId, &referenceIdBytes)
+					var authVersion int64
+					err = rowx.Scan(&userId, &referenceIdBytes, &authVersion)
 					err = stmt1.Close()
 					if err != nil {
 						log.Errorf("failed to close prepared statement: %v", err)
@@ -356,6 +446,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						mapData := make(map[string]interface{})
 						mapData["name"] = name
 						mapData["email"] = email
+						mapData[AuthVersionColumn] = tokenAuthVersion
 
 						newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
 						ur, _ := url.Parse("/user_account")
@@ -447,6 +538,7 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						UserId:          userId,
 						UserReferenceId: referenceId,
 						Groups:          userGroups,
+						AuthVersion:     AuthVersionOrDefault(authVersion),
 					}
 					//
 					LocalUserCacheLock.Lock()
@@ -484,6 +576,14 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				//sessionUser = &localCachedUser.Account
 			}
 
+			if hasJWTUser {
+				err = ValidateJWTAuthVersion(userToken, sessionUser)
+				if err != nil {
+					log.Warnf("JWT auth version check failed: %v", err)
+					return false, false, req
+				}
+			}
+
 			//log.Tracef("User cache map size: %v", len(LocalUserCacheMap))
 
 			ct := req.Context()
@@ -515,6 +615,7 @@ type SessionUser struct {
 	UserId          int64
 	UserReferenceId daptinid.DaptinReferenceId
 	Groups          GroupPermissionList
+	AuthVersion     int64
 }
 
 // InvalidateAuthCacheForEmail removes the cached SessionUser for the given email,
@@ -544,6 +645,10 @@ func (s SessionUser) MarshalBinary() ([]byte, error) {
 		data = append(data, groupData...)
 	}
 
+	authVersionData := make([]byte, 8)
+	binary.LittleEndian.PutUint64(authVersionData, uint64(AuthVersionOrDefault(s.AuthVersion)))
+	data = append(data, authVersionData...)
+
 	return data, nil
 }
 
@@ -558,8 +663,20 @@ func (s *SessionUser) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
+	groupEnd := len(data)
+	remainder := len(data) - 24
+	if remainder%56 == 8 {
+		groupEnd = len(data) - 8
+		s.AuthVersion = int64(binary.LittleEndian.Uint64(data[groupEnd:]))
+	} else {
+		s.AuthVersion = 1
+	}
+
 	position := 24
-	for position < len(data) {
+	for position < groupEnd {
+		if groupEnd-position < 56 {
+			return errors.New("invalid SessionUser group data")
+		}
 		var group GroupPermission
 		if err := group.UnmarshalBinary(data[position:]); err != nil {
 			return err

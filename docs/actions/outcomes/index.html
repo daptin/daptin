@@ -2344,6 +2344,7 @@ table</p>
 <span class="w">    </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;~email&quot;</span><span class="w"></span>
 <span class="w">    </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;~password&quot;</span><span class="w"></span>
 </code></pre></div>
+<p>The generated JWT contains the current <code>auth_version</code> for the user account. If that user's password is later changed or reset, Daptin increments <code>auth_version</code> and rejects previously issued JWTs with <code>401 Unauthorized</code>.</p>
 <h3 id="oauthclientredirect">oauth.client.redirect</h3>
 <div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EXECUTE</span><span class="w"></span>
 <span class="w">  </span><span class="nt">Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oauth.client.redirect</span><span class="w"></span>
@@ -2377,6 +2378,7 @@ table</p>
 <span class="w">    </span><span class="nt">email</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;!profile.email</span><span class="nv"> </span><span class="s">||</span><span class="nv"> </span><span class="s">profile.emailAddress&quot;</span><span class="w"></span>
 <span class="w">    </span><span class="nt">skipPasswordCheck</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
 </code></pre></div>
+<p>OAuth-backed JWTs are also bound to the current <code>auth_version</code> for the matched user account. A later password change/reset invalidates older JWTs for that user.</p>
 
               
             </article>

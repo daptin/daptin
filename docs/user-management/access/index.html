@@ -1239,10 +1239,12 @@ GroupRefer: 1 &lt;&lt; 20,
 <p>The authentication token is a JWT token issued by daptin on sign in action. Users can create new actions to allow other means of generating JWT token. It is as simple as adding another outcome to an action.</p>
 <h3 id="server-side">Server side</h3>
 <p>Daptin uses OAuth 2 based authentication strategy. HTTP calls are checked for <code>Authorization</code> header, and if present, validated as a JWT token. The JWT token should have been issued by daptin earlier and should not have expired. To see how to generate JWT token, checkout the <a href="/actions/signin">sing-in action</a>.</p>
-<p>The JWT token contains the issuer information (daptin) plus basic user profile (email). The JWT token has a one hour (configurable) expiry from the time of issue.</p>
+<p>The JWT token contains the issuer information (daptin), the user identity, and an <code>auth_version</code> claim. The token has a configurable expiry from the time of issue.</p>
+<p>The <code>auth_version</code> claim is compared with the current server-owned <code>user_account.auth_version</code> value on every JWT-authenticated request. Password changes and password reset verification increment this value, which invalidates every previously issued JWT for that user. Non-password profile updates do not increment <code>auth_version</code>.</p>
+<p>Tokens issued before this claim existed, tokens with a missing claim, and tokens with a stale claim are rejected.</p>
 <p>If the token is absent or invalid, the user is considered as a guest. Guests also have certain permissions. Checkout the <a href="/auth/authorization">Authorization docs</a> for details.</p>
 <h3 id="client-side">Client side</h3>
-<p>On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.</p>
+<p>On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status. A 401 can mean the token expired, was malformed, or became stale after a password change; clients should discard the token and send the user through sign in again.</p>
 
               
             </article>

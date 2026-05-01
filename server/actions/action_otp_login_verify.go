@@ -7,7 +7,6 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -137,21 +136,11 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request actionresponse.Outcome,
 
 	}
 
-	u, _ := uuid.NewV7()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":   userAccount["email"],
-		"name":    userAccount["name"],
-		"nbf":     timeInstance.Unix(),
-		"exp":     timeInstance.Add(time.Duration(d.tokenLifeTime) * time.Hour).Unix(),
-		"iss":     d.jwtTokenIssuer,
-		"sub":     daptinid.InterfaceToDIR(userAccount["reference_id"]).String(),
+	tokenString, err := newAuthSessionToken(d.secret, d.tokenLifeTime, d.jwtTokenIssuer, userAccount, timeInstance, map[string]interface{}{
 		"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", resource.GetMD5HashString(strings.ToLower(userAccount["email"].(string)))),
-		"iat":     timeInstance.Unix(),
-		"jti":     u.String(),
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(d.secret)
 	fmt.Printf("%v %v", tokenString, err)
 	if err != nil {
 		log.Errorf("Failed to sign string: %v", err)

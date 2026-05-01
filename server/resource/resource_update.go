@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
+	jwtmiddleware "github.com/daptin/daptin/server/jwt"
 	"github.com/jmoiron/sqlx"
 	"strings"
 
@@ -85,6 +86,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 	var colsList []string
 	var valsList []interface{}
+	passwordChanged := false
 	if len(allChanges) > 0 {
 		for _, col := range allColumns {
 
@@ -106,6 +108,10 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			}
 
 			if col.ColumnName == "version" {
+				continue
+			}
+
+			if col.ColumnName == auth.AuthVersionColumn {
 				continue
 			}
 
@@ -285,6 +291,9 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					log.Errorf("Failed to convert string to bcrypt hash, not storing the value: %v", err)
 					continue
 				}
+				if dbResource.model.GetName() == USER_ACCOUNT_TABLE_NAME && col.ColumnName == "password" {
+					passwordChanged = true
+				}
 			} else if col.ColumnType == "datetime" {
 				parsedTime, ok := val.(time.Time)
 				if !ok {
@@ -447,6 +456,9 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			for i := range colsList {
 				setVals[colsList[i]] = valsList[i]
 			}
+			if passwordChanged {
+				setVals[auth.AuthVersionColumn] = goqu.L("COALESCE(auth_version, 1) + 1")
+			}
 			builder = builder.Set(goqu.Record(setVals))
 
 			query, vals, err := builder.
@@ -539,6 +551,22 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				}
 			}
 		}
+	}
+
+	if passwordChanged {
+		seenEmails := make(map[string]bool)
+		for _, emailValue := range []interface{}{
+			data.GetColumnOriginalValue("email"),
+			data.GetAllAsAttributes()["email"],
+		} {
+			email, ok := emailValue.(string)
+			if !ok || email == "" || seenEmails[email] {
+				continue
+			}
+			seenEmails[email] = true
+			auth.InvalidateAuthCacheForEmail(email)
+		}
+		jwtmiddleware.InvalidateTokenCache()
 	}
 
 	// Invalidate object-groups when any usergroup relation row is updated

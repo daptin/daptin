@@ -20,6 +20,24 @@ type errorHandler func(w http.ResponseWriter, r *http.Request, err string)
 
 var TokenCache olric.DMap
 
+func InvalidateTokenCache() {
+	if TokenCache == nil {
+		return
+	}
+	iterator, err := TokenCache.Scan(context.Background())
+	if err != nil {
+		log.Warnf("failed to scan token cache for invalidation: %v", err)
+		return
+	}
+	defer iterator.Close()
+	for iterator.Next() {
+		_, err = TokenCache.Delete(context.Background(), iterator.Key())
+		if err != nil {
+			log.Warnf("failed to invalidate token cache key: %v", err)
+		}
+	}
+}
+
 // TokenExtractor is a function that takes a request as input and returns
 // either a token or an error.  An error should only be returned if an attempt
 // to specify a token was found, but the information was somehow incorrectly

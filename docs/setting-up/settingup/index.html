@@ -1319,7 +1319,7 @@
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="p">}]</span><span class="w"></span>
 </code></pre></div>
-<p>The token is to be used in the Authorization header of for all HTTP calls to identify the user.</p>
+<p>The token is to be used in the Authorization header of for all HTTP calls to identify the user. JWTs include the user's current <code>auth_version</code>; password changes and password reset verification invalidate older JWTs. If the server returns <code>401 Unauthorized</code>, clear the stored token and sign in again.</p>
 <h2 id="become-administrator">Become Administrator</h2>
 <p>First user to sign up with automatically become an administrator. More administrators can be added.</p>
 
