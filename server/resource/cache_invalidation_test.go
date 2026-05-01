@@ -3,6 +3,8 @@ package resource
 import (
 	"context"
 	"fmt"
+	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -17,16 +19,36 @@ import (
 // testOlric creates an embedded Olric instance and returns a DMap plus a cleanup function.
 func testOlric(t *testing.T, dmapName string) (olric.DMap, func()) {
 	t.Helper()
+	port, err := freeTCPPort()
+	if err != nil {
+		t.Fatalf("failed to allocate olric port: %v", err)
+	}
+	started := make(chan struct{})
 	cfg := olricConfig.New("local")
+	cfg.BindAddr = "127.0.0.1"
+	cfg.BindPort = port
+	cfg.MemberlistConfig.BindAddr = "127.0.0.1"
+	cfg.MemberlistConfig.BindPort = 0
+	cfg.MemberlistConfig.Name = net.JoinHostPort(cfg.BindAddr, strconv.Itoa(cfg.BindPort))
 	cfg.LogOutput = nil
+	cfg.Started = func() {
+		close(started)
+	}
 	emb, err := olric.New(cfg)
 	if err != nil {
 		t.Fatalf("failed to create olric: %v", err)
 	}
 
-	go func() { _ = emb.Start() }()
+	errCh := make(chan error, 1)
+	go func() { errCh <- emb.Start() }()
 
-	time.Sleep(500 * time.Millisecond)
+	select {
+	case <-started:
+	case err := <-errCh:
+		t.Fatalf("failed to start olric: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatalf("timed out waiting for olric to start")
+	}
 
 	client := emb.NewEmbeddedClient()
 	dm, err := client.NewDMap(dmapName)
@@ -38,8 +60,29 @@ func testOlric(t *testing.T, dmapName string) (olric.DMap, func()) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = emb.Shutdown(ctx)
+		select {
+		case err := <-errCh:
+			if err != nil {
+				t.Logf("olric stopped with error: %v", err)
+			}
+		case <-time.After(5 * time.Second):
+			t.Log("timed out waiting for olric shutdown")
+		}
 	}
 	return dm, cleanup
+}
+
+func freeTCPPort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer listener.Close()
+	return listener.Addr().(*net.TCPAddr).Port, nil
 }
 
 // swapOlricCache replaces the global OlricCache with the given DMap and returns a restore function.
