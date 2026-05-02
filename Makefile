@@ -22,7 +22,7 @@ endif
 VERSION_SUFFIX := $(shell git describe --abbrev=8 --tags | perl -lpe 's/^v\d+\.\d+\.\d+//; s/^-(\d+)/"-".sprintf("%03d",$$1)/e;')
 # TAG is current version + number of commits since last release + branch
 TAG := $(VERSION)$(VERSION_SUFFIX)$(TAG_BRANCH)
-NEXT_VERSION := $(shell echo $(VERSION) | perl -lpe 's/v//; $$_ += 0.01; $$_ = sprintf("v%.2f.0", $$_)')
+NEXT_VERSION := $(shell echo $(VERSION) | perl -lne 'if (/^v?(\d+)\.(\d+)\.(\d+)$$/) { printf "v%d.%d.%d\n", $$1, $$2, $$3 + 1 } else { die "invalid VERSION: $$_" }')
 ifndef RELEASE_TAG
 	TAG := $(TAG)-beta
 endif
