@@ -637,8 +637,10 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 				}
 
 				if len(refIdsToIdMap) < 1 {
-					log.Errorf("[576] Failed to convert refids to ids [%v][%v]: %v", rel.GetObject(), uuidStringQueries, err)
-					return nil, nil, nil, false, err
+					log.Debugf("[576] No related rows resolved for refids [%v][%v]", rel.GetObject(), uuidStringQueries)
+					queryBuilder = queryBuilder.Where(goqu.L("1 = 0"))
+					countQueryBuilder = countQueryBuilder.Where(goqu.L("1 = 0"))
+					continue
 				}
 
 				intIdList := ValuesOf(refIdsToIdMap)
