@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"encoding/base64"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -1236,22 +1237,9 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 
 		if crud.model.HasColumn(USER_ACCOUNT_ID_COLUMN) {
 
-			q, v, err := statementbuilder.Squirrel.
-				Update(crud.model.GetName()).Prepared(true).
-				Set(goqu.Record{
-					USER_ACCOUNT_ID_COLUMN: userId,
-					"permission":           auth.DEFAULT_PERMISSION,
-				}).ToSQL()
+			err := becomeAdminOwnRows(crud, userId, transaction)
 			if err != nil {
-				log.Errorf("Query: %v", q)
-				log.Errorf("Failed to create query to update to become admin: %v == %v", crud.model.GetName(), err)
-				continue
-			}
-
-			_, err = transaction.Exec(q, v...)
-			if err != nil {
-				log.Errorf("Query: %v", q)
-				log.Errorf("	Failed to execute become admin update query: %v", err)
+				log.Errorf("Failed to execute become admin update query for %v: %v", crud.model.GetName(), err)
 				continue
 			}
 
@@ -1285,6 +1273,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		}).
 		Where(goqu.Ex{
 			"table_name": goqu.Op{"notlike": "%_audit"},
+			"permission": int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN),
 		}).
 		ToSQL()
 	if err != nil {
@@ -1292,10 +1281,18 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		return false
 	}
 
-	_, err = transaction.Exec(query, args...)
+	result, err := transaction.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to update world permissions: %v", err)
 		return false
+	}
+	rowsAffected, rowsErr := result.RowsAffected()
+	if rowsErr != nil {
+		log.Debugf("BecomeAdmin world permission transition table_scope=non_audit from=%d to=%d rows_affected=unknown error=%v",
+			auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, rowsErr)
+	} else {
+		log.Debugf("BecomeAdmin world permission transition table_scope=non_audit from=%d to=%d rows_affected=%d",
+			auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, rowsAffected)
 	}
 
 	query, args, err = statementbuilder.Squirrel.Update("world").Prepared(true).
@@ -1304,18 +1301,28 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		}).
 		Where(goqu.Ex{
 			"table_name": goqu.Op{"like": "%_audit"},
+			"permission": int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN),
 		}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to create sql for update world audit permissions: %v", err)
 	}
 
-	_, err = transaction.Exec(query, args...)
+	result, err = transaction.Exec(query, args...)
 	if err != nil {
 		log.Errorf("Failed to world update audit permissions: %v", err)
+	} else {
+		rowsAffected, rowsErr = result.RowsAffected()
+		if rowsErr != nil {
+			log.Debugf("BecomeAdmin world permission transition table_scope=audit from=%d to=%d rows_affected=unknown error=%v",
+				auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.UserCreate|auth.GroupCreate, rowsErr)
+		} else {
+			log.Debugf("BecomeAdmin world permission transition table_scope=audit from=%d to=%d rows_affected=%d",
+				auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.UserCreate|auth.GroupCreate, rowsAffected)
+		}
 	}
 
-	// Update default_permission inside world_schema_json for all world rows
-	err = updateDefaultPermissionInSchemaJson(transaction, auth.DEFAULT_PERMISSION, auth.UserRead|auth.GroupRead)
+	// Transition bootstrap default permissions inside world_schema_json.
+	err = updateDefaultPermissionInSchemaJson(transaction, auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, auth.UserRead|auth.GroupRead)
 	if err != nil {
 		log.Errorf("Failed to update default_permission in schema json: %v", err)
 	}
@@ -1350,7 +1357,62 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	return true
 }
 
-func updateDefaultPermissionInSchemaJson(transaction *sqlx.Tx, nonAuditDefault auth.AuthPermission, auditDefault auth.AuthPermission) error {
+func becomeAdminOwnRows(crud *DbResource, userId int64, transaction *sqlx.Tx) error {
+	q, v, err := statementbuilder.Squirrel.
+		Update(crud.model.GetName()).Prepared(true).
+		Set(goqu.Record{
+			USER_ACCOUNT_ID_COLUMN: userId,
+		}).ToSQL()
+	if err != nil {
+		return err
+	}
+
+	result, err := transaction.Exec(q, v...)
+	if err != nil {
+		return err
+	}
+	rowsAffected, rowsErr := result.RowsAffected()
+	if rowsErr != nil {
+		log.Debugf("BecomeAdmin ownership transition table=%s user_account_id=%d rows_affected=unknown error=%v",
+			crud.model.GetName(), userId, rowsErr)
+	} else {
+		log.Debugf("BecomeAdmin ownership transition table=%s user_account_id=%d rows_affected=%d",
+			crud.model.GetName(), userId, rowsAffected)
+	}
+
+	if !crud.model.HasColumn("permission") {
+		log.Debugf("BecomeAdmin permission transition skipped table=%s reason=no_permission_column", crud.model.GetName())
+		return nil
+	}
+
+	q, v, err = statementbuilder.Squirrel.
+		Update(crud.model.GetName()).Prepared(true).
+		Set(goqu.Record{
+			"permission": int64(auth.DEFAULT_PERMISSION),
+		}).
+		Where(goqu.Ex{
+			"permission": int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN),
+		}).
+		ToSQL()
+	if err != nil {
+		return err
+	}
+
+	result, err = transaction.Exec(q, v...)
+	if err == nil {
+		rowsAffected, rowsErr := result.RowsAffected()
+		if rowsErr != nil {
+			log.Debugf("BecomeAdmin permission transition table=%s from=%d to=%d rows_affected=unknown error=%v",
+				crud.model.GetName(), auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, rowsErr)
+		} else {
+			log.Debugf("BecomeAdmin permission transition table=%s from=%d to=%d rows_affected=%d",
+				crud.model.GetName(), auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, rowsAffected)
+		}
+	}
+	return err
+}
+
+func updateDefaultPermissionInSchemaJson(transaction *sqlx.Tx, bootstrapDefault auth.AuthPermission, nonAuditDefault auth.AuthPermission, auditDefault auth.AuthPermission) error {
 	selectSql, selectArgs, err := statementbuilder.Squirrel.
 		Select("table_name", "world_schema_json").Prepared(true).
 		From("world").
@@ -1385,11 +1447,20 @@ func updateDefaultPermissionInSchemaJson(transaction *sqlx.Tx, nonAuditDefault a
 			continue
 		}
 
+		currentDefault, hasDefault := schemaJSONDefaultPermission(tabInfo)
+		if hasDefault && currentDefault != 0 && currentDefault != bootstrapDefault {
+			log.Debugf("BecomeAdmin schema default transition skipped table=%s default_permission=%d reason=explicit_permission",
+				r.tableName, currentDefault)
+			continue
+		}
+
 		newDefault := nonAuditDefault
 		if strings.HasSuffix(r.tableName, "_audit") {
 			newDefault = auditDefault
 		}
 		tabInfo["DefaultPermission"] = int64(newDefault)
+		log.Debugf("BecomeAdmin schema default transition table=%s from=%d to=%d missing_or_zero=%v",
+			r.tableName, currentDefault, newDefault, !hasDefault || currentDefault == 0)
 
 		updatedJson, err := json.Marshal(tabInfo)
 		if err != nil {
@@ -1413,6 +1484,36 @@ func updateDefaultPermissionInSchemaJson(transaction *sqlx.Tx, nonAuditDefault a
 	}
 
 	return nil
+}
+
+func schemaJSONDefaultPermission(tabInfo map[string]interface{}) (auth.AuthPermission, bool) {
+	rawDefault, hasDefault := tabInfo["DefaultPermission"]
+	if !hasDefault || rawDefault == nil {
+		return 0, hasDefault
+	}
+
+	switch val := rawDefault.(type) {
+	case float64:
+		return auth.AuthPermission(int64(val)), true
+	case int:
+		return auth.AuthPermission(val), true
+	case int64:
+		return auth.AuthPermission(val), true
+	case stdjson.Number:
+		intVal, err := val.Int64()
+		if err != nil {
+			return auth.AuthPermission(-1), true
+		}
+		return auth.AuthPermission(intVal), true
+	case string:
+		intVal, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return auth.AuthPermission(-1), true
+		}
+		return auth.AuthPermission(intVal), true
+	default:
+		return auth.AuthPermission(-1), true
+	}
 }
 
 func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, transaction *sqlx.Tx) permission.PermissionInstance {

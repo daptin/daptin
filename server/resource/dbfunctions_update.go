@@ -922,11 +922,7 @@ func ImportDataFiles(imports []rootpojo.DataFileImport, transaction *sqlx.Tx, cr
 	} else {
 		adminUserRefId := daptinid.InterfaceToDIR(adminUser["reference_id"])
 
-		sessionUser := &auth.SessionUser{
-			UserId:          adminUserId,
-			UserReferenceId: adminUserRefId,
-			Groups:          auth.GroupPermissionList{},
-		}
+		sessionUser := newImportAdminSessionUser(adminUserId, adminUserRefId, cruds)
 
 		pr = pr.WithContext(context.WithValue(pr.Context(), "user", sessionUser))
 
@@ -1087,6 +1083,28 @@ func ImportDataFiles(imports []rootpojo.DataFileImport, transaction *sqlx.Tx, cr
 
 	}
 
+}
+
+func newImportAdminSessionUser(adminUserId int64, adminUserRefId daptinid.DaptinReferenceId, cruds map[string]*DbResource) *auth.SessionUser {
+	groups := auth.GroupPermissionList{}
+	usergroupCrud := cruds["usergroup"]
+	if usergroupCrud != nil && usergroupCrud.AdministratorGroupId != daptinid.NullReferenceId {
+		groups = append(groups, auth.GroupPermission{
+			GroupReferenceId:    usergroupCrud.AdministratorGroupId,
+			ObjectReferenceId:   daptinid.NullReferenceId,
+			RelationReferenceId: daptinid.NullReferenceId,
+			Permission:          auth.DEFAULT_PERMISSION,
+		})
+		log.Debugf("ImportDataFiles admin session user_id=%d admin_group_ref=%s groups=%d", adminUserId, usergroupCrud.AdministratorGroupId.String(), len(groups))
+	} else {
+		log.Warnf("ImportDataFiles admin session user_id=%d missing_admin_group_ref=true groups=0", adminUserId)
+	}
+
+	return &auth.SessionUser{
+		UserId:          adminUserId,
+		UserReferenceId: adminUserRefId,
+		Groups:          groups,
+	}
 }
 
 func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request, transaction *sqlx.Tx) []error {
