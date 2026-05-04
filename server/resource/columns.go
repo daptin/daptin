@@ -100,7 +100,6 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "credential"),
 	api2go.NewTableRelation("llm_provider", "has_one", "credential"),
-	api2go.NewTableRelation("llm_usage", "has_one", "user_account"),
 	api2go.NewTableRelation("api_member", "has_one", "api_plan"),
 	api2go.NewTableRelation("api_usage", "has_one", "api_plan"),
 	api2go.NewTableRelation("api_usage", "has_one", "api_member"),
