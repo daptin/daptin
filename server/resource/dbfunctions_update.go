@@ -696,16 +696,6 @@ func syncDefaultUsergroupRelationsForObject(entityName string, objectRow map[str
 		return err
 	}
 
-	s, v, err := statementbuilder.Squirrel.Delete(relationTableName).Prepared(true).
-		Where(goqu.Ex{relationColumnName: objectId}).ToSQL()
-	if err != nil {
-		return err
-	}
-	_, err = transaction.Exec(s, v...)
-	if err != nil {
-		return err
-	}
-
 	resolvedGroups, err := ResolveDefaultGroupsWithTransaction(transaction, groups, true)
 	if err != nil {
 		return err
@@ -718,7 +708,29 @@ func syncDefaultUsergroupRelationsForObject(entityName string, objectRow map[str
 			relationPermission = *group.Permission
 		}
 
-		s, v, err = statementbuilder.Squirrel.Insert(relationTableName).Prepared(true).
+		existingRows, err := GetObjectByWhereClauseWithTransaction(relationTableName, transaction, goqu.Ex{
+			relationColumnName: objectId,
+			"usergroup_id":     group.GroupId,
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(existingRows) > 0 {
+			s, v, err := statementbuilder.Squirrel.Update(relationTableName).Prepared(true).
+				Set(goqu.Record{"permission": relationPermission}).
+				Where(goqu.Ex{relationColumnName: objectId, "usergroup_id": group.GroupId}).ToSQL()
+			if err != nil {
+				return err
+			}
+			_, err = transaction.Exec(s, v...)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		s, v, err := statementbuilder.Squirrel.Insert(relationTableName).Prepared(true).
 			Cols(relationColumnName, "usergroup_id", "reference_id", "permission").
 			Vals([]interface{}{objectId, group.GroupId, nuuid[:], relationPermission}).
 			OnConflict(goqu.DoNothing()).ToSQL()

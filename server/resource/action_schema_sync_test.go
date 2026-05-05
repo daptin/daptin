@@ -40,13 +40,16 @@ func TestUpdateActionTableSyncsSchemaPermissionAndDefaultGroups(t *testing.T) {
 		)`,
 		`insert into user_account (id, email) values (1, 'admin@example.com')`,
 		`insert into usergroup (id, name) values (1, 'administrators')`,
+		`insert into usergroup (id, name) values (2, 'operators')`,
 		`insert into world (id, table_name, world_schema_json) values (1, 'gig', '{"TableName":"gig"}')`,
 		`insert into world (id, table_name, world_schema_json) values (2, 'action', '{"TableName":"action","DefaultGroups":[{"Name":"administrators","Permission":524288}]}')`,
 		`insert into world (id, table_name, world_schema_json) values (3, 'action_action_id_has_usergroup_usergroup_id', '{"TableName":"action_action_id_has_usergroup_usergroup_id","DefaultPermission":32768}')`,
 		`insert into action (id, action_name, label, world_id, action_schema, instance_optional, user_account_id, reference_id, permission)
 			values (10, 'post_gig', 'Post gig', 1, '{}', true, 1, randomblob(16), 0)`,
 		`insert into action_action_id_has_usergroup_usergroup_id (id, action_id, usergroup_id, reference_id, permission)
-			values (20, 10, 1, randomblob(16), 1)`,
+				values (20, 10, 1, randomblob(16), 1)`,
+		`insert into action_action_id_has_usergroup_usergroup_id (id, action_id, usergroup_id, reference_id, permission)
+				values (21, 10, 2, randomblob(16), 131072)`,
 	}
 	for _, statement := range statements {
 		if _, err := db.Exec(statement); err != nil {
@@ -95,5 +98,24 @@ func TestUpdateActionTableSyncsSchemaPermissionAndDefaultGroups(t *testing.T) {
 	}
 	if storedRelationPermission != 524288 {
 		t.Fatalf("expected relation permission 524288, got %d", storedRelationPermission)
+	}
+
+	var totalRelationCount int
+	err = db.QueryRow(`select count(*) from action_action_id_has_usergroup_usergroup_id where action_id = 10`).Scan(&totalRelationCount)
+	if err != nil {
+		t.Fatalf("scan total relation count: %v", err)
+	}
+	if totalRelationCount != 2 {
+		t.Fatalf("expected startup sync to preserve custom relation rows, got %d rows", totalRelationCount)
+	}
+
+	var customRelationPermission int64
+	err = db.QueryRow(`select permission from action_action_id_has_usergroup_usergroup_id where action_id = 10 and usergroup_id = 2`).
+		Scan(&customRelationPermission)
+	if err != nil {
+		t.Fatalf("scan custom relation permission: %v", err)
+	}
+	if customRelationPermission != 131072 {
+		t.Fatalf("expected custom relation permission to remain 131072, got %d", customRelationPermission)
 	}
 }
