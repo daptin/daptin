@@ -241,38 +241,14 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					if ok {
 
 						var exitingFilesArray []map[string]interface{}
-						exitingFilesMap := make(map[string]bool)
 						existingFiles := data.GetColumnOriginalValue(col.ColumnName)
 						exitingFilesArray, ok = existingFiles.([]map[string]interface{})
 
 						if !ok || existingFiles == nil {
-							existingFiles = make([]map[string]interface{}, 0)
+							exitingFilesArray = make([]map[string]interface{}, 0)
 						}
 
-						finalFileSet := make([]map[string]interface{}, 0)
-
-						for _, file := range exitingFilesArray {
-							fileName := file["name"].(string)
-							if exitingFilesMap[fileName] {
-								continue
-							}
-							exitingFilesMap[fileName] = true
-							finalFileSet = append(finalFileSet, file)
-						}
-
-						for i := range files {
-							file := files[i].(map[string]interface{})
-							delete(file, "file")
-							delete(file, "contents")
-							files[i] = file
-							fileName := file["name"].(string)
-							if exitingFilesMap[fileName] {
-								continue
-							}
-							exitingFilesMap[fileName] = true
-							finalFileSet = append(finalFileSet, file)
-
-						}
+						finalFileSet := mergeCloudStoreFileSet(exitingFilesArray, files)
 
 						val, err = json.Marshal(finalFileSet)
 						CheckErr(err, "Failed to marshal file data to column")
@@ -1221,6 +1197,48 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	log.Tracef("Completed update request [%v]", dbResource.model.GetName())
 	return NewResponse(nil, api2go.NewApi2GoModelWithData(dbResource.model.GetName(), dbResource.model.GetColumns(), dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), updatedResource), 200, nil), nil
 
+}
+
+func mergeCloudStoreFileSet(existingFiles []map[string]interface{}, incomingFiles []interface{}) []map[string]interface{} {
+	finalFileSet := make([]map[string]interface{}, 0, len(existingFiles)+len(incomingFiles))
+	existingFilesMap := make(map[string]int)
+
+	for _, file := range existingFiles {
+		fileName := file["name"].(string)
+		if _, ok := existingFilesMap[fileName]; ok {
+			continue
+		}
+		existingFilesMap[fileName] = len(finalFileSet)
+		finalFileSet = append(finalFileSet, copyFileMetadata(file))
+	}
+
+	for i := range incomingFiles {
+		file := incomingFiles[i].(map[string]interface{})
+		delete(file, "file")
+		delete(file, "contents")
+		incomingFiles[i] = file
+
+		fileName := file["name"].(string)
+		if existingIndex, ok := existingFilesMap[fileName]; ok {
+			for key, value := range file {
+				finalFileSet[existingIndex][key] = value
+			}
+			continue
+		}
+
+		existingFilesMap[fileName] = len(finalFileSet)
+		finalFileSet = append(finalFileSet, copyFileMetadata(file))
+	}
+
+	return finalFileSet
+}
+
+func copyFileMetadata(file map[string]interface{}) map[string]interface{} {
+	copiedFile := make(map[string]interface{}, len(file))
+	for key, value := range file {
+		copiedFile[key] = value
+	}
+	return copiedFile
 }
 
 func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
