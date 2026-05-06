@@ -92,8 +92,6 @@ func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table
 			}
 			if tableBeingModified.Permission != 0 {
 				existableTable.Permission = tableBeingModified.Permission
-			} else if tableBeingModified.DefaultPermission != 0 {
-				existableTable.Permission = tableBeingModified.DefaultPermission
 			}
 			existableTable.StateMachines = tableBeingModified.StateMachines
 			existableTable.IsStateTrackingEnabled = tableBeingModified.IsStateTrackingEnabled
