@@ -1,12 +1,12 @@
 package actions
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/getkin/kin-openapi/openapi2"
@@ -19,7 +19,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Mode defines a mode of operation for example generation.
@@ -78,10 +77,6 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	err = json.Unmarshal([]byte(decryptedSpec), &authKeys)
 	resource.CheckErr(err, "Failed to unmarshal authentication specification")
 
-	for key, val := range authKeys {
-		inFieldMap[key] = val
-	}
-
 	if d.router.Servers == nil || len(d.router.Servers) == 0 {
 		log.Errorf("No servers found in integration spec of [%s]", d.integration.Name)
 		return nil, nil, []error{errors.New("No servers found in integration spec of [" + d.integration.Name + "]")}
@@ -126,6 +121,9 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	var resp *req.Resp
 	arguments := make([]interface{}, 0)
+	authArguments := make([]interface{}, 0)
+	protectedHeaders := make(map[string]bool)
+	protectedQueryParams := make(map[string]bool)
 
 	if operation.RequestBody != nil {
 
@@ -167,13 +165,15 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	authDone := false
+	authType := strings.ToLower(d.integration.AuthenticationType)
 
 	if operation.Security != nil {
-		secMethods := operation.Security
+		secMethods := make(openapi3.SecurityRequirements, 0, len(*operation.Security)+len(d.router.Security))
+		secMethods = append(secMethods, *operation.Security...)
 
-		*secMethods = append(*secMethods, d.router.Security...)
+		secMethods = append(secMethods, d.router.Security...)
 
-		for _, security := range *secMethods {
+		for _, security := range secMethods {
 
 			for secName := range security {
 				spec := securitySchemaMap[secName]
@@ -182,93 +182,40 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 				switch spec.Value.Type {
 
 				case "oauth2":
-
-					oauthTokenId := daptinid.InterfaceToDIR(authKeys["oauth_token_id"])
-
-					if oauthTokenId != daptinid.NullReferenceId {
-						oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-
+					if authType == "oauth2" {
+						var oauthAuthorizationHeader req.Header
+						oauthAuthorizationHeader, done, err = d.oauth2AuthorizationHeader(request, inFieldMap, authKeys, transaction, false)
 						if err != nil {
-							break
+							return nil, nil, []error{err}
 						}
-						tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
-
-						if oauthToken.Expiry.Before(time.Now()) {
-
-							oauthToken, err = tokenSource.Token()
-							if err != nil {
-								break
-							}
-							err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.AccessToken, oauthToken.RefreshToken, oauthToken.Expiry.Unix(), transaction)
-							resource.CheckErr(err, "Failed to update access token by reference id [%s]", oauthTokenId)
+						if done {
+							authArguments = append(authArguments, oauthAuthorizationHeader)
+							protectedHeaders["authorization"] = true
 						}
-
-						arguments = append(arguments, req.Header{
-							"Authorization": "Bearer " + oauthToken.AccessToken,
-						})
-
 					}
 
 				case "http":
-					switch spec.Value.Scheme {
-					case "basic":
-						username := authKeys["username"].(string)
-						password := authKeys["password"].(string)
-						header := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
-
-						if ok {
-							arguments = append(arguments, req.Header{
-								"Authorization": "Basic " + header,
-							})
-							done = true
+					if authType == "custom_credentials" {
+						var headers map[string]bool
+						var queries map[string]bool
+						authArguments, headers, queries, done, err = d.customCredentialAuthArguments(inFieldMap, authKeys, spec.Value, transaction, false)
+						if err != nil {
+							return nil, nil, []error{err}
 						}
-
-					case "bearer":
-						token, ok := authKeys["token"].(string)
-
-						if ok {
-
-							arguments = append(arguments, req.Header{
-								"Authorization": "Bearer " + token,
-							})
-							done = true
-						}
-
+						mergeStringBoolMaps(protectedHeaders, headers)
+						mergeStringBoolMaps(protectedQueryParams, queries)
 					}
 
 				case "apiKey":
-					switch spec.Value.In {
-
-					case "cookie":
-						name := spec.Value.Name
-						value, ok := authKeys[name].(string)
-						if ok {
-
-							arguments = append(arguments, req.Header{
-								"Cookie": fmt.Sprintf("%s=%s", name, value),
-							})
-							done = true
+					if authType == "custom_credentials" {
+						var headers map[string]bool
+						var queries map[string]bool
+						authArguments, headers, queries, done, err = d.customCredentialAuthArguments(inFieldMap, authKeys, spec.Value, transaction, false)
+						if err != nil {
+							return nil, nil, []error{err}
 						}
-
-					case "header":
-						name := spec.Value.Name
-						value, ok := authKeys[name].(string)
-						if ok {
-
-							arguments = append(arguments, req.Header{
-								name: value,
-							})
-							done = true
-						}
-
-					case "query":
-
-						name := spec.Value.Name
-						value := authKeys[name].(string)
-						arguments = append(arguments, req.QueryParam{
-							name: value,
-						})
-						done = true
+						mergeStringBoolMaps(protectedHeaders, headers)
+						mergeStringBoolMaps(protectedQueryParams, queries)
 					}
 				}
 
@@ -285,91 +232,31 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	if !authDone {
-		switch strings.ToLower(d.integration.AuthenticationType) {
+		switch authType {
 
 		case "oauth2":
-
-			oauthTokenId := daptinid.InterfaceToDIR(authKeys["oauth_token_id"])
-
-			if oauthTokenId != daptinid.NullReferenceId {
-				oauthToken, oauthConfig, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
-				if err == nil {
-
-					tokenSource := oauthConfig.TokenSource(context.Background(), oauthToken)
-
-					if oauthToken.Expiry.Before(time.Now()) {
-						log.Printf("Token[%s] has expired for action [%v][%v][%v], generating new token", oauthTokenId, operation, method, d.integration.Name)
-						oauthToken, err = tokenSource.Token()
-						resource.CheckErr(err, "Failed to generate token from source")
-						err = d.cruds["oauth_token"].UpdateAccessTokenByTokenReferenceId(oauthTokenId, oauthToken.AccessToken, oauthToken.RefreshToken, oauthToken.Expiry.Unix(), transaction)
-					}
-
-					arguments = append(arguments, req.Header{
-						"Authorization": "Bearer " + oauthToken.AccessToken,
-					})
-					authDone = true
-				}
-
+			var oauthAuthorizationHeader req.Header
+			oauthAuthorizationHeader, authDone, err = d.oauth2AuthorizationHeader(request, inFieldMap, authKeys, transaction, true)
+			if err != nil {
+				return nil, nil, []error{err}
+			}
+			if authDone {
+				authArguments = append(authArguments, oauthAuthorizationHeader)
+				protectedHeaders["authorization"] = true
 			}
 
-		case "http":
-			switch authKeys["scheme"].(string) {
-			case "basic":
-				username := authKeys["username"].(string)
-				password := authKeys["password"].(string)
-				header := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
-
-				if ok {
-					arguments = append(arguments, req.Header{
-						"Authorization": "Basic " + header,
-					})
-					authDone = true
-				}
-
-			case "bearer":
-				token, ok := authKeys["token"].(string)
-
-				if ok {
-
-					arguments = append(arguments, req.Header{
-						"Authorization": "Bearer " + token,
-					})
-					authDone = true
-				}
-
+		case "custom_credentials":
+			var headers map[string]bool
+			var queries map[string]bool
+			authArguments, headers, queries, authDone, err = d.customCredentialAuthArguments(inFieldMap, authKeys, nil, transaction, true)
+			if err != nil {
+				return nil, nil, []error{err}
 			}
-		case "apiKey":
-			switch authKeys["in"] {
+			mergeStringBoolMaps(protectedHeaders, headers)
+			mergeStringBoolMaps(protectedQueryParams, queries)
 
-			case "cookie":
-				name := authKeys["name"].(string)
-				value, ok := authKeys[name].(string)
-				if ok {
-
-					arguments = append(arguments, req.Header{
-						"Cookie": fmt.Sprintf("%s=%s", name, value),
-					})
-					authDone = true
-				}
-
-			case "header":
-				name := authKeys["name"].(string)
-				value := authKeys[name].(string)
-				arguments = append(arguments, req.Header{
-					name: value,
-				})
-				authDone = true
-
-			case "query":
-
-				name := authKeys["name"].(string)
-				value := authKeys[name].(string)
-				arguments = append(arguments, req.QueryParam{
-					name: value,
-				})
-				authDone = true
-			}
-
+		default:
+			return nil, nil, []error{fmt.Errorf("integration authentication_type [%s] is not supported; use oauth2 or custom_credentials", d.integration.AuthenticationType)}
 		}
 	}
 
@@ -384,6 +271,9 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			continue
 		}
 		if param.Value.In == "header" {
+			if protectedHeaders[strings.ToLower(param.Value.Name)] {
+				continue
+			}
 			parameterValues := make(map[string]string)
 			value, err := CreateRequestBody(ModeRequest, "application/json", param.Value.Name, param.Value.Schema.Value, inFieldMap)
 			if err != nil {
@@ -399,6 +289,9 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		}
 
 		if param.Value.In == "query" {
+			if protectedQueryParams[param.Value.Name] {
+				continue
+			}
 			parameterValues := make(map[string]interface{})
 			value, err := CreateRequestBody(ModeRequest, "application/x-www-form-urlencoded", param.Value.Name, param.Value.Schema.Value, inFieldMap)
 			if err != nil {
@@ -413,6 +306,8 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		}
 
 	}
+
+	arguments = append(arguments, authArguments...)
 
 	switch strings.ToLower(method) {
 	case "post":
@@ -451,6 +346,171 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", resp.Response().StatusCode),
 	}, nil
 }
+
+func (d *integrationActionPerformer) oauth2AuthorizationHeader(
+	request actionresponse.Outcome,
+	inFieldMap map[string]interface{},
+	authKeys map[string]interface{},
+	transaction *sqlx.Tx,
+	requireToken bool,
+) (req.Header, bool, error) {
+	oauthTokenId := daptinid.InterfaceToDIR(inFieldMap["oauth_token_id"])
+	if oauthTokenId != daptinid.NullReferenceId {
+		oauthConnectId := daptinid.InterfaceToDIR(authKeys["oauth_connect_id"])
+		sessionUser := integrationExecutionSessionUser(inFieldMap)
+		if sessionUser == nil {
+			return nil, false, errors.New("oauth2 integration execution requires an authenticated user")
+		}
+		err := d.cruds["oauth_token"].ValidateOAuthTokenForIntegrationExecution(oauthTokenId, sessionUser.UserId, oauthConnectId, transaction)
+		if err != nil {
+			return nil, false, err
+		}
+		return d.oauth2HeaderForTokenReference(oauthTokenId, transaction)
+	}
+
+	if requireToken {
+		return nil, false, errors.New("oauth_token_id is required for oauth2 integration execution")
+	}
+
+	return nil, false, nil
+}
+
+func (d *integrationActionPerformer) oauth2HeaderForTokenReference(oauthTokenId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (req.Header, bool, error) {
+	oauthToken, _, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return req.Header{
+		"Authorization": "Bearer " + oauthToken.AccessToken,
+	}, true, nil
+}
+
+func (d *integrationActionPerformer) customCredentialAuthArguments(
+	inFieldMap map[string]interface{},
+	authKeys map[string]interface{},
+	securityScheme *openapi3.SecurityScheme,
+	transaction *sqlx.Tx,
+	requireCredential bool,
+) ([]interface{}, map[string]bool, map[string]bool, bool, error) {
+	credentialId := daptinid.InterfaceToDIR(inFieldMap["credential_id"])
+	if credentialId == daptinid.NullReferenceId {
+		if requireCredential {
+			return nil, nil, nil, false, errors.New("credential_id is required for custom credential integration execution")
+		}
+		return nil, nil, nil, false, nil
+	}
+
+	sessionUser := integrationExecutionSessionUser(inFieldMap)
+	if sessionUser == nil {
+		return nil, nil, nil, false, errors.New("custom credential integration execution requires an authenticated user")
+	}
+
+	credential, err := d.cruds["credential"].GetCredentialByReferenceIdForIntegrationExecution(credentialId, sessionUser, transaction)
+	if err != nil {
+		return nil, nil, nil, false, err
+	}
+
+	protectedHeaders := make(map[string]bool)
+	protectedQueryParams := make(map[string]bool)
+
+	scheme := strings.ToLower(stringValue(authKeys["scheme"]))
+	if scheme == "" && securityScheme != nil && securityScheme.Type == "http" {
+		scheme = strings.ToLower(securityScheme.Scheme)
+	}
+
+	switch scheme {
+	case "basic":
+		usernameField := stringValue(authKeys["username_field"])
+		if usernameField == "" {
+			usernameField = "username"
+		}
+		passwordField := stringValue(authKeys["password_field"])
+		if passwordField == "" {
+			passwordField = "password"
+		}
+		username, ok := credential.DataMap[usernameField].(string)
+		if !ok || username == "" {
+			return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", usernameField)
+		}
+		password, ok := credential.DataMap[passwordField].(string)
+		if !ok || password == "" {
+			return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", passwordField)
+		}
+		header := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+		protectedHeaders["authorization"] = true
+		return []interface{}{req.Header{"Authorization": "Basic " + header}}, protectedHeaders, protectedQueryParams, true, nil
+
+	case "bearer":
+		tokenField := stringValue(authKeys["token_field"])
+		if tokenField == "" {
+			tokenField = "token"
+		}
+		token, ok := credential.DataMap[tokenField].(string)
+		if !ok || token == "" {
+			return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", tokenField)
+		}
+		protectedHeaders["authorization"] = true
+		return []interface{}{req.Header{"Authorization": "Bearer " + token}}, protectedHeaders, protectedQueryParams, true, nil
+	}
+
+	keyLocation := strings.ToLower(stringValue(authKeys["in"]))
+	keyName := stringValue(authKeys["name"])
+	if securityScheme != nil && securityScheme.Type == "apiKey" {
+		if keyLocation == "" {
+			keyLocation = strings.ToLower(securityScheme.In)
+		}
+		if keyName == "" {
+			keyName = securityScheme.Name
+		}
+	}
+	valueField := stringValue(authKeys["value_field"])
+	if valueField == "" {
+		valueField = keyName
+	}
+	if keyLocation == "" || keyName == "" || valueField == "" {
+		return nil, nil, nil, false, errors.New("custom credential authentication_specification must define either scheme or api key placement")
+	}
+
+	value, ok := credential.DataMap[valueField].(string)
+	if !ok || value == "" {
+		return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", valueField)
+	}
+
+	switch keyLocation {
+	case "header":
+		protectedHeaders[strings.ToLower(keyName)] = true
+		return []interface{}{req.Header{keyName: value}}, protectedHeaders, protectedQueryParams, true, nil
+	case "query":
+		protectedQueryParams[keyName] = true
+		return []interface{}{req.QueryParam{keyName: value}}, protectedHeaders, protectedQueryParams, true, nil
+	case "cookie":
+		protectedHeaders["cookie"] = true
+		return []interface{}{req.Header{"Cookie": fmt.Sprintf("%s=%s", keyName, value)}}, protectedHeaders, protectedQueryParams, true, nil
+	}
+
+	return nil, nil, nil, false, fmt.Errorf("unsupported custom credential location [%s]", keyLocation)
+}
+
+func stringValue(val interface{}) string {
+	str, _ := val.(string)
+	return str
+}
+
+func integrationExecutionSessionUser(inFieldMap map[string]interface{}) *auth.SessionUser {
+	if sessionUser, ok := inFieldMap["requestSessionUser"].(*auth.SessionUser); ok && sessionUser != nil {
+		return sessionUser
+	}
+	sessionUser, _ := inFieldMap["sessionUser"].(*auth.SessionUser)
+	return sessionUser
+}
+
+func mergeStringBoolMaps(target map[string]bool, source map[string]bool) {
+	for key, val := range source {
+		target[key] = val
+	}
+}
+
 func GetParametersNames(s string) ([]string, error) {
 	ret := make([]string, 0)
 	templateVar, err := regexp.Compile(`\{([^}]+)\}`)

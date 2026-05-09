@@ -66,7 +66,9 @@ curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "oauth_connect_id": "019bf936-3dc0-7105-9cf9-468d766cae66"
+    "attributes": {
+      "oauth_connect_id": "019bf936-3dc0-7105-9cf9-468d766cae66"
+    }
   }'
 ```
 
@@ -358,10 +360,10 @@ Start OAuth authentication flow by generating authorization URL.
 
 **Action:** `oauth_login_begin`
 **On Type:** `oauth_connect`
-**Endpoint:** `/action/oauth_connect/{reference_id}/oauth_login_begin` or `/action/oauth_connect/oauth_login_begin`
+**Endpoint:** `/action/oauth_connect/oauth_login_begin`
 
 **Parameters:**
-- `oauth_connect_id`: Reference ID of oauth_connect record
+- `oauth_connect_id`: Reference ID of the `oauth_connect` record, passed inside `attributes`
 
 **Returns:**
 - `client.store.set`: State token for CSRF validation
@@ -373,7 +375,9 @@ curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "oauth_connect_id": "019bf936-3dc0-7105-9cf9-468d766cae66"
+    "attributes": {
+      "oauth_connect_id": "019bf936-3dc0-7105-9cf9-468d766cae66"
+    }
   }'
 ```
 
@@ -651,9 +655,9 @@ redirect_uri: https://yourdomain.com/oauth/response
 
 ## API Integration
 
-### Using OAuth Tokens for API Calls
+### Using OAuth Tokens for Integration Calls
 
-Once OAuth tokens are stored, use them for API requests:
+Once OAuth tokens are stored, integration actions can use them. The integration stores only the provider connection reference; the executing user supplies the token reference at execution time.
 
 ```javascript
 // Frontend: Initiate OAuth
@@ -664,7 +668,9 @@ fetch('/action/oauth_connect/oauth_login_begin', {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    oauth_connect_id: 'google-login-id'
+    attributes: {
+      oauth_connect_id: 'google-login-reference-id'
+    }
   })
 })
 .then(res => res.json())
@@ -794,8 +800,48 @@ tail -f /tmp/daptin.log | grep oauth
 
 - State tokens use TOTP with 300-second period and SHA1 algorithm
 - Redirect URIs automatically append `?authenticator={name}` parameter
-- Multiple scopes trigger `access_type=offline` in authorization URL
+- `access_type_offline=true` adds offline-access OAuth parameters when generating the authorization URL
 - Profile email path supports dot notation (e.g., "emails[0].value")
 - Token expiry is tracked but automatic refresh not shown in basic flow
+
+## Using OAuth Tokens With Integrations
+
+Integrations reuse the same OAuth connection flow documented above. There is no separate integration-specific OAuth callback.
+
+1. Create an `oauth_connect` record for the provider.
+2. The user completes `oauth_login_begin` and `oauth.login.response`.
+3. Daptin stores that user's encrypted token in `oauth_token`.
+4. The integration stores the provider/app reference in `authentication_specification.oauth_connect_id`.
+5. The installed integration action call supplies the current user's `oauth_token_id` in `attributes`.
+
+Example OAuth integration auth configuration:
+
+```json
+{
+  "authentication_type": "oauth2",
+  "authentication_specification": {
+    "oauth_connect_id": "OAUTH_CONNECT_REFERENCE_ID"
+  }
+}
+```
+
+Example integration execution:
+
+```bash
+curl -X POST "http://localhost:6336/action/integration/listRepos" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID"
+    }
+  }'
+```
+
+Daptin validates that the supplied token belongs to the current user and matches the integration's configured `oauth_connect_id` before using it for the outbound request.
+
+The integration must not store `oauth_token_id`. A token is user-specific and is selected per execution, which prevents one user's installed integration from accidentally or maliciously using another user's OAuth token.
+
+If an OpenAPI operation exposes an auth-looking header or query parameter, Daptin protects the resolved OAuth auth fields. A user-supplied action attribute such as `Authorization` cannot override the bearer token Daptin resolved from `oauth_token_id`.
 
 For questions or issues, see [[Common-Errors|Common Errors]] or file an issue on GitHub.

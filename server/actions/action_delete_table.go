@@ -32,7 +32,7 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 		return nil, nil, []error{fmt.Errorf("world id is a null reference")}
 	}
 
-	sessionUser := request.Attributes["user"]
+	sessionUser := inFields["sessionUser"]
 
 	httpReq := &http.Request{
 		Method: "GET",

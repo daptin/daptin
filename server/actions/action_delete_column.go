@@ -26,7 +26,7 @@ func (d *deleteWorldColumnPerformer) DoAction(request actionresponse.Outcome, in
 	worldName := inFields["world_name"].(string)
 	columnToDelete := inFields["column_name"].(string)
 
-	sessionUser := request.Attributes["user"]
+	sessionUser := inFields["sessionUser"]
 
 	table, err := d.cruds["world"].GetObjectByWhereClauseWithTransaction("world", "table_name", worldName, transaction)
 	if err != nil {

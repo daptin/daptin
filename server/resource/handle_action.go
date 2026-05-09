@@ -221,6 +221,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
 	}
+	requestSessionUser := cloneSessionUser(sessionUser)
 
 	var err error
 	//adminUserGroupIds, err := dbResource.GetIdByWhereClause("usergroup", transaction, goqu.Ex{
@@ -335,6 +336,8 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	inFieldMap["rawBodyString"] = actionRequest.RawBodyString
 	inFieldMap["rawBodyBytes"] = actionRequest.RawBodyBytes
 	inFieldMap["encryptionSecret"] = dbResource.EncryptionSecret
+	inFieldMap["sessionUser"] = sessionUser
+	inFieldMap["requestSessionUser"] = requestSessionUser
 
 	if sessionUser.UserReferenceId != daptinid.NullReferenceId {
 		user, err := dbResource.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
@@ -591,8 +594,10 @@ OutFields:
 				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, actionName)
 			} else {
 				var responder api2go.Responder
-				outcome.Attributes["user"] = sessionUser
-				responder, responses1, errors1 = performer.DoAction(outcome, model.GetAttributes(), transaction)
+				performerFields := model.GetAttributes()
+				performerFields["sessionUser"] = sessionUser
+				performerFields["requestSessionUser"] = requestSessionUser
+				responder, responses1, errors1 = performer.DoAction(outcome, performerFields, transaction)
 
 				actionResponses = append(actionResponses, responses1...)
 				if len(errors1) > 0 {
@@ -630,7 +635,10 @@ OutFields:
 					outcome.Type, outcome.Method, sessionUser.UserReferenceId)
 				continue
 			}
-			responder, responses1, err1 := handler.DoAction(outcome, model.GetAttributes(), transaction)
+			performerFields := model.GetAttributes()
+			performerFields["sessionUser"] = sessionUser
+			performerFields["requestSessionUser"] = requestSessionUser
+			responder, responses1, err1 := handler.DoAction(outcome, performerFields, transaction)
 			if err1 != nil {
 				err = err1[0]
 			} else {
@@ -862,6 +870,19 @@ func NewActionResponse(responseType string, attrs interface{}) actionresponse.Ac
 
 	return ar
 
+}
+
+func cloneSessionUser(sessionUser *auth.SessionUser) *auth.SessionUser {
+	if sessionUser == nil {
+		return &auth.SessionUser{}
+	}
+	clonedGroups := make(auth.GroupPermissionList, len(sessionUser.Groups))
+	copy(clonedGroups, sessionUser.Groups)
+	return &auth.SessionUser{
+		UserId:          sessionUser.UserId,
+		UserReferenceId: sessionUser.UserReferenceId,
+		Groups:          clonedGroups,
+	}
 }
 
 func BuildOutcome(inFieldMap map[string]interface{},

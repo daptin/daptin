@@ -607,6 +607,51 @@ func (dbResource *DbResource) GetOauthDescriptionByTokenReferenceId(referenceId 
 
 }
 
+func (dbResource *DbResource) ValidateOAuthTokenForIntegrationExecution(
+	tokenReferenceId daptinid.DaptinReferenceId,
+	userId int64,
+	oauthConnectReferenceId daptinid.DaptinReferenceId,
+	transaction *sqlx.Tx,
+) error {
+	if tokenReferenceId == daptinid.NullReferenceId {
+		return fmt.Errorf("oauth_token_id is required for oauth2 integration execution")
+	}
+	if userId == 0 {
+		return fmt.Errorf("oauth2 integration execution requires an authenticated user")
+	}
+	if oauthConnectReferenceId == daptinid.NullReferenceId {
+		return fmt.Errorf("oauth_connect_id is required in oauth2 integration authentication_specification")
+	}
+
+	s, v, err := statementbuilder.Squirrel.
+		Select(goqu.COUNT("*")).
+		From(goqu.T("oauth_token").As("ot")).
+		Join(goqu.T("oauth_connect").As("oc"), goqu.On(goqu.Ex{
+			"oc.id": goqu.I("ot.oauth_connect_id"),
+		})).
+		Where(goqu.Ex{
+			"ot.reference_id":    tokenReferenceId[:],
+			"ot.user_account_id": userId,
+			"oc.reference_id":    oauthConnectReferenceId[:],
+		}).
+		Prepared(true).
+		ToSQL()
+	if err != nil {
+		return err
+	}
+
+	var matchingTokens int64
+	err = transaction.QueryRowx(s, v...).Scan(&matchingTokens)
+	if err != nil {
+		return err
+	}
+	if matchingTokens < 1 {
+		return fmt.Errorf("oauth token is not available for this user and integration provider")
+	}
+
+	return nil
+}
+
 func (dbResource *DbResource) GetTokenByTokenReferenceId(referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (*oauth2.Token, *oauth2.Config, error) {
 	oauthConf := &oauth2.Config{}
 
