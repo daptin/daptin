@@ -2,16 +2,16 @@ package actions
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
-	//"golang.org/x/oauth2"
-	"github.com/artpar/api2go/v2"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
-	"golang.org/x/oauth2"
-	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 type oauthLoginBeginActionPerformer struct {
@@ -27,18 +27,8 @@ func (d *oauthLoginBeginActionPerformer) Name() string {
 
 func (d *oauthLoginBeginActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
-	state, err := totp.GenerateCodeCustom(d.otpKey, time.Now(), totp.ValidateOpts{
-		Period:    300,
-		Skew:      1,
-		Digits:    otp.DigitsSix,
-		Algorithm: otp.AlgorithmSHA1,
-	})
-	if err != nil {
-		log.Errorf("Failed to generate code: %v", err)
-		return nil, nil, []error{err}
-	}
-
 	authConnectorData := inFieldMap["authenticator"].(string)
+	sessionUser, _ := inFieldMap["sessionUser"].(*auth.SessionUser)
 
 	//redirectUri := authConnectorData["redirect_uri"].(string)
 	//
@@ -48,16 +38,44 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request actionresponse.Outcome
 	//	redirectUri = redirectUri + "?authenticator=" + authConnectorData["name"].(string)
 	//}
 
-	conf, _, row, err := GetOauthConnectionDescription(authConnectorData, d.cruds["oauth_connect"], transaction)
-	resource.CheckErr(err, "Failed to get oauth.conf from authenticator name")
+	conf, authReferenceId, row, err := GetOauthConnectionDescription(authConnectorData, d.cruds["oauth_connect"], transaction)
+	if err != nil {
+		resource.CheckErr(err, "Failed to get oauth.conf from authenticator name")
+		return nil, nil, []error{err}
+	}
+
+	var state string
+	if oauthConnectorPKCEEnabled(row) {
+		state, err = resource.OAuthRandomToken()
+	} else {
+		state, err = totp.GenerateCodeCustom(d.otpKey, time.Now(), totp.ValidateOpts{
+			Period:    300,
+			Skew:      1,
+			Digits:    otp.DigitsSix,
+			Algorithm: otp.AlgorithmSHA1,
+		})
+	}
+	if err != nil {
+		log.Errorf("Failed to generate oauth state: %v", err)
+		return nil, nil, []error{err}
+	}
 
 	// Redirect user to consent page to ask for permission
 	// for the scopes specified above.
 	// Use access_type_offline from the oauth_connect config to request offline access.
-	opts := []oauth2.AuthCodeOption{}
-	if v := fmt.Sprintf("%v", row["access_type_offline"]); v == "1" || v == "true" {
-		opts = append(opts, oauth2.AccessTypeOffline)
-		opts = append(opts, oauth2.SetAuthURLParam("prompt", "consent"))
+	verifier, err := oauthVerifierForConnector(row)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	opts, err := oauthAuthorizationOptions(row, verifier)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	if oauthConnectorPKCEEnabled(row) {
+		err = storeOAuthState(d.cruds, authReferenceId, state, verifier, time.Now().UTC(), sessionUser, transaction)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
 	}
 	url := conf.AuthCodeURL(state, opts...)
 	fmt.Printf("Visit the URL for the auth dialog: %v", url)
@@ -99,8 +117,8 @@ func NewOauthLoginBeginActionPerformer(initConfig *resource.CmsConfig, cruds map
 
 	handler := oauthLoginBeginActionPerformer{
 		cruds:       cruds,
-		otpKey:      secret,
 		configStore: configStore,
+		otpKey:      secret,
 	}
 
 	return &handler, nil

@@ -94,35 +94,56 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
-	user, ok := inFieldMap["sessionUser"]
+	user := inFieldMap["sessionUser"]
 	sessionUser, _ := user.(*auth.SessionUser)
 	//user := inFieldMap["user"].(map[string]interface{})
-
-	ok, err := totp.ValidateCustom(state, d.otpKey, time.Now().UTC(), totp.ValidateOpts{
-		Period:    300,
-		Skew:      1,
-		Digits:    otp.DigitsSix,
-		Algorithm: otp.AlgorithmSHA1,
-	})
-	if !ok {
-		log.Errorf("Failed to validate otp key")
-		return nil, nil, []error{errors.New("No ongoing authentication")}
-	}
 
 	authenticator := inFieldMap["authenticator"].(string)
 	code := inFieldMap["code"].(string)
 
-	conf, authReferenceId, _, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
+	conf, authReferenceId, row, err := GetOauthConnectionDescription(authenticator, d.cruds["oauth_connect"], transaction)
 
 	if err != nil {
 		return nil, nil, []error{err}
 	}
 
+	now := time.Now().UTC()
+	var oauthState *oauthStateRecord
+	if oauthConnectorPKCEEnabled(row) {
+		oauthState, err = loadOAuthState(d.cruds, d.configStore, authReferenceId, state, now, transaction)
+		if err != nil {
+			log.Errorf("Failed to validate oauth state: %v", err)
+			return nil, nil, []error{errors.New("No ongoing authentication")}
+		}
+	} else {
+		ok, err := totp.ValidateCustom(state, d.otpKey, time.Now().UTC(), totp.ValidateOpts{
+			Period:    300,
+			Skew:      1,
+			Digits:    otp.DigitsSix,
+			Algorithm: otp.AlgorithmSHA1,
+		})
+		if !ok {
+			log.Errorf("Failed to validate otp key")
+			return nil, nil, []error{errors.New("No ongoing authentication")}
+		}
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
+
 	ctx := context.Background()
-	token, err := conf.Exchange(ctx, code)
+	token, err := exchangeOAuthCode(ctx, conf, code, row, oauthState)
 	if err != nil {
 		log.Errorf("Failed to exchange code for token in login response: %v", err)
 		return nil, nil, []error{err}
+	}
+
+	if oauthState != nil {
+		sessionUser = oauthStateOwnerSession(oauthState, sessionUser)
+		err = markOAuthStateUsed(d.cruds, oauthState, now, sessionUser, transaction)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
 	}
 
 	err = d.cruds["oauth_token"].StoreToken(token, authenticator, authReferenceId, sessionUser, transaction)
@@ -181,8 +202,8 @@ func NewOauthLoginResponseActionPerformer(initConfig *resource.CmsConfig, cruds 
 
 	handler := oauthLoginResponseActionPerformer{
 		cruds:       cruds,
-		otpKey:      secret,
 		configStore: configStore,
+		otpKey:      secret,
 	}
 
 	return &handler, nil
