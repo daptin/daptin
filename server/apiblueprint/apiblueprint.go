@@ -3861,78 +3861,87 @@ func addIntegrationOperationPaths(resourcesMap map[string]map[string]interface{}
 			log.Warnf("Failed to load OpenAPI spec for integration [%s]: %v", integration.Name, err)
 			continue
 		}
-		seen := make(map[string]bool)
-		registered := 0
-		for providerPath, pathItem := range router.Paths {
-			if pathItem == nil {
-				log.Warnf("Skipping nil path item in provider spec provider=[%s] path=[%s]", integration.Name, providerPath)
+		registered := addIntegrationOperationPathsForRouter(integration, router, resourcesMap, typeMap)
+		log.Infof("Registered provider-scoped OpenAPI paths provider=[%s] count=%d", integration.Name, registered)
+	}
+}
+
+func addIntegrationOperationPathsForRouter(integration resource.Integration, router *openapi3.T, resourcesMap map[string]map[string]interface{}, typeMap map[string]map[string]interface{}) int {
+	seen := make(map[string]bool)
+	registered := 0
+	for providerPath, pathItem := range router.Paths {
+		if pathItem == nil {
+			log.Warnf("Skipping nil path item in provider spec provider=[%s] path=[%s]", integration.Name, providerPath)
+			continue
+		}
+		for providerMethod, operation := range pathItem.Operations() {
+			if operation == nil {
+				log.Warnf("Skipping nil operation in provider spec provider=[%s] method=[%s] path=[%s]", integration.Name, providerMethod, providerPath)
 				continue
 			}
-			for providerMethod, operation := range pathItem.Operations() {
-				if operation == nil {
-					log.Warnf("Skipping nil operation in provider spec provider=[%s] method=[%s] path=[%s]", integration.Name, providerMethod, providerPath)
-					continue
-				}
-				operationID := operation.OperationID
-				if operationID == "" {
-					log.Debugf("Skipping provider operation without operationId provider=[%s] method=[%s] path=[%s]", integration.Name, providerMethod, providerPath)
-					continue
-				}
-				if seen[operationID] {
-					log.Warnf("Duplicate operationId [%s] in integration [%s], skipping generated provider-scoped docs", operationID, integration.Name)
-					continue
-				}
-				seen[operationID] = true
+			operationID := operation.OperationID
+			if operationID == "" {
+				log.Debugf("Skipping provider operation without operationId provider=[%s] method=[%s] path=[%s]", integration.Name, providerMethod, providerPath)
+				continue
+			}
+			if seen[operationID] {
+				log.Warnf("Duplicate operationId [%s] in integration [%s], skipping generated provider-scoped docs", operationID, integration.Name)
+				continue
+			}
+			seen[operationID] = true
 
-				requestComponentName := "Integration" + strcase.ToCamel(integration.Name) + strcase.ToCamel(operationID) + "RequestObject"
-				typeMap[requestComponentName] = integrationOperationRequestSchema(router, operation)
-				log.Tracef("Generated OpenAPI request schema provider=[%s] operation=[%s] component=[%s]", integration.Name, operationID, requestComponentName)
+			requestComponentName := IntegrationOperationRequestComponentName(integration.Name, operationID)
+			typeMap[requestComponentName] = integrationOperationRequestSchema(router, operation)
+			log.Tracef("Generated OpenAPI request schema provider=[%s] operation=[%s] component=[%s]", integration.Name, operationID, requestComponentName)
 
-				resourcesMap[fmt.Sprintf("/integration/%s/%s", url.PathEscape(integration.Name), url.PathEscape(operationID))] = map[string]interface{}{
-					"post": map[string]interface{}{
-						"tags":        []string{"integration", integration.Name},
-						"operationId": "Execute" + strcase.ToCamel(operationID) + "On" + strcase.ToCamel(integration.Name),
-						"summary":     firstNonEmpty(operation.Summary, operationID),
-						"description": firstNonEmpty(operation.Description, operation.Summary, fmt.Sprintf("Execute [%s] from integration [%s].", operationID, integration.Name)),
-						"x-provider-operation": map[string]interface{}{
-							"provider":    integration.Name,
-							"operationId": operationID,
-							"method":      strings.ToUpper(providerMethod),
-							"path":        providerPath,
-						},
-						"security": []map[string][]string{
-							{"bearerAuth": []string{}},
-						},
-						"requestBody": map[string]interface{}{
-							"required": true,
-							"content": map[string]interface{}{
-								"application/json": map[string]interface{}{
-									"schema": map[string]interface{}{
-										"$ref": "#/components/schemas/" + requestComponentName,
-									},
-								},
-							},
-						},
-						"responses": map[string]interface{}{
-							"200": map[string]interface{}{
-								"description": "Provider operation response",
-								"content": map[string]interface{}{
-									"application/json": map[string]interface{}{
-										"schema": integrationOperationResponseSchema(operation),
-									},
-								},
-							},
-							"400": map[string]interface{}{"$ref": "#/components/responses/BadRequest"},
-							"401": map[string]interface{}{"$ref": "#/components/responses/Unauthorized"},
-							"403": map[string]interface{}{"$ref": "#/components/responses/Forbidden"},
-							"404": map[string]interface{}{"$ref": "#/components/responses/NotFound"},
+			resourcesMap[fmt.Sprintf("/integration/%s/%s", url.PathEscape(integration.Name), url.PathEscape(operationID))] = integrationOperationPathItem(integration, operationID, providerMethod, providerPath, operation, requestComponentName)
+			registered++
+		}
+	}
+	return registered
+}
+
+func integrationOperationPathItem(integration resource.Integration, operationID string, providerMethod string, providerPath string, operation *openapi3.Operation, requestComponentName string) map[string]interface{} {
+	return map[string]interface{}{
+		"post": map[string]interface{}{
+			"tags":        []string{"integration", integration.Name},
+			"operationId": "Execute" + strcase.ToCamel(operationID) + "On" + integrationProviderIdentifier(integration.Name),
+			"summary":     firstNonEmpty(operation.Summary, operationID),
+			"description": firstNonEmpty(operation.Description, operation.Summary, fmt.Sprintf("Execute [%s] from integration [%s].", operationID, integration.Name)),
+			"x-provider-operation": map[string]interface{}{
+				"provider":    integration.Name,
+				"operationId": operationID,
+				"method":      strings.ToUpper(providerMethod),
+				"path":        providerPath,
+			},
+			"security": []map[string][]string{
+				{"bearerAuth": []string{}},
+			},
+			"requestBody": map[string]interface{}{
+				"required": true,
+				"content": map[string]interface{}{
+					"application/json": map[string]interface{}{
+						"schema": map[string]interface{}{
+							"$ref": "#/components/schemas/" + requestComponentName,
 						},
 					},
-				}
-				registered++
-			}
-		}
-		log.Infof("Registered provider-scoped OpenAPI paths provider=[%s] count=%d", integration.Name, registered)
+				},
+			},
+			"responses": map[string]interface{}{
+				"200": map[string]interface{}{
+					"description": "Provider operation response",
+					"content": map[string]interface{}{
+						"application/json": map[string]interface{}{
+							"schema": integrationOperationResponseSchema(operation),
+						},
+					},
+				},
+				"400": map[string]interface{}{"$ref": "#/components/responses/BadRequest"},
+				"401": map[string]interface{}{"$ref": "#/components/responses/Unauthorized"},
+				"403": map[string]interface{}{"$ref": "#/components/responses/Forbidden"},
+				"404": map[string]interface{}{"$ref": "#/components/responses/NotFound"},
+			},
+		},
 	}
 }
 
