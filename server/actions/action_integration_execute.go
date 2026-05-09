@@ -850,10 +850,10 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 			commandMap[operationID] = command
 			pathMap[operationID] = path
 			methodMap[operationID] = method
-			log.Infof("Mapping Operation [%s] in [%s] [%s]", operationID, integration.Name, command.Description)
+			log.Debugf("Mapped integration operation [%s] in [%s]", operationID, integration.Name)
 		}
 	}
-	log.Printf("Registered %d actions from [%v]", count, integration.Name)
+	log.Infof("Registered %d integration actions from [%s]", count, integration.Name)
 
 	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {

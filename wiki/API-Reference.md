@@ -257,6 +257,57 @@ GET /actions
 
 Returns guest-accessible actions.
 
+## Integration Operation Endpoints
+
+Installed OpenAPI integrations can be called directly under the provider name:
+
+```
+POST /integration/{provider_name}/{operation_id}
+GET  /integration/{provider_name}/operations
+GET  /integration/{provider_name}/operations/{operation_id}
+GET  /integration/{provider_name}/openapi.yaml
+```
+
+Use the `GET /operations` endpoints to discover the operation ids and required
+inputs. Use `POST /integration/{provider_name}/{operation_id}` to execute one
+operation.
+
+**Execution body:**
+
+```json
+{
+  "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID",
+  "input": {
+    "operationParam": "value"
+  }
+}
+```
+
+For custom credential integrations, send `credential_id` instead of
+`oauth_token_id`. Operation path, query, header, and body parameters go inside
+`input`.
+
+**Example:**
+
+```bash
+curl -X POST "http://localhost:6336/integration/airtable.com/airtableUpdateRecord" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID",
+    "input": {
+      "baseId": "appXXXXXXXXXXXXXX",
+      "tableIdOrName": "tblXXXXXXXXXXXXXX",
+      "recordId": "recXXXXXXXXXXXXXX",
+      "fields": {
+        "Status": "Done"
+      }
+    }
+  }'
+```
+
+See [[Integrations|Integrations]] for setup, installation, and auth details.
+
 ## Aggregation Endpoints
 
 ### Aggregate Query

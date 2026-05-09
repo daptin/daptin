@@ -143,6 +143,9 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 **Create custom business logic**
 → [[Custom-Actions|Custom Actions]] + [[Actions-Overview|Actions Overview]]
 
+**Call Airtable, Asana, GitHub, or another OpenAPI-backed service**
+→ [[Integrations|Integrations]] for `POST /integration/{provider_name}/{operation_id}` and operation discovery
+
 **Control who can access what data**
 → [[Permissions|Permissions]] + [[Users-and-Groups|Users and Groups]]
 

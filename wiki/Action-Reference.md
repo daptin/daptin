@@ -875,6 +875,30 @@ Execute an installed OpenAPI operation under its provider namespace.
 | Provider | `integration.name` |
 | Operation | OpenAPI `operationId` from `integration.specification` |
 
+Use these discovery endpoints before executing when you do not know the
+operation id or required fields:
+
+```http
+GET /integration/{provider_name}/operations
+GET /integration/{provider_name}/operations/{operation_id}
+GET /integration/{provider_name}/openapi.yaml
+```
+
+Execution body shape:
+
+```json
+{
+  "oauth_token_id": "optional OAuth token reference id",
+  "credential_id": "optional credential reference id",
+  "input": {
+    "operationParam": "value"
+  }
+}
+```
+
+For OAuth2 integrations, pass `oauth_token_id`. For custom credential
+integrations, pass `credential_id`. Other operation parameters go under `input`.
+
 **Example:**
 ```bash
 curl -X POST "http://localhost:6336/integration/asana.com/getWorkspaces" \
@@ -887,8 +911,6 @@ curl -X POST "http://localhost:6336/integration/asana.com/getWorkspaces" \
     }
   }'
 ```
-
-For OAuth2 integrations, pass `oauth_token_id`. For custom credential integrations, pass `credential_id`. Other operation parameters go under `input`.
 
 ### get_action_schema
 

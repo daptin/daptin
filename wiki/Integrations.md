@@ -23,6 +23,59 @@ The `integration` table stores OpenAPI specifications that define external APIs.
 
 ---
 
+## Which Endpoint Do I Call?
+
+For new clients, call the provider-scoped integration endpoint:
+
+```http
+POST /integration/{provider_name}/{operation_id}
+```
+
+- `{provider_name}` is the value of `integration.name`, for example `airtable.com`, `asana.com`, or `github.com`.
+- `{operation_id}` is the OpenAPI `operationId`, for example `airtableUpdateRecord`.
+- Put operation inputs under `input`.
+- For OAuth integrations, pass `oauth_token_id` at the top level.
+- For custom credential integrations, pass `credential_id` at the top level.
+
+Example:
+
+```bash
+curl -X POST "http://localhost:6336/integration/airtable.com/airtableUpdateRecord" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID",
+    "input": {
+      "baseId": "appXXXXXXXXXXXXXX",
+      "tableIdOrName": "tblXXXXXXXXXXXXXX",
+      "recordId": "recXXXXXXXXXXXXXX",
+      "fields": {
+        "Status": "Done"
+      }
+    }
+  }'
+```
+
+If you do not know the available operations, list them first:
+
+```bash
+curl "http://localhost:6336/integration/airtable.com/operations" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Then inspect one operation:
+
+```bash
+curl "http://localhost:6336/integration/airtable.com/operations/airtableUpdateRecord" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Older clients can still call generated action routes such as
+`POST /action/integration/{operation_id}`, but the provider-scoped endpoint is
+clearer because it keeps the provider name in the URL.
+
+---
+
 ## Integration Table
 
 | Column | Type | Description |
@@ -250,6 +303,11 @@ global `/openapi.yaml` document.
 | `GET /integration/{provider_name}/operations/{operation_id}` | One operation with auth selector metadata, provider method/path, inputs, request body hints, response hints, and derived schemas. |
 | `GET /integration/{provider_name}/openapi.yaml` | Scoped OpenAPI document containing only Daptin execution endpoints for the selected provider. |
 
+Use discovery when you are building a UI, SDK, or agent and need to know what to
+send. The list endpoint answers "what operations exist?", the describe endpoint
+answers "what fields does this operation need?", and the scoped OpenAPI endpoint
+is for OpenAPI-aware tooling.
+
 Example:
 
 ```bash
@@ -317,6 +375,21 @@ After installation, each OpenAPI operation can be executed in two ways:
 The provider-scoped route is preferred for new clients because the OpenAPI `operationId` stays inside the provider namespace. This avoids artificial provider prefixes in operation names and makes logs/audits read as `provider=asana.com operation=getWorkspaces`.
 
 ### Provider-scoped Route
+
+Request body shape:
+
+```json
+{
+  "oauth_token_id": "optional OAuth token reference id",
+  "credential_id": "optional credential reference id",
+  "input": {
+    "pathOrQueryOrBodyField": "value"
+  }
+}
+```
+
+Use either `oauth_token_id` or `credential_id` depending on the integration auth
+type. Do not put these auth selector fields inside `input`.
 
 ```bash
 # Call the getPetById operation from petstore integration
