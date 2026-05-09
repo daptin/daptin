@@ -329,11 +329,25 @@ func (d *integrationInstallationPerformer) refreshInstalledIntegrationPerformer(
 	enableValue := int64(1)
 	if rawEnable, ok := integration["enable"]; ok {
 		switch val := rawEnable.(type) {
+		case bool:
+			if val {
+				enableValue = 1
+			} else {
+				enableValue = 0
+			}
 		case int64:
 			enableValue = val
 		case int:
 			enableValue = int64(val)
 		case string:
+			if strings.EqualFold(val, "true") {
+				enableValue = 1
+				break
+			}
+			if strings.EqualFold(val, "false") || val == "" {
+				enableValue = 0
+				break
+			}
 			parsed, err := strconv.ParseInt(val, 10, 32)
 			if err != nil {
 				return err

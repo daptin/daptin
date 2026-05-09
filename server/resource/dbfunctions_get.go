@@ -157,21 +157,9 @@ func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Int
 	if err == nil && len(rows) > 0 {
 
 		for _, row := range rows {
-			i, ok := row["enable"].(int64)
-			if !ok {
-				iI, ok := row["enable"].(int)
-
-				if ok {
-					i = int64(iI)
-				} else {
-					strI, ok := row["enable"].(string)
-					if ok {
-						i, err = strconv.ParseInt(strI, 10, 32)
-						CheckErr(err, "Failed to convert column 'enable' value to int")
-					}
-
-				}
-
+			enable, err := integrationEnableFlag(row["enable"])
+			if err != nil {
+				return integrations, err
 			}
 
 			integration := Integration{
@@ -181,7 +169,7 @@ func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Int
 				Specification:               row["specification"].(string),
 				AuthenticationType:          row["authentication_type"].(string),
 				AuthenticationSpecification: row["authentication_specification"].(string),
-				Enable:                      i == 1,
+				Enable:                      enable,
 			}
 			integrations = append(integrations, integration)
 		}
@@ -190,6 +178,37 @@ func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Int
 
 	return integrations, err
 
+}
+
+func integrationEnableFlag(value interface{}) (bool, error) {
+	switch typed := value.(type) {
+	case bool:
+		return typed, nil
+	case int:
+		return typed == 1, nil
+	case int64:
+		return typed == 1, nil
+	case int32:
+		return typed == 1, nil
+	case float64:
+		return typed == 1, nil
+	case string:
+		if strings.EqualFold(typed, "true") {
+			return true, nil
+		}
+		if strings.EqualFold(typed, "false") || typed == "" {
+			return false, nil
+		}
+		i, err := strconv.ParseInt(typed, 10, 32)
+		if err != nil {
+			return false, err
+		}
+		return i == 1, nil
+	case nil:
+		return false, nil
+	default:
+		return false, fmt.Errorf("unsupported integration enable value type [%T]", value)
+	}
 }
 
 func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, transaction *sqlx.Tx) (rootpojo.CloudStore, error) {
