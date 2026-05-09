@@ -18,6 +18,8 @@ The `integration` table stores OpenAPI specifications that define external APIs.
 - Multiple authentication methods
 - Dynamic action creation from API operations
 - Provider-scoped execution at `/integration/{provider_name}/{operation_id}`
+- Provider-scoped discovery at `/integration/{provider_name}/operations`
+- Scoped OpenAPI export at `/integration/{provider_name}/openapi.yaml`
 
 ---
 
@@ -140,6 +142,38 @@ The credential row stores:
 
 **Admin required** - Only administrators can create integrations.
 
+For large provider specs, prefer `daptin-cli integration import` instead of
+hand-building JSON. The CLI can read specs from disk, URL, or stdin:
+
+```bash
+daptin-cli integration import \
+  --provider asana.com \
+  --spec-file ./asana_oas.yaml \
+  --auth oauth2 \
+  --oauth-connect asana.com
+
+daptin-cli integration install asana.com
+```
+
+The same command supports URL and stdin inputs:
+
+```bash
+daptin-cli integration import \
+  --provider example.com \
+  --spec-url https://example.com/openapi.yaml \
+  --auth custom_credentials \
+  --auth-spec-file ./auth.json
+
+curl -L https://example.com/openapi.yaml | daptin-cli integration import \
+  --provider example.com \
+  --spec-stdin \
+  --auth custom_credentials \
+  --auth-spec-json '{"name":"X-API-Key","in":"header","value_field":"api_key"}'
+```
+
+The raw JSON API remains available for automation that already prepares the
+`integration` row:
+
 ```bash
 curl -X POST http://localhost:6336/api/integration \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
@@ -202,6 +236,74 @@ curl -X POST "http://localhost:6336/action/integration/install_integration" \
 4. Maps path/query/body parameters to action input fields
 5. Registers the integration name as a performer
 6. Refreshes provider-scoped operation mappings in memory without requiring a server restart
+
+---
+
+## Discover Integration Operations
+
+After installation, clients can inspect one provider without downloading the
+global `/openapi.yaml` document.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /integration/{provider_name}/operations` | Compact list of operation ids, provider methods, provider paths, summaries, descriptions, and auth selector metadata. |
+| `GET /integration/{provider_name}/operations/{operation_id}` | One operation with auth selector metadata, provider method/path, inputs, request body hints, response hints, and derived schemas. |
+| `GET /integration/{provider_name}/openapi.yaml` | Scoped OpenAPI document containing only Daptin execution endpoints for the selected provider. |
+
+Example:
+
+```bash
+curl "http://localhost:6336/integration/asana.com/operations" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl "http://localhost:6336/integration/asana.com/operations/getWorkspaces" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl "http://localhost:6336/integration/asana.com/openapi.yaml" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Example operation detail shape:
+
+```json
+{
+  "provider": "asana.com",
+  "operation_id": "getWorkspaces",
+  "method": "GET",
+  "path": "/workspaces",
+  "auth": {
+    "type": "oauth2",
+    "execution_field": "oauth_token_id",
+    "required": true
+  },
+  "inputs": [
+    {
+      "name": "opt_fields",
+      "in": "query",
+      "required": false,
+      "type": "string"
+    }
+  ],
+  "input_schema": {
+    "type": "object"
+  },
+  "response_schema": {
+    "type": "object"
+  }
+}
+```
+
+Discovery is generated from the installed OpenAPI spec. Parameter, request body,
+and response hints come from the provider spec. Daptin only falls back to a
+free-form `input` object when the spec does not declare concrete inputs for the
+operation.
+
+Auth selectors are reported separately from provider operation inputs:
+
+| `authentication_type` | Discovery auth selector | Execution body field |
+|-----------------------|-------------------------|----------------------|
+| `oauth2` | `oauth_token_id` | `oauth_token_id` |
+| `custom_credentials` | `credential_id` | `credential_id` |
 
 ---
 
