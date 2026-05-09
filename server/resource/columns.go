@@ -2076,7 +2076,7 @@ var StandardTables = []table_info.TableInfo{
 				Name:              "authentication_type",
 				ColumnName:        "authentication_type",
 				ColumnType:        "label",
-				ColumnDescription: "The authentication method used for this integration, such as 'API Key', 'OAuth2', 'Basic Auth', or 'JWT'. This determines how authentication credentials are processed.",
+				ColumnDescription: "The authentication method used for this integration. Supported values are 'oauth2' and 'custom_credentials'. This determines which per-user credential reference is required at execution time.",
 			},
 			{
 				Name:              "authentication_specification",
@@ -2084,7 +2084,7 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType:        "encrypted",
 				DataType:          "text",
 				IsNullable:        false,
-				ColumnDescription: "Encrypted authentication details required to access the integrated service, such as API keys, tokens, or credentials. Stored securely with encryption.",
+				ColumnDescription: "Encrypted authentication metadata for the integration. For OAuth2 this stores oauth_connect_id; for custom_credentials this stores how to use credential.content. User secrets are stored in oauth_token or credential rows and selected at execution time.",
 			},
 			{
 				Name:              "enable",

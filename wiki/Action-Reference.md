@@ -174,8 +174,8 @@ Start OAuth authentication flow by generating authorization URL.
 | Property | Value |
 |----------|-------|
 | Entity | `oauth_connect` |
-| Instance Required | Yes |
-| Endpoint | `/action/oauth_connect/{ref_id}/oauth_login_begin` |
+| Instance Required | Yes; pass `oauth_connect_id` in action `attributes` |
+| Endpoint | `/action/oauth_connect/oauth_login_begin` |
 
 **Action Performer:** `oauth.client.redirect`
 
@@ -184,7 +184,7 @@ Start OAuth authentication flow by generating authorization URL.
 curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"oauth_connect_id": "019bf936-3dc0-7105-9cf9-468d766cae66"}'
+  -d '{"attributes":{"oauth_connect_id":"019bf936-3dc0-7105-9cf9-468d766cae66"}}'
 ```
 
 **Response:**
@@ -849,9 +849,16 @@ Install an API integration.
 | Property | Value |
 |----------|-------|
 | Entity | `integration` |
-| Instance Required | Yes |
+| Instance Required | Yes; pass `integration_id` in action `attributes` |
 
 **Action Performer:** `integration.install`
+
+```bash
+curl -X POST "http://localhost:6336/action/integration/install_integration" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"integration_id":"INTEGRATION_REFERENCE_ID"}}'
+```
 
 ### get_action_schema
 

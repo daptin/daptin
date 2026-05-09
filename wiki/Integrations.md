@@ -28,8 +28,8 @@ The `integration` table stores OpenAPI specifications that define external APIs.
 | `specification_language` | label | **Must be**: `openapiv2` or `openapiv3` |
 | `specification_format` | label | **Must be**: `json` or `yaml` |
 | `specification` | content | Full OpenAPI specification |
-| `authentication_type` | label | Auth method: `oauth2`, `http`, `apiKey` |
-| `authentication_specification` | encrypted | Auth credentials (JSON, encrypted) |
+| `authentication_type` | label | Auth method: `oauth2` or `custom_credentials` |
+| `authentication_specification` | encrypted | Auth metadata (JSON, encrypted); user secrets live in `oauth_token` or `credential` |
 | `enable` | truefalse | Active/inactive (default: true) |
 
 **Note**: This table has `DefaultGroups: adminsGroup` - only administrators can manage integrations.
@@ -49,84 +49,86 @@ The `integration` table stores OpenAPI specifications that define external APIs.
 
 ## Authentication Types
 
-Authentication is configured via `authentication_type` and `authentication_specification` (JSON).
+Authentication is configured via `authentication_type` and `authentication_specification` (JSON). Daptin supports two integration auth resolver families:
+
+The integration record stores the provider-level auth wiring only. It must not store a particular user's token or API key. The user-specific secret is selected when the generated integration action is executed.
+
+| `authentication_type` | Stored on `integration.authentication_specification` | Supplied on each action execution | Secret source |
+|-----------------------|------------------------------------------------------|-----------------------------------|---------------|
+| `oauth2` | `oauth_connect_id` | `oauth_token_id` | `oauth_token` |
+| `custom_credentials` | Credential usage metadata (`scheme`, `token_field`, `name`, `in`, etc.) | `credential_id` | `credential.content` |
 
 ### OAuth2
 
-Uses a stored OAuth token from the `oauth_token` table.
+OAuth integrations configure the provider/app connection with `oauth_connect_id`. The executing user supplies their own `oauth_token_id` when the integration action runs.
 
 ```json
 {
   "authentication_type": "oauth2",
   "authentication_specification": {
-    "oauth_token_id": "OAUTH_TOKEN_REFERENCE_ID"
+    "oauth_connect_id": "OAUTH_CONNECT_REFERENCE_ID"
   }
 }
 ```
 
-**Prerequisites**: First configure OAuth provider via `oauth_connect`, complete OAuth flow to get token stored in `oauth_token`. See [Authentication](Authentication.md#oauth-authentication).
+**Prerequisites**: Configure the OAuth provider via `oauth_connect`, then have each user complete the existing OAuth flow to create their own `oauth_token`. See [OAuth Authentication](OAuth-Authentication.md).
 
-### HTTP Basic
+Integrations must not store `oauth_token_id` directly in `authentication_specification`; token selection happens per execution so Daptin can validate token ownership against the current user.
 
-```json
-{
-  "authentication_type": "http",
-  "authentication_specification": {
-    "scheme": "basic",
-    "username": "your-username",
-    "password": "your-password"
-  }
-}
-```
+At execution time Daptin verifies that the supplied token belongs to the authenticated request user and was created from the same `oauth_connect_id` configured on the integration.
 
-### HTTP Bearer Token
+### Custom Credentials
+
+Custom credential integrations describe how to use a `credential.content` field. The executing user supplies `credential_id` when the integration action runs. The credential must be owned by the user, usable through group permission, or usable by an administrator.
+
+**Bearer token**:
 
 ```json
 {
-  "authentication_type": "http",
+  "authentication_type": "custom_credentials",
   "authentication_specification": {
     "scheme": "bearer",
-    "token": "your-bearer-token"
+    "token_field": "token"
   }
 }
 ```
 
-### API Key
-
-API key in header, query parameter, or cookie.
-
-**Header**:
+The credential row stores the actual user secret:
 ```json
 {
-  "authentication_type": "apiKey",
+  "token": "actual-user-token"
+}
+```
+
+**API key in a header**:
+
+```json
+{
+  "authentication_type": "custom_credentials",
   "authentication_specification": {
     "name": "X-API-Key",
     "in": "header",
-    "X-API-Key": "your-actual-api-key"
+    "value_field": "api_key"
   }
 }
 ```
 
-**Query parameter**:
+The credential row stores:
 ```json
 {
-  "authentication_type": "apiKey",
-  "authentication_specification": {
-    "name": "api_key",
-    "in": "query",
-    "api_key": "your-actual-api-key"
-  }
+  "api_key": "actual-user-api-key"
 }
 ```
 
-**Cookie**:
+**Basic auth**:
+
 ```json
 {
-  "authentication_type": "apiKey",
+  "authentication_type": "custom_credentials",
   "authentication_specification": {
-    "name": "session",
-    "in": "cookie",
-    "session": "your-session-value"
+    "scheme": "basic",
+    "username_field": "username",
+    "password_field": "password"
   }
 }
 ```
@@ -149,8 +151,8 @@ curl -X POST http://localhost:6336/api/integration \
         "specification_language": "openapiv3",
         "specification_format": "json",
         "specification": "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Petstore\",\"version\":\"1.0\"},\"servers\":[{\"url\":\"https://petstore.swagger.io/v2\"}],\"paths\":{\"/pet/{petId}\":{\"get\":{\"operationId\":\"getPetById\",\"parameters\":[{\"name\":\"petId\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\"}}],\"responses\":{\"200\":{\"description\":\"Success\"}}}}}}",
-        "authentication_type": "apiKey",
-        "authentication_specification": "{\"name\":\"api_key\",\"in\":\"header\",\"api_key\":\"special-key\"}",
+        "authentication_type": "custom_credentials",
+        "authentication_specification": "{\"name\":\"X-API-Key\",\"in\":\"header\",\"value_field\":\"api_key\"}",
         "enable": true
       }
     }
@@ -179,20 +181,25 @@ After creating an integration record, install it to create actions for each API 
 
 **Action**: `install_integration`
 **OnType**: `integration`
-**Requires instance**: Yes (integration reference_id)
+**Requires instance**: Yes. Pass the integration `reference_id` as `attributes.integration_id`.
 
 ```bash
-curl -X POST "http://localhost:6336/action/integration/INTEGRATION_REF_ID/install_integration" \
+curl -X POST "http://localhost:6336/action/integration/install_integration" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "attributes": {
+      "integration_id": "INTEGRATION_REF_ID"
+    }
+  }'
 ```
 
 **What happens**:
 1. Parses the OpenAPI specification
 2. Creates an action for each operation (identified by `operationId`)
-3. Maps path/query/body parameters to action input fields
-4. Registers the integration name as a performer
+3. Adds the auth selector input for the integration type (`oauth_token_id` or `credential_id`)
+4. Maps path/query/body parameters to action input fields
+5. Registers the integration name as a performer
 
 ---
 
@@ -215,6 +222,37 @@ curl -X POST "http://localhost:6336/action/integration/getPetById" \
     }
   }'
 ```
+
+For OAuth2 integrations, pass the current user's token reference at execution time:
+
+```bash
+curl -X POST "http://localhost:6336/action/integration/listRepos" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID",
+      "owner": "daptin"
+    }
+  }'
+```
+
+Daptin rejects the call if `oauth_token_id` belongs to another user or was issued for a different `oauth_connect` than the integration expects.
+
+For custom credential integrations, pass the credential reference at execution time:
+
+```bash
+curl -X POST "http://localhost:6336/action/integration/listUsers" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "credential_id": "USER_CREDENTIAL_REFERENCE_ID"
+    }
+  }'
+```
+
+Daptin rejects the call if `credential_id` is not readable by the current user, or if the decrypted credential content does not contain the fields named by `authentication_specification`.
 
 **Response**:
 ```json
@@ -389,11 +427,15 @@ paths:
 
 ## Security Notes
 
-- Authentication credentials stored encrypted in `authentication_specification`
-- OAuth2 tokens automatically refresh when expired
+- Integration `authentication_specification` stores auth metadata only
+- OAuth2 integrations store the provider `oauth_connect_id`; users pass their own `oauth_token_id` during execution
+- Custom credential integrations describe how to use a credential; users pass their own `credential_id` during execution
+- Daptin validates OAuth token ownership and provider match before using an `oauth_token`
+- Daptin validates credential ownership/permission before decrypting `credential.content`
+- Generated auth headers/query parameters are protected from user-supplied action attributes. For example, an action input named `Authorization` cannot override the OAuth or credential auth header Daptin resolved for the outbound request.
 - Only administrators can create/modify integrations
 - Disable integrations when not in use (`enable: false`)
-- Rotate API keys periodically
+- Rotate credentials periodically
 
 ---
 
@@ -423,17 +465,22 @@ The operation ID doesn't exist in the specification. Check:
 
 ### Authentication Errors
 
-1. For OAuth2: Verify `oauth_token_id` references a valid token
-2. For HTTP: Check `scheme`, `username`, `password` or `token` are correct
-3. For API Key: Ensure `name`, `in`, and the actual key value are all present
+1. For OAuth2: Verify execution attributes include `oauth_token_id`, the token belongs to the current user, and its `oauth_connect_id` matches the integration
+2. For custom credentials: Verify execution attributes include `credential_id`, the credential is usable by the current user, and `credential.content` contains the fields named by `authentication_specification`
+3. For header/query auth: Verify the OpenAPI security scheme matches `authentication_type`; Daptin intentionally ignores action attributes that try to overwrite protected auth fields
 
 ### Actions Not Created
 
 After creating the integration, run `install_integration`:
 ```bash
-curl -X POST "http://localhost:6336/action/integration/INTEGRATION_ID/install_integration" \
+curl -X POST "http://localhost:6336/action/integration/install_integration" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{}'
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "integration_id": "INTEGRATION_ID"
+    }
+  }'
 ```
 
 ---

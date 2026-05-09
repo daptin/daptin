@@ -41,7 +41,7 @@ func (d *publishToTopicActionPerformer) DoAction(request actionresponse.Outcome,
 		return nil, nil, []error{errors.New("missing or invalid message")}
 	}
 
-	sessionUserRaw := request.Attributes["user"]
+	sessionUserRaw := inFieldMap["sessionUser"]
 	if sessionUserRaw == nil {
 		return nil, nil, []error{errors.New("Unauthorized")}
 	}

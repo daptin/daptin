@@ -14,6 +14,7 @@ import (
 	"github.com/gobuffalo/flect"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 /*
@@ -120,8 +121,17 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 	host := router.Servers[0].URL
 
 	globalAttrs := make(map[string]string)
+	authType := strings.ToLower(fmt.Sprintf("%v", integration["authentication_type"]))
+	authInputNames := make(map[string]bool)
 
 	for name, securityRef := range router.Components.SecuritySchemes {
+		if integrationAuthUsesSecurityScheme(authType, securityRef.Value) {
+			authInputNames[name] = true
+			if securityRef.Value.Name != "" {
+				authInputNames[securityRef.Value.Name] = true
+			}
+			continue
+		}
 
 		if authDataMap[name] != nil {
 			continue
@@ -154,6 +164,29 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 			attrs[key] = val
 		}
 
+		switch authType {
+		case "oauth2":
+			cols = append(cols, api2go.ColumnInfo{
+				Name:              "oauth_token_id",
+				ColumnName:        "oauth_token_id",
+				ColumnType:        "hidden",
+				DataType:          "varchar(100)",
+				IsNullable:        false,
+				ColumnDescription: "OAuth token reference id to use for this integration execution.",
+			})
+			attrs["oauth_token_id"] = "~oauth_token_id"
+		case "custom_credentials":
+			cols = append(cols, api2go.ColumnInfo{
+				Name:              "credential_id",
+				ColumnName:        "credential_id",
+				ColumnType:        "hidden",
+				DataType:          "varchar(100)",
+				IsNullable:        false,
+				ColumnDescription: "Credential reference id to use for this integration execution.",
+			})
+			attrs["credential_id"] = "~credential_id"
+		}
+
 		for _, param := range params {
 			if authDataMap[param] != nil {
 				continue
@@ -169,6 +202,9 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 		}
 
 		for _, param := range command.Parameters {
+			if authInputNames[param.Value.Name] && (param.Value.In == "header" || param.Value.In == "query" || param.Value.In == "cookie") {
+				continue
+			}
 			if authDataMap[param.Value.Name] != nil {
 				continue
 			}
@@ -236,6 +272,20 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 	}, transaction)
 
 	return nil, []actionresponse.ActionResponse{}, []error{err}
+}
+
+func integrationAuthUsesSecurityScheme(authType string, securityScheme *openapi3.SecurityScheme) bool {
+	if securityScheme == nil {
+		return false
+	}
+	switch authType {
+	case "oauth2":
+		return securityScheme.Type == "oauth2"
+	case "custom_credentials":
+		return securityScheme.Type == "http" || securityScheme.Type == "apiKey"
+	default:
+		return false
+	}
 }
 
 // Create a new action performer for becoming administrator action

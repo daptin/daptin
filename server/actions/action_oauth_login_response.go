@@ -53,7 +53,8 @@ func GetOauthConnectionDescription(authenticator string, dbResource *resource.Db
 	}
 
 	conf, err := mapToOauthConfig(rows[0], secret)
-	log.Printf("[%v] oauth config: %v", authenticator, conf)
+	log.Printf("[%v] oauth config loaded: auth_url=%s token_url=%s redirect_url=%s scopes=%v",
+		authenticator, conf.Endpoint.AuthURL, conf.Endpoint.TokenURL, conf.RedirectURL, conf.Scopes)
 	return conf, daptinid.InterfaceToDIR(rows[0]["reference_id"]), rows[0], err
 
 }
@@ -93,7 +94,7 @@ func mapToOauthConfig(authConnectorData map[string]interface{}, secret string) (
 func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
 	state := inFieldMap["state"].(string)
-	user, ok := request.Attributes["user"]
+	user, ok := inFieldMap["sessionUser"]
 	sessionUser, _ := user.(*auth.SessionUser)
 	//user := inFieldMap["user"].(map[string]interface{})
 
