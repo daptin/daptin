@@ -4,6 +4,8 @@
 
 OAuth 2.0 authentication enables users to sign in using external providers like Google, GitHub, Microsoft, Facebook, and others. Daptin implements the standard OAuth 2.0 Authorization Code Flow.
 
+This page covers Daptin as an OAuth consumer: Daptin connects to an upstream provider and stores provider tokens in `oauth_token`. For Daptin acting as an OAuth/OIDC provider to other applications, see [[OAuth-Provider|OAuth Provider]].
+
 ---
 
 ## Quick Start (5 minutes)
@@ -33,7 +35,10 @@ curl -X POST http://localhost:6336/api/oauth_connect \
         "token_url": "https://oauth2.googleapis.com/token",
         "profile_url": "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
         "redirect_uri": "http://localhost:6336/oauth/response",
-        "allow_login": true
+        "allow_login": true,
+        "access_type_offline": true,
+        "pkce_enabled": false,
+        "pkce_challenge_method": "S256"
       }
     }
   }'
@@ -61,7 +66,8 @@ Note: `client_secret` is automatically encrypted when stored.
 ### 2. Initiate OAuth Flow
 
 ```bash
-# Call oauth_login_begin action on oauth_connect
+# oauth_login_begin is an instance action on oauth_connect.
+# The selected row supplies the authenticator name and configured scope.
 curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -94,7 +100,7 @@ curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
 ```
 
 The action returns:
-- **State token** (e.g., "101004") - TOTP-based CSRF protection, 5-minute validity
+- **State token** - TOTP-based CSRF protection for non-PKCE flows, or a stored random state for PKCE flows
 - **Redirect URL** - OAuth provider authorization endpoint with all parameters
 
 ### 3. User Authorizes (Browser Flow)
@@ -180,11 +186,12 @@ Daptin implements the standard OAuth 2.0 authorization code flow:
 
 ### State Validation (CSRF Protection)
 
-- State tokens are generated using TOTP (Time-based One-Time Password)
-- **Validity**: 5 minutes (300 seconds)
-- **Algorithm**: SHA1 with 6 digits
-- **Skew**: ±1 period (allows small clock drift)
-- State tokens expire automatically for security
+Daptin supports two state modes:
+
+- **Non-PKCE**: state tokens are generated using TOTP (Time-based One-Time Password), valid for a 300 second period, using SHA1 with 6 digits and ±1 period skew.
+- **PKCE enabled**: when `oauth_connect.pkce_enabled` is true, Daptin creates a random state, stores the hashed state and code verifier in `oauth_state`, and sends a PKCE code challenge using `pkce_challenge_method`.
+
+The OAuth callback includes `authenticator=<oauth_connect.name>`, which lets `oauth.login.response` load the same provider configuration for state validation and token exchange.
 
 ### Security Features
 
@@ -341,6 +348,8 @@ curl -X POST http://localhost:6336/api/oauth_connect \
 | `response_type` | string | No | `code` | OAuth response type (usually 'code') |
 | `allow_login` | boolean | No | `false` | Enable user authentication via this provider |
 | `access_type_offline` | boolean | No | `false` | Request refresh token for offline access |
+| `pkce_enabled` | boolean | No | `false` | Store a random state and code verifier for PKCE authorization code flow |
+| `pkce_challenge_method` | string | No | `S256` | PKCE challenge method; `S256` is recommended |
 | `profile_email_path` | string | No | `email` | JSON path to extract email from profile |
 
 ### Important Notes
@@ -348,7 +357,7 @@ curl -X POST http://localhost:6336/api/oauth_connect \
 1. **redirect_uri** must match exactly what's registered with OAuth provider
 2. **Authenticator parameter** is automatically appended: `redirect_uri?authenticator={name}`
 3. **Client secret** is automatically encrypted when stored in database
-4. **access_type=offline** is automatically added to auth URL when multiple scopes are present
+4. **access_type=offline** is added to the auth URL when `access_type_offline` is true
 
 ---
 
@@ -364,6 +373,8 @@ Start OAuth authentication flow by generating authorization URL.
 
 **Parameters:**
 - `oauth_connect_id`: Reference ID of the `oauth_connect` record, passed inside `attributes`
+
+The action has no provider-specific input fields. It is an instance action: the selected `oauth_connect` row provides `$.name` as the callback authenticator and `$.scope` as the requested scope.
 
 **Returns:**
 - `client.store.set`: State token for CSRF validation
@@ -413,7 +424,7 @@ curl -X POST http://localhost:6336/action/oauth_token/oauth.login.response \
 ```
 
 **Workflow (when allow_login=true):**
-1. Validates state token (TOTP)
+1. Validates state token (TOTP for non-PKCE flows, `oauth_state` lookup for PKCE flows)
 2. Exchanges authorization code for access/refresh tokens
 3. Stores tokens in oauth_token table (encrypted)
 4. Fetches user profile from provider
@@ -422,6 +433,39 @@ curl -X POST http://localhost:6336/action/oauth_token/oauth.login.response \
 7. Creates home usergroup for new user
 8. Generates JWT token for user
 9. Redirects to dashboard
+
+---
+
+## OAuth for API Integrations
+
+Set `allow_login` to `false` when the connection is for API access instead of user login. The OAuth flow still creates an `oauth_token` row for the current user.
+
+OpenAPI integrations should store only provider-level auth wiring:
+
+```json
+{
+  "authentication_type": "oauth2",
+  "authentication_specification": {
+    "oauth_connect_id": "OAUTH_CONNECT_REFERENCE_ID"
+  }
+}
+```
+
+Each operation execution supplies the user's token reference:
+
+```bash
+curl -X POST "http://localhost:6336/integration/asana.com/getWorkspaces" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID",
+    "input": {
+      "opt_fields": ["name"]
+    }
+  }'
+```
+
+Daptin validates that the token belongs to the current user and was issued for the same `oauth_connect_id` configured on the integration.
 
 ---
 

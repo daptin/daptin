@@ -132,6 +132,15 @@ Daptin supports OAuth 2.0 for authenticating users via external providers (Googl
 
 This section covers Daptin as an OAuth consumer. If you want Daptin to issue OAuth/OIDC tokens to another application, use [[OAuth-Provider|OAuth Provider]].
 
+### OAuth Consumer vs OAuth Provider
+
+| Mode | Use this when | Main tables/endpoints |
+|------|---------------|-----------------------|
+| Daptin as OAuth consumer | Users connect Google, GitHub, Asana, or another upstream provider to Daptin | `oauth_connect`, `oauth_token`, `/action/oauth_connect/oauth_login_begin`, `/action/oauth_token/oauth.login.response` |
+| Daptin as OAuth provider | Another application uses Daptin as the identity/token issuer | `oauth_app`, `/oauth/authorize`, `/oauth/token`, JWKS/OIDC endpoints |
+
+API integrations use the OAuth consumer flow: configure a provider in `oauth_connect`, let each user create their own `oauth_token`, then pass that token reference when executing integration operations.
+
 ### System Tables
 
 | Table | Purpose |
@@ -156,6 +165,9 @@ This section covers Daptin as an OAuth consumer. If you want Daptin to issue OAu
 | `profile_url` | url | Provider's user info endpoint |
 | `profile_email_path` | label | JSON path to email in profile response |
 | `allow_login` | truefalse | Enable user authentication via this provider |
+| `access_type_offline` | truefalse | Request refresh tokens/offline access from providers that support it |
+| `pkce_enabled` | truefalse | Use PKCE state and code verifier storage for this provider |
+| `pkce_challenge_method` | label | PKCE challenge method; `S256` is the recommended value |
 
 ### Configure OAuth Provider
 
@@ -177,7 +189,10 @@ curl -X POST http://localhost:6336/api/oauth_connect \
         "token_url": "https://oauth2.googleapis.com/token",
         "profile_url": "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
         "scope": "email,profile",
-        "allow_login": true
+        "allow_login": true,
+        "access_type_offline": true,
+        "pkce_enabled": false,
+        "pkce_challenge_method": "S256"
       }
     }
   }'
@@ -208,7 +223,8 @@ scope: user:email
 #### Step 1: Begin OAuth (Redirect to Provider)
 
 ```bash
-# Action requires an oauth_connect instance ID in the body
+# oauth_login_begin is an instance action on oauth_connect.
+# The selected row supplies $.name as authenticator and $.scope as scope.
 curl -X POST "http://localhost:6336/action/oauth_connect/oauth_login_begin" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -233,7 +249,9 @@ curl -X POST "http://localhost:6336/action/oauth_connect/oauth_login_begin" \
 ]
 ```
 
-The `state` is a 6-digit TOTP code valid for 300 seconds (5 minutes), used to prevent CSRF attacks.
+For non-PKCE connections, the `state` is a 6-digit TOTP code valid for 300 seconds (5 minutes), used to prevent CSRF attacks. When `oauth_connect.pkce_enabled` is true, Daptin creates a random state value and stores the hashed state plus the PKCE verifier in `oauth_state`; the redirect URL includes a PKCE code challenge using `pkce_challenge_method`.
+
+The redirect URL includes `authenticator=<oauth_connect.name>` on the callback URL. `oauth.login.response` uses that authenticator value to load the same provider configuration during token exchange.
 
 #### Step 2: User Authorization (External)
 
@@ -259,7 +277,7 @@ curl -X POST "http://localhost:6336/action/oauth_token/oauth.login.response" \
 ```
 
 **What happens**:
-1. Validates state (TOTP check)
+1. Validates state (TOTP check for non-PKCE flows, or `oauth_state` lookup for PKCE flows)
 2. Exchanges code for access/refresh tokens
 3. Stores tokens in `oauth_token` table
 4. If `allow_login=true`:
@@ -289,7 +307,7 @@ curl -X POST http://localhost:6336/api/oauth_connect \
   }'
 ```
 
-Tokens are stored in `oauth_token` and can be used for data exchange integrations.
+Tokens are stored in `oauth_token`. For OpenAPI integrations, the integration stores provider-level auth wiring in `authentication_specification.oauth_connect_id`; the executing user passes their own `oauth_token_id` when calling an operation. See [[Integrations|Integrations]].
 
 ---
 

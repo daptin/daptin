@@ -587,6 +587,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.PUT("/action/:typename/:actionName", actionHandler)
 	defaultRouter.DELETE("/action/:typename/:actionName", actionHandler)
 	defaultRouter.GET("/action/:typename/:actionName", actionHandler)
+	defaultRouter.POST("/integration/:providerName/:operationName", CreateIntegrationOperationHandler(cruds))
 
 	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))

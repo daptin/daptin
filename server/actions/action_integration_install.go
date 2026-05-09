@@ -14,6 +14,7 @@ import (
 	"github.com/gobuffalo/flect"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 	"strings"
 )
 
@@ -30,6 +31,7 @@ type integrationInstallationPerformer struct {
 	pathMap          map[string]string
 	methodMap        map[string]string
 	encryptionSecret []byte
+	configStore      *resource.ConfigStore
 }
 
 // Name of the action
@@ -42,16 +44,35 @@ func (d *integrationInstallationPerformer) Name() string {
 func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
 	referenceId := daptinid.InterfaceToDIR(inFieldMap["reference_id"])
-	integration, _, err := d.cruds["integration"].GetSingleRowByReferenceIdWithTransaction("integration", referenceId, nil, transaction)
+	integrationCrud := d.cruds["integration"]
+	if integrationCrud == nil {
+		log.Errorf("install_integration failed: integration resource is not available")
+		return nil, nil, []error{errors.New("integration resource is not available")}
+	}
+	integration, _, err := integrationCrud.GetSingleRowByReferenceIdWithTransaction("integration", referenceId, nil, transaction)
+	if err != nil {
+		log.Warnf("install_integration failed loading integration reference_id=[%s]: %v", referenceId.String(), err)
+		return nil, nil, []error{err}
+	}
 
 	spec, ok := integration["specification"]
 	if !ok || spec == "" {
+		log.Warnf("install_integration failed: no specification present reference_id=[%s]", referenceId.String())
 		return nil, nil, []error{errors.New("no specification present")}
 	}
 
-	specBytes := []byte(spec.(string))
+	specString, ok := spec.(string)
+	if !ok {
+		log.Warnf("install_integration failed: specification has invalid type [%T] reference_id=[%s]", spec, referenceId.String())
+		return nil, nil, []error{fmt.Errorf("specification must be a string, got %T", spec)}
+	}
+	specBytes := []byte(specString)
 
 	authSpec, ok := integration["authentication_specification"].(string)
+	if !ok {
+		log.Warnf("install_integration failed: authentication_specification has invalid type [%T] reference_id=[%s]", integration["authentication_specification"], referenceId.String())
+		return nil, nil, []error{fmt.Errorf("authentication_specification must be a string, got %T", integration["authentication_specification"])}
+	}
 
 	decryptedSpec, err := resource.Decrypt(d.encryptionSecret, authSpec)
 
@@ -108,11 +129,27 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 	pathMap := make(map[string]string)
 	methodMap := make(map[string]string)
 	for path, pathItem := range router.Paths {
+		if pathItem == nil {
+			log.Warnf("install_integration skipping nil path item provider=[%v] path=[%s]", integration["name"], path)
+			continue
+		}
 		for method, command := range pathItem.Operations() {
-			log.Printf("Register action [%v] at [%v]", command.OperationID, integration["name"])
-			commandMap[command.OperationID] = command
-			pathMap[command.OperationID] = path
-			methodMap[command.OperationID] = method
+			if command == nil {
+				log.Warnf("install_integration skipping nil operation provider=[%v] method=[%s] path=[%s]", integration["name"], method, path)
+				continue
+			}
+			operationID := command.OperationID
+			if len(operationID) == 0 {
+				operationID = method + " " + path
+			}
+			if _, exists := commandMap[operationID]; exists {
+				log.Warnf("install_integration rejected duplicate operationId provider=[%v] operation=[%s]", integration["name"], operationID)
+				return nil, nil, []error{fmt.Errorf("duplicate operationId [%s] in integration [%s]", operationID, integration["name"])}
+			}
+			log.Debugf("install_integration discovered operation provider=[%v] operation=[%s] method=[%s] path=[%s]", integration["name"], operationID, method, path)
+			commandMap[operationID] = command
+			pathMap[operationID] = path
+			methodMap[operationID] = method
 		}
 	}
 
@@ -247,7 +284,11 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 			}
 		}
 
-		integrationName := integration["name"].(string)
+		integrationName, ok := stringField(integration, "name")
+		if !ok {
+			log.Warnf("install_integration failed: name is missing or invalid reference_id=[%s]", referenceId.String())
+			return nil, nil, []error{errors.New("integration name must be a string")}
+		}
 		action := actionresponse.Action{}
 		action.Name = commandId
 		action.Label = flect.Humanize(commandId)
@@ -270,8 +311,113 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 	err = resource.UpdateActionTable(&resource.CmsConfig{
 		Actions: actions,
 	}, transaction)
+	if err != nil {
+		log.Errorf("install_integration failed updating action table provider=[%v]: %v", integration["name"], err)
+		return nil, []actionresponse.ActionResponse{}, []error{err}
+	}
 
+	err = d.refreshInstalledIntegrationPerformer(integration, transaction)
+	if err != nil {
+		log.Errorf("install_integration failed refreshing runtime mappings provider=[%v]: %v", integration["name"], err)
+	} else {
+		log.Infof("install_integration completed provider=[%v] operations=%d", integration["name"], len(actions))
+	}
 	return nil, []actionresponse.ActionResponse{}, []error{err}
+}
+
+func (d *integrationInstallationPerformer) refreshInstalledIntegrationPerformer(integration map[string]interface{}, transaction *sqlx.Tx) error {
+	enableValue := int64(1)
+	if rawEnable, ok := integration["enable"]; ok {
+		switch val := rawEnable.(type) {
+		case int64:
+			enableValue = val
+		case int:
+			enableValue = int64(val)
+		case string:
+			parsed, err := strconv.ParseInt(val, 10, 32)
+			if err != nil {
+				return err
+			}
+			enableValue = parsed
+		}
+	}
+
+	integrationRuntime, err := integrationFromRow(integration, enableValue == 1)
+	if err != nil {
+		log.Warnf("Failed to refresh integration operation mappings from invalid row: %v", err)
+		return err
+	}
+	if !integrationRuntime.Enable {
+		log.Infof("Removing disabled integration operation mappings provider=[%s]", integrationRuntime.Name)
+		delete(resource.ActionHandlerMap, integrationRuntime.Name)
+		for _, crud := range d.cruds {
+			if crud.ActionHandlerMap != nil {
+				delete(crud.ActionHandlerMap, integrationRuntime.Name)
+			}
+		}
+		return nil
+	}
+
+	performer, err := NewIntegrationActionPerformer(integrationRuntime, nil, d.cruds, d.configStore, transaction)
+	if err != nil {
+		log.Errorf("Failed to create refreshed integration action performer provider=[%s]: %v", integrationRuntime.Name, err)
+		return err
+	}
+	resource.ActionHandlerMap[performer.Name()] = performer
+	for _, crud := range d.cruds {
+		if crud.ActionHandlerMap == nil {
+			crud.ActionHandlerMap = make(map[string]actionresponse.ActionPerformerInterface)
+		}
+		crud.ActionHandlerMap[performer.Name()] = performer
+	}
+	log.Printf("Refreshed integration operation mappings for [%s] without restart", integrationRuntime.Name)
+	log.Infof("Refreshed integration operation mappings provider=[%s] crud_maps=%d", integrationRuntime.Name, len(d.cruds))
+	return nil
+}
+
+func integrationFromRow(row map[string]interface{}, enable bool) (resource.Integration, error) {
+	name, ok := stringField(row, "name")
+	if !ok {
+		return resource.Integration{}, errors.New("integration name must be a string")
+	}
+	specLanguage, ok := stringField(row, "specification_language")
+	if !ok {
+		return resource.Integration{}, errors.New("integration specification_language must be a string")
+	}
+	specFormat, ok := stringField(row, "specification_format")
+	if !ok {
+		return resource.Integration{}, errors.New("integration specification_format must be a string")
+	}
+	spec, ok := stringField(row, "specification")
+	if !ok {
+		return resource.Integration{}, errors.New("integration specification must be a string")
+	}
+	authType, ok := stringField(row, "authentication_type")
+	if !ok {
+		return resource.Integration{}, errors.New("integration authentication_type must be a string")
+	}
+	authSpec, ok := stringField(row, "authentication_specification")
+	if !ok {
+		return resource.Integration{}, errors.New("integration authentication_specification must be a string")
+	}
+	return resource.Integration{
+		Name:                        name,
+		SpecificationLanguage:       specLanguage,
+		SpecificationFormat:         specFormat,
+		Specification:               spec,
+		AuthenticationType:          authType,
+		AuthenticationSpecification: authSpec,
+		Enable:                      enable,
+	}, nil
+}
+
+func stringField(row map[string]interface{}, key string) (string, bool) {
+	value, ok := row[key]
+	if !ok || value == nil {
+		return "", false
+	}
+	strValue, ok := value.(string)
+	return strValue, ok
 }
 
 func integrationAuthUsesSecurityScheme(authType string, securityScheme *openapi3.SecurityScheme) bool {
@@ -298,6 +444,7 @@ func NewIntegrationInstallationPerformer(initConfig *resource.CmsConfig, cruds m
 	handler := integrationInstallationPerformer{
 		cruds:            cruds,
 		encryptionSecret: []byte(encryptionSecret),
+		configStore:      configStore,
 	}
 
 	return &handler, nil

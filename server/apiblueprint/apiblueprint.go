@@ -7,9 +7,14 @@ import (
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/table_info"
+	"github.com/getkin/kin-openapi/openapi2"
+	"github.com/getkin/kin-openapi/openapi2conv"
+	"github.com/getkin/kin-openapi/openapi3"
+	ghodssyaml "github.com/ghodss/yaml"
 	"github.com/iancoleman/strcase"
 
 	"fmt"
+	"net/url"
 	"strings"
 	//"github.com/daptin/daptin/server/fakerservice"
 	"github.com/advance512/yaml"
@@ -1360,6 +1365,7 @@ Executes JavaScript in the client.
 		}
 
 	}
+	addIntegrationOperationPaths(resourcesMap, typeMap, cruds)
 
 	// Add the /actions endpoint for listing guest actions
 	resourcesMap["/actions"] = map[string]interface{}{
@@ -3822,4 +3828,362 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 			},
 		},
 	}
+}
+
+func addIntegrationOperationPaths(resourcesMap map[string]map[string]interface{}, typeMap map[string]map[string]interface{}, cruds map[string]*resource.DbResource) {
+	worldCrud := cruds["world"]
+	if worldCrud == nil {
+		log.Warnf("Skipping integration OpenAPI paths: world resource is not available")
+		return
+	}
+	log.Tracef("Loading installed integrations for provider-scoped OpenAPI path generation")
+	transaction, err := worldCrud.Connection().Beginx()
+	if err != nil {
+		log.Errorf("Failed to begin transaction for integration OpenAPI generation: %v", err)
+		return
+	}
+	defer transaction.Rollback()
+
+	integrations, err := worldCrud.GetActiveIntegrations(transaction)
+	if err != nil {
+		log.Errorf("Failed to list integrations for OpenAPI generation: %v", err)
+		return
+	}
+	log.Debugf("Loaded integrations for provider-scoped OpenAPI path generation count=%d", len(integrations))
+
+	for _, integration := range integrations {
+		if !integration.Enable {
+			log.Debugf("Skipping disabled integration in OpenAPI generation provider=[%s]", integration.Name)
+			continue
+		}
+		router, err := loadIntegrationOpenAPIRouter(integration)
+		if err != nil {
+			log.Warnf("Failed to load OpenAPI spec for integration [%s]: %v", integration.Name, err)
+			continue
+		}
+		seen := make(map[string]bool)
+		registered := 0
+		for providerPath, pathItem := range router.Paths {
+			if pathItem == nil {
+				log.Warnf("Skipping nil path item in provider spec provider=[%s] path=[%s]", integration.Name, providerPath)
+				continue
+			}
+			for providerMethod, operation := range pathItem.Operations() {
+				if operation == nil {
+					log.Warnf("Skipping nil operation in provider spec provider=[%s] method=[%s] path=[%s]", integration.Name, providerMethod, providerPath)
+					continue
+				}
+				operationID := operation.OperationID
+				if operationID == "" {
+					log.Debugf("Skipping provider operation without operationId provider=[%s] method=[%s] path=[%s]", integration.Name, providerMethod, providerPath)
+					continue
+				}
+				if seen[operationID] {
+					log.Warnf("Duplicate operationId [%s] in integration [%s], skipping generated provider-scoped docs", operationID, integration.Name)
+					continue
+				}
+				seen[operationID] = true
+
+				requestComponentName := "Integration" + strcase.ToCamel(integration.Name) + strcase.ToCamel(operationID) + "RequestObject"
+				typeMap[requestComponentName] = integrationOperationRequestSchema(router, operation)
+				log.Tracef("Generated OpenAPI request schema provider=[%s] operation=[%s] component=[%s]", integration.Name, operationID, requestComponentName)
+
+				resourcesMap[fmt.Sprintf("/integration/%s/%s", url.PathEscape(integration.Name), url.PathEscape(operationID))] = map[string]interface{}{
+					"post": map[string]interface{}{
+						"tags":        []string{"integration", integration.Name},
+						"operationId": "Execute" + strcase.ToCamel(operationID) + "On" + strcase.ToCamel(integration.Name),
+						"summary":     firstNonEmpty(operation.Summary, operationID),
+						"description": firstNonEmpty(operation.Description, operation.Summary, fmt.Sprintf("Execute [%s] from integration [%s].", operationID, integration.Name)),
+						"x-provider-operation": map[string]interface{}{
+							"provider":    integration.Name,
+							"operationId": operationID,
+							"method":      strings.ToUpper(providerMethod),
+							"path":        providerPath,
+						},
+						"security": []map[string][]string{
+							{"bearerAuth": []string{}},
+						},
+						"requestBody": map[string]interface{}{
+							"required": true,
+							"content": map[string]interface{}{
+								"application/json": map[string]interface{}{
+									"schema": map[string]interface{}{
+										"$ref": "#/components/schemas/" + requestComponentName,
+									},
+								},
+							},
+						},
+						"responses": map[string]interface{}{
+							"200": map[string]interface{}{
+								"description": "Provider operation response",
+								"content": map[string]interface{}{
+									"application/json": map[string]interface{}{
+										"schema": integrationOperationResponseSchema(operation),
+									},
+								},
+							},
+							"400": map[string]interface{}{"$ref": "#/components/responses/BadRequest"},
+							"401": map[string]interface{}{"$ref": "#/components/responses/Unauthorized"},
+							"403": map[string]interface{}{"$ref": "#/components/responses/Forbidden"},
+							"404": map[string]interface{}{"$ref": "#/components/responses/NotFound"},
+						},
+					},
+				}
+				registered++
+			}
+		}
+		log.Infof("Registered provider-scoped OpenAPI paths provider=[%s] count=%d", integration.Name, registered)
+	}
+}
+
+func integrationOperationRequestSchema(router *openapi3.T, operation *openapi3.Operation) map[string]interface{} {
+	return map[string]interface{}{
+		"type":        "object",
+		"description": "Request body for provider-scoped integration operation execution.",
+		"properties": map[string]interface{}{
+			"oauth_token_id": map[string]interface{}{
+				"type":        "string",
+				"description": "OAuth token reference id to use for OAuth2-backed integrations.",
+			},
+			"credential_id": map[string]interface{}{
+				"type":        "string",
+				"description": "Credential reference id to use for custom credential-backed integrations.",
+			},
+			"input": operationInputSchema(router, operation),
+		},
+		"required": []string{"input"},
+	}
+}
+
+func operationInputSchema(router *openapi3.T, operation *openapi3.Operation) map[string]interface{} {
+	if operation == nil {
+		log.Warnf("Falling back to free-form integration input schema because operation is nil")
+		return map[string]interface{}{
+			"type":                 "object",
+			"description":          "Operation input values. No concrete request parameters were declared in the provider OpenAPI spec, so arbitrary input keys are accepted.",
+			"additionalProperties": true,
+		}
+	}
+	properties := make(map[string]interface{})
+	required := make([]string, 0)
+
+	for _, parameterRef := range operation.Parameters {
+		if parameterRef == nil || parameterRef.Value == nil {
+			continue
+		}
+		parameter := parameterRef.Value
+		if isIntegrationAuthParameter(router, parameter) {
+			continue
+		}
+		propertySchema := openAPI3SchemaToMap(parameter.Schema)
+		if parameter.Description != "" {
+			propertySchema["description"] = parameter.Description
+		}
+		if parameter.In != "" {
+			propertySchema["x-provider-parameter-in"] = parameter.In
+		}
+		properties[parameter.Name] = propertySchema
+		if parameter.Required {
+			required = append(required, parameter.Name)
+		}
+	}
+
+	if operation.RequestBody != nil && operation.RequestBody.Value != nil {
+		bodySchema := requestBodyInputSchema(operation.RequestBody.Value)
+		if bodySchema != nil {
+			if bodyProperties, ok := bodySchema["properties"].(map[string]interface{}); ok && len(bodyProperties) > 0 {
+				for name, schema := range bodyProperties {
+					properties[name] = schema
+				}
+				if bodyRequired, ok := bodySchema["required"].([]string); ok {
+					required = append(required, bodyRequired...)
+				}
+			} else {
+				properties["body"] = bodySchema
+				if operation.RequestBody.Value.Required {
+					required = append(required, "body")
+				}
+			}
+		}
+	}
+
+	if len(properties) == 0 {
+		log.Debugf("Falling back to free-form integration input schema operation=[%s]", operation.OperationID)
+		return map[string]interface{}{
+			"type":                 "object",
+			"description":          "Operation input values. No concrete request parameters were declared in the provider OpenAPI spec, so arbitrary input keys are accepted.",
+			"additionalProperties": true,
+		}
+	}
+
+	schema := map[string]interface{}{
+		"type":        "object",
+		"description": "Operation input values derived from the provider OpenAPI operation parameters and request body schema.",
+		"properties":  properties,
+	}
+	if len(required) > 0 {
+		schema["required"] = uniqueStrings(required)
+	}
+	return schema
+}
+
+func requestBodyInputSchema(requestBody *openapi3.RequestBody) map[string]interface{} {
+	if requestBody == nil || requestBody.Content == nil {
+		return nil
+	}
+	for _, mediaType := range []string{"application/json", "application/x-www-form-urlencoded", "multipart/form-data"} {
+		if content := requestBody.Content.Get(mediaType); content != nil && content.Schema != nil {
+			schema := openAPI3SchemaToMap(content.Schema)
+			schema["x-provider-content-type"] = mediaType
+			return schema
+		}
+	}
+	for mediaType, content := range requestBody.Content {
+		if content != nil && content.Schema != nil {
+			schema := openAPI3SchemaToMap(content.Schema)
+			schema["x-provider-content-type"] = mediaType
+			return schema
+		}
+	}
+	return nil
+}
+
+func integrationOperationResponseSchema(operation *openapi3.Operation) map[string]interface{} {
+	if operation == nil || operation.Responses == nil {
+		return map[string]interface{}{"type": "object", "additionalProperties": true}
+	}
+	for _, status := range []int{200, 201, 202} {
+		responseRef := operation.Responses.Get(status)
+		if responseRef == nil || responseRef.Value == nil {
+			continue
+		}
+		if content := responseRef.Value.Content.Get("application/json"); content != nil && content.Schema != nil {
+			return openAPI3SchemaToMap(content.Schema)
+		}
+	}
+	if responseRef := operation.Responses.Default(); responseRef != nil && responseRef.Value != nil {
+		if content := responseRef.Value.Content.Get("application/json"); content != nil && content.Schema != nil {
+			return openAPI3SchemaToMap(content.Schema)
+		}
+	}
+	return map[string]interface{}{"type": "object", "additionalProperties": true}
+}
+
+func openAPI3SchemaToMap(schemaRef *openapi3.SchemaRef) map[string]interface{} {
+	if schemaRef == nil || schemaRef.Value == nil {
+		return map[string]interface{}{"type": "string"}
+	}
+	schema := schemaRef.Value
+	out := make(map[string]interface{})
+	if schema.Type != "" {
+		out["type"] = schema.Type
+	}
+	if schema.Format != "" {
+		out["format"] = schema.Format
+	}
+	if schema.Description != "" {
+		out["description"] = schema.Description
+	}
+	if schema.Default != nil {
+		out["default"] = schema.Default
+	}
+	if len(schema.Enum) > 0 {
+		out["enum"] = schema.Enum
+	}
+	if schema.Nullable {
+		out["nullable"] = true
+	}
+	if schema.Items != nil {
+		out["items"] = openAPI3SchemaToMap(schema.Items)
+	}
+	if len(schema.Properties) > 0 {
+		properties := make(map[string]interface{})
+		for name, property := range schema.Properties {
+			properties[name] = openAPI3SchemaToMap(property)
+		}
+		out["properties"] = properties
+	}
+	if len(schema.Required) > 0 {
+		out["required"] = schema.Required
+	}
+	if len(out) == 0 {
+		out["type"] = "object"
+		out["additionalProperties"] = true
+	}
+	return out
+}
+
+func isIntegrationAuthParameter(router *openapi3.T, parameter *openapi3.Parameter) bool {
+	if parameter == nil {
+		return false
+	}
+	if strings.EqualFold(parameter.In, "header") && strings.EqualFold(parameter.Name, "authorization") {
+		return true
+	}
+	if router == nil || router.Components.SecuritySchemes == nil {
+		return false
+	}
+	for _, securityRef := range router.Components.SecuritySchemes {
+		if securityRef == nil || securityRef.Value == nil {
+			continue
+		}
+		scheme := securityRef.Value
+		if scheme.Type == "apiKey" && strings.EqualFold(scheme.In, parameter.In) && strings.EqualFold(scheme.Name, parameter.Name) {
+			return true
+		}
+	}
+	return false
+}
+
+func loadIntegrationOpenAPIRouter(integration resource.Integration) (router *openapi3.T, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Errorf("Recovered panic while loading integration OpenAPI spec provider=[%s]: %v", integration.Name, recovered)
+			router = nil
+			err = fmt.Errorf("failed to load integration OpenAPI spec: %v", recovered)
+		}
+	}()
+	specBytes := []byte(integration.Specification)
+	if integration.SpecificationFormat == "yaml" {
+		specBytes, err = ghodssyaml.YAMLToJSON(specBytes)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if integration.SpecificationLanguage == "openapiv2" {
+		openapiv2Spec := openapi2.T{}
+		if err := json.Unmarshal(specBytes, &openapiv2Spec); err != nil {
+			return nil, err
+		}
+		return openapi2conv.ToV3(&openapiv2Spec)
+	}
+
+	router, err = openapi3.NewLoader().LoadFromData(specBytes)
+	if err != nil {
+		return nil, err
+	}
+	err = openapi3.NewLoader().ResolveRefsIn(router, nil)
+	return router, err
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func uniqueStrings(values []string) []string {
+	seen := make(map[string]bool)
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		result = append(result, value)
+	}
+	return result
 }

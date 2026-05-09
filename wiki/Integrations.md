@@ -17,6 +17,7 @@ The `integration` table stores OpenAPI specifications that define external APIs.
 - JSON or YAML specification format
 - Multiple authentication methods
 - Dynamic action creation from API operations
+- Provider-scoped execution at `/integration/{provider_name}/{operation_id}`
 
 ---
 
@@ -200,12 +201,64 @@ curl -X POST "http://localhost:6336/action/integration/install_integration" \
 3. Adds the auth selector input for the integration type (`oauth_token_id` or `credential_id`)
 4. Maps path/query/body parameters to action input fields
 5. Registers the integration name as a performer
+6. Refreshes provider-scoped operation mappings in memory without requiring a server restart
 
 ---
 
-## Execute Integration Actions
+## Execute Integration Operations
 
-After installation, each OpenAPI operation becomes a callable action.
+After installation, each OpenAPI operation can be executed in two ways:
+
+- Provider-scoped route: `POST /integration/{provider_name}/{operation_id}`
+- Generated action route: `POST /action/integration/{operation_id}`
+
+The provider-scoped route is preferred for new clients because the OpenAPI `operationId` stays inside the provider namespace. This avoids artificial provider prefixes in operation names and makes logs/audits read as `provider=asana.com operation=getWorkspaces`.
+
+### Provider-scoped Route
+
+```bash
+# Call the getPetById operation from petstore integration
+curl -X POST "http://localhost:6336/integration/petstore/getPetById" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "petId": "123"
+    }
+  }'
+```
+
+For OAuth2 integrations, pass the current user's token reference at execution time:
+
+```bash
+curl -X POST "http://localhost:6336/integration/github.com/listRepos" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID",
+    "input": {
+      "owner": "daptin"
+    }
+  }'
+```
+
+For custom credential integrations, pass the credential reference at execution time:
+
+```bash
+curl -X POST "http://localhost:6336/integration/example.com/listUsers" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "credential_id": "USER_CREDENTIAL_REFERENCE_ID",
+    "input": {}
+  }'
+```
+
+Daptin rejects the call if `oauth_token_id` belongs to another user or was issued for a different `oauth_connect` than the integration expects. Daptin rejects custom credential calls if `credential_id` is not readable by the current user, or if the decrypted credential content does not contain the fields named by `authentication_specification`.
+
+### Generated Action Route
+
+The generated action route is retained for existing clients.
 
 **Action names**: Use the `operationId` from the OpenAPI spec
 **OnType**: `integration`
@@ -300,7 +353,7 @@ curl -X PATCH http://localhost:6336/api/integration/INTEGRATION_ID \
   }'
 ```
 
-**Note**: After updating specification or authentication, re-run `install_integration` to regenerate actions.
+**Note**: After updating specification or authentication, re-run `install_integration` to regenerate actions and refresh provider-scoped operation mappings.
 
 ---
 

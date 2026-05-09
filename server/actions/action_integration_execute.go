@@ -830,11 +830,22 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 	methodMap := make(map[string]string)
 	count := 0
 	for path, pathItem := range router.Paths {
+		if pathItem == nil {
+			log.Warnf("Skipping nil path item in integration spec [%s] path=[%s]", integration.Name, path)
+			continue
+		}
 		for method, command := range pathItem.Operations() {
+			if command == nil {
+				log.Warnf("Skipping nil operation in integration spec [%s] method=[%s] path=[%s]", integration.Name, method, path)
+				continue
+			}
 			count += 1
 			operationID := command.OperationID
 			if len(operationID) == 0 {
 				operationID = method + " " + path
+			}
+			if _, exists := commandMap[operationID]; exists {
+				return nil, fmt.Errorf("duplicate operationId [%s] in integration [%s]", operationID, integration.Name)
 			}
 			commandMap[operationID] = command
 			pathMap[operationID] = path

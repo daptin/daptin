@@ -854,6 +854,8 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 	}
 
+	addIntegrationOperationGraphQLMutations(mutationFields, actionResponseType, resources)
+
 	mutationType := graphql.NewObject(graphql.ObjectConfig{
 		Name:   "Mutation",
 		Fields: mutationFields,

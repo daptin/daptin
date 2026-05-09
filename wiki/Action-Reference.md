@@ -179,6 +179,8 @@ Start OAuth authentication flow by generating authorization URL.
 
 **Action Performer:** `oauth.client.redirect`
 
+This action has no provider-specific input fields. It is an instance action on one `oauth_connect` row; the selected row supplies `$.name` as the callback `authenticator` and `$.scope` as the requested scope.
+
 **Tested Example:**
 ```bash
 curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
@@ -208,7 +210,7 @@ curl -X POST http://localhost:6336/action/oauth_connect/oauth_login_begin \
 ]
 ```
 
-Returns state token (5-minute TOTP) and OAuth provider authorization URL.
+Returns state token and OAuth provider authorization URL. Non-PKCE connections use a 5-minute TOTP state. When `oauth_connect.pkce_enabled` is true, Daptin stores a random state and PKCE verifier in `oauth_state` and sends a PKCE code challenge to the provider.
 
 ### oauth.login.response
 
@@ -859,6 +861,34 @@ curl -X POST "http://localhost:6336/action/integration/install_integration" \
   -H "Content-Type: application/json" \
   -d '{"attributes":{"integration_id":"INTEGRATION_REFERENCE_ID"}}'
 ```
+
+Installation also refreshes the in-memory integration operation mappings for the installed provider, so provider-scoped execution routes are available without restarting the server.
+
+### Provider-scoped integration operation
+
+Execute an installed OpenAPI operation under its provider namespace.
+
+| Property | Value |
+|----------|-------|
+| Endpoint | `/integration/{provider_name}/{operation_id}` |
+| Method | `POST` |
+| Provider | `integration.name` |
+| Operation | OpenAPI `operationId` from `integration.specification` |
+
+**Example:**
+```bash
+curl -X POST "http://localhost:6336/integration/asana.com/getWorkspaces" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "oauth_token_id": "USER_OAUTH_TOKEN_REFERENCE_ID",
+    "input": {
+      "opt_fields": ["name"]
+    }
+  }'
+```
+
+For OAuth2 integrations, pass `oauth_token_id`. For custom credential integrations, pass `credential_id`. Other operation parameters go under `input`.
 
 ### get_action_schema
 
