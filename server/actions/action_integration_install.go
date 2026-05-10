@@ -265,6 +265,7 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 				bodyParameterNames, err := GetBodyParameterNames(ModeRequest, "", jsonMedia.Schema.Value)
 
 				if err != nil {
+					err = fmt.Errorf("install_integration failed for %v operation %s %s %s: %w", integration["name"], commandId, strings.ToUpper(methodMap[commandId]), path, err)
 					log.Errorf("Failed to get parameter names from body [%v] == %v", host+path, err)
 					return nil, nil, []error{err}
 				}
@@ -466,64 +467,142 @@ func NewIntegrationInstallationPerformer(initConfig *resource.CmsConfig, cruds m
 }
 
 func GetBodyParameterNames(mode Mode, name string, schema *openapi3.Schema) ([]string, error) {
+	if schema == nil {
+		return nil, errors.New("not a valid schema: nil schema")
+	}
+
+	names, err := getBodyParameterNames(mode, name, schema)
+	if err != nil {
+		return nil, err
+	}
+	return uniqueBodyParameterNames(names), nil
+}
+
+func getBodyParameterNames(mode Mode, name string, schema *openapi3.Schema) ([]string, error) {
+	if schema == nil {
+		return nil, errors.New("not a valid schema: nil schema")
+	}
+	if excludeFromMode(mode, schema) {
+		return []string{}, nil
+	}
+
+	var names []string
+	appendCompositionNames := func(schemaRefs openapi3.SchemaRefs, construct string) error {
+		for index, schemaRef := range schemaRefs {
+			if schemaRef == nil || schemaRef.Value == nil {
+				return fmt.Errorf("not a valid schema: %s branch %d is empty", construct, index)
+			}
+			branchNames, err := getBodyParameterNames(mode, name, schemaRef.Value)
+			if err != nil {
+				return fmt.Errorf("%s branch %d: %w", construct, index, err)
+			}
+			names = append(names, branchNames...)
+		}
+		return nil
+	}
+
+	switch {
+	case len(schema.AllOf) > 0:
+		if err := appendCompositionNames(schema.AllOf, "allOf"); err != nil {
+			return nil, err
+		}
+	case len(schema.OneOf) > 0:
+		if err := appendCompositionNames(schema.OneOf, "oneOf"); err != nil {
+			return nil, err
+		}
+	case len(schema.AnyOf) > 0:
+		if err := appendCompositionNames(schema.AnyOf, "anyOf"); err != nil {
+			return nil, err
+		}
+	}
 
 	switch {
 	case schema.Type == "boolean":
-		return []string{}, nil
+		if name == "" {
+			return append(names, "body"), nil
+		}
+		return names, nil
 	case schema.Type == "number", schema.Type == "integer":
-		return []string{}, nil
+		if name == "" {
+			return append(names, "body"), nil
+		}
+		return names, nil
 	case schema.Type == "string":
-		return []string{}, nil
+		if name == "" {
+			return append(names, "body"), nil
+		}
+		return names, nil
 	case schema.Type == "array", schema.Items != nil:
-		var names []string
-
-		if schema.Items != nil && schema.Items.Value != nil {
-
-			name, err := GetBodyParameterNames(mode, name, schema.Items.Value)
-
-			if err != nil {
-				return nil, err
-			}
-			names = append(names, name...)
-
+		if name == "" {
+			names = append(names, "body")
 		}
 
 		return names, nil
-	case schema.Type == "object", len(schema.Properties) > 0:
-		var names []string
+	case schema.Type == "object" && len(schema.Properties) > 0:
 
 		for k, v := range schema.Properties {
 			if excludeFromMode(mode, v.Value) {
 				continue
 			}
 
-			names = append(names, k)
+			fieldName := joinBodyParameterName(name, k)
+			names = append(names, fieldName)
 
-			name, err := GetBodyParameterNames(mode, k, v.Value)
+			childNames, err := getBodyParameterNames(mode, fieldName, v.Value)
 
 			if err != nil {
-
-				log.Errorf("can't get example for '%s' == %v", k, err)
-			} else {
-				names = append(names, name...)
+				return nil, fmt.Errorf("property %s: %w", fieldName, err)
 			}
+			names = append(names, childNames...)
 		}
 
 		if schema.AdditionalProperties != nil && schema.AdditionalProperties.Value != nil {
 			addl := schema.AdditionalProperties.Value
 
 			if !excludeFromMode(mode, addl) {
-				name, err := GetBodyParameterNames(mode, "", addl)
+				childNames, err := getBodyParameterNames(mode, name, addl)
 				if err != nil {
 					return nil, fmt.Errorf("can't get example for additional properties")
 				} else {
-					names = append(names, name...)
+					names = append(names, childNames...)
 				}
 			}
 		}
 
 		return names, nil
+	case schema.Type == "object":
+		if name == "" {
+			return append(names, "body"), nil
+		}
+		return names, nil
+	}
+
+	if len(names) > 0 {
+		return names, nil
+	}
+	if name == "" {
+		return []string{"body"}, nil
 	}
 
 	return nil, errors.New("not a valid schema")
+}
+
+func joinBodyParameterName(prefix string, name string) string {
+	if prefix == "" {
+		return name
+	}
+	return prefix + "." + name
+}
+
+func uniqueBodyParameterNames(names []string) []string {
+	seen := make(map[string]bool, len(names))
+	unique := make([]string, 0, len(names))
+	for _, name := range names {
+		if name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		unique = append(unique, name)
+	}
+	return unique
 }

@@ -559,6 +559,14 @@ func stripRequestPrefix(values map[string]interface{}) map[string]interface{} {
 // object, which is an extended subset of JSON Schema.
 // https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#schemaObject
 func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi3.Schema, values map[string]interface{}) (interface{}, error) {
+	if schema == nil {
+		return nil, errors.New("not a valid schema: nil schema")
+	}
+	if name == "" {
+		if body, ok := values["body"]; ok && body != nil {
+			return body, nil
+		}
+	}
 
 	switch {
 	case schema.Type == "boolean":
@@ -761,25 +769,102 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 				}
 			}
 		}
+		composed, err := createComposedRequestBody(mode, mediaType, name, schema, values)
+		if err != nil {
+			return nil, err
+		}
+		if composed != nil {
+			isEmpty = false
+			composedMap, ok := composed.(map[string]interface{})
+			if !ok {
+				if name == "" {
+					return composed, nil
+				}
+				return nil, fmt.Errorf("can't merge composed request body for '%s'", name)
+			}
+			for key, val := range composedMap {
+				newObjectInstance[key] = val
+			}
+		}
 		if isEmpty {
 			return nil, nil
 		}
 
 		return newObjectInstance, nil
 
+	case len(schema.OneOf) > 0:
+		return createFirstMatchingComposedRequestBody(mode, mediaType, name, schema.OneOf, values, "oneOf")
 	case len(schema.AnyOf) > 0:
-		for _, ofType := range schema.AnyOf {
-
-			ex, err := CreateRequestBody(mode, mediaType, name, ofType.Value, values)
-			if err != nil && ex != nil {
-				return ex, err
-			}
-
-		}
-		return nil, nil
+		return createFirstMatchingComposedRequestBody(mode, mediaType, name, schema.AnyOf, values, "anyOf")
+	case len(schema.AllOf) > 0:
+		return createMergedComposedRequestBody(mode, mediaType, name, schema.AllOf, values, "allOf")
 	}
 
 	return nil, errors.New("not a valid schema")
+}
+
+func createComposedRequestBody(mode Mode, mediaType string, name string, schema *openapi3.Schema, values map[string]interface{}) (interface{}, error) {
+	if len(schema.AllOf) > 0 {
+		return createMergedComposedRequestBody(mode, mediaType, name, schema.AllOf, values, "allOf")
+	}
+	if len(schema.OneOf) > 0 {
+		return createFirstMatchingComposedRequestBody(mode, mediaType, name, schema.OneOf, values, "oneOf")
+	}
+	if len(schema.AnyOf) > 0 {
+		return createFirstMatchingComposedRequestBody(mode, mediaType, name, schema.AnyOf, values, "anyOf")
+	}
+	return nil, nil
+}
+
+func createFirstMatchingComposedRequestBody(mode Mode, mediaType string, name string, schemaRefs openapi3.SchemaRefs, values map[string]interface{}, construct string) (interface{}, error) {
+	var lastErr error
+	for index, schemaRef := range schemaRefs {
+		if schemaRef == nil || schemaRef.Value == nil {
+			return nil, fmt.Errorf("not a valid schema: %s branch %d is empty", construct, index)
+		}
+		value, err := CreateRequestBody(mode, mediaType, name, schemaRef.Value, values)
+		if err != nil {
+			lastErr = fmt.Errorf("%s branch %d: %w", construct, index, err)
+			continue
+		}
+		if value != nil {
+			return value, nil
+		}
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return nil, nil
+}
+
+func createMergedComposedRequestBody(mode Mode, mediaType string, name string, schemaRefs openapi3.SchemaRefs, values map[string]interface{}, construct string) (interface{}, error) {
+	merged := map[string]interface{}{}
+	for index, schemaRef := range schemaRefs {
+		if schemaRef == nil || schemaRef.Value == nil {
+			return nil, fmt.Errorf("not a valid schema: %s branch %d is empty", construct, index)
+		}
+		value, err := CreateRequestBody(mode, mediaType, name, schemaRef.Value, values)
+		if err != nil {
+			return nil, fmt.Errorf("%s branch %d: %w", construct, index, err)
+		}
+		if value == nil {
+			continue
+		}
+		valueMap, ok := value.(map[string]interface{})
+		if !ok {
+			if len(merged) == 0 {
+				return value, nil
+			}
+			return nil, fmt.Errorf("can't merge non-object %s branch %d", construct, index)
+		}
+		for key, val := range valueMap {
+			merged[key] = val
+		}
+	}
+	if len(merged) == 0 {
+		return nil, nil
+	}
+	return merged, nil
 }
 
 // excludeFromMode will exclude a schema if the mode is request and the schema

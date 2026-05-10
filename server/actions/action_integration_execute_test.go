@@ -80,6 +80,79 @@ func TestCreateIntegrationRequestBodyUsesExplicitBodyForFreeFormRoot(t *testing.
 	}
 }
 
+func TestCreateIntegrationRequestBodyHandlesRootOneOfObjectBranch(t *testing.T) {
+	requestSchema := &openapi3.Schema{
+		OneOf: openapi3.SchemaRefs{
+			{Value: openapi3.NewObjectSchema().WithProperty("labels", openapi3.NewArraySchema().WithItems(openapi3.NewStringSchema()))},
+			{Value: openapi3.NewArraySchema().WithItems(openapi3.NewStringSchema())},
+		},
+	}
+
+	body, err := CreateIntegrationRequestBody(ModeRequest, "application/json", requestSchema, map[string]interface{}{
+		"labels": []interface{}{"bug", "integration"},
+	})
+	if err != nil {
+		t.Fatalf("CreateIntegrationRequestBody returned error: %v", err)
+	}
+
+	bodyMap, ok := body.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected object body, got %T", body)
+	}
+	if !reflect.DeepEqual(bodyMap["labels"], []interface{}{"bug", "integration"}) {
+		t.Fatalf("oneOf object branch did not preserve labels: %#v", bodyMap)
+	}
+}
+
+func TestCreateIntegrationRequestBodyHandlesExplicitBodyForRootOneOfArrayBranch(t *testing.T) {
+	requestSchema := &openapi3.Schema{
+		OneOf: openapi3.SchemaRefs{
+			{Value: openapi3.NewObjectSchema().WithProperty("labels", openapi3.NewArraySchema().WithItems(openapi3.NewStringSchema()))},
+			{Value: openapi3.NewArraySchema().WithItems(openapi3.NewStringSchema())},
+		},
+	}
+	expectedBody := []interface{}{"bug", "integration"}
+
+	body, err := CreateIntegrationRequestBody(ModeRequest, "application/json", requestSchema, map[string]interface{}{
+		"body": expectedBody,
+	})
+	if err != nil {
+		t.Fatalf("CreateIntegrationRequestBody returned error: %v", err)
+	}
+	if !reflect.DeepEqual(body, expectedBody) {
+		t.Fatalf("explicit body was not used for oneOf array branch: %#v", body)
+	}
+}
+
+func TestCreateIntegrationRequestBodyHandlesAllOfMerge(t *testing.T) {
+	requestSchema := &openapi3.Schema{
+		AllOf: openapi3.SchemaRefs{
+			{Value: openapi3.NewObjectSchema().WithProperty("title", openapi3.NewStringSchema())},
+			{Value: openapi3.NewObjectSchema().WithProperty("head", openapi3.NewStringSchema())},
+		},
+	}
+
+	body, err := CreateIntegrationRequestBody(ModeRequest, "application/json", requestSchema, map[string]interface{}{
+		"title": "Add integration support",
+		"head":  "feature/openapi-composition",
+	})
+	if err != nil {
+		t.Fatalf("CreateIntegrationRequestBody returned error: %v", err)
+	}
+
+	bodyMap, ok := body.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected object body, got %T", body)
+	}
+	expected := map[string]interface{}{
+		"title": "Add integration support",
+		"head":  "feature/openapi-composition",
+	}
+	if !reflect.DeepEqual(bodyMap, expected) {
+		t.Fatalf("allOf merge did not preserve fields: got %#v want %#v", bodyMap, expected)
+	}
+}
+
 func asanaTaskRequestSchema() *openapi3.Schema {
 	return &openapi3.Schema{
 		Type: "object",
