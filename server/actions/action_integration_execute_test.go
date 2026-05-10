@@ -80,6 +80,29 @@ func TestCreateIntegrationRequestBodyUsesExplicitBodyForFreeFormRoot(t *testing.
 	}
 }
 
+func TestCreateIntegrationRequestBodyFromSchemaRefIgnoresMissingSchemaWithoutBody(t *testing.T) {
+	body, err := CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, "application/json", nil, map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("CreateIntegrationRequestBodyFromSchemaRef returned error: %v", err)
+	}
+	if body != nil {
+		t.Fatalf("expected nil body for optional missing schema, got %#v", body)
+	}
+}
+
+func TestCreateIntegrationRequestBodyFromSchemaRefUsesExplicitBodyForMissingSchema(t *testing.T) {
+	expectedBody := map[string]interface{}{"name": "free-form"}
+	body, err := CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, "application/json", nil, map[string]interface{}{
+		"body": expectedBody,
+	})
+	if err != nil {
+		t.Fatalf("CreateIntegrationRequestBodyFromSchemaRef returned error: %v", err)
+	}
+	if !reflect.DeepEqual(body, expectedBody) {
+		t.Fatalf("explicit body was not used for missing schema: %#v", body)
+	}
+}
+
 func TestCreateIntegrationRequestBodyHandlesRootOneOfObjectBranch(t *testing.T) {
 	requestSchema := &openapi3.Schema{
 		OneOf: openapi3.SchemaRefs{

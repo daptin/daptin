@@ -262,7 +262,7 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 			jsonMedia := contents.Get("application/json")
 
 			if jsonMedia != nil {
-				bodyParameterNames, err := GetBodyParameterNames(ModeRequest, "", jsonMedia.Schema.Value)
+				bodyParameterNames, err := GetBodyParameterNamesFromSchemaRef(ModeRequest, command.RequestBody.Value.Required, jsonMedia.Schema)
 
 				if err != nil {
 					err = fmt.Errorf("install_integration failed for %v operation %s %s %s: %w", integration["name"], commandId, strings.ToUpper(methodMap[commandId]), path, err)
@@ -466,6 +466,25 @@ func NewIntegrationInstallationPerformer(initConfig *resource.CmsConfig, cruds m
 
 }
 
+func GetBodyParameterNamesFromSchemaRef(mode Mode, required bool, schemaRef *openapi3.SchemaRef) ([]string, error) {
+	if schemaRef == nil {
+		if required {
+			return []string{"body"}, nil
+		}
+		return []string{}, nil
+	}
+	if schemaRef.Value == nil {
+		if schemaRef.Ref != "" {
+			return nil, fmt.Errorf("not a valid schema: unresolved schema ref %s", schemaRef.Ref)
+		}
+		if required {
+			return []string{"body"}, nil
+		}
+		return []string{}, nil
+	}
+	return GetBodyParameterNames(mode, "", schemaRef.Value)
+}
+
 func GetBodyParameterNames(mode Mode, name string, schema *openapi3.Schema) ([]string, error) {
 	if schema == nil {
 		return nil, errors.New("not a valid schema: nil schema")
@@ -584,7 +603,7 @@ func getBodyParameterNames(mode Mode, name string, schema *openapi3.Schema) ([]s
 		return []string{"body"}, nil
 	}
 
-	return nil, errors.New("not a valid schema")
+	return names, nil
 }
 
 func joinBodyParameterName(prefix string, name string) string {

@@ -23,6 +23,22 @@ func TestGetBodyParameterNamesHandlesRootOneOf(t *testing.T) {
 	assertSameStrings(t, names, []string{"labels", "body"})
 }
 
+func TestGetBodyParameterNamesHandlesNamedOneOfFreeFormProperty(t *testing.T) {
+	schema := openapi3.NewObjectSchema().WithProperty("payload", &openapi3.Schema{
+		OneOf: openapi3.SchemaRefs{
+			{Value: openapi3.NewObjectSchema()},
+			{Value: openapi3.NewStringSchema()},
+		},
+	})
+
+	names, err := GetBodyParameterNames(ModeRequest, "", schema)
+	if err != nil {
+		t.Fatalf("GetBodyParameterNames returned error: %v", err)
+	}
+
+	assertSameStrings(t, names, []string{"payload"})
+}
+
 func TestGetBodyParameterNamesHandlesRootAnyOf(t *testing.T) {
 	schema := &openapi3.Schema{
 		AnyOf: openapi3.SchemaRefs{
@@ -63,6 +79,31 @@ func TestGetBodyParameterNamesUsesBodyForFreeFormRoot(t *testing.T) {
 	}
 
 	assertSameStrings(t, names, []string{"body"})
+}
+
+func TestGetBodyParameterNamesFromSchemaRefIgnoresOptionalMissingSchema(t *testing.T) {
+	names, err := GetBodyParameterNamesFromSchemaRef(ModeRequest, false, nil)
+	if err != nil {
+		t.Fatalf("GetBodyParameterNamesFromSchemaRef returned error: %v", err)
+	}
+
+	assertSameStrings(t, names, []string{})
+}
+
+func TestGetBodyParameterNamesFromSchemaRefUsesBodyForRequiredMissingSchema(t *testing.T) {
+	names, err := GetBodyParameterNamesFromSchemaRef(ModeRequest, true, nil)
+	if err != nil {
+		t.Fatalf("GetBodyParameterNamesFromSchemaRef returned error: %v", err)
+	}
+
+	assertSameStrings(t, names, []string{"body"})
+}
+
+func TestGetBodyParameterNamesFromSchemaRefRejectsUnresolvedRef(t *testing.T) {
+	_, err := GetBodyParameterNamesFromSchemaRef(ModeRequest, false, &openapi3.SchemaRef{Ref: "#/components/schemas/Missing"})
+	if err == nil {
+		t.Fatalf("expected unresolved schema ref error")
+	}
 }
 
 func TestGetBodyParameterNamesRejectsInvalidCompositionBranch(t *testing.T) {

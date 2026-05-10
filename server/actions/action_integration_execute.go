@@ -131,19 +131,22 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		requestContent := requestBodyRef.Content
 
 		for mediaType, spec := range requestContent {
+			if spec == nil {
+				continue
+			}
 			switch mediaType {
 			case "application/json":
 
-				requestBody, err := CreateIntegrationRequestBody(ModeRequest, mediaType, spec.Schema.Value, inFieldMap)
-				if err != nil || spec == nil {
+				requestBody, err := CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, mediaType, spec.Schema, inFieldMap)
+				if err != nil {
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
-				} else {
+				} else if requestBody != nil {
 					arguments = append(arguments, req.BodyJSON(requestBody))
 				}
 
 			case "application/x-www-form-urlencoded":
-				requestBody, err := CreateIntegrationRequestBody(ModeRequest, mediaType, spec.Schema.Value, inFieldMap)
-				if err != nil || spec == nil {
+				requestBody, err := CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, mediaType, spec.Schema, inFieldMap)
+				if err != nil {
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
 					m := strings.ToLower(method)
@@ -539,6 +542,25 @@ func CreateIntegrationRequestBody(mode Mode, mediaType string, schema *openapi3.
 		return nil, nil
 	}
 	return CreateRequestBody(mode, mediaType, "", schema, legacyValues)
+}
+
+func CreateIntegrationRequestBodyFromSchemaRef(mode Mode, mediaType string, schemaRef *openapi3.SchemaRef, values map[string]interface{}) (interface{}, error) {
+	if schemaRef == nil {
+		if body, ok := values["body"]; ok && body != nil {
+			return body, nil
+		}
+		return nil, nil
+	}
+	if schemaRef.Value == nil {
+		if schemaRef.Ref != "" {
+			return nil, fmt.Errorf("not a valid schema: unresolved schema ref %s", schemaRef.Ref)
+		}
+		if body, ok := values["body"]; ok && body != nil {
+			return body, nil
+		}
+		return nil, nil
+	}
+	return CreateIntegrationRequestBody(mode, mediaType, schemaRef.Value, values)
 }
 
 func stripRequestPrefix(values map[string]interface{}) map[string]interface{} {
