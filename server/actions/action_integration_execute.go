@@ -134,7 +134,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			switch mediaType {
 			case "application/json":
 
-				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "request", spec.Schema.Value, inFieldMap)
+				requestBody, err := CreateIntegrationRequestBody(ModeRequest, mediaType, spec.Schema.Value, inFieldMap)
 				if err != nil || spec == nil {
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
@@ -142,7 +142,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 				}
 
 			case "application/x-www-form-urlencoded":
-				requestBody, err := CreateRequestBody(ModeRequest, mediaType, "request", spec.Schema.Value, inFieldMap)
+				requestBody, err := CreateIntegrationRequestBody(ModeRequest, mediaType, spec.Schema.Value, inFieldMap)
 				if err != nil || spec == nil {
 					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
 				} else {
@@ -526,6 +526,35 @@ func GetParametersNames(s string) ([]string, error) {
 	return ret, nil
 }
 
+func CreateIntegrationRequestBody(mode Mode, mediaType string, schema *openapi3.Schema, values map[string]interface{}) (interface{}, error) {
+	body, err := CreateRequestBody(mode, mediaType, "", schema, values)
+	if err != nil {
+		return nil, err
+	}
+	if body != nil {
+		return body, nil
+	}
+	legacyValues := stripRequestPrefix(values)
+	if len(legacyValues) == 0 {
+		return nil, nil
+	}
+	return CreateRequestBody(mode, mediaType, "", schema, legacyValues)
+}
+
+func stripRequestPrefix(values map[string]interface{}) map[string]interface{} {
+	legacyValues := make(map[string]interface{})
+	for key, value := range values {
+		if key == "request" {
+			legacyValues["body"] = value
+			continue
+		}
+		if strings.HasPrefix(key, "request.") {
+			legacyValues[strings.TrimPrefix(key, "request.")] = value
+		}
+	}
+	return legacyValues
+}
+
 // OpenAPIExample creates an example structure from an OpenAPI 3 schema
 // object, which is an extended subset of JSON Schema.
 // https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#schemaObject
@@ -638,7 +667,22 @@ func CreateRequestBody(mode Mode, mediaType string, name string, schema *openapi
 		}
 
 		return items, nil
-	case schema.Type == "object", len(schema.Properties) > 0:
+	case schema.Type == "object":
+		if len(schema.Properties) == 0 {
+			if name == "" {
+				value := values["body"]
+				if value == nil {
+					return nil, nil
+				}
+				return value, nil
+			}
+			value := values[name]
+			if value == nil {
+				return nil, nil
+			}
+			return value, nil
+		}
+
 		newObjectInstance := map[string]interface{}{}
 		isEmpty := true
 
