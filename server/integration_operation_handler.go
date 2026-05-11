@@ -23,7 +23,7 @@ type integrationOperationRequest struct {
 func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) func(*gin.Context) {
 	return func(c *gin.Context) {
 		providerName := c.Param("providerName")
-		operationName := c.Param("operationName")
+		operationName := integrationOperationNameParam(c)
 		log.Tracef("Integration operation request received provider=[%s] operation=[%s]", providerName, operationName)
 		if providerName == "" || operationName == "" {
 			log.Warnf("Integration operation request missing provider or operation provider=[%s] operation=[%s]", providerName, operationName)
@@ -132,6 +132,10 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 		}
 		c.JSON(statusCode, responder.Result())
 	}
+}
+
+func integrationOperationNameParam(c *gin.Context) string {
+	return strings.TrimPrefix(c.Param("operationName"), "/")
 }
 
 func sessionUserFromContextValue(user interface{}) *auth.SessionUser {

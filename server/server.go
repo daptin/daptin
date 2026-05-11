@@ -589,8 +589,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	defaultRouter.GET("/action/:typename/:actionName", actionHandler)
 	defaultRouter.GET("/integration/:providerName/openapi.yaml", CreateIntegrationOpenAPIHandler(cruds))
 	defaultRouter.GET("/integration/:providerName/operations", CreateIntegrationOperationsHandler(cruds))
-	defaultRouter.GET("/integration/:providerName/operations/:operationName", CreateIntegrationOperationDescribeHandler(cruds))
-	defaultRouter.POST("/integration/:providerName/:operationName", CreateIntegrationOperationHandler(cruds))
+	defaultRouter.GET("/integration/:providerName/operations/*operationName", CreateIntegrationOperationDescribeHandler(cruds))
+	defaultRouter.POST("/integration/:providerName/*operationName", CreateIntegrationOperationHandler(cruds))
 
 	defaultRouter.POST("/track/start/:stateMachineId", CreateEventStartHandler(fsmManager, cruds, db))
 	defaultRouter.POST("/track/event/:typename/:objectStateId/:eventName", CreateEventHandler(&initConfig, fsmManager, cruds, db))

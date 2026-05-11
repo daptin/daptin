@@ -37,7 +37,7 @@ func CreateIntegrationOperationDescribeHandler(cruds map[string]*resource.DbReso
 	return func(c *gin.Context) {
 		withIntegrationDiscoveryRecovery(c, "describe_operation", func() {
 			providerName := c.Param("providerName")
-			operationName := c.Param("operationName")
+			operationName := integrationOperationNameParam(c)
 			log.Tracef("Integration operation discovery describe request provider=[%s] operation=[%s]", providerName, operationName)
 			integration, ok := resolveIntegrationForDiscovery(c, cruds, providerName, "describe_operation")
 			if !ok {
