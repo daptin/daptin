@@ -1,11 +1,61 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"strconv"
 	"testing"
 	"time"
 )
+
+func TestWaitForOlricReady_UsesStartedCallback(t *testing.T) {
+	ready := make(chan struct{})
+	startErr := make(chan error)
+	close(ready)
+
+	if err := waitForOlricReady(ready, startErr, time.Second); err != nil {
+		t.Fatalf("expected ready callback to succeed, got %v", err)
+	}
+}
+
+func TestWaitForOlricReady_DoesNotWaitForStartReturn(t *testing.T) {
+	ready := make(chan struct{})
+	startErr := make(chan error)
+
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		close(ready)
+	}()
+
+	start := time.Now()
+	if err := waitForOlricReady(ready, startErr, time.Second); err != nil {
+		t.Fatalf("expected ready callback to succeed while Start remains blocking, got %v", err)
+	}
+	if elapsed := time.Since(start); elapsed >= time.Second {
+		t.Fatalf("waited for Start to return instead of using readiness callback: %v", elapsed)
+	}
+}
+
+func TestWaitForOlricReady_StartError(t *testing.T) {
+	ready := make(chan struct{})
+	startErr := make(chan error, 1)
+	expected := errors.New("start failed")
+	startErr <- expected
+
+	if err := waitForOlricReady(ready, startErr, time.Second); !errors.Is(err, expected) {
+		t.Fatalf("expected start error %v, got %v", expected, err)
+	}
+}
+
+func TestWaitForOlricReady_Timeout(t *testing.T) {
+	ready := make(chan struct{})
+	startErr := make(chan error)
+
+	err := waitForOlricReady(ready, startErr, time.Millisecond)
+	if !errors.Is(err, errOlricReadyTimeout) {
+		t.Fatalf("expected readiness timeout, got %v", err)
+	}
+}
 
 func TestResolveOlricPeers_ValidHostname(t *testing.T) {
 	// "localhost" should resolve to at least 127.0.0.1
@@ -88,12 +138,12 @@ func TestPortDerivation(t *testing.T) {
 		expectedOlricPort  int
 		expectedMemberPort int
 	}{
-		{6336, 5336, 5337},  // default: 6336 > 2000, so 6336-1000
-		{8080, 7080, 7081},  // high port
-		{1000, 2000, 2001},  // low port <= 2000, so 1000+1000
-		{2000, 3000, 3001},  // boundary: 2000 is not > 2000, so +1000
-		{2001, 1001, 1002},  // just above boundary: 2001 > 2000, so -1000
-		{3000, 2000, 2001},  // 3000 > 2000, so -1000
+		{6336, 5336, 5337}, // default: 6336 > 2000, so 6336-1000
+		{8080, 7080, 7081}, // high port
+		{1000, 2000, 2001}, // low port <= 2000, so 1000+1000
+		{2000, 3000, 3001}, // boundary: 2000 is not > 2000, so +1000
+		{2001, 1001, 1002}, // just above boundary: 2001 > 2000, so -1000
+		{3000, 2000, 2001}, // 3000 > 2000, so -1000
 	}
 
 	for _, tc := range tests {

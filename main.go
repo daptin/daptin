@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/buraksezer/olric"
@@ -46,6 +47,22 @@ import (
 
 // Save the stream as a global variable
 var stream = health.NewStream()
+
+var errOlricReadyTimeout = errors.New("olric readiness callback timeout")
+
+func waitForOlricReady(ready <-chan struct{}, startErr <-chan error, timeout time.Duration) error {
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-ready:
+		return nil
+	case err := <-startErr:
+		return err
+	case <-timer.C:
+		return errOlricReadyTimeout
+	}
+}
 
 func init() {
 
@@ -374,6 +391,14 @@ func main() {
 
 	olricConfig1.MemberlistConfig.BindPort = membershipPort
 
+	olricReady := make(chan struct{})
+	var olricReadyOnce sync.Once
+	olricConfig1.Started = func() {
+		olricReadyOnce.Do(func() {
+			close(olricReady)
+		})
+	}
+
 	// Compute self address before peer resolution so we can filter it out
 	selfAddr := net.JoinHostPort(olricConfig1.MemberlistConfig.BindAddr, strconv.Itoa(membershipPort))
 
@@ -398,20 +423,24 @@ func main() {
 		fmt.Printf("Failed to create olric cache: %v", err)
 	}
 
-	// Start Olric and wait for it to be ready
-	olricStarted := make(chan struct{})
+	// Start Olric and wait for its readiness callback. Start is a blocking
+	// lifecycle call and should only return on error or shutdown.
+	olricStartErr := make(chan error, 1)
 	go func() {
-		err = emb.Start()
-		resource.CheckErr(err, "failed to start cache server")
-		close(olricStarted)
+		if startErr := emb.Start(); startErr != nil {
+			resource.CheckErr(startErr, "failed to start cache server")
+			olricStartErr <- startErr
+		}
 	}()
 
-	// Wait for Olric to start (with timeout)
-	select {
-	case <-olricStarted:
+	// Keep the previous bounded startup behavior, but use Olric's readiness
+	// signal instead of waiting for Start to return.
+	if startErr := waitForOlricReady(olricReady, olricStartErr, 10*time.Second); startErr == nil {
 		log.Infof("Olric started successfully")
-	case <-time.After(10 * time.Second):
-		log.Warnf("Olric start timeout, proceeding anyway")
+	} else if errors.Is(startErr, errOlricReadyTimeout) {
+		log.Warnf("Olric readiness callback timeout, proceeding anyway")
+	} else {
+		resource.CheckErr(startErr, "failed to start cache server before readiness")
 	}
 
 	olricDb = emb.NewEmbeddedClient()
