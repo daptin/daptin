@@ -184,7 +184,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						files[i] = file
 					}
 
-					uploadActionPerformer := ActionHandlerMap["cloudstore.file.upload"]
+					uploadActionPerformer, _ := GetGlobalActionHandler("cloudstore.file.upload")
 
 					actionRequestParameters := make(map[string]interface{})
 					actionRequestParameters["file"] = columnValue

@@ -157,7 +157,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						continue
 					}
 
-					uploadActionPerformer := ActionHandlerMap["cloudstore.file.upload"]
+					uploadActionPerformer, _ := GetGlobalActionHandler("cloudstore.file.upload")
 
 					files, ok := val.([]interface{})
 					if !ok {

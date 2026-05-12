@@ -589,7 +589,7 @@ OutFields:
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 
 			actionName := model.GetName()
-			performer, ok := dbResource.ActionHandlerMap[actionName]
+			performer, ok := GetActionHandler(dbResource, actionName)
 			if !ok {
 				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, actionName)
 			} else {
@@ -628,7 +628,7 @@ OutFields:
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		default:
-			handler, ok := dbResource.ActionHandlerMap[outcome.Type]
+			handler, ok := GetActionHandler(dbResource, outcome.Type)
 
 			if !ok {
 				log.Errorf("Unknown method invoked on [%v]: [%v] by session user [%v]",

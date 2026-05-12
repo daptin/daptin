@@ -60,8 +60,8 @@ func (dbResource *DbResource) InitializeObject(value interface{}) {
 }
 
 func (dbResource *DbResource) GetActionHandler(name string) actionresponse.ActionPerformerInterface {
-	//TODO implement me
-	return ActionHandlerMap[name]
+	performer, _ := GetActionHandler(dbResource, name)
+	return performer
 }
 
 func (dbResource *DbResource) Connection() database.DatabaseConnection {

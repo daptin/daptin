@@ -6,6 +6,7 @@ import (
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/action_provider"
+	"github.com/daptin/daptin/server/actions"
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	"github.com/daptin/daptin/server/fsm"
 	"github.com/daptin/daptin/server/hostswitch"
@@ -450,7 +451,8 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	hostSwitch.HandlerMap["api"] = defaultRouter
 	hostSwitch.HandlerMap["dashboard"] = defaultRouter
 
-	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager)
+	integrationRuntimeInstanceID := uuid.NewString()
+	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID)
 	initConfig.ActionPerformers = actionPerformers
 	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -462,6 +464,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		cruds[k].ActionHandlerMap = actionHandlerMap
 		cruds[k].EncryptionSecret = []byte(encryptionSecret)
 	}
+	actions.StartIntegrationRuntimeInstallSubscriber(cruds, configStore, integrationRuntimeInstanceID)
 
 	transaction, err = db.Beginx()
 	if err != nil {

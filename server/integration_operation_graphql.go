@@ -105,8 +105,8 @@ func addIntegrationOperationGraphQLMutations(mutationFields graphql.Fields, acti
 								log.Errorf("GraphQL integration operation transaction begin failed provider=[%s] operation=[%s]: %v", integration.Name, operationID, err)
 								return nil, err
 							}
-							performer := resources["world"].ActionHandlerMap[integration.Name]
-							if performer == nil {
+							performer, ok := resource.GetActionHandler(resources["world"], integration.Name)
+							if !ok || performer == nil {
 								_ = transaction.Rollback()
 								log.Warnf("GraphQL integration provider not found provider=[%s] operation=[%s]", integration.Name, operationID)
 								return nil, fmt.Errorf("integration provider [%s] is not installed or enabled", integration.Name)

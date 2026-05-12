@@ -73,7 +73,7 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 			return
 		}
 
-		performer, ok := worldCrud.ActionHandlerMap[providerName]
+		performer, ok := resource.GetActionHandler(worldCrud, providerName)
 		if !ok || performer == nil {
 			log.Warnf("Integration operation provider not found provider=[%s] operation=[%s]", providerName, operationName)
 			c.AbortWithStatusJSON(http.StatusNotFound, map[string]interface{}{

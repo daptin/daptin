@@ -12,7 +12,7 @@ import (
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
 	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
-	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager) []actionresponse.ActionPerformerInterface {
+	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager, integrationRuntimeInstanceID string) []actionresponse.ActionPerformerInterface {
 	log.Tracef("GetActionPerformers")
 	transaction, err := cruds["world"].Connection().Beginx()
 	resource.CheckErr(err, "Failed to begin transaction [14]")
@@ -230,7 +230,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create self tls certificate generator")
 	performers = append(performers, selfTlsCertificateGenerateActionPerformer)
 
-	integrationInstallationPerformer, err := actions.NewIntegrationInstallationPerformer(initConfig, cruds, configStore, transaction)
+	integrationInstallationPerformer, err := actions.NewIntegrationInstallationPerformer(initConfig, cruds, configStore, transaction, integrationRuntimeInstanceID)
 	resource.CheckErr(err, "Failed to create integration installation performer")
 	performers = append(performers, integrationInstallationPerformer)
 
@@ -259,7 +259,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	log.Tracef("Completed GetActionPerformers")
 
 	for _, performer := range performers {
-		resource.ActionHandlerMap[performer.Name()] = performer
+		resource.RegisterGlobalActionHandler(performer.Name(), performer)
 	}
 
 	return performers

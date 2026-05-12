@@ -109,7 +109,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				continue
 			}
 
-			deleteFileActionPerformer := ActionHandlerMap["site.file.delete"]
+			deleteFileActionPerformer, _ := GetGlobalActionHandler("site.file.delete")
 
 			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
 			if !ok {

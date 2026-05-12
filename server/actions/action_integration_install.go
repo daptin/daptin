@@ -1,8 +1,10 @@
 package actions
 
 import (
+	"context"
 	"errors"
 	"fmt"
+
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/id"
@@ -12,11 +14,21 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/ghodss/yaml"
 	"github.com/gobuffalo/flect"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 )
+
+const IntegrationRuntimeInstallTopic = "daptin.integration.install"
+
+type IntegrationRuntimeInstallMessage struct {
+	ReferenceID      string `json:"reference_id"`
+	ProviderName     string `json:"provider_name"`
+	RequestID        string `json:"request_id"`
+	SourceInstanceID string `json:"source_instance_id"`
+}
 
 /*
 *
@@ -32,6 +44,7 @@ type integrationInstallationPerformer struct {
 	methodMap        map[string]string
 	encryptionSecret []byte
 	configStore      *resource.ConfigStore
+	instanceID       string
 }
 
 // Name of the action
@@ -317,16 +330,26 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 		return nil, []actionresponse.ActionResponse{}, []error{err}
 	}
 
-	err = d.refreshInstalledIntegrationPerformer(integration, transaction)
+	err = RefreshIntegrationRuntimeByReferenceID(d.cruds, d.configStore, referenceId)
 	if err != nil {
 		log.Errorf("install_integration failed refreshing runtime mappings provider=[%v]: %v", integration["name"], err)
 	} else {
 		log.Infof("install_integration completed provider=[%v] operations=%d", integration["name"], len(actions))
+		if providerName, ok := stringField(integration, "name"); ok {
+			requestID := uuid.NewString()
+			if publishErr := PublishIntegrationRuntimeInstallEvent(d.cruds, referenceId, providerName, requestID, d.instanceID); publishErr != nil {
+				log.Warnf("install_integration completed locally but failed to broadcast runtime refresh provider=[%s] request_id=[%s]: %v", providerName, requestID, publishErr)
+			}
+		}
 	}
 	return nil, []actionresponse.ActionResponse{}, []error{err}
 }
 
 func (d *integrationInstallationPerformer) refreshInstalledIntegrationPerformer(integration map[string]interface{}, transaction *sqlx.Tx) error {
+	return RefreshIntegrationRuntimeFromRow(d.cruds, d.configStore, integration, transaction)
+}
+
+func RefreshIntegrationRuntimeFromRow(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, integration map[string]interface{}, transaction *sqlx.Tx) error {
 	enableValue := int64(1)
 	if rawEnable, ok := integration["enable"]; ok {
 		switch val := rawEnable.(type) {
@@ -364,30 +387,94 @@ func (d *integrationInstallationPerformer) refreshInstalledIntegrationPerformer(
 	}
 	if !integrationRuntime.Enable {
 		log.Infof("Removing disabled integration operation mappings provider=[%s]", integrationRuntime.Name)
-		delete(resource.ActionHandlerMap, integrationRuntime.Name)
-		for _, crud := range d.cruds {
-			if crud.ActionHandlerMap != nil {
-				delete(crud.ActionHandlerMap, integrationRuntime.Name)
-			}
-		}
+		resource.DeleteActionHandlerOnAll(cruds, integrationRuntime.Name)
 		return nil
 	}
 
-	performer, err := NewIntegrationActionPerformer(integrationRuntime, nil, d.cruds, d.configStore, transaction)
+	performer, err := NewIntegrationActionPerformer(integrationRuntime, nil, cruds, configStore, transaction)
 	if err != nil {
 		log.Errorf("Failed to create refreshed integration action performer provider=[%s]: %v", integrationRuntime.Name, err)
 		return err
 	}
-	resource.ActionHandlerMap[performer.Name()] = performer
-	for _, crud := range d.cruds {
-		if crud.ActionHandlerMap == nil {
-			crud.ActionHandlerMap = make(map[string]actionresponse.ActionPerformerInterface)
-		}
-		crud.ActionHandlerMap[performer.Name()] = performer
-	}
+	resource.RegisterActionHandlerOnAll(cruds, performer.Name(), performer)
 	log.Printf("Refreshed integration operation mappings for [%s] without restart", integrationRuntime.Name)
-	log.Infof("Refreshed integration operation mappings provider=[%s] crud_maps=%d", integrationRuntime.Name, len(d.cruds))
+	log.Infof("Refreshed integration operation mappings provider=[%s] crud_maps=%d", integrationRuntime.Name, len(cruds))
 	return nil
+}
+
+func RefreshIntegrationRuntimeByReferenceID(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, referenceID daptinid.DaptinReferenceId) error {
+	integrationCrud := cruds["integration"]
+	if integrationCrud == nil {
+		return errors.New("integration resource is not available")
+	}
+	transaction, err := integrationCrud.Connection().Beginx()
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
+
+	integration, _, err := integrationCrud.GetSingleRowByReferenceIdWithTransaction("integration", referenceID, nil, transaction)
+	if err != nil {
+		return err
+	}
+	if err := RefreshIntegrationRuntimeFromRow(cruds, configStore, integration, transaction); err != nil {
+		return err
+	}
+	return transaction.Commit()
+}
+
+func PublishIntegrationRuntimeInstallEvent(cruds map[string]*resource.DbResource, referenceID daptinid.DaptinReferenceId, providerName string, requestID string, sourceInstanceID string) error {
+	worldCrud := cruds["world"]
+	if worldCrud == nil || worldCrud.PubSub == nil {
+		return errors.New("PubSub not available")
+	}
+	payload, err := json.Marshal(IntegrationRuntimeInstallMessage{
+		ReferenceID:      referenceID.String(),
+		ProviderName:     providerName,
+		RequestID:        requestID,
+		SourceInstanceID: sourceInstanceID,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = worldCrud.PubSub.Publish(context.Background(), IntegrationRuntimeInstallTopic, string(payload))
+	return err
+}
+
+func StartIntegrationRuntimeInstallSubscriber(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, sourceInstanceID string) {
+	worldCrud := cruds["world"]
+	if worldCrud == nil || worldCrud.PubSub == nil {
+		log.Warnf("Integration runtime refresh subscriber not started: PubSub not available")
+		return
+	}
+	subscription := worldCrud.PubSub.Subscribe(context.Background(), IntegrationRuntimeInstallTopic)
+	go func() {
+		channel := subscription.Channel()
+		for msg := range channel {
+			var payload IntegrationRuntimeInstallMessage
+			if err := json.Unmarshal([]byte(msg.Payload), &payload); err != nil {
+				log.Warnf("Ignoring invalid integration runtime refresh message: %v", err)
+				continue
+			}
+			if payload.SourceInstanceID != "" && payload.SourceInstanceID == sourceInstanceID {
+				log.Debugf("Ignoring local integration runtime refresh message provider=[%s] request_id=[%s]", payload.ProviderName, payload.RequestID)
+				continue
+			}
+			referenceID := daptinid.InterfaceToDIR(payload.ReferenceID)
+			if referenceID == daptinid.NullReferenceId {
+				log.Warnf("Ignoring integration runtime refresh with invalid reference_id=[%s] request_id=[%s]", payload.ReferenceID, payload.RequestID)
+				continue
+			}
+			err := RefreshIntegrationRuntimeByReferenceID(cruds, configStore, referenceID)
+			if err != nil {
+				log.Errorf("Failed to refresh integration runtime from cluster message provider=[%s] reference_id=[%s] request_id=[%s]: %v",
+					payload.ProviderName, payload.ReferenceID, payload.RequestID, err)
+				continue
+			}
+			log.Infof("Refreshed integration runtime from cluster message provider=[%s] reference_id=[%s] request_id=[%s]",
+				payload.ProviderName, payload.ReferenceID, payload.RequestID)
+		}
+	}()
 }
 
 func integrationFromRow(row map[string]interface{}, enable bool) (resource.Integration, error) {
@@ -450,7 +537,7 @@ func integrationAuthUsesSecurityScheme(authType string, securityScheme *openapi3
 }
 
 // Create a new action performer for becoming administrator action
-func NewIntegrationInstallationPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx) (actionresponse.ActionPerformerInterface, error) {
+func NewIntegrationInstallationPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx, instanceID string) (actionresponse.ActionPerformerInterface, error) {
 
 	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
 	if err != nil {
@@ -460,6 +547,7 @@ func NewIntegrationInstallationPerformer(initConfig *resource.CmsConfig, cruds m
 		cruds:            cruds,
 		encryptionSecret: []byte(encryptionSecret),
 		configStore:      configStore,
+		instanceID:       instanceID,
 	}
 
 	return &handler, nil
