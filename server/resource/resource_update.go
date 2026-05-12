@@ -545,18 +545,14 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 		jwtmiddleware.InvalidateTokenCache()
 	}
 
-	// Invalidate object-groups when any usergroup relation row is updated
+	// Invalidate parent permission caches when any usergroup relation row is updated
 	if strings.HasSuffix(dbResource.model.GetName(), "_has_usergroup_usergroup_id") {
 		doubledEntity := strings.TrimSuffix(dbResource.model.GetName(), "_id_has_usergroup_usergroup_id")
 		parentType := doubledEntity[:len(doubledEntity)/2]
 		parentIdCol := parentType + "_id"
 		if parentId, ok := data.GetAllAsAttributes()[parentIdCol]; ok && parentId != nil {
 			if pid, ok := parentId.(int64); ok {
-				InvalidateObjectGroupsCache(parentType, pid)
-				parentRefId, refErr := GetIdToReferenceIdWithTransaction(parentType, pid, updateTransaction)
-				if refErr == nil {
-					InvalidateObjectPermissionCache(parentType, parentRefId)
-				}
+				InvalidateObjectUsergroupRelationPermissionCaches(parentType, pid, updateTransaction)
 			}
 		}
 	}

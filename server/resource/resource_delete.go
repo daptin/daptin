@@ -85,18 +85,14 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 		}
 	}
 
-	// Invalidate object-groups when any usergroup relation row is deleted
+	// Invalidate parent permission caches when any usergroup relation row is deleted
 	if strings.HasSuffix(dbResource.model.GetName(), "_has_usergroup_usergroup_id") {
 		doubledEntity := strings.TrimSuffix(dbResource.model.GetName(), "_id_has_usergroup_usergroup_id")
 		parentType := doubledEntity[:len(doubledEntity)/2]
 		parentIdCol := parentType + "_id"
 		if parentIdVal, ok := data[parentIdCol]; ok && parentIdVal != nil {
 			if pid, ok := parentIdVal.(int64); ok {
-				InvalidateObjectGroupsCache(parentType, pid)
-				parentRefId, refErr := GetIdToReferenceIdWithTransaction(parentType, pid, transaction)
-				if refErr == nil {
-					InvalidateObjectPermissionCache(parentType, parentRefId)
-				}
+				InvalidateObjectUsergroupRelationPermissionCaches(parentType, pid, transaction)
 			}
 		}
 	}

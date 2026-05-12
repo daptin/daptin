@@ -585,6 +585,19 @@ func InvalidateObjectGroupsCache(objectType string, objectId int64) {
 	}
 }
 
+// InvalidateObjectUsergroupRelationPermissionCaches removes all parent-object
+// permission caches that depend on a _has_usergroup_usergroup_id relation row.
+func InvalidateObjectUsergroupRelationPermissionCaches(objectType string, objectId int64, transaction *sqlx.Tx) {
+	InvalidateObjectGroupsCache(objectType, objectId)
+	parentRefId, err := GetIdToReferenceIdWithTransaction(objectType, objectId, transaction)
+	if err != nil {
+		log.Warnf("failed to resolve reference id while invalidating usergroup relation permission caches for %s/%d: %v", objectType, objectId, err)
+		return
+	}
+	InvalidateObjectPermissionCache(objectType, parentRefId)
+	InvalidateRowPermissionCache(objectType, parentRefId)
+}
+
 // InvalidateAdminCacheForUser removes both the bulk administrator reference ID cache
 // and the per-user admin status cache, forcing re-evaluation from the database.
 func InvalidateAdminCacheForUser(userReferenceId daptinid.DaptinReferenceId) {

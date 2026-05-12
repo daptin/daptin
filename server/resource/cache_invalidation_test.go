@@ -14,6 +14,8 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // testOlric creates an embedded Olric instance and returns a DMap plus a cleanup function.
@@ -605,6 +607,57 @@ func TestInvalidation_OnlyAffectsTargetedCache(t *testing.T) {
 	_, err = dm.Get(context.Background(), rowPermKey)
 	if err == nil {
 		t.Error("row-permission should be invalidated")
+	}
+}
+
+func TestInvalidateObjectUsergroupRelationPermissionCaches_RemovesParentCaches(t *testing.T) {
+	dm, cleanup := testOlric(t, "test-relation-parent-perm")
+	defer cleanup()
+	restore := swapOlricCache(dm)
+	defer restore()
+
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite db: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("create table oauth_connect (id integer primary key, reference_id blob not null)")
+	if err != nil {
+		t.Fatalf("failed to create oauth_connect table: %v", err)
+	}
+
+	objectId := int64(42)
+	refId := makeRefId()
+	_, err = db.Exec("insert into oauth_connect (id, reference_id) values (?, ?)", objectId, refId[:])
+	if err != nil {
+		t.Fatalf("failed to seed oauth_connect row: %v", err)
+	}
+
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	perm := permission.PermissionInstance{Permission: auth.UserRead}
+	keys := []string{
+		fmt.Sprintf("object-groups-%v-%v", "oauth_connect", objectId),
+		fmt.Sprintf("object-permission-%v-%v", "oauth_connect", refId),
+		fmt.Sprintf("row-permission-%v-%v", "oauth_connect", refId),
+	}
+	for _, key := range keys {
+		if err := dm.Put(context.Background(), key, perm); err != nil {
+			t.Fatalf("failed to seed cache key %s: %v", key, err)
+		}
+	}
+
+	InvalidateObjectUsergroupRelationPermissionCaches("oauth_connect", objectId, tx)
+
+	for _, key := range keys {
+		if _, err := dm.Get(context.Background(), key); err == nil {
+			t.Errorf("expected cache key %s to be invalidated", key)
+		}
 	}
 }
 
