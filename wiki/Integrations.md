@@ -16,6 +16,7 @@ The `integration` table stores OpenAPI specifications that define external APIs.
 - OpenAPI v2 (Swagger) and v3 support
 - JSON or YAML specification format
 - Multiple authentication methods
+- REST, GraphQL-over-HTTP, unary gRPC, and short-lived WebSocket request/response transports
 - Dynamic action creation from API operations
 - Provider-scoped execution at `/integration/{provider_name}/{operation_id}`
 - Provider-scoped discovery at `/integration/{provider_name}/operations`
@@ -36,6 +37,7 @@ POST /integration/{provider_name}/{operation_id}
 - Put operation inputs under `input`.
 - For OAuth integrations, pass `oauth_token_id` at the top level.
 - For custom credential integrations, pass `credential_id` at the top level.
+- Do not put `oauth_token_id` or `credential_id` inside `input`; provider-scoped execution strips runtime fields from `input` and only honors top-level auth selectors.
 
 Example:
 
@@ -100,6 +102,183 @@ clearer because it keeps the provider name in the URL.
 | `openapiv3` | OpenAPI 3.0 specification |
 
 **Important**: Values must be lowercase: `openapiv2` or `openapiv3` (not "OpenAPI" or "swagger").
+
+---
+
+## Operation Transports
+
+By default, Daptin executes OpenAPI operations as REST-style HTTP calls using
+the method, path, parameters, request body, security schemes, and server URL
+from the provider spec.
+
+An operation can opt into another transport using OpenAPI extension fields on
+that operation. These extensions are stored in `integration.specification`; user
+tokens and API keys still come from `oauth_token` or `credential` at execution
+time.
+
+| Extension | Applies To | Description |
+|-----------|------------|-------------|
+| `x-daptin-transport` | all non-REST transports | One of `rest`, `graphql`, `grpc`, or `websocket`. Defaults to `rest`. |
+| `x-daptin-upstream-path` | GraphQL, WebSocket | Upstream path to call instead of the facade path in `paths`. Defaults to `/graphql` for GraphQL. |
+| `x-daptin-timeout-ms` | GraphQL, WebSocket, gRPC | Per-operation timeout in milliseconds. Defaults to 10 seconds. |
+| `x-daptin-graphql-document` | GraphQL | Required GraphQL query or mutation document. If this is present and `x-daptin-transport` is omitted, Daptin treats the operation as GraphQL. |
+| `x-daptin-graphql-operation-name` | GraphQL | Optional GraphQL `operationName`. |
+| `x-daptin-websocket-message-template` | WebSocket | Optional template used to build the outbound WebSocket message from operation input. Without it, Daptin sends the derived input object as JSON. |
+| `x-daptin-websocket-response-selector` | WebSocket | Optional dot-path selector for selecting part of the JSON response. |
+| `x-daptin-grpc-service` | gRPC | Required fully-qualified service name, for example `grpc.testing.SearchService`. |
+| `x-daptin-grpc-method` | gRPC | Unary method name. Defaults to the OpenAPI `operationId`. |
+| `x-daptin-grpc-descriptor-base64` | gRPC | Optional base64-encoded `FileDescriptorSet`. If omitted, Daptin uses gRPC server reflection. |
+
+### REST
+
+REST is the default transport. Parameters are mapped from OpenAPI path, query,
+header, and body definitions. Daptin resolves OAuth or custom credential auth
+first and protects generated auth headers/query parameters from user-supplied
+operation input.
+
+```json
+{
+  "paths": {
+    "/tasks/{task_gid}": {
+      "get": {
+        "operationId": "getTask",
+        "parameters": [
+          {"name": "task_gid", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "opt_fields", "in": "query", "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}
+```
+
+### GraphQL
+
+GraphQL operations are represented as OpenAPI operations so they can use the
+same install, discovery, auth, permission, and provider-scoped execution flow.
+Daptin posts to the GraphQL upstream with:
+
+```json
+{
+  "query": "...",
+  "operationName": "optional",
+  "variables": {
+    "fieldFromInput": "value"
+  }
+}
+```
+
+Runtime fields such as `credential_id`, `oauth_token_id`, `sessionUser`, and
+request metadata are not included in GraphQL variables.
+
+```json
+{
+  "paths": {
+    "/linear/listIssues": {
+      "post": {
+        "operationId": "listIssues",
+        "x-daptin-transport": "graphql",
+        "x-daptin-upstream-path": "/graphql",
+        "x-daptin-graphql-operation-name": "ListIssues",
+        "x-daptin-graphql-document": "query ListIssues($first: Int!, $after: String) { issues(first: $first, after: $after) { nodes { id title } } }",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first": {"type": "integer"},
+                  "after": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}
+```
+
+Discovery exposes sanitized transport metadata such as type, upstream path, and
+operation name. It does not expose the GraphQL document.
+
+### WebSocket
+
+WebSocket transport is for short-lived request/response operations. Daptin opens
+a WebSocket connection, sends one JSON message, reads one response message, and
+closes the connection. `http` and `https` server URLs are converted to `ws` and
+`wss` for dialing.
+
+```json
+{
+  "paths": {
+    "/ws/search": {
+      "post": {
+        "operationId": "wsSearch",
+        "x-daptin-transport": "websocket",
+        "x-daptin-upstream-path": "/ws",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}
+```
+
+### gRPC
+
+gRPC transport currently supports unary calls. It does not support client,
+server, or bidirectional streaming methods. Daptin builds the input protobuf
+message from the OpenAPI request body schema and operation input, resolves auth,
+and sends auth headers as outgoing gRPC metadata.
+
+Daptin obtains protobuf descriptors in one of two ways:
+
+1. Use `x-daptin-grpc-descriptor-base64` when the spec embeds a base64-encoded
+   `FileDescriptorSet`.
+2. Otherwise use gRPC server reflection on the configured upstream.
+
+```json
+{
+  "paths": {
+    "/grpc/search": {
+      "post": {
+        "operationId": "Search",
+        "x-daptin-transport": "grpc",
+        "x-daptin-grpc-service": "grpc.testing.SearchService",
+        "x-daptin-grpc-method": "Search",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}
+```
 
 ---
 
@@ -661,6 +840,9 @@ paths:
 - Daptin validates OAuth token ownership and provider match before using an `oauth_token`
 - Daptin validates credential ownership/permission before decrypting `credential.content`
 - Generated auth headers/query parameters are protected from user-supplied action attributes. For example, an action input named `Authorization` cannot override the OAuth or credential auth header Daptin resolved for the outbound request.
+- Provider-scoped execution ignores runtime auth selector fields inside `input`; `oauth_token_id` and `credential_id` must be top-level request fields
+- GraphQL variables, WebSocket messages, and gRPC request messages exclude runtime fields such as `credential_id`, `oauth_token_id`, `sessionUser`, and request metadata
+- Operation discovery exposes sanitized transport metadata but does not expose GraphQL documents, credential contents, OAuth tokens, or gRPC descriptor blobs
 - Only administrators can create/modify integrations
 - Disable integrations when not in use (`enable: false`)
 - Rotate credentials periodically
@@ -696,6 +878,25 @@ The operation ID doesn't exist in the specification. Check:
 1. For OAuth2: Verify execution attributes include `oauth_token_id`, the token belongs to the current user, and its `oauth_connect_id` matches the integration
 2. For custom credentials: Verify execution attributes include `credential_id`, the credential is usable by the current user, and `credential.content` contains the fields named by `authentication_specification`
 3. For header/query auth: Verify the OpenAPI security scheme matches `authentication_type`; Daptin intentionally ignores action attributes that try to overwrite protected auth fields
+4. For provider-scoped execution: Verify `oauth_token_id` or `credential_id` is top-level in the JSON body, not inside `input`
+
+### GraphQL Transport Errors
+
+1. `x-daptin-graphql-document is required`: Add `x-daptin-graphql-document` to the operation or use REST transport
+2. Wrong upstream path: Set `x-daptin-upstream-path` or rely on the GraphQL default `/graphql`
+3. Missing variables: Ensure the OpenAPI request body schema declares the fields Daptin should map into GraphQL variables
+
+### WebSocket Transport Errors
+
+1. Dial failure: Ensure the integration server URL uses `http`, `https`, `ws`, or `wss`
+2. Read timeout: WebSocket transport expects one response message before the operation timeout
+3. Selector failure: Check `x-daptin-websocket-response-selector` against the JSON response shape
+
+### gRPC Transport Errors
+
+1. Reflection failure: Enable gRPC server reflection or provide `x-daptin-grpc-descriptor-base64`
+2. Method not found: Check `x-daptin-grpc-service` and `x-daptin-grpc-method`
+3. Streaming method unsupported: Use a unary method; streaming gRPC is not currently supported
 
 ### Actions Not Created
 

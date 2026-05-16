@@ -898,6 +898,8 @@ Execution body shape:
 
 For OAuth2 integrations, pass `oauth_token_id`. For custom credential
 integrations, pass `credential_id`. Other operation parameters go under `input`.
+Provider-scoped execution ignores runtime auth selector fields inside `input`;
+`oauth_token_id` and `credential_id` must be top-level request fields.
 
 **Example:**
 ```bash
@@ -911,6 +913,12 @@ curl -X POST "http://localhost:6336/integration/asana.com/getWorkspaces" \
     }
   }'
 ```
+
+Provider-scoped operation execution supports OpenAPI-backed REST operations by
+default. Operations can also declare GraphQL, WebSocket, or unary gRPC
+transports using `x-daptin-transport` and related operation extensions in the
+integration OpenAPI specification. See [[Integrations|Integrations]] for the
+transport extension fields and security rules.
 
 ### get_action_schema
 
