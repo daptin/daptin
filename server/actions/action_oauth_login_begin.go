@@ -9,8 +9,6 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
-	"github.com/pquerna/otp"
-	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,7 +16,6 @@ type oauthLoginBeginActionPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*resource.DbResource
 	configStore   *resource.ConfigStore
-	otpKey        string
 }
 
 func (d *oauthLoginBeginActionPerformer) Name() string {
@@ -44,17 +41,7 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request actionresponse.Outcome
 		return nil, nil, []error{err}
 	}
 
-	var state string
-	if oauthConnectorPKCEEnabled(row) {
-		state, err = resource.OAuthRandomToken()
-	} else {
-		state, err = totp.GenerateCodeCustom(d.otpKey, time.Now(), totp.ValidateOpts{
-			Period:    300,
-			Skew:      1,
-			Digits:    otp.DigitsSix,
-			Algorithm: otp.AlgorithmSHA1,
-		})
-	}
+	state, err := resource.OAuthRandomToken()
 	if err != nil {
 		log.Errorf("Failed to generate oauth state: %v", err)
 		return nil, nil, []error{err}
@@ -71,11 +58,9 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request actionresponse.Outcome
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-	if oauthConnectorPKCEEnabled(row) {
-		err = storeOAuthState(d.cruds, authReferenceId, state, verifier, time.Now().UTC(), sessionUser, transaction)
-		if err != nil {
-			return nil, nil, []error{err}
-		}
+	err = storeOAuthState(d.cruds, authReferenceId, state, verifier, time.Now().UTC(), sessionUser, transaction)
+	if err != nil {
+		return nil, nil, []error{err}
 	}
 	url := conf.AuthCodeURL(state, opts...)
 	fmt.Printf("Visit the URL for the auth dialog: %v", url)
@@ -97,28 +82,9 @@ func (d *oauthLoginBeginActionPerformer) DoAction(request actionresponse.Outcome
 
 func NewOauthLoginBeginActionPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx) (actionresponse.ActionPerformerInterface, error) {
 
-	secret, err := configStore.GetConfigValueFor("totp.secret", "backend", transaction)
-
-	if err != nil {
-		key, err := totp.Generate(totp.GenerateOpts{
-			Issuer:      "site.daptin.com",
-			AccountName: "dummy@site.daptin.com",
-			Period:      300,
-			SecretSize:  10,
-		})
-
-		if err != nil {
-			log.Errorf("Failed to generate code: %v", err)
-			return nil, err
-		}
-		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend", transaction)
-		secret = key.Secret()
-	}
-
 	handler := oauthLoginBeginActionPerformer{
 		cruds:       cruds,
 		configStore: configStore,
-		otpKey:      secret,
 	}
 
 	return &handler, nil

@@ -11,8 +11,6 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/pquerna/otp"
-	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"strings"
@@ -23,7 +21,6 @@ type oauthLoginResponseActionPerformer struct {
 	responseAttrs map[string]interface{}
 	cruds         map[string]*resource.DbResource
 	configStore   *resource.ConfigStore
-	otpKey        string
 }
 
 func (d *oauthLoginResponseActionPerformer) Name() string {
@@ -108,27 +105,10 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outc
 	}
 
 	now := time.Now().UTC()
-	var oauthState *oauthStateRecord
-	if oauthConnectorPKCEEnabled(row) {
-		oauthState, err = loadOAuthState(d.cruds, d.configStore, authReferenceId, state, now, transaction)
-		if err != nil {
-			log.Errorf("Failed to validate oauth state: %v", err)
-			return nil, nil, []error{errors.New("No ongoing authentication")}
-		}
-	} else {
-		ok, err := totp.ValidateCustom(state, d.otpKey, time.Now().UTC(), totp.ValidateOpts{
-			Period:    300,
-			Skew:      1,
-			Digits:    otp.DigitsSix,
-			Algorithm: otp.AlgorithmSHA1,
-		})
-		if !ok {
-			log.Errorf("Failed to validate otp key")
-			return nil, nil, []error{errors.New("No ongoing authentication")}
-		}
-		if err != nil {
-			return nil, nil, []error{err}
-		}
+	oauthState, err := loadOAuthState(d.cruds, d.configStore, authReferenceId, state, now, oauthConnectorPKCEEnabled(row), transaction)
+	if err != nil {
+		log.Errorf("Failed to validate oauth state: %v", err)
+		return nil, nil, []error{errors.New("No ongoing authentication")}
 	}
 
 	ctx := context.Background()
@@ -183,27 +163,9 @@ func (d *oauthLoginResponseActionPerformer) DoAction(request actionresponse.Outc
 
 func NewOauthLoginResponseActionPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx) (actionresponse.ActionPerformerInterface, error) {
 
-	secret, err := configStore.GetConfigValueFor("totp.secret", "backend", transaction)
-	if err != nil {
-		key, err := totp.Generate(totp.GenerateOpts{
-			Issuer:      "site.daptin.com",
-			AccountName: "dummy@site.daptin.com",
-			Period:      300,
-			SecretSize:  10,
-		})
-
-		if err != nil {
-			log.Errorf("Failed to generate code: %v", err)
-			return nil, err
-		}
-		configStore.SetConfigValueFor("totp.secret", key.Secret(), "backend", transaction)
-		secret = key.Secret()
-	}
-
 	handler := oauthLoginResponseActionPerformer{
 		cruds:       cruds,
 		configStore: configStore,
-		otpKey:      secret,
 	}
 
 	return &handler, nil

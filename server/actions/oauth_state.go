@@ -115,16 +115,18 @@ func storeOAuthState(cruds map[string]*resource.DbResource, oauthConnectReferenc
 	}
 	attrs := map[string]interface{}{
 		"state_hash":       oauthStateHash(state),
-		"code_verifier":    verifier,
 		"expires_at":       now.Unix() + oauthStateLifetimeSeconds,
 		"oauth_connect_id": oauthConnectReferenceId,
+	}
+	if strings.TrimSpace(verifier) != "" {
+		attrs["code_verifier"] = verifier
 	}
 	model := api2go.NewApi2GoModelWithData("oauth_state", nil, int64(auth.DEFAULT_PERMISSION), nil, attrs)
 	_, err := cruds["oauth_state"].CreateWithoutFilter(model, oauthActionRequest("POST", "oauth_state", sessionUser), transaction)
 	return err
 }
 
-func loadOAuthState(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, oauthConnectReferenceId daptinid.DaptinReferenceId, state string, now time.Time, transaction *sqlx.Tx) (*oauthStateRecord, error) {
+func loadOAuthState(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, oauthConnectReferenceId daptinid.DaptinReferenceId, state string, now time.Time, requireVerifier bool, transaction *sqlx.Tx) (*oauthStateRecord, error) {
 	if cruds["oauth_state"] == nil {
 		return nil, fmt.Errorf("oauth_state resource is not available")
 	}
@@ -147,17 +149,20 @@ func loadOAuthState(cruds map[string]*resource.DbResource, configStore *resource
 		return nil, fmt.Errorf("oauth state already used")
 	}
 
-	encryptedVerifier := strings.TrimSpace(fmt.Sprintf("%v", row["code_verifier"]))
-	if encryptedVerifier == "" || encryptedVerifier == "<nil>" {
-		return nil, fmt.Errorf("missing PKCE verifier")
-	}
-	secret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
-	if err != nil {
-		return nil, err
-	}
-	verifier, err := resource.Decrypt([]byte(secret), encryptedVerifier)
-	if err != nil {
-		return nil, err
+	var verifier string
+	if requireVerifier {
+		encryptedVerifier := strings.TrimSpace(fmt.Sprintf("%v", row["code_verifier"]))
+		if encryptedVerifier == "" || encryptedVerifier == "<nil>" {
+			return nil, fmt.Errorf("missing PKCE verifier")
+		}
+		secret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
+		if err != nil {
+			return nil, err
+		}
+		verifier, err = resource.Decrypt([]byte(secret), encryptedVerifier)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ownerUserReferenceID := daptinid.InterfaceToDIR(row[resource.USER_ACCOUNT_ID_COLUMN])

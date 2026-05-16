@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
+	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
@@ -144,7 +146,7 @@ func TestOAuthStateStoreLoadAndReuseRejection(t *testing.T) {
 		t.Fatalf("store state: %v", err)
 	}
 
-	state, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now, tx)
+	state, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now, true, tx)
 	if err != nil {
 		t.Fatalf("load state: %v", err)
 	}
@@ -157,15 +159,42 @@ func TestOAuthStateStoreLoadAndReuseRejection(t *testing.T) {
 	if state.OwnerUserReferenceID != sessionUser.UserReferenceId {
 		t.Fatalf("unexpected owner reference id: got %s want %s", state.OwnerUserReferenceID, sessionUser.UserReferenceId)
 	}
-	if _, err := loadOAuthState(cruds, configStore, daptinid.DaptinReferenceId(uuid.New()), "state-value", now, tx); err == nil {
+	if _, err := loadOAuthState(cruds, configStore, daptinid.DaptinReferenceId(uuid.New()), "state-value", now, true, tx); err == nil {
 		t.Fatalf("expected state for different oauth_connect to be rejected")
 	}
 
 	if err := markOAuthStateUsed(cruds, state, now, sessionUser, tx); err != nil {
 		t.Fatalf("mark used: %v", err)
 	}
-	if _, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now, tx); err == nil {
+	if _, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now, true, tx); err == nil {
 		t.Fatalf("expected used state to be rejected")
+	}
+}
+
+func TestOAuthStateStoreLoadWithoutVerifierForNonPKCE(t *testing.T) {
+	db, configStore, cruds, connectRef, sessionUser := setupOAuthStateTestDB(t)
+	defer db.Close()
+
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	defer tx.Rollback()
+
+	now := time.Now().UTC()
+	if err := storeOAuthState(cruds, connectRef, "state-value", "", now, sessionUser, tx); err != nil {
+		t.Fatalf("store state: %v", err)
+	}
+
+	state, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now, false, tx)
+	if err != nil {
+		t.Fatalf("load non-pkce state: %v", err)
+	}
+	if state.CodeVerifier != "" {
+		t.Fatalf("expected empty verifier for non-pkce state, got %q", state.CodeVerifier)
+	}
+	if _, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now, true, tx); err == nil {
+		t.Fatalf("expected verifier-required load to reject non-pkce state")
 	}
 }
 
@@ -215,8 +244,66 @@ func TestOAuthStateExpiry(t *testing.T) {
 	if err := storeOAuthState(cruds, connectRef, "state-value", "stored-verifier", now, sessionUser, tx); err != nil {
 		t.Fatalf("store state: %v", err)
 	}
-	if _, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now.Add(11*time.Minute), tx); err == nil {
+	if _, err := loadOAuthState(cruds, configStore, connectRef, "state-value", now.Add(11*time.Minute), true, tx); err == nil {
 		t.Fatalf("expected expired state to be rejected")
+	}
+}
+
+func TestOAuthLoginBeginStoresNonNumericStateForNonPKCE(t *testing.T) {
+	db, configStore, cruds, connectRef, sessionUser := setupOAuthStateTestDB(t)
+	defer db.Close()
+
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	defer tx.Rollback()
+
+	performer := &oauthLoginBeginActionPerformer{cruds: cruds}
+	_, responses, errs := performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{
+		"authenticator": "airtable",
+		"sessionUser":   sessionUser,
+	}, tx)
+	if len(errs) > 0 {
+		t.Fatalf("oauth login begin failed: %v", errs)
+	}
+
+	var state string
+	var location string
+	for _, response := range responses {
+		switch response.ResponseType {
+		case "client.store.set":
+			attrs := response.Attributes.(map[string]interface{})
+			if attrs["key"] == "secret" {
+				state, _ = attrs["value"].(string)
+			}
+		case "client.redirect":
+			attrs := response.Attributes.(map[string]interface{})
+			location, _ = attrs["location"].(string)
+		}
+	}
+	if state == "" {
+		t.Fatalf("expected state response")
+	}
+	if regexp.MustCompile(`^[0-9]+$`).MatchString(state) {
+		t.Fatalf("state should not be numeric-only: %q", state)
+	}
+	authURL, err := url.Parse(location)
+	if err != nil {
+		t.Fatalf("parse auth url: %v", err)
+	}
+	if got := authURL.Query().Get("state"); got != state {
+		t.Fatalf("auth url state mismatch: got %q want %q", got, state)
+	}
+	if got := authURL.Query().Get("access_type"); got != "offline" {
+		t.Fatalf("expected offline access type, got %q", got)
+	}
+	storedState, err := loadOAuthState(cruds, configStore, connectRef, state, time.Now().UTC(), false, tx)
+	if err != nil {
+		t.Fatalf("expected generated state to be stored: %v", err)
+	}
+	if storedState.CodeVerifier != "" {
+		t.Fatalf("expected no verifier for non-pkce state, got %q", storedState.CodeVerifier)
 	}
 }
 
@@ -262,6 +349,15 @@ func setupOAuthStateTestDB(t *testing.T) (*sqlx.DB, *resource.ConfigStore, map[s
 	if _, err := db.Exec(`create table oauth_connect (
 		id integer primary key,
 		name text,
+		client_id text,
+		client_secret text,
+		scope text,
+		redirect_uri text,
+		auth_url text,
+		token_url text,
+		access_type_offline bool,
+		pkce_enabled bool,
+		pkce_challenge_method text,
 		version integer default 1,
 		created_at timestamp,
 		updated_at timestamp,
@@ -270,7 +366,17 @@ func setupOAuthStateTestDB(t *testing.T) (*sqlx.DB, *resource.ConfigStore, map[s
 	)`); err != nil {
 		t.Fatalf("create oauth_connect: %v", err)
 	}
-	if _, err := db.Exec(`insert into oauth_connect (id, name, version, reference_id, permission) values (?, ?, ?, ?, ?)`, 7, "airtable", 1, connectRef[:], int64(auth.DEFAULT_PERMISSION)); err != nil {
+	encryptedClientSecret, err := resource.Encrypt([]byte(secret), "client-secret")
+	if err != nil {
+		t.Fatalf("encrypt client secret: %v", err)
+	}
+	if _, err := db.Exec(`insert into oauth_connect (
+		id, name, client_id, client_secret, scope, redirect_uri, auth_url, token_url,
+		access_type_offline, pkce_enabled, pkce_challenge_method, version, reference_id, permission
+	) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		7, "airtable", "client-id", encryptedClientSecret, "profile", "https://example.com/oauth",
+		"https://accounts.example.com/auth", "https://accounts.example.com/token",
+		true, false, "S256", 1, connectRef[:], int64(auth.DEFAULT_PERMISSION)); err != nil {
 		t.Fatalf("insert oauth_connect: %v", err)
 	}
 	if _, err := db.Exec(`create table oauth_state (
@@ -300,6 +406,15 @@ func setupOAuthStateTestDB(t *testing.T) (*sqlx.DB, *resource.ConfigStore, map[s
 
 	connectColumns := append([]api2go.ColumnInfo{
 		{Name: "name", ColumnName: "name", DataType: "varchar(80)", ColumnType: "label"},
+		{Name: "client_id", ColumnName: "client_id", DataType: "varchar(200)", ColumnType: "label"},
+		{Name: "client_secret", ColumnName: "client_secret", DataType: "varchar(500)", ColumnType: "encrypted"},
+		{Name: "scope", ColumnName: "scope", DataType: "varchar(1000)", ColumnType: "content"},
+		{Name: "redirect_uri", ColumnName: "redirect_uri", DataType: "varchar(200)", ColumnType: "url"},
+		{Name: "auth_url", ColumnName: "auth_url", DataType: "varchar(200)", ColumnType: "url"},
+		{Name: "token_url", ColumnName: "token_url", DataType: "varchar(200)", ColumnType: "url"},
+		{Name: "access_type_offline", ColumnName: "access_type_offline", DataType: "bool", ColumnType: "truefalse"},
+		{Name: "pkce_enabled", ColumnName: "pkce_enabled", DataType: "bool", ColumnType: "truefalse"},
+		{Name: "pkce_challenge_method", ColumnName: "pkce_challenge_method", DataType: "varchar(20)", ColumnType: "label"},
 	}, resource.StandardColumns...)
 	connectInfo := table_info.TableInfo{TableName: "oauth_connect", Columns: connectColumns}
 	connectModel := api2go.NewApi2GoModel("oauth_connect", connectColumns, int64(auth.DEFAULT_PERMISSION), nil)
