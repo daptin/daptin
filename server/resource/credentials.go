@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/daptin/daptin/server/auth"
@@ -39,6 +41,9 @@ func (d *DbResource) GetCredentialByReferenceIdForIntegrationExecution(reference
 
 	credentialRow, err := d.getCredentialRowByReferenceId(referenceId, transaction)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("credential is not available for this user")
+		}
 		return nil, err
 	}
 

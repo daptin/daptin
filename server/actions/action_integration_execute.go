@@ -1,7 +1,10 @@
 package actions
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/base64"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go/v2"
@@ -13,12 +16,28 @@ import (
 	"github.com/getkin/kin-openapi/openapi2conv"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/ghodss/yaml"
+	gorillawebsocket "github.com/gorilla/websocket"
 	"github.com/imroc/req"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	reflectionv1alpha "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protodesc"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Mode defines a mode of operation for example generation.
@@ -46,6 +65,34 @@ type integrationActionPerformer struct {
 	encryptionSecret []byte
 }
 
+const (
+	integrationTransportREST      = "rest"
+	integrationTransportGraphQL   = "graphql"
+	integrationTransportGRPC      = "grpc"
+	integrationTransportWebSocket = "websocket"
+)
+
+type integrationTransportConfig struct {
+	Transport                 string
+	UpstreamPath              string
+	Timeout                   time.Duration
+	GraphQLDocument           string
+	GraphQLOperationName      string
+	GRPCService               string
+	GRPCMethod                string
+	GRPCDescriptorBase64      string
+	WebSocketMessageTemplate  string
+	WebSocketResponseSelector string
+}
+
+type integrationTransportAuth struct {
+	Arguments            []interface{}
+	ProtectedHeaders     map[string]bool
+	ProtectedQueryParams map[string]bool
+	Headers              map[string]string
+	QueryParams          map[string]interface{}
+}
+
 // Name of the action
 func (d *integrationActionPerformer) Name() string {
 	return d.integration.Name
@@ -66,6 +113,11 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		return nil, nil, []error{errors.New("no such method")}
 	}
 
+	transportConfig, err := integrationTransportConfigFromOperation(operation, request.Method)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+
 	r := req.New()
 
 	decryptedSpec, err := resource.Decrypt(d.encryptionSecret, d.integration.AuthenticationSpecification)
@@ -82,22 +134,12 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		return nil, nil, []error{errors.New("No servers found in integration spec of [" + d.integration.Name + "]")}
 	}
 
-	basePath := d.router.Servers[0].URL
-	// prefer https path over http paths
-	if len(d.router.Servers) > 1 && strings.Index(basePath, "https://") != 0 {
-		for _, apiServer := range d.router.Servers[1:] {
-			if strings.HasPrefix(apiServer.URL, "https://") {
-				basePath = apiServer.URL
-			}
-		}
+	basePath := selectedIntegrationServerBaseURL(d.router)
+	requestPath := path
+	if transportConfig.UpstreamPath != "" {
+		requestPath = transportConfig.UpstreamPath
 	}
-	if basePath[len(basePath)-1] == '/' {
-		basePath = basePath[:len(basePath)-1]
-	}
-	if path[0] != '/' {
-		path = "/" + path
-	}
-	url := basePath + path
+	url := integrationOperationURL(basePath, requestPath)
 
 	matches, err := GetParametersNames(url)
 
@@ -125,7 +167,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	protectedHeaders := make(map[string]bool)
 	protectedQueryParams := make(map[string]bool)
 
-	if operation.RequestBody != nil {
+	if transportConfig.Transport == integrationTransportREST && operation.RequestBody != nil {
 
 		requestBodyRef := operation.RequestBody.Value
 		requestContent := requestBodyRef.Content
@@ -273,7 +315,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		if param.Value.In == "body" {
 			continue
 		}
-		if param.Value.In == "header" {
+		if transportConfig.Transport == integrationTransportREST && param.Value.In == "header" {
 			if protectedHeaders[strings.ToLower(param.Value.Name)] {
 				continue
 			}
@@ -291,7 +333,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 
 		}
 
-		if param.Value.In == "query" {
+		if transportConfig.Transport == integrationTransportREST && param.Value.In == "query" {
 			if protectedQueryParams[param.Value.Name] {
 				continue
 			}
@@ -312,21 +354,56 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	arguments = append(arguments, authArguments...)
 
-	switch strings.ToLower(method) {
-	case "post":
+	transportAuth := integrationTransportAuthFromArguments(authArguments, protectedHeaders, protectedQueryParams)
+
+	switch transportConfig.Transport {
+	case integrationTransportGraphQL:
+		graphqlBody, err := createGraphQLIntegrationRequestBody(d.router, operation, transportConfig, inFieldMap, protectedHeaders, protectedQueryParams)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		arguments = append(arguments, req.BodyJSON(graphqlBody))
 		resp, err = r.Post(url, arguments...)
+		method = "post"
+	case integrationTransportWebSocket:
+		res, statusCode, err := executeWebSocketIntegrationTransport(url, operation, transportConfig, inFieldMap, transportAuth)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		responder := resource.NewResponse(nil, res, statusCode, nil)
+		return responder, []actionresponse.ActionResponse{
+			resource.NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
+			resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", statusCode),
+		}, nil
+	case integrationTransportGRPC:
+		res, statusCode, err := executeGRPCIntegrationTransport(basePath, operation, transportConfig, inFieldMap, transportAuth)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		responder := resource.NewResponse(nil, res, statusCode, nil)
+		return responder, []actionresponse.ActionResponse{
+			resource.NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
+			resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", statusCode),
+		}, nil
+	case integrationTransportREST:
+		switch strings.ToLower(method) {
+		case "post":
+			resp, err = r.Post(url, arguments...)
 
-	case "get":
-		resp, err = r.Get(url, arguments...)
-	case "delete":
-		resp, err = r.Delete(url, arguments...)
-	case "patch":
-		resp, err = r.Patch(url, arguments...)
-	case "put":
-		resp, err = r.Put(url, arguments...)
-	case "options":
-		resp, err = r.Options(url, arguments...)
+		case "get":
+			resp, err = r.Get(url, arguments...)
+		case "delete":
+			resp, err = r.Delete(url, arguments...)
+		case "patch":
+			resp, err = r.Patch(url, arguments...)
+		case "put":
+			resp, err = r.Put(url, arguments...)
+		case "options":
+			resp, err = r.Options(url, arguments...)
 
+		}
+	default:
+		return nil, nil, []error{fmt.Errorf("integration transport [%s] is not supported", transportConfig.Transport)}
 	}
 	resource.CheckErr(err, "Action execution failed")
 	if err != nil {
@@ -348,6 +425,656 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		resource.NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
 		resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", resp.Response().StatusCode),
 	}, nil
+}
+
+func integrationTransportConfigFromOperation(operation *openapi3.Operation, operationID string) (integrationTransportConfig, error) {
+	config := integrationTransportConfig{
+		Transport: integrationTransportREST,
+		Timeout:   10 * time.Second,
+	}
+	if operation == nil {
+		return config, nil
+	}
+	transport, ok, err := openAPIExtensionString(operation.Extensions, "x-daptin-transport")
+	if err != nil {
+		return config, err
+	}
+	if ok && strings.TrimSpace(transport) != "" {
+		config.Transport = strings.ToLower(strings.TrimSpace(transport))
+	}
+
+	upstreamPath, _, err := openAPIExtensionString(operation.Extensions, "x-daptin-upstream-path")
+	if err != nil {
+		return config, err
+	}
+	config.UpstreamPath = normalizeIntegrationUpstreamPath(upstreamPath)
+
+	timeoutMillis, _, err := openAPIExtensionInt(operation.Extensions, "x-daptin-timeout-ms")
+	if err != nil {
+		return config, err
+	}
+	if timeoutMillis > 0 {
+		config.Timeout = time.Duration(timeoutMillis) * time.Millisecond
+	}
+
+	config.GraphQLDocument, _, err = openAPIExtensionString(operation.Extensions, "x-daptin-graphql-document")
+	if err != nil {
+		return config, err
+	}
+	config.GraphQLDocument = strings.TrimSpace(config.GraphQLDocument)
+	config.GraphQLOperationName, _, err = openAPIExtensionString(operation.Extensions, "x-daptin-graphql-operation-name")
+	if err != nil {
+		return config, err
+	}
+	config.GraphQLOperationName = strings.TrimSpace(config.GraphQLOperationName)
+	if config.Transport == integrationTransportREST && config.GraphQLDocument != "" {
+		config.Transport = integrationTransportGraphQL
+	}
+	if config.Transport == integrationTransportGraphQL && config.UpstreamPath == "" {
+		config.UpstreamPath = "/graphql"
+	}
+
+	config.GRPCService, _, err = openAPIExtensionString(operation.Extensions, "x-daptin-grpc-service")
+	if err != nil {
+		return config, err
+	}
+	config.GRPCService = strings.TrimSpace(config.GRPCService)
+	config.GRPCMethod, _, err = openAPIExtensionString(operation.Extensions, "x-daptin-grpc-method")
+	if err != nil {
+		return config, err
+	}
+	config.GRPCMethod = strings.Trim(strings.TrimSpace(config.GRPCMethod), "/")
+	if config.GRPCMethod == "" {
+		config.GRPCMethod = operationID
+	}
+	config.GRPCDescriptorBase64, _, err = openAPIExtensionString(operation.Extensions, "x-daptin-grpc-descriptor-base64")
+	if err != nil {
+		return config, err
+	}
+	config.GRPCDescriptorBase64 = strings.TrimSpace(config.GRPCDescriptorBase64)
+
+	config.WebSocketMessageTemplate, _, err = openAPIExtensionString(operation.Extensions, "x-daptin-websocket-message-template")
+	if err != nil {
+		return config, err
+	}
+	config.WebSocketResponseSelector, _, err = openAPIExtensionString(operation.Extensions, "x-daptin-websocket-response-selector")
+	if err != nil {
+		return config, err
+	}
+	config.WebSocketResponseSelector = strings.TrimSpace(config.WebSocketResponseSelector)
+
+	switch config.Transport {
+	case integrationTransportREST, integrationTransportGraphQL, integrationTransportGRPC, integrationTransportWebSocket:
+	default:
+		return config, fmt.Errorf("integration transport [%s] is not supported", config.Transport)
+	}
+	if config.Transport == integrationTransportGraphQL && config.GraphQLDocument == "" {
+		return config, errors.New("x-daptin-graphql-document is required for graphql integration transport")
+	}
+	if config.Transport == integrationTransportGRPC && config.GRPCService == "" {
+		return config, errors.New("x-daptin-grpc-service is required for grpc integration transport")
+	}
+	return config, nil
+}
+
+func normalizeIntegrationUpstreamPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	if path[0] != '/' {
+		path = "/" + path
+	}
+	return path
+}
+
+func openAPIExtensionString(extensions map[string]interface{}, key string) (string, bool, error) {
+	if len(extensions) == 0 {
+		return "", false, nil
+	}
+	value, ok := extensions[key]
+	if !ok || value == nil {
+		return "", false, nil
+	}
+	switch typedValue := value.(type) {
+	case string:
+		return typedValue, true, nil
+	case stdjson.RawMessage:
+		return stringFromOpenAPIExtensionBytes(key, typedValue)
+	case []byte:
+		return stringFromOpenAPIExtensionBytes(key, typedValue)
+	default:
+		return "", true, fmt.Errorf("%s must be a string", key)
+	}
+}
+
+func openAPIExtensionInt(extensions map[string]interface{}, key string) (int64, bool, error) {
+	if len(extensions) == 0 {
+		return 0, false, nil
+	}
+	value, ok := extensions[key]
+	if !ok || value == nil {
+		return 0, false, nil
+	}
+	switch typedValue := value.(type) {
+	case int:
+		return int64(typedValue), true, nil
+	case int64:
+		return typedValue, true, nil
+	case float64:
+		return int64(typedValue), true, nil
+	case string:
+		parsed, err := strconv.ParseInt(strings.TrimSpace(typedValue), 10, 64)
+		if err != nil {
+			return 0, true, fmt.Errorf("%s must be an integer", key)
+		}
+		return parsed, true, nil
+	case stdjson.RawMessage:
+		return intFromOpenAPIExtensionBytes(key, typedValue)
+	case []byte:
+		return intFromOpenAPIExtensionBytes(key, typedValue)
+	default:
+		return 0, true, fmt.Errorf("%s must be an integer", key)
+	}
+}
+
+func intFromOpenAPIExtensionBytes(key string, value []byte) (int64, bool, error) {
+	var decoded int64
+	if err := stdjson.Unmarshal(value, &decoded); err == nil {
+		return decoded, true, nil
+	}
+	var decodedString string
+	if err := stdjson.Unmarshal(value, &decodedString); err == nil {
+		parsed, parseErr := strconv.ParseInt(strings.TrimSpace(decodedString), 10, 64)
+		if parseErr != nil {
+			return 0, true, fmt.Errorf("%s must be an integer", key)
+		}
+		return parsed, true, nil
+	}
+	return 0, true, fmt.Errorf("%s must be an integer", key)
+}
+
+func stringFromOpenAPIExtensionBytes(key string, value []byte) (string, bool, error) {
+	var decoded string
+	if err := stdjson.Unmarshal(value, &decoded); err == nil {
+		return decoded, true, nil
+	}
+	if stdjson.Valid(value) {
+		return "", true, fmt.Errorf("%s must be a string", key)
+	}
+	if len(value) == 0 {
+		return "", true, nil
+	}
+	if value[0] == '"' || value[0] == '{' || value[0] == '[' {
+		return "", true, fmt.Errorf("%s must be a string", key)
+	}
+	return string(value), true, nil
+}
+
+func selectedIntegrationServerBaseURL(router *openapi3.T) string {
+	basePath := router.Servers[0].URL
+	// prefer https path over http paths
+	if len(router.Servers) > 1 && strings.Index(basePath, "https://") != 0 {
+		for _, apiServer := range router.Servers[1:] {
+			if strings.HasPrefix(apiServer.URL, "https://") {
+				basePath = apiServer.URL
+			}
+		}
+	}
+	return strings.TrimSuffix(basePath, "/")
+}
+
+func integrationOperationURL(basePath string, requestPath string) string {
+	if requestPath == "" {
+		return basePath
+	}
+	if requestPath[0] != '/' {
+		requestPath = "/" + requestPath
+	}
+	return basePath + requestPath
+}
+
+func createGraphQLIntegrationRequestBody(
+	router *openapi3.T,
+	operation *openapi3.Operation,
+	transportConfig integrationTransportConfig,
+	inFieldMap map[string]interface{},
+	protectedHeaders map[string]bool,
+	protectedQueryParams map[string]bool,
+) (map[string]interface{}, error) {
+	variables, err := createIntegrationOperationVariables(router, operation, inFieldMap, protectedHeaders, protectedQueryParams)
+	if err != nil {
+		return nil, err
+	}
+	body := map[string]interface{}{
+		"query":     transportConfig.GraphQLDocument,
+		"variables": variables,
+	}
+	if transportConfig.GraphQLOperationName != "" {
+		body["operationName"] = transportConfig.GraphQLOperationName
+	}
+	return body, nil
+}
+
+func createIntegrationOperationVariables(
+	router *openapi3.T,
+	operation *openapi3.Operation,
+	inFieldMap map[string]interface{},
+	protectedHeaders map[string]bool,
+	protectedQueryParams map[string]bool,
+) (map[string]interface{}, error) {
+	variables := make(map[string]interface{})
+	if operation == nil {
+		return variables, nil
+	}
+	if operation.RequestBody != nil && operation.RequestBody.Value != nil {
+		if requestBody, err := createVariablesFromIntegrationRequestBody(operation.RequestBody.Value, inFieldMap); err != nil {
+			return nil, err
+		} else if requestBody != nil {
+			if requestBodyMap, ok := requestBody.(map[string]interface{}); ok {
+				for key, value := range requestBodyMap {
+					if !isIntegrationRuntimeInputKey(key) {
+						variables[key] = value
+					}
+				}
+			} else {
+				variables["body"] = requestBody
+			}
+		}
+	}
+	for _, parameterRef := range operation.Parameters {
+		if parameterRef == nil || parameterRef.Value == nil {
+			continue
+		}
+		parameter := parameterRef.Value
+		if isIntegrationRuntimeParameter(router, parameter, protectedHeaders, protectedQueryParams) {
+			continue
+		}
+		value, ok := inFieldMap[parameter.Name]
+		if !ok || value == nil {
+			continue
+		}
+		if parameter.Schema != nil && parameter.Schema.Value != nil {
+			convertedValue, err := CreateRequestBody(ModeRequest, "application/json", parameter.Name, parameter.Schema.Value, inFieldMap)
+			if err != nil {
+				return nil, err
+			}
+			if convertedValue != nil {
+				value = convertedValue
+			}
+		}
+		variables[parameter.Name] = value
+	}
+	return variables, nil
+}
+
+func createVariablesFromIntegrationRequestBody(requestBody *openapi3.RequestBody, inFieldMap map[string]interface{}) (interface{}, error) {
+	if requestBody == nil {
+		return nil, nil
+	}
+	if jsonMedia := requestBody.Content.Get("application/json"); jsonMedia != nil {
+		return CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, "application/json", jsonMedia.Schema, inFieldMap)
+	}
+	for mediaType, media := range requestBody.Content {
+		if media == nil {
+			continue
+		}
+		return CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, mediaType, media.Schema, inFieldMap)
+	}
+	return nil, nil
+}
+
+func isIntegrationRuntimeParameter(
+	router *openapi3.T,
+	parameter *openapi3.Parameter,
+	protectedHeaders map[string]bool,
+	protectedQueryParams map[string]bool,
+) bool {
+	if parameter == nil || isIntegrationRuntimeInputKey(parameter.Name) {
+		return true
+	}
+	switch strings.ToLower(parameter.In) {
+	case "header":
+		if protectedHeaders[strings.ToLower(parameter.Name)] || strings.EqualFold(parameter.Name, "authorization") {
+			return true
+		}
+	case "query":
+		if protectedQueryParams[parameter.Name] {
+			return true
+		}
+	}
+	if router == nil || router.Components.SecuritySchemes == nil {
+		return false
+	}
+	for _, securityRef := range router.Components.SecuritySchemes {
+		if securityRef == nil || securityRef.Value == nil {
+			continue
+		}
+		scheme := securityRef.Value
+		if scheme.Type == "apiKey" && strings.EqualFold(scheme.In, parameter.In) && strings.EqualFold(scheme.Name, parameter.Name) {
+			return true
+		}
+	}
+	return false
+}
+
+func isIntegrationRuntimeInputKey(key string) bool {
+	switch key {
+	case "oauth_token_id", "credential_id", "sessionUser", "requestSessionUser", "httpRequest", "httpRequestHeaders":
+		return true
+	default:
+		return false
+	}
+}
+
+func integrationTransportAuthFromArguments(arguments []interface{}, protectedHeaders map[string]bool, protectedQueryParams map[string]bool) integrationTransportAuth {
+	auth := integrationTransportAuth{
+		Arguments:            arguments,
+		ProtectedHeaders:     protectedHeaders,
+		ProtectedQueryParams: protectedQueryParams,
+		Headers:              make(map[string]string),
+		QueryParams:          make(map[string]interface{}),
+	}
+	for _, argument := range arguments {
+		switch typedArgument := argument.(type) {
+		case req.Header:
+			for key, value := range typedArgument {
+				auth.Headers[key] = value
+			}
+		case req.QueryParam:
+			for key, value := range typedArgument {
+				auth.QueryParams[key] = value
+			}
+		}
+	}
+	return auth
+}
+
+func executeWebSocketIntegrationTransport(
+	requestURL string,
+	operation *openapi3.Operation,
+	transportConfig integrationTransportConfig,
+	inFieldMap map[string]interface{},
+	auth integrationTransportAuth,
+) (map[string]interface{}, int, error) {
+	websocketURL, err := websocketURLFromIntegrationURL(requestURL, auth.QueryParams)
+	if err != nil {
+		return nil, 0, err
+	}
+	header := http.Header{}
+	for key, value := range auth.Headers {
+		header.Set(key, value)
+	}
+	dialer := gorillawebsocket.Dialer{HandshakeTimeout: transportConfig.Timeout}
+	conn, _, err := dialer.Dial(websocketURL, header)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer conn.Close()
+
+	message, err := createWebSocketIntegrationMessage(operation, transportConfig, inFieldMap, auth)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := conn.SetWriteDeadline(time.Now().Add(transportConfig.Timeout)); err != nil {
+		return nil, 0, err
+	}
+	if err := conn.WriteJSON(message); err != nil {
+		return nil, 0, err
+	}
+	if err := conn.SetReadDeadline(time.Now().Add(transportConfig.Timeout)); err != nil {
+		return nil, 0, err
+	}
+	_, responseBytes, err := conn.ReadMessage()
+	if err != nil {
+		return nil, 0, err
+	}
+	response := map[string]interface{}{}
+	if err := json.Unmarshal(responseBytes, &response); err != nil {
+		response["body"] = string(responseBytes)
+	}
+	if transportConfig.WebSocketResponseSelector != "" {
+		selected, ok := selectIntegrationResponseValue(response, transportConfig.WebSocketResponseSelector)
+		if !ok {
+			return nil, 0, fmt.Errorf("websocket response selector [%s] did not match response", transportConfig.WebSocketResponseSelector)
+		}
+		response = map[string]interface{}{"value": selected}
+	}
+	return response, http.StatusOK, nil
+}
+
+func websocketURLFromIntegrationURL(requestURL string, queryParams map[string]interface{}) (string, error) {
+	parsedURL, err := url.Parse(requestURL)
+	if err != nil {
+		return "", err
+	}
+	switch parsedURL.Scheme {
+	case "http":
+		parsedURL.Scheme = "ws"
+	case "https":
+		parsedURL.Scheme = "wss"
+	case "ws", "wss":
+	default:
+		return "", fmt.Errorf("websocket integration requires http, https, ws, or wss server URL, got [%s]", parsedURL.Scheme)
+	}
+	query := parsedURL.Query()
+	for key, value := range queryParams {
+		query.Set(key, fmt.Sprintf("%v", value))
+	}
+	parsedURL.RawQuery = query.Encode()
+	return parsedURL.String(), nil
+}
+
+func createWebSocketIntegrationMessage(operation *openapi3.Operation, transportConfig integrationTransportConfig, inFieldMap map[string]interface{}, auth integrationTransportAuth) (interface{}, error) {
+	variables, err := createIntegrationOperationVariables(nil, operation, inFieldMap, auth.ProtectedHeaders, auth.ProtectedQueryParams)
+	if err != nil {
+		return nil, err
+	}
+	template := strings.TrimSpace(transportConfig.WebSocketMessageTemplate)
+	if template == "" {
+		return variables, nil
+	}
+	evaluated, err := resource.EvaluateString(template, variables)
+	if err != nil {
+		return nil, err
+	}
+	if evaluatedString, ok := evaluated.(string); ok {
+		var jsonMessage interface{}
+		if err := json.Unmarshal([]byte(evaluatedString), &jsonMessage); err == nil {
+			return jsonMessage, nil
+		}
+		return evaluatedString, nil
+	}
+	return evaluated, nil
+}
+
+func selectIntegrationResponseValue(response map[string]interface{}, selector string) (interface{}, bool) {
+	selector = strings.TrimSpace(selector)
+	if selector == "" {
+		return response, true
+	}
+	var current interface{} = response
+	for _, part := range strings.Split(selector, ".") {
+		currentMap, ok := current.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		current, ok = currentMap[part]
+		if !ok {
+			return nil, false
+		}
+	}
+	return current, true
+}
+
+func executeGRPCIntegrationTransport(
+	basePath string,
+	operation *openapi3.Operation,
+	transportConfig integrationTransportConfig,
+	inFieldMap map[string]interface{},
+	auth integrationTransportAuth,
+) (map[string]interface{}, int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), transportConfig.Timeout)
+	defer cancel()
+
+	target, secure, err := grpcTargetFromIntegrationBaseURL(basePath)
+	if err != nil {
+		return nil, 0, err
+	}
+	dialOptions := []grpc.DialOption{}
+	if secure {
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+	} else {
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+	conn, err := grpc.DialContext(ctx, target, dialOptions...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer conn.Close()
+
+	if len(auth.Headers) > 0 {
+		md := metadata.MD{}
+		for key, value := range auth.Headers {
+			md.Append(strings.ToLower(key), value)
+		}
+		ctx = metadata.NewOutgoingContext(ctx, md)
+	}
+	files, err := grpcDescriptorFiles(ctx, conn, transportConfig)
+	if err != nil {
+		return nil, 0, err
+	}
+	methodDescriptor, err := grpcMethodDescriptor(files, transportConfig)
+	if err != nil {
+		return nil, 0, err
+	}
+	variables, err := createIntegrationOperationVariables(nil, operation, inFieldMap, auth.ProtectedHeaders, auth.ProtectedQueryParams)
+	if err != nil {
+		return nil, 0, err
+	}
+	inputMessage := dynamicpb.NewMessage(methodDescriptor.Input())
+	inputJSON, err := json.Marshal(variables)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := protojson.Unmarshal(inputJSON, inputMessage); err != nil {
+		return nil, 0, err
+	}
+	outputMessage := dynamicpb.NewMessage(methodDescriptor.Output())
+	fullMethodName := fmt.Sprintf("/%s/%s", transportConfig.GRPCService, methodDescriptor.Name())
+	if err := conn.Invoke(ctx, fullMethodName, inputMessage, outputMessage); err != nil {
+		return nil, 0, err
+	}
+	responseJSON, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(outputMessage)
+	if err != nil {
+		return nil, 0, err
+	}
+	response := map[string]interface{}{}
+	if err := json.Unmarshal(responseJSON, &response); err != nil {
+		return nil, 0, err
+	}
+	return response, http.StatusOK, nil
+}
+
+func grpcTargetFromIntegrationBaseURL(basePath string) (string, bool, error) {
+	parsedURL, err := url.Parse(basePath)
+	if err != nil {
+		return "", false, err
+	}
+	if parsedURL.Scheme == "" {
+		return basePath, false, nil
+	}
+	switch parsedURL.Scheme {
+	case "http":
+		return parsedURL.Host, false, nil
+	case "https":
+		return parsedURL.Host, true, nil
+	default:
+		return "", false, fmt.Errorf("grpc integration requires http or https server URL, got [%s]", parsedURL.Scheme)
+	}
+}
+
+func grpcDescriptorFiles(ctx context.Context, conn *grpc.ClientConn, transportConfig integrationTransportConfig) (*protoregistryFiles, error) {
+	if transportConfig.GRPCDescriptorBase64 != "" {
+		descriptorBytes, err := base64.StdEncoding.DecodeString(transportConfig.GRPCDescriptorBase64)
+		if err != nil {
+			return nil, err
+		}
+		descriptorSet := &descriptorpb.FileDescriptorSet{}
+		if err := proto.Unmarshal(descriptorBytes, descriptorSet); err != nil {
+			return nil, err
+		}
+		files, err := protodesc.NewFiles(descriptorSet)
+		if err != nil {
+			return nil, err
+		}
+		return &protoregistryFiles{files: files}, nil
+	}
+	descriptorSet, err := grpcDescriptorSetFromReflection(ctx, conn, transportConfig.GRPCService)
+	if err != nil {
+		return nil, err
+	}
+	files, err := protodesc.NewFiles(descriptorSet)
+	if err != nil {
+		return nil, err
+	}
+	return &protoregistryFiles{files: files}, nil
+}
+
+type protoregistryFiles struct {
+	files *protoregistry.Files
+}
+
+func grpcMethodDescriptor(files *protoregistryFiles, transportConfig integrationTransportConfig) (protoreflect.MethodDescriptor, error) {
+	serviceDescriptor, err := files.files.FindDescriptorByName(protoreflect.FullName(transportConfig.GRPCService))
+	if err != nil {
+		return nil, err
+	}
+	service, ok := serviceDescriptor.(protoreflect.ServiceDescriptor)
+	if !ok {
+		return nil, fmt.Errorf("[%s] is not a grpc service", transportConfig.GRPCService)
+	}
+	methodName := protoreflect.Name(transportConfig.GRPCMethod)
+	methodDescriptor := service.Methods().ByName(methodName)
+	if methodDescriptor == nil {
+		return nil, fmt.Errorf("grpc method [%s] was not found in service [%s]", transportConfig.GRPCMethod, transportConfig.GRPCService)
+	}
+	if methodDescriptor.IsStreamingClient() || methodDescriptor.IsStreamingServer() {
+		return nil, fmt.Errorf("grpc streaming method [%s] is not supported", transportConfig.GRPCMethod)
+	}
+	return methodDescriptor, nil
+}
+
+func grpcDescriptorSetFromReflection(ctx context.Context, conn *grpc.ClientConn, symbol string) (*descriptorpb.FileDescriptorSet, error) {
+	client := reflectionv1alpha.NewServerReflectionClient(conn)
+	stream, err := client.ServerReflectionInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(&reflectionv1alpha.ServerReflectionRequest{
+		MessageRequest: &reflectionv1alpha.ServerReflectionRequest_FileContainingSymbol{
+			FileContainingSymbol: symbol,
+		},
+	}); err != nil {
+		return nil, err
+	}
+	response, err := stream.Recv()
+	if err != nil {
+		return nil, err
+	}
+	fileResponse := response.GetFileDescriptorResponse()
+	if fileResponse == nil {
+		return nil, fmt.Errorf("grpc reflection did not return descriptors for [%s]", symbol)
+	}
+	descriptorSet := &descriptorpb.FileDescriptorSet{}
+	for _, fileBytes := range fileResponse.FileDescriptorProto {
+		fileDescriptor := &descriptorpb.FileDescriptorProto{}
+		if err := proto.Unmarshal(fileBytes, fileDescriptor); err != nil {
+			return nil, err
+		}
+		descriptorSet.File = append(descriptorSet.File, fileDescriptor)
+	}
+	return descriptorSet, nil
 }
 
 func (d *integrationActionPerformer) oauth2AuthorizationHeader(

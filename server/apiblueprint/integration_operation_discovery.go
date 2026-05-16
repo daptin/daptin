@@ -1,6 +1,7 @@
 package apiblueprint
 
 import (
+	stdjson "encoding/json"
 	"fmt"
 	"net/url"
 	"sort"
@@ -134,6 +135,7 @@ func DescribeIntegrationOperation(integration resource.Integration, operationID 
 			Responses:      integrationOperationResponses(record.Operation),
 			InputSchema:    operationInputSchema(router, record.Operation),
 			ResponseSchema: integrationOperationResponseSchema(record.Operation),
+			Extensions:     integrationOperationExtensions(record.Operation),
 		}
 		log.Tracef("Built integration operation description provider=[%s] operation=[%s] inputs=%d responses=%d",
 			integration.Name, operationID, len(detail.Inputs), len(detail.Responses))
@@ -315,6 +317,84 @@ func integrationOperationResponses(operation *openapi3.Operation) []IntegrationO
 		})
 	}
 	return responses
+}
+
+func integrationOperationExtensions(operation *openapi3.Operation) map[string]map[string]interface{} {
+	if operation == nil || operation.Extensions == nil {
+		return nil
+	}
+	transportType, ok := integrationOperationExtensionString(operation.Extensions, "x-daptin-transport")
+	if !ok || strings.TrimSpace(transportType) == "" {
+		transportType = "rest"
+	}
+	transportType = strings.ToLower(strings.TrimSpace(transportType))
+	document, ok := integrationOperationExtensionString(operation.Extensions, "x-daptin-graphql-document")
+	if transportType == "rest" && ok && strings.TrimSpace(document) != "" {
+		transportType = "graphql"
+	}
+	if transportType == "rest" {
+		return nil
+	}
+	metadata := map[string]interface{}{
+		"type": transportType,
+	}
+	upstreamPath, upstreamSet := integrationOperationExtensionString(operation.Extensions, "x-daptin-upstream-path")
+	if transportType == "graphql" && (!upstreamSet || strings.TrimSpace(upstreamPath) == "") {
+		upstreamPath = "/graphql"
+	}
+	if strings.TrimSpace(upstreamPath) != "" {
+		upstreamPath = strings.TrimSpace(upstreamPath)
+		if upstreamPath[0] != '/' {
+			upstreamPath = "/" + upstreamPath
+		}
+		metadata["upstream_path"] = upstreamPath
+	}
+	if operationName, ok := integrationOperationExtensionString(operation.Extensions, "x-daptin-graphql-operation-name"); ok && strings.TrimSpace(operationName) != "" {
+		metadata["operation_name"] = strings.TrimSpace(operationName)
+	}
+	if grpcService, ok := integrationOperationExtensionString(operation.Extensions, "x-daptin-grpc-service"); ok && strings.TrimSpace(grpcService) != "" {
+		metadata["grpc_service"] = strings.TrimSpace(grpcService)
+	}
+	if grpcMethod, ok := integrationOperationExtensionString(operation.Extensions, "x-daptin-grpc-method"); ok && strings.TrimSpace(grpcMethod) != "" {
+		metadata["grpc_method"] = strings.Trim(strings.TrimSpace(grpcMethod), "/")
+	}
+	if responseSelector, ok := integrationOperationExtensionString(operation.Extensions, "x-daptin-websocket-response-selector"); ok && strings.TrimSpace(responseSelector) != "" {
+		metadata["response_selector"] = strings.TrimSpace(responseSelector)
+	}
+	return map[string]map[string]interface{}{
+		"daptin_transport": metadata,
+	}
+}
+
+func integrationOperationExtensionString(extensions map[string]interface{}, key string) (string, bool) {
+	value, ok := extensions[key]
+	if !ok || value == nil {
+		return "", false
+	}
+	switch typedValue := value.(type) {
+	case string:
+		return typedValue, true
+	case stdjson.RawMessage:
+		var decoded string
+		if err := stdjson.Unmarshal(typedValue, &decoded); err == nil {
+			return decoded, true
+		}
+		if stdjson.Valid(typedValue) {
+			return "", false
+		}
+		return string(typedValue), true
+	case []byte:
+		var decoded string
+		if err := stdjson.Unmarshal(typedValue, &decoded); err == nil {
+			return decoded, true
+		}
+		if stdjson.Valid(typedValue) {
+			return "", false
+		}
+		return string(typedValue), true
+	default:
+		return "", false
+	}
 }
 
 func integrationOperationComponents(typeMap map[string]map[string]interface{}) map[string]interface{} {

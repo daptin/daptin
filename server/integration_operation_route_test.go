@@ -68,3 +68,27 @@ func TestIntegrationOperationRoutesAllowSlashesInOperationID(t *testing.T) {
 		})
 	}
 }
+
+func TestSanitizeProviderScopedIntegrationInputRemovesRuntimeFields(t *testing.T) {
+	input := map[string]interface{}{
+		"oauth_token_id":      "input-oauth",
+		"credential_id":       "input-credential",
+		"sessionUser":         "input-session",
+		"requestSessionUser":  "input-request-session",
+		"httpRequest":         "input-request",
+		"httpRequestHeaders":  "input-headers",
+		"provider_field":      "kept",
+		"provider_credential": "kept",
+	}
+
+	sanitizeProviderScopedIntegrationInput(input)
+
+	for _, key := range []string{"oauth_token_id", "credential_id", "sessionUser", "requestSessionUser", "httpRequest", "httpRequestHeaders"} {
+		if _, ok := input[key]; ok {
+			t.Fatalf("runtime key %q was not removed: %#v", key, input)
+		}
+	}
+	if input["provider_field"] != "kept" || input["provider_credential"] != "kept" {
+		t.Fatalf("provider fields were not preserved: %#v", input)
+	}
+}

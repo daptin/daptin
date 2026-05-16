@@ -131,6 +131,43 @@ func TestDescribeIntegrationOperationIncludesInputAndResponseHints(t *testing.T)
 	}
 }
 
+func TestDescribeIntegrationOperationIncludesGraphQLExtensionMetadata(t *testing.T) {
+	document, err := DescribeIntegrationOperation(testLinearGraphQLIntegration(), "listIssues")
+	if err != nil {
+		t.Fatalf("failed to describe operation: %v", err)
+	}
+	transportExtensions := document.Extensions["daptin_transport"]
+	if transportExtensions == nil {
+		t.Fatalf("missing GraphQL extension metadata: %+v", document.Extensions)
+	}
+	if transportExtensions["type"] != "graphql" || transportExtensions["upstream_path"] != "/graphql" || transportExtensions["operation_name"] != "ListIssues" {
+		t.Fatalf("unexpected GraphQL extension metadata: %+v", transportExtensions)
+	}
+	if _, ok := transportExtensions["document"]; ok {
+		t.Fatalf("GraphQL document should not be exposed in operation detail metadata")
+	}
+}
+
+func TestDescribeIntegrationOperationIncludesProtocolTransportMetadata(t *testing.T) {
+	document, err := DescribeIntegrationOperation(testProtocolTransportIntegration(), "Search")
+	if err != nil {
+		t.Fatalf("failed to describe grpc operation: %v", err)
+	}
+	transportExtensions := document.Extensions["daptin_transport"]
+	if transportExtensions["type"] != "grpc" || transportExtensions["grpc_service"] != "grpc.testing.SearchService" || transportExtensions["grpc_method"] != "Search" {
+		t.Fatalf("unexpected grpc transport metadata: %+v", transportExtensions)
+	}
+
+	document, err = DescribeIntegrationOperation(testProtocolTransportIntegration(), "listen")
+	if err != nil {
+		t.Fatalf("failed to describe websocket operation: %v", err)
+	}
+	transportExtensions = document.Extensions["daptin_transport"]
+	if transportExtensions["type"] != "websocket" || transportExtensions["upstream_path"] != "/events" || transportExtensions["response_selector"] != "data" {
+		t.Fatalf("unexpected websocket transport metadata: %+v", transportExtensions)
+	}
+}
+
 func TestBuildIntegrationOpenAPIIsScopedToProvider(t *testing.T) {
 	document, err := BuildIntegrationOpenAPI(testAsanaIntegration())
 	if err != nil {
@@ -141,6 +178,81 @@ func TestBuildIntegrationOpenAPIIsScopedToProvider(t *testing.T) {
 	}
 	if !strings.Contains(document, "IntegrationAsanaComGetTaskRequestObject") {
 		t.Fatalf("request component not generated:\n%s", document)
+	}
+}
+
+func testLinearGraphQLIntegration() resource.Integration {
+	return resource.Integration{
+		Name:                  "linear.app",
+		SpecificationLanguage: "openapiv3",
+		SpecificationFormat:   "json",
+		AuthenticationType:    "oauth2",
+		Enable:                true,
+		Specification: `{
+  "openapi": "3.0.0",
+  "info": {"title": "Linear", "version": "1.0.0"},
+  "servers": [{"url": "https://api.linear.app"}],
+  "paths": {
+    "/issues/list": {
+      "post": {
+        "operationId": "listIssues",
+        "x-daptin-upstream-path": "/graphql",
+        "x-daptin-graphql-operation-name": "ListIssues",
+        "x-daptin-graphql-document": "query ListIssues($first: Int) { issues(first: $first) { nodes { id } } }",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first": {"type": "integer"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "OK"}
+        }
+      }
+    }
+  }
+}`,
+	}
+}
+
+func testProtocolTransportIntegration() resource.Integration {
+	return resource.Integration{
+		Name:                  "protocol.example",
+		SpecificationLanguage: "openapiv3",
+		SpecificationFormat:   "json",
+		AuthenticationType:    "custom_credentials",
+		Enable:                true,
+		Specification: `{
+  "openapi": "3.0.0",
+  "info": {"title": "Protocol", "version": "1.0.0"},
+  "servers": [{"url": "http://localhost:9090"}],
+  "paths": {
+    "/grpc": {
+      "post": {
+        "operationId": "Search",
+        "x-daptin-transport": "grpc",
+        "x-daptin-grpc-service": "grpc.testing.SearchService",
+        "x-daptin-grpc-method": "Search",
+        "responses": {"200": {"description": "OK"}}
+      }
+    },
+    "/ws": {
+      "post": {
+        "operationId": "listen",
+        "x-daptin-transport": "websocket",
+        "x-daptin-upstream-path": "/events",
+        "x-daptin-websocket-response-selector": "data",
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}`,
 	}
 }
 

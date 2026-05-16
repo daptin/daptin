@@ -47,6 +47,7 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 		if body.Input == nil {
 			body.Input = make(map[string]interface{})
 		}
+		sanitizeProviderScopedIntegrationInput(body.Input)
 		if body.OAuthTokenID != nil {
 			body.Input["oauth_token_id"] = body.OAuthTokenID
 		}
@@ -136,6 +137,12 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 
 func integrationOperationNameParam(c *gin.Context) string {
 	return strings.TrimPrefix(c.Param("operationName"), "/")
+}
+
+func sanitizeProviderScopedIntegrationInput(input map[string]interface{}) {
+	for _, key := range []string{"oauth_token_id", "credential_id", "sessionUser", "requestSessionUser", "httpRequest", "httpRequestHeaders"} {
+		delete(input, key)
+	}
 }
 
 func sessionUserFromContextValue(user interface{}) *auth.SessionUser {

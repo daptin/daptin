@@ -140,6 +140,10 @@ func TestGetCredentialByReferenceIdForIntegrationExecution(t *testing.T) {
 	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(credentialRef, otherSession, tx); err == nil {
 		t.Fatalf("other user's unshared credential should fail")
 	}
+	missingCredentialRef := daptinid.DaptinReferenceId(uuid.New())
+	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(missingCredentialRef, ownerSession, tx); err == nil || err.Error() != "credential is not available for this user" {
+		t.Fatalf("missing credential should fail with generic availability error, got: %v", err)
+	}
 	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(executeOnlyCredentialRef, ownerSession, tx); err == nil {
 		t.Fatalf("execute-only credential should not expose credential content")
 	}
