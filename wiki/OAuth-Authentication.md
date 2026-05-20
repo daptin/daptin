@@ -6,6 +6,16 @@ OAuth 2.0 authentication enables users to sign in using external providers like 
 
 This page covers Daptin as an OAuth consumer: Daptin connects to an upstream provider and stores provider tokens in `oauth_token`. For Daptin acting as an OAuth/OIDC provider to other applications, see [[OAuth-Provider|OAuth Provider]].
 
+For browser sign-in, keep the roles separate:
+
+| Role | Responsibility |
+|------|----------------|
+| OAuth provider | Authenticates the user and redirects back with an authorization code |
+| Daptin OAuth client backend | Starts OAuth, validates state, exchanges the code, stores provider tokens, creates or links the local Daptin user, and creates the Daptin client session |
+| Browser-facing frontend origin | The host the user actually visits; it must receive the callback if the resulting browser session should belong to that frontend |
+
+The OAuth callback must be on the browser-facing OAuth client origin. If an app runs at `https://app.example.com` and proxies to a Daptin OAuth client backend, configure `oauth_connect.redirect_uri` as `https://app.example.com/oauth/response`, not as an unrelated admin dashboard or backend-only host. Cookies and browser storage are origin-scoped; a callback completed on one host does not log the browser into another host.
+
 ---
 
 ## Quick Start (5 minutes)
@@ -16,6 +26,8 @@ This page covers Daptin as an OAuth consumer: Daptin connects to an upstream pro
 - Client ID and Client Secret from provider
 
 ### 1. Create OAuth Connection
+
+Use the browser-facing OAuth client origin in `redirect_uri`. For a direct local Daptin server this can be `http://localhost:6336/oauth/response`. For an app or router in front of Daptin, use that public origin, for example `https://app.example.com/oauth/response`.
 
 ```bash
 TOKEN="your-jwt-token"
@@ -72,6 +84,14 @@ GET http://localhost:6336/oauth/login/google-login
 ```
 
 This route is only for `oauth_connect` rows where `allow_login=true`. It starts the same `oauth_login_begin` action, creates the server-side OAuth state, and redirects the browser to the configured provider `auth_url`.
+
+If a frontend proxy is the user-facing origin, start from that origin instead:
+
+```text
+GET https://app.example.com/oauth/login/google-login
+```
+
+The frontend proxy should forward this request to the Daptin OAuth client backend without changing the externally visible host used by the browser.
 
 Authenticated applications and dashboards can also call the action directly:
 
@@ -133,6 +153,14 @@ GET /oauth/response
 ```
 
 That endpoint reads `code`, `state`, and `authenticator`, runs the existing `oauth.login.response` action, applies any returned Daptin session cookie, and follows the final safe same-origin redirect.
+
+For proxied frontends, the browser should see this endpoint on the frontend origin, for example:
+
+```text
+https://app.example.com/oauth/response?code=AUTH_CODE&state=101004&authenticator=google-login
+```
+
+The proxy forwards it to the Daptin OAuth client backend. The response then belongs to `app.example.com`, so any Daptin client session cookie is scoped to the app users actually use.
 
 You can still call the action directly from an application or test:
 
@@ -200,22 +228,30 @@ curl -X POST http://localhost:6336/action/oauth_token/oauth.login.response \
 A browser client does not create OAuth state and does not exchange the code itself. Daptin owns those server-side steps.
 
 1. Configure an `oauth_connect` row with `name`, `client_id`, `client_secret`, `scope`, `auth_url`, `token_url`, `profile_url`, `redirect_uri`, and `allow_login`.
-2. Register the exact callback URL with the provider. For Daptin browser login, this is the consumer callback plus the authenticator query parameter:
+2. Set `oauth_connect.redirect_uri` to the browser-facing callback base URL:
 
 ```text
-http://localhost:6336/oauth/response?authenticator=google-login
+https://app.example.com/oauth/response
 ```
 
-3. Store only the base callback in `oauth_connect.redirect_uri`:
+For direct local development this can be:
 
 ```text
 http://localhost:6336/oauth/response
 ```
 
+Do not use an admin dashboard host for a user-facing app login unless the desired result is logging into that admin dashboard host.
+
+3. Register the exact callback URL with the provider. For Daptin browser login, this is the consumer callback plus the authenticator query parameter:
+
+```text
+https://app.example.com/oauth/response?authenticator=google-login
+```
+
 Daptin appends `authenticator=<oauth_connect.name>` when it builds the provider authorization URL.
 
 4. Start browser login with one of these:
-   - Public sign-in page: link to `/oauth/login/<oauth_connect.name>`.
+   - Public sign-in page: link to `/oauth/login/<oauth_connect.name>` on the same browser-facing origin as the callback.
    - Authenticated dashboard/app: call `/action/oauth_connect/oauth_login_begin` for the selected row and navigate to the returned `client.redirect.location`.
 
 5. Let the provider redirect back to `/oauth/response`. Daptin validates `state`, exchanges the authorization code at `token_url`, fetches the profile from `profile_url`, stores the token, and, when `allow_login=true`, creates or finds the Daptin user and sets the normal HttpOnly Daptin session cookie.
@@ -223,6 +259,32 @@ Daptin appends `authenticator=<oauth_connect.name>` when it builds the provider 
 The browser callback endpoint is for browser redirects. API clients and tests can still call `/action/oauth_token/oauth.login.response` directly when they already have an appropriate Daptin session.
 
 No Daptin-specific provider behavior is required. The provider can be Google, GitHub, another Daptin instance, or any compatible OAuth 2.0 authorization-code provider.
+
+### Proxying Daptin Behind an App Frontend
+
+When Daptin is the OAuth client backend for an app frontend, the frontend origin should proxy the OAuth client routes and the authenticated API routes it needs.
+
+Minimum browser routes:
+
+```text
+/oauth/login/:authenticator
+/oauth/response
+```
+
+Minimum API routes depend on the app. Calls that rely on the Daptin client session should go through the same browser-facing origin so the browser sends the session cookie.
+
+Example:
+
+| Component | Example |
+|-----------|---------|
+| User-facing app | `https://app.example.com` |
+| Daptin OAuth client backend | internal Daptin service |
+| Upstream OAuth provider | Google, GitHub, or another Daptin provider |
+| `oauth_connect.redirect_uri` | `https://app.example.com/oauth/response` |
+| Provider registered redirect URI | `https://app.example.com/oauth/response?authenticator=google-login` |
+| Start URL shown to users | `https://app.example.com/oauth/login/google-login` |
+
+This is still a standard OAuth client/server flow. The provider only redirects to the registered client callback. The Daptin OAuth client backend owns code exchange and local session creation. The frontend origin owns the browser session because it is the host the browser sees.
 
 ## Daptin Consuming Daptin OAuth Provider
 
@@ -281,6 +343,8 @@ http://localhost:6336/oauth/login/daptin-login
 ```
 
 The consumer redirects to provider `/oauth/authorize`. If the browser does not already have a provider-side session, the provider redirects to `/auth/signin?return_to=...`. After password login, the provider returns to `/oauth/authorize`, issues the code, redirects to the consumer `/oauth/response`, and the consumer completes `oauth.login.response` through `token_url` and `profile_url`.
+
+If a separate frontend sits in front of the consumer, replace `localhost:6336` in the consumer callback and start URL with that frontend origin, and proxy the OAuth client routes to the consumer backend. The provider does not need to know that the upstream provider is Daptin; it only needs the exact registered redirect URI.
 
 ## Core Concepts
 
@@ -454,7 +518,7 @@ curl -X POST http://localhost:6336/api/oauth_connect \
 | `auth_url` | string | Yes | Google auth endpoint | Provider's authorization endpoint |
 | `token_url` | string | Yes | Google token endpoint | Provider's token exchange endpoint |
 | `profile_url` | string | Yes | Google userinfo endpoint | Provider's user profile endpoint |
-| `redirect_uri` | string | Yes | `/oauth/response` | Callback URL after authorization |
+| `redirect_uri` | string | Yes | `/oauth/response` | Browser-facing callback base URL after authorization |
 | `response_type` | string | No | `code` | OAuth response type (usually 'code') |
 | `allow_login` | boolean | No | `false` | Enable user authentication via this provider |
 | `access_type_offline` | boolean | No | `false` | Request refresh token for offline access |
@@ -464,8 +528,8 @@ curl -X POST http://localhost:6336/api/oauth_connect \
 
 ### Important Notes
 
-1. Register the exact callback URL with the provider, including `authenticator={name}`
-2. Store the base callback in `oauth_connect.redirect_uri`; Daptin automatically appends `?authenticator={name}` or `&authenticator={name}`
+1. Register the exact browser-facing callback URL with the provider, including `authenticator={name}`
+2. Store the browser-facing base callback in `oauth_connect.redirect_uri`; Daptin automatically appends `?authenticator={name}` or `&authenticator={name}`
 3. **Client secret** is automatically encrypted when stored in database
 4. **access_type=offline** is added to the auth URL when `access_type_offline` is true
 
@@ -681,7 +745,7 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
   }'
 ```
 
-Update oauth_connect `redirect_uri` to use HTTPS:
+Update oauth_connect `redirect_uri` to use HTTPS on the browser-facing client origin:
 ```
 https://yourdomain.com/oauth/response
 ```
@@ -693,12 +757,17 @@ https://yourdomain.com/oauth/response
 redirect_uri: http://localhost:6336/oauth/response
 ```
 
-**Production:**
+**Production direct to Daptin:**
 ```
 redirect_uri: https://yourdomain.com/oauth/response
 ```
 
-**Important:** Register both development and production redirect URIs with OAuth provider.
+**Production behind an app frontend or router:**
+```
+redirect_uri: https://app.yourdomain.com/oauth/response
+```
+
+**Important:** Register the generated callback URLs with the OAuth provider, including `?authenticator=<oauth_connect.name>`.
 
 ---
 
@@ -745,8 +814,10 @@ redirect_uri: https://yourdomain.com/oauth/response
 
 **Solution:**
 - Check exact redirect_uri in provider console
-- Ensure it matches oauth_connect.redirect_uri exactly
-- Include authenticator parameter: `?authenticator={name}`
+- Ensure the provider registration matches the generated callback exactly
+- Store only the base callback in `oauth_connect.redirect_uri`
+- Include authenticator parameter in the provider registration: `?authenticator={name}`
+- Use the browser-facing app/router host if the user flow is proxied through one
 - Use same protocol (HTTP/HTTPS) as registered
 
 ### User profile email not found

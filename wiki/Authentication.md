@@ -132,6 +132,8 @@ Daptin supports OAuth 2.0 for authenticating users via external providers (Googl
 
 This section covers Daptin as an OAuth consumer. If you want Daptin to issue OAuth/OIDC tokens to another application, use [[OAuth-Provider|OAuth Provider]].
 
+For browser login, the OAuth callback must be on the browser-facing OAuth client origin. If users visit an app frontend that proxies to Daptin, set `oauth_connect.redirect_uri` to that frontend callback, for example `https://app.example.com/oauth/response`, and register `https://app.example.com/oauth/response?authenticator=<oauth_connect.name>` with the provider. A callback completed on an admin dashboard or backend-only host cannot log the browser into a different frontend host.
+
 ### OAuth Consumer vs OAuth Provider
 
 | Mode | Use this when | Main tables/endpoints |
@@ -184,7 +186,7 @@ curl -X POST http://localhost:6336/api/oauth_connect \
         "name": "google",
         "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
         "client_secret": "YOUR_CLIENT_SECRET",
-        "redirect_uri": "/oauth/response",
+        "redirect_uri": "https://app.example.com/oauth/response",
         "auth_url": "https://accounts.google.com/o/oauth2/auth",
         "token_url": "https://oauth2.googleapis.com/token",
         "profile_url": "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
@@ -251,7 +253,7 @@ curl -X POST "http://localhost:6336/action/oauth_connect/oauth_login_begin" \
 
 For non-PKCE connections, the `state` is a 6-digit TOTP code valid for 300 seconds (5 minutes), used to prevent CSRF attacks. When `oauth_connect.pkce_enabled` is true, Daptin creates a random state value and stores the hashed state plus the PKCE verifier in `oauth_state`; the redirect URL includes a PKCE code challenge using `pkce_challenge_method`.
 
-The redirect URL includes `authenticator=<oauth_connect.name>` on the callback URL. `oauth.login.response` uses that authenticator value to load the same provider configuration during token exchange.
+The redirect URL includes `authenticator=<oauth_connect.name>` on the callback URL. `oauth.login.response` uses that authenticator value to load the same provider configuration during token exchange. Register the exact resulting callback with the provider, for example `https://app.example.com/oauth/response?authenticator=google`.
 
 #### Step 2: User Authorization (External)
 
@@ -259,7 +261,7 @@ User is redirected to the OAuth provider, authenticates, and grants permissions.
 
 #### Step 3: Callback Handling
 
-Provider redirects back to `/oauth/response?code=AUTH_CODE&state=123456&authenticator=google`
+Provider redirects back to the configured browser-facing callback, for example `/oauth/response?code=AUTH_CODE&state=123456&authenticator=google` on the app origin.
 
 This triggers the `oauth.login.response` action:
 

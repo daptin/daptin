@@ -143,6 +143,8 @@ Daptin can work with any oauth flow aware identity provider to allow new users t
 
 Create a [OAuth Connection](/extend/oauth_connection) and mark "Allow login" to enable APIs for OAuth flow.
 
+For browser login, configure the OAuth connection callback on the same origin users visit. If a user-facing app proxies to Daptin, use that app host in the OAuth connection redirect URI and provider registration; a callback on an admin dashboard or backend-only host creates a session for that host, not for the user-facing app.
+
 Examples
 
 !!! example "Google login configuration"
@@ -188,5 +190,4 @@ If the token is absent or invalid, the user is considered as a guest. Guests als
 ### Client side
 
 On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.
-
 

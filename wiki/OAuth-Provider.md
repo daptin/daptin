@@ -4,6 +4,8 @@ Daptin can act as an OAuth 2.0 and OpenID Connect provider. Client applications 
 
 This page covers Daptin issuing tokens. For Daptin consuming tokens from Google, GitHub, Dropbox, or another upstream provider, see [[OAuth-Authentication]] and [[Daptin-Google-OAuth-Complete-Flow]].
 
+When another Daptin instance or app uses this provider for browser login, that app is the OAuth client. Register the redirect URI for the client origin that the user's browser will actually visit. If an app frontend proxies to a Daptin OAuth client backend, register the frontend callback URL, such as `https://app.example.com/oauth/response?authenticator=daptin-login`, not an unrelated admin dashboard or backend-only host.
+
 ## Current Scope
 
 | Capability | Supported |
@@ -146,6 +148,8 @@ Daptin validates:
 - signed-in Daptin user exists
 
 Invalid redirect URIs return HTTP 400 directly and are not redirected.
+
+The `redirect_uri` must exactly match one of the registered client redirect URIs. For Daptin OAuth consumer callbacks, include the `authenticator` query parameter in the provider registration because the Daptin consumer appends it when creating the authorization URL.
 
 ### 3. Exchange the code
 
