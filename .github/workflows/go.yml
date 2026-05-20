@@ -388,28 +388,21 @@ jobs:
         run: |
           ls build
           find build
-          file build/github.com/*
+          file build/*
           echo ${{ github.ref_name }}
-          cp ./build/github.com/daptin/daptin-linux-amd64 daptin-linux-amd64
-          docker build -t daptin/daptin:${{ github.ref_name }} .
-          docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
-          docker push daptin/daptin:${{ github.ref_name }}
-          # Clean up Docker images after push
-          docker rmi daptin/daptin:${{ github.ref_name }} || true
-          docker system prune -af || true
 
       - uses: actions/upload-artifact@v4
         name: Upload linux amd64 artifact
         with:
           name: daptin-linux-amd64
-          path: build/github.com/daptin/daptin-linux-amd64
+          path: build/daptin-linux-amd64
         if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v4
         name: Upload darwin arm64 artifact
         with:
           name: daptin-darwin-arm64
-          path: build/github.com/daptin/daptin-darwin-arm64
+          path: build/daptin-darwin-arm64
         if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 
@@ -417,14 +410,14 @@ jobs:
         name: Upload darwin amd64 artifact
         with:
           name: daptin-darwin-amd64
-          path: build/github.com/daptin/daptin-darwin-amd64
+          path: build/daptin-darwin-amd64
         if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - uses: actions/upload-artifact@v4
         name: Upload linux arm64 artifact
         with:
           name: daptin-linux-arm64
-          path: build/github.com/daptin/daptin-linux-arm64
+          path: build/daptin-linux-arm64
         if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
 #      - uses: actions/upload-artifact@v4
@@ -453,7 +446,7 @@ jobs:
         name: Upload windows amd64 artifact
         with:
           name: daptin-windows-amd64.exe
-          path: build/github.com/daptin/daptin-windows-amd64.exe
+          path: build/daptin-windows-amd64.exe
         if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
 
       - name: Release
@@ -462,10 +455,10 @@ jobs:
         with:
           draft: true
           files: |
-            ./build/github.com/daptin/daptin-linux-amd64
-            ./build/github.com/daptin/daptin-darwin-amd64
-            ./build/github.com/daptin/daptin-linux-arm64
-            ./build/github.com/daptin/daptin-windows-amd64.exe
+            ./build/daptin-linux-amd64
+            ./build/daptin-darwin-amd64
+            ./build/daptin-linux-arm64
+            ./build/daptin-windows-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -474,7 +467,7 @@ jobs:
         run: |
           echo ${{ github.ref_name }}
           pwd
-          cp ./build/github.com/daptin/daptin-linux-amd64 daptin-linux-amd64
+          cp ./build/daptin-linux-amd64 daptin-linux-amd64
           ls -lah
           docker build -t daptin/daptin:${{ github.ref_name }} .
           docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
