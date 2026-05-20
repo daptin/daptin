@@ -65,6 +65,16 @@ Note: `client_secret` is automatically encrypted when stored.
 
 ### 2. Initiate OAuth Flow
 
+For browser sign-in, redirect the browser to the generic Daptin login start URL:
+
+```text
+GET http://localhost:6336/oauth/login/google-login
+```
+
+This route is only for `oauth_connect` rows where `allow_login=true`. It starts the same `oauth_login_begin` action, creates the server-side OAuth state, and redirects the browser to the configured provider `auth_url`.
+
+Authenticated applications and dashboards can also call the action directly:
+
 ```bash
 # oauth_login_begin is an instance action on oauth_connect.
 # The selected row supplies the authenticator name and configured scope.
@@ -108,12 +118,25 @@ The action returns:
 User is redirected to provider's authorization page → grants permissions → provider redirects back to your `redirect_uri` with:
 - `code`: Authorization code
 - `state`: Same state token from step 2
+- `authenticator`: The `oauth_connect.name` that started the flow
 
 ### 4. Handle OAuth Callback
 
 ```bash
 # Provider redirects to: http://localhost:6336/oauth/response?code=AUTH_CODE&state=101004&authenticator=google-login
+```
 
+For browser flows, Daptin now provides the default callback endpoint:
+
+```text
+GET /oauth/response
+```
+
+That endpoint reads `code`, `state`, and `authenticator`, runs the existing `oauth.login.response` action, applies any returned Daptin session cookie, and follows the final safe same-origin redirect.
+
+You can still call the action directly from an application or test:
+
+```bash
 # Your application calls oauth.login.response action
 curl -X POST http://localhost:6336/action/oauth_token/oauth.login.response \
   -H "Authorization: Bearer $TOKEN" \
@@ -172,6 +195,93 @@ curl -X POST http://localhost:6336/action/oauth_token/oauth.login.response \
 
 ---
 
+## Browser Client Contract
+
+A browser client does not create OAuth state and does not exchange the code itself. Daptin owns those server-side steps.
+
+1. Configure an `oauth_connect` row with `name`, `client_id`, `client_secret`, `scope`, `auth_url`, `token_url`, `profile_url`, `redirect_uri`, and `allow_login`.
+2. Register the exact callback URL with the provider. For Daptin browser login, this is the consumer callback plus the authenticator query parameter:
+
+```text
+http://localhost:6336/oauth/response?authenticator=google-login
+```
+
+3. Store only the base callback in `oauth_connect.redirect_uri`:
+
+```text
+http://localhost:6336/oauth/response
+```
+
+Daptin appends `authenticator=<oauth_connect.name>` when it builds the provider authorization URL.
+
+4. Start browser login with one of these:
+   - Public sign-in page: link to `/oauth/login/<oauth_connect.name>`.
+   - Authenticated dashboard/app: call `/action/oauth_connect/oauth_login_begin` for the selected row and navigate to the returned `client.redirect.location`.
+
+5. Let the provider redirect back to `/oauth/response`. Daptin validates `state`, exchanges the authorization code at `token_url`, fetches the profile from `profile_url`, stores the token, and, when `allow_login=true`, creates or finds the Daptin user and sets the normal HttpOnly Daptin session cookie.
+
+The browser callback endpoint is for browser redirects. API clients and tests can still call `/action/oauth_token/oauth.login.response` directly when they already have an appropriate Daptin session.
+
+No Daptin-specific provider behavior is required. The provider can be Google, GitHub, another Daptin instance, or any compatible OAuth 2.0 authorization-code provider.
+
+## Daptin Consuming Daptin OAuth Provider
+
+This is useful when one Daptin instance should be the identity provider for another app/router. The two instances communicate through the standard OAuth HTTP endpoints; the consumer does not need any Daptin-specific provider logic.
+
+1. Register an OAuth client on the provider side using [[OAuth-Provider|OAuth Provider]]:
+
+```bash
+curl -X POST http://localhost:6337/action/oauth_app/register_client \
+  -H "Authorization: Bearer $PROVIDER_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "name": "Daptin Login",
+      "redirect_uris": "http://localhost:6336/oauth/response?authenticator=daptin-login",
+      "scopes": "openid profile email",
+      "grants": "authorization_code,refresh_token",
+      "is_confidential": true
+    }
+  }'
+```
+
+2. Create an `oauth_connect` row that points back to the Daptin provider:
+
+```bash
+curl -X POST http://localhost:6336/api/oauth_connect \
+  -H "Authorization: Bearer $CONSUMER_ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "oauth_connect",
+      "attributes": {
+        "name": "daptin-login",
+        "client_id": "CLIENT_ID_FROM_REGISTER_CLIENT",
+        "client_secret": "CLIENT_SECRET_FROM_REGISTER_CLIENT",
+        "scope": "openid,profile,email",
+        "auth_url": "http://localhost:6337/oauth/authorize",
+        "token_url": "http://localhost:6337/oauth/token",
+        "profile_url": "http://localhost:6337/oauth/userinfo",
+        "redirect_uri": "http://localhost:6336/oauth/response",
+        "allow_login": true,
+        "access_type_offline": true,
+        "pkce_enabled": true,
+        "pkce_challenge_method": "S256"
+      }
+    }
+  }'
+```
+
+The registered OAuth app redirect URI must include the authenticator query parameter because Daptin appends it when starting the consumer flow.
+
+3. Start login by sending the browser to the consumer:
+
+```text
+http://localhost:6336/oauth/login/daptin-login
+```
+
+The consumer redirects to provider `/oauth/authorize`. If the browser does not already have a provider-side session, the provider redirects to `/auth/signin?return_to=...`. After password login, the provider returns to `/oauth/authorize`, issues the code, redirects to the consumer `/oauth/response`, and the consumer completes `oauth.login.response` through `token_url` and `profile_url`.
+
 ## Core Concepts
 
 ### OAuth 2.0 Authorization Code Flow
@@ -212,7 +322,7 @@ The OAuth callback includes `authenticator=<oauth_connect.name>`, which lets `oa
 2. Create a new project or select existing
 3. Enable Google+ API
 4. Create OAuth 2.0 credentials (Web application)
-5. Add authorized redirect URI: `http://localhost:6336/oauth/response`
+5. Add authorized redirect URI: `http://localhost:6336/oauth/response?authenticator=google-login`
 6. Copy Client ID and Client Secret
 
 #### 2. Create oauth_connect
@@ -262,7 +372,7 @@ curl -X POST http://localhost:6336/api/oauth_connect \
 
 1. Go to GitHub Settings → Developer settings → OAuth Apps
 2. Click "New OAuth App"
-3. Set Authorization callback URL: `http://localhost:6336/oauth/response`
+3. Set Authorization callback URL: `http://localhost:6336/oauth/response?authenticator=github-login`
 4. Copy Client ID and Client Secret
 
 #### 2. Create oauth_connect
@@ -354,8 +464,8 @@ curl -X POST http://localhost:6336/api/oauth_connect \
 
 ### Important Notes
 
-1. **redirect_uri** must match exactly what's registered with OAuth provider
-2. **Authenticator parameter** is automatically appended: `redirect_uri?authenticator={name}`
+1. Register the exact callback URL with the provider, including `authenticator={name}`
+2. Store the base callback in `oauth_connect.redirect_uri`; Daptin automatically appends `?authenticator={name}` or `&authenticator={name}`
 3. **Client secret** is automatically encrypted when stored in database
 4. **access_type=offline** is added to the auth URL when `access_type_offline` is true
 
@@ -370,6 +480,7 @@ Start OAuth authentication flow by generating authorization URL.
 **Action:** `oauth_login_begin`
 **On Type:** `oauth_connect`
 **Endpoint:** `/action/oauth_connect/oauth_login_begin`
+**Browser Endpoint:** `/oauth/login/<authenticator>`
 
 **Parameters:**
 - `oauth_connect_id`: Reference ID of the `oauth_connect` record, passed inside `attributes`

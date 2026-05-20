@@ -16,6 +16,7 @@ import (
 
 func InitializeOAuthResources(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, defaultRouter *gin.Engine) {
 	provider := resource.NewOAuthProvider(cruds, configStore)
+	initializeOAuthBrowserRoutes(cruds, defaultRouter)
 
 	defaultRouter.GET("/.well-known/oauth-authorization-server", oauthMetadataHandler(provider, false))
 	defaultRouter.GET("/.well-known/openid-configuration", oauthMetadataHandler(provider, true))

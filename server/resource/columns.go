@@ -1504,8 +1504,8 @@ var SystemActions = []actionresponse.Action{
 				Condition:      "!!user || (!user.length && !user.reference_id)",
 				Attributes: map[string]interface{}{
 					"email":    "!profile.email || profile.emailAddress",
-					"name":     "$profile.displayName",
-					"password": "$profile.id",
+					"name":     "!profile.displayName || profile.name || profile.email || profile.emailAddress || profile.sub || profile.id",
+					"password": "!profile.id || profile.sub || profile.email || profile.emailAddress",
 				},
 			},
 			{
@@ -1515,7 +1515,7 @@ var SystemActions = []actionresponse.Action{
 				SkipInResponse: true,
 				Condition:      "!!user || (!user.length && !user.reference_id)",
 				Attributes: map[string]interface{}{
-					"name": "!'Home group for ' + profile.emails[0].value",
+					"name": "!'Home group for ' + ((profile.emails && profile.emails[0] && profile.emails[0].value) || profile.email || profile.emailAddress || profile.sub || profile.id)",
 				},
 			},
 			{

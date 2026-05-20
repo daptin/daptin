@@ -133,7 +133,7 @@ GET /oauth/authorize?
   nonce=random-oidc-nonce
 ```
 
-The user must be signed in to Daptin. If not, Daptin redirects to `oauth.login_url` from backend config, or `/auth/signin` by default.
+The user must be signed in to Daptin. If not, Daptin redirects to `oauth.login_url` from backend config, or `/auth/signin` by default. The built-in `/auth/signin` page accepts email/password, sets the normal Daptin `token` cookie, and returns to the original `/oauth/authorize` request through the same-origin `return_to` parameter.
 
 Daptin validates:
 
@@ -173,6 +173,19 @@ Response:
 ```
 
 The authorization code is single-use. Replaying it returns `invalid_grant`.
+
+## Built-in Login Page
+
+Daptin includes a minimal provider login page for browser OAuth flows:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/auth/signin` | GET | Render the Daptin login form |
+| `/auth/signin` | POST | Validate email/password, set the Daptin session cookie, and redirect to `return_to` |
+
+`return_to` must be a same-origin absolute path such as `/oauth/authorize?...`. Absolute external URLs and protocol-relative URLs are rejected and replaced with `/`.
+
+This page is separate from the admin SPA `/sign-in` route. OAuth provider redirects use `/auth/signin` so Daptin can complete the server-side login and continue the authorization request without depending on frontend application routing.
 
 ### 4. Refresh
 
