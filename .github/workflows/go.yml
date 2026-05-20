@@ -390,6 +390,13 @@ jobs:
           find build
           file build/*
           echo ${{ github.ref_name }}
+          cp ./build/daptin-linux-amd64 daptin-linux-amd64
+          docker build -t daptin/daptin:${{ github.ref_name }} .
+          docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
+          docker push daptin/daptin:${{ github.ref_name }}
+          # Clean up Docker images after push
+          docker rmi daptin/daptin:${{ github.ref_name }} || true
+          docker system prune -af || true
 
       - uses: actions/upload-artifact@v4
         name: Upload linux amd64 artifact
