@@ -1,302 +1,214 @@
 # Daptin Wiki
 
-**Daptin** is a Backend-as-a-Service (BaaS) platform that provides database-driven REST/GraphQL APIs with automatic CRUD generation, user authentication, real-time communication, and enterprise features.
+**Daptin is the batteries-included application server for your next software project.**
 
-## What is Daptin?
+Most apps need the same backend foundation: data models, REST and GraphQL APIs,
+auth, usergroups, permissions, files, sites, actions, state machines, events,
+integrations, LLM routing, metering, caching, auditing, protocols, and
+operations.
 
-Daptin turns YAML table definitions into a full-featured backend API in seconds:
+Use Daptin as the primary backend for a new app, or run it beside an existing
+stack as a sidecar for the backend features you are missing.
 
-```
-schema.yaml → Daptin → REST/GraphQL API + Auth + Storage + Real-time
-```
-
-**You get automatically**:
-- ✅ REST API (JSON:API compliant)
-- ✅ GraphQL API
-- ✅ User authentication (JWT)
-- ✅ Permission system
-- ✅ File storage (S3, GCS, local)
-- ✅ Real-time updates (WebSocket, YJS)
-- ✅ Email server (SMTP/IMAP)
-- ✅ Custom actions and workflows
+**Build your app. Let Daptin run and enforce the backend.**
 
 ## Start Here
 
 ### First Time Users
-→ **[[Installation]]** (2 min) → **[[First-Admin-Setup]]** (5 min)
 
-### Having Issues?
-→ **[[Common-Errors]]** (troubleshooting guide)
+- **[[Installation]]** (2 min)
+- **[[First-Admin-Setup]]** (5 min)
+- **[[Getting-Started-Guide]]**
 
-### Understanding Daptin
-→ **[[Key-Behaviors]]** (critical behaviors from testing)
-→ **[[Core-Concepts]]** (how it works)
-→ **[[Getting-Started-Guide]]** (quick reference)
+### Building Apps And Filling Backend Gaps
+
+- **[[Daptin-Application-Server-Feature-Map]]** - source-grounded architecture and capability map
+- **[[LLM-Providers]]** - OpenAI-compatible provider routing
+- **[[API-Metering]]** - plans, quotas, credits, and usage logs
+- **[[Integrations]]** - external APIs without hardcoded app secrets
+
+### Understanding The Backend
+
+- **[[Core-Concepts]]**
+- **[[Schema-Definition]]**
+- **[[Permissions]]**
+- **[[Users-and-Groups]]**
+- **[[Actions-Overview]]**
+- **[[State-Machines]]**
 
 ### Complete Tutorial
-→ [[Walkthrough-Product-Catalog]] (30-45 min, tested end-to-end)
 
-## Quick Start (5 Minutes)
+- **[[Walkthrough-Product-Catalog]]** (30-45 min, tested end-to-end)
 
-```bash
-# 1. Download and run
-./daptin -port=6336
+### Troubleshooting
 
-# 2. Create admin account
-curl -X POST http://localhost:6336/action/user_account/signup \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{"email":"admin@admin.com","password":"adminadmin","passwordConfirm":"adminadmin","name":"Admin"}}'
+- **[[Common-Errors]]**
+- **[[Key-Behaviors]]**
+- **[[Testing-Onboarding-Journey]]**
 
-# 3. Sign in to get JWT token
-TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{"email":"admin@admin.com","password":"adminadmin"}}' | \
-  jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
+## What Daptin Provides
 
-echo "$TOKEN" > /tmp/daptin-token.txt
+### Data And APIs
 
-# 4. Become administrator (first user only)
-curl -X POST http://localhost:6336/action/world/become_an_administrator \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{}'
+- Schema-defined entities with standard columns, relations, validations, and metadata.
+- JSON:API CRUD under `/api/{entity}`.
+- Optional GraphQL under `/graphql`.
+- OpenAPI and metadata through `/openapi.yaml`, `/meta`, and `/jsmodel/{typename}`.
+- Filtering, pagination, aggregation, import, export, and generated data.
 
-# Wait 5 seconds, then sign in again (server may restart)
-sleep 5
-TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{"email":"admin@admin.com","password":"adminadmin"}}' | \
-  jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
+### Identity And Permissions
 
-echo "$TOKEN" > /tmp/daptin-token.txt
-echo "✓ Admin setup complete! Token saved to /tmp/daptin-token.txt"
-```
+- Users, usergroups, group membership, and ownership-aware rows.
+- Entity-level and row-level permission checks.
+- Guest, owner, and group permission scopes.
+- JWT/session auth, signup/signin, password reset, OTP/2FA.
+- OAuth as a client and OAuth/OIDC-style provider endpoints.
+- Multi-tenant patterns through usergroups, relations, ownership, and row permissions.
 
-**Next**: Create your first table → [[Schema-Definition|Schema Definition]]
+### Logic And Workflows
 
----
+- Buildable actions with input fields, validation, conditions, and outcomes.
+- Backend-side action chains for CRUD, rendering, file downloads, and performer execution.
+- State machines and state transition tracking.
+- Scheduled tasks and data exchange.
 
-## ⚠️ Production Readiness
+### Files, Sites, And Protocols
 
-**The Quick Start above uses SQLite and HTTP - NOT PRODUCTION READY!**
+- rclone-backed local/cloud storage through `cloud_store`.
+- Encrypted credentials.
+- Asset columns, uploads, file serving, cache headers, ETags, and gzip.
+- Static site/subsite hosting for app frontends, blogs, docs, and sites.
+- WebSocket events, optional YJS collaboration, streams, RSS/Atom feeds.
+- Config-gated SMTP, IMAP, FTP, CalDAV/CardDAV, HTTPS/TLS, CORS, and rate limiting.
 
-Before deploying to production, you must:
+### LLM, Integrations, And Product Runtime
 
-### 1. Switch to Production Database
-```bash
-# SQLite is DEVELOPMENT ONLY
-# Use PostgreSQL or MySQL for production
+- OpenAI-compatible `/v1` endpoints for chat, completions, embeddings, and models.
+- LLM provider routing through `llm_provider`.
+- OpenAPI-backed third-party integrations under `/integration/{provider}/{operation}`.
+- OAuth-token and custom-credential integration execution.
+- API plans, members, usage logs, quotas, rate limits, and credit hooks.
 
-DAPTIN_DB_TYPE=postgres \
-DAPTIN_DB_CONNECTION_STRING="host=db.example.com user=daptin password=SECRET dbname=daptin sslmode=require" \
-./daptin
-```
-→ **[[Database-Setup]]** for configuration
+### Operations
 
-### 2. Enable HTTPS/TLS
-```bash
-# Generate Let's Encrypt certificate (free)
-TOKEN=$(cat /tmp/daptin-token.txt)
-curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes":{"hostname":"api.example.com","email":"admin@example.com"}}'
-```
-→ **[[TLS-Certificates]]** for details
+- Runtime config through `/_config`.
+- Health and statistics through `/ping` and `/statistics`.
+- Optional audit tables and audit rows.
+- Olric-backed cache, PubSub, and clustered rate-limit counters.
+- TLS certificate management and background tasks.
 
-### 3. Security Hardening
-- Set JWT secret (`/_config/backend/jwt.secret`)
-- Set encryption secret (`/_config/backend/encryption.secret`)
-- Enable rate limiting
-- Configure firewall (block ports 5336, 5350)
+## Production Readiness
 
-### 4. Monitoring & Backups
-- Set up health check monitoring (`/ping`)
-- Monitor `/statistics` endpoint
-- Configure daily database backups
-- Test backup restore monthly
+Before deploying production apps:
 
-→ **[[Production-Deployment]]** for complete checklist
+- Use PostgreSQL or MySQL/MariaDB instead of development SQLite.
+- Set stable JWT and encryption secrets.
+- Enable HTTPS/TLS.
+- Configure backups and restore tests.
+- Use durable storage for files and media.
+- Enable only the protocols your app needs.
+- Configure monitoring, metering, rate limits, and audit behavior.
 
----
-
-## Common Workflows
-
-**Choose your path based on what you want to do**:
-
-### I want to...
-
-**Build a complete app from scratch**
-→ Follow the [[Walkthrough-Product-Catalog]] (comprehensive tutorial)
-
-**Set up user authentication**
-→ [[Users-and-Groups|Users and Groups]] + [[Authentication|Authentication]]
-
-**Let another app sign users in through Daptin**
-→ [[OAuth-Provider|OAuth Provider]]
-
-**Meter API usage, quotas, and credits**
-→ [[API-Metering|API Metering]]
-
-**Upload files to S3/cloud storage**
-→ [[Cloud-Storage|Cloud Storage]] + [[Asset-Columns|Asset Columns]]
-
-**Create custom business logic**
-→ [[Custom-Actions|Custom Actions]] + [[Actions-Overview|Actions Overview]]
-
-**Call Airtable, Asana, GitHub, or another OpenAPI-backed service**
-→ [[Integrations|Integrations]] for `POST /integration/{provider_name}/{operation_id}` and operation discovery
-
-**Control who can access what data**
-→ [[Permissions|Permissions]] + [[Users-and-Groups|Users and Groups]]
-
-**Filter and search data**
-→ [[Filtering-and-Pagination|Filtering and Pagination]] + [[Aggregation-API|Aggregation API]]
-
-**Send emails from my app**
-→ [[SMTP-Server|SMTP Server]] + [[Email-Actions|Email Actions]]
-
-**Build real-time features**
-→ [[WebSocket-API|WebSocket API]] + [[YJS-Collaboration|YJS Collaboration]]
-
----
+See **[[Production-Deployment]]**, **[[Database-Setup]]**, and
+**[[TLS-Certificates]]**.
 
 ## Documentation Sections
 
-### Getting Started
-- [[Installation]] - Binary, Docker, Kubernetes deployment
-- [[Configuration]] - Environment variables, flags, runtime config
-- [[Database Setup]] - SQLite, MySQL, PostgreSQL support
+### Setup
 
-### Core Concepts
-- [[Schema Definition]] - Getting started with tables (beginner-friendly)
-- [[Schema Reference Complete]] - All 18 TableInfo properties (complete reference)
-- [[Schema Examples]] - 5 complete working use cases
-- [[Column Types]] - All 41 types with decision tree
-- [[Column Type Reference]] - Detailed per-type documentation
-- [[Permissions]] - Linux FS-like permission model
-- [[Users and Groups]] - Authentication and authorization
+- [[Installation]]
+- [[Configuration]]
+- [[Database-Setup]]
+- [[Server-Configuration]]
+- [[Production-Deployment]]
 
-### Advanced Features
-- [[State Machines]] - Workflow automation
-- [[Audit Logging]] - Automatic change history
-- [[Relationships]] - Foreign keys and cascade behavior
-- [[Asset Columns]] - File storage (inline and cloud)
+### Data Modeling
 
-### REST API
-- [[API Overview]] - JSON:API compliant endpoints
-- [[CRUD Operations]] - Create, Read, Update, Delete
-- [[Filtering and Pagination]] - Query parameters
-- [[Relationships]] - Loading related data
-- [[Aggregation API]] - SQL-like aggregations via REST
+- [[Core-Concepts]]
+- [[Schema-Definition]]
+- [[Schema-Reference-Complete]]
+- [[Schema-Examples]]
+- [[Column-Types]]
+- [[Column-Type-Reference]]
+- [[Relationships]]
+- [[Validation-Reference]]
 
-### Actions
-- [[Actions Overview]] - Business logic layer
-- [[User Actions]] - Signup, signin, password reset
-- [[Admin Actions]] - System management
-- [[Data Actions]] - Import, export, schema operations
-- [[Cloud Actions]] - Storage operations
-- [[Email Actions]] - SMTP and SES integration
-- [[Custom Actions]] - Creating your own actions
+### APIs
 
-### Real-time Features
-- [[WebSocket API]] - Pub/sub messaging
-- [[YJS Collaboration]] - Real-time document editing
-- [[Event System]] - Database change events
+- [[API-Overview]]
+- [[API-Reference]]
+- [[CRUD-Operations]]
+- [[Filtering-and-Pagination]]
+- [[Aggregation-API]]
+- [[GraphQL-API]]
+- [[WebSocket-API]]
+- [[GET-API-Complete-Reference]]
 
-### Communication Protocols
-- [[SMTP Server]] - Email sending and receiving
-- [[IMAP Support]] - Email retrieval
-- [[CalDAV CardDAV]] - Calendar and contact sync
-- [[FTP Server]] - File transfer protocol
-- [[RSS Atom Feeds]] - Feed generation
+### Identity And Access
 
-### Storage
-- [[Cloud Storage]] - S3, GCS, Dropbox integration
-- [[Asset Columns]] - File storage in columns
-- [[Subsites]] - Multi-site hosting
+- [[Authentication]]
+- [[OAuth-Authentication]]
+- [[OAuth-Provider]]
+- [[Two-Factor-Auth]]
+- [[Users-and-Groups]]
+- [[Permissions]]
 
-### Advanced Features
-- [[GraphQL API]] - Auto-generated GraphQL
-- [[State Machines]] - FSM for workflow automation
-- [[Task Scheduling]] - Cron-like job scheduling
-- [[Data Exchange]] - External API integration
-- [[Integrations]] - Third-party services
+### Logic And Automation
 
-### Security
-- [[Authentication]] - JWT tokens, OAuth
-- [[OAuth Provider]] - Daptin as OAuth 2.0/OIDC provider
-- [[OAuth Provider Technical KT]] - Maintainer notes for provider internals
-- [[TLS Certificates]] - HTTPS, Let's Encrypt
-- [[Two-Factor Auth]] - TOTP/OTP support
-- [[Encryption]] - Data encryption at rest
+- [[Actions-Overview]]
+- [[Action-Reference]]
+- [[Custom-Actions]]
+- [[Data-Actions]]
+- [[Cloud-Actions]]
+- [[Email-Actions]]
+- [[Admin-Actions]]
+- [[User-Actions]]
+- [[State-Machines]]
+- [[Task-Scheduling]]
+- [[Data-Exchange]]
 
-### Operations
-- [[Monitoring]] - Statistics and health endpoints
-- [[Caching]] - Olric distributed cache
-- [[Rate Limiting]] - API throttling
-- [[API Metering]] - Usage metering, quotas, and credit hooks
-- [[API Metering Technical KT]] - Maintainer notes for metering internals
-- [[Clustering]] - Multi-node deployment
+### Storage, Sites, And Content
+
+- [[Cloud-Storage]]
+- [[Cloud-Storage-Complete-Guide]]
+- [[Asset-Columns]]
+- [[Subsites]]
+- [[Template-Rendering]]
+- [[RSS-Atom-Feeds]]
+
+### LLM, Integrations, And Metering
+
+- [[LLM-Providers]]
+- [[Integrations]]
+- [[Credentials]]
+- [[API-Metering]]
+- [[Rate-Limiting]]
+
+### Protocols And Operations
+
+- [[SMTP-Server]]
+- [[IMAP-Support]]
+- [[FTP-Server]]
+- [[CalDAV-CardDAV]]
+- [[TLS-Certificates]]
+- [[Monitoring]]
+- [[Caching]]
+- [[Clustering]]
+- [[Audit-Logging]]
 
 ## System Tables
 
-Daptin creates these tables automatically:
+Daptin creates and manages system tables for users, usergroups, schema metadata,
+actions, state machines, audit/timeline data, documents, sites, cloud storage,
+credentials, OAuth, integrations, LLM providers, metering, mail, tasks, and
+runtime configuration. See **[[Core-Concepts]]** and
+**[[Daptin-Application-Server-Feature-Map]]** for the connected model.
 
-| Table | Purpose |
-|-------|---------|
-| `user_account` | User records |
-| `usergroup` | Group definitions |
-| `world` | Entity metadata |
-| `action` | Available actions |
-| `smd` | State machine definitions |
-| `timeline` | Audit trail |
-| `document` | File storage |
-| `site` | Subsite configuration |
-| `cloud_store` | Storage backends |
-| `api_plan` | API metering plans |
-| `api_member` | User membership in a metering plan |
-| `api_usage` | Metered API usage events |
-| `api_quota` | Metering quota counters |
-| `mail_server` | Email servers |
-| `_config` | Runtime configuration |
+## Help
 
-## Default Ports
-
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 6336 | HTTP | Main API server |
-| 6443 | HTTPS | TLS-encrypted API |
-| 465/587 | SMTP | Email server |
-| 993 | IMAP | Email retrieval |
-| 8008 | CalDAV | Calendar sync |
-| 21 | FTP | File transfer |
-
-## API Endpoints Summary
-
-| Endpoint | Description |
-|----------|-------------|
-| `/api/{entity}` | CRUD operations |
-| `/api/{entity}/{id}` | Single record operations |
-| `/action/{entity}/{action}` | Execute actions |
-| `/aggregate/{entity}` | Aggregation queries |
-| `/graphql` | GraphQL endpoint |
-| `/live` | WebSocket endpoint |
-| `/meta` | API metadata |
-| `/statistics` | System stats |
-| `/health` | Health check |
-| `/_config` | Configuration API |
-| `/openapi.yaml` | OpenAPI spec |
-
-
-## Common Issues
-
-→ **[[Common-Errors]]** for complete troubleshooting guide
-
-## Help and Resources
-
-- **Documentation Issues?** Submit at https://github.com/daptin/daptin/issues
-- **Questions?** Check [[Troubleshooting]] or ask on GitHub Discussions
-- **Examples?** See [[Walkthrough-Product-Catalog]] and [[Cloud-Storage-Complete-Guide]]
+- Documentation issues: https://github.com/daptin/daptin/issues
+- Releases: https://github.com/daptin/daptin/releases
+- Community: https://discord.gg/t564q8SQVk
 
 ## License
 
