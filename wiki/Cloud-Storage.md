@@ -8,7 +8,7 @@
 - ⚠️ **move_path** - Partially working (has bug: creates directory instead of renaming)
 - ❌ **delete_path** - Returns success but doesn't actually delete
 
-**Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The correct format is `/action/{type}/{action_name}?{type}_id={id}` NOT `/action/{type}/{id}/{action_name}`.
+**Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The correct path format is `/action/{type}/{action_name}`, NOT `/action/{type}/{id}/{action_name}`. Pass `{type}_id` in request attributes; query parameters are accepted for backwards compatibility because Daptin merges them into action attributes.
 
 Integrate with cloud storage providers via rclone.
 
@@ -282,10 +282,10 @@ curl -X DELETE http://localhost:6336/api/cloud_store/$STORE_ID \
 
 **Status**: Most operations working with correct URL format (2026-01-27 testing).
 
-**CRITICAL**: All cloud store actions require the `cloud_store_id` as a **query parameter**, NOT in the request body or URL path:
+**CRITICAL**: All cloud store actions require the `cloud_store_id` in action attributes. Prefer the request body form below; URL query parameters are accepted but are legacy. Do not put the ID in the URL path:
 
 ```bash
-/action/cloud_store/{action_name}?cloud_store_id={STORE_ID}
+/action/cloud_store/{action_name}
 ```
 
 ### Get Cloud Store ID
@@ -300,15 +300,16 @@ curl http://localhost:6336/api/cloud_store \
 
 **Tested ✓** - Creates folders successfully in cloud storage.
 
-**CRITICAL**: The instance ID must be passed as a query parameter, not in the URL path.
+**CRITICAL**: Prefer passing the instance ID as `cloud_store_id` in attributes, not in the URL path.
 
 ```bash
-# Correct format - instance ID as query parameter
-curl -X POST "http://localhost:6336/action/cloud_store/create_folder?cloud_store_id=$STORE_ID" \
+# Correct format - instance ID in attributes
+curl -X POST "http://localhost:6336/action/cloud_store/create_folder" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "cloud_store_id": "'$STORE_ID'",
       "name": "my-folder",
       "path": ""
     }
@@ -334,18 +335,19 @@ curl -X POST "http://localhost:6336/action/cloud_store/create_folder?cloud_store
 
 **Tested ✓** - Uploads files successfully to cloud storage.
 
-**CRITICAL**: The instance ID must be passed as a query parameter, not in the body.
+**CRITICAL**: Prefer passing the instance ID as `cloud_store_id` in attributes, not in the URL path.
 
 ```bash
 # Encode your file to base64
 FILE_BASE64=$(base64 < /path/to/file.txt | tr -d '\n')
 
-# Correct format - instance ID as query parameter
-curl -X POST "http://localhost:6336/action/cloud_store/upload_file?cloud_store_id=$STORE_ID" \
+# Correct format - instance ID in attributes
+curl -X POST "http://localhost:6336/action/cloud_store/upload_file" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "cloud_store_id": "'$STORE_ID'",
       "path": "",
       "file": [
         {
@@ -383,11 +385,12 @@ Deletes a file or folder from the cloud store.
 
 ```bash
 # Correct URL format (but doesn't actually delete)
-curl -X POST "http://localhost:6336/action/cloud_store/delete_path?cloud_store_id=$STORE_ID" \
+curl -X POST "http://localhost:6336/action/cloud_store/delete_path" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "cloud_store_id": "'$STORE_ID'",
       "path": "uploads/old-file.pdf"
     }
   }'
@@ -403,11 +406,12 @@ Move or rename a file or folder.
 
 ```bash
 # Correct URL format
-curl -X POST "http://localhost:6336/action/cloud_store/move_path?cloud_store_id=$STORE_ID" \
+curl -X POST "http://localhost:6336/action/cloud_store/move_path" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "cloud_store_id": "'$STORE_ID'",
       "source": "uploads/old-name.pdf",
       "destination": "archive/new-name.pdf"
     }
@@ -424,15 +428,16 @@ Sites allow you to host static websites on cloud storage. See [[Subsites|Subsite
 
 ### Create Site
 
-**Status Unknown** - Not tested yet, but likely requires correct URL format like other actions.
+**Status Unknown** - Not tested yet, but likely requires the same attribute format as other cloud store actions.
 
 ```bash
 # Expected correct format (not yet verified)
-curl -X POST "http://localhost:6336/action/cloud_store/create_site?cloud_store_id=$STORE_ID" \
+curl -X POST "http://localhost:6336/action/cloud_store/create_site" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "cloud_store_id": "'$STORE_ID'",
       "hostname": "mysite.example.com",
       "path": "mysite",
       "site_type": "static"
@@ -445,7 +450,7 @@ curl -X POST "http://localhost:6336/action/cloud_store/create_site?cloud_store_i
 - `path` (required) - Folder path within cloud store
 - `site_type` - Site type: `static`, `hugo`
 
-**Note**: Instance ID passed as query parameter, not in body.
+**Note**: Instance ID is passed as `cloud_store_id` in attributes.
 
 ### List Site Files
 
