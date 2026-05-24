@@ -1365,8 +1365,6 @@ Executes JavaScript in the client.
 		}
 
 	}
-	addIntegrationOperationPaths(resourcesMap, typeMap, cruds)
-
 	// Add the /actions endpoint for listing guest actions
 	resourcesMap["/actions"] = map[string]interface{}{
 		"get": map[string]interface{}{
@@ -3830,45 +3828,15 @@ func generateActionErrorExample(action actionresponse.Action) []map[string]inter
 	}
 }
 
-func addIntegrationOperationPaths(resourcesMap map[string]map[string]interface{}, typeMap map[string]map[string]interface{}, cruds map[string]*resource.DbResource) {
-	worldCrud := cruds["world"]
-	if worldCrud == nil {
-		log.Warnf("Skipping integration OpenAPI paths: world resource is not available")
-		return
-	}
-	log.Tracef("Loading installed integrations for provider-scoped OpenAPI path generation")
-	transaction, err := worldCrud.Connection().Beginx()
-	if err != nil {
-		log.Errorf("Failed to begin transaction for integration OpenAPI generation: %v", err)
-		return
-	}
-	defer transaction.Rollback()
-
-	integrations, err := worldCrud.GetActiveIntegrations(transaction)
-	if err != nil {
-		log.Errorf("Failed to list integrations for OpenAPI generation: %v", err)
-		return
-	}
-	log.Debugf("Loaded integrations for provider-scoped OpenAPI path generation count=%d", len(integrations))
-
-	for _, integration := range integrations {
-		if !integration.Enable {
-			log.Debugf("Skipping disabled integration in OpenAPI generation provider=[%s]", integration.Name)
-			continue
+func addIntegrationOperationPathsForRouter(integration resource.Integration, router *openapi3.T, resourcesMap map[string]map[string]interface{}, typeMap map[string]map[string]interface{}) (registered int, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Errorf("Recovered panic while generating provider-scoped OpenAPI paths provider=[%s]: %v", integration.Name, recovered)
+			registered = 0
+			err = fmt.Errorf("failed to generate provider-scoped OpenAPI paths: %v", recovered)
 		}
-		router, err := loadIntegrationOpenAPIRouter(integration)
-		if err != nil {
-			log.Warnf("Failed to load OpenAPI spec for integration [%s]: %v", integration.Name, err)
-			continue
-		}
-		registered := addIntegrationOperationPathsForRouter(integration, router, resourcesMap, typeMap)
-		log.Infof("Registered provider-scoped OpenAPI paths provider=[%s] count=%d", integration.Name, registered)
-	}
-}
-
-func addIntegrationOperationPathsForRouter(integration resource.Integration, router *openapi3.T, resourcesMap map[string]map[string]interface{}, typeMap map[string]map[string]interface{}) int {
+	}()
 	seen := make(map[string]bool)
-	registered := 0
 	for providerPath, pathItem := range router.Paths {
 		if pathItem == nil {
 			log.Warnf("Skipping nil path item in provider spec provider=[%s] path=[%s]", integration.Name, providerPath)
@@ -3898,7 +3866,7 @@ func addIntegrationOperationPathsForRouter(integration resource.Integration, rou
 			registered++
 		}
 	}
-	return registered
+	return registered, nil
 }
 
 func integrationOperationPathItem(integration resource.Integration, operationID string, providerMethod string, providerPath string, operation *openapi3.Operation, requestComponentName string) map[string]interface{} {

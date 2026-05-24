@@ -144,7 +144,14 @@ func DescribeIntegrationOperation(integration resource.Integration, operationID 
 	return nil, fmt.Errorf("operation [%s] was not found in integration [%s]", operationID, integration.Name)
 }
 
-func BuildIntegrationOpenAPI(integration resource.Integration) (string, error) {
+func BuildIntegrationOpenAPI(integration resource.Integration) (document string, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Errorf("Recovered panic while building scoped integration OpenAPI provider=[%s]: %v", integration.Name, recovered)
+			document = ""
+			err = fmt.Errorf("failed to build scoped integration OpenAPI for [%s]: %v", integration.Name, recovered)
+		}
+	}()
 	router, err := loadIntegrationOpenAPIRouter(integration)
 	if err != nil {
 		log.Warnf("Failed to load provider OpenAPI spec for scoped OpenAPI provider=[%s]: %v", integration.Name, err)
@@ -153,7 +160,11 @@ func BuildIntegrationOpenAPI(integration resource.Integration) (string, error) {
 
 	resourcesMap := map[string]map[string]interface{}{}
 	typeMap := map[string]map[string]interface{}{}
-	registered := addIntegrationOperationPathsForRouter(integration, router, resourcesMap, typeMap)
+	registered, err := addIntegrationOperationPathsForRouter(integration, router, resourcesMap, typeMap)
+	if err != nil {
+		log.Errorf("Failed to build scoped integration OpenAPI provider=[%s]: %v", integration.Name, err)
+		return "", err
+	}
 	log.Debugf("Built scoped integration OpenAPI provider=[%s] paths=%d", integration.Name, registered)
 
 	apiDefinition := yaml.MapSlice{

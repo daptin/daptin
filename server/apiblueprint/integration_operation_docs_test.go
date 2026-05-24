@@ -181,6 +181,22 @@ func TestBuildIntegrationOpenAPIIsScopedToProvider(t *testing.T) {
 	}
 }
 
+func TestIntegrationOpenAPIPathGenerationRecoversFromPanic(t *testing.T) {
+	integration := testAsanaIntegration()
+	router, err := loadIntegrationOpenAPIRouter(integration)
+	if err != nil {
+		t.Fatalf("failed to load test integration: %v", err)
+	}
+
+	_, err = addIntegrationOperationPathsForRouter(integration, router, map[string]map[string]interface{}{}, nil)
+	if err == nil {
+		t.Fatalf("expected panic recovery error")
+	}
+	if !strings.Contains(err.Error(), "failed to generate provider-scoped OpenAPI paths") {
+		t.Fatalf("unexpected recovery error: %v", err)
+	}
+}
+
 func testLinearGraphQLIntegration() resource.Integration {
 	return resource.Integration{
 		Name:                  "linear.app",

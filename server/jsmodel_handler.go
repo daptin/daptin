@@ -21,8 +21,9 @@ import (
 )
 
 func CreateApiBlueprintHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) func(ctx *gin.Context) {
+	blueprint := apiblueprint.BuildApiBlueprint(initConfig, cruds)
 	return func(c *gin.Context) {
-		c.String(200, "%s", apiblueprint.BuildApiBlueprint(initConfig, cruds))
+		c.String(200, "%s", blueprint)
 	}
 }
 

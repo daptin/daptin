@@ -1633,9 +1633,15 @@ func excludeFromMode(mode Mode, schema *openapi3.Schema) bool {
 }
 
 // Create a new action performer for becoming administrator action
-func NewIntegrationActionPerformer(integration resource.Integration, initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx) (actionresponse.ActionPerformerInterface, error) {
+func NewIntegrationActionPerformer(integration resource.Integration, initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx) (performer actionresponse.ActionPerformerInterface, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Errorf("Recovered panic while creating integration action performer provider=[%s]: %v", integration.Name, recovered)
+			performer = nil
+			err = fmt.Errorf("failed to create integration action performer for [%s]: %v", integration.Name, recovered)
+		}
+	}()
 
-	var err error
 	yamlBytes := []byte(integration.Specification)
 	var router *openapi3.T
 
