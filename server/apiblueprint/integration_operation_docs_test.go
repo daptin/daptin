@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/getkin/kin-openapi/openapi3"
+	ghodssyaml "github.com/ghodss/yaml"
 )
 
 func TestOperationInputSchemaUsesProviderSpecFields(t *testing.T) {
@@ -178,6 +180,28 @@ func TestBuildIntegrationOpenAPIIsScopedToProvider(t *testing.T) {
 	}
 	if !strings.Contains(document, "IntegrationAsanaComGetTaskRequestObject") {
 		t.Fatalf("request component not generated:\n%s", document)
+	}
+}
+
+func TestBuildApiBlueprintExcludesProviderScopedIntegrationPaths(t *testing.T) {
+	document := BuildApiBlueprint(&resource.CmsConfig{
+		Tables: []table_info.TableInfo{{TableName: "integration"}},
+	}, nil)
+
+	var parsed struct {
+		Paths map[string]interface{} `json:"paths"`
+	}
+	if err := ghodssyaml.Unmarshal([]byte(document), &parsed); err != nil {
+		t.Fatalf("failed to parse global OpenAPI document: %v", err)
+	}
+
+	if _, ok := parsed.Paths["/api/integration"]; !ok {
+		t.Fatalf("global OpenAPI should include the integration entity path")
+	}
+	for path := range parsed.Paths {
+		if strings.HasPrefix(path, "/integration/") {
+			t.Fatalf("global OpenAPI should not include provider-scoped integration path %q", path)
+		}
 	}
 }
 
