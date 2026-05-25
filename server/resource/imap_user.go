@@ -298,6 +298,10 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 func (diu *DaptinImapUser) CreateMailboxWithTransaction(name string, transaction *sqlx.Tx) error {
 
 	log.Printf("Creating mailbox with name [%v] for mail account id [%v]", name, diu.mailAccountId)
+	err := diu.dbResource["mail_account"].LockMailAccountForMailboxCreation(diu.mailAccountId, transaction)
+	if err != nil {
+		return err
+	}
 	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 		goqu.Ex{
 			"mail_account_id": diu.mailAccountId,

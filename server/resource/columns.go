@@ -534,6 +534,52 @@ var SystemActions = []actionresponse.Action{
 		},
 	},
 	{
+		Name:             "status",
+		Label:            "Mailbox Status",
+		OnType:           "mail_box",
+		InstanceOptional: true,
+		InFields: []api2go.ColumnInfo{
+			{
+				Name:       "mail_account_id",
+				ColumnName: "mail_account_id",
+				ColumnType: "label",
+				IsNullable: true,
+			},
+			{
+				Name:       "mail_box_id",
+				ColumnName: "mail_box_id",
+				ColumnType: "label",
+				IsNullable: true,
+			},
+			{
+				Name:         "page_size",
+				ColumnName:   "page_size",
+				ColumnType:   "value",
+				DefaultValue: "50",
+				IsNullable:   true,
+			},
+			{
+				Name:         "page_number",
+				ColumnName:   "page_number",
+				ColumnType:   "value",
+				DefaultValue: "1",
+				IsNullable:   true,
+			},
+		},
+		OutFields: []actionresponse.Outcome{
+			{
+				Type:   "mail_box.status",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"mail_account_id": "~mail_account_id",
+					"mail_box_id":     "~mail_box_id",
+					"page_size":       "~page_size",
+					"page_number":     "~page_number",
+				},
+			},
+		},
+	},
+	{
 		Name:             "process_outbox",
 		Label:            "Process Outbox Queue",
 		OnType:           "outbox",
@@ -3543,6 +3589,14 @@ var StandardTables = []table_info.TableInfo{
 				DataType:     "bool",
 				ColumnType:   "truefalse",
 				DefaultValue: "false",
+				IsIndexed:    true,
+			},
+			{
+				Name:         "uid",
+				ColumnName:   "uid",
+				DataType:     "int(11)",
+				ColumnType:   "value",
+				DefaultValue: "0",
 				IsIndexed:    true,
 			},
 			{

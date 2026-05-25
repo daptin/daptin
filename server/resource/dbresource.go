@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/assetcachepojo"
@@ -497,6 +498,10 @@ func (dbResource *DbResource) TableInfo() *table_info.TableInfo {
 	return dbResource.tableInfo
 }
 
+func (dbResource *DbResource) ColumnMap() map[string]api2go.ColumnInfo {
+	return dbResource.model.GetColumnMap()
+}
+
 func (dbResource *DbResource) GetAdminEmailId(transaction *sqlx.Tx) string {
 	cacheVal := dbResource.GetContext("administrator_email_id")
 	if cacheVal == nil {
@@ -553,20 +558,38 @@ func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uin
 
 func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
+	uidWhere := goqu.Or(
+		goqu.And(
+			goqu.C("uid").Gt(0),
+			goqu.C("uid").Gte(start),
+		),
+		goqu.And(
+			goqu.C("uid").Eq(0),
+			goqu.C("id").Gte(start),
+		),
+	)
+	if stop > 0 {
+		uidWhere = goqu.Or(
+			goqu.And(
+				goqu.C("uid").Gt(0),
+				goqu.C("uid").Gte(start),
+				goqu.C("uid").Lte(stop),
+			),
+			goqu.And(
+				goqu.C("uid").Eq(0),
+				goqu.C("id").Gte(start),
+				goqu.C("id").Lte(stop),
+			),
+		)
+	}
+
 	q := statementbuilder.Squirrel.Select("*").Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
 		"deleted":     false,
-	}).Where(goqu.Ex{
-		"id": goqu.Op{"gte": start},
-	})
+	}).Where(uidWhere)
 
-	if stop > 0 {
-		q = q.Where(goqu.Ex{
-			"id": goqu.Op{"lte": stop},
-		})
-	}
-
-	q = q.Order(goqu.C("id").Asc())
+	effectiveUid := goqu.COALESCE(goqu.Func("NULLIF", goqu.C("uid"), 0), goqu.C("id"))
+	q = q.Order(effectiveUid.Asc(), goqu.C("id").Asc())
 
 	query, args, err := q.ToSQL()
 
@@ -602,9 +625,6 @@ func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, star
 
 func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64, transaction *sqlx.Tx) (*imap.MailboxStatus, error) {
 
-	var messageCount uint32
-	var unseenCount uint32
-	var recentCount uint32
 	var uidValidity uint32
 
 	// Use db directly for reads when no transaction provided (reduces lock contention)
@@ -615,27 +635,17 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 		return dbResource.db.QueryRowx(query, args...)
 	}
 
-	// Single combined query for message count, unseen count, and recent count
-	combinedQuery, combinedArgs, combinedErr := statementbuilder.Squirrel.Select(
-		goqu.L("COUNT(*)"),
-		goqu.L("SUM(CASE WHEN seen = 0 THEN 1 ELSE 0 END)"),
-		goqu.L("SUM(CASE WHEN recent = 1 THEN 1 ELSE 0 END)"),
-	).Prepared(true).From("mail").Where(goqu.Ex{
-		"mail_box_id": mailBoxId,
-		"deleted":     false,
-	}).ToSQL()
-
-	if combinedErr != nil {
-		return nil, combinedErr
+	messageCount, err := dbResource.countMailboxMessages(mailBoxId, nil, transaction)
+	if err != nil {
+		return nil, err
 	}
-
-	var rawUnseen, rawRecent *uint32
-	queryRow(combinedQuery, combinedArgs...).Scan(&messageCount, &rawUnseen, &rawRecent)
-	if rawUnseen != nil {
-		unseenCount = *rawUnseen
+	unseenCount, err := dbResource.countMailboxMessages(mailBoxId, goqu.Ex{"seen": false}, transaction)
+	if err != nil {
+		return nil, err
 	}
-	if rawRecent != nil {
-		recentCount = *rawRecent
+	recentCount, err := dbResource.countMailboxMessages(mailBoxId, goqu.Ex{"recent": true}, transaction)
+	if err != nil {
+		return nil, err
 	}
 
 	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").Prepared(true).From("mail_box").Where(goqu.Ex{
@@ -652,7 +662,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 
 	st := imap.NewMailboxStatus("", []imap.StatusItem{imap.StatusUnseen, imap.StatusMessages, imap.StatusRecent, imap.StatusUidNext, imap.StatusUidValidity})
 
-	err := st.Parse([]interface{}{
+	err = st.Parse([]interface{}{
 		string(imap.StatusMessages), messageCount,
 		string(imap.StatusUnseen), unseenCount,
 		string(imap.StatusRecent), recentCount,
@@ -661,6 +671,29 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 	})
 
 	return st, err
+}
+
+func (dbResource *DbResource) countMailboxMessages(mailBoxId int64, filters goqu.Ex, transaction *sqlx.Tx) (uint32, error) {
+	query := statementbuilder.Squirrel.Select(goqu.COUNT("*")).Prepared(true).From("mail").Where(goqu.Ex{
+		"mail_box_id": mailBoxId,
+		"deleted":     false,
+	})
+	if filters != nil {
+		query = query.Where(filters)
+	}
+
+	sql, args, err := query.ToSQL()
+	if err != nil {
+		return 0, err
+	}
+
+	var count uint32
+	if transaction != nil {
+		err = transaction.QueryRowx(sql, args...).Scan(&count)
+	} else {
+		err = dbResource.db.QueryRowx(sql, args...).Scan(&count)
+	}
+	return count, err
 }
 
 func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64, transaction *sqlx.Tx) uint32 {
@@ -894,9 +927,13 @@ func (dbResource *DbResource) ClearRecentFlags(mailBoxId int64, transaction *sql
 }
 
 func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
+	return dbResource.getMailboxNextUidState(mailBoxId, transaction)
+}
 
-	var nextuid int64
-	q5, v5, e5 := statementbuilder.Squirrel.Select(goqu.L("COALESCE(nextuid, 1)").As("nextuid")).From("mail_box").Prepared(true).Where(goqu.Ex{
+func (dbResource *DbResource) getMailboxNextUidState(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
+
+	var nextuid sql.NullInt64
+	q5, v5, e5 := statementbuilder.Squirrel.Select("nextuid").From("mail_box").Prepared(true).Where(goqu.Ex{
 		"id": mailBoxId,
 	}).ToSQL()
 
@@ -914,12 +951,17 @@ func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sq
 	if err != nil {
 		return 1, err
 	}
+	effectiveNextUid := nextuid.Int64
+	if !nextuid.Valid || effectiveNextUid < 1 {
+		effectiveNextUid = 1
+	}
 
-	// Also check MAX(id) as a floor to handle existing data without nextuid tracking
-	var maxId int64
-	q6, v6, e6 := statementbuilder.Squirrel.Select(goqu.L("COALESCE(MAX(id), 0)").As("max_id")).From("mail").Prepared(true).Where(goqu.Ex{
+	// Also check the highest effective UID as a floor to handle existing data
+	// created before the explicit per-mailbox uid column existed.
+	var maxUid sql.NullInt64
+	q6, v6, e6 := statementbuilder.Squirrel.Select(goqu.MAX("uid")).From("mail").Prepared(true).Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
-	}).ToSQL()
+	}, goqu.C("uid").Gt(0)).ToSQL()
 	if e6 == nil {
 		var r6 *sqlx.Row
 		if transaction != nil {
@@ -927,14 +969,135 @@ func (dbResource *DbResource) GetMailboxNextUid(mailBoxId int64, transaction *sq
 		} else {
 			r6 = dbResource.db.QueryRowx(q6, v6...)
 		}
+		r6.Scan(&maxUid)
+	}
+
+	var maxId sql.NullInt64
+	q7, v7, e7 := statementbuilder.Squirrel.Select(goqu.MAX("id")).From("mail").Prepared(true).Where(goqu.Ex{
+		"mail_box_id": mailBoxId,
+		"uid":         0,
+	}).ToSQL()
+	if e7 == nil {
+		var r6 *sqlx.Row
+		if transaction != nil {
+			r6 = transaction.QueryRowx(q7, v7...)
+		} else {
+			r6 = dbResource.db.QueryRowx(q7, v7...)
+		}
 		r6.Scan(&maxId)
 	}
 
-	if maxId+1 > nextuid {
-		return uint32(maxId + 1), nil
+	maxEffectiveUid := int64(0)
+	if maxUid.Valid && maxUid.Int64 > maxEffectiveUid {
+		maxEffectiveUid = maxUid.Int64
 	}
-	return uint32(nextuid), nil
+	if maxId.Valid && maxId.Int64 > maxEffectiveUid {
+		maxEffectiveUid = maxId.Int64
+	}
 
+	if maxEffectiveUid+1 > effectiveNextUid {
+		return uint32(maxEffectiveUid + 1), nil
+	}
+	return uint32(effectiveNextUid), nil
+
+}
+
+func (dbResource *DbResource) AllocateMailBoxUid(mailBoxId int64, transaction *sqlx.Tx) (uint32, error) {
+	if transaction == nil {
+		return 0, errors.New("mailbox uid allocation requires a transaction")
+	}
+
+	if err := dbResource.lockMailboxForUidAllocation(mailBoxId, transaction); err != nil {
+		return 0, err
+	}
+
+	nextUid, err := dbResource.getMailboxNextUidState(mailBoxId, transaction)
+	if err != nil {
+		return 0, err
+	}
+
+	query, args, err := statementbuilder.Squirrel.
+		Update("mail_box").Prepared(true).
+		Set(goqu.Record{"nextuid": int64(nextUid) + 1}).
+		Where(goqu.Ex{"id": mailBoxId}).ToSQL()
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = transaction.Exec(query, args...)
+	if err != nil {
+		return 0, err
+	}
+
+	return nextUid, nil
+}
+
+func (dbResource *DbResource) LockMailAccountForMailboxCreation(mailAccountId int64, transaction *sqlx.Tx) error {
+	if transaction == nil {
+		return errors.New("mail account mailbox creation lock requires a transaction")
+	}
+
+	if isSQLiteDriver(transaction.DriverName()) {
+		query, args, err := statementbuilder.Squirrel.
+			Update("mail_account").Prepared(true).
+			Set(goqu.Record{"updated_at": goqu.C("updated_at")}).
+			Where(goqu.Ex{"id": mailAccountId}).ToSQL()
+		if err != nil {
+			return err
+		}
+		_, err = transaction.Exec(query, args...)
+		return err
+	}
+
+	query, args, err := statementbuilder.Squirrel.
+		Select("id").
+		From("mail_account").
+		Prepared(true).
+		Where(goqu.Ex{"id": mailAccountId}).
+		ForUpdate(goqu.Wait).
+		ToSQL()
+	if err != nil {
+		return err
+	}
+
+	var id int64
+	return transaction.QueryRowx(query, args...).Scan(&id)
+}
+
+func (dbResource *DbResource) lockMailboxForUidAllocation(mailBoxId int64, transaction *sqlx.Tx) error {
+	if transaction == nil {
+		return errors.New("mailbox uid allocation lock requires a transaction")
+	}
+
+	if isSQLiteDriver(transaction.DriverName()) {
+		query, args, err := statementbuilder.Squirrel.
+			Update("mail_box").Prepared(true).
+			Set(goqu.Record{"nextuid": goqu.C("nextuid")}).
+			Where(goqu.Ex{"id": mailBoxId}).ToSQL()
+		if err != nil {
+			return err
+		}
+		_, err = transaction.Exec(query, args...)
+		return err
+	}
+
+	query, args, err := statementbuilder.Squirrel.
+		Select("nextuid").
+		From("mail_box").
+		Prepared(true).
+		Where(goqu.Ex{"id": mailBoxId}).
+		ForUpdate(goqu.Wait).
+		ToSQL()
+	if err != nil {
+		return err
+	}
+
+	var nextUid sql.NullInt64
+	return transaction.QueryRowx(query, args...).Scan(&nextUid)
+}
+
+func isSQLiteDriver(driverName string) bool {
+	return driverName == "sqlite3" || driverName == "sqlite"
 }
 
 func (dbResource *DbResource) SetSubsitesFolderCache(cache map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {

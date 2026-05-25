@@ -417,12 +417,14 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						log.Tracef("Completed mailAdapter GetSingleRowByReferenceIdWithTransaction")
 						if err != nil || user == nil {
 							log.Errorf("Failed to get user account for mail recipient [%v]: %v", rcpt.String(), err)
+							transaction.Rollback()
 							continue
 						}
 
 						userId, ok := user["id"].(int64)
 						if !ok {
 							log.Errorf("Invalid user id type for mail recipient [%v]", rcpt.String())
+							transaction.Rollback()
 							continue
 						}
 
@@ -442,13 +444,37 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						mailBox, err := dbResource.GetMailAccountBox(mailAccountId, mailboxName, transaction)
 
 						if err != nil {
-							mailBox, err = dbResource.CreateMailAccountBox(
-								daptinid.InterfaceToDIR(mailAccount["reference_id"]).String(),
-								sessionUser,
-								mailboxName, transaction)
+							err = dbResource.Cruds["mail_account"].LockMailAccountForMailboxCreation(mailAccountId, transaction)
 							if err != nil {
-								continue
+								transaction.Rollback()
+								return backends.NewResult(fmt.Sprint("554 Error: could not lock mail account")), backends.StorageError
 							}
+							mailBox, err = dbResource.GetMailAccountBox(mailAccountId, mailboxName, transaction)
+							if err != nil {
+								mailBox, err = dbResource.CreateMailAccountBox(
+									daptinid.InterfaceToDIR(mailAccount["reference_id"]).String(),
+									sessionUser,
+									mailboxName, transaction)
+								if err != nil {
+									transaction.Rollback()
+									continue
+								}
+								mailBox, err = dbResource.GetMailAccountBox(mailAccountId, mailboxName, transaction)
+								if err != nil {
+									transaction.Rollback()
+									return backends.NewResult(fmt.Sprint("554 Error: could not load mailbox")), backends.StorageError
+								}
+							}
+						}
+						mailBoxId, ok := mailBox["id"].(int64)
+						if !ok || mailBoxId == 0 {
+							transaction.Rollback()
+							return backends.NewResult(fmt.Sprint("554 Error: invalid mailbox id")), backends.StorageError
+						}
+						uid, err := dbResource.Cruds["mail_box"].AllocateMailBoxUid(mailBoxId, transaction)
+						if err != nil {
+							transaction.Rollback()
+							return backends.NewResult(fmt.Sprint("554 Error: could not allocate mailbox uid")), backends.StorageError
 						}
 
 						pr = pr.WithContext(context.WithValue(context.Background(), "user", sessionUser))
@@ -502,20 +528,22 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"is_tls":           e.TLS,
 								"mail_box_id":      mailBox["reference_id"],
 								"user_account_id":  mailAccount["user_account_id"],
+								"uid":              uid,
 								"seen":             false,
 								"recent":           true,
 								"flags":            flags,
 								"size":             mailSize,
 							})
-						// Commit the transaction before Create to avoid SQLite deadlock
-						// (SQLite only allows one write transaction at a time)
-						transaction.Commit()
-						_, err = dbResource.Cruds["mail"].Create(model, *req)
+						_, err = dbResource.Cruds["mail"].CreateWithTransaction(model, *req, transaction)
 						resource.CheckErr(err, "Failed to store mail")
 						//err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
 						//resource.CheckErr(err1, "Failed to increment uid for mailbox")
 
 						if err != nil {
+							transaction.Rollback()
+							return backends.NewResult(fmt.Sprint("554 Error: could not save email")), backends.StorageError
+						}
+						if err := transaction.Commit(); err != nil {
 							return backends.NewResult(fmt.Sprint("554 Error: could not save email")), backends.StorageError
 						}
 					}

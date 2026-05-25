@@ -306,6 +306,9 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 						returnMail.Size = uint32(mailContent["size"].(int64))
 					case imap.FetchUid:
 						uid := mailContent["id"].(int64)
+						if storedUid, ok := mailContent["uid"].(int64); ok && storedUid > 0 {
+							uid = storedUid
+						}
 						returnMail.Uid = uint32(uid)
 					default:
 						log.Printf("Fetch default [%v] update flags: %v", subItems, flagList)
@@ -598,6 +601,12 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		PlainRequest: httpRequest,
 	}
 
+	transaction, err := dimb.dbResource["mail"].Connection().Beginx()
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
+
 	if !HasAnyFlag(flags, []string{imap.RecentFlag}) {
 		flags = backendutil.UpdateFlags(flags, imap.AddFlags, []string{imap.RecentFlag})
 		log.Printf("New flags: [%v]", flags)
@@ -643,6 +652,10 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		msgId = msgId3.String()
 	}
 	hash := GetMD5Hash(mailBody)
+	uid, err := dimb.dbResource["mail_box"].AllocateMailBoxUid(dimb.mailBoxId, transaction)
+	if err != nil {
+		return err
+	}
 
 	toAddress := ""
 	if len(parsedmail.To) > 0 {
@@ -688,6 +701,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		"is_tls":           false,
 		"mail_box_id":      dimb.mailBoxReferenceId,
 		"user_account_id":  dimb.sessionUser.UserReferenceId.String(),
+		"uid":              uid,
 		"seen":             HasAnyFlag(flags, []string{imap.SeenFlag}),
 		"recent":           true,
 		"flags":            strings.Join(flags, ","),
@@ -697,7 +711,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	//uidNext, err := txDbResource.GetMailboxNextUid(dimb.mailBoxId)
 	//log.Printf("Assign next UID: %v", uidNext)
 	//model.Data["uid"] = uidNext
-	_, err = dimb.dbResource["mail"].Create(model, apiRequest)
+	_, err = dimb.dbResource["mail"].CreateWithTransaction(model, apiRequest, transaction)
 	//log.Printf("UID size [%s]", len(mailBody))
 
 	//if err != nil {
@@ -710,9 +724,10 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	if err != nil {
 		log.Println(utf8.ValidString(parsedmail.TextBody))
 		log.Printf("Failed to insert: %v", parsedmail.TextBody)
+		return err
 	}
 
-	return err
+	return transaction.Commit()
 }
 
 func HasFlag(flags []string, flagToFind string) bool {
@@ -850,12 +865,19 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 		}
 
 		for _, mail := range mails {
+			uid, err := dimb.dbResource["mail_box"].AllocateMailBoxUid(destinationMailBoxId["id"].(int64), transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
+			}
 			mail["mail_box_id"] = destinationMailBoxId["reference_id"]
 
 			delete(mail, "reference_id")
 			delete(mail, "updated_at")
 			delete(mail, "created_at")
 			delete(mail, "id")
+			mail["uid"] = uid
 			mail["recent"] = true
 			mailFlags := strings.Split(mail["flags"].(string), ",")
 			if !HasAnyFlag(mailFlags, []string{imap.RecentFlag}) {
