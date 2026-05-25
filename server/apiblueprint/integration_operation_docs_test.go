@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -202,6 +203,53 @@ func TestBuildApiBlueprintExcludesProviderScopedIntegrationPaths(t *testing.T) {
 		if strings.HasPrefix(path, "/integration/") {
 			t.Fatalf("global OpenAPI should not include provider-scoped integration path %q", path)
 		}
+	}
+}
+
+func TestBuildApiBlueprintFallsBackWhenColumnManagerIsUninitialized(t *testing.T) {
+	originalColumnManager := resource.ColumnManager
+	resource.ColumnManager = nil
+	t.Cleanup(func() {
+		resource.ColumnManager = originalColumnManager
+	})
+
+	document := BuildApiBlueprint(&resource.CmsConfig{
+		Tables: []table_info.TableInfo{{
+			TableName: "article",
+			Columns: []api2go.ColumnInfo{
+				{
+					Name:       "title",
+					ColumnName: "title",
+					ColumnType: "label",
+					DataType:   "varchar(100)",
+				},
+				{
+					Name:       "article_image",
+					ColumnName: "article_image",
+					ColumnType: "image.png|jpg|jpeg|gif|tiff",
+					DataType:   "blob",
+				},
+			},
+		}},
+	}, nil)
+
+	var parsed struct {
+		Components struct {
+			Schemas map[string]struct {
+				Properties map[string]map[string]interface{} `json:"properties"`
+			} `json:"schemas"`
+		} `json:"components"`
+	}
+	if err := ghodssyaml.Unmarshal([]byte(document), &parsed); err != nil {
+		t.Fatalf("failed to parse global OpenAPI document: %v", err)
+	}
+
+	articleSchema := parsed.Components.Schemas["Article"]
+	if articleSchema.Properties["title"]["type"] != "string" {
+		t.Fatalf("expected uninitialized column manager fallback for title, got %+v", articleSchema.Properties["title"])
+	}
+	if articleSchema.Properties["article_image"]["type"] != "string" {
+		t.Fatalf("expected custom column type fallback for article_image, got %+v", articleSchema.Properties["article_image"])
 	}
 }
 

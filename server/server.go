@@ -541,11 +541,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		c.String(200, "pong")
 	})
 
+	resource.InitialiseColumnManager()
 	jsModelHandler := CreateJsModelHandler(&initConfig, cruds, transaction)
 	transaction.Commit()
 	blueprintHandler := CreateApiBlueprintHandler(&initConfig, cruds)
 	statsHandler := CreateStatsHandler(&initConfig, cruds)
-	resource.InitialiseColumnManager()
 	metaHandler := CreateMetaHandler(&initConfig)
 
 	dbAssetHandler := CreateDbAssetHandler(cruds, olricDb)

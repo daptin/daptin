@@ -472,7 +472,14 @@ func InitialiseColumnManager() {
 }
 
 func (ctm *ColumnTypeManager) GetBlueprintType(columnType string) string {
-	return ctm.ColumnMap[columnType].BlueprintType
+	if ctm == nil || ctm.ColumnMap == nil {
+		return "string"
+	}
+	col, ok := ctm.ColumnMap[columnType]
+	if !ok || col.BlueprintType == "" {
+		return "string"
+	}
+	return col.BlueprintType
 }
 func (ctm *ColumnTypeManager) GetGraphqlType(columnType string) graphql.Type {
 	col := strings.Split(columnType, ".")[0]
