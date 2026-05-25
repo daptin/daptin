@@ -1,50 +1,15 @@
 # Daptin Application Server Feature Map
 
-This document maps Daptin's built-in application-server surface so front-facing
-docs can describe the product accurately instead of reducing it to "headless
-CMS" or "BaaS".
+Daptin is a batteries-included application server for your next software
+project.
 
-Working statement:
+Most apps need the same backend foundation: data modeling, APIs, identity,
+usergroups, permissions, relations, actions, workflows, state machines, files,
+sites, integrations, LLM routing, metering, events, protocols, caching,
+auditing, and operations. Daptin brings those pieces together in one runtime so
+you can build the application while Daptin runs and enforces the backend.
 
-> Daptin is the batteries-included application server for your next software project.
->
-> Build your app. Let Daptin run and enforce the backend.
-
-The point is not that Daptin has a long feature checklist. The point is that
-the backend pieces most software projects eventually need already exist in one
-tested runtime: data modeling, APIs, identity, usergroups, permissions,
-relations, actions, workflows, state machines, files, sites, integrations,
-LLM routing, metering, events, protocols, caching, auditing, and operations.
-
-## Source Anchors
-
-Primary files for this map:
-
-- `server/server.go` - runtime wiring for HTTP, auth, resources, SMTP, IMAP,
-  CalDAV, FTP, LLM endpoints, sites, integrations, GraphQL, WebSocket, YJS,
-  tasks, assets, config, and OpenAPI.
-- `server/utils.go` - API resource registration and middleware chain.
-- `server/resource/columns.go` - system tables, standard relations, and
-  built-in actions.
-- `server/resource/handle_action.go` - action execution, action permissions,
-  input validation, outcome chaining, and action metering.
-- `server/table_info/tableinfo.go` - table schema contract, including audit,
-  state tracking, default groups, default relations, composite keys, and
-  metering config.
-- `server/resource/middleware_tableaccess_permission.go` and
-  `server/resource/middleware_objectaccess_permission.go` - entity and row
-  permission enforcement.
-- `server/resource/middleware_eventgenerator.go` - data-change event
-  publishing through Olric PubSub and WebSocket messages.
-- `server/endpoint_oauth.go` and `server/endpoint_oauth_browser.go` - OAuth
-  provider, OpenID-style discovery, and browser login consumer routes.
-- `server/endpoint_llm.go` and `server/llm/goai_provider.go` - OpenAI-compatible
-  LLM endpoint routing through configured providers.
-- `server/assetcachepojo/asset_cache.go`, `server/asset_upload_handler.go`,
-  `server/asset_route_handler.go`, and `server/cloud_store/cloud_store.go` -
-  asset, file, cache, and rclone-backed storage behavior.
-
-## How Daptin Is Connected Internally
+## How Daptin Fits Together
 
 Daptin is organized around a small set of recurring concepts:
 
@@ -62,8 +27,8 @@ Daptin is organized around a small set of recurring concepts:
    graph: GraphQL, WebSocket, OAuth/OIDC, LLM `/v1`, SMTP, IMAP, FTP,
    CalDAV/CardDAV, feeds, subsites, assets, config, OpenAPI, and statistics.
 
-This is the architectural reason the public story should say "application
-server" rather than only "CMS", "API generator", or "BaaS".
+Together, these pieces make Daptin an application server rather than only a CMS,
+API generator, or backend-as-a-service.
 
 ## 1. Data And Schema Runtime
 
@@ -86,7 +51,7 @@ Core capabilities:
 - Import/export and schema/data actions such as random data generation,
   CSV/XLS import, and data export.
 
-Important internal tables:
+Important system tables:
 
 - `world` - schema and table metadata.
 - `action` - executable backend actions.
@@ -313,9 +278,10 @@ Why it matters:
 Apps need production controls that are easy to postpone or underbuild: cache,
 limits, health, audit, runtime config, background work, metadata, and TLS.
 
-## Ecosystem Repos That Support This Story
+## Ecosystem Repos
 
-Use these as proof after the main message, not as the message itself:
+Related repositories show how Daptin is used from clients, demos, schemas, and
+larger applications:
 
 - `daptin/daptin` - core application server.
 - `daptin/daptin-cli` - CLI for contexts, CRUD, actions, OAuth, integrations,
@@ -325,8 +291,8 @@ Use these as proof after the main message, not as the message itself:
 - `daptin/daptin-go-client` - Go client.
 - `daptin/daptin-schema-samples` - reusable schemas for blog, store, task list,
   FAQ, payments, and other app patterns.
-- `daptin/dadadash` - larger app proof with file browser, document editor,
-  spreadsheet editor, calendar, and CRUD data tables.
+- `daptin/dadadash` - larger application example with file browser, document
+  editor, spreadsheet editor, calendar, and CRUD data tables.
 - `daptin/daptin-llm-demo` - OpenAI-compatible LLM endpoint contract demo.
 - `daptin/daptin-metering-credit-demo` - credits, quotas, usage audit, LLM
   usage, and denial-path demo.
@@ -335,29 +301,7 @@ Use these as proof after the main message, not as the message itself:
 - OAuth demo repos - Daptin as OAuth provider, client, and two-instance
   provider/consumer flow.
 
-## Public Story Direction
-
-Recommended category:
-
-**Application server for your next software project**
-
-Primary homepage headline:
-
-**The reliable application server for the software you are building**
-
-Primary subheadline:
-
-**Most apps need the same backend foundation. Daptin gives you the pieces you
-should not have to rebuild for every project: data models, APIs, auth,
-usergroups, permissions, relations, files, sites, actions, workflows, events,
-integrations, LLM routing, metering, caching, auditing, protocols, and
-operations from one server.**
-
-Short message:
-
-**Build your app. Let Daptin run and enforce the backend.**
-
-What Daptin replaces in the app stack:
+## What Daptin Can Replace
 
 - Ad-hoc database glue.
 - Custom auth/session logic.
@@ -370,85 +314,25 @@ What Daptin replaces in the app stack:
 - Separate API metering/rate-limit layer.
 - Separate operational metadata and health endpoints.
 
-## Why This Direction Is Better
+## Where To Go Next
 
-Do not lead with "most powerful" or "you will not need anything else." Those
-claims are emotionally aligned but weaker because they invite argument.
-
-Lead with the more defensible strategic claim:
-
-**Daptin is the reliable application-server foundation for most software projects.**
-
-This lets the docs claim the full feature breadth without sounding like a random
-checklist. The feature list becomes evidence for one idea: most apps need a
-stable backend contract, and Daptin is that contract.
-
-## Suggested Front-Facing Rewrite
-
-Use this as the top of `wiki/Home.md` and later adapt it for `README.md`:
-
-```markdown
-# Daptin
-
-Daptin is the reliable application server for your next software project.
-
-Most apps need the same backend foundation.
-
-Run one Daptin server and give your project a complete backend: typed data
-models, standard columns, relations, REST and GraphQL APIs, users, usergroups,
-OAuth, row-level permissions, multi-tenant access patterns, file storage, static
-sites, templates, custom actions, state machines, scheduled jobs, events,
-WebSocket updates, email, FTP, CalDAV/CardDAV, third-party integrations, LLM
-provider routing, API metering, optional auditing, caching, TLS, monitoring, and
-clustering.
-
-Build your app. Let Daptin run and enforce the backend.
-```
-
-## Recommended Docs Rewrite Order
-
-1. Keep this feature map as the source-backed strategy artifact.
-2. Rewrite `wiki/Home.md` around "application server for your next software project."
-3. Rewrite the top of `README.md`; move detailed curl walkthroughs below the
-   product explanation.
-4. Add a wiki path for app builders:
-   - schema/data model
-   - auth/usergroups/permissions
-   - actions/state machines/tasks
-   - files/sites/templates
-   - integrations/OAuth credentials
-   - LLM providers
-   - metering/quotas/credits
-   - realtime/events/WebSocket
-5. Reframe `wiki/LLM-Providers.md`, `wiki/API-Metering.md`, and
-   `wiki/Integrations.md` as AI-app backend primitives.
-
-## Claim Discipline
-
-Use:
-
-- "application server for your next software project"
-- "reliable backend foundation"
-- "one server for most app backend needs"
-- "built-in, optional, and config-gated capabilities"
-- "multi-tenancy patterns through users, groups, relations, ownership, and
-  permissions"
-
-Avoid:
-
-- "literally the only thing every app will ever need"
-- "most powerful" without evidence
-- "multi-tenant SaaS platform" unless the docs explain the usergroup/permission
-  pattern clearly
-- presenting optional/config-gated protocols as always enabled
-
-## Follow-Up Validation Before Final Public Docs
-
-This file is source-grounded, but final user-facing docs should follow
-`wiki/Documentation-Guidelines.md`:
-
-- Test against a running Daptin instance before documenting exact workflows.
-- Verify protocol behavior with protocol-appropriate clients.
-- Keep config-gated features marked as optional.
-- Link each public feature claim to either a maintained wiki page, a tested demo
-  repo, or a source-backed behavior.
+- Start with [Getting Started Guide](Getting-Started-Guide) and
+  [Core Concepts](Core-Concepts).
+- Define entities with [Schema Definition](Schema-Definition),
+  [Column Types](Column-Types), and [Relationships](Relationships).
+- Add users and access control with [Authentication](Authentication),
+  [Users and Groups](Users-and-Groups), and [Permissions](Permissions).
+- Build backend behavior with [Actions Overview](Actions-Overview),
+  [Custom Actions](Custom-Actions), [Task Scheduling](Task-Scheduling), and
+  [State Machines](State-Machines).
+- Manage files and sites with [Asset Columns](Asset-Columns),
+  [Cloud Storage](Cloud-Storage), [Subsites](Subsites), and
+  [Template Rendering](Template-Rendering).
+- Connect external services with [Integrations](Integrations),
+  [Credentials](Credentials), and [OAuth Authentication](OAuth-Authentication).
+- Run AI and productized API workloads with [LLM Providers](LLM-Providers),
+  [API Metering](API-Metering), and [Rate Limiting](Rate-Limiting).
+- Operate Daptin with [Configuration](Configuration),
+  [Production Deployment](Production-Deployment), [Monitoring](Monitoring),
+  [Caching](Caching), [Clustering](Clustering), and
+  [TLS Certificates](TLS-Certificates).
