@@ -219,6 +219,7 @@ ACTION_ID=$(curl --get \
 echo "Signup action ID: $ACTION_ID"
 
 # Update permission to allow guest execute (add 32 to guest bits)
+# Current locked value is 2085120, so public signup becomes 2085152
 curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -233,7 +234,7 @@ curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
   }'
 ```
 
-**Note**: After this change, restart the server for the permission update to take effect.
+**Note**: `2085152` is the current post-admin reopen value for `signup` (`2085120 + GuestExecute`). `561441` is the generic public-action profile used for `signin`; you do not need to reset `signup` to that broader profile. No restart is required after updating the action permission.
 
 ---
 

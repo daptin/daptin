@@ -168,7 +168,7 @@ Permissions are stored as numbers. Here are common values:
 | 32768 | Group can read |
 | 33026 | Everyone can read |
 | 16256 | Owner has full access |
-| 561441 | Default (owner/group read, guest peek) |
+| 561441 | Generic public-action profile |
 | 2097151 | Full access for everyone |
 
 ### Calculate Your Own
@@ -233,6 +233,12 @@ By default, signup is disabled after admin setup. To re-enable:
 1. Find the signup action ID
 2. Add guest execute permission (value: current + 32)
 
+On current code, `become_an_administrator` locks `signup` to `2085120` and re-opens only `signin` to `561441`. So the minimal re-enable value for `signup` is `2085152`:
+
+- `2085120` = locked post-admin `signup`
+- `2085152` = `2085120 + GuestExecute(32)`
+- `561441` = generic public-action profile, not the required reopen value for `signup`
+
 ```bash
 # Find signup action
 curl --get \
@@ -255,6 +261,8 @@ curl -X PATCH "http://localhost:6336/api/action/ACTION_ID" \
     }
   }'
 ```
+
+No restart is required. Updating the action invalidates the relevant action-permission caches immediately.
 
 ---
 

@@ -37,21 +37,29 @@ More specifically you are looking for the signup action
 
 ```curl -H "Authorization: Bearer <token>" 'http://localhost:6336/api/action?filter=signup' | python -m json.tool```
 
-Note the reference id of the signup action in the response, we need it to update its permission
+After `become_an_administrator`, Daptin locks `signup` down and re-opens only `signin`.
+
+If you want to re-enable public signup after admin setup, patch the `signup` action permission by adding `GuestExecute` (`32`) to the current post-admin value.
+
+Note the reference id of the signup action in the response, we need it to update its permission.
 
 ```bash
 curl 'http://localhost:6336/api/action/<reference_id>' \
 -X PATCH \
 -H 'Content-Type: application/vnd.api+json' \
 -H 'Authorization: Bearer <token>' \
---data-raw '{"data":{"type":"action","attributes":{"permission":"2097057"},"id":"<reference_id>"},"meta":{}}'
+--data-raw '{"data":{"type":"action","attributes":{"permission":"2085152"},"id":"<reference_id>"},"meta":{}}'
+```
 
 Note that the `reference_id` is in two places there.
 
 #### Permission
 
-Disable for guests: 2097025
-Enable for guests: 2097057
+- Post-admin locked `signup`: `2085120`
+- Re-enable public signup: `2085152` (`2085120 + GuestExecute`)
+- Generic public-action profile: `561441`
+
+`561441` works for public actions in general, but `signup` does not need to be reset to that broader profile after admin setup.
 
 ## New user from CRUD API
 

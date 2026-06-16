@@ -456,8 +456,8 @@ Each action has a `permission` field (integer). Common values:
 
 | Permission Value | Meaning |
 |------------------|---------|
-| 561441 | Guest can execute (public actions) |
-| 2085120 | Only owner/group/admin can execute |
+| 561441 | Generic public-action profile |
+| 2085120 | Post-admin locked action profile (no guest execute) |
 
 ### Make an Action Public (Guest Accessible)
 
@@ -483,6 +483,8 @@ curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
     }
   }'
 ```
+
+`561441` is the generic public-action profile. For `signup` after `become_an_administrator`, use `2085152` instead: the admin transition locks `signup` to `2085120`, and re-enabling public signup only requires adding `GuestExecute` (`32`).
 
 ### Restrict Action to Admin Only
 
@@ -556,6 +558,7 @@ For advanced users, here are the individual permission bits:
 Common permission values:
 - `561441` = GuestPeek + GuestExecute + UserRead + UserExecute + GroupRead + GroupExecute
 - `2085120` = UserCRUD + UserExecute + GroupCRUD + GroupExecute (no guest access)
+- `2085152` = `2085120` + GuestExecute. This is the current post-admin reopen value for `signup`.
 
 ### Default Action Permissions
 
@@ -563,8 +566,8 @@ Built-in actions have sensible defaults:
 
 | Action | Default Access |
 |--------|----------------|
-| `signup` | Guest (public) |
-| `signin` | Guest (public) |
+| `signup` | Guest before first admin; disabled after admin setup until explicitly re-enabled |
+| `signin` | Guest (public, including after admin setup) |
 | `become_an_administrator` | Guest (first user only) |
 | `download_system_schema` | Admin/Owner |
 | `restart` | Admin only |
