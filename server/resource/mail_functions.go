@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -60,6 +61,10 @@ func (dbResource *DbResource) MailColumnBytes(tableName, columnName string, colu
 					files = append(files, fileMap)
 				}
 				return mailFileContents(files)
+			case string:
+				return base64.StdEncoding.DecodeString(value)
+			case []byte:
+				return base64.StdEncoding.DecodeString(string(value))
 			default:
 				return nil, errors.New("mail file contents are not included")
 			}
@@ -85,6 +90,59 @@ func mailFileContents(files []map[string]interface{}) ([]byte, error) {
 		return nil, errors.New("mail file contents are not included")
 	}
 	return base64.StdEncoding.DecodeString(contents)
+}
+
+func isBuiltInMailBodyColumn(tableName, columnName string) bool {
+	return columnName == "mail" && (tableName == "mail" || tableName == "outbox")
+}
+
+func dbBackedMailColumnFileList(row map[string]interface{}, columnValue interface{}, includeContents bool) ([]map[string]interface{}, bool) {
+	encoded, ok := mailColumnBase64String(columnValue)
+	if !ok || encoded == "" {
+		return nil, false
+	}
+
+	name := dbBackedMailFileName(row)
+	file := map[string]interface{}{
+		"name": name,
+		"path": "",
+		"src":  name,
+		"type": mailMessageFileType,
+	}
+	if includeContents {
+		file["contents"] = encoded
+	}
+	if mailBytes, err := base64.StdEncoding.DecodeString(encoded); err == nil {
+		file["size"] = len(mailBytes)
+		file["md5"] = GetMD5Hash(mailBytes)
+	}
+
+	return []map[string]interface{}{file}, true
+}
+
+func mailColumnBase64String(columnValue interface{}) (string, bool) {
+	switch value := columnValue.(type) {
+	case string:
+		return value, true
+	case []byte:
+		return string(value), true
+	default:
+		return "", false
+	}
+}
+
+func dbBackedMailFileName(row map[string]interface{}) string {
+	for _, key := range []string{"hash", "mail_id", "message_id", "reference_id"} {
+		if value, ok := row[key]; ok && value != nil {
+			name := strings.TrimSuffix(strings.TrimSpace(fmt.Sprintf("%v", value)), ".eml")
+			name = filepath.Base(sanitizeMailFileName(name))
+			name = strings.Trim(name, "._-")
+			if name != "" {
+				return name + ".eml"
+			}
+		}
+	}
+	return "message.eml"
 }
 
 func mailMessageFileName(nameHint string, messageBytes []byte) string {

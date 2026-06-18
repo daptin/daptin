@@ -873,19 +873,17 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
-			if files, ok := mail["mail"].([]map[string]interface{}); ok {
-				mailBytes, err := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", files)
-				if err != nil {
-					rollbackErr := transaction.Rollback()
-					CheckErr(rollbackErr, "Failed to rollback")
-					return err
-				}
-				storageKey, _ := mail["hash"].(string)
-				if storageKey == "" {
-					storageKey, _ = mail["mail_id"].(string)
-				}
-				mail["mail"] = dimb.dbResource["mail"].MailColumnValue("mail", "mail", mailBytes, storageKey)
+			mailBytes, err := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mail["mail"])
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
 			}
+			storageKey, _ := mail["hash"].(string)
+			if storageKey == "" {
+				storageKey, _ = mail["mail_id"].(string)
+			}
+			mail["mail"] = dimb.dbResource["mail"].MailColumnValue("mail", "mail", mailBytes, storageKey)
 			mail["mail_box_id"] = destinationMailBoxId["reference_id"]
 
 			delete(mail, "reference_id")

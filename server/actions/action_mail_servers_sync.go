@@ -1,16 +1,14 @@
 package actions
 
 import (
-	"fmt"
-	"github.com/daptin/daptin/server/actionresponse"
-	"github.com/daptin/daptin/server/resource"
-	"os"
-	"path/filepath"
+	"errors"
 	"strconv"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/backends"
+	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -26,107 +24,22 @@ func (d *mailServersSyncActionPerformer) Name() string {
 }
 
 func (d *mailServersSyncActionPerformer) DoAction(request actionresponse.Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
-
-	if d.mailDaemon == nil || d.mailDaemon.Backend == nil {
-		log.Debugf("mail daemon was not initialized, returning without any outcome")
-		return nil, []actionresponse.ActionResponse{}, []error{}
-	}
-	//log.Printf("Sync mail servers")
 	responses := make([]actionresponse.ActionResponse, 0)
 
-	servers, err := d.cruds["mail_server"].GetAllObjects("mail_server", transaction)
-
-	if err != nil {
-		return nil, []actionresponse.ActionResponse{}, []error{err}
+	if d.mailDaemon == nil || d.mailDaemon.Backend == nil {
+		err := errors.New("mail daemon was not initialized; restart Daptin to start SMTP listeners")
+		log.Debug(err.Error())
+		return nil, responses, []error{err}
 	}
 
-	serverConfig := make([]guerrilla.ServerConfig, 0)
-	sourceDirectoryName := "daptin-certs"
-	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
+	servers, err := d.cruds["mail_server"].GetAllObjects("mail_server", transaction)
+	if err != nil {
+		return nil, responses, []error{err}
+	}
 
-	var hosts []string
-	for _, server := range servers {
-
-		var serverTlsConfig guerrilla.ServerTLSConfig
-
-		//json.Unmarshal([]byte(server["tls"].(string)), &serverTlsConfig)
-
-		maxSize, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
-		maxClients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
-		alwaysOnTls := fmt.Sprintf("%v", server["always_on_tls"]) == "1"
-		authenticationRequired := fmt.Sprintf("%v", server["authentication_required"]) == "1"
-
-		//authTypes := strings.Split(server["authentication_types"].(string), ",")
-
-		hostnameVal, ok := server["hostname"].(string)
-		if !ok || hostnameVal == "" {
-			log.Printf("Skipping SMTP server entry with missing hostname")
-			continue
-		}
-		hostname := hostnameVal
-		cert, err := d.certificateManager.GetTLSConfig(hostname, true, transaction)
-
-		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s, skipping", hostname)
-			continue
-		}
-
-		//certFilePath := filepath.Join(tempDirectoryPath, hostname+".cert.pem")
-		privateKeyFilePath := filepath.Join(tempDirectoryPath, hostname+".private.cert.pem")
-		publicKeyFilePath := filepath.Join(tempDirectoryPath, hostname+".public.cert.pem")
-		rootCaFile := filepath.Join(tempDirectoryPath, hostname+".root.cert.pem")
-
-		//err = os.WriteFile(certFilePath, certPEMBytes, 0666)
-		//if err != nil {
-		//	log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
-		//}
-
-		err = os.WriteFile(publicKeyFilePath, []byte(string(cert.PublicPEMDecrypted)+"\n"+string(cert.CertPEM)+"\n"+string(cert.RootCert)), 0600)
-		if err != nil {
-			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
-		}
-		err = os.WriteFile(rootCaFile, []byte(string(cert.RootCert)), 0600)
-		if err != nil {
-			log.Printf("Failed to generate public key for SMTP server for %s", hostname)
-		}
-
-		err = os.WriteFile(privateKeyFilePath, cert.PrivatePEMDecrypted, 0600)
-		//err = os.WriteFile(publicKeyFilePath, publicPEMBytes, 0666)
-
-		if err != nil {
-			log.Printf("Failed to generate Certificates for SMTP server for %s", hostname)
-		}
-
-		serverTlsConfig = guerrilla.ServerTLSConfig{
-			StartTLSOn:               true,
-			AlwaysOn:                 alwaysOnTls,
-			PrivateKeyFile:           privateKeyFilePath,
-			PublicKeyFile:            publicKeyFilePath,
-			RootCAs:                  rootCaFile,
-			ClientAuthType:           "NoClientCert",
-			PreferServerCipherSuites: true,
-			//Curves:                   []string{"P521", "P384"},
-			//Ciphers:                  []string{"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_3DES_EDE_CBC_SHA"},
-			//Protocols:                []string{"tls1.0", "tls1.3"},
-		}
-
-		config := guerrilla.ServerConfig{
-			IsEnabled:       fmt.Sprintf("%v", server["is_enabled"]) == "1",
-			ListenInterface: server["listen_interface"].(string),
-			Hostname:        hostname,
-			MaxSize:         maxSize,
-			Timeout:         30,
-			TLS:             serverTlsConfig,
-			MaxClients:      int(maxClients),
-			XClientOn:       fmt.Sprintf("%v", server["xclient_on"]) == "1",
-			AuthRequired:    authenticationRequired,
-			AuthTypes:       []string{"LOGIN"},
-		}
-
-		hosts = append(hosts, server["hostname"].(string))
-
-		serverConfig = append(serverConfig, config)
-
+	serverConfig, hosts, err := resource.BuildSMTPServerConfigs(servers, d.certificateManager, transaction)
+	if err != nil {
+		return nil, responses, []error{err}
 	}
 
 	saveWorkersSize := 1
@@ -136,14 +49,11 @@ func (d *mailServersSyncActionPerformer) DoAction(request actionresponse.Outcome
 		}
 	}
 
-	// Use first enabled server's hostname instead of hardcoded "localhost"
 	primaryMailHost := "localhost"
-	for _, srv := range servers {
-		if fmt.Sprintf("%v", srv["is_enabled"]) == "1" {
-			if h, ok := srv["hostname"].(string); ok && h != "" {
-				primaryMailHost = h
-				break
-			}
+	for _, srv := range serverConfig {
+		if srv.IsEnabled && srv.Hostname != "" {
+			primaryMailHost = srv.Hostname
+			break
 		}
 	}
 
@@ -157,17 +67,15 @@ func (d *mailServersSyncActionPerformer) DoAction(request actionresponse.Outcome
 			"primary_mail_host":  primaryMailHost,
 		},
 	})
-
-	//err = d.mailDaemon.Start()
 	if err != nil {
-		log.Printf("Failed to start mail server: %v", err)
+		log.Printf("Failed to reload mail server: %v", err)
+		return nil, responses, []error{err}
 	}
 
 	return nil, responses, nil
 }
 
 func NewMailServersSyncActionPerformer(cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon, certificateManager *resource.CertificateManager) (actionresponse.ActionPerformerInterface, error) {
-
 	handler := mailServersSyncActionPerformer{
 		cruds:              cruds,
 		mailDaemon:         mailDaemon,
@@ -175,5 +83,4 @@ func NewMailServersSyncActionPerformer(cruds map[string]*resource.DbResource, ma
 	}
 
 	return &handler, nil
-
 }

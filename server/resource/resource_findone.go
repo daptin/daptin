@@ -190,20 +190,7 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 		dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), data)
 
 	for _, inc := range include {
-		incType := inc["__type"].(string)
-
-		if strings.Index(incType, ".") > -1 {
-			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, inc))
-		} else {
-			p, ok := inc["permission"].(int64)
-			if !ok {
-				log.Warnf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
-				p = 0
-			}
-
-			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dbResource.Cruds[incType].model.GetColumns(), int64(p), dbResource.Cruds[incType].model.GetRelations(), inc))
-		}
-
+		dbResource.appendFindOneInclude(&a, inc)
 	}
 	log.Tracef("Completed FindOne [194]")
 	return NewResponse(nil, a, 200, nil), commitErr
@@ -348,21 +335,34 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 		infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), data)
 
 	for _, inc := range include {
-		incType := inc["__type"].(string)
-
-		if strings.Index(incType, ".") > -1 {
-			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, inc))
-		} else {
-			p, ok := inc["permission"].(int64)
-			if !ok {
-				log.Warnf("Failed to convert [%v] to permission: %v", inc["permission"], inc["__type"])
-				p = 0
-			}
-
-			a.Includes = append(a.Includes, api2go.NewApi2GoModelWithData(incType, dbResource.Cruds[incType].model.GetColumns(), int64(p), dbResource.Cruds[incType].model.GetRelations(), inc))
-		}
-
+		dbResource.appendFindOneInclude(&a, inc)
 	}
 
 	return NewResponse(nil, a, 200, nil), nil
+}
+
+func (dbResource *DbResource) appendFindOneInclude(model *api2go.Api2GoModel, include map[string]interface{}) {
+	incType, ok := include["__type"].(string)
+	if !ok || incType == "" {
+		return
+	}
+
+	if strings.Index(incType, ".") > -1 {
+		model.Includes = append(model.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, include))
+		return
+	}
+
+	includeResource, ok := dbResource.Cruds[incType]
+	if !ok || includeResource == nil {
+		log.Debugf("Skipping non-resource include type [%s]", incType)
+		return
+	}
+
+	p, ok := include["permission"].(int64)
+	if !ok {
+		log.Warnf("Failed to convert [%v] to permission: %v", include["permission"], include["__type"])
+		p = 0
+	}
+
+	model.Includes = append(model.Includes, api2go.NewApi2GoModelWithData(incType, includeResource.model.GetColumns(), int64(p), includeResource.model.GetRelations(), include))
 }

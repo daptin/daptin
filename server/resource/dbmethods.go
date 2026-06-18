@@ -3564,12 +3564,29 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 				}
 
 			case "cloud_store":
-				referenceStorageInformation := val.(string)
+				referenceStorageInformation, ok := mailColumnBase64String(val)
+				if !ok {
+					log.Errorf("Failed to obtain list of file information: unsupported column value [%T]", val)
+					continue
+				}
 				//log.Printf("Resolve files from cloud store: %v", referenceStorageInformation)
 				foreignFilesList := make([]map[string]interface{}, 0)
 				err := json.Unmarshal([]byte(referenceStorageInformation), &foreignFilesList)
-				CheckErr(err, "Failed to obtain list of file information")
 				if err != nil {
+					includeContents := includedRelationMap[columnInfo.ColumnName] || includedRelationMap["*"]
+					if isBuiltInMailBodyColumn(dbResource.TableInfo().TableName, columnInfo.ColumnName) {
+						if files, ok := dbBackedMailColumnFileList(row, val, includeContents); ok {
+							row[key] = files
+							if includeContents {
+								for _, file := range files {
+									file["__type"] = columnInfo.ColumnType
+									localInclude = append(localInclude, file)
+								}
+							}
+							continue
+						}
+					}
+					CheckErr(err, "Failed to obtain list of file information")
 					continue
 				}
 
