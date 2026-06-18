@@ -3,7 +3,6 @@ package resource
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"github.com/daptin/daptin/server/id"
 	"io"
@@ -205,7 +204,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 		seqNo := seq.Start
 		var mails []map[string]interface{}
 		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, transaction)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, map[string]bool{"mail": true}, transaction)
 		} else {
 			startAt := seq.Start
 			stopAt := seq.Stop
@@ -230,7 +229,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 				continue
 			}
 
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, startAt, stopAt, transaction)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, startAt, stopAt, map[string]bool{"mail": true}, transaction)
 		}
 
 		if err != nil {
@@ -240,9 +239,9 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 		for _, mailContent := range mails {
 			//log.Printf("Return mailContent: %v", mailContent)
 
-			bodyContents, e := base64.StdEncoding.DecodeString(mailContent["mail"].(string))
+			bodyContents, e := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mailContent["mail"])
 			if e != nil {
-				CheckErr(e, "Failed to decode mail contents")
+				CheckErr(e, "Failed to read mail contents")
 				continue
 			}
 			//messageBytes := bytes.NewReader(bodyContents)
@@ -624,7 +623,8 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	//}
 	//mailContents = mailContents[0:n]
 
-	base64MailContents := base64.StdEncoding.EncodeToString(mailBody)
+	hash := GetMD5Hash(mailBody)
+	storedMailContents := dimb.dbResource["mail"].MailColumnValue("mail", "mail", mailBody, hash)
 
 	parsedmail, err := parsemail.Parse(bytes.NewReader(mailBody))
 	//log.Printf("%v length of the new message", len(mailBody), parsedmail.From, parsedmail.Subject)
@@ -651,7 +651,6 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		msgId3, _ := uuid.NewV7()
 		msgId = msgId3.String()
 	}
-	hash := GetMD5Hash(mailBody)
 	uid, err := dimb.dbResource["mail_box"].AllocateMailBoxUid(dimb.mailBoxId, transaction)
 	if err != nil {
 		return err
@@ -688,7 +687,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		"sender_address":   sender,
 		"subject":          parsedmail.Subject,
 		"body":             textBody,
-		"mail":             base64MailContents,
+		"mail":             storedMailContents,
 		"spam_score":       0,
 		"hash":             hash,
 		"internal_date":    parsedmail.Date,
@@ -787,9 +786,9 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 	var mails []map[string]interface{}
 	for _, seq := range seqset.Set {
 		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, transaction)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, nil, transaction)
 		} else {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, seq.Start, seq.Stop, transaction)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, seq.Start, seq.Stop, nil, transaction)
 		}
 
 		if err != nil {
@@ -846,16 +845,19 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 		return err
 	}
 
+	httpRequest := (&http.Request{
+		Method: "POST",
+	}).WithContext(context.WithValue(context.Background(), "user", dimb.sessionUser))
 	req := api2go.Request{
-		PlainRequest: &http.Request{},
+		PlainRequest: httpRequest,
 	}
 
 	for _, set := range seqset.Set {
 
 		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, set.Start, set.Stop, transaction)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, set.Start, set.Stop, map[string]bool{"mail": true}, transaction)
 		} else {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, set.Start, set.Stop, transaction)
+			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, set.Start, set.Stop, map[string]bool{"mail": true}, transaction)
 		}
 
 		if err != nil {
@@ -871,6 +873,19 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
+			if files, ok := mail["mail"].([]map[string]interface{}); ok {
+				mailBytes, err := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", files)
+				if err != nil {
+					rollbackErr := transaction.Rollback()
+					CheckErr(rollbackErr, "Failed to rollback")
+					return err
+				}
+				storageKey, _ := mail["hash"].(string)
+				if storageKey == "" {
+					storageKey, _ = mail["mail_id"].(string)
+				}
+				mail["mail"] = dimb.dbResource["mail"].MailColumnValue("mail", "mail", mailBytes, storageKey)
+			}
 			mail["mail_box_id"] = destinationMailBoxId["reference_id"]
 
 			delete(mail, "reference_id")
@@ -885,7 +900,6 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 				log.Printf("New flags: [%v]", mailFlags)
 				mail["flags"] = strings.Join(mailFlags, ",")
 			}
-
 			_, err = dimb.dbResource["mail"].CreateWithoutFilter(api2go.NewApi2GoModelWithData(
 				"mail", nil, 768, nil, mail), req, transaction)
 			if err != nil {

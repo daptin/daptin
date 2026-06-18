@@ -3,7 +3,6 @@ package actions
 import (
 	"bytes"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"net/http"
@@ -74,11 +73,13 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 			if toErr == nil {
 				toHost = toAddr.Host
 			}
+			outboxMailBody := d.cruds["outbox"].MailColumnValue("outbox", "mail", bodyBytes, subject)
+
 			outboxModel := api2go.NewApi2GoModelWithData("outbox", nil, 0, nil, map[string]interface{}{
 				"from_address":  mailFrom,
 				"to_address":    to,
 				"to_host":       toHost,
-				"mail":          base64.StdEncoding.EncodeToString(bodyBytes),
+				"mail":          outboxMailBody,
 				"sent":          false,
 				"retry_count":   0,
 				"next_retry_at": time.Now(),
@@ -185,11 +186,13 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 			if rcptErr == nil {
 				rcptHost = rcptAddr.Host
 			}
+			outboxMailBody := d.cruds["outbox"].MailColumnValue("outbox", "mail", finalMail, emailEnvelope.Subject)
+
 			outboxModel := api2go.NewApi2GoModelWithData("outbox", nil, 0, nil, map[string]interface{}{
 				"from_address":  emailEnvelope.MailFrom.String(),
 				"to_address":    to,
 				"to_host":       rcptHost,
-				"mail":          base64.StdEncoding.EncodeToString(finalMail),
+				"mail":          outboxMailBody,
 				"sent":          false,
 				"retry_count":   0,
 				"next_retry_at": time.Now(),

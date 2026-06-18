@@ -513,7 +513,7 @@ func (dbResource *DbResource) GetAdminEmailId(transaction *sqlx.Tx) string {
 	}
 }
 
-func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uint32, stop uint32, includedRelations map[string]bool, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	q := statementbuilder.Squirrel.Select("*").Prepared(true).From("mail").Where(goqu.Ex{
 		"mail_box_id": mailBoxId,
@@ -546,17 +546,18 @@ func (dbResource *DbResource) GetMailBoxMailsByOffset(mailBoxId int64, start uin
 	if err != nil {
 		return nil, err
 	}
-	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	mailResource := dbResource.Cruds["mail"]
+	responseArray, err := RowsToMap(row, mailResource.model.GetName())
 	err = stmt1.Close()
 	err = row.Close()
 
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
+	m, _, err := mailResource.ResultToArrayOfMapWithTransaction(responseArray, mailResource.model.GetColumnMap(), includedRelations, transaction)
 
 	return m, err
 
 }
 
-func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
+func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, start uint32, stop uint32, includedRelations map[string]bool, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
 	uidWhere := goqu.Or(
 		goqu.And(
@@ -613,11 +614,12 @@ func (dbResource *DbResource) GetMailBoxMailsByUidSequence(mailBoxId int64, star
 	if err != nil {
 		return nil, err
 	}
-	responseArray, err := RowsToMap(row, dbResource.model.GetName())
+	mailResource := dbResource.Cruds["mail"]
+	responseArray, err := RowsToMap(row, mailResource.model.GetName())
 	err = stmt1.Close()
 	err = row.Close()
 
-	m, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds["mail"].model.GetColumnMap(), nil, transaction)
+	m, _, err := mailResource.ResultToArrayOfMapWithTransaction(responseArray, mailResource.model.GetColumnMap(), includedRelations, transaction)
 
 	return m, err
 
@@ -800,7 +802,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 	}
 	defer tx.Rollback()
 
-	selectQuery, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).From("mail").Where(
+	selectQuery, args, err := statementbuilder.Squirrel.Select("id", "reference_id").Prepared(true).From("mail").Where(
 		goqu.Ex{
 			"mail_box_id": mailBoxId,
 			"deleted":     true,
@@ -817,11 +819,17 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 	}
 
 	ids := make([]interface{}, 0)
+	referenceIds := make([]daptinid.DaptinReferenceId, 0)
 
 	for rows.Next() {
 		var id int64
-		rows.Scan(&id)
+		var referenceId daptinid.DaptinReferenceId
+		if err := rows.Scan(&id, &referenceId); err != nil {
+			rows.Close()
+			return 0, err
+		}
 		ids = append(ids, id)
+		referenceIds = append(referenceIds, referenceId)
 	}
 	rows.Close()
 
@@ -843,17 +851,18 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	query, args, err = statementbuilder.Squirrel.Delete("mail").Prepared(true).Where(goqu.Ex{
-		"id": ids,
-	}).ToSQL()
-	if err != nil {
-		return 0, err
+	mailURL, _ := url.Parse("/api/mail")
+	mailRequest := api2go.Request{
+		PlainRequest: (&http.Request{
+			Method: "DELETE",
+			URL:    mailURL,
+		}).WithContext(context.Background()),
 	}
-
-	result, err := tx.Exec(query, args...)
-	if err != nil {
-		log.Printf("Query: %v", query)
-		return 0, err
+	for _, referenceId := range referenceIds {
+		err = dbResource.Cruds["mail"].DeleteWithoutFilters(referenceId, mailRequest, tx)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	err = tx.Commit()
@@ -861,7 +870,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64) (int64, error) {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	return int64(len(ids)), nil
 
 }
 

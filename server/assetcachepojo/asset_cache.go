@@ -25,13 +25,10 @@ type AssetFolderCache struct {
 }
 
 func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
-	baseDir := afc.LocalSyncPath
-	if afc.CloudStore.StoreType == "local" {
-		baseDir = path.Join(afc.CloudStore.RootPath, afc.Keyname)
-	}
-	fileName = filepath.Clean(fileName)
-	for strings.HasPrefix(fileName, "..") {
-		fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+	baseDir := afc.storageBaseDir()
+	fileName = cleanAssetRelativePath(fileName)
+	if fileName == "" {
+		return nil, fmt.Errorf("file name cannot be empty")
 	}
 	localFilePath := filepath.Join(baseDir, fileName)
 
@@ -152,19 +149,16 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	return nil
 }
 func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
-	fileName = filepath.Clean(fileName)
-	for strings.HasPrefix(fileName, "..") {
-		fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+	fileName = cleanAssetRelativePath(fileName)
+	if fileName == "" {
+		return nil
 	}
-	return os.Remove(filepath.Join(afc.LocalSyncPath, fileName))
+	return os.Remove(filepath.Join(afc.storageBaseDir(), fileName))
 }
 
 func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interface{}, error) {
-	path = filepath.Clean(path)
-	for strings.HasPrefix(path, "..") {
-		path = strings.TrimPrefix(strings.TrimPrefix(path, ".."), string(filepath.Separator))
-	}
-	fileInfo, err := os.ReadDir(filepath.Join(afc.LocalSyncPath, path))
+	path = cleanAssetRelativePath(path)
+	fileInfo, err := os.ReadDir(filepath.Join(afc.storageBaseDir(), path))
 	if err != nil {
 		return nil, err
 	}
@@ -214,25 +208,19 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 				if file["name"] == nil {
 					return errors.WithMessage(errors.New("file name cannot be null"), "File name is null")
 				}
-				safeName := filepath.Clean(file["name"].(string))
-				for strings.HasPrefix(safeName, "..") {
-					safeName = strings.TrimPrefix(strings.TrimPrefix(safeName, ".."), string(filepath.Separator))
-				}
+				safeName := cleanAssetRelativePath(file["name"].(string))
 				if safeName == "" || safeName == "." {
 					continue
 				}
 				subDir := ""
 				if file["path"] != nil {
-					subDir = filepath.Clean(file["path"].(string))
-					for strings.HasPrefix(subDir, "..") {
-						subDir = strings.TrimPrefix(strings.TrimPrefix(subDir, ".."), string(filepath.Separator))
-					}
+					subDir = cleanAssetRelativePath(file["path"].(string))
 				}
 				var localFilePath string
 				if subDir != "" {
-					localFilePath = filepath.Join(afc.LocalSyncPath, subDir, safeName)
+					localFilePath = filepath.Join(afc.storageBaseDir(), subDir, safeName)
 				} else {
-					localFilePath = filepath.Join(afc.LocalSyncPath, safeName)
+					localFilePath = filepath.Join(afc.storageBaseDir(), safeName)
 				}
 				dirPath := filepath.Dir(localFilePath)
 				createDirIfNotExist(dirPath)
@@ -247,6 +235,29 @@ func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
 
 	return nil
 
+}
+
+func (afc *AssetFolderCache) storageBaseDir() string {
+	if afc.CloudStore.StoreProvider == "local" || afc.CloudStore.StoreType == "local" {
+		return filepath.Join(afc.CloudStore.RootPath, afc.Keyname)
+	}
+	return afc.LocalSyncPath
+}
+
+func cleanAssetRelativePath(fileName string) string {
+	fileName = filepath.Clean(fileName)
+	for filepath.IsAbs(fileName) {
+		fileName = strings.TrimPrefix(fileName, string(filepath.Separator))
+		fileName = filepath.Clean(fileName)
+	}
+	for strings.HasPrefix(fileName, "..") {
+		fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+		fileName = filepath.Clean(fileName)
+	}
+	if fileName == "." {
+		return ""
+	}
+	return fileName
 }
 
 func createDirIfNotExist(dir string) {

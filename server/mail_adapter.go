@@ -260,12 +260,11 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 						}
 
-						var mailBody interface{}
 						var mailSize int
 						// `mail` column
 
 						mailSize = len(mailBytes)
-						mailBody = base64.StdEncoding.EncodeToString(mailBytes)
+						mailBody := dbResource.Cruds["mail"].MailColumnValue("mail", "mail", mailBytes, hash)
 						ur, _ := url.Parse("/api/mail")
 						pr := &http.Request{
 							URL:    ur,
@@ -365,11 +364,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							finalMail := b.Bytes()
 							log.Printf("Final Mail: From [%v] to [%v]", e.MailFrom.String(), rcpt.String())
 
+							outboxMailBody := dbResource.Cruds["outbox"].MailColumnValue("outbox", "mail", finalMail, hash)
+
 							outboxModel := api2go.NewApi2GoModelWithData("outbox", nil, 0, nil, map[string]interface{}{
 								"from_address":  e.MailFrom.String(),
 								"to_address":    rcpt.String(),
 								"to_host":       rcpt.Host,
-								"mail":          base64.StdEncoding.EncodeToString(finalMail),
+								"mail":          outboxMailBody,
 								"sent":          false,
 								"retry_count":   0,
 								"next_retry_at": time.Now(),

@@ -2,11 +2,14 @@ package resource
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
@@ -15,6 +18,109 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
+
+const mailMessageFileType = "message/rfc822"
+
+func (dbResource *DbResource) MailColumnValue(tableName, columnName string, messageBytes []byte, nameHint string) interface{} {
+	encoded := base64.StdEncoding.EncodeToString(messageBytes)
+	tableResource := dbResource.Cruds[tableName]
+	if tableResource == nil || tableResource.TableInfo() == nil {
+		return encoded
+	}
+	column, ok := tableResource.TableInfo().GetColumnByName(columnName)
+	if !ok || column == nil || !column.IsForeignKey || column.ForeignKeyData.DataSource != "cloud_store" {
+		return encoded
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"name":     mailMessageFileName(nameHint, messageBytes),
+			"path":     "",
+			"type":     mailMessageFileType,
+			"contents": encoded,
+		},
+	}
+}
+
+func (dbResource *DbResource) MailColumnBytes(tableName, columnName string, columnValue interface{}) ([]byte, error) {
+	tableResource := dbResource.Cruds[tableName]
+	if tableResource != nil && tableResource.TableInfo() != nil {
+		column, ok := tableResource.TableInfo().GetColumnByName(columnName)
+		if ok && column != nil && column.IsForeignKey && column.ForeignKeyData.DataSource == "cloud_store" {
+			switch value := columnValue.(type) {
+			case []map[string]interface{}:
+				return mailFileContents(value)
+			case []interface{}:
+				files := make([]map[string]interface{}, 0, len(value))
+				for _, file := range value {
+					fileMap, ok := file.(map[string]interface{})
+					if !ok {
+						return nil, errors.New("mail file metadata is invalid")
+					}
+					files = append(files, fileMap)
+				}
+				return mailFileContents(files)
+			default:
+				return nil, errors.New("mail file contents are not included")
+			}
+		}
+	}
+
+	switch value := columnValue.(type) {
+	case string:
+		return base64.StdEncoding.DecodeString(value)
+	case []byte:
+		return base64.StdEncoding.DecodeString(string(value))
+	default:
+		return nil, errors.New("mail column has unsupported value")
+	}
+}
+
+func mailFileContents(files []map[string]interface{}) ([]byte, error) {
+	if len(files) == 0 {
+		return nil, errors.New("mail file list is empty")
+	}
+	contents, ok := files[0]["contents"].(string)
+	if !ok {
+		return nil, errors.New("mail file contents are not included")
+	}
+	return base64.StdEncoding.DecodeString(contents)
+}
+
+func mailMessageFileName(nameHint string, messageBytes []byte) string {
+	name := strings.TrimSuffix(strings.TrimSpace(nameHint), ".eml")
+	if name == "" {
+		name = GetMD5Hash(messageBytes)
+	}
+	name = filepath.Base(sanitizeMailFileName(name))
+	name = strings.Trim(name, "._-")
+	if name == "" {
+		name = "message"
+	}
+	if len(name) > 96 {
+		name = name[:96]
+	}
+	u, err := uuid.NewV7()
+	if err != nil {
+		return name + ".eml"
+	}
+	return name + "-" + u.String() + ".eml"
+}
+
+func sanitizeMailFileName(value string) string {
+	var builder strings.Builder
+	for _, r := range value {
+		switch {
+		case unicode.IsLetter(r), unicode.IsDigit(r):
+			builder.WriteRune(r)
+		case r == '.', r == '-', r == '_':
+			builder.WriteRune(r)
+		default:
+			builder.WriteRune('_')
+		}
+	}
+	return builder.String()
+}
 
 // Returns the user account row of a user by looking up on email
 func (dbResource *DbResource) GetUserMailAccountRowByEmail(username string, transaction *sqlx.Tx) (map[string]interface{}, error) {

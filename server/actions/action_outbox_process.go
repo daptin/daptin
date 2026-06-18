@@ -3,7 +3,6 @@ package actions
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"math"
 	"net/mail"
@@ -33,7 +32,7 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 
 	responses := make([]actionresponse.ActionResponse, 0)
 
-	pendingMails, err := d.cruds["outbox"].GetAllObjectsWithWhereWithTransaction("outbox", transaction,
+	pendingMails, _, err := d.cruds["outbox"].GetRowsByWhereClauseWithTransaction("outbox", map[string]bool{"mail": true}, transaction,
 		goqu.Ex{"sent": false},
 		goqu.Ex{"retry_count": goqu.Op{"lt": 5}},
 	)
@@ -87,8 +86,8 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 			log.Errorf("Outbox entry [%v] has invalid to_address type: %T", mailId, pendingMail["to_address"])
 			continue
 		}
-		mailBase64, ok := pendingMail["mail"].(string)
-		if !ok {
+		mailStored, ok := pendingMail["mail"]
+		if !ok || mailStored == nil {
 			log.Errorf("Outbox entry [%v] has invalid mail type: %T", mailId, pendingMail["mail"])
 			continue
 		}
@@ -109,10 +108,10 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 			}
 		}
 
-		mailBytes, err := base64.StdEncoding.DecodeString(mailBase64)
+		mailBytes, err := d.cruds["outbox"].MailColumnBytes("outbox", "mail", mailStored)
 		if err != nil {
-			log.Errorf("Failed to decode outbox mail [%v]: %v", mailId, err)
-			d.markFailed(mailId, "failed to decode mail body: "+err.Error(), pendingMail, transaction)
+			log.Errorf("Failed to read outbox mail [%v]: %v", mailId, err)
+			d.markFailed(mailId, "failed to read mail body: "+err.Error(), pendingMail, transaction)
 			continue
 		}
 
