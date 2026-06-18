@@ -1,31 +1,90 @@
 Asset columns
 ===
 
-Column types of blob types can either be stored in the database itself (not recommended) or persist in a persistent storage.
+Blob-like columns can either be stored in the database column or persisted in a
+configured [cloud store](cloudstore.md). When a column is backed by a
+`cloud_store`, the table stores file metadata and the file body is stored in
+the configured provider.
 
-After we have created a [cloud store](cloudstore.md), we can point the column to a folder on the cloud store. The column will only contain metadata and the actual file will be persisted on the cloud store.
+To enable cloud storage for a column, set `IsForeignKey: true` and point
+`ForeignKeyData` at the `cloud_store` record:
 
-To enable this, update the ForeignKeyData config of the column as follows:
-
-Create a file for the schema change:
-
-```add_column_storage.yaml
+```yaml
 Tables:
-  - TableName: <TableNameHere>
-  - Columns:
-    - ColumnName: <ColumnNameHere>
-      ForeignKeyData:
-        DataSource: "cloud"
-        KeyName: <Cloud store name here>
-        Namespace: <Folder name inside that clouds store>
+  - TableName: <table_name>
+    Columns:
+      - Name: <column_name>
+        ColumnName: <column_name>
+        DataType: text
+        ColumnType: file
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: <cloud_store_name>
+          KeyName: <folder_or_prefix>
 ```
 
+`Namespace` must match the `name` field on the `cloud_store` row. `KeyName` is
+the folder or prefix under that cloud store.
 
-Upload it using the dashboard (You can alternatively just edit that from the dashboard). This will trigger a reconfiguration of the system and initiate a local sync of the cloud directory in a temporary location. The cloud directory will be synced down stream every 15 minutes while the uploads will be asynced but instantaneous.
+File uploads use an array of file objects:
 
+```json
+{
+  "attachment": [
+    {
+      "name": "report.pdf",
+      "file": "data:application/pdf;base64,...",
+      "type": "application/pdf"
+    }
+  ]
+}
+```
 
-Such columns like image./video./audio./markdown. will be served over HTTP in a simple GET call:
+Cloud-backed files can be served over HTTP:
 
-/asset/&lt;table_name&gt;/&lt;reference_id&gt;/&lt;column_name&gt;.&lt;extension&gt;
+```text
+/asset/<table_name>/<reference_id>/<column_name>.<extension>
+```
 
-&lt;extension&gt; can be anything relevant to the mimetype of the file. The column file will be dumped as it is. Useful for using in `img` html tag.
+The extension can be any value relevant to the file MIME type.
+
+## Built-in mail columns
+
+The built-in `mail.mail` and `outbox.mail` columns use the same cloud-store
+configuration path. There is no separate SMTP or IMAP storage config key.
+
+```yaml
+Tables:
+  - TableName: mail
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: mail-messages
+
+  - TableName: outbox
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: outbox-messages
+```
+
+SMTP delivery, IMAP `FETCH`, `COPY`, `APPEND`, and outbox processing read and
+write the raw RFC 822 message body through these columns. Mail metadata stays
+in the SQL tables. API reads that need the message body should use:
+
+```text
+GET /api/mail/<id>?included_relations=mail
+```

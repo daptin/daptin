@@ -443,7 +443,59 @@ This prevents open relay abuse.
 | mail_account | User accounts |
 | mail_box | Mailboxes (INBOX, Spam, etc.) |
 | mail | Stored messages |
-| outbox | Reserved for mail queue (not currently used) |
+| outbox | Outgoing mail queue |
+
+## Mail Message Body Storage
+
+SMTP delivery stores the full raw RFC 822 message body in the built-in
+`mail.mail` column. That column can be backed by any configured `cloud_store`
+using the same schema-level `ForeignKeyData` mechanism as other asset columns.
+There is no separate SMTP mail-body storage config entry.
+
+```yaml
+Tables:
+  - TableName: mail
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: mail-messages
+```
+
+When configured this way, incoming SMTP messages are written as
+`message/rfc822` `.eml` objects under the selected cloud store and prefix.
+Mailbox metadata such as subject, sender, recipient, spam score, flags, UID,
+and mailbox relation remains in the SQL tables.
+
+For outbound queue storage, configure `outbox.mail` the same way:
+
+```yaml
+Tables:
+  - TableName: outbox
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: outbox-messages
+```
+
+To read cloud-backed message content through the JSON:API, request the file
+contents using `included_relations=mail`:
+
+```bash
+curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ## Mailbox Management
 
@@ -528,67 +580,6 @@ PASSWORD_B64=$(echo -n "account-password" | base64)
 - `334 UGFzc3dvcmQ6` - Server requesting password
 - `235 Authentication succeeded` - Login successful
 - `250 2.0.0 OK: queued as HASH` - Email queued
-
-## Manual Email Creation
-
-Due to the inbound storage bug, create emails via REST API:
-
-```bash
-curl -X POST http://localhost:6336/api/mail \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "mail",
-      "attributes": {
-        "message_id": "<unique-id@example.com>",
-        "mail_id": "unique-hash",
-        "from_address": "sender@example.com",
-        "to_address": "noreply@example.com",
-        "sender_address": "sender@example.com",
-        "subject": "Email Subject",
-        "body": "Plain text body",
-        "mail": "From: sender@example.com\r\nTo: noreply@example.com\r\nSubject: Email Subject\r\n\r\nEmail body.",
-        "spam_score": 0,
-        "spam": false,
-        "hash": "unique-hash",
-        "content_type": "text/plain",
-        "reply_to_address": "sender@example.com",
-        "internal_date": "2026-01-23T12:00:00Z",
-        "recipient": "noreply@example.com",
-        "has_attachment": false,
-        "ip_addr": "127.0.0.1",
-        "return_path": "sender@example.com",
-        "is_tls": false,
-        "seen": false,
-        "recent": true,
-        "flags": "\\Recent",
-        "size": 100
-      },
-      "relationships": {
-        "mail_box_id": {"data": {"type": "mail_box", "id": "MAILBOX_ID"}},
-        "user_account_id": {"data": {"type": "user_account", "id": "USER_ID"}}
-      }
-    }
-  }'
-```
-
-**Required mail fields:**
-| Field | Description |
-|-------|-------------|
-| message_id | Unique message identifier |
-| mail_id | Hash identifier |
-| from_address | Sender email |
-| to_address | Recipient email |
-| sender_address | Sender for SMTP envelope |
-| subject | Email subject |
-| body | Plain text body |
-| mail | Full RFC 822 message (can be gzip compressed) |
-| reply_to_address | Reply-to address |
-| ip_addr | Sender IP |
-| return_path | Return path address |
-| mail_box_id | Relationship to mailbox |
-| user_account_id | Relationship to user |
 
 ## IMAP Server
 

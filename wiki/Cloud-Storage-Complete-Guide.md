@@ -313,6 +313,53 @@ Example:
 - Uploaded file: `image.jpg`
 - Final path: `my-bucket/photos/image.jpg`
 
+### Built-in Mail and Outbox Columns
+
+Daptin's built-in mail storage uses the same column-level cloud-store
+configuration. Configure `mail.mail` for received/IMAP messages and
+`outbox.mail` for queued outbound messages. No extra backend config key is
+required.
+
+```yaml
+Tables:
+  - TableName: mail
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: mail-messages
+
+  - TableName: outbox
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: outbox-messages
+```
+
+`Namespace` is the `cloud_store.name`; `KeyName` is the object-store
+folder/prefix. SMTP delivery, IMAP `FETCH`, `COPY`, `APPEND`, and outbox
+processing read and write through these columns. Mailbox metadata remains in
+the SQL tables, while the raw RFC 822 message body is stored as a
+`message/rfc822` `.eml` file in the configured store.
+
+API reads that need the message content should request the `mail` relation:
+
+```bash
+curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ---
 
 ## Uploading Files

@@ -34,27 +34,75 @@ Three config entries
 - hostname
 
 ```bash
-curl --location --request POST 'localhost:6336/_config/backend/imps.enabled' \
-    --header 'Content-Type: application/json' \
+curl --location --request POST 'localhost:6336/_config/backend/imap.enabled' \
+    --header 'Content-Type: text/plain' \
     --header 'Authorization: Bearer <TOKEN>' \
     --data-raw 'true'
      
 curl --location --request POST 'localhost:6336/_config/backend/imap.listen_interface' \
-    --header 'Content-Type: application/json' \
+    --header 'Content-Type: text/plain' \
     --header 'Authorization: Bearer <TOKEN>' \
-    --data-raw '0.0.0.0:465'
+    --data-raw '0.0.0.0:993'
     
 
 curl --location --request POST 'localhost:6336/_config/backend/hostname' \
-    --header 'Content-Type: application/json' \
+    --header 'Content-Type: text/plain' \
     --header 'Authorization: Bearer <TOKEN>' \
-    --data-raw 'imps.example.com'
+    --data-raw 'imap.example.com'
     
 
 
 ```
 
 The mail account created earlier should be able to access the SMTP/IMAP interface to send and receive email.
+
+## Mail message storage
+
+SMTP and IMAP store the raw message body in the built-in `mail.mail` column.
+You can keep the default database-backed column storage, or point the column to
+any configured cloud store with the same `ForeignKeyData` used by asset
+columns:
+
+```yaml
+Tables:
+  - TableName: mail
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: mail-messages
+```
+
+For queued outgoing mail, configure `outbox.mail` the same way:
+
+```yaml
+Tables:
+  - TableName: outbox
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: outbox-messages
+```
+
+When configured, Daptin stores message bodies as `message/rfc822` `.eml`
+objects in the selected cloud store. Mailbox metadata, flags, UID state, and
+relationships remain in SQL. To read the message body through the API, include
+the `mail` relation:
+
+```text
+GET /api/mail/<id>?included_relations=mail
+```
 
 
 ## DKIM 
@@ -104,4 +152,3 @@ curl 'http://localhost:8080/action/world/restart_daptin' -X POST \
     -H 'Content-Type: application/json;charset=utf-8' \
     --data-raw '{"attributes":{}}'
 ```
-

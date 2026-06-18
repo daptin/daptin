@@ -179,6 +179,41 @@ f EXPUNGE
 - STORE: Sets `deleted=true` on mail record
 - EXPUNGE: Deletes mail record and usergroup relations
 
+### Cloud Store Backed Message Bodies
+
+IMAP reads and writes message bodies through the `mail.mail` column. To store
+message bodies in a configured cloud store, configure that built-in column the
+same way as any cloud-backed asset column:
+
+```yaml
+Tables:
+  - TableName: mail
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: mail-messages
+```
+
+After the schema is applied and the server is restarted, IMAP `FETCH`, `COPY`,
+`APPEND`, and `EXPUNGE` continue to use the normal mailbox behavior. The SQL
+tables keep message metadata, flags, UID state, and mailbox relations. The raw
+RFC 822 message body is stored as a `message/rfc822` `.eml` object in the
+configured `cloud_store`.
+
+To fetch the same message body through the JSON:API, include the `mail`
+relation:
+
+```bash
+curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ### IDLE Extension
 
 IMAP IDLE allows clients to receive real-time notifications without polling.

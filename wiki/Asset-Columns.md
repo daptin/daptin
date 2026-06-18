@@ -168,6 +168,61 @@ Configure cloud storage at schema level using `ForeignKeyData`:
 | `Namespace` | Yes | Name of the `cloud_store` record (matches `name` column in cloud_store table) |
 | `KeyName` | Yes | Subfolder within cloud storage root path. Files stored at `{root_path}/{KeyName}/` |
 
+### Built-in Mail Message Storage
+
+The built-in `mail.mail` and `outbox.mail` columns use the same file-column
+storage path as any other table column. There is no separate mail storage
+configuration key. Point those columns at a `cloud_store` by setting
+`IsForeignKey: true` and `ForeignKeyData.DataSource: cloud_store`.
+
+```yaml
+Tables:
+  - TableName: mail
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: mail-messages
+
+  - TableName: outbox
+    Columns:
+      - Name: mail
+        ColumnName: mail
+        DataType: blob
+        ColumnType: gzip
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: mail-storage
+          KeyName: outbox-messages
+```
+
+`Namespace` must match the `name` of an existing `cloud_store`. `KeyName` is
+the folder/prefix under that store. Daptin stores the raw RFC 822 message body
+as a `message/rfc822` `.eml` object and keeps the normal mail metadata, flags,
+UID, spam fields, mailbox relation, and usergroup relations in the database.
+
+SMTP delivery, IMAP `FETCH`, `COPY`, `APPEND`, and outbox processing all use
+this column configuration. If the column is not configured with
+`ForeignKeyData.DataSource: cloud_store`, Daptin stores the message body in the
+database column.
+
+To read the stored message body through the JSON:API, include the `mail`
+relation so the file content is loaded from the configured store:
+
+```bash
+curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Without `included_relations=mail`, the API response contains the stored file
+metadata but not the file contents.
+
 **Path Construction:**
 ```
 Final path = cloud_store.root_path + "/" + ForeignKeyData.KeyName + "/" + [file.path] + "/" + file.name

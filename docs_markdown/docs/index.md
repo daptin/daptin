@@ -27,6 +27,7 @@ The most powerful ready to use data and services API server.
   - Enable SMTPS and IMAPS services and use daptin as your regular email provider
   - Multi hostname mail server
   - Multiple email accounts
+  - Store message bodies in database columns or cloud-store-backed mail columns
 - With a clean white-branded dashboard
 ```
 
@@ -66,4 +67,3 @@ Consume the following features easily on any device
 
 - [Create a site using a google drive folder](https://medium.com/@012parth/daptin-walk-through-oauth2-google-drive-subsites-and-grapejs-a6de27d9658a)
 - [Creating a todo list backend](https://hackernoon.com/creating-a-todolist-backend-with-persistence-a1e8d7d39f62)
-
