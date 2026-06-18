@@ -346,7 +346,10 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
 
 Reload mail server configuration after changes.
 
-**Important:** The SMTP daemon is initialized at Daptin startup. If no mail servers existed when Daptin started, the `sync_mail_servers` action will not start the SMTP daemon - you must restart Daptin.
+**Important:** The SMTP daemon is initialized at Daptin startup. If no mail
+servers existed when Daptin started, the `sync_mail_servers` action reports a
+restart-required error instead of silently succeeding. Restart Daptin after
+creating the first `mail_server` row so the SMTP daemon can initialize.
 
 ```bash
 curl -X POST http://localhost:6336/action/mail_server/sync_mail_servers \
@@ -357,6 +360,11 @@ curl -X POST http://localhost:6336/action/mail_server/sync_mail_servers \
 - After updating mail server settings (hostname, ports, TLS)
 - After adding/removing mail accounts
 - After certificate changes
+
+For ACME-backed SMTP/SMTPS hosts, Daptin writes the server certificate file as
+the leaf certificate plus the issuer chain from `root_certificate`. Clients
+should receive the full chain after a normal restart or `sync_mail_servers`
+reload.
 
 ## Spam Scoring Algorithm
 
@@ -490,12 +498,19 @@ Tables:
 ```
 
 To read cloud-backed message content through the JSON:API, request the file
-contents using `included_relations=mail`:
+contents using `included_relations=mail`. This works for both list and
+single-row reads:
 
 ```bash
 curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+If you enable cloud-store backing after messages already exist, Daptin can
+still read built-in `mail.mail` and `outbox.mail` values that are still stored
+in the database-backed base64 format. API reads expose those existing values as
+inline `message/rfc822` `.eml` file payloads, and IMAP `COPY` writes copied
+messages through the currently configured storage path.
 
 ## Mailbox Management
 
@@ -756,9 +771,9 @@ INFO SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers config
 - Cause: SMTP daemon initializes at startup only
 - Solution: Restart Daptin after creating your first mail server
 
-**Issue: `sync_mail_servers` action returns empty response**
-- Cause: SMTP daemon was not initialized (no servers existed at startup)
-- Solution: Restart Daptin
+**Issue: `sync_mail_servers` action returns a restart-required error**
+- Cause: SMTP daemon was not initialized because no servers existed at startup
+- Solution: Restart Daptin after creating the first `mail_server`
 
 **Issue: `554 5.7.1 Client host rejected: Access denied`**
 - Cause: Unauthenticated sender fails SPF validation

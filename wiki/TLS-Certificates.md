@@ -279,6 +279,7 @@ During ACME generation, Daptin:
 2. Creates HTTP-01 challenge endpoint: `http://api.example.com/.well-known/acme-challenge/{token}`
 3. Let's Encrypt verifies ownership by fetching the challenge
 4. Certificate issued and stored in database
+5. Issuer chain stored in `root_certificate` for HTTPS and SMTP/SMTPS chain presentation
 
 This process takes 30-60 seconds.
 
@@ -518,6 +519,8 @@ sqlite3 daptin.db "SELECT name FROM _config WHERE name LIKE 'letsencrypt%';"
 - **Rate Limits**: Max 50 certs per domain per week
 - **Domain Validation**: Requires actual domain control
 - **Private Key Security**: Keys stored encrypted in database
+- **SMTP Chain**: SMTP/SMTPS uses the leaf certificate plus the stored issuer
+  chain so clients receive a complete certificate chain
 
 ### Private Key Storage
 - All private keys stored in database (encrypted)

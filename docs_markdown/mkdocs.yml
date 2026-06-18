@@ -1,7 +1,7 @@
 site_name: Daptin
 site_favicon: images/favicon.png
 site_url: https://daptin.github.io/daptin/
-pages:
+nav:
 - Introduction:
   - About: index.md
   - FAQs: faq.md

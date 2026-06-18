@@ -83,8 +83,14 @@ Tables:
 
 SMTP delivery, IMAP `FETCH`, `COPY`, `APPEND`, and outbox processing read and
 write the raw RFC 822 message body through these columns. Mail metadata stays
-in the SQL tables. API reads that need the message body should use:
+in the SQL tables. API reads that need the message body should use this form
+for list and single-row reads:
 
 ```text
 GET /api/mail/<id>?included_relations=mail
 ```
+
+If cloud-store backing is enabled after messages already exist, built-in mail
+rows that still contain database-backed base64 message bodies remain readable.
+Daptin returns them as inline `message/rfc822` `.eml` file payloads, and IMAP
+`COPY` writes copied messages through the current column storage path.

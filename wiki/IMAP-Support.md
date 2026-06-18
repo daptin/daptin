@@ -206,6 +206,11 @@ tables keep message metadata, flags, UID state, and mailbox relations. The raw
 RFC 822 message body is stored as a `message/rfc822` `.eml` object in the
 configured `cloud_store`.
 
+If you enable cloud-store backing after messages already exist, IMAP can still
+read existing database-backed base64 message bodies from the built-in mail
+column. `COPY` writes the copied message through the current column storage
+configuration, so copied messages move onto the configured cloud-store path.
+
 To fetch the same message body through the JSON:API, include the `mail`
 relation:
 

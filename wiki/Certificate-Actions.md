@@ -111,7 +111,11 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
 2. Registers with Let's Encrypt
 3. Responds to HTTP-01 challenge at `/.well-known/acme-challenge/`
 4. Obtains certificate
-5. Stores certificate, private key, and root certificate
+5. Stores certificate, private key, and root certificate/issuer chain
+
+SMTP/SMTPS listeners use the stored certificate plus issuer chain when writing
+their TLS certificate files, so mail clients receive a complete chain after a
+normal restart or `sync_mail_servers` reload.
 
 ### ACME Challenge
 

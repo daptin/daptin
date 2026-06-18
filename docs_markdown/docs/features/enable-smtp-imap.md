@@ -98,11 +98,16 @@ Tables:
 When configured, Daptin stores message bodies as `message/rfc822` `.eml`
 objects in the selected cloud store. Mailbox metadata, flags, UID state, and
 relationships remain in SQL. To read the message body through the API, include
-the `mail` relation:
+the `mail` relation. This works for both list and single-row reads:
 
 ```text
 GET /api/mail/<id>?included_relations=mail
 ```
+
+If cloud-store backing is enabled after messages already exist, built-in
+`mail.mail` and `outbox.mail` values that are still database-backed base64 are
+returned as inline `.eml` file payloads. IMAP `COPY` writes copied messages
+through the current storage configuration.
 
 
 ## DKIM 

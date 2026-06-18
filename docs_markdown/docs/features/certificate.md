@@ -45,6 +45,9 @@ curl 'http://localhost:8080/action/certificate/generate_acme_certificate' -X POS
 ```
 
 This will issue a new certificate from ACME and store the key in the database
+along with the issuer chain. SMTP/SMTPS listeners use the stored leaf
+certificate plus the stored issuer chain, so mail clients receive the full
+certificate chain after restart or `sync_mail_servers`.
 
 ## Import existing
 

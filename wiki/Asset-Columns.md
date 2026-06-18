@@ -213,7 +213,8 @@ this column configuration. If the column is not configured with
 database column.
 
 To read the stored message body through the JSON:API, include the `mail`
-relation so the file content is loaded from the configured store:
+relation so the file content is loaded from the configured store. The same
+query form works for list endpoints and single-row endpoints:
 
 ```bash
 curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
@@ -222,6 +223,12 @@ curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
 
 Without `included_relations=mail`, the API response contains the stored file
 metadata but not the file contents.
+
+If you configure these built-in mail columns for cloud storage after messages
+already exist, existing database-backed base64 values are still readable.
+Daptin returns them as inline `message/rfc822` `.eml` file payloads on API
+reads, and IMAP `COPY` stores copied messages through the current column
+configuration.
 
 **Path Construction:**
 ```

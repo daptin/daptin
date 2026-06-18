@@ -360,6 +360,12 @@ curl "http://localhost:6336/api/mail/$MAIL_ID?included_relations=mail" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
+This works on both list and single-row reads. If cloud-store backing is enabled
+after mail rows already exist, Daptin can still read existing database-backed
+base64 values from the built-in `mail.mail` and `outbox.mail` columns. Those
+values are returned as inline `message/rfc822` `.eml` file payloads; copied
+IMAP messages are written through the currently configured storage path.
+
 ---
 
 ## Uploading Files
