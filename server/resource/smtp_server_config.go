@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"bytes"
-	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -47,7 +45,7 @@ func BuildSMTPServerConfigs(servers []map[string]interface{}, certificateManager
 		publicKeyFilePath := filepath.Join(tempDirectoryPath, hostname+".public.cert.pem")
 		rootCaFile := filepath.Join(tempDirectoryPath, hostname+".root.cert.pem")
 
-		if err := os.WriteFile(publicKeyFilePath, smtpCertificateChainPEM(cert.CertPEM, cert.RootCert), 0600); err != nil {
+		if err := os.WriteFile(publicKeyFilePath, certificateChainPEM(cert.CertPEM, cert.RootCert), 0600); err != nil {
 			msg := fmt.Sprintf("failed to write certificate chain for SMTP server %s: %v", hostname, err)
 			log.Print(msg)
 			configErrors = append(configErrors, msg)
@@ -131,31 +129,5 @@ func smtpConfigBool(value interface{}) bool {
 	default:
 		normalized := strings.TrimSpace(strings.ToLower(fmt.Sprintf("%v", value)))
 		return normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on"
-	}
-}
-
-func smtpCertificateChainPEM(certPEM, rootCertPEM []byte) []byte {
-	var out bytes.Buffer
-	seen := make(map[string]bool)
-	appendCertificateBlocks(&out, seen, certPEM)
-	appendCertificateBlocks(&out, seen, rootCertPEM)
-	return out.Bytes()
-}
-
-func appendCertificateBlocks(out *bytes.Buffer, seen map[string]bool, raw []byte) {
-	rest := bytes.TrimSpace(raw)
-	for len(rest) > 0 {
-		block, remaining := pem.Decode(rest)
-		if block == nil {
-			return
-		}
-		if block.Type == "CERTIFICATE" {
-			key := string(block.Bytes)
-			if !seen[key] {
-				_ = pem.Encode(out, block)
-				seen[key] = true
-			}
-		}
-		rest = bytes.TrimSpace(remaining)
 	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/columns"
 	"github.com/daptin/daptin/server/table_info"
 )
 
@@ -111,5 +112,187 @@ func TestMergeTablesPreservesExistingCloudStoreColumnConfiguration(t *testing.T)
 	}
 	if column.ForeignKeyData.Namespace != "localstore" || column.ForeignKeyData.KeyName != "mail-messages" {
 		t.Fatalf("expected cloud_store target to be preserved, got %#v", column.ForeignKeyData)
+	}
+}
+
+func TestMergeTablesLeavesNewDuplicateConfigTablesUncollapsed(t *testing.T) {
+	initConfigTables := []table_info.TableInfo{
+		{
+			TableName: "built_in",
+			IsHidden:  true,
+		},
+		{
+			TableName: "built_in",
+			IsHidden:  false,
+		},
+	}
+
+	merged := MergeTables(nil, initConfigTables)
+
+	if len(merged) != 2 {
+		t.Fatalf("expected duplicate config tables to remain uncollapsed, got %#v", merged)
+	}
+	if !merged[0].IsHidden {
+		t.Fatalf("expected first duplicate config table to remain hidden")
+	}
+	if merged[1].IsHidden {
+		t.Fatalf("expected second duplicate config table to preserve explicit IsHidden=false")
+	}
+}
+
+func TestMergeTablesClearsExplicitEmptyCollectionFields(t *testing.T) {
+	existingTables := []table_info.TableInfo{
+		{
+			TableName:     "schema_clear_probe",
+			DefaultGroups: table_info.DefaultGroups("administrators"),
+			DefaultRelations: map[string][]string{
+				"administrators": {"can_edit"},
+			},
+			Validations: []columns.ColumnTag{
+				{ColumnName: "name", Tags: "required"},
+			},
+			Conformations: []columns.ColumnTag{
+				{ColumnName: "name", Tags: "trim"},
+			},
+			CompositeKeys: [][]string{{"name"}},
+		},
+	}
+	initConfigTables := []table_info.TableInfo{
+		{
+			TableName:        "schema_clear_probe",
+			DefaultGroups:    table_info.DefaultGroupList{},
+			DefaultRelations: map[string][]string{},
+			Validations:      []columns.ColumnTag{},
+			Conformations:    []columns.ColumnTag{},
+			CompositeKeys:    [][]string{},
+		},
+	}
+
+	merged := MergeTables(existingTables, initConfigTables)
+
+	if len(merged[0].DefaultGroups) != 0 {
+		t.Fatalf("expected explicit empty DefaultGroups to clear state, got %#v", merged[0].DefaultGroups)
+	}
+	if len(merged[0].DefaultRelations) != 0 {
+		t.Fatalf("expected explicit empty DefaultRelations to clear state, got %#v", merged[0].DefaultRelations)
+	}
+	if len(merged[0].Validations) != 0 {
+		t.Fatalf("expected explicit empty Validations to clear state, got %#v", merged[0].Validations)
+	}
+	if len(merged[0].Conformations) != 0 {
+		t.Fatalf("expected explicit empty Conformations to clear state, got %#v", merged[0].Conformations)
+	}
+	if len(merged[0].CompositeKeys) != 0 {
+		t.Fatalf("expected explicit empty CompositeKeys to clear state, got %#v", merged[0].CompositeKeys)
+	}
+}
+
+func TestMergeTablesAppliesSchemaOverrideAfterStandardTableForExistingTable(t *testing.T) {
+	existingTables := []table_info.TableInfo{
+		{
+			TableName:    "mail",
+			Icon:         "fa-envelope",
+			DefaultOrder: "+subject",
+			Columns: []api2go.ColumnInfo{
+				{
+					ColumnName:        "mail",
+					ColumnDescription: "Raw message blob",
+					ColumnType:        "gzip",
+					DataType:          "blob",
+					DefaultValue:      "empty-message",
+					IsIndexed:         true,
+					IsNullable:        true,
+					IsUnique:          true,
+					Options: []api2go.ValueOptions{
+						{ValueType: "string", Value: "raw", Label: "Raw"},
+					},
+				},
+			},
+		},
+	}
+	initConfigTables := []table_info.TableInfo{
+		{
+			TableName:    "mail",
+			Icon:         "fa-envelope",
+			DefaultOrder: "+subject",
+			Columns: []api2go.ColumnInfo{
+				{
+					ColumnName:        "mail",
+					ColumnDescription: "Raw message blob",
+					ColumnType:        "gzip",
+					DataType:          "blob",
+					DefaultValue:      "empty-message",
+					IsIndexed:         true,
+					IsNullable:        true,
+					IsUnique:          true,
+					Options: []api2go.ValueOptions{
+						{ValueType: "string", Value: "raw", Label: "Raw"},
+					},
+				},
+			},
+		},
+		{
+			TableName:        "mail",
+			TableDescription: "Cloud-backed mail messages",
+			Metering: &table_info.MeteringConfig{
+				Enabled:   true,
+				CostExpr:  "response.bytes",
+				MeterType: "mail_storage",
+			},
+			Columns: []api2go.ColumnInfo{
+				{
+					ColumnName:   "mail",
+					IsForeignKey: true,
+					ForeignKeyData: api2go.ForeignKeyData{
+						DataSource: "cloud_store",
+						Namespace:  "canaster-mail",
+						KeyName:    "mail-messages",
+					},
+				},
+			},
+		},
+	}
+
+	merged := MergeTables(existingTables, initConfigTables)
+
+	if len(merged) != 1 || len(merged[0].Columns) != 1 {
+		t.Fatalf("expected one merged mail table/column, got %#v", merged)
+	}
+	column := merged[0].Columns[0]
+	if !column.IsForeignKey {
+		t.Fatalf("expected schema override to set existing mail column as a foreign key")
+	}
+	if column.ForeignKeyData.DataSource != "cloud_store" || column.ForeignKeyData.Namespace != "canaster-mail" || column.ForeignKeyData.KeyName != "mail-messages" {
+		t.Fatalf("expected cloud_store override to apply, got %#v", column.ForeignKeyData)
+	}
+	if column.ColumnType != "gzip" || column.DataType != "blob" {
+		t.Fatalf("expected partial column override to preserve type metadata, got column_type=%q data_type=%q", column.ColumnType, column.DataType)
+	}
+	if column.DefaultValue != "empty-message" {
+		t.Fatalf("expected partial column override to preserve default value, got %q", column.DefaultValue)
+	}
+	if column.ColumnDescription != "Raw message blob" {
+		t.Fatalf("expected partial column override to preserve description, got %q", column.ColumnDescription)
+	}
+	if !column.IsIndexed || !column.IsNullable || !column.IsUnique {
+		t.Fatalf("expected partial column override to preserve boolean metadata, got indexed=%t nullable=%t unique=%t", column.IsIndexed, column.IsNullable, column.IsUnique)
+	}
+	if len(column.Options) != 1 || column.Options[0].Label != "Raw" {
+		t.Fatalf("expected partial column override to preserve options, got %#v", column.Options)
+	}
+	if merged[0].Metering == nil {
+		t.Fatalf("expected schema override to preserve metering for existing mail table")
+	}
+	if merged[0].Metering.CostExpr != "response.bytes" || merged[0].Metering.MeterType != "mail_storage" {
+		t.Fatalf("expected metering override to apply to existing table, got %#v", merged[0].Metering)
+	}
+	if merged[0].TableDescription != "Cloud-backed mail messages" {
+		t.Fatalf("expected table description override to apply to existing table, got %q", merged[0].TableDescription)
+	}
+	if merged[0].Icon != "fa-envelope" {
+		t.Fatalf("expected partial override to preserve standard mail icon, got %q", merged[0].Icon)
+	}
+	if merged[0].DefaultOrder != "+subject" {
+		t.Fatalf("expected partial override to preserve default order, got %q", merged[0].DefaultOrder)
 	}
 }

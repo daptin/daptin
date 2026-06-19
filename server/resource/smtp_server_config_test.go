@@ -2,36 +2,64 @@ package resource
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/pem"
 	"testing"
 )
 
-func TestSMTPCertificateChainPEMAppendsRootCertificatesWithoutDuplicates(t *testing.T) {
+func TestCertificateChainPEMAppendsRootCertificatesWithoutDuplicates(t *testing.T) {
 	leaf := testCertificatePEM([]byte{1, 2, 3})
 	intermediate := testCertificatePEM([]byte{4, 5, 6})
 	root := testCertificatePEM([]byte{7, 8, 9})
 
-	chain := smtpCertificateChainPEM(leaf, append(intermediate, root...))
+	chain := certificateChainPEM(leaf, append(intermediate, root...))
 	if got := bytes.Count(chain, []byte("BEGIN CERTIFICATE")); got != 3 {
 		t.Fatalf("expected 3 certificate blocks, got %d:\n%s", got, string(chain))
 	}
 
-	chain = smtpCertificateChainPEM(append(leaf, intermediate...), append(intermediate, root...))
+	chain = certificateChainPEM(append(leaf, intermediate...), append(intermediate, root...))
 	if got := bytes.Count(chain, []byte("BEGIN CERTIFICATE")); got != 3 {
 		t.Fatalf("expected duplicate intermediate to be removed, got %d:\n%s", got, string(chain))
 	}
 }
 
-func TestSMTPCertificateChainPEMIgnoresNonCertificatePEMBlocks(t *testing.T) {
+func TestCertificateChainPEMIgnoresNonCertificatePEMBlocks(t *testing.T) {
 	publicKey := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: []byte{1, 2, 3}})
 	leaf := testCertificatePEM([]byte{4, 5, 6})
 
-	chain := smtpCertificateChainPEM(append(publicKey, leaf...), nil)
+	chain := certificateChainPEM(append(publicKey, leaf...), nil)
 	if bytes.Contains(chain, []byte("BEGIN PUBLIC KEY")) {
 		t.Fatalf("expected public key PEM block to be omitted from certificate chain:\n%s", string(chain))
 	}
 	if got := bytes.Count(chain, []byte("BEGIN CERTIFICATE")); got != 1 {
 		t.Fatalf("expected 1 certificate block, got %d:\n%s", got, string(chain))
+	}
+}
+
+func TestCertificateChainPEMLoadsAsTLSCertificateChain(t *testing.T) {
+	_, leafPrivatePEM, leafKey, err := CreateNewPublicPrivateKeyPEMBytes()
+	if err != nil {
+		t.Fatalf("failed to generate leaf key: %v", err)
+	}
+	leafPEM, err := GenerateCertPEMWithKey("leaf.example.test", leafKey)
+	if err != nil {
+		t.Fatalf("failed to generate leaf certificate: %v", err)
+	}
+	_, _, rootKey, err := CreateNewPublicPrivateKeyPEMBytes()
+	if err != nil {
+		t.Fatalf("failed to generate root key: %v", err)
+	}
+	rootPEM, err := GenerateCertPEMWithKey("root.example.test", rootKey)
+	if err != nil {
+		t.Fatalf("failed to generate root certificate: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(certificateChainPEM(leafPEM, rootPEM), leafPrivatePEM)
+	if err != nil {
+		t.Fatalf("expected combined certificate chain to load: %v", err)
+	}
+	if got := len(cert.Certificate); got != 2 {
+		t.Fatalf("expected TLS certificate chain to include 2 certificates, got %d", got)
 	}
 }
 

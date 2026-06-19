@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/sirupsen/logrus"
 )
@@ -9,105 +10,21 @@ func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table
 	allTables := make([]table_info.TableInfo, 0)
 	existingTablesMap := make(map[string]bool)
 
-	newTableMap := make(map[string]table_info.TableInfo)
-	for _, newTable := range initConfigTables {
-		newTableMap[newTable.TableName] = newTable
-	}
-
 	for j, existableTable := range existingTables {
 		existingTablesMap[existableTable.TableName] = true
 		var isBeingModified = false
-		var indexBeingModified = -1
 
-		for i, newTable := range initConfigTables {
-			if newTable.TableName == existableTable.TableName {
-				isBeingModified = true
-				indexBeingModified = i
-				break
+		for _, tableBeingModified := range initConfigTables {
+			if tableBeingModified.TableName != existableTable.TableName {
+				continue
 			}
+
+			logrus.Infof("Table from initial configuration:          %-20s", existableTable.TableName)
+			existableTable = mergeTableConfigIntoExisting(existableTable, tableBeingModified, isBeingModified)
+			isBeingModified = true
 		}
 
 		if isBeingModified {
-			logrus.Infof("Table from initial configuration:          %-20s", existableTable.TableName)
-			tableBeingModified := initConfigTables[indexBeingModified]
-
-			if len(tableBeingModified.Columns) > 0 {
-
-				for _, newColumnDef := range tableBeingModified.Columns {
-					columnAlreadyExist := false
-					colIndex := -1
-					for i, existingColumn := range existableTable.Columns {
-						//log.Printf("Table column old/new [%v][%v] == [%v][%v] @ %v", tableBeingModified.TableName, newColumnDef.Name, existableTable.TableName, existingColumn.Name, i)
-						if existingColumn.ColumnName == newColumnDef.ColumnName {
-							columnAlreadyExist = true
-							colIndex = i
-							break
-						}
-					}
-					//log.Printf("Decide for table column [%v][%v] @ index: %v [%v]", tableBeingModified.TableName, newColumnDef.Name, colIndex, columnAlreadyExist)
-					if columnAlreadyExist {
-						//log.Printf("Modifying existing columns[%v][%v] is not supported at present. not sure what would break. and alter query isnt being run currently.", existableTable.Columns[colIndex], newColumnDef);
-
-						existableTable.Columns[colIndex].DefaultValue = newColumnDef.DefaultValue
-						existableTable.Columns[colIndex].ExcludeFromApi = newColumnDef.ExcludeFromApi
-						existableTable.Columns[colIndex].IsIndexed = newColumnDef.IsIndexed
-						existableTable.Columns[colIndex].IsNullable = newColumnDef.IsNullable
-						existableTable.Columns[colIndex].IsUnique = newColumnDef.IsUnique
-						existableTable.Columns[colIndex].ColumnType = newColumnDef.ColumnType
-						existableTable.Columns[colIndex].Options = newColumnDef.Options
-						existableTable.Columns[colIndex].DataType = newColumnDef.DataType
-						existableTable.Columns[colIndex].ColumnDescription = newColumnDef.ColumnDescription
-						preserveCloudStoreColumn := existableTable.Columns[colIndex].IsForeignKey &&
-							existableTable.Columns[colIndex].ForeignKeyData.DataSource == "cloud_store" &&
-							!newColumnDef.IsForeignKey &&
-							newColumnDef.ForeignKeyData.KeyName == ""
-						if newColumnDef.ForeignKeyData.KeyName != "" {
-							existableTable.Columns[colIndex].ForeignKeyData = newColumnDef.ForeignKeyData
-						}
-						if !preserveCloudStoreColumn {
-							existableTable.Columns[colIndex].IsForeignKey = newColumnDef.IsForeignKey
-						}
-						existableTable.Columns[colIndex].IsPrimaryKey = newColumnDef.IsPrimaryKey
-
-					} else {
-						existableTable.Columns = append(existableTable.Columns, newColumnDef)
-					}
-				}
-
-			}
-			if len(tableBeingModified.Relations) > 0 {
-
-				existingRelations := existableTable.Relations
-				relMap := make(map[string]bool)
-				for _, rel := range existingRelations {
-					relMap[rel.Hash()] = true
-				}
-
-				for _, newRel := range tableBeingModified.Relations {
-
-					_, ok := relMap[newRel.Hash()]
-					if !ok {
-						existableTable.AddRelation(newRel)
-					}
-				}
-			}
-			existableTable.DefaultGroups = tableBeingModified.DefaultGroups
-			existableTable.DefaultRelations = tableBeingModified.DefaultRelations
-			if tableBeingModified.DefaultPermission != 0 {
-				existableTable.DefaultPermission = tableBeingModified.DefaultPermission
-			}
-			if tableBeingModified.Permission != 0 {
-				existableTable.Permission = tableBeingModified.Permission
-			}
-			existableTable.StateMachines = tableBeingModified.StateMachines
-			existableTable.IsStateTrackingEnabled = tableBeingModified.IsStateTrackingEnabled
-			existableTable.TranslationsEnabled = tableBeingModified.TranslationsEnabled
-			existableTable.DefaultOrder = tableBeingModified.DefaultOrder
-			existableTable.IsAuditEnabled = tableBeingModified.IsAuditEnabled
-			existableTable.Conformations = tableBeingModified.Conformations
-			existableTable.Validations = tableBeingModified.Validations
-			existableTable.CompositeKeys = tableBeingModified.CompositeKeys
-			existableTable.Icon = tableBeingModified.Icon
 			existingTables[j] = existableTable
 		} else {
 			logrus.Tracef("Table %s is not being modified", existableTable.TableName)
@@ -124,4 +41,163 @@ func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table
 
 	return allTables
 
+}
+
+func mergeTableConfigIntoExisting(existing table_info.TableInfo, override table_info.TableInfo, partialOverride bool) table_info.TableInfo {
+	if len(override.Columns) > 0 {
+		for _, overrideColumn := range override.Columns {
+			columnAlreadyExists := false
+			colIndex := -1
+			for i, existingColumn := range existing.Columns {
+				if existingColumn.ColumnName == overrideColumn.ColumnName {
+					columnAlreadyExists = true
+					colIndex = i
+					break
+				}
+			}
+			if columnAlreadyExists {
+				mergeConfigColumn(&existing.Columns[colIndex], overrideColumn, partialOverride)
+			} else {
+				existing.Columns = append(existing.Columns, overrideColumn)
+			}
+		}
+	}
+
+	if len(override.Relations) > 0 {
+		relMap := make(map[string]bool)
+		for _, rel := range existing.Relations {
+			relMap[rel.Hash()] = true
+		}
+		for _, rel := range override.Relations {
+			if !relMap[rel.Hash()] {
+				existing.AddRelation(rel)
+			}
+		}
+	}
+
+	if override.DefaultGroups != nil {
+		existing.DefaultGroups = override.DefaultGroups
+	}
+	if override.DefaultRelations != nil {
+		existing.DefaultRelations = override.DefaultRelations
+	}
+	if override.DefaultPermission != 0 {
+		existing.DefaultPermission = override.DefaultPermission
+	}
+	if override.Permission != 0 {
+		existing.Permission = override.Permission
+	}
+	if override.StateMachines != nil {
+		existing.StateMachines = override.StateMachines
+	}
+	if !partialOverride || override.IsStateTrackingEnabled {
+		existing.IsStateTrackingEnabled = override.IsStateTrackingEnabled
+	}
+	if !partialOverride || override.TranslationsEnabled {
+		existing.TranslationsEnabled = override.TranslationsEnabled
+	}
+	if !partialOverride || override.DefaultOrder != "" {
+		existing.DefaultOrder = override.DefaultOrder
+	}
+	if !partialOverride || override.IsAuditEnabled {
+		existing.IsAuditEnabled = override.IsAuditEnabled
+	}
+	if override.Conformations != nil {
+		existing.Conformations = override.Conformations
+	}
+	if override.Validations != nil {
+		existing.Validations = override.Validations
+	}
+	if override.CompositeKeys != nil {
+		existing.CompositeKeys = override.CompositeKeys
+	}
+	if !partialOverride || override.Icon != "" {
+		existing.Icon = override.Icon
+	}
+	if override.TableDescription != "" {
+		existing.TableDescription = override.TableDescription
+	}
+	if override.Metering != nil {
+		existing.Metering = override.Metering
+	}
+
+	return existing
+}
+
+func mergeConfigColumn(base *api2go.ColumnInfo, override api2go.ColumnInfo, partialOverride bool) {
+	if partialOverride {
+		mergePartialConfigColumn(base, override)
+		return
+	}
+
+	base.DefaultValue = override.DefaultValue
+	base.ExcludeFromApi = override.ExcludeFromApi
+	base.IsIndexed = override.IsIndexed
+	base.IsNullable = override.IsNullable
+	base.IsUnique = override.IsUnique
+	base.ColumnType = override.ColumnType
+	base.Options = override.Options
+	base.DataType = override.DataType
+	base.ColumnDescription = override.ColumnDescription
+
+	preserveCloudStoreColumn := base.IsForeignKey &&
+		base.ForeignKeyData.DataSource == "cloud_store" &&
+		!override.IsForeignKey &&
+		override.ForeignKeyData.KeyName == ""
+	if override.ForeignKeyData.KeyName != "" {
+		base.ForeignKeyData = override.ForeignKeyData
+	}
+	if !preserveCloudStoreColumn {
+		base.IsForeignKey = override.IsForeignKey
+	}
+	base.IsPrimaryKey = override.IsPrimaryKey
+}
+
+func mergePartialConfigColumn(base *api2go.ColumnInfo, override api2go.ColumnInfo) {
+	if override.DefaultValue != "" {
+		base.DefaultValue = override.DefaultValue
+	}
+	if override.ExcludeFromApi {
+		base.ExcludeFromApi = override.ExcludeFromApi
+	}
+	if override.IsIndexed {
+		base.IsIndexed = override.IsIndexed
+	}
+	if override.IsNullable {
+		base.IsNullable = override.IsNullable
+	}
+	if override.IsUnique {
+		base.IsUnique = override.IsUnique
+	}
+	if override.ColumnType != "" {
+		base.ColumnType = override.ColumnType
+	}
+	if override.Options != nil {
+		base.Options = override.Options
+	}
+	if override.DataType != "" {
+		base.DataType = override.DataType
+	}
+	if override.ColumnDescription != "" {
+		base.ColumnDescription = override.ColumnDescription
+	}
+	if override.ForeignKeyData.DataSource != "" {
+		base.ForeignKeyData.DataSource = override.ForeignKeyData.DataSource
+	}
+	if override.ForeignKeyData.Namespace != "" {
+		base.ForeignKeyData.Namespace = override.ForeignKeyData.Namespace
+	}
+	if override.ForeignKeyData.KeyName != "" {
+		base.ForeignKeyData.KeyName = override.ForeignKeyData.KeyName
+	}
+	if override.IsForeignKey || hasForeignKeyData(override.ForeignKeyData) {
+		base.IsForeignKey = true
+	}
+	if override.IsPrimaryKey {
+		base.IsPrimaryKey = override.IsPrimaryKey
+	}
+}
+
+func hasForeignKeyData(data api2go.ForeignKeyData) bool {
+	return data.DataSource != "" || data.Namespace != "" || data.KeyName != ""
 }

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -291,7 +292,8 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 			return nil, err
 		}
 
-		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(privatePEMDecrypted))
+		certChainPEM := certificateChainPEM([]byte(certPEM), []byte(rootCert))
+		cert, err := tls.X509KeyPair(certChainPEM, []byte(privatePEMDecrypted))
 		rootCaCert := x509.NewCertPool()
 		rootCaCert.AppendCertsFromPEM([]byte(rootCert))
 
@@ -313,6 +315,32 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 		return tlsCertificate, nil
 	}
 	return nil, errors.New("certificate not found [" + hostname + "]")
+}
+
+func certificateChainPEM(certPEM, rootCertPEM []byte) []byte {
+	var out bytes.Buffer
+	seen := make(map[string]bool)
+	appendCertificateBlocks(&out, seen, certPEM)
+	appendCertificateBlocks(&out, seen, rootCertPEM)
+	return out.Bytes()
+}
+
+func appendCertificateBlocks(out *bytes.Buffer, seen map[string]bool, raw []byte) {
+	rest := bytes.TrimSpace(raw)
+	for len(rest) > 0 {
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			return
+		}
+		if block.Type == "CERTIFICATE" {
+			key := string(block.Bytes)
+			if !seen[key] {
+				_ = pem.Encode(out, block)
+				seen[key] = true
+			}
+		}
+		rest = bytes.TrimSpace(remaining)
+	}
 }
 
 func AsStringOrEmpty(i interface{}) string {
