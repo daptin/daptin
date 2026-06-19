@@ -584,10 +584,10 @@ curl -X POST 'http://localhost:7337/_config/backend/imap.enabled' \
   -H "Authorization: Bearer $TOKEN" \
   -d '"true"'
 
-# Set hostname
-curl -X POST 'http://localhost:7337/_config/backend/hostname' \
+# Set IMAP hostname independently from the backend/API hostname
+curl -X POST 'http://localhost:7337/_config/backend/imap.hostname' \
   -H "Authorization: Bearer $TOKEN" \
-  -d '"mail.test.local"'
+  -d '"imap.mail.test.local"'
 ```
 
 **Note:** Requires Daptin restart after enabling.

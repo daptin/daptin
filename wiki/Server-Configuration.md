@@ -158,6 +158,7 @@ curl http://localhost:6336/_config \
   "gzip.enable": "true",
   "hostname": "Parths-MacBook-Pro.local",
   "imap.enabled": "false",
+  "imap.hostname": "imap.Parths-MacBook-Pro.local",
   "jwt.token.issuer": "daptin-019bee",
   "jwt.token.life.hours": "72",
   "language.default": "en",

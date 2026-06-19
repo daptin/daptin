@@ -611,11 +611,11 @@ curl -X POST 'http://localhost:6336/_config/backend/imap.enabled' \
   -H 'Content-Type: text/plain' \
   -d 'true'
 
-# Set hostname (plain text)
-curl -X POST 'http://localhost:6336/_config/backend/hostname' \
+# Set IMAP hostname independently from the backend/API hostname
+curl -X POST 'http://localhost:6336/_config/backend/imap.hostname' \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: text/plain' \
-  -d 'mail.example.com'
+  -d 'imap.example.com'
 
 # Optionally set listen interface (default :1143)
 curl -X POST 'http://localhost:6336/_config/backend/imap.listen_interface' \
@@ -628,9 +628,12 @@ curl -X POST 'http://localhost:6336/_config/backend/imap.listen_interface' \
 
 ### IMAP Prerequisites
 
-1. Create certificate for `imap.{hostname}` (e.g., `imap.mail.example.com`)
+1. Create certificate for `imap.hostname` (for example `imap.example.com`).
+   If `imap.hostname` is not set, Daptin falls back to `imap.{hostname}` using
+   the global backend/API hostname.
 2. Set `imap.enabled` to `true` (plain text, not `"true"`)
-3. Set `hostname` config value
+3. Set `imap.hostname` when the IMAP/IMAPS hostname differs from the backend/API
+   hostname
 4. Restart Daptin
 
 ### IMAP Authentication

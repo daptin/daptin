@@ -35,12 +35,15 @@ curl -X POST 'http://localhost:6336/_config/backend/imap.listen_interface' \
   -H 'Authorization: Bearer $TOKEN' \
   -d '"0.0.0.0:993"'
 
-# Set hostname
-curl -X POST 'http://localhost:6336/_config/backend/hostname' \
+# Set IMAP hostname independently from the backend/API hostname
+curl -X POST 'http://localhost:6336/_config/backend/imap.hostname' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer $TOKEN' \
   -d '"imap.example.com"'
 ```
+
+If `imap.hostname` is not set, Daptin falls back to the legacy derived hostname
+`imap.{hostname}`, where `hostname` is the global backend/API hostname.
 
 ### Restart to Apply
 

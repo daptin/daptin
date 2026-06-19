@@ -168,7 +168,7 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 	certMap, err := cm.cruds["certificate"].GetObjectByWhereClause("certificate", "hostname", hostname, transaction)
 
 	if createIfNotFound && (err != nil || certMap == nil || certMap["certificate_pem"] == nil || certMap["certificate_pem"].(string) == "") {
-		log.Infof("Creating new certificate for [%s]", certMap["hostname"])
+		log.Infof("Creating new certificate for [%s]", hostname)
 
 		publicKeyPem, privateKeyPem, key, err := CreateNewPublicPrivateKeyPEMBytes()
 		if err != nil {

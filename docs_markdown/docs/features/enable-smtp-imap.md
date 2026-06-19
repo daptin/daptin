@@ -27,11 +27,14 @@ curl 'http://localhost:8080/api/mail_account' -X POST \
 # Enable IMAP
 
 
-Three config entries
+IMAP uses its own hostname config. If `imap.hostname` is not set, Daptin falls
+back to `imap.{hostname}` using the global backend/API hostname.
+
+Config entries:
 
 - imap.enabled
 - imap.listen_interface
-- hostname
+- imap.hostname
 
 ```bash
 curl --location --request POST 'localhost:6336/_config/backend/imap.enabled' \
@@ -45,7 +48,7 @@ curl --location --request POST 'localhost:6336/_config/backend/imap.listen_inter
     --data-raw '0.0.0.0:993'
     
 
-curl --location --request POST 'localhost:6336/_config/backend/hostname' \
+curl --location --request POST 'localhost:6336/_config/backend/imap.hostname' \
     --header 'Content-Type: text/plain' \
     --header 'Authorization: Bearer <TOKEN>' \
     --data-raw 'imap.example.com'

@@ -35,6 +35,7 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 | `ftp.listen_interface` | string | 0.0.0.0:21 | FTP bind address |
 | `imap.enabled` | bool | false | Enable IMAP server |
 | `imap.listen_interface` | string | 0.0.0.0:993 | IMAP bind address |
+| `imap.hostname` | string | imap.{hostname} | IMAP/IMAPS TLS hostname |
 | `jwt.secret` | string | auto | JWT signing secret |
 | `jwt.token.issuer` | string | daptin | JWT issuer name |
 | `language.default` | string | en | Default language |

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"strings"
+
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/backend"
@@ -19,12 +21,7 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 		imapListenInterface = ":1143"
 	}
 
-	hostname, err := configStore.GetConfigValueFor("hostname", "backend", transaction)
-	if err != nil || hostname == "" {
-		hostname = "localhost"
-		logrus.Printf("Failed to get hostname config for IMAP, using fallback: %v", err)
-	}
-	hostname = "imap." + hostname
+	hostname := resolveIMAPHostname(configStore, transaction)
 	imapBackend := resource.NewImapServer(cruds)
 
 	// Create a new server
@@ -56,6 +53,36 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 		}
 	}()
 	return imapServer
+}
+
+func resolveIMAPHostname(configStore *resource.ConfigStore, transaction *sqlx.Tx) string {
+	imapHostname, err := configStore.GetConfigValueFor("imap.hostname", "backend", transaction)
+	if err == nil && strings.TrimSpace(imapHostname) != "" {
+		return configuredIMAPHostname(imapHostname, "")
+	}
+
+	backendHostname, err := configStore.GetConfigValueFor("hostname", "backend", transaction)
+	if err != nil || strings.TrimSpace(backendHostname) == "" {
+		backendHostname = "localhost"
+		logrus.Printf("Failed to get hostname config for IMAP, using fallback: %v", err)
+	}
+	return configuredIMAPHostname("", backendHostname)
+}
+
+func configuredIMAPHostname(imapHostname, backendHostname string) string {
+	imapHostname = strings.TrimSpace(imapHostname)
+	if imapHostname != "" {
+		return imapHostname
+	}
+	return derivedIMAPHostname(backendHostname)
+}
+
+func derivedIMAPHostname(backendHostname string) string {
+	backendHostname = strings.TrimSpace(backendHostname)
+	if backendHostname == "" {
+		backendHostname = "localhost"
+	}
+	return "imap." + backendHostname
 }
 
 // noopPollExtension overrides the default NOOP handler to send untagged EXISTS
