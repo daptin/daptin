@@ -543,10 +543,6 @@ func CheckAuditTables(config *CmsConfig) {
 
 func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConfig) {
 	existingRelationMap := make(map[string]bool)
-	tableMap := make(map[string]*table_info.TableInfo)
-	for _, table := range config.Tables {
-		tableMap[table.TableName] = &table
-	}
 
 	for _, rel := range config.Relations {
 		existingRelationMap[rel.Hash()] = true
@@ -670,15 +666,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				DataType: "int(11)",
 			}
 
-			newJoinTable.Columns = append(newJoinTable.Columns, col2)
-			newJoinTable.Columns = append(newJoinTable.Columns, relation.Columns...)
-			tableMap[fromTable].AddRelation(relation)
-			tableMap[targetTable].AddRelation(relation)
-			//newJoinTable.Relations = append(newJoinTable.Relations, relation)
-			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newJoinTable.TableName)
-			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newJoinTable.TableName)
-
-			config.Tables = append(config.Tables, newJoinTable)
+			upsertGeneratedJoinTable(config, newJoinTable, col1, col2, relation.Columns)
 
 		} else if relation2 == "has_many_and_belongs_to_many" {
 
@@ -686,8 +674,10 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 			targetTable := relation.GetObject()
 
 			newJoinTable := table_info.TableInfo{
-				TableName: relation.GetJoinTableName(),
-				Columns:   make([]api2go.ColumnInfo, 0),
+				TableName:   relation.GetJoinTableName(),
+				Columns:     make([]api2go.ColumnInfo, 0),
+				IsJoinTable: true,
+				IsTopLevel:  false,
 			}
 
 			col1 := api2go.ColumnInfo{
@@ -718,16 +708,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				DataType: "int(11)",
 			}
 
-			newJoinTable.Columns = append(newJoinTable.Columns, col2)
-			newJoinTable.Columns = append(newJoinTable.Columns, relation.Columns...)
-			tableMap[fromTable].AddRelation(relation)
-			tableMap[targetTable].AddRelation(relation)
-
-			//newJoinTable.Relations = append(newJoinTable.Relations, relation)
-			//log.Printf("Add column [%v] to table [%v]", col1.ColumnName, newJoinTable.TableName)
-			//log.Printf("Add column [%v] to table [%v]", col2.ColumnName, newJoinTable.TableName)
-
-			config.Tables = append(config.Tables, newJoinTable)
+			upsertGeneratedJoinTable(config, newJoinTable, col1, col2, relation.Columns)
 
 		} else {
 			log.Errorf("Failed to identify relation type: %v", relation)
@@ -735,6 +716,50 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 
 	}
 
+}
+
+func upsertGeneratedJoinTable(config *CmsConfig, generated table_info.TableInfo, col1, col2 api2go.ColumnInfo, relationColumns []api2go.ColumnInfo) {
+	if index, ok := tableIndexByName(config, generated.TableName); ok {
+		config.Tables[index].IsJoinTable = true
+		config.Tables[index].IsTopLevel = false
+		appendMissingColumns(&config.Tables[index], col1, col2)
+		appendMissingColumns(&config.Tables[index], relationColumns...)
+		return
+	}
+
+	appendMissingColumns(&generated, col1, col2)
+	appendMissingColumns(&generated, relationColumns...)
+	config.Tables = append(config.Tables, generated)
+}
+
+func tableIndexByName(config *CmsConfig, tableName string) (int, bool) {
+	for index := range config.Tables {
+		if config.Tables[index].TableName == tableName {
+			return index, true
+		}
+	}
+	return -1, false
+}
+
+func appendMissingColumns(table *table_info.TableInfo, columns ...api2go.ColumnInfo) {
+	for _, column := range columns {
+		if hasColumn(table.Columns, column) {
+			continue
+		}
+		table.Columns = append(table.Columns, column)
+	}
+}
+
+func hasColumn(columns []api2go.ColumnInfo, column api2go.ColumnInfo) bool {
+	for _, existing := range columns {
+		if column.ColumnName != "" && existing.ColumnName == column.ColumnName {
+			return true
+		}
+		if column.ColumnName == "" && column.Name != "" && existing.Name == column.Name {
+			return true
+		}
+	}
+	return false
 }
 
 func alterTableAddColumn(tableName string, colInfo *api2go.ColumnInfo, sqlDriverName string) string {

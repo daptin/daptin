@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/table_info"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 func InfoErr(err error, message ...interface{}) bool {
@@ -85,6 +86,10 @@ func CheckRelations(config *CmsConfig) {
 	for i := range config.Tables {
 
 		config.Tables[i].IsTopLevel = true
+		if strings.Contains(config.Tables[i].TableName, "_has_") {
+			config.Tables[i].IsJoinTable = true
+			config.Tables[i].IsTopLevel = false
+		}
 		existingRelations := config.Tables[i].Relations
 
 		if config.Tables[i].TableName != "usergroup" &&
