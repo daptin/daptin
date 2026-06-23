@@ -16,7 +16,6 @@ require (
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.5
 	github.com/artpar/go-imap-idle v1.0.2
-	github.com/artpar/go-smtp-mta v0.2.0
 	github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a
 	github.com/artpar/rclone v1.71.2
 	github.com/artpar/resty v1.0.3
@@ -37,6 +36,7 @@ require (
 	github.com/doug-martin/goqu/v9 v9.11.1
 	github.com/emersion/go-message v0.18.2
 	github.com/emersion/go-msgauth v0.4.0
+	github.com/emersion/go-smtp v0.12.1
 	github.com/emersion/go-webdav v0.4.0
 	github.com/fclairamb/ftpserver v0.0.4
 	github.com/flysnow-org/soha v0.0.0-20191204153003-307ff1f8b4d8
@@ -198,7 +198,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.3 // indirect
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
-	github.com/emersion/go-smtp v0.12.1 // indirect
 	github.com/emersion/go-vcard v0.0.0-20241024213814-c9703dde27ff // indirect
 	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/evanw/esbuild v0.17.19 // indirect

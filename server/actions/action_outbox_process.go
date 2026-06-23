@@ -3,19 +3,23 @@ package actions
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
+	"io"
 	"math"
+	"net"
 	"net/mail"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/artpar/api2go/v2"
-	mta "github.com/artpar/go-smtp-mta"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	smtp "github.com/emersion/go-smtp"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -115,14 +119,10 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 			continue
 		}
 
-		sender := mta.Sender{
-			Hostname: senderHost,
-		}
-
 		// Send with 30s timeout to prevent hanging on unreachable MX
 		sendDone := make(chan error, 1)
 		go func() {
-			sendDone <- (&sender).Send(fromAddress, []string{toAddress}, bytes.NewReader(mailBytes))
+			sendDone <- sendOutboxMail(senderHost, fromAddress, []string{toAddress}, mailBytes)
 		}()
 		sendCtx, sendCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		select {
@@ -187,6 +187,105 @@ func (d *outboxProcessActionPerformer) markFailed(mailId int64, lastError string
 			log.Errorf("Failed to update outbox retry for mail [%v]: %v", mailId, execErr)
 		}
 	}
+}
+
+func sendOutboxMail(hostname, from string, to []string, message []byte) error {
+	return sendOutboxMailWith(hostname, from, to, message, net.LookupMX, sendOutboxSMTPData)
+}
+
+func sendOutboxMailWith(
+	hostname, from string,
+	to []string,
+	message []byte,
+	lookupMX func(string) ([]*net.MX, error),
+	send func(mxHost, hostname, from string, to []string, message []byte) error,
+) error {
+	for _, addr := range to {
+		_, domain, err := splitOutboxAddress(addr)
+		if err != nil {
+			return err
+		}
+
+		mxs, err := lookupMX(domain)
+		if err != nil {
+			return err
+		}
+		if len(mxs) == 0 {
+			mxs = []*net.MX{{Host: domain}}
+		}
+
+		var lastErr error
+		delivered := false
+		for _, mx := range mxs {
+			if err := send(mx.Host, hostname, from, []string{addr}, message); err != nil {
+				lastErr = err
+				continue
+			}
+			delivered = true
+			break
+		}
+		if !delivered {
+			if lastErr != nil {
+				return lastErr
+			}
+			return fmt.Errorf("no MX accepted mail for [%v]", addr)
+		}
+	}
+
+	return nil
+}
+
+func sendOutboxSMTPData(mxHost, hostname, from string, to []string, message []byte) error {
+	serverName := strings.TrimSuffix(mxHost, ".")
+	c, err := smtp.Dial(net.JoinHostPort(serverName, "25"))
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	if hostname != "" {
+		if err := c.Hello(hostname); err != nil {
+			return err
+		}
+	}
+
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		tlsConfig := &tls.Config{ServerName: serverName}
+		if err := c.StartTLS(tlsConfig); err != nil {
+			return err
+		}
+	}
+
+	if err := c.Mail(from, nil); err != nil {
+		return err
+	}
+	for _, addr := range to {
+		if err := c.Rcpt(addr); err != nil {
+			return err
+		}
+	}
+
+	wc, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(wc, bytes.NewReader(message)); err != nil {
+		_ = wc.Close()
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+
+	return c.Quit()
+}
+
+func splitOutboxAddress(addr string) (local, domain string, err error) {
+	parts := strings.SplitN(addr, "@", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("mta: invalid mail address")
+	}
+	return parts[0], parts[1], nil
 }
 
 func NewOutboxProcessActionPerformer(cruds map[string]*resource.DbResource) (actionresponse.ActionPerformerInterface, error) {
