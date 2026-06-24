@@ -21,6 +21,7 @@ import (
 	_ "github.com/emersion/go-message/charset"
 	mailpacket "github.com/emersion/go-message/mail"
 	"github.com/emersion/go-msgauth/dkim"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -287,8 +288,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						if mailAccount == nil || err != nil {
 							log.Printf("Mail is for someone else [%v] [%v] %v", rcpt.Host, rcpt.String(), err)
 
-							e.DeliveryHeader = e.DeliveryHeader + "Return-PATH: admin@" + rcpt.Host + "\n"
-
 							if e.AuthorizedLogin == "" {
 								log.Errorf("Refusing to forward mail without login")
 								return nil, errors.New("no such account")
@@ -304,6 +303,24 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							defer transaction.Rollback()
+							var mailServerObj map[string]interface{}
+							if listenInterface, ok := e.Values["listen_interface"].(string); ok && strings.TrimSpace(listenInterface) != "" {
+								mailServerObj, err = dbResource.Cruds["mail_server"].GetObjectByWhereClause("mail_server", "listen_interface", listenInterface, transaction)
+							}
+							if mailServerObj == nil {
+								mailServerObj, err = dbResource.Cruds["mail_server"].GetObjectByWhereClause("mail_server", "hostname", config.PrimaryHost, transaction)
+							}
+							if err != nil || mailServerObj == nil {
+								log.Errorf("Failed to resolve mail server for outbound relay: %v", err)
+								return nil, fmt.Errorf("mail server not found for outbound relay")
+							}
+							mailServerHostname, ok := mailServerObj["hostname"].(string)
+							if !ok || strings.TrimSpace(mailServerHostname) == "" {
+								log.Errorf("Resolved mail server has invalid hostname: %v", mailServerObj["hostname"])
+								return nil, fmt.Errorf("mail server has invalid hostname for outbound relay")
+							}
+							e.DeliveryHeader = e.DeliveryHeader + "Return-PATH: admin@" + mailServerHostname + "\n"
+
 							cert, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false, transaction)
 							if err != nil {
 								log.Errorf("Failed to get private key for domain [%v]", e.MailFrom.Host)
@@ -340,12 +357,16 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							body, _ := io.ReadAll(netMessage.Body)
-							newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\n", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z))
+							messageID := strings.TrimSpace(e.Header.Get("Message-ID"))
+							if messageID == "" {
+								messageID = fmt.Sprintf("<%s@%s>", uuid.NewString(), e.MailFrom.Host)
+							}
+							newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\nMessage-ID: %s\r\n", e.MailFrom.String(), e.Subject, rcpt.String(), time.Now().Format(time.RFC822Z), messageID)
 
 							for headerName, headerValue := range e.Header {
 								headerNameSmall := strings.ToLower(headerName)
 
-								if headerNameSmall == "date" || headerNameSmall == "to" || headerNameSmall == "from" || headerNameSmall == "subject" {
+								if headerNameSmall == "date" || headerNameSmall == "to" || headerNameSmall == "from" || headerNameSmall == "subject" || headerNameSmall == "message-id" {
 									continue
 								}
 								for _, val := range headerValue {
@@ -367,13 +388,14 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							outboxMailBody := dbResource.Cruds["outbox"].MailColumnValue("outbox", "mail", finalMail, hash)
 
 							outboxModel := api2go.NewApi2GoModelWithData("outbox", nil, 0, nil, map[string]interface{}{
-								"from_address":  e.MailFrom.String(),
-								"to_address":    rcpt.String(),
-								"to_host":       rcpt.Host,
-								"mail":          outboxMailBody,
-								"sent":          false,
-								"retry_count":   0,
-								"next_retry_at": time.Now(),
+								"from_address":   e.MailFrom.String(),
+								"to_address":     rcpt.String(),
+								"to_host":        rcpt.Host,
+								"mail_server_id": mailServerObj["reference_id"],
+								"mail":           outboxMailBody,
+								"sent":           false,
+								"retry_count":    0,
+								"next_retry_at":  time.Now(),
 							})
 							outboxUrl, _ := url.Parse("/api/outbox")
 							outboxReq := api2go.Request{

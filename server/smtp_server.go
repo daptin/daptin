@@ -23,6 +23,10 @@ func StartSMTPMailServer(mailResource *resource.DbResource, certificateManager *
 	for _, config := range serverConfig {
 		log.Infof("Setup SMTP server at [%v] for hostname [%v] (enabled=%v)", config.ListenInterface, config.Hostname, config.IsEnabled)
 	}
+	primaryMailHost := primaryHostname
+	if len(hosts) > 0 {
+		primaryMailHost = hosts[0]
+	}
 
 	saveWorkersSize := 1
 	if sws, err := mailResource.ConfigStore.GetConfigValueFor("mail.save_workers_size", "backend", transaction); err == nil && sws != "" {
@@ -40,7 +44,7 @@ func StartSMTPMailServer(mailResource *resource.DbResource, certificateManager *
 				"log_received_mails": true,
 				"mail_table":         "mail",
 				"save_workers_size":  saveWorkersSize,
-				"primary_mail_host":  primaryHostname,
+				"primary_mail_host":  primaryMailHost,
 			},
 			Servers: serverConfig,
 		},

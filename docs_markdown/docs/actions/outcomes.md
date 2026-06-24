@@ -595,18 +595,21 @@ System OutComes are set of independent useful functions to build a variety of wo
   Type: mail.send
   Attributes:
     body: 'Your verification code is: $otp.otp'
-    from: no-reply@localhost
+    from: no-reply@example.com
+    mail_server_hostname: mail.example.com
     send_immediately: true
     subject: Request for password reset
     to: "~email"
 
 ```
 
-`mail.send` queues an `outbox` row for each recipient. Add
-`send_immediately: true` or `attempt_delivery: true` when the action should
-attempt delivery before returning, such as OTP or login flows. Immediate
-delivery still leaves failed rows pending for scheduled `process_outbox`
-retries.
+`mail.send` resolves a configured `mail_server` by hostname from
+`mail_server_hostname`, or from backend config `mail.default_server_hostname`
+for server-owned flows. It queues an `outbox` row for each recipient with that
+selected mail server. Add `send_immediately: true` or `attempt_delivery: true`
+when the action should attempt delivery before returning, such as OTP or login
+flows. Immediate delivery still leaves failed rows pending for scheduled
+`process_outbox` retries.
 
 ### otp.login.verify
 
@@ -651,7 +654,8 @@ retries.
   Type: mail.send
   Attributes:
     body: 'Your new password is: $newPassword.value'
-    from: no-reply@localhost
+    from: no-reply@example.com
+    mail_server_hostname: mail.example.com
     send_immediately: true
     subject: Request for password reset
     to: "~email"

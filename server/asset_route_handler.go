@@ -3,7 +3,10 @@ package server
 import (
 	"fmt"
 	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/cache"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -34,47 +37,6 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			c.Query("index"),
 			c.Query("file"))
 
-		// Check if we have a cached file for this request
-		if cachedFile, found := fileCache.Get(cacheKey); found {
-			// Check if client has fresh copy using ETag
-			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == cachedFile.ETag {
-				c.Header("Cache-Control", "public, max-age=31536000") // 1 year for 304 responses
-				c.Header("ETag", cachedFile.ETag)
-				c.AbortWithStatus(http.StatusNotModified)
-				return
-			}
-
-			// Set basic headers from cache
-			c.Header("Content-Type", cachedFile.MimeType)
-			c.Header("ETag", cachedFile.ETag)
-
-			// Set cache control based on expiry time
-			maxAge := int(time.Until(cachedFile.ExpiresAt).Seconds())
-			if maxAge <= 0 {
-				maxAge = 60 // Minimum 1 minute for almost expired resources
-			}
-			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
-
-			// Add content disposition if needed
-			if cachedFile.IsDownload {
-				c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(cachedFile.Path)))
-			} else {
-				c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", filepath.Base(cachedFile.Path)))
-			}
-
-			// Check if client accepts gzip and we have compressed data
-			if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-				c.Header("Content-Encoding", "gzip")
-				c.Header("Vary", "Accept-Encoding")
-				c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.GzipData)
-				return
-			}
-
-			// Serve uncompressed data
-			c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.Data)
-			return
-		}
-
 		// Parse column name and extension
 		//parts := strings.SplitN(columnNameWithExt, ".", 2)
 		//if len(parts) == 0 {
@@ -99,27 +61,30 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			return
 		}
 
+		if fileCache != nil {
+			if cachedFile, found := fileCache.Get(cacheKey); found {
+				if !cachedAssetHasAuthz(cachedFile) {
+					fileCache.RemoveAsync(cacheKey)
+				} else if !cachedAssetAllowed(cachedFile, c) {
+					c.AbortWithStatus(http.StatusForbidden)
+					return
+				} else {
+					serveCachedAsset(c, cachedFile)
+					return
+				}
+			}
+		}
+
 		// Handle markdown directly (simple case)
 		if colInfo.ColumnType == "markdown" {
 			// Fetch data
-			pr := &http.Request{
-				Method: "GET",
-				URL:    c.Request.URL,
-			}
-			pr = pr.WithContext(c.Request.Context())
-
-			req := api2go.Request{
-				PlainRequest: pr,
-			}
-
-			obj, err := cruds[typeName].FindOne(resourceUuid, req)
+			row, authz, err := loadAuthorizedAssetRow(cruds, typeName, resourceUuid, c)
 			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
+				abortAssetError(c, err)
 				return
 			}
 
-			row := obj.Result().(api2go.Api2GoModel)
-			colData := row.GetAttributes()[columnName]
+			colData := row[columnName]
 			if colData == nil {
 				c.AbortWithStatus(http.StatusNotFound)
 				return
@@ -133,7 +98,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			// Check if client has fresh copy
 			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
 				c.Header("ETag", etag)
-				c.Header("Cache-Control", "public, max-age=86400") // 1 day
+				setPrivateAssetCacheHeaders(c, 86400)
 				c.AbortWithStatus(http.StatusNotModified)
 				return
 			}
@@ -141,14 +106,18 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			// Cache the markdown content
 			htmlContent := fmt.Sprintf("<pre>%s</pre>", markdownContent)
 			cachedMarkdown := &cache.CachedFile{
-				Data:       []byte(htmlContent),
-				ETag:       etag,
-				Modtime:    time.Now(),
-				MimeType:   "text/html; charset=utf-8",
-				Size:       len(htmlContent),
-				Path:       fmt.Sprintf("%s/%s/%s", typeName, resourceUuid, columnNameWithExt),
-				IsDownload: false,
-				ExpiresAt:  cache.CalculateExpiry("text/html", ""),
+				Data:            []byte(htmlContent),
+				ETag:            etag,
+				Modtime:         time.Now(),
+				MimeType:        "text/html; charset=utf-8",
+				Size:            len(htmlContent),
+				Path:            fmt.Sprintf("%s/%s/%s", typeName, resourceUuid, columnNameWithExt),
+				IsDownload:      false,
+				ExpiresAt:       cache.CalculateExpiry("text/html", ""),
+				AuthzVersion:    cachedAssetAuthzVersion,
+				TablePermission: authz.tablePermission,
+				RowPermission:   authz.rowPermission,
+				AdminGroupId:    authz.adminGroupId,
 			}
 
 			// Create compressed version if large enough
@@ -158,17 +127,19 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				}
 			}
 
-			fileCache.Set(cacheKey, cachedMarkdown)
+			if fileCache != nil {
+				fileCache.Set(cacheKey, cachedMarkdown)
+			}
 
 			// Return markdown as HTML with appropriate headers
 			c.Header("Content-Type", "text/html; charset=utf-8")
-			c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(time.Until(cachedMarkdown.ExpiresAt).Seconds())))
+			setPrivateAssetCacheHeaders(c, int(time.Until(cachedMarkdown.ExpiresAt).Seconds()))
 			c.Header("ETag", etag)
 
 			// Use compression if client accepts it and we have compressed data
 			if cachedMarkdown.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
 				c.Header("Content-Encoding", "gzip")
-				c.Header("Vary", "Accept-Encoding")
+				c.Header("Vary", "Authorization, Accept-Encoding")
 				c.Data(http.StatusOK, "text/html; charset=utf-8", cachedMarkdown.GzipData)
 				return
 			}
@@ -190,24 +161,13 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		}
 
 		// Find the file to serve
-		pr := &http.Request{
-			Method: "GET",
-			URL:    c.Request.URL,
-		}
-		pr = pr.WithContext(c.Request.Context())
-
-		req := api2go.Request{
-			PlainRequest: pr,
-		}
-
-		obj, err := cruds[typeName].FindOne(resourceUuid, req)
+		row, authz, err := loadAuthorizedAssetRow(cruds, typeName, resourceUuid, c)
 		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
+			abortAssetError(c, err)
 			return
 		}
 
-		row := obj.Result().(api2go.Api2GoModel)
-		colData := row.GetAttributes()[columnName]
+		colData := row[columnName]
 		if colData == nil {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
@@ -278,7 +238,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", fileNameToServe))
 
 			// Set cache control for media files (shorter cache time due to size)
-			c.Header("Cache-Control", "public, max-age=3600") // 1 hour
+			setPrivateAssetCacheHeaders(c, 3600)
 
 			// Generate ETag for media files
 			etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
@@ -318,7 +278,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 		// Set cache control header based on expiry
 		maxAge := int(time.Until(expiryTime).Seconds())
-		c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
+		setPrivateAssetCacheHeaders(c, maxAge)
 
 		// Use optimized file serving for small files that can be cached
 		if fileInfo.Size() <= cache.MaxFileCacheSize {
@@ -341,14 +301,18 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 			// Create cache entry
 			newCachedFile := &cache.CachedFile{
-				Data:       data,
-				ETag:       etag,
-				Modtime:    fileInfo.ModTime(),
-				MimeType:   fileType,
-				Size:       len(data),
-				Path:       filePath,
-				IsDownload: isDownload,
-				ExpiresAt:  expiryTime,
+				Data:            data,
+				ETag:            etag,
+				Modtime:         fileInfo.ModTime(),
+				MimeType:        fileType,
+				Size:            len(data),
+				Path:            filePath,
+				IsDownload:      isDownload,
+				ExpiresAt:       expiryTime,
+				AuthzVersion:    cachedAssetAuthzVersion,
+				TablePermission: authz.tablePermission,
+				RowPermission:   authz.rowPermission,
+				AdminGroupId:    authz.adminGroupId,
 			}
 
 			// Pre-compress text files for better performance
@@ -365,7 +329,9 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			}
 
 			// Add to cache for future requests
-			fileCache.Set(cacheKey, newCachedFile)
+			if fileCache != nil {
+				fileCache.Set(cacheKey, newCachedFile)
+			}
 
 			// Set ETag header
 			c.Header("ETag", etag)
@@ -373,7 +339,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			// Use compression if client accepts it and we have compressed data
 			if newCachedFile.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
 				c.Header("Content-Encoding", "gzip")
-				c.Header("Vary", "Accept-Encoding")
+				c.Header("Vary", "Authorization, Accept-Encoding")
 				c.Data(http.StatusOK, fileType, newCachedFile.GzipData)
 				return
 			}
@@ -410,6 +376,118 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 		http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
 	}
+}
+
+const cachedAssetAuthzVersion byte = 1
+
+type assetAuthzSnapshot struct {
+	tablePermission permission.PermissionInstance
+	rowPermission   permission.PermissionInstance
+	adminGroupId    daptinid.DaptinReferenceId
+}
+
+func loadAuthorizedAssetRow(cruds map[string]*resource.DbResource, typeName, resourceUuid string, c *gin.Context) (map[string]interface{}, assetAuthzSnapshot, error) {
+	pr := &http.Request{
+		Method: "GET",
+		URL:    c.Request.URL,
+	}
+	pr = pr.WithContext(c.Request.Context())
+
+	req := api2go.Request{
+		PlainRequest: pr,
+	}
+
+	obj, err := cruds[typeName].FindOne(resourceUuid, req)
+	if err != nil {
+		return nil, assetAuthzSnapshot{}, err
+	}
+
+	row := obj.Result().(api2go.Api2GoModel).GetAttributes()
+	referenceId := daptinid.InterfaceToDIR(resourceUuid)
+
+	transaction, err := cruds[typeName].Connection().Beginx()
+	if err != nil {
+		return nil, assetAuthzSnapshot{}, err
+	}
+	defer transaction.Rollback()
+
+	rowReference := map[string]interface{}{
+		"__type":                typeName,
+		"reference_id":          referenceId,
+		"relation_reference_id": daptinid.NullReferenceId,
+	}
+	authz := assetAuthzSnapshot{
+		tablePermission: cruds[typeName].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", typeName, transaction),
+		rowPermission:   cruds[typeName].GetRowPermissionWithTransaction(rowReference, transaction),
+		adminGroupId:    cruds[typeName].AdministratorGroupId,
+	}
+	return row, authz, nil
+}
+
+func cachedAssetHasAuthz(cachedFile *cache.CachedFile) bool {
+	return cachedFile != nil && cachedFile.AuthzVersion == cachedAssetAuthzVersion
+}
+
+func cachedAssetAllowed(cachedFile *cache.CachedFile, c *gin.Context) bool {
+	sessionUser := &auth.SessionUser{}
+	if user := c.Request.Context().Value("user"); user != nil {
+		if typedUser, ok := user.(*auth.SessionUser); ok && typedUser != nil {
+			sessionUser = typedUser
+		}
+	}
+
+	for _, group := range sessionUser.Groups {
+		if group.GroupReferenceId == cachedFile.AdminGroupId {
+			return true
+		}
+	}
+
+	return cachedFile.TablePermission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, cachedFile.AdminGroupId) &&
+		cachedFile.RowPermission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, cachedFile.AdminGroupId)
+}
+
+func serveCachedAsset(c *gin.Context, cachedFile *cache.CachedFile) {
+	if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == cachedFile.ETag {
+		setPrivateAssetCacheHeaders(c, int(time.Until(cachedFile.ExpiresAt).Seconds()))
+		c.Header("ETag", cachedFile.ETag)
+		c.AbortWithStatus(http.StatusNotModified)
+		return
+	}
+
+	c.Header("Content-Type", cachedFile.MimeType)
+	c.Header("ETag", cachedFile.ETag)
+	setPrivateAssetCacheHeaders(c, int(time.Until(cachedFile.ExpiresAt).Seconds()))
+
+	if cachedFile.IsDownload {
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", filepath.Base(cachedFile.Path)))
+	} else {
+		c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", filepath.Base(cachedFile.Path)))
+	}
+
+	if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+		c.Header("Content-Encoding", "gzip")
+		c.Header("Vary", "Authorization, Accept-Encoding")
+		c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.GzipData)
+		return
+	}
+
+	c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.Data)
+}
+
+func setPrivateAssetCacheHeaders(c *gin.Context, maxAge int) {
+	if maxAge <= 0 {
+		maxAge = 60
+	}
+	c.Header("Cache-Control", fmt.Sprintf("private, max-age=%d", maxAge))
+	c.Header("Vary", "Authorization")
+}
+
+func abortAssetError(c *gin.Context, err error) {
+	if httpErr, ok := err.(api2go.HTTPError); ok {
+		c.AbortWithStatus(httpErr.Status())
+		return
+	}
+	c.AbortWithStatus(http.StatusInternalServerError)
 }
 
 func GetFileToServe(indexByQueryInt int, colDataMapArray []map[string]interface{}, nameByQuery string) (string, string) {

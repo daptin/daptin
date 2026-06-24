@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
 	"sync"
 	"time"
 )
@@ -17,16 +19,20 @@ var bufferPool = sync.Pool{
 
 // CachedFile represents a cached file with its metadata
 type CachedFile struct {
-	Data       []byte
-	ETag       string
-	Modtime    time.Time
-	MimeType   string
-	Path       string
-	Size       int
-	GzipData   []byte    // Pre-compressed version for text files
-	IsDownload bool      // Whether file should be downloaded or displayed inline
-	ExpiresAt  time.Time // When this cache entry expires
-	FileStat   FileStat  // File stat information for validation
+	Data            []byte
+	ETag            string
+	Modtime         time.Time
+	MimeType        string
+	Path            string
+	Size            int
+	GzipData        []byte    // Pre-compressed version for text files
+	IsDownload      bool      // Whether file should be downloaded or displayed inline
+	ExpiresAt       time.Time // When this cache entry expires
+	FileStat        FileStat  // File stat information for validation
+	AuthzVersion    byte
+	TablePermission permission.PermissionInstance
+	RowPermission   permission.PermissionInstance
+	AdminGroupId    daptinid.DaptinReferenceId
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler interface for Olric compatibility
@@ -40,6 +46,15 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 	}()
 
 	// Calculate the approximate size needed for the buffer
+	tablePermissionBytes, err := cf.TablePermission.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	rowPermissionBytes, err := cf.RowPermission.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
 	bufSize := 8 + // Size for Data length
 		len(cf.Data) + // Size for Data
 		4 + // Size for ETag length
@@ -56,7 +71,13 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 		8 + // Size for ExpiresAt (Unix timestamp)
 		8 + // Size for FileStat.ModTime (Unix timestamp)
 		8 + // Size for FileStat.Size (int64)
-		1 // Size for FileStat.Exists (bool)
+		1 + // Size for FileStat.Exists (bool)
+		1 + // Size for AuthzVersion
+		4 + // Size for TablePermission length
+		len(tablePermissionBytes) + // Size for TablePermission
+		4 + // Size for RowPermission length
+		len(rowPermissionBytes) + // Size for RowPermission
+		16 // Size for AdminGroupId
 
 	// Grow the buffer if needed
 	if buf.Cap() < bufSize {
@@ -107,6 +128,15 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 	} else {
 		buf.WriteByte(0)
 	}
+
+	// Write authorization snapshot. Cache entries without this section are
+	// treated as misses by the asset handler.
+	buf.WriteByte(cf.AuthzVersion)
+	binary.Write(buf, binary.LittleEndian, int32(len(tablePermissionBytes)))
+	buf.Write(tablePermissionBytes)
+	binary.Write(buf, binary.LittleEndian, int32(len(rowPermissionBytes)))
+	buf.Write(rowPermissionBytes)
+	buf.Write(cf.AdminGroupId[:])
 
 	// Make a copy of the bytes to return (since we're returning the buffer to the pool)
 	result := make([]byte, buf.Len())
@@ -216,6 +246,55 @@ func (cf *CachedFile) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("failed to read FileStat.Exists: %v", err)
 	}
 	cf.FileStat.Exists = existsByte == 1
+
+	if buf.Len() == 0 {
+		return nil
+	}
+
+	authzVersion, err := buf.ReadByte()
+	if err != nil {
+		return fmt.Errorf("failed to read AuthzVersion: %v", err)
+	}
+	cf.AuthzVersion = authzVersion
+
+	var tablePermissionLen int32
+	if err := binary.Read(buf, binary.LittleEndian, &tablePermissionLen); err != nil {
+		return fmt.Errorf("failed to read TablePermission length: %v", err)
+	}
+	if tablePermissionLen < 24 || int(tablePermissionLen) > buf.Len() {
+		return fmt.Errorf("invalid TablePermission length: %d", tablePermissionLen)
+	}
+	tablePermissionBytes := make([]byte, tablePermissionLen)
+	if _, err := buf.Read(tablePermissionBytes); err != nil {
+		return fmt.Errorf("failed to read TablePermission: %v", err)
+	}
+	if err := cf.TablePermission.UnmarshalBinary(tablePermissionBytes); err != nil {
+		return fmt.Errorf("failed to unmarshal TablePermission: %v", err)
+	}
+
+	var rowPermissionLen int32
+	if err := binary.Read(buf, binary.LittleEndian, &rowPermissionLen); err != nil {
+		return fmt.Errorf("failed to read RowPermission length: %v", err)
+	}
+	if rowPermissionLen < 24 || int(rowPermissionLen) > buf.Len() {
+		return fmt.Errorf("invalid RowPermission length: %d", rowPermissionLen)
+	}
+	rowPermissionBytes := make([]byte, rowPermissionLen)
+	if _, err := buf.Read(rowPermissionBytes); err != nil {
+		return fmt.Errorf("failed to read RowPermission: %v", err)
+	}
+	if err := cf.RowPermission.UnmarshalBinary(rowPermissionBytes); err != nil {
+		return fmt.Errorf("failed to unmarshal RowPermission: %v", err)
+	}
+
+	adminGroupBytes := make([]byte, 16)
+	if buf.Len() < len(adminGroupBytes) {
+		return fmt.Errorf("failed to read AdminGroupId: short buffer")
+	}
+	if _, err := buf.Read(adminGroupBytes); err != nil {
+		return fmt.Errorf("failed to read AdminGroupId: %v", err)
+	}
+	copy(cf.AdminGroupId[:], adminGroupBytes)
 
 	return nil
 }

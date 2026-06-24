@@ -8,8 +8,9 @@ custom action `OutFields`; they are not standalone REST endpoints.
 
 ## Delivery model
 
-`mail.send` creates an `outbox` row for each recipient. By default that row is
-queued and later processed by the scheduled `process_outbox` task.
+`mail.send` creates an `outbox` row for each recipient using a configured
+`mail_server`. By default that row is queued and later processed by the
+scheduled `process_outbox` task.
 
 For login, OTP, and password reset flows, set `send_immediately: true` or
 `attempt_delivery: true` to attempt delivery before the action returns:
@@ -29,13 +30,17 @@ OutFields:
 
 Immediate delivery still uses the outbox:
 
-1. `mail.send` creates an `outbox` row.
+1. `mail.send` resolves the action `mail_server_hostname` or backend
+   `mail.default_server_hostname` to a `mail_server` row and creates an
+   `outbox` row with `mail_server_id`.
 2. The row is committed before SMTP delivery begins.
 3. If `outbox.mail` is cloud-store-backed, Daptin reloads the committed row
    with `mail` included so the `.eml` content is hydrated.
-4. SMTP delivery runs without holding a database transaction open.
-5. On success, `sent=true` stops future retries.
-6. On failure, the row remains pending and `retry_count`, `last_error`, and
+4. `process_outbox` uses `mail_server.hostname` as the SMTP EHLO identity and
+   the recipient domain only for MX lookup.
+5. SMTP delivery runs without holding a database transaction open.
+6. On success, `sent=true` stops future retries.
+7. On failure, the row remains pending and `retry_count`, `last_error`, and
    `next_retry_at` are updated for scheduled retry.
 
 The scheduled `process_outbox` task retries rows where `sent=false`,
@@ -45,12 +50,17 @@ The scheduled `process_outbox` task retries rows where `sent=false`,
 
 | Name | Example | Purpose |
 |------|---------|---------|
-| SMTP host | `mail.example.com` | Server identity, MX target, PTR target, `mail_server.hostname` |
+| SMTP host | `mail.example.com` | Server identity, EHLO name, PTR target, `mail_server.hostname` |
 | Visible sender | `login@example.com` | `From` address shown to recipients |
 | DKIM domain | `example.com` | Domain in the DKIM `d=` value |
 
-When `mail_server_hostname` is set, Daptin looks up that configured mail server
-but signs the outgoing mail with the domain from the `From` address.
+`mail.send` resolves a configured mail server by hostname. Use
+`mail_server_hostname` in the action attributes, or set backend config
+`mail.default_server_hostname` for server-owned flows such as built-in password
+reset. Daptin stores the selected row on `outbox.mail_server_id` and uses
+`mail_server.hostname` as the SMTP EHLO identity for immediate delivery and
+scheduled retries. Daptin signs the outgoing mail with the domain from the
+`From` address.
 
 Example:
 
@@ -60,7 +70,7 @@ mail_server_hostname: "mail.example.com"
 ```
 
 This requires a Daptin certificate/private key for `example.com` because DKIM
-signing uses the `From` domain. The SMTP host may still be `mail.example.com`.
+signing uses the `From` domain. The SMTP EHLO host is `mail.example.com`.
 
 ## DNS checklist
 
@@ -116,7 +126,7 @@ curl "http://localhost:6336/api/outbox/$OUTBOX_ID?included_relations=mail" \
 ## Inspecting the outbox
 
 ```sql
-SELECT id, from_address, to_address, sent, retry_count, next_retry_at, last_error
+SELECT id, from_address, to_address, mail_server_id, sent, retry_count, next_retry_at, last_error
 FROM outbox
 ORDER BY id DESC
 LIMIT 20;
@@ -134,7 +144,8 @@ they are not valid customer mail.
 ## Password reset and OTP
 
 The built-in `reset-password` action uses `otp.generate` followed by
-`mail.send` with `send_immediately: true`.
+`mail.send` with `send_immediately: true`. It does not accept a mail server
+from the API request; configure `mail.default_server_hostname` on the backend.
 
 The legacy/internal `password.reset.begin` performer stores mail through
 `TaskSaveMail` in the local Daptin mailbox path. These are different flows, so

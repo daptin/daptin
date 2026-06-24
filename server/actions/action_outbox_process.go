@@ -8,7 +8,6 @@ import (
 	"io"
 	"math"
 	"net"
-	"net/mail"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/actionresponse"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
@@ -97,22 +97,28 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		log.Errorf("Outbox entry [%v] has invalid to_address type: %T", mailId, pendingMail["to_address"])
 		return false
 	}
-	toHost := ""
-	if h, ok := pendingMail["to_host"]; ok && h != nil {
-		toHost = fmt.Sprintf("%v", h)
+	mailServerReference, ok := pendingMail["mail_server_id"]
+	if !ok || mailServerReference == nil || fmt.Sprintf("%v", mailServerReference) == "" {
+		err := fmt.Errorf("outbox mail [%v] missing mail_server_id", mailId)
+		log.Errorf("%v", err)
+		d.markFailed(mailId, err.Error(), pendingMail, transaction)
+		return false
 	}
-
-	// Determine sender hostname for EHLO.
-	senderHost := toHost
-	if senderHost == "" {
-		addr, err := mail.ParseAddress(fromAddress)
-		if err == nil {
-			parts := bytes.SplitN([]byte(addr.Address), []byte("@"), 2)
-			if len(parts) == 2 {
-				senderHost = string(parts[1])
-			}
-		}
+	mailServerObj, mailServerDisplayId, err := d.getOutboxMailServer(mailServerReference, transaction)
+	if err != nil {
+		err = fmt.Errorf("outbox mail [%v] failed to resolve mail_server_id [%v]: %w", mailId, mailServerDisplayId, err)
+		log.Errorf("%v", err)
+		d.markFailed(mailId, err.Error(), pendingMail, transaction)
+		return false
 	}
+	senderHost, ok := mailServerObj["hostname"].(string)
+	if !ok || strings.TrimSpace(senderHost) == "" {
+		err := fmt.Errorf("outbox mail [%v] mail_server [%v] has invalid hostname", mailId, mailServerDisplayId)
+		log.Errorf("%v", err)
+		d.markFailed(mailId, err.Error(), pendingMail, transaction)
+		return false
+	}
+	senderHost = strings.TrimSpace(senderHost)
 
 	if transaction != nil {
 		err := transaction.Commit()
@@ -226,6 +232,41 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 	return true
 }
 
+func (d *outboxProcessActionPerformer) getOutboxMailServer(mailServerReference interface{}, transaction *sqlx.Tx) (map[string]interface{}, string, error) {
+	switch v := mailServerReference.(type) {
+	case int64:
+		mailServerObj, _, err := d.cruds["mail_server"].GetSingleRowById("mail_server", v, nil, transaction)
+		return mailServerObj, strconv.FormatInt(v, 10), err
+	case int:
+		id := int64(v)
+		mailServerObj, _, err := d.cruds["mail_server"].GetSingleRowById("mail_server", id, nil, transaction)
+		return mailServerObj, strconv.FormatInt(id, 10), err
+	case int32:
+		id := int64(v)
+		mailServerObj, _, err := d.cruds["mail_server"].GetSingleRowById("mail_server", id, nil, transaction)
+		return mailServerObj, strconv.FormatInt(id, 10), err
+	case float64:
+		id := int64(v)
+		if float64(id) == v {
+			mailServerObj, _, err := d.cruds["mail_server"].GetSingleRowById("mail_server", id, nil, transaction)
+			return mailServerObj, strconv.FormatInt(id, 10), err
+		}
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if parsed, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
+			mailServerObj, _, err := d.cruds["mail_server"].GetSingleRowById("mail_server", parsed, nil, transaction)
+			return mailServerObj, trimmed, err
+		}
+		mailServerRef := daptinid.InterfaceToDIR(trimmed)
+		mailServerObj, err := d.cruds["mail_server"].GetObjectByWhereClause("mail_server", "reference_id", mailServerRef[:], transaction)
+		return mailServerObj, mailServerRef.String(), err
+	}
+
+	mailServerRef := daptinid.InterfaceToDIR(mailServerReference)
+	mailServerObj, err := d.cruds["mail_server"].GetObjectByWhereClause("mail_server", "reference_id", mailServerRef[:], transaction)
+	return mailServerObj, mailServerRef.String(), err
+}
+
 func (d *outboxProcessActionPerformer) markFailed(mailId int64, lastError string, pendingMail map[string]interface{}, transaction *sqlx.Tx) {
 	retryCount := int64(0)
 	if rc, ok := pendingMail["retry_count"]; ok && rc != nil {
@@ -260,16 +301,16 @@ func (d *outboxProcessActionPerformer) markFailed(mailId int64, lastError string
 	}
 }
 
-func sendOutboxMail(hostname, from string, to []string, message []byte) error {
-	return sendOutboxMailWith(hostname, from, to, message, net.LookupMX, sendOutboxSMTPData)
+func sendOutboxMail(ehloHostname, from string, to []string, message []byte) error {
+	return sendOutboxMailWith(ehloHostname, from, to, message, net.LookupMX, sendOutboxSMTPData)
 }
 
 func sendOutboxMailWith(
-	hostname, from string,
+	ehloHostname, from string,
 	to []string,
 	message []byte,
 	lookupMX func(string) ([]*net.MX, error),
-	send func(mxHost, hostname, from string, to []string, message []byte) error,
+	send func(mxHost, ehloHostname, from string, to []string, message []byte) error,
 ) error {
 	for _, addr := range to {
 		_, domain, err := splitOutboxAddress(addr)
@@ -288,7 +329,7 @@ func sendOutboxMailWith(
 		var lastErr error
 		delivered := false
 		for _, mx := range mxs {
-			if err := send(mx.Host, hostname, from, []string{addr}, message); err != nil {
+			if err := send(mx.Host, ehloHostname, from, []string{addr}, message); err != nil {
 				lastErr = err
 				continue
 			}
@@ -306,7 +347,7 @@ func sendOutboxMailWith(
 	return nil
 }
 
-func sendOutboxSMTPData(mxHost, hostname, from string, to []string, message []byte) error {
+func sendOutboxSMTPData(mxHost, ehloHostname, from string, to []string, message []byte) error {
 	serverName := strings.TrimSuffix(mxHost, ".")
 	c, err := smtp.Dial(net.JoinHostPort(serverName, "25"))
 	if err != nil {
@@ -314,8 +355,8 @@ func sendOutboxSMTPData(mxHost, hostname, from string, to []string, message []by
 	}
 	defer c.Close()
 
-	if hostname != "" {
-		if err := c.Hello(hostname); err != nil {
+	if ehloHostname != "" {
+		if err := c.Hello(ehloHostname); err != nil {
 			return err
 		}
 	}

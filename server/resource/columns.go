@@ -107,6 +107,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("api_quota", "has_one", "api_plan"),
 	api2go.NewTableRelation("api_quota", "has_one", "api_member"),
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
+	api2go.NewTableRelation("outbox", "belongs_to", "mail_server"),
 	api2go.NewTableRelation("mail_account", "belongs_to", "mail_server"),
 	api2go.NewTableRelation("mail_box", "belongs_to", "mail_account"),
 	api2go.NewTableRelation("mail", "belongs_to", "mail_box"),
@@ -3320,6 +3321,7 @@ var StandardTables = []table_info.TableInfo{
 				Name:       "hostname",
 				ColumnName: "hostname",
 				DataType:   "varchar(100)",
+				IsUnique:   true,
 				ColumnType: "label",
 			},
 			{

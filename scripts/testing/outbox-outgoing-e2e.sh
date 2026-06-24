@@ -36,6 +36,8 @@ FAIL_DOMAIN="fail.${DOMAIN}"
 RECIPIENT="receiver@${DOMAIN}"
 FAIL_RECIPIENT="receiver@${FAIL_DOMAIN}"
 SENDER="login@sender.test"
+MAIL_SERVER_HOSTNAME="mail.sender.test"
+MAIL_SERVER_ID=""
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/daptin-outbox-e2e.XXXXXX")"
 CAPTURE_DIR="$TMP_DIR/capture"
 DB_FILE="$TMP_DIR/src/daptin.db"
@@ -86,16 +88,25 @@ api_post() {
 }
 
 api_post_jsonapi() {
-    local path="$1" body="$2"
-    curl -s --max-time 15 \
-        -X POST "http://127.0.0.1:${HTTP_PORT}${path}" \
+	local path="$1" body="$2"
+	curl -s --max-time 15 \
+		-X POST "http://127.0.0.1:${HTTP_PORT}${path}" \
         -H "Authorization: Bearer $(cat "$TOKEN_FILE" 2>/dev/null || true)" \
-        -H "Content-Type: application/vnd.api+json" \
-        -d "$body"
+		-H "Content-Type: application/vnd.api+json" \
+		-d "$body"
+}
+
+config_set() {
+	local key="$1" value="$2"
+	curl -s --max-time 15 \
+		-X PUT "http://127.0.0.1:${HTTP_PORT}/_config/backend/${key}" \
+		-H "Authorization: Bearer $(cat "$TOKEN_FILE" 2>/dev/null || true)" \
+		-H "Content-Type: text/plain" \
+		-d "$value" >/dev/null
 }
 
 write_smtp_server() {
-    cat > "$TMP_DIR/fake_smtp.py" <<'PY'
+	cat > "$TMP_DIR/fake_smtp.py" <<'PY'
 #!/usr/bin/env python3
 import os
 import socketserver
@@ -112,6 +123,9 @@ class Handler(socketserver.StreamRequestHandler):
 
     def handle(self):
         self.send_line("220 fake-smtp ESMTP")
+        os.makedirs(CAPTURE_DIR, exist_ok=True)
+        stamp = str(int(time.time() * 1000))
+        transcript_path = os.path.join(CAPTURE_DIR, f"{NAME}-{stamp}.smtp")
         data_mode = False
         data = []
         while True:
@@ -119,11 +133,11 @@ class Handler(socketserver.StreamRequestHandler):
             if not raw:
                 break
             line = raw.rstrip(b"\r\n")
+            with open(transcript_path, "ab") as f:
+                f.write(line + b"\n")
             upper = line.upper()
             if data_mode:
                 if line == b".":
-                    os.makedirs(CAPTURE_DIR, exist_ok=True)
-                    stamp = str(int(time.time() * 1000))
                     with open(os.path.join(CAPTURE_DIR, f"{NAME}-{stamp}.eml"), "wb") as f:
                         f.write(b"\r\n".join(data))
                         f.write(b"\r\n")
@@ -208,18 +222,68 @@ bootstrap_admin() {
     api_post "/action/world/become_an_administrator" '{"attributes":{}}' >/dev/null || true
 }
 
+create_mail_server() {
+    local body response
+    body="$(jq -n \
+        --arg hostname "$MAIL_SERVER_HOSTNAME" \
+        '{data:{type:"mail_server",attributes:{hostname:$hostname,is_enabled:false,listen_interface:"127.0.0.1:2525",max_size:1048576,max_clients:100,xclient_on:false,always_on_tls:false,authentication_required:false}}}')"
+    response="$(api_post_jsonapi "/api/mail_server" "$body")"
+    MAIL_SERVER_ID="$(echo "$response" | jq -r '.data.id // empty')"
+    if [ -z "$MAIL_SERVER_ID" ]; then
+        echo "ERROR: failed to create mail_server" >&2
+        echo "$response" >&2
+        exit 1
+    fi
+	log "Created mail_server ${MAIL_SERVER_ID} (${MAIL_SERVER_HOSTNAME})"
+}
+
+create_self_certificate() {
+	local hostname="$1"
+	local body response certificate_id action_response
+	body="$(jq -n --arg hostname "$hostname" '{data:{type:"certificate",attributes:{hostname:$hostname,issuer:"self"}}}')"
+	response="$(api_post_jsonapi "/api/certificate" "$body")"
+	certificate_id="$(echo "$response" | jq -r '.data.id // empty')"
+	if [ -z "$certificate_id" ]; then
+		echo "ERROR: failed to create certificate row for ${hostname}" >&2
+		echo "$response" >&2
+		exit 1
+	fi
+	action_response="$(api_post "/action/certificate/generate_self_certificate" "$(jq -n --arg id "$certificate_id" '{attributes:{certificate_id:$id}}')")"
+	if ! echo "$action_response" | jq -e '.[]? | select(.ResponseType == "client.notify")' >/dev/null; then
+		echo "ERROR: failed to generate self certificate for ${hostname}" >&2
+		echo "$action_response" >&2
+		exit 1
+	fi
+	log "Generated self certificate for ${hostname}"
+}
+
+signup_user() {
+	local email="$1"
+	curl -s --max-time 15 \
+		-X POST "http://127.0.0.1:${HTTP_PORT}/action/user_account/signup" \
+		-H "Content-Type: application/json" \
+		-d "$(jq -n --arg email "$email" '{attributes:{name:"Receiver",email:$email,password:"receiverpass",passwordConfirm:"receiverpass"}}')" >/dev/null || true
+}
+
+reset_password() {
+	local email="$1"
+	api_post "/action/user_account/reset-password" "$(jq -n --arg email "$email" '{attributes:{email:$email}}')"
+}
+
 insert_outbox_row() {
-    local raw_mail mail_b64
-    raw_mail=$'From: login@sender.test\r\nTo: receiver@outbox-e2e.test\r\nSubject: Outbox E2E\r\nDate: Tue, 23 Jun 2026 10:48:00 +0000\r\n\r\nBody from outbox e2e\r\n'
+	local recipient="$1" subject="$2" body_text="$3"
+	local raw_mail mail_b64 body response outbox_id recipient_host
+    recipient_host="${recipient#*@}"
+    raw_mail="$(printf 'From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: Tue, 23 Jun 2026 10:48:00 +0000\r\n\r\n%s\r\n' "$SENDER" "$recipient" "$subject" "$body_text")"
     mail_b64="$(printf '%s' "$raw_mail" | base64 | tr -d '\n')"
 
-    local body response outbox_id
     body="$(jq -n \
         --arg from "$SENDER" \
-        --arg to "$RECIPIENT" \
-        --arg host "$DOMAIN" \
+        --arg to "$recipient" \
+        --arg host "$recipient_host" \
         --arg mail "$mail_b64" \
-        '{data:{type:"outbox",attributes:{from_address:$from,to_address:$to,to_host:$host,mail:$mail,sent:false,retry_count:0}}}')"
+        --arg msid "$MAIL_SERVER_ID" \
+        '{data:{type:"outbox",attributes:{from_address:$from,to_address:$to,to_host:$host,mail:$mail,sent:false,retry_count:0},relationships:{mail_server_id:{data:{type:"mail_server",id:$msid}}}}}')"
     response="$(api_post_jsonapi "/api/outbox" "$body")"
     outbox_id="$(echo "$response" | jq -r '.data.id // empty')"
     if [ -z "$outbox_id" ]; then
@@ -227,20 +291,7 @@ insert_outbox_row() {
         echo "$response" >&2
         exit 1
     fi
-    log "Created outbox row ${outbox_id}"
-}
-
-signup_user() {
-    local email="$1"
-    curl -s --max-time 15 \
-        -X POST "http://127.0.0.1:${HTTP_PORT}/action/user_account/signup" \
-        -H "Content-Type: application/json" \
-        -d "$(jq -n --arg email "$email" '{attributes:{name:"Receiver",email:$email,password:"receiverpass",passwordConfirm:"receiverpass"}}')" >/dev/null || true
-}
-
-reset_password() {
-    local email="$1"
-    api_post "/action/user_account/reset-password" "$(jq -n --arg email "$email" '{attributes:{email:$email}}')"
+    log "Created outbox row ${outbox_id} for ${recipient}"
 }
 
 main() {
@@ -307,46 +358,43 @@ main() {
         exit 1
     fi
 
-    bootstrap_admin
+	bootstrap_admin
+	create_mail_server
+	config_set "mail.default_server_hostname" "$MAIL_SERVER_HOSTNAME"
+	create_self_certificate "localhost"
 
-    signup_user "$RECIPIENT"
-    log "Calling reset-password for immediate mail.send delivery..."
-    local reset_response before_mx1 before_mx2 after_mx1 after_mx2 immediate_sent immediate_retry
-    before_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
-    before_mx2="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' | wc -l | tr -d ' ')"
-    reset_response="$(reset_password "$RECIPIENT")"
-    sleep 2
-    after_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
-    after_mx2="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' | wc -l | tr -d ' ')"
-    immediate_sent="$(sqlite3 "$DB_FILE" "SELECT count(*) FROM outbox WHERE to_address='${RECIPIENT}' AND sent=1;")"
-    immediate_retry="$(sqlite3 "$DB_FILE" "SELECT retry_count FROM outbox WHERE to_address='${RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+	signup_user "$RECIPIENT"
+	log "Calling reset-password to exercise mail.send immediate delivery..."
+	local reset_before_mx1 reset_before_mx2 reset_after_mx1 reset_after_mx2 reset_sent reset_retry reset_captured reset_transcript
+	reset_before_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+	reset_before_mx2="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' | wc -l | tr -d ' ')"
+	reset_password "$RECIPIENT" >/dev/null
+	sleep 2
+	reset_after_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+	reset_after_mx2="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' | wc -l | tr -d ' ')"
+	reset_sent="$(sqlite3 "$DB_FILE" "SELECT count(*) FROM outbox WHERE to_address='${RECIPIENT}' AND from_address='no-reply@localhost' AND sent=1;")"
+	reset_retry="$(sqlite3 "$DB_FILE" "SELECT retry_count FROM outbox WHERE to_address='${RECIPIENT}' AND from_address='no-reply@localhost' ORDER BY id DESC LIMIT 1;")"
+	reset_captured="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' -exec grep -l '^Subject: Request for password reset' {} + | head -1 || true)"
+	reset_transcript="$(find "$CAPTURE_DIR" -name 'mx2-*.smtp' -exec grep -l "^EHLO ${MAIL_SERVER_HOSTNAME}$" {} + | head -1 || true)"
 
-    [ "$after_mx1" -gt "$before_mx1" ] && pass "immediate mail.send attempted first MX without process_outbox" || fail "immediate mail.send did not reach first MX"
-    [ "$after_mx2" -gt "$before_mx2" ] && pass "immediate mail.send retried second MX without process_outbox" || fail "immediate mail.send did not reach second MX"
-    [ "$immediate_sent" = "1" ] && pass "immediate mail.send marked new outbox row sent" || fail "immediate mail.send row was not marked sent"
-    [ "$immediate_retry" = "0" ] && pass "immediate mail.send success kept retry_count at 0" || fail "immediate mail.send success retry_count is ${immediate_retry}"
+	[ "$reset_after_mx1" -gt "$reset_before_mx1" ] && pass "mail.send immediate delivery attempted first MX" || fail "mail.send immediate delivery did not reach first MX"
+	[ "$reset_after_mx2" -gt "$reset_before_mx2" ] && pass "mail.send immediate delivery retried second MX" || fail "mail.send immediate delivery did not reach second MX"
+	[ "$reset_sent" = "1" ] && pass "mail.send immediate delivery marked outbox row sent" || fail "mail.send immediate delivery sent count is ${reset_sent}"
+	[ "$reset_retry" = "0" ] && pass "mail.send immediate delivery kept retry_count at 0" || fail "mail.send immediate delivery retry_count is ${reset_retry}"
+	if [ -n "$reset_captured" ] && grep -q '^From: no-reply@localhost' "$reset_captured"; then
+		pass "mail.send receiver captured reset-password From header"
+	else
+		fail "mail.send receiver did not capture reset-password From header"
+	fi
+	if [ -n "$reset_transcript" ]; then
+		pass "mail.send receiver saw EHLO ${MAIL_SERVER_HOSTNAME}"
+	else
+		fail "mail.send receiver did not see EHLO ${MAIL_SERVER_HOSTNAME}"
+	fi
 
-    signup_user "$FAIL_RECIPIENT"
-    log "Calling reset-password for immediate mail.send failure path..."
-    local fail_before_mx1 fail_after_mx1 failed_sent failed_retry failed_error failed_next_retry
-    fail_before_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
-    reset_response="$(reset_password "$FAIL_RECIPIENT")"
-    sleep 2
-    fail_after_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
-    failed_sent="$(sqlite3 "$DB_FILE" "SELECT sent FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
-    failed_retry="$(sqlite3 "$DB_FILE" "SELECT retry_count FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
-    failed_error="$(sqlite3 "$DB_FILE" "SELECT coalesce(last_error, '') FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
-    failed_next_retry="$(sqlite3 "$DB_FILE" "SELECT coalesce(next_retry_at, '') FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+	insert_outbox_row "$RECIPIENT" "Outbox E2E" "Body from outbox e2e"
 
-    [ "$fail_after_mx1" -gt "$fail_before_mx1" ] && pass "immediate mail.send failure path reached receiver SMTP" || fail "immediate mail.send failure path did not reach receiver SMTP"
-    [ "$failed_sent" = "0" ] && pass "failed immediate mail.send left row unsent" || fail "failed immediate mail.send sent flag is ${failed_sent}"
-    [ "$failed_retry" = "1" ] && pass "failed immediate mail.send incremented retry_count" || fail "failed immediate mail.send retry_count is ${failed_retry}"
-    [ -n "$failed_error" ] && pass "failed immediate mail.send stored last_error" || fail "failed immediate mail.send did not store last_error"
-    [ -n "$failed_next_retry" ] && pass "failed immediate mail.send stored next_retry_at" || fail "failed immediate mail.send did not store next_retry_at"
-
-    insert_outbox_row
-
-    log "Calling process_outbox..."
+	log "Calling process_outbox..."
     local process_response
     process_response="$(api_post "/action/outbox/process_outbox" '{"attributes":{}}')"
     sleep 2
@@ -375,9 +423,41 @@ main() {
     else
         fail "captured SMTP DATA missing subject/body"
     fi
+    local transcript
+    transcript="$(find "$CAPTURE_DIR" -name 'mx2-*.smtp' -exec grep -l "^EHLO ${MAIL_SERVER_HOSTNAME}$" {} + | head -1 || true)"
+    if [ -n "$transcript" ]; then
+        pass "receiver saw EHLO ${MAIL_SERVER_HOSTNAME}"
+    else
+        fail "receiver did not see EHLO ${MAIL_SERVER_HOSTNAME}"
+        find "$CAPTURE_DIR" -maxdepth 1 -name '*.smtp' -print -exec sed -n '1,20p' {} \; || true
+    fi
+    if find "$CAPTURE_DIR" -name '*.smtp' -exec grep -l "^EHLO ${DOMAIN}$" {} + | grep -q .; then
+        fail "receiver saw recipient domain ${DOMAIN} as EHLO"
+    else
+        pass "receiver never saw recipient domain as EHLO"
+    fi
+
+    local fail_before_mx1
+    fail_before_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+    insert_outbox_row "$FAIL_RECIPIENT" "Outbox E2E Failure" "Body from failing outbox e2e"
+    log "Calling process_outbox for failure path..."
+    process_response="$(api_post "/action/outbox/process_outbox" '{"attributes":{}}')"
+    sleep 2
+
+    local fail_after_mx1 failed_sent failed_retry failed_error failed_next_retry
+    fail_after_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+    failed_sent="$(sqlite3 "$DB_FILE" "SELECT sent FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+    failed_retry="$(sqlite3 "$DB_FILE" "SELECT retry_count FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+    failed_error="$(sqlite3 "$DB_FILE" "SELECT coalesce(last_error, '') FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+    failed_next_retry="$(sqlite3 "$DB_FILE" "SELECT coalesce(next_retry_at, '') FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+
+    [ "$fail_after_mx1" -gt "$fail_before_mx1" ] && pass "failure path reached receiver SMTP" || fail "failure path did not reach receiver SMTP"
+    [ "$failed_sent" = "0" ] && pass "failed delivery left row unsent" || fail "failed delivery sent flag is ${failed_sent}"
+    [ "$failed_retry" = "1" ] && pass "failed delivery incremented retry_count" || fail "failed delivery retry_count is ${failed_retry}"
+    [ -n "$failed_error" ] && pass "failed delivery stored last_error" || fail "failed delivery did not store last_error"
+    [ -n "$failed_next_retry" ] && pass "failed delivery stored next_retry_at" || fail "failed delivery did not store next_retry_at"
 
     if [ "$FAIL" -ne 0 ]; then
-        log "reset-password response: ${reset_response}"
         log "process_outbox response: ${process_response}"
         log "outbox row: ${row_state}"
         log "Daptin log tail:"
