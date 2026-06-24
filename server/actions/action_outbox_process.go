@@ -49,9 +49,15 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 		return nil, responses, []error{err}
 	}
 
-	now := time.Now()
 	for _, pendingMail := range pendingMails {
-		// Check next_retry_at
+		d.processPendingMail(pendingMail, transaction, true)
+	}
+
+	return nil, responses, nil
+}
+
+func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string]interface{}, transaction *sqlx.Tx, respectNextRetry bool) bool {
+	if respectNextRetry {
 		if nextRetry, ok := pendingMail["next_retry_at"]; ok && nextRetry != nil {
 			var retryTime time.Time
 			switch v := nextRetry.(type) {
@@ -60,99 +66,98 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 			case string:
 				retryTime, _ = time.Parse(time.RFC3339, v)
 			}
-			if !retryTime.IsZero() && retryTime.After(now) {
-				continue
+			if !retryTime.IsZero() && retryTime.After(time.Now()) {
+				return false
 			}
 		}
-
-		mailId, ok := pendingMail["id"].(int64)
-		if !ok {
-			log.Errorf("Outbox entry has invalid id type: %T", pendingMail["id"])
-			continue
-		}
-
-		// Claim this mail via Olric NX — if another node already claimed it, skip
-		claimKey := fmt.Sprintf("outbox-claim-%v", mailId)
-		if resource.OlricCache != nil {
-			err := resource.OlricCache.Put(context.Background(), claimKey, true, olric.EX(10*time.Minute), olric.NX())
-			if err != nil {
-				continue
-			}
-		}
-
-		fromAddress, ok := pendingMail["from_address"].(string)
-		if !ok {
-			log.Errorf("Outbox entry [%v] has invalid from_address type: %T", mailId, pendingMail["from_address"])
-			continue
-		}
-		toAddress, ok := pendingMail["to_address"].(string)
-		if !ok {
-			log.Errorf("Outbox entry [%v] has invalid to_address type: %T", mailId, pendingMail["to_address"])
-			continue
-		}
-		mailStored, ok := pendingMail["mail"]
-		if !ok || mailStored == nil {
-			log.Errorf("Outbox entry [%v] has invalid mail type: %T", mailId, pendingMail["mail"])
-			continue
-		}
-		toHost := ""
-		if h, ok := pendingMail["to_host"]; ok && h != nil {
-			toHost = fmt.Sprintf("%v", h)
-		}
-
-		// Determine sender hostname for EHLO
-		senderHost := toHost
-		if senderHost == "" {
-			addr, err := mail.ParseAddress(fromAddress)
-			if err == nil {
-				parts := bytes.SplitN([]byte(addr.Address), []byte("@"), 2)
-				if len(parts) == 2 {
-					senderHost = string(parts[1])
-				}
-			}
-		}
-
-		mailBytes, err := d.cruds["outbox"].MailColumnBytes("outbox", "mail", mailStored)
-		if err != nil {
-			log.Errorf("Failed to read outbox mail [%v]: %v", mailId, err)
-			d.markFailed(mailId, "failed to read mail body: "+err.Error(), pendingMail, transaction)
-			continue
-		}
-
-		// Send with 30s timeout to prevent hanging on unreachable MX
-		sendDone := make(chan error, 1)
-		go func() {
-			sendDone <- sendOutboxMail(senderHost, fromAddress, []string{toAddress}, mailBytes)
-		}()
-		sendCtx, sendCancel := context.WithTimeout(context.Background(), 30*time.Second)
-		select {
-		case err = <-sendDone:
-		case <-sendCtx.Done():
-			err = fmt.Errorf("send timed out after 30s for [%v]", toAddress)
-		}
-		sendCancel()
-
-		if err != nil {
-			log.Errorf("Failed to send outbox mail [%v] to [%v]: %v", mailId, toAddress, err)
-			d.markFailed(mailId, err.Error(), pendingMail, transaction)
-			continue
-		}
-
-		// Mark as sent
-		query, args, err := statementbuilder.Squirrel.
-			Update("outbox").Prepared(true).
-			Set(goqu.Record{"sent": true}).
-			Where(goqu.Ex{"id": mailId}).ToSQL()
-		if err == nil {
-			_, execErr := transaction.Exec(query, args...)
-			if execErr != nil {
-				log.Errorf("Failed to mark outbox mail [%v] as sent: %v", mailId, execErr)
-			}
-		}
-		log.Printf("Outbox mail [%v] sent to [%v]", mailId, toAddress)
 	}
 
-	return nil, responses, nil
+	mailId, ok := pendingMail["id"].(int64)
+	if !ok {
+		log.Errorf("Outbox entry has invalid id type: %T", pendingMail["id"])
+		return false
+	}
+
+	// Claim this mail via Olric NX; if another node already claimed it, skip.
+	claimKey := fmt.Sprintf("outbox-claim-%v", mailId)
+	if resource.OlricCache != nil {
+		err := resource.OlricCache.Put(context.Background(), claimKey, true, olric.EX(10*time.Minute), olric.NX())
+		if err != nil {
+			return false
+		}
+	}
+
+	fromAddress, ok := pendingMail["from_address"].(string)
+	if !ok {
+		log.Errorf("Outbox entry [%v] has invalid from_address type: %T", mailId, pendingMail["from_address"])
+		return false
+	}
+	toAddress, ok := pendingMail["to_address"].(string)
+	if !ok {
+		log.Errorf("Outbox entry [%v] has invalid to_address type: %T", mailId, pendingMail["to_address"])
+		return false
+	}
+	mailStored, ok := pendingMail["mail"]
+	if !ok || mailStored == nil {
+		log.Errorf("Outbox entry [%v] has invalid mail type: %T", mailId, pendingMail["mail"])
+		return false
+	}
+	toHost := ""
+	if h, ok := pendingMail["to_host"]; ok && h != nil {
+		toHost = fmt.Sprintf("%v", h)
+	}
+
+	// Determine sender hostname for EHLO.
+	senderHost := toHost
+	if senderHost == "" {
+		addr, err := mail.ParseAddress(fromAddress)
+		if err == nil {
+			parts := bytes.SplitN([]byte(addr.Address), []byte("@"), 2)
+			if len(parts) == 2 {
+				senderHost = string(parts[1])
+			}
+		}
+	}
+
+	mailBytes, err := d.cruds["outbox"].MailColumnBytes("outbox", "mail", mailStored)
+	if err != nil {
+		log.Errorf("Failed to read outbox mail [%v]: %v", mailId, err)
+		d.markFailed(mailId, "failed to read mail body: "+err.Error(), pendingMail, transaction)
+		return false
+	}
+
+	// Send with 30s timeout to prevent hanging on unreachable MX.
+	sendDone := make(chan error, 1)
+	go func() {
+		sendDone <- sendOutboxMail(senderHost, fromAddress, []string{toAddress}, mailBytes)
+	}()
+	sendCtx, sendCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	select {
+	case err = <-sendDone:
+	case <-sendCtx.Done():
+		err = fmt.Errorf("send timed out after 30s for [%v]", toAddress)
+	}
+	sendCancel()
+
+	if err != nil {
+		log.Errorf("Failed to send outbox mail [%v] to [%v]: %v", mailId, toAddress, err)
+		d.markFailed(mailId, err.Error(), pendingMail, transaction)
+		return false
+	}
+
+	query, args, err := statementbuilder.Squirrel.
+		Update("outbox").Prepared(true).
+		Set(goqu.Record{"sent": true}).
+		Where(goqu.Ex{"id": mailId}).ToSQL()
+	if err == nil {
+		_, execErr := transaction.Exec(query, args...)
+		if execErr != nil {
+			log.Errorf("Failed to mark outbox mail [%v] as sent: %v", mailId, execErr)
+			return false
+		}
+	}
+	log.Printf("Outbox mail [%v] sent to [%v]", mailId, toAddress)
+	return true
 }
 
 func (d *outboxProcessActionPerformer) markFailed(mailId int64, lastError string, pendingMail map[string]interface{}, transaction *sqlx.Tx) {

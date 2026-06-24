@@ -146,6 +146,8 @@ func GetValueAsArrayString(inFields map[string]interface{}, keyName string) []st
 		isStrArray, ok := valueObject.([]string)
 		if ok {
 			stringValueList = isStrArray
+		} else if strValue, ok := valueObject.(string); ok && strValue != "" {
+			stringValueList = append(stringValueList, strValue)
 		}
 	}
 	return stringValueList

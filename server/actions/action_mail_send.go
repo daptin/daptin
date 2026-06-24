@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/daptin/daptin/server/actionresponse"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/emersion/go-msgauth/dkim"
 	"github.com/jmoiron/sqlx"
@@ -42,6 +44,8 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 		return nil, nil, []error{fmt.Errorf("missing required field: from")}
 	}
 	mailServer, useMailServer := inFields["mail_server_hostname"]
+	attemptDelivery := mailSendAttemptDelivery(inFields)
+	outboxProcessor := &outboxProcessActionPerformer{cruds: d.cruds}
 
 	outboxUrl, _ := url.Parse("/api/outbox")
 	outboxReq := api2go.Request{
@@ -84,10 +88,14 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 				"retry_count":   0,
 				"next_retry_at": time.Now(),
 			})
-			_, err = d.cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
+			createdOutboxMail, err := d.cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
 			if err != nil {
 				log.Errorf("Failed to queue mail to outbox for [%v]: %v", to, err)
 				return nil, nil, []error{err}
+			}
+			if attemptDelivery {
+				createdOutboxMail = d.outboxMailWithNativeID(createdOutboxMail, transaction)
+				outboxProcessor.processPendingMail(createdOutboxMail, transaction, false)
 			}
 		}
 
@@ -197,16 +205,62 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 				"retry_count":   0,
 				"next_retry_at": time.Now(),
 			})
-			_, err = d.cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
+			createdOutboxMail, err := d.cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
 			if err != nil {
 				log.Errorf("Failed to queue mail to outbox for [%v]: %v", to, err)
 				return nil, nil, []error{err}
+			}
+			if attemptDelivery {
+				createdOutboxMail = d.outboxMailWithNativeID(createdOutboxMail, transaction)
+				outboxProcessor.processPendingMail(createdOutboxMail, transaction, false)
 			}
 		}
 
 	}
 
 	return nil, responses, nil
+}
+
+func (d *mailSendActionPerformer) outboxMailWithNativeID(outboxMail map[string]interface{}, transaction *sqlx.Tx) map[string]interface{} {
+	if id, ok := outboxMail["id"].(int64); ok && id > 0 {
+		return outboxMail
+	}
+	referenceID, ok := outboxMail["reference_id"]
+	if !ok || referenceID == nil {
+		return outboxMail
+	}
+	outboxID, err := resource.GetReferenceIdToIdWithTransaction("outbox", daptinid.InterfaceToDIR(referenceID), transaction)
+	if err != nil {
+		log.Errorf("Failed to resolve outbox reference [%v] for immediate delivery: %v", referenceID, err)
+		return outboxMail
+	}
+	outboxMail["id"] = outboxID
+	return outboxMail
+}
+
+func mailSendAttemptDelivery(inFields map[string]interface{}) bool {
+	for _, key := range []string{"send_immediately", "attempt_delivery"} {
+		val, ok := inFields[key]
+		if !ok || val == nil {
+			continue
+		}
+		switch v := val.(type) {
+		case bool:
+			return v
+		case string:
+			parsed, err := strconv.ParseBool(strings.TrimSpace(v))
+			if err == nil {
+				return parsed
+			}
+		case int:
+			return v != 0
+		case int64:
+			return v != 0
+		case float64:
+			return v != 0
+		}
+	}
+	return false
 }
 
 func NewMailSendActionPerformer(cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon, certificateManager *resource.CertificateManager) (actionresponse.ActionPerformerInterface, error) {

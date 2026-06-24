@@ -32,7 +32,9 @@ PY
 fi
 
 DOMAIN="outbox-e2e.test"
+FAIL_DOMAIN="fail.${DOMAIN}"
 RECIPIENT="receiver@${DOMAIN}"
+FAIL_RECIPIENT="receiver@${FAIL_DOMAIN}"
 SENDER="login@sender.test"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/daptin-outbox-e2e.XXXXXX")"
 CAPTURE_DIR="$TMP_DIR/capture"
@@ -181,6 +183,7 @@ ns 3600 IN A ${DNS_IP}
 @ 3600 IN MX 20 mx2.${DOMAIN}.
 mx1 3600 IN A ${MX1_IP}
 mx2 3600 IN A ${MX2_IP}
+fail 3600 IN MX 10 mx1.${DOMAIN}.
 EOF
 }
 
@@ -225,6 +228,19 @@ insert_outbox_row() {
         exit 1
     fi
     log "Created outbox row ${outbox_id}"
+}
+
+signup_user() {
+    local email="$1"
+    curl -s --max-time 15 \
+        -X POST "http://127.0.0.1:${HTTP_PORT}/action/user_account/signup" \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n --arg email "$email" '{attributes:{name:"Receiver",email:$email,password:"receiverpass",passwordConfirm:"receiverpass"}}')" >/dev/null || true
+}
+
+reset_password() {
+    local email="$1"
+    api_post "/action/user_account/reset-password" "$(jq -n --arg email "$email" '{attributes:{email:$email}}')"
 }
 
 main() {
@@ -292,6 +308,42 @@ main() {
     fi
 
     bootstrap_admin
+
+    signup_user "$RECIPIENT"
+    log "Calling reset-password for immediate mail.send delivery..."
+    local reset_response before_mx1 before_mx2 after_mx1 after_mx2 immediate_sent immediate_retry
+    before_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+    before_mx2="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' | wc -l | tr -d ' ')"
+    reset_response="$(reset_password "$RECIPIENT")"
+    sleep 2
+    after_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+    after_mx2="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' | wc -l | tr -d ' ')"
+    immediate_sent="$(sqlite3 "$DB_FILE" "SELECT count(*) FROM outbox WHERE to_address='${RECIPIENT}' AND sent=1;")"
+    immediate_retry="$(sqlite3 "$DB_FILE" "SELECT retry_count FROM outbox WHERE to_address='${RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+
+    [ "$after_mx1" -gt "$before_mx1" ] && pass "immediate mail.send attempted first MX without process_outbox" || fail "immediate mail.send did not reach first MX"
+    [ "$after_mx2" -gt "$before_mx2" ] && pass "immediate mail.send retried second MX without process_outbox" || fail "immediate mail.send did not reach second MX"
+    [ "$immediate_sent" = "1" ] && pass "immediate mail.send marked new outbox row sent" || fail "immediate mail.send row was not marked sent"
+    [ "$immediate_retry" = "0" ] && pass "immediate mail.send success kept retry_count at 0" || fail "immediate mail.send success retry_count is ${immediate_retry}"
+
+    signup_user "$FAIL_RECIPIENT"
+    log "Calling reset-password for immediate mail.send failure path..."
+    local fail_before_mx1 fail_after_mx1 failed_sent failed_retry failed_error failed_next_retry
+    fail_before_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+    reset_response="$(reset_password "$FAIL_RECIPIENT")"
+    sleep 2
+    fail_after_mx1="$(find "$CAPTURE_DIR" -name 'mx1-*.eml' | wc -l | tr -d ' ')"
+    failed_sent="$(sqlite3 "$DB_FILE" "SELECT sent FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+    failed_retry="$(sqlite3 "$DB_FILE" "SELECT retry_count FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+    failed_error="$(sqlite3 "$DB_FILE" "SELECT coalesce(last_error, '') FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+    failed_next_retry="$(sqlite3 "$DB_FILE" "SELECT coalesce(next_retry_at, '') FROM outbox WHERE to_address='${FAIL_RECIPIENT}' ORDER BY id DESC LIMIT 1;")"
+
+    [ "$fail_after_mx1" -gt "$fail_before_mx1" ] && pass "immediate mail.send failure path reached receiver SMTP" || fail "immediate mail.send failure path did not reach receiver SMTP"
+    [ "$failed_sent" = "0" ] && pass "failed immediate mail.send left row unsent" || fail "failed immediate mail.send sent flag is ${failed_sent}"
+    [ "$failed_retry" = "1" ] && pass "failed immediate mail.send incremented retry_count" || fail "failed immediate mail.send retry_count is ${failed_retry}"
+    [ -n "$failed_error" ] && pass "failed immediate mail.send stored last_error" || fail "failed immediate mail.send did not store last_error"
+    [ -n "$failed_next_retry" ] && pass "failed immediate mail.send stored next_retry_at" || fail "failed immediate mail.send did not store next_retry_at"
+
     insert_outbox_row
 
     log "Calling process_outbox..."
@@ -325,6 +377,7 @@ main() {
     fi
 
     if [ "$FAIL" -ne 0 ]; then
+        log "reset-password response: ${reset_response}"
         log "process_outbox response: ${process_response}"
         log "outbox row: ${row_state}"
         log "Daptin log tail:"
