@@ -110,7 +110,8 @@ Before deploying production apps:
 - Configure monitoring, metering, rate limits, and audit behavior.
 
 See **[[Production-Deployment]]**, **[[Database-Setup]]**, and
-**[[TLS-Certificates]]**.
+**[[TLS-Certificates]]**. For outbound email, see
+**[[Production-Mail-Delivery]]**.
 
 ## Documentation Sections
 
@@ -161,6 +162,7 @@ See **[[Production-Deployment]]**, **[[Database-Setup]]**, and
 - [[Data-Actions]]
 - [[Cloud-Actions]]
 - [[Email-Actions]]
+- [[Production-Mail-Delivery]]
 - [[Admin-Actions]]
 - [[User-Actions]]
 - [[State-Machines]]

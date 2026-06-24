@@ -190,7 +190,10 @@ Daptin's mail functionality (`mail.send` and `aws.mail.send`) are **internal per
 ### Built-in Usage
 
 **Password Reset Flow:**
-The `generate_password_reset_flow` action stores the reset email in the user's **local Daptin mailbox** (via `TaskSaveMail`), not sent externally. Users retrieve it via IMAP.
+The built-in `reset-password` action uses `otp.generate` and `mail.send` with
+`send_immediately: true`. The legacy/internal `password.reset.begin` performer
+stores the reset email in the user's local Daptin mailbox via `TaskSaveMail`.
+Check which flow your app invokes before debugging delivery.
 
 ### Custom Actions
 
@@ -223,6 +226,8 @@ To send emails externally, create a custom action with `mail.send` in its OutFie
 | subject | string | Yes | Subject line |
 | body | string | Yes | Email content |
 | mail_server_hostname | string | No | Use specific mail server for DKIM signing |
+| send_immediately | boolean | No | Attempt outbox delivery before the action returns |
+| attempt_delivery | boolean | No | Alias for `send_immediately` |
 
 ### mail.send Operation Modes
 
@@ -233,9 +238,12 @@ To send emails externally, create a custom action with `mail.send` in its OutFie
 
 **Mode 2: Via Mail Server** (with `mail_server_hostname`)
 - Uses configured mail server settings
-- Signs outgoing mail with DKIM
-- Requires valid certificate for sender's domain
+- Signs outgoing mail with DKIM using the domain from the `from` address
+- Requires a valid certificate/private key for the sender domain
 - Better deliverability and authenticity
+
+For production DNS, DKIM alignment, immediate delivery, cloud-backed outbox
+storage, and retry behavior, see [[Production-Mail-Delivery]].
 
 ### aws.mail.send Parameters
 
@@ -248,14 +256,20 @@ For AWS SES, the performer expects a stored credential reference:
 | cc | array | No | CC recipients |
 | bcc | array | No | BCC recipients |
 | subject | string | Yes | Subject line |
-| body | string | Yes | Email content |
+| text | string | No* | Plain text body |
+| html | string | No* | HTML body |
 | credential | string | Yes | Name of stored AWS credential |
+
+*Either `text` or `html` is required.
 
 **Note:** Create an AWS credential first with `access_key`, `secret_key`, `region`, and `token` fields.
 
 ## DKIM Signing
 
-Daptin automatically generates DKIM keys.
+Daptin signs outgoing `mail.send` messages with the domain from the `from`
+address. For `from: "login@example.com"` and
+`mail_server_hostname: "mail.example.com"`, the DKIM record belongs under
+`example.com`, for example `d1._domainkey.example.com`.
 
 ### Get DKIM Public Key
 
@@ -587,7 +601,7 @@ PASSWORD_B64=$(echo -n "account-password" | base64)
   echo "."
   sleep 0.2
   echo "QUIT"
-} | nc localhost 465
+} | openssl s_client -connect localhost:465 -servername mail.example.com -quiet
 ```
 
 **Expected responses:**
@@ -739,8 +753,8 @@ curl http://localhost:6336/api/mail_server \
   echo "QUIT"
 } | nc localhost 2525
 
-# TLS test
-openssl s_client -connect localhost:465
+# TLS test for implicit TLS on port 465
+openssl s_client -connect localhost:465 -servername mail.example.com -quiet
 ```
 
 **Expected EHLO response:**

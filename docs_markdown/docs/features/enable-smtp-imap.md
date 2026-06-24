@@ -150,6 +150,36 @@ Required tag
 
 Daptin will (try to) sign all external mails from the SMTP server using the key against the FromMail hostname
 
+## Production outbound delivery
+
+For production applications, especially OTP and login mail, use `mail.send` from
+an action `OutFields` with `send_immediately: true` or `attempt_delivery: true`.
+This attempts delivery before the action returns while still leaving the outbox
+row available for scheduled retries if delivery fails.
+
+```yaml
+OutFields:
+  - Type: mail.send
+    Method: EXECUTE
+    Attributes:
+      from: "login@example.com"
+      to: "![email]"
+      subject: "Your sign-in code"
+      body: "~body"
+      mail_server_hostname: "mail.example.com"
+      send_immediately: true
+```
+
+When `mail_server_hostname` is set, Daptin signs with the domain from the
+`from` address. For `from: "login@example.com"` and
+`mail_server_hostname: "mail.example.com"`, the DKIM record belongs under
+`example.com`, for example `d1._domainkey.example.com`.
+
+Production direct SMTP also needs PTR/reverse DNS, forward-confirmed PTR,
+SPF, DKIM, DMARC, port 25 availability, and sender IP reputation. See
+[Production Mail Delivery](production-mail-delivery.md) for the complete
+outbox lifecycle and DNS checklist.
+
 # Restart
 
 Restart the server to start/update listening to as the SMTP server/IMAP server

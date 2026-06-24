@@ -63,6 +63,26 @@ curl -X POST http://localhost:6336/action/user_account/signin \
 
 Token validity: **3 days**
 
+## reset-password
+
+Request a password reset OTP. The built-in `reset-password` action uses
+`otp.generate` and then `mail.send` with `send_immediately: true`, so Daptin
+attempts outbox delivery before the action returns and leaves failed rows
+available for `process_outbox` retry.
+
+```bash
+curl -X POST http://localhost:6336/action/user_account/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "email": "user@example.com"
+    }
+  }'
+```
+
+For production DNS, DKIM, outbox retry behavior, and cloud-backed
+`outbox.mail`, see [[Production-Mail-Delivery]].
+
 ## generate_password_reset_flow
 
 Request password reset email.
@@ -77,7 +97,9 @@ curl -X POST http://localhost:6336/action/user_account/generate_password_reset_f
   }'
 ```
 
-**Important:** The reset email is stored in the user's **local Daptin mailbox** (not sent externally). The user must retrieve it via IMAP.
+**Important:** This legacy/internal reset-token performer stores the reset email
+in the user's **local Daptin mailbox** through `TaskSaveMail`; it is not the
+same as the built-in `reset-password` OTP action above.
 
 **Prerequisites:**
 - Mail server and mail account configured for the user

@@ -824,12 +824,28 @@ Send email via SMTP.
 | from | string | Yes |
 | body | string | Yes |
 | mail_server_hostname | string | No |
+| send_immediately | bool | No |
+| attempt_delivery | bool | No |
 
 ### aws.mail.send
 
 Send email via AWS SES.
 
 **Action Performer:** `aws.mail.send`
+
+**Parameters:**
+| Field | Type | Required |
+|-------|------|----------|
+| to | []string | Yes |
+| cc | []string | No |
+| bcc | []string | No |
+| subject | string | Yes |
+| from | string | Yes |
+| text | string | No* |
+| html | string | No* |
+| credential | string | Yes |
+
+*Either `text` or `html` is required.
 
 ### sync_mail_servers
 

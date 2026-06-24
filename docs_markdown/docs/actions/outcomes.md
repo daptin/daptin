@@ -596,10 +596,17 @@ System OutComes are set of independent useful functions to build a variety of wo
   Attributes:
     body: 'Your verification code is: $otp.otp'
     from: no-reply@localhost
+    send_immediately: true
     subject: Request for password reset
     to: "~email"
 
 ```
+
+`mail.send` queues an `outbox` row for each recipient. Add
+`send_immediately: true` or `attempt_delivery: true` when the action should
+attempt delivery before returning, such as OTP or login flows. Immediate
+delivery still leaves failed rows pending for scheduled `process_outbox`
+retries.
 
 ### otp.login.verify
 
@@ -645,6 +652,7 @@ System OutComes are set of independent useful functions to build a variety of wo
   Attributes:
     body: 'Your new password is: $newPassword.value'
     from: no-reply@localhost
+    send_immediately: true
     subject: Request for password reset
     to: "~email"
 

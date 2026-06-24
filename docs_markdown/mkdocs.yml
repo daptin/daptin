@@ -31,6 +31,7 @@ nav:
   - Multilingual Table: features/enable-multilingual-table.md
   - SSL Certificates: features/certificate.md
   - SMTP/IMPS server: features/enable-smtp-imap.md
+  - Production mail delivery: features/production-mail-delivery.md
   - State tracking: state/machines.md
   - OAuth:
     - OAuth Connections: extend/oauth_connection.md

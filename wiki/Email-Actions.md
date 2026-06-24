@@ -83,6 +83,8 @@ Send email via direct SMTP delivery or configured mail server.
 | `subject` | string | Yes | Email subject line |
 | `body` | string | Yes | Email body (plain text) |
 | `mail_server_hostname` | string | No | Use specific mail server with DKIM signing |
+| `send_immediately` | boolean | No | Attempt outbox delivery before the action returns |
+| `attempt_delivery` | boolean | No | Alias for `send_immediately` |
 
 ### Basic Sending (Direct MTA)
 
@@ -113,11 +115,17 @@ OutFields:
       subject: "~email_subject"
       body: "~email_body"
       mail_server_hostname: "mail.mydomain.com"
+      send_immediately: true
 ```
 
 **Prerequisites:**
 - Mail server must be configured in Daptin
 - See [[SMTP-Server|SMTP Server Guide]] for setup
+- For production DNS, DKIM, and retry behavior, see [[Production-Mail-Delivery]]
+
+When `mail_server_hostname` is set, Daptin signs with the domain from the
+`from` address. For example, `from: "login@example.com"` signs with
+`example.com`, even if `mail_server_hostname` is `mail.example.com`.
 
 ### Multiple Recipients
 
@@ -342,10 +350,13 @@ Daptin includes these email-sending actions:
 
 | Action | OnType | Purpose |
 |--------|--------|---------|
-| `generate_password_reset` | user_account | Send password reset OTP |
-| `reset_password` | user_account | Reset password with new value |
+| `reset-password` | user_account | Generate OTP and send password reset mail through `mail.send` with immediate delivery |
+| `reset-password-verify` | user_account | Verify OTP and set the new password |
+| `password.reset.begin` | performer | Legacy/internal reset-token performer that stores mail through the local mailbox path |
 
-These use `mail.send` internally. Configure an SMTP server for them to work.
+Check which flow your application invokes before debugging delivery. The
+built-in `reset-password` action uses `mail.send`; the legacy/internal
+`password.reset.begin` performer uses local mailbox storage via `TaskSaveMail`.
 
 ---
 
