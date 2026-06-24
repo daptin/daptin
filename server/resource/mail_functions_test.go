@@ -27,6 +27,40 @@ func TestMailColumnBytesAcceptsDBBackedStringAfterCloudStoreConfiguration(t *tes
 	}
 }
 
+func TestMailColumnBytesCloudStoreRequiresHydratedContents(t *testing.T) {
+	message := []byte("Subject: cloud\r\n\r\nbody")
+	encoded := base64.StdEncoding.EncodeToString(message)
+	mailResource := &DbResource{
+		tableInfo: cloudStoreMailTableInfo("outbox"),
+	}
+	root := &DbResource{
+		Cruds: map[string]*DbResource{"outbox": mailResource},
+	}
+
+	storedMetadata := []map[string]interface{}{{
+		"name": "queued-message.eml",
+		"path": "mail-storage/mail-messages/queued-message.eml",
+		"type": mailMessageFileType,
+	}}
+	if _, err := root.MailColumnBytes("outbox", "mail", storedMetadata); err == nil {
+		t.Fatalf("expected stored cloud-store metadata without contents to fail")
+	}
+
+	hydratedMetadata := []map[string]interface{}{{
+		"name":     "queued-message.eml",
+		"path":     "mail-storage/mail-messages/queued-message.eml",
+		"type":     mailMessageFileType,
+		"contents": encoded,
+	}}
+	got, err := root.MailColumnBytes("outbox", "mail", hydratedMetadata)
+	if err != nil {
+		t.Fatalf("MailColumnBytes returned error for hydrated cloud-store mail: %v", err)
+	}
+	if string(got) != string(message) {
+		t.Fatalf("MailColumnBytes = %q, want %q", string(got), string(message))
+	}
+}
+
 func TestResultToArrayCloudStoreMailColumnAcceptsDBBackedString(t *testing.T) {
 	message := []byte("Subject: migrated\r\n\r\nbody")
 	encoded := base64.StdEncoding.EncodeToString(message)

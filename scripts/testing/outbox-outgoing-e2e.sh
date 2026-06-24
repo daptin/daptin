@@ -363,7 +363,7 @@ main() {
     [ "$sent" = "1" ] && pass "outbox row marked sent after second MX accepted message" || fail "outbox row was not marked sent"
     [ "$retry_count" = "0" ] && pass "retry_count remains 0 after successful delivery" || fail "retry_count changed to ${retry_count}"
 
-    captured="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' | head -1)"
+    captured="$(find "$CAPTURE_DIR" -name 'mx2-*.eml' -exec grep -l '^Subject: Outbox E2E' {} + | head -1 || true)"
     if [ -n "$captured" ] && grep -q '^From: login@sender\.test' "$captured"; then
         pass "captured SMTP DATA preserved From header"
     else

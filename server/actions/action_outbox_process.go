@@ -97,11 +97,6 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		log.Errorf("Outbox entry [%v] has invalid to_address type: %T", mailId, pendingMail["to_address"])
 		return false
 	}
-	mailStored, ok := pendingMail["mail"]
-	if !ok || mailStored == nil {
-		log.Errorf("Outbox entry [%v] has invalid mail type: %T", mailId, pendingMail["mail"])
-		return false
-	}
 	toHost := ""
 	if h, ok := pendingMail["to_host"]; ok && h != nil {
 		toHost = fmt.Sprintf("%v", h)
@@ -119,19 +114,70 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		}
 	}
 
-	mailBytes, err := d.cruds["outbox"].MailColumnBytes("outbox", "mail", mailStored)
-	if err != nil {
-		log.Errorf("Failed to read outbox mail [%v]: %v", mailId, err)
-		d.markFailed(mailId, "failed to read mail body: "+err.Error(), pendingMail, transaction)
-		return false
-	}
-
 	if transaction != nil {
-		err = transaction.Commit()
+		err := transaction.Commit()
 		if err != nil {
 			log.Errorf("Failed to commit transaction before sending outbox mail [%v]: %v", mailId, err)
 			return false
 		}
+	}
+
+	reloadTransaction, beginErr := d.cruds["outbox"].Connection().Beginx()
+	if beginErr != nil {
+		log.Errorf("Failed to begin reload transaction for outbox mail [%v]: %v", mailId, beginErr)
+		return false
+	}
+	reloadedMails, _, err := d.cruds["outbox"].GetRowsByWhereClauseWithTransaction("outbox", map[string]bool{"mail": true}, reloadTransaction, goqu.Ex{"id": mailId})
+	if err != nil || len(reloadedMails) == 0 {
+		if err == nil {
+			err = fmt.Errorf("outbox mail [%v] was not found after commit", mailId)
+		}
+		log.Errorf("Failed to reload outbox mail [%v]: %v", mailId, err)
+		d.markFailed(mailId, "failed to reload mail body: "+err.Error(), pendingMail, reloadTransaction)
+		if transaction != nil {
+			*transaction = *reloadTransaction
+		} else if commitErr := reloadTransaction.Commit(); commitErr != nil {
+			log.Errorf("Failed to commit reload failure for outbox mail [%v]: %v", mailId, commitErr)
+		}
+		return false
+	}
+
+	reloadedMail := reloadedMails[0]
+	mailStored, ok := reloadedMail["mail"]
+	if !ok || mailStored == nil {
+		err = fmt.Errorf("outbox entry [%v] has invalid mail type: %T", mailId, reloadedMail["mail"])
+		log.Errorf("%v", err)
+		d.markFailed(mailId, err.Error(), pendingMail, reloadTransaction)
+		if transaction != nil {
+			*transaction = *reloadTransaction
+		} else if commitErr := reloadTransaction.Commit(); commitErr != nil {
+			log.Errorf("Failed to commit invalid mail failure for outbox mail [%v]: %v", mailId, commitErr)
+		}
+		return false
+	}
+
+	mailBytes, err := d.cruds["outbox"].MailColumnBytes("outbox", "mail", mailStored)
+	if err != nil {
+		log.Errorf("Failed to read outbox mail [%v]: %v", mailId, err)
+		d.markFailed(mailId, "failed to read mail body: "+err.Error(), pendingMail, reloadTransaction)
+		if transaction != nil {
+			*transaction = *reloadTransaction
+		} else if commitErr := reloadTransaction.Commit(); commitErr != nil {
+			log.Errorf("Failed to commit read failure for outbox mail [%v]: %v", mailId, commitErr)
+		}
+		return false
+	}
+	if err := reloadTransaction.Commit(); err != nil {
+		log.Errorf("Failed to commit reload transaction for outbox mail [%v]: %v", mailId, err)
+		if transaction != nil {
+			newTransaction, beginErr := d.cruds["outbox"].Connection().Beginx()
+			if beginErr == nil {
+				*transaction = *newTransaction
+			} else {
+				log.Errorf("Failed to begin transaction after reload commit failure for outbox mail [%v]: %v", mailId, beginErr)
+			}
+		}
+		return false
 	}
 
 	// Send with 30s timeout to prevent hanging on unreachable MX. No database
