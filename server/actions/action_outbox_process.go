@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -81,8 +82,9 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 	// Claim this mail via Olric NX; if another node already claimed it, skip.
 	claimKey := fmt.Sprintf("outbox-claim-%v", mailId)
 	if resource.OlricCache != nil {
-		err := resource.OlricCache.Put(context.Background(), claimKey, true, olric.EX(10*time.Minute), olric.NX())
+		err := resource.OlricCache.Put(context.Background(), claimKey, true, olric.EX(outboxClaimTTL()), olric.NX())
 		if err != nil {
+			log.Debugf("Outbox mail [%v] skipped because claim [%v] could not be acquired: %v", mailId, claimKey, err)
 			return false
 		}
 	}
@@ -119,6 +121,43 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		return false
 	}
 	senderHost = strings.TrimSpace(senderHost)
+
+	claimStartedAt := time.Now()
+	claimExpiresAt := claimStartedAt.Add(outboxClaimTTL())
+	query, args, err := statementbuilder.Squirrel.
+		Update("outbox").Prepared(true).
+		Set(goqu.Record{"next_retry_at": claimExpiresAt}).
+		Where(
+			goqu.Ex{"id": mailId},
+			goqu.Ex{"sent": false},
+			goqu.Or(
+				goqu.Ex{"next_retry_at": nil},
+				goqu.Ex{"next_retry_at": goqu.Op{"lte": claimStartedAt}},
+			),
+		).ToSQL()
+	if err != nil {
+		log.Errorf("Failed to build outbox lease query for mail [%v]: %v", mailId, err)
+		return false
+	}
+	leaseResult, err := transaction.Exec(query, args...)
+	if err != nil {
+		log.Errorf("Failed to lease outbox mail [%v]: %v", mailId, err)
+		return false
+	}
+	rowsAffected, err := leaseResult.RowsAffected()
+	if err != nil {
+		log.Errorf("Failed to read lease result for outbox mail [%v]: %v", mailId, err)
+		return false
+	}
+	if rowsAffected == 0 {
+		log.Debugf("Outbox mail [%v] skipped because it was already leased or sent", mailId)
+		if resource.OlricCache != nil {
+			if _, deleteErr := resource.OlricCache.Delete(context.Background(), claimKey); deleteErr != nil {
+				log.Debugf("Failed to release outbox claim [%v] after DB lease miss: %v", claimKey, deleteErr)
+			}
+		}
+		return false
+	}
 
 	if transaction != nil {
 		err := transaction.Commit()
@@ -214,22 +253,69 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 	if err != nil {
 		log.Errorf("Failed to send outbox mail [%v] to [%v]: %v", mailId, toAddress, err)
 		d.markFailed(mailId, err.Error(), pendingMail, transaction)
+		if commitErr := transaction.Commit(); commitErr != nil {
+			log.Errorf("Failed to commit retry state for outbox mail [%v]: %v", mailId, commitErr)
+			return false
+		}
+		if resource.OlricCache != nil {
+			if _, deleteErr := resource.OlricCache.Delete(context.Background(), claimKey); deleteErr != nil {
+				log.Debugf("Failed to release outbox claim [%v] after failed send: %v", claimKey, deleteErr)
+			}
+		}
+		freshTransaction, beginErr := d.cruds["outbox"].Connection().Beginx()
+		if beginErr != nil {
+			log.Errorf("Failed to begin transaction after committing retry state for outbox mail [%v]: %v", mailId, beginErr)
+			return false
+		}
+		if transaction != nil {
+			*transaction = *freshTransaction
+		}
 		return false
 	}
 
-	query, args, err := statementbuilder.Squirrel.
+	query, args, err = statementbuilder.Squirrel.
 		Update("outbox").Prepared(true).
 		Set(goqu.Record{"sent": true}).
 		Where(goqu.Ex{"id": mailId}).ToSQL()
-	if err == nil {
-		_, execErr := transaction.Exec(query, args...)
-		if execErr != nil {
-			log.Errorf("Failed to mark outbox mail [%v] as sent: %v", mailId, execErr)
-			return false
+	if err != nil {
+		log.Errorf("Failed to build sent-state query for outbox mail [%v]: %v", mailId, err)
+		return false
+	}
+	_, execErr := transaction.Exec(query, args...)
+	if execErr != nil {
+		log.Errorf("Failed to mark outbox mail [%v] as sent: %v", mailId, execErr)
+		return false
+	}
+	if commitErr := transaction.Commit(); commitErr != nil {
+		log.Errorf("Failed to commit sent state for outbox mail [%v]: %v", mailId, commitErr)
+		return false
+	}
+	if resource.OlricCache != nil {
+		if _, deleteErr := resource.OlricCache.Delete(context.Background(), claimKey); deleteErr != nil {
+			log.Debugf("Failed to release outbox claim [%v] after sent state commit: %v", claimKey, deleteErr)
 		}
+	}
+	freshTransaction, beginErr := d.cruds["outbox"].Connection().Beginx()
+	if beginErr != nil {
+		log.Errorf("Failed to begin transaction after committing sent state for outbox mail [%v]: %v", mailId, beginErr)
+		return false
+	}
+	if transaction != nil {
+		*transaction = *freshTransaction
 	}
 	log.Printf("Outbox mail [%v] sent to [%v]", mailId, toAddress)
 	return true
+}
+
+func outboxClaimTTL() time.Duration {
+	ttl := 90 * time.Second
+	if configured := strings.TrimSpace(os.Getenv("DAPTIN_OUTBOX_CLAIM_TTL_SECONDS")); configured != "" {
+		seconds, err := strconv.Atoi(configured)
+		if err == nil && seconds > 0 {
+			ttl = time.Duration(seconds) * time.Second
+		}
+	}
+	return ttl
 }
 
 func (d *outboxProcessActionPerformer) getOutboxMailServer(mailServerReference interface{}, transaction *sqlx.Tx) (map[string]interface{}, string, error) {
