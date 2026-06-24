@@ -66,6 +66,9 @@ func (p *GoAIProvider) resolveCredential(llmProvider rootpojo.LLMProvider, tx *s
 	if llmProvider.CredentialName == "" {
 		return nil, nil
 	}
+	if tx == nil {
+		return nil, fmt.Errorf("credential-backed llm provider [%s] requires a database transaction", llmProvider.Name)
+	}
 	cred, err := p.cruds["credential"].GetCredentialByName(llmProvider.CredentialName, tx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get credential [%s]: %v", llmProvider.CredentialName, err)
@@ -405,11 +408,15 @@ func buildGoAIOptions(req OpenAIChatRequest, providerParams map[string]interface
 
 // ChatCompletion performs a non-streaming chat completion.
 func (p *GoAIProvider) ChatCompletion(ctx context.Context, llmProvider rootpojo.LLMProvider, req OpenAIChatRequest, tx *sqlx.Tx) (*OpenAIChatResponse, error) {
-	startTime := time.Now()
 	model, err := p.ResolveChatModel(llmProvider, req.Model, tx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve model: %v", err)
 	}
+	return p.ChatCompletionWithResolvedModel(ctx, llmProvider, req, model)
+}
+
+func (p *GoAIProvider) ChatCompletionWithResolvedModel(ctx context.Context, llmProvider rootpojo.LLMProvider, req OpenAIChatRequest, model provider.LanguageModel) (*OpenAIChatResponse, error) {
+	startTime := time.Now()
 
 	log.Infof("[llm] chat request: provider=%s model=%s messages=%d stream=false", llmProvider.Name, req.Model, len(req.Messages))
 
@@ -547,11 +554,15 @@ func (p *GoAIProvider) ChatCompletionStream(ctx context.Context, llmProvider roo
 
 // Embedding generates embeddings for the given input.
 func (p *GoAIProvider) Embedding(ctx context.Context, llmProvider rootpojo.LLMProvider, req OpenAIEmbeddingRequest, tx *sqlx.Tx) (*OpenAIEmbeddingResponse, error) {
-	startTime := time.Now()
 	model, err := p.ResolveEmbeddingModel(llmProvider, req.Model, tx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve embedding model: %v", err)
 	}
+	return p.EmbeddingWithResolvedModel(ctx, llmProvider, req, model)
+}
+
+func (p *GoAIProvider) EmbeddingWithResolvedModel(ctx context.Context, llmProvider rootpojo.LLMProvider, req OpenAIEmbeddingRequest, model provider.EmbeddingModel) (*OpenAIEmbeddingResponse, error) {
+	startTime := time.Now()
 
 	var inputs []string
 	switch v := req.Input.(type) {
