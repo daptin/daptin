@@ -41,7 +41,20 @@ func (d *llmEmbeddingActionPerformer) DoAction(request actionresponse.Outcome, i
 
 	log.Infof("[$llm.embedding] provider=%s model=%s", llmProvider.Name, modelName)
 
-	response, err := d.provider.Embedding(context.Background(), llmProvider, req, transaction)
+	if transaction != nil {
+		err = transaction.Commit()
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
+	response, err := d.provider.Embedding(context.Background(), llmProvider, req, nil)
+	if transaction != nil {
+		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+		if beginErr != nil {
+			return nil, nil, []error{beginErr}
+		}
+		*transaction = *newTransaction
+	}
 	if err != nil {
 		log.Errorf("[$llm.embedding] failed: provider=%s model=%s error=%v", llmProvider.Name, modelName, err)
 		return nil, nil, []error{err}

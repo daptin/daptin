@@ -15,6 +15,7 @@ import (
 
 type networkRequestActionPerformer struct {
 	responseAttrs map[string]interface{}
+	cruds         map[string]*resource.DbResource
 }
 
 func (d *networkRequestActionPerformer) Name() string {
@@ -91,7 +92,23 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 	var response *resty.Response
 	var err error
 
+	if transaction != nil {
+		err = transaction.Commit()
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
+
 	response, err = client.Execute(methodString, urlString)
+
+	if transaction != nil {
+		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+		if beginErr != nil {
+			return nil, nil, []error{beginErr}
+		}
+		*transaction = *newTransaction
+	}
+
 	responseMap := make(map[string]interface{})
 	if response == nil || err != nil {
 		return nil, nil, []error{err}
@@ -130,7 +147,9 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 
 func NewNetworkRequestPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) (actionresponse.ActionPerformerInterface, error) {
 
-	handler := networkRequestActionPerformer{}
+	handler := networkRequestActionPerformer{
+		cruds: cruds,
+	}
 
 	return &handler, nil
 

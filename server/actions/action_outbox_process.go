@@ -126,7 +126,16 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		return false
 	}
 
-	// Send with 30s timeout to prevent hanging on unreachable MX.
+	if transaction != nil {
+		err = transaction.Commit()
+		if err != nil {
+			log.Errorf("Failed to commit transaction before sending outbox mail [%v]: %v", mailId, err)
+			return false
+		}
+	}
+
+	// Send with 30s timeout to prevent hanging on unreachable MX. No database
+	// transaction is open while this external SMTP operation runs.
 	sendDone := make(chan error, 1)
 	go func() {
 		sendDone <- sendOutboxMail(senderHost, fromAddress, []string{toAddress}, mailBytes)
@@ -138,6 +147,17 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		err = fmt.Errorf("send timed out after 30s for [%v]", toAddress)
 	}
 	sendCancel()
+
+	newTransaction, beginErr := d.cruds["outbox"].Connection().Beginx()
+	if beginErr != nil {
+		log.Errorf("Failed to begin transaction after sending outbox mail [%v]: %v", mailId, beginErr)
+		return false
+	}
+	if transaction != nil {
+		*transaction = *newTransaction
+	} else {
+		transaction = newTransaction
+	}
 
 	if err != nil {
 		log.Errorf("Failed to send outbox mail [%v] to [%v]: %v", mailId, toAddress, err)

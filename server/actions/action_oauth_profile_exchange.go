@@ -100,7 +100,20 @@ func (d *ouathProfileExchangePerformer) DoAction(request actionresponse.Outcome,
 	}
 	var tokenResponse map[string]interface{}
 	if oauthToken == nil || !oauthToken.Valid() {
+		if transaction != nil {
+			err = transaction.Commit()
+			if err != nil {
+				return nil, nil, []error{err}
+			}
+		}
 		tokenResponse, err = GetTokensScope(inFieldMap["profileUrl"].(string), strings.Join(conf.Scopes, ","), conf.ClientID, conf.ClientSecret, token)
+		if transaction != nil {
+			newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+			if beginErr != nil {
+				return nil, nil, []error{beginErr}
+			}
+			*transaction = *newTransaction
+		}
 		if err != nil {
 			log.Errorf("Failed to exchange code for token during profile exchange: %v", err)
 			return nil, nil, []error{err}

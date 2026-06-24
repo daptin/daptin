@@ -116,7 +116,23 @@ func (d *awsMailSendActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	// Send email
+	if transaction != nil {
+		err = transaction.Commit()
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
+
 	result, err := svc.SendEmail(input)
+
+	if transaction != nil {
+		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+		if beginErr != nil {
+			return nil, nil, []error{beginErr}
+		}
+		*transaction = *newTransaction
+	}
+
 	if err != nil {
 		return nil, nil, []error{err}
 	}

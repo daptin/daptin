@@ -113,7 +113,20 @@ func (d *llmChatActionPerformer) DoAction(request actionresponse.Outcome, inFiel
 	log.Infof("[$llm.chat] provider=%s model=%s messages=%d", llmProvider.Name, modelName, len(req.Messages))
 
 	// Execute non-streaming chat completion
-	response, err := d.provider.ChatCompletion(context.Background(), llmProvider, req, transaction)
+	if transaction != nil {
+		err = transaction.Commit()
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
+	response, err := d.provider.ChatCompletion(context.Background(), llmProvider, req, nil)
+	if transaction != nil {
+		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+		if beginErr != nil {
+			return nil, nil, []error{beginErr}
+		}
+		*transaction = *newTransaction
+	}
 	if err != nil {
 		log.Errorf("[$llm.chat] failed: provider=%s model=%s error=%v", llmProvider.Name, modelName, err)
 		return nil, nil, []error{err}

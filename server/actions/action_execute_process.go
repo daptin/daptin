@@ -39,7 +39,22 @@ func (d *commandExecuteActionPerformer) DoAction(request actionresponse.Outcome,
 	outBuffer, err := execution.StdoutPipe()
 	errorBuffer, err := execution.StderrPipe()
 
+	if transaction != nil {
+		err = transaction.Commit()
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
+
 	err = execution.Run()
+
+	if transaction != nil {
+		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+		if beginErr != nil {
+			return nil, nil, []error{beginErr}
+		}
+		*transaction = *newTransaction
+	}
 
 	errOutput, err := io.ReadAll(errorBuffer)
 	output, err := io.ReadAll(outBuffer)

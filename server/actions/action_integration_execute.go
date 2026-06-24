@@ -355,18 +355,42 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	arguments = append(arguments, authArguments...)
 
 	transportAuth := integrationTransportAuthFromArguments(authArguments, protectedHeaders, protectedQueryParams)
-
-	switch transportConfig.Transport {
-	case integrationTransportGraphQL:
-		graphqlBody, err := createGraphQLIntegrationRequestBody(d.router, operation, transportConfig, inFieldMap, protectedHeaders, protectedQueryParams)
+	var graphqlBody map[string]interface{}
+	if transportConfig.Transport == integrationTransportGraphQL {
+		graphqlBody, err = createGraphQLIntegrationRequestBody(d.router, operation, transportConfig, inFieldMap, protectedHeaders, protectedQueryParams)
 		if err != nil {
 			return nil, nil, []error{err}
 		}
+	}
+
+	if transportConfig.Transport != integrationTransportGraphQL &&
+		transportConfig.Transport != integrationTransportWebSocket &&
+		transportConfig.Transport != integrationTransportGRPC &&
+		transportConfig.Transport != integrationTransportREST {
+		return nil, nil, []error{fmt.Errorf("integration transport [%s] is not supported", transportConfig.Transport)}
+	}
+
+	if transaction != nil {
+		err = transaction.Commit()
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
+
+	switch transportConfig.Transport {
+	case integrationTransportGraphQL:
 		arguments = append(arguments, req.BodyJSON(graphqlBody))
 		resp, err = r.Post(url, arguments...)
 		method = "post"
 	case integrationTransportWebSocket:
 		res, statusCode, err := executeWebSocketIntegrationTransport(url, operation, transportConfig, inFieldMap, transportAuth)
+		if transaction != nil && d.cruds["world"] != nil {
+			newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+			if beginErr != nil {
+				return nil, nil, []error{beginErr}
+			}
+			*transaction = *newTransaction
+		}
 		if err != nil {
 			return nil, nil, []error{err}
 		}
@@ -377,6 +401,13 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		}, nil
 	case integrationTransportGRPC:
 		res, statusCode, err := executeGRPCIntegrationTransport(basePath, operation, transportConfig, inFieldMap, transportAuth)
+		if transaction != nil && d.cruds["world"] != nil {
+			newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+			if beginErr != nil {
+				return nil, nil, []error{beginErr}
+			}
+			*transaction = *newTransaction
+		}
 		if err != nil {
 			return nil, nil, []error{err}
 		}
@@ -402,9 +433,16 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			resp, err = r.Options(url, arguments...)
 
 		}
-	default:
-		return nil, nil, []error{fmt.Errorf("integration transport [%s] is not supported", transportConfig.Transport)}
 	}
+
+	if transaction != nil && d.cruds["world"] != nil {
+		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+		if beginErr != nil {
+			return nil, nil, []error{beginErr}
+		}
+		*transaction = *newTransaction
+	}
+
 	resource.CheckErr(err, "Action execution failed")
 	if err != nil {
 		return nil, nil, []error{err}

@@ -45,7 +45,7 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	}
 	mailServer, useMailServer := inFields["mail_server_hostname"]
 	attemptDelivery := mailSendAttemptDelivery(inFields)
-	outboxProcessor := &outboxProcessActionPerformer{cruds: d.cruds}
+	createdOutboxMails := make([]map[string]interface{}, 0)
 
 	outboxUrl, _ := url.Parse("/api/outbox")
 	outboxReq := api2go.Request{
@@ -95,7 +95,7 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 			}
 			if attemptDelivery {
 				createdOutboxMail = d.outboxMailWithNativeID(createdOutboxMail, transaction)
-				outboxProcessor.processPendingMail(createdOutboxMail, transaction, false)
+				createdOutboxMails = append(createdOutboxMails, createdOutboxMail)
 			}
 		}
 
@@ -212,10 +212,17 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 			}
 			if attemptDelivery {
 				createdOutboxMail = d.outboxMailWithNativeID(createdOutboxMail, transaction)
-				outboxProcessor.processPendingMail(createdOutboxMail, transaction, false)
+				createdOutboxMails = append(createdOutboxMails, createdOutboxMail)
 			}
 		}
 
+	}
+
+	if attemptDelivery && len(createdOutboxMails) > 0 {
+		outboxProcessor := &outboxProcessActionPerformer{cruds: d.cruds}
+		for _, createdOutboxMail := range createdOutboxMails {
+			outboxProcessor.processPendingMail(createdOutboxMail, transaction, false)
+		}
 	}
 
 	return nil, responses, nil
