@@ -120,6 +120,13 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		transaction, err := cruds["world"].Connection().Beginx()
 		if err != nil {
 			CheckErr(err, "Failed to begin transaction [121]")
+			ginContext.JSON(http.StatusServiceUnavailable, gin.H{
+				"errors": []map[string]string{{
+					"title":  "Database transaction unavailable",
+					"detail": err.Error(),
+				}},
+			})
+			return
 		}
 
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req, transaction)
