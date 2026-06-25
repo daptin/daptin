@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"strings"
+
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -13,6 +15,11 @@ type LanguageMiddleware struct {
 	configStore     *resource.ConfigStore
 	defaultLanguage string
 }
+
+// maxAcceptLanguageSeparators caps the number of '-' plus '_' separators we
+// pass to language.ParseAcceptLanguage. The parser guards large '-' lists, but
+// '_' is normalized internally and can otherwise drive quadratic parse work.
+const maxAcceptLanguageSeparators = 32
 
 func NewLanguageMiddleware(configStore *resource.ConfigStore, transaction *sqlx.Tx) *LanguageMiddleware {
 
@@ -32,7 +39,11 @@ func NewLanguageMiddleware(configStore *resource.ConfigStore, transaction *sqlx.
 func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 	//log.Printf("middleware ")
 
-	pref := GetLanguagePreference(c.GetHeader("Accept-Language"), lm.defaultLanguage)
+	header := c.GetHeader("Accept-Language")
+	if acceptLanguageTooComplex(header) {
+		header = ""
+	}
+	pref := GetLanguagePreference(header, lm.defaultLanguage)
 
 	//c.Request.Context("language_preference", pref)
 	c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "language_preference", pref))
@@ -43,6 +54,9 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 	preferredLanguage := header
 
 	if preferredLanguage == "" || preferredLanguage == "undefined" || preferredLanguage == "null" {
+		preferredLanguage = defaultLanguage
+	}
+	if acceptLanguageTooComplex(preferredLanguage) {
 		preferredLanguage = defaultLanguage
 	}
 
@@ -69,4 +83,8 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 
 	}
 	return pref
+}
+
+func acceptLanguageTooComplex(header string) bool {
+	return strings.Count(header, "-")+strings.Count(header, "_") > maxAcceptLanguageSeparators
 }
