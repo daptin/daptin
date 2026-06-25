@@ -9,6 +9,18 @@ import (
 func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table_info.TableInfo) []table_info.TableInfo {
 	allTables := make([]table_info.TableInfo, 0)
 	existingTablesMap := make(map[string]bool)
+	mergedInitConfigTables := make([]table_info.TableInfo, 0, len(initConfigTables))
+	initConfigTablesMap := make(map[string]int)
+	for _, table := range initConfigTables {
+		existingIndex, exists := initConfigTablesMap[table.TableName]
+		if exists {
+			mergedInitConfigTables[existingIndex] = mergeTableConfigIntoExisting(mergedInitConfigTables[existingIndex], table, true)
+			continue
+		}
+		initConfigTablesMap[table.TableName] = len(mergedInitConfigTables)
+		mergedInitConfigTables = append(mergedInitConfigTables, table)
+	}
+	initConfigTables = mergedInitConfigTables
 
 	for j, existableTable := range existingTables {
 		existingTablesMap[existableTable.TableName] = true
@@ -90,17 +102,26 @@ func mergeTableConfigIntoExisting(existing table_info.TableInfo, override table_
 	if override.StateMachines != nil {
 		existing.StateMachines = override.StateMachines
 	}
-	if !partialOverride || override.IsStateTrackingEnabled {
+	if !partialOverride || override.IsStateTrackingEnabled || override.ExplicitFields["IsStateTrackingEnabled"] || override.ExplicitFields["is_state_tracking_enabled"] {
 		existing.IsStateTrackingEnabled = override.IsStateTrackingEnabled
 	}
-	if !partialOverride || override.TranslationsEnabled {
+	if !partialOverride || override.TranslationsEnabled || override.ExplicitFields["TranslationsEnabled"] || override.ExplicitFields["translations_enabled"] {
 		existing.TranslationsEnabled = override.TranslationsEnabled
 	}
-	if !partialOverride || override.DefaultOrder != "" {
+	if !partialOverride || override.DefaultOrder != "" || override.ExplicitFields["DefaultOrder"] || override.ExplicitFields["default_order"] {
 		existing.DefaultOrder = override.DefaultOrder
 	}
-	if !partialOverride || override.IsAuditEnabled {
+	if !partialOverride || override.IsAuditEnabled || override.ExplicitFields["IsAuditEnabled"] || override.ExplicitFields["is_audit_enabled"] {
 		existing.IsAuditEnabled = override.IsAuditEnabled
+	}
+	if !partialOverride || override.IsHidden || override.ExplicitFields["IsHidden"] || override.ExplicitFields["is_hidden"] {
+		existing.IsHidden = override.IsHidden
+	}
+	if !partialOverride || override.IsTopLevel || override.ExplicitFields["IsTopLevel"] || override.ExplicitFields["is_top_level"] {
+		existing.IsTopLevel = override.IsTopLevel
+	}
+	if !partialOverride || override.IsJoinTable || override.ExplicitFields["IsJoinTable"] || override.ExplicitFields["is_join_table"] {
+		existing.IsJoinTable = override.IsJoinTable
 	}
 	if override.Conformations != nil {
 		existing.Conformations = override.Conformations
@@ -111,10 +132,10 @@ func mergeTableConfigIntoExisting(existing table_info.TableInfo, override table_
 	if override.CompositeKeys != nil {
 		existing.CompositeKeys = override.CompositeKeys
 	}
-	if !partialOverride || override.Icon != "" {
+	if !partialOverride || override.Icon != "" || override.ExplicitFields["Icon"] || override.ExplicitFields["icon"] {
 		existing.Icon = override.Icon
 	}
-	if override.TableDescription != "" {
+	if !partialOverride || override.TableDescription != "" || override.ExplicitFields["TableDescription"] || override.ExplicitFields["table_description"] {
 		existing.TableDescription = override.TableDescription
 	}
 	if override.Metering != nil {

@@ -128,6 +128,7 @@ type TableInfo struct {
 	Icon                   string
 	CompositeKeys          [][]string
 	Metering               *MeteringConfig `json:"metering,omitempty"`
+	ExplicitFields         map[string]bool `json:"-" db:"-"`
 }
 
 func (ti *TableInfo) GetColumnByName(name string) (*api2go.ColumnInfo, bool) {

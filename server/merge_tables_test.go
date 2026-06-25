@@ -1,6 +1,8 @@
 package server
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/artpar/api2go/v2"
@@ -8,6 +10,42 @@ import (
 	"github.com/daptin/daptin/server/columns"
 	"github.com/daptin/daptin/server/table_info"
 )
+
+func TestLoadConfigFilesTracksExplicitTableFields(t *testing.T) {
+	tempDir := t.TempDir()
+	schema := []byte(`Tables:
+  - TableName: certificate
+    IsHidden: false
+    Permission: 561408
+`)
+	if err := os.WriteFile(filepath.Join(tempDir, "schema_test.yaml"), schema, 0600); err != nil {
+		t.Fatalf("write schema: %v", err)
+	}
+	t.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
+
+	config, errs := LoadConfigFiles()
+	if len(errs) > 0 {
+		t.Fatalf("load config errors: %v", errs)
+	}
+
+	var certificateOverride *table_info.TableInfo
+	for i := range config.Tables {
+		table := &config.Tables[i]
+		if table.TableName == "certificate" && table.Permission == auth.AuthPermission(561408) {
+			certificateOverride = table
+			break
+		}
+	}
+	if certificateOverride == nil {
+		t.Fatalf("expected certificate schema override to be loaded")
+	}
+	if !certificateOverride.ExplicitFields["IsHidden"] || !certificateOverride.ExplicitFields["is_hidden"] {
+		t.Fatalf("expected explicit IsHidden field presence to be tracked, got %#v", certificateOverride.ExplicitFields)
+	}
+	if certificateOverride.IsHidden {
+		t.Fatalf("expected explicit IsHidden=false value to be preserved")
+	}
+}
 
 func TestMergeTablesSyncsYamlPermissionsForExistingTable(t *testing.T) {
 	existingTables := []table_info.TableInfo{
@@ -115,7 +153,46 @@ func TestMergeTablesPreservesExistingCloudStoreColumnConfiguration(t *testing.T)
 	}
 }
 
-func TestMergeTablesLeavesNewDuplicateConfigTablesUncollapsed(t *testing.T) {
+func TestMergeTablesMergesNewDuplicateConfigTables(t *testing.T) {
+	initConfigTables := []table_info.TableInfo{
+		{
+			TableName:    "built_in",
+			IsHidden:     true,
+			DefaultOrder: "+created_at",
+			Columns: []api2go.ColumnInfo{
+				{ColumnName: "hostname", ColumnType: "label", DataType: "varchar(100)", IsIndexed: true},
+			},
+		},
+		{
+			TableName:  "built_in",
+			IsHidden:   true,
+			Permission: auth.AuthPermission(561408),
+			ExplicitFields: map[string]bool{
+				"IsHidden": true,
+			},
+		},
+	}
+
+	merged := MergeTables(nil, initConfigTables)
+
+	if len(merged) != 1 {
+		t.Fatalf("expected duplicate config tables to merge, got %#v", merged)
+	}
+	if !merged[0].IsHidden {
+		t.Fatalf("expected explicit IsHidden override to apply")
+	}
+	if merged[0].DefaultOrder != "+created_at" {
+		t.Fatalf("expected missing DefaultOrder override to preserve standard value, got %q", merged[0].DefaultOrder)
+	}
+	if merged[0].Permission != auth.AuthPermission(561408) {
+		t.Fatalf("expected explicit Permission override to apply, got %d", merged[0].Permission)
+	}
+	if len(merged[0].Columns) != 1 || merged[0].Columns[0].ColumnName != "hostname" {
+		t.Fatalf("expected built-in columns to be preserved, got %#v", merged[0].Columns)
+	}
+}
+
+func TestMergeTablesExplicitFalseOverrideIsPreserved(t *testing.T) {
 	initConfigTables := []table_info.TableInfo{
 		{
 			TableName: "built_in",
@@ -124,19 +201,55 @@ func TestMergeTablesLeavesNewDuplicateConfigTablesUncollapsed(t *testing.T) {
 		{
 			TableName: "built_in",
 			IsHidden:  false,
+			ExplicitFields: map[string]bool{
+				"IsHidden": true,
+			},
 		},
 	}
 
 	merged := MergeTables(nil, initConfigTables)
 
-	if len(merged) != 2 {
-		t.Fatalf("expected duplicate config tables to remain uncollapsed, got %#v", merged)
+	if len(merged) != 1 {
+		t.Fatalf("expected duplicate config tables to merge, got %#v", merged)
 	}
-	if !merged[0].IsHidden {
-		t.Fatalf("expected first duplicate config table to remain hidden")
+	if merged[0].IsHidden {
+		t.Fatalf("expected explicit IsHidden=false override to apply")
 	}
-	if merged[1].IsHidden {
-		t.Fatalf("expected second duplicate config table to preserve explicit IsHidden=false")
+}
+
+func TestMergeTablesPermissionOnlyCertificateSchemaPreservesBuiltInColumns(t *testing.T) {
+	initConfigTables := []table_info.TableInfo{
+		{
+			TableName:     "certificate",
+			DefaultGroups: table_info.DefaultGroups("administrators"),
+			Columns: []api2go.ColumnInfo{
+				{ColumnName: "hostname", ColumnType: "label", DataType: "varchar(100)", IsIndexed: true, IsUnique: true},
+				{ColumnName: "certificate_pem", ColumnType: "content", DataType: "text", IsNullable: true},
+			},
+		},
+		{
+			TableName:  "certificate",
+			Permission: auth.AuthPermission(561408),
+		},
+	}
+
+	merged := MergeTables(nil, initConfigTables)
+
+	if len(merged) != 1 {
+		t.Fatalf("expected one certificate table, got %#v", merged)
+	}
+	if merged[0].Permission != auth.AuthPermission(561408) {
+		t.Fatalf("expected explicit certificate permission override, got %d", merged[0].Permission)
+	}
+	if len(merged[0].Columns) != 2 {
+		t.Fatalf("expected certificate columns to be preserved, got %#v", merged[0].Columns)
+	}
+	hostnameColumn := merged[0].Columns[0]
+	if hostnameColumn.ColumnName != "hostname" || hostnameColumn.ColumnType != "label" || hostnameColumn.DataType != "varchar(100)" {
+		t.Fatalf("expected hostname column metadata to be preserved, got %#v", hostnameColumn)
+	}
+	if !hostnameColumn.IsIndexed || !hostnameColumn.IsUnique {
+		t.Fatalf("expected hostname indexes to be preserved, got %#v", hostnameColumn)
 	}
 }
 

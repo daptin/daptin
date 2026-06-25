@@ -78,6 +78,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		initConfig := resource.CmsConfig{}
+		initConfigRaw := map[string]interface{}{}
 		//fmt.Printf("Loaded config: \n%v", string(fileBytes))
 
 		switch {
@@ -91,10 +92,16 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 				continue
 			}
 			err = json1.Unmarshal(jsonBytes, &initConfig)
+			if err == nil {
+				_ = json1.Unmarshal(jsonBytes, &initConfigRaw)
+			}
 			log.Debugf("JSON: %v: %v", string(jsonBytes), err)
 			//err = yaml.UnmarshalStrict(fileBytes, &initConfig)
 		case EndsWithCheck(fileName, "json"):
 			err = json1.Unmarshal(fileBytes, &initConfig)
+			if err == nil {
+				_ = json1.Unmarshal(fileBytes, &initConfigRaw)
+			}
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -118,7 +125,7 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		}
 
 		tables := make([]table_info.TableInfo, 0)
-		for _, table := range initConfig.Tables {
+		for i, table := range initConfig.Tables {
 			table.TableName = flect.Underscore(table.TableName)
 			if len(table.TableName) < 1 {
 				continue
@@ -126,6 +133,19 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 			for j, col := range table.Columns {
 				table.Columns[j].ColumnName = flect.Underscore(col.ColumnName)
+			}
+			rawTablesValue := initConfigRaw["Tables"]
+			if rawTablesValue == nil {
+				rawTablesValue = initConfigRaw["tables"]
+			}
+			if rawTables, ok := rawTablesValue.([]interface{}); ok && len(rawTables) > i {
+				if rawTable, ok := rawTables[i].(map[string]interface{}); ok {
+					table.ExplicitFields = make(map[string]bool)
+					for key := range rawTable {
+						table.ExplicitFields[key] = true
+						table.ExplicitFields[flect.Underscore(key)] = true
+					}
+				}
 			}
 			tables = append(tables, table)
 		}
