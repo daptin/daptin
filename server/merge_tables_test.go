@@ -47,6 +47,29 @@ func TestLoadConfigFilesTracksExplicitTableFields(t *testing.T) {
 	}
 }
 
+func TestLoadConfigFilesSkipsUnsupportedSchemaExtensions(t *testing.T) {
+	tempDir := t.TempDir()
+	tomlSchema := []byte(`[Tables]
+TableName = "certificate"
+Permission = 561408
+`)
+	if err := os.WriteFile(filepath.Join(tempDir, "schema_test.toml"), tomlSchema, 0600); err != nil {
+		t.Fatalf("write schema: %v", err)
+	}
+	t.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
+
+	config, errs := LoadConfigFiles()
+	if len(errs) > 0 {
+		t.Fatalf("load config errors: %v", errs)
+	}
+
+	for _, table := range config.Tables {
+		if table.TableName == "certificate" && table.Permission == auth.AuthPermission(561408) {
+			t.Fatalf("toml schema should not be loaded")
+		}
+	}
+}
+
 func TestMergeTablesSyncsYamlPermissionsForExistingTable(t *testing.T) {
 	existingTables := []table_info.TableInfo{
 		{

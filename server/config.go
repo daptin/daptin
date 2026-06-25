@@ -10,7 +10,6 @@ import (
 	"github.com/daptin/daptin/server/table_info"
 	yaml2 "github.com/ghodss/yaml"
 	"github.com/gobuffalo/flect"
-	"github.com/naoina/toml"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -106,13 +105,9 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 				errs = append(errs, err)
 				continue
 			}
-		case EndsWithCheck(fileName, "toml"):
-			err = toml.Unmarshal(fileBytes, &initConfig)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
+		default:
+			log.Infof("Skipping unsupported schema file: %v", fileName)
+			continue
 		}
 
 		//js, _ := json.Marshal(initConfig)
