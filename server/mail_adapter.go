@@ -404,6 +404,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 									URL:    outboxUrl,
 								},
 							}
+							internalOutboxUser := &auth.SessionUser{}
+							if userAccountCrud := dbResource.Cruds["user_account"]; userAccountCrud != nil && userAccountCrud.AdministratorGroupId != daptinid.NullReferenceId {
+								internalOutboxUser.Groups = append(internalOutboxUser.Groups, auth.GroupPermission{
+									GroupReferenceId: userAccountCrud.AdministratorGroupId,
+								})
+							}
+							outboxReq.PlainRequest = outboxReq.PlainRequest.WithContext(context.WithValue(context.Background(), "user", internalOutboxUser))
 							_, err = dbResource.Cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
 							if err != nil {
 								resource.CheckErr(err, "Failed to queue outbound mail in outbox")

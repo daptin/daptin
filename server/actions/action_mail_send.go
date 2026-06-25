@@ -2,6 +2,7 @@ package actions
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/emersion/go-msgauth/dkim"
@@ -67,6 +69,7 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 			URL:    outboxUrl,
 		},
 	}
+	outboxReq.PlainRequest = outboxReq.PlainRequest.WithContext(context.WithValue(context.Background(), "user", d.internalOutboxSessionUser()))
 
 	mailServerObj, err := d.cruds["mail_server"].GetObjectByWhereClause("mail_server", "hostname", mailServerHostname, transaction)
 	if err != nil {
@@ -182,6 +185,18 @@ func (d *mailSendActionPerformer) outboxMailWithNativeID(outboxMail map[string]i
 	}
 	outboxMail["id"] = outboxID
 	return outboxMail
+}
+
+func (d *mailSendActionPerformer) internalOutboxSessionUser() *auth.SessionUser {
+	sessionUser := &auth.SessionUser{}
+
+	if userAccountCrud := d.cruds["user_account"]; userAccountCrud != nil && userAccountCrud.AdministratorGroupId != daptinid.NullReferenceId {
+		sessionUser.Groups = append(sessionUser.Groups, auth.GroupPermission{
+			GroupReferenceId: userAccountCrud.AdministratorGroupId,
+		})
+	}
+
+	return sessionUser
 }
 
 func mailSendAttemptDelivery(inFields map[string]interface{}) bool {
