@@ -307,6 +307,33 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 	return true
 }
 
+func (d *outboxProcessActionPerformer) processPendingMailByReference(mailReferenceId daptinid.DaptinReferenceId, respectNextRetry bool) bool {
+	transaction, err := d.cruds["outbox"].Connection().Beginx()
+	if err != nil {
+		log.Errorf("Failed to begin transaction for async outbox mail [%v]: %v", mailReferenceId.String(), err)
+		return false
+	}
+
+	pendingMails, _, err := d.cruds["outbox"].GetRowsByWhereClauseWithTransaction("outbox", map[string]bool{"mail": true}, transaction, goqu.Ex{"reference_id": mailReferenceId[:]})
+	if err != nil {
+		_ = transaction.Rollback()
+		log.Errorf("Failed to load async outbox mail [%v]: %v", mailReferenceId.String(), err)
+		return false
+	}
+	if len(pendingMails) == 0 {
+		_ = transaction.Rollback()
+		log.Errorf("Async outbox mail [%v] was not found after mail.send commit", mailReferenceId.String())
+		return false
+	}
+
+	processed := d.processPendingMail(pendingMails[0], transaction, respectNextRetry)
+	if err := transaction.Commit(); err != nil {
+		log.Errorf("Failed to commit async outbox mail [%v] state: %v", mailReferenceId.String(), err)
+		return false
+	}
+	return processed
+}
+
 func outboxClaimTTL() time.Duration {
 	ttl := 90 * time.Second
 	if configured := strings.TrimSpace(os.Getenv("DAPTIN_OUTBOX_CLAIM_TTL_SECONDS")); configured != "" {

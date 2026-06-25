@@ -60,7 +60,7 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 		return nil, nil, []error{fmt.Errorf("missing required field: mail_server_hostname or backend config mail.default_server_hostname")}
 	}
 	attemptDelivery := mailSendAttemptDelivery(inFields)
-	createdOutboxMails := make([]map[string]interface{}, 0)
+	createdOutboxMailReferences := make([]daptinid.DaptinReferenceId, 0)
 
 	outboxUrl, _ := url.Parse("/api/outbox")
 	outboxReq := api2go.Request{
@@ -155,36 +155,41 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 			return nil, nil, []error{err}
 		}
 		if attemptDelivery {
-			createdOutboxMail = d.outboxMailWithNativeID(createdOutboxMail, transaction)
-			createdOutboxMails = append(createdOutboxMails, createdOutboxMail)
+			if outboxReference, ok := createdOutboxMail["reference_id"]; ok && outboxReference != nil {
+				createdOutboxMailReferences = append(createdOutboxMailReferences, daptinid.InterfaceToDIR(outboxReference))
+			} else {
+				log.Errorf("Failed to resolve outbox reference for immediate delivery of mail to [%v]", toAddress.String())
+			}
 		}
 	}
 
-	if attemptDelivery && len(createdOutboxMails) > 0 {
-		outboxProcessor := &outboxProcessActionPerformer{cruds: d.cruds}
-		for _, createdOutboxMail := range createdOutboxMails {
-			outboxProcessor.processPendingMail(createdOutboxMail, transaction, false)
+	if attemptDelivery && len(createdOutboxMailReferences) > 0 {
+		if transaction != nil {
+			err = transaction.Commit()
+			if err != nil {
+				return nil, nil, []error{err}
+			}
+
+			newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+			if beginErr != nil {
+				return nil, nil, []error{beginErr}
+			}
+			*transaction = *newTransaction
 		}
+		d.deliverOutboxMailsAsync(createdOutboxMailReferences)
 	}
 
 	return nil, responses, nil
 }
 
-func (d *mailSendActionPerformer) outboxMailWithNativeID(outboxMail map[string]interface{}, transaction *sqlx.Tx) map[string]interface{} {
-	if id, ok := outboxMail["id"].(int64); ok && id > 0 {
-		return outboxMail
-	}
-	referenceID, ok := outboxMail["reference_id"]
-	if !ok || referenceID == nil {
-		return outboxMail
-	}
-	outboxID, err := resource.GetReferenceIdToIdWithTransaction("outbox", daptinid.InterfaceToDIR(referenceID), transaction)
-	if err != nil {
-		log.Errorf("Failed to resolve outbox reference [%v] for immediate delivery: %v", referenceID, err)
-		return outboxMail
-	}
-	outboxMail["id"] = outboxID
-	return outboxMail
+func (d *mailSendActionPerformer) deliverOutboxMailsAsync(outboxMailReferences []daptinid.DaptinReferenceId) {
+	references := append([]daptinid.DaptinReferenceId(nil), outboxMailReferences...)
+	go func() {
+		outboxProcessor := &outboxProcessActionPerformer{cruds: d.cruds}
+		for _, outboxMailReference := range references {
+			outboxProcessor.processPendingMailByReference(outboxMailReference, false)
+		}
+	}()
 }
 
 func (d *mailSendActionPerformer) internalOutboxSessionUser() *auth.SessionUser {
