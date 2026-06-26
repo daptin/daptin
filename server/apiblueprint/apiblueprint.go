@@ -4047,10 +4047,27 @@ func integrationOperationResponseSchema(operation *openapi3.Operation) map[strin
 }
 
 func openAPI3SchemaToMap(schemaRef *openapi3.SchemaRef) map[string]interface{} {
+	return openAPI3SchemaToMapWithVisited(schemaRef, map[*openapi3.Schema]bool{})
+}
+
+func openAPI3SchemaToMapWithVisited(schemaRef *openapi3.SchemaRef, visited map[*openapi3.Schema]bool) map[string]interface{} {
 	if schemaRef == nil || schemaRef.Value == nil {
 		return map[string]interface{}{"type": "string"}
 	}
 	schema := schemaRef.Value
+	if visited[schema] {
+		out := map[string]interface{}{
+			"type":        "object",
+			"description": "<circular reference>",
+		}
+		if schema.Type != "" {
+			out["type"] = schema.Type
+		}
+		return out
+	}
+	visited[schema] = true
+	defer delete(visited, schema)
+
 	out := make(map[string]interface{})
 	if schema.Type != "" {
 		out["type"] = schema.Type
@@ -4071,12 +4088,12 @@ func openAPI3SchemaToMap(schemaRef *openapi3.SchemaRef) map[string]interface{} {
 		out["nullable"] = true
 	}
 	if schema.Items != nil {
-		out["items"] = openAPI3SchemaToMap(schema.Items)
+		out["items"] = openAPI3SchemaToMapWithVisited(schema.Items, visited)
 	}
 	if len(schema.Properties) > 0 {
 		properties := make(map[string]interface{})
 		for name, property := range schema.Properties {
-			properties[name] = openAPI3SchemaToMap(property)
+			properties[name] = openAPI3SchemaToMapWithVisited(property, visited)
 		}
 		out["properties"] = properties
 	}
