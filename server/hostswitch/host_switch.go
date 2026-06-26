@@ -41,13 +41,14 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If yes, use it to handle the request.
 	hostName := strings.Split(r.Host, ":")[0]
 	pathParts := strings.Split(r.URL.Path, "/")
+	isAPIPath := isWellDefinedAPIPath(r.URL.Path)
 
 	if BeginsWithCheck(r.URL.Path, "/.well-known") {
 		hs.HandlerMap["dashboard"].ServeHTTP(w, r)
 		return
 	}
 
-	if handler := hs.HandlerMap[hostName]; handler != nil && !(len(pathParts) > 1 && constants.WellDefinedApiPaths[pathParts[1]]) {
+	if handler := hs.HandlerMap[hostName]; handler != nil && !isAPIPath {
 
 		ok, abort, modifiedRequest := hs.AuthMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
 		if ok {
@@ -84,7 +85,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	} else {
-		if len(pathParts) > 1 && !constants.WellDefinedApiPaths[pathParts[1]] {
+		if len(pathParts) > 1 && !isAPIPath {
 
 			firstSubFolder := pathParts[1]
 			subSite, isSubSite := hs.SiteMap[firstSubFolder]
@@ -136,4 +137,27 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Handle host names for which no handler is registered
 		//http.Error(w, "Forbidden", 403) // Or Redirect?
 	}
+}
+
+func isWellDefinedAPIPath(path string) bool {
+	path = strings.Trim(path, "/")
+	if path == "" {
+		return false
+	}
+
+	if constants.WellDefinedApiPaths[path] {
+		return true
+	}
+
+	for apiPath := range constants.WellDefinedApiPaths {
+		apiPath = strings.Trim(apiPath, "/")
+		if apiPath == "" {
+			continue
+		}
+		if path == apiPath || strings.HasPrefix(path, apiPath+"/") {
+			return true
+		}
+	}
+
+	return false
 }
