@@ -183,6 +183,80 @@ type column struct {
 	reference     string
 }
 
+// resolveDefaultSortOrder turns a world.default_order value into a list of
+// sort tokens. It tolerates quoted, empty, whitespace-only and malformed values
+// (e.g. a bare "-") so they can never reach the query builder as an empty
+// identifier. When no usable token remains it falls back to the documented
+// "-created_at" default, but only when the physical table actually has a
+// created_at column; otherwise it returns nil so the caller omits ORDER BY
+// instead of emitting an empty backtick-quoted identifier.
+func resolveDefaultSortOrder(defaultOrder string, hasCreatedAt bool) []string {
+	defaultOrder = strings.TrimSpace(defaultOrder)
+	if len(defaultOrder) > 1 && (defaultOrder[0] == '\'' || defaultOrder[0] == '"') {
+		rep := strings.ReplaceAll(defaultOrder, "'", "\"")
+		if unquotedOrder, err := strconv.Unquote(rep); err == nil {
+			defaultOrder = strings.TrimSpace(unquotedOrder)
+		}
+	}
+
+	if defaultOrder != "" {
+		parts := strings.Split(defaultOrder, ",")
+		cleaned := make([]string, 0, len(parts))
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			// drop empty segments and bare sign tokens ("-", "+") that would
+			// otherwise become an empty column identifier.
+			if part == "" || part == "-" || part == "+" {
+				continue
+			}
+			cleaned = append(cleaned, part)
+		}
+		if len(cleaned) > 0 {
+			return cleaned
+		}
+	}
+
+	if hasCreatedAt {
+		return []string{"-created_at"}
+	}
+	return nil
+}
+
+// buildOrderExpressions converts sort tokens into goqu ordered expressions.
+// prefix is the table-qualified column prefix (e.g. "world."). Tokens that are
+// empty, whitespace-only or just a bare sign are skipped so an empty identifier
+// can never be interpolated into the generated SQL.
+func buildOrderExpressions(sortOrder []string, prefix string) []exp.OrderedExpression {
+	orders := make([]exp.OrderedExpression, 0, len(sortOrder))
+	for _, so := range sortOrder {
+		so = strings.TrimSpace(so)
+		if so == "" {
+			continue
+		}
+		switch so[0] {
+		case '-':
+			col := strings.TrimSpace(so[1:])
+			if col == "" {
+				continue
+			}
+			orders = append(orders, goqu.I(prefix+col).Desc())
+		case '+':
+			col := strings.TrimSpace(so[1:])
+			if col == "" {
+				continue
+			}
+			orders = append(orders, goqu.I(prefix+col).Asc())
+		default:
+			if strings.ToLower(so) == "rand()" || strings.ToLower(so) == "random()" {
+				orders = append(orders, goqu.I(so).Asc())
+			} else {
+				orders = append(orders, goqu.I(prefix+so).Asc())
+			}
+		}
+	}
+	return orders
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request, transaction *sqlx.Tx) (
 	[]map[string]interface{}, [][]map[string]interface{}, *PaginationData, bool, error) {
@@ -300,15 +374,9 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	var sortOrder []string
 	if len(req.QueryParams["sort"]) > 0 {
 		sortOrder = req.QueryParams["sort"]
-	} else if dbResource.tableInfo.DefaultOrder != "" && len(dbResource.tableInfo.DefaultOrder) > 2 {
-		if dbResource.tableInfo.DefaultOrder[0] == '\'' || dbResource.tableInfo.DefaultOrder[0] == '"' {
-			rep := strings.ReplaceAll(dbResource.tableInfo.DefaultOrder, "'", "\"")
-			unquotedOrder, _ := strconv.Unquote(rep)
-			dbResource.tableInfo.DefaultOrder = unquotedOrder
-		}
-		sortOrder = strings.Split(dbResource.tableInfo.DefaultOrder, ",")
 	} else {
-		sortOrder = []string{"-created_at"}
+		_, hasCreatedAt := dbResource.tableInfo.GetColumnByName("created_at")
+		sortOrder = resolveDefaultSortOrder(dbResource.tableInfo.DefaultOrder, hasCreatedAt)
 	}
 
 	var filters []string
@@ -913,35 +981,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 	}
 
-	orders := make([]exp.OrderedExpression, 0)
-	for _, so := range sortOrder {
-
-		if len(so) < 1 {
-			continue
-		}
-		//log.Printf("Sort order: %v", so)
-		if so[0] == '-' {
-			//ord := prefix + so[1:] + " desc"
-			// queryBuilder = queryBuilder.OrderBy(ord)
-			// countQueryBuilder = countQueryBuilder.OrderBy(ord)
-			orders = append(orders, goqu.I(prefix+so[1:]).Desc())
-		} else {
-			if so[0] == '+' {
-				//ord := prefix + so[1:] + " asc"
-				// queryBuilder = queryBuilder.OrderBy(ord)
-				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
-				orders = append(orders, goqu.I(prefix+so[1:]).Asc())
-			} else {
-				ord := prefix + so
-				if strings.ToLower(so) == "rand()" || strings.ToLower(so) == "random()" {
-					ord = so
-				}
-				// queryBuilder = queryBuilder.OrderBy(ord)
-				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
-				orders = append(orders, goqu.I(ord).Asc())
-			}
-		}
-	}
+	orders := buildOrderExpressions(sortOrder, prefix)
 
 	if !isAdmin && tableModel.GetTableName() != "usergroup" {
 
