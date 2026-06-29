@@ -170,9 +170,9 @@ Code supports OTP generation/verification via mobile number (action_otp_generate
 Used for 2FA storage but table schema not documented.
 **Status:** Now documented in Two-Factor-Auth.md
 
-### 5. ~~render.template Action~~ ✅ FIXED
+### 5. ~~template.render Action~~ ✅ FIXED
 Template rendering action exists (action_render_template.go) but not documented.
-**Status:** Now documented in Action-Reference.md
+**Status:** Now documented in Template-Rendering.md and Action-Reference.md
 
 ### 6. ~~$transaction Action~~ ✅ FIXED
 Transaction wrapping action (action_transaction.go) for atomic operations - undocumented.
@@ -262,7 +262,7 @@ Execute external processes (action_execute_process.go) - security-sensitive, not
 | action_generate_acme_tls_certificate.go | `acme.tls.generate` | `generate_acme_certificate` | ✅ Fixed |
 | action_generate_self_tls_certificate.go | `self.tls.generate` | `generate_self_certificate` | ✅ Fixed |
 | action_site_sync_storage.go | `site.storage.sync` | `site_sync_storage` | ✅ Documented |
-| action_render_template.go | `render.template` | N/A | ✅ Documented |
+| action_render_template.go | `template.render` | N/A | ✅ Documented |
 | action_transaction.go | `$transaction` | N/A | ✅ Documented |
 | action_make_response.go | `response.create` | N/A | ✅ Documented |
 | action_random_value_generate.go | `random.generate` | `generate_random_data` | ✅ Documented |
@@ -331,7 +331,7 @@ Execute external processes (action_execute_process.go) - security-sensitive, not
 2. ✅ Full statistics response - Monitoring.md
 3. ✅ Mobile OTP flow - Two-Factor-Auth.md
 4. ✅ user_otp_account table - Two-Factor-Auth.md
-5. ✅ render.template action - Action-Reference.md
+5. ✅ template.render action - Template-Rendering.md, Action-Reference.md
 6. ✅ $transaction action - Action-Reference.md
 7. ✅ response.create action - Action-Reference.md
 8. ✅ Aggregation JOIN support - Aggregation-API.md

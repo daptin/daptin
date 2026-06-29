@@ -1,79 +1,43 @@
 # Template Rendering
 
-**Tested ✓ 2026-01-26**
+Dynamic content generation in Daptin using database-backed Go HTML templates.
 
-Dynamic content generation using Go templates with Daptin's template system.
+Templates can be used in two ways:
 
-## Overview
+1. As an internal action outcome with `template.render`.
+2. As HTTP routes through the `template.url_pattern` field.
 
-Daptin's template system provides:
-- Go template syntax with extended functions
-- Reusable templates stored in database
-- Dynamic variable substitution
-- Reference files from subsites
-- MIME type and header control
+Both paths use the same `template` table and the same renderer, but they differ in how input is supplied, how output is returned, and how routing/cache configuration is applied.
 
-## Important: Internal vs API Actions
+## Core Concepts
 
-⚠️ **`template.render` is NOT directly callable via API**
-
-**template.render** is an **internal outcome** - it can only be used within custom action definitions, NOT called directly at `/action/entity/template.render`.
-
-### Action Types in Daptin
-
-**API Actions** (Directly Callable):
-- Exposed at `/action/{entity}/{action_name}`
-- Example: `become_an_administrator`, `upload_file`
-
-**Internal Outcomes** (NOT Directly Callable):
-- Used within `OutFields` of custom actions
-- Example: `template.render`, `cloudstore.file.upload`
-
-### How to Use template.render
-
-You must create a **custom action** that calls template.render as an outcome:
-
-```yaml
-Actions:
-  - Name: generate_welcome_email
-    OnType: user_account
-    InFields:
-      - Name: user_name
-        ColumnName: user_name
-        ColumnType: label
-    OutFields:
-      - Type: template.render      # Internal outcome
-        Method: EXECUTE
-        Attributes:
-          template: welcome_email_template
-          name: ~user_name
-```
-
-Then call: `/action/user_account/generate_welcome_email`
-
-See [[Custom-Actions|Custom Actions]] for full guide.
+- Templates are rows in the `template` table.
+- Template content is rendered with Go `html/template`.
+- Daptin adds the [soha](https://github.com/flysnow-org/soha) template function map.
+- `template.render` is an internal performer, not a direct REST action endpoint.
+- Rendered content is returned as base64 when used inside an action chain.
+- Routed templates decode the rendered base64 content before writing the HTTP response.
+- `url_pattern`, `action_config`, and `cache_config` are used only for routed templates.
 
 ## Template Table
 
-Templates are stored in the `template` table:
+| Field | Required | Used by | Description |
+|-------|----------|---------|-------------|
+| `name` | Yes | Actions and routes | Unique template name. `template.render` looks up templates by this value. |
+| `content` | Yes | Actions and routes | Template source, base64-encoded source, or a file reference such as `subsite://...`. |
+| `mime_type` | Yes | Actions and routes | HTTP content type for rendered output, for example `text/html`, `text/plain`, or `application/json`. |
+| `url_pattern` | Yes | Routes | JSON array of Gin route patterns. Use `[]` for templates used only from actions. |
+| `headers` | No | Actions and routes | JSON object of response headers, for example `{"X-Frame-Options":"DENY"}`. |
+| `action_config` | No | Routes | JSON action request run before the template is rendered. |
+| `cache_config` | No | Routes | JSON cache policy for routed template responses. |
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | varchar(500) | Yes | Unique template identifier |
-| `content` | text | Yes | Template content with {{.variable}} syntax |
-| `mime_type` | varchar(500) | Yes | Output MIME type (e.g., text/html) |
-| `url_pattern` | text (JSON) | Yes | URL routing patterns |
-| `headers` | text (JSON) | No | Additional HTTP headers |
-| `action_config` | text (JSON) | No | Pre/post-processing config |
-| `cache_config` | text (JSON) | No | Caching behavior |
+## Creating a Template
 
-## Creating Templates
+Use `/api/template` like any other JSON:API resource. The `url_pattern` field is required by the table schema.
 
-### Via API
+For action-only templates, use an empty JSON array:
 
 ```bash
-TOKEN=$(cat /tmp/daptin-token.txt)
-
 curl -X POST http://localhost:6336/api/template \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -81,57 +45,93 @@ curl -X POST http://localhost:6336/api/template \
     "data": {
       "type": "template",
       "attributes": {
-        "name": "welcome_email_template",
-        "content": "<h1>Hello {{.name}}!</h1><p>Welcome to {{.service}}.</p><p>{{.message}}</p>",
+        "name": "welcome_email",
+        "content": "<h1>Hello {{.name}}</h1><p>Welcome to {{.service}}.</p>",
         "mime_type": "text/html",
-        "url_pattern": "{}"
+        "url_pattern": "[]",
+        "headers": "{}",
+        "action_config": "{}",
+        "cache_config": "{}"
       }
     }
   }'
 ```
 
-**Note**: `url_pattern` field is REQUIRED (even if empty `{}`)
+For routed templates, `url_pattern` must be a JSON array of path patterns:
 
-### Template Content Sources
+```json
+{
+  "name": "public_profile",
+  "content": "<h1>{{.username}}</h1>",
+  "mime_type": "text/html",
+  "url_pattern": "[\"/profiles/:username\"]"
+}
+```
 
-The `content` field supports multiple sources:
+Do not use `{}` for `url_pattern`. The route loader parses this field as `[]string`; `{}` fails route registration. Use `[]` when the template should not register any HTTP route.
 
-1. **Direct Content**: Plain template text
-   ```
-   "content": "Hello {{.name}}, your order {{.id}} is ready."
-   ```
+## Content Sources
 
-2. **Base64 Encoded**: Automatically decoded
-   ```
-   "content": "SGVsbG8ge3submFtZX19..."
-   ```
+The `content` field supports these sources.
 
-3. **Subsite File Reference**:
-   ```
-   "content": "subsite://<site_reference_id>/templates/welcome.html"
-   ```
+### Direct Content
 
-4. **Site File Reference**:
-   ```
-   "content": "site://<site_reference_id>/emails/notification.html"
-   ```
+```json
+{
+  "content": "Hello {{.name}}, your order {{.order_id}} is ready."
+}
+```
 
-## Go Template Syntax
+### Base64-Encoded Content
+
+If `content` is valid standard base64, Daptin decodes it before parsing it as a template.
+
+```json
+{
+  "content": "SGVsbG8ge3submFtZX19"
+}
+```
+
+This detection is automatic. Avoid storing short plain strings that accidentally form valid base64 if you expect them to render literally.
+
+### Subsite File Reference
+
+```json
+{
+  "content": "subsite://<site_reference_id>/templates/welcome.html"
+}
+```
+
+Daptin resolves the site reference id to the site's local synced folder and loads the file on render.
+
+### Site File Reference
+
+```json
+{
+  "content": "site://<site_reference_id>/emails/notification.html"
+}
+```
+
+`site://` uses the same site/subsite file cache lookup path as `subsite://`.
+
+## Template Syntax
+
+Daptin uses Go `html/template`, so values are HTML-escaped according to context.
 
 ### Variables
 
 ```go
-Hello {{.name}}!
-Your order #{{.order_id}} total: ${{.total}}
+Hello {{.name}}
+Order: {{.order_id}}
 ```
 
-### Conditionals
+### Conditions
 
 ```go
-{{if .isPremium}}
-  <p>Premium member benefits...</p>
+{{if .is_premium}}
+  <p>Premium member</p>
 {{else}}
-  <p>Upgrade to premium!</p>
+  <p>Standard member</p>
 {{end}}
 ```
 
@@ -140,29 +140,102 @@ Your order #{{.order_id}} total: ${{.total}}
 ```go
 <ul>
 {{range .items}}
-  <li>{{.name}}: ${{.price}}</li>
+  <li>{{.name}}: {{.price}}</li>
 {{end}}
 </ul>
 ```
 
-### Extended Functions (soha)
+### Map Keys and Query Arrays
 
-Daptin uses [flysnow-org/soha](https://github.com/flysnow-org/soha) for extended template functions:
+Some input names are not valid dot-notation identifiers, such as `tag[]`. Use the built-in `index` function:
 
 ```go
-{{.text | upper}}           - Uppercase
-{{.text | lower}}           - Lowercase
-{{.html | safe}}            - Unescaped HTML
-{{.timestamp | date "2006-01-02"}}  - Format date
+{{range index . "tag[]"}}
+  <span>{{.}}</span>
+{{end}}
 ```
 
-See soha documentation for complete function list.
+### soha Functions
+
+The renderer registers soha template functions:
+
+```go
+{{.name | upper}}
+{{.name | lower}}
+{{.created_at | date "2006-01-02"}}
+{{.trusted_html | safe}}
+```
+
+Use `safe` only for content you trust. User-supplied HTML should normally be escaped by `html/template`.
 
 ## Using Templates in Custom Actions
 
-### Example: Email Generation Action
+`template.render` is an internal performer. It is not exposed as `/action/world/template.render` or `/action/<entity>/template.render`.
 
-**1. Create template:**
+Use it inside a custom action `OutFields` entry:
+
+```yaml
+Actions:
+  - Name: render_welcome_email
+    OnType: user_account
+    InstanceOptional: true
+    InFields:
+      - Name: name
+        ColumnName: name
+        ColumnType: label
+      - Name: service
+        ColumnName: service
+        ColumnType: label
+    OutFields:
+      - Type: template.render
+        Method: EXECUTE
+        Reference: rendered
+        SkipInResponse: true
+        Attributes:
+          template: welcome_email
+          name: "~name"
+          service: "~service"
+```
+
+The `template` attribute is the template row's `name`. Every other attribute is passed to the template as data.
+
+Inside the template above, use:
+
+```go
+Hello {{.name}}
+Welcome to {{.service}}
+```
+
+### Rendered Action Output
+
+`template.render` returns a render model with these attributes:
+
+```json
+{
+  "content": "BASE64_ENCODED_RENDERED_OUTPUT",
+  "mime_type": "text/html",
+  "headers": {}
+}
+```
+
+When you set `Reference: rendered`, later outcomes can use:
+
+- `$rendered.content`
+- `$rendered.mime_type`
+- `$rendered.headers`
+
+The `content` value is base64. Decode it when passing rendered text to performers that expect plain text:
+
+```yaml
+body: "!atob(rendered.content)"
+```
+
+The `atob` helper is available in action JavaScript expressions.
+
+### Sending a Templated Email
+
+Create a template:
+
 ```bash
 curl -X POST http://localhost:6336/api/template \
   -H "Authorization: Bearer $TOKEN" \
@@ -171,16 +244,18 @@ curl -X POST http://localhost:6336/api/template \
     "data": {
       "type": "template",
       "attributes": {
-        "name": "order_confirmation",
-        "content": "<h1>Order Confirmed</h1><p>Hi {{.customer_name}},</p><p>Your order #{{.order_id}} for ${{.total}} has been confirmed.</p>",
+        "name": "order_confirmation_email",
+        "content": "<h1>Order confirmed</h1><p>Hi {{.customer_name}}, order {{.order_id}} is confirmed.</p>",
         "mime_type": "text/html",
-        "url_pattern": "{}"
+        "url_pattern": "[]",
+        "headers": "{}"
       }
     }
   }'
 ```
 
-**2. Create custom action in schema:**
+Use it from a custom action:
+
 ```yaml
 Actions:
   - Name: send_order_confirmation
@@ -194,192 +269,365 @@ Actions:
         ColumnName: customer_email
         ColumnType: email
     OutFields:
-      # Step 1: Render template
       - Type: template.render
         Method: EXECUTE
         Reference: rendered_email
+        SkipInResponse: true
         Attributes:
-          template: order_confirmation
-          customer_name: ~customer_name
-          order_id: $.reference_id
-          total: $.total
-      
-      # Step 2: Send email
+          template: order_confirmation_email
+          customer_name: "~customer_name"
+          order_id: "$subject.reference_id"
+
       - Type: mail.send
         Method: EXECUTE
         Attributes:
-          to: ~customer_email
-          subject: "Order Confirmation"
-          body: $rendered_email.content
-          mime_type: $rendered_email.mime_type
+          from: "orders@example.com"
+          to: "~customer_email"
+          subject: "Order confirmation"
+          body: "!atob(rendered_email.content)"
+          mail_server_hostname: "mail.example.com"
+          send_immediately: true
 ```
 
-**3. Call action:**
-```bash
-curl -X POST "http://localhost:6336/action/order/send_order_confirmation/$ORDER_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "attributes": {
-      "customer_name": "John Doe",
-      "customer_email": "john@example.com"
-    }
-  }'
+`mail.send` reads `body` as a plain string. Passing `$rendered_email.content` directly sends the base64 string, not the rendered HTML.
+
+### Returning Rendered Content From an Action Endpoint
+
+If an action endpoint should return the rendered template body directly, create a `render` response with `response.create`:
+
+```yaml
+Actions:
+  - Name: preview_invoice
+    OnType: invoice
+    InstanceOptional: false
+    OutFields:
+      - Type: template.render
+        Method: EXECUTE
+        Reference: rendered_invoice
+        SkipInResponse: true
+        Attributes:
+          template: invoice_html
+          invoice_id: "$subject.reference_id"
+          customer_name: "$subject.customer_name"
+          total: "$subject.total"
+
+      - Type: response.create
+        Method: EXECUTE
+        Attributes:
+          response_type: render
+          content: "$rendered_invoice.content"
+          mime_type: "$rendered_invoice.mime_type"
+          headers: "$rendered_invoice.headers"
 ```
 
-## Template Response Format
+Daptin's action HTTP handler recognizes response type `render`, decodes the base64 `content`, applies `mime_type` and `headers`, and writes the rendered body as the HTTP response.
 
-When template.render executes (within custom action), it returns:
+## Routed Templates
+
+A template row can register HTTP routes with `url_pattern`.
 
 ```json
 {
-  "content": "BASE64_ENCODED_RENDERED_OUTPUT",
+  "name": "profile_page",
+  "content": "<h1>{{.username}}</h1><p>Tab: {{.tab}}</p>",
   "mime_type": "text/html",
-  "headers": {}
+  "url_pattern": "[\"/profiles/:username\", \"/u/:username\"]"
 }
 ```
 
-Use `$reference.content` to access the rendered output in subsequent outcomes.
+Daptin registers each pattern with `router.Any`, so the same template can answer GET, POST, PUT, PATCH, DELETE, and other methods. Design route paths carefully and avoid conflicts with Daptin's built-in endpoints such as `/api`, `/action`, `/openapi.yaml`, `/graphql`, `/live`, `/asset`, and existing subsite routes.
 
-## Referencing Subsite Files
+### Route Parameters
 
-Templates can load content from subsite files:
+Gin path parameters become template variables:
 
-```bash
-# 1. Create site and upload template file
-mkdir -p ./storage/email-templates
-cat > ./storage/email-templates/welcome.html << 'EOF'
-<h1>Welcome {{.name}}!</h1>
-<p>Thank you for joining {{.service}}.</p>
-EOF
+| URL pattern | Request | Template variable |
+|-------------|---------|-------------------|
+| `/profiles/:username` | `/profiles/alice` | `{{.username}}` = `alice` |
+| `/docs/:section/:slug` | `/docs/guides/start` | `{{.section}}` = `guides`, `{{.slug}}` = `start` |
 
-# 2. Get site reference_id
-SITE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/site" | jq -r '.data[] | select(.attributes.name == "email-templates") | .id')
+Gin wildcard patterns also work:
 
-# 3. Create template referencing subsite file
-curl -X POST http://localhost:6336/api/template \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "template",
-      "attributes": {
-        "name": "welcome_from_site",
-        "content": "subsite://'$SITE_ID'/welcome.html",
-        "mime_type": "text/html",
-        "url_pattern": "{}"
-      }
-    }
-  }'
+```json
+{
+  "url_pattern": "[\"/docs/*path\"]"
+}
 ```
 
-## Best Practices
+Use `{{.path}}` in the template.
 
-1. **Use descriptive names** - Template names should clearly indicate purpose
-2. **Set correct MIME types** - Ensures proper content type headers
-3. **Escape user input** - Use `{{.var}}` not `{{.var | safe}}` for user data
-4. **Version templates** - Include version in name for email templates that need history
-5. **Test before production** - Create test custom action to verify template rendering
-6. **Store complex templates in files** - Use subsite reference for large templates
+### Query Parameters
 
-## Common Use Cases
+Query parameters are added as top-level template variables.
 
-### 1. Email Templates
+For `/search?q=daptin`:
 
-```yaml
-Actions:
-  - Name: send_welcome_email
-    OnType: user_account
-    OutFields:
-      - Type: template.render
-        Reference: email_content
-        Attributes:
-          template: welcome_email
-          name: $.name
-          activation_link: $.activation_url
-      - Type: mail.send
-        Attributes:
-          to: $.email
-          subject: "Welcome!"
-          body: $email_content.content
+```go
+Search: {{.q}}
 ```
 
-### 2. PDF Generation
+For repeated query parameters such as `/search?tag=go&tag=api`, Daptin sets both `tag` and `tag[]` to the value array. Use `index` for the `tag[]` key:
 
-```yaml
-Actions:
-  - Name: generate_invoice_pdf
-    OnType: invoice
-    OutFields:
-      - Type: template.render
-        Reference: html
-        Attributes:
-          template: invoice_template
-          invoice_number: $.number
-          items: $.line_items
-      - Type: html.to.pdf
-        Attributes:
-          html: $html.content
+```go
+{{range index . "tag[]"}}
+  <span>{{.}}</span>
+{{end}}
 ```
 
-### 3. Dynamic API Responses
+### Route Lifecycle
 
-```yaml
-Actions:
-  - Name: get_formatted_data
-    OnType: data
-    OutFields:
-      - Type: template.render
-        Attributes:
-          template: json_response_template
-          data: $.attributes
+Template routes are loaded when Daptin creates template hooks during server startup.
+
+- Changing `content`, `mime_type`, or `headers` is picked up by `template.render` on the next render because the renderer looks up the template row by `name`.
+- Changing `url_pattern`, `action_config`, or `cache_config` requires a restart or system reload so routes and route configuration are rebuilt.
+- If in-memory caching is enabled, cached rendered responses may continue to be served until cache expiry or process restart.
+
+## action_config for Routed Templates
+
+`action_config` lets a routed template run one Daptin action before rendering.
+
+The field stores an `ActionRequest` JSON object:
+
+```json
+{
+  "Type": "product",
+  "Action": "load_public_product"
+}
 ```
+
+When a routed template receives a request:
+
+1. Daptin builds route input from path and query parameters.
+2. Daptin overwrites `action_config.Attributes` with that route input.
+3. Daptin runs the configured action.
+4. Daptin adds the action responses to template input.
+5. Daptin renders the template.
+
+Because step 2 overwrites `Attributes`, keep route-specific values in path/query parameters or compute them inside the action. Do not rely on static `Attributes` stored in `action_config`.
+
+Example template row:
+
+```json
+{
+  "name": "product_page",
+  "content": "<h1>{{.product.name}}</h1><p>{{.product.description}}</p>",
+  "mime_type": "text/html",
+  "url_pattern": "[\"/products/:slug\"]",
+  "action_config": "{\"Type\":\"product\",\"Action\":\"load_public_product\"}"
+}
+```
+
+If the action returns an action response with response type `product`, that response's attributes are available as `.product`.
+
+The full list of action responses is also available as `.actionResponses`.
+
+If multiple action responses use the same response type, the last one wins for the top-level `.response_type` variable. Use `.actionResponses` when you need all responses.
+
+## cache_config for Routed Templates
+
+`cache_config` applies only to routed templates. It does not change how `template.render` behaves inside a custom action unless that action returns a routed/render response through separate logic.
+
+Default behavior:
+
+```json
+{}
+```
+
+Caching is disabled unless `enable` is true.
+
+### Common Cache Configurations
+
+No caching for sensitive or per-user content:
+
+```json
+{
+  "enable": true,
+  "no_store": true,
+  "private": true,
+  "etag_strategy": "none",
+  "enable_in_memory_cache": false
+}
+```
+
+Short browser cache for dynamic public content:
+
+```json
+{
+  "enable": true,
+  "max_age": 60,
+  "revalidate": true,
+  "etag_strategy": "weak",
+  "vary_by_query_params": ["page", "sort"],
+  "enable_in_memory_cache": false
+}
+```
+
+Server-side in-memory cache for public pages:
+
+```json
+{
+  "enable": true,
+  "max_age": 300,
+  "revalidate": true,
+  "etag_strategy": "strong",
+  "cache_key_prefix": "product-pages-v1",
+  "vary_by_query_params": ["currency"],
+  "vary_by_headers": ["Accept-Language"],
+  "enable_in_memory_cache": true
+}
+```
+
+### cache_config Fields
+
+| Field | Type | Effect |
+|-------|------|--------|
+| `enable` | bool | Enables route cache handling. Required for all other cache behavior. |
+| `max_age` | int | Adds `max-age=<seconds>` and an `Expires` header. |
+| `revalidate` | bool | Adds `must-revalidate`. Defaults to true when config is parsed. |
+| `no_cache` | bool | Adds `no-cache`; disables validator shortcut checks. |
+| `no_store` | bool | Adds `no-store` and returns before other cache directives. |
+| `private` | bool | Adds `private`; otherwise Daptin adds `public`. |
+| `vary_by_headers` | string array | Adds a `Vary` header and includes those header values in the in-memory cache key. |
+| `vary_by_query_params` | string array | Adds `X-Vary-By-Query-Params` and includes those query values in the in-memory cache key. |
+| `vary_by_path` | bool | Parsed, but the current cache key always starts with the request path. |
+| `stale_while_revalidate` | int | Adds `stale-while-revalidate=<seconds>` to `Cache-Control`. |
+| `custom_headers` | object | Adds custom headers during cache header application. |
+| `expires_at` | RFC3339 time | Parsed into an absolute `Expires` value when provided. |
+| `etag_strategy` | string | `weak`, `strong`, or `none`. Defaults to `weak`. |
+| `cache_key_prefix` | string | Prefix for in-memory cache keys. Useful for deployment/version invalidation. |
+| `enable_in_memory_cache` | bool | Enables server-side cached rendered responses. |
+| `in_memory_cache_ttl` | int | Parsed with default 300 seconds; current route storage uses the file cache expiry calculation. |
+| `in_memory_cache_max_size` | int | Parsed with default 100; enforcement depends on the underlying cache implementation. |
+| `in_memory_cache_strategy` | string | Parsed as `lru` or `lfu`; enforcement depends on the underlying cache implementation. |
+| `in_memory_cache_compression` | bool | Parsed; route cache compression is currently decided from MIME type and content size. |
+
+Important cache notes:
+
+- `X-Cache: MISS` is sent when a routed template is freshly rendered.
+- `X-Cache: HIT` is sent when Daptin serves the in-memory cached response.
+- In-memory cache keys always include request path.
+- Configure `vary_by_query_params` and `vary_by_headers` for anything that changes rendered output.
+- If `etag_strategy` is not `none`, Daptin generates an ETag from rendered content for fresh responses.
+- The current validator shortcut treats a present `If-None-Match` header as cache-valid before re-rendering. Use `etag_strategy: "none"` if that behavior is not appropriate for a route.
+
+## Headers and MIME Types
+
+`mime_type` controls `Content-Type`:
+
+```json
+{
+  "mime_type": "application/json"
+}
+```
+
+`headers` must be a JSON object string:
+
+```json
+{
+  "headers": "{\"X-Frame-Options\":\"DENY\",\"Cache-Control\":\"no-store\"}"
+}
+```
+
+For routed templates, `cache_config` may also set cache-related headers. If both `headers` and `cache_config` set the same header, the later header assignment can replace earlier values.
+
+## JSON Responses
+
+Templates can render JSON. Set the MIME type and make sure the template produces valid JSON:
+
+```json
+{
+  "name": "product_json",
+  "content": "{\"slug\":\"{{.slug}}\",\"name\":\"{{.product.name}}\"}",
+  "mime_type": "application/json",
+  "url_pattern": "[\"/public-api/products/:slug\"]"
+}
+```
+
+Use `html/template` escaping rules carefully in JSON templates. For complex JSON responses, consider generating structured JSON in an action and returning it directly instead of manually composing JSON text.
+
+## Security and Access Control
+
+- Creating and editing template rows is controlled by normal table permissions.
+- A routed template itself is an HTTP route and does not automatically require authentication.
+- If a routed template exposes private data, enforce access through the configured action, route design, or surrounding authentication middleware.
+- Do not use `safe` with untrusted user input.
+- Avoid route patterns that overlap built-in Daptin endpoints.
+- Treat template content as trusted code. A user who can edit templates can affect rendered output and headers.
+- Be careful with `action_config`: it can trigger actions for every route request.
+
+## Operational Checklist
+
+1. Create the template row.
+2. Use `url_pattern: "[]"` for action-only templates.
+3. Use `url_pattern: "[\"/path/:param\"]"` for routed templates.
+4. Set the correct `mime_type`.
+5. Set `headers` to `{}` or a JSON object string.
+6. For action chains, decode `$reference.content` with `!atob(reference.content)` when plain text is needed.
+7. For direct HTTP action output, create a `response.create` response with `response_type: render`.
+8. Restart or reload Daptin after changing `url_pattern`, `action_config`, or `cache_config`.
+9. Configure `vary_by_query_params` and `vary_by_headers` before enabling in-memory cache.
+10. Test the route or custom action with representative path/query inputs.
 
 ## Troubleshooting
 
-### Template Creation Fails: NOT NULL Constraint
+### Template creation fails with NOT NULL on url_pattern
 
-**Error**: `NOT NULL constraint failed: template.url_pattern`
+Use a JSON array string:
 
-**Solution**: Always include `url_pattern` field:
 ```json
 {
-  "attributes": {
-    "name": "my-template",
-    "content": "...",
-    "mime_type": "text/html",
-    "url_pattern": "{}"  // REQUIRED
-  }
+  "url_pattern": "[]"
 }
 ```
 
-### Cannot Call template.render Directly
+Use a non-empty array to register routes:
 
-**Error**: 403 Forbidden or "no reference id"
-
-**Solution**: template.render is internal-only. Create custom action with template.render in OutFields.
-
-### Template Variables Not Substituting
-
-**Check**:
-1. Variable names match between action and template
-2. Using correct syntax: `{{.variable}}` not `{{variable}}`
-3. Variables passed in `Attributes` of outcome
-
-**Debug**:
-```yaml
-# Add logging outcome before template.render
-OutFields:
-  - Type: response.create
-    Attributes:
-      message: "Debug: name={{~name}}, email={{~email}}"
-  - Type: template.render
-    ...
+```json
+{
+  "url_pattern": "[\"/hello/:name\"]"
+}
 ```
+
+### Route does not appear after creating or editing a template
+
+Restart or reload Daptin. Route patterns are registered when template hooks are created during startup.
+
+### Route logs show failed to parse url pattern as string array
+
+`url_pattern` is not a JSON array. Replace `{}` with `[]` or `["/route"]`.
+
+### Template variables are empty
+
+Check the input source:
+
+- For action templates, variables come from `Attributes`.
+- For routed templates, variables come from path/query parameters and optional `action_config` responses.
+- Use `{{.name}}`, not `{{name}}`.
+- For keys such as `tag[]`, use `{{index . "tag[]"}}`.
+
+### Email contains base64 text
+
+Decode rendered content before sending:
+
+```yaml
+body: "!atob(rendered_email.content)"
+```
+
+### Direct action response returns JSON instead of rendered HTML
+
+`template.render` alone stores the render result for references. Add `response.create` with `response_type: render`.
+
+### Cached route returns stale content
+
+Disable in-memory cache, change `cache_key_prefix`, wait for expiry, or restart Daptin.
+
+### Headers are missing or invalid
+
+`headers` must be a JSON object string. Empty string and `{}` are accepted patterns; malformed JSON causes render errors.
 
 ## Related
 
-- [[Custom-Actions|Custom Actions]] - How to create actions with template.render
-- [[Email-Actions|Email Actions]] - Sending templated emails
-- [[Subsites|Subsites]] - Hosting template files in subsites
-- [[Action-Reference|Action Reference]] - All available internal outcomes
+- [[Custom-Actions|Custom Actions]] - Defining actions that use `template.render`
+- [[Email-Actions|Email Actions]] - Sending templated mail through `mail.send`
+- [[Subsites|Subsites]] - Site/subsite storage used by `subsite://` and `site://`
+- [[Action-Reference|Action Reference]] - Internal performers and built-in actions

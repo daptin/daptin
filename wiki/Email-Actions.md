@@ -417,35 +417,50 @@ to: "![recipient_email]"  # Converts string to array
 
 ## Email Templates
 
-Use template rendering for dynamic content:
+Use `template.render` for dynamic email bodies. `template.render` is an internal performer, so create a row in the `template` table first and reference it by name from your custom action.
+
+Template row:
+
+```json
+{
+  "name": "order_confirmation_email",
+  "content": "Hello {{.customer_name}},\n\nYour order {{.order_id}} has been confirmed.\nTotal: {{.total}}\n",
+  "mime_type": "text/plain",
+  "url_pattern": "[]",
+  "headers": "{}"
+}
+```
+
+Action outcomes:
 
 ```yaml
 OutFields:
   # 1. Render template
-  - Type: $template.render
+  - Type: template.render
     Method: EXECUTE
     Reference: rendered_email
+    SkipInResponse: true
     Attributes:
-      template: |
-        Hello {{.name}},
+      template: order_confirmation_email
+      customer_name: "~customer_name"
+      order_id: "~order_id"
+      total: "~total_amount"
 
-        Your order #{{.order_id}} has been confirmed.
-        Total: ${{.total}}
-
-        Thank you for your purchase!
-      data:
-        name: "~customer_name"
-        order_id: "~order_id"
-        total: "~total_amount"
   # 2. Send rendered email
   - Type: mail.send
     Method: EXECUTE
     Attributes:
       from: "orders@mydomain.com"
-      to: "![customer_email]"
+      to: "~customer_email"
       subject: "Order Confirmation #~order_id"
-      body: "$rendered_email.result"
+      body: "!atob(rendered_email.content)"
+      mail_server_hostname: "mail.mydomain.com"
+      send_immediately: true
 ```
+
+`template.render` returns base64 in `rendered_email.content`. Decode it with `!atob(rendered_email.content)` before passing it to `mail.send`, because `mail.send` expects a plain string body.
+
+For HTML email, set the template `mime_type` to `text/html` and include the appropriate MIME headers/body structure required by your mail flow. The built-in `mail.send` performer accepts a raw body string and does not add multipart HTML formatting automatically.
 
 ---
 

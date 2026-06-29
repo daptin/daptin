@@ -87,13 +87,13 @@ From `StandardTables` array (lines 1542-3076):
 | `stream` | Data streams | fa-stream | ✅ WebSocket-API.md | Pub/sub system |
 | `timeline` | Event audit trail | fa-history | ✅ Monitoring.md (audit context) | Event tracking |
 | `smd` | State machine definitions | fa-project-diagram | ✅ State-Machines.md | FSM workflows |
+| `template` | Response templates | fa-file-alt | ✅ Template-Rendering.md | Action rendering, HTTP routes, cache config, file references |
 
 ### 📝 Partially Documented Tables
 
 | Table | Purpose | Icon | Status | Missing Documentation |
 |-------|---------|------|--------|----------------------|
 | `user_otp_account` | OTP/2FA for users | fa-sms | 📝 Partial | ✅ Documented in Two-Factor-Auth.md, but mobile number verification flow needs detail |
-| `template` | Response templates | fa-file-alt | 📝 Partial | Template system exists but not fully documented as end-user feature |
 
 ### ❌ Undocumented Tables
 
@@ -110,8 +110,8 @@ From `StandardTables` array (lines 1542-3076):
 | `outbox` | Outgoing mail queue | fa-paper-plane | ❌ Missing | **MEDIUM** - Part of SMTP feature |
 
 **Summary**:
-- ✅ **Fully Documented**: 17 tables
-- 📝 **Partially Documented**: 2 tables
+- ✅ **Fully Documented**: 18 tables
+- 📝 **Partially Documented**: 1 table
 - ❌ **Undocumented**: 9 tables
 
 ---
@@ -258,23 +258,17 @@ From `StandardRelations` array (lines 89-105):
    - But table schemas, columns, and data models are not documented
    - Users need to understand mail storage structure
 
-3. **Template System** (`template`)
-   - URL pattern matching
-   - Content type handling
-   - Cache configuration
-   - Action integration
-
-4. **Calendar/Collection** (`calendar`, `collection`)
+3. **Calendar/Collection** (`calendar`, `collection`)
    - CalDAV storage internals
    - Collection organization patterns
 
 ### LOW Priority (Developer/Internal Features)
 
-5. **JSON Schema Table** (`json_schema`)
+4. **JSON Schema Table** (`json_schema`)
    - Schema validation storage
    - Schema versioning
 
-6. **TableInfo Advanced Fields**
+5. **TableInfo Advanced Fields**
    - `IsAuditEnabled` configuration
    - `TranslationsEnabled` setup
    - `CompositeKeys` usage
@@ -287,10 +281,9 @@ Based on this analysis, the recommended documentation order:
 
 1. **Document Table** - New guide covering file management beyond asset columns
 2. **Mail System Tables** - Expand SMTP/IMAP docs to include data model
-3. **Template System** - New guide for dynamic response templates
-4. **Audit Logging** - Document `IsAuditEnabled` feature
-5. **Multi-Language Support** - Document `TranslationsEnabled` feature
-6. **Composite Keys** - Document multi-column unique constraints
+3. **Audit Logging** - Document `IsAuditEnabled` feature
+4. **Multi-Language Support** - Document `TranslationsEnabled` feature
+5. **Composite Keys** - Document multi-column unique constraints
 
 ---
 
@@ -313,5 +306,4 @@ Based on this analysis, the recommended documentation order:
 **Gaps**:
 - Mail system data models
 - Document management feature
-- Template system
 - Advanced schema features (audit, translations, composite keys)
