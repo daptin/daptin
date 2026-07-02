@@ -139,6 +139,57 @@ func TestUpdateDefaultPermissionInSchemaJsonTransitionsOnlyBootstrapDefaults(t *
 	assertSchemaDefaultPermission(t, db, "private_table_audit", int64(auth.UserRead|auth.GroupRead))
 }
 
+func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *testing.T) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`create table action (
+		id integer primary key,
+		action_name text,
+		permission integer
+	)`)
+	if err != nil {
+		t.Fatalf("create action: %v", err)
+	}
+
+	publicRoutePermission := int64(auth.GuestExecute | auth.GuestPeek | auth.UserRead | auth.UserExecute | auth.GroupRead | auth.GroupExecute)
+	lockedActionPermission := int64(auth.None)
+	bootstrapActionPermission := int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN)
+	_, err = db.Exec(`insert into action (id, action_name, permission) values
+		(1, 'bootstrap_action', ?),
+		(2, 'get_canaster_document_by_public_path', ?),
+		(3, 'set_canaster_document_private', ?),
+		(4, 'signin', ?)`,
+		bootstrapActionPermission,
+		publicRoutePermission,
+		lockedActionPermission,
+		bootstrapActionPermission,
+	)
+	if err != nil {
+		t.Fatalf("insert action rows: %v", err)
+	}
+
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	if err := becomeAdminTransitionActionPermissions(tx); err != nil {
+		_ = tx.Rollback()
+		t.Fatalf("transition action permissions: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit tx: %v", err)
+	}
+
+	assertActionPermission(t, db, "bootstrap_action", int64(auth.UserRead|auth.UserExecute|auth.GroupCRUD|auth.GroupExecute|auth.GroupRefer))
+	assertActionPermission(t, db, "get_canaster_document_by_public_path", publicRoutePermission)
+	assertActionPermission(t, db, "set_canaster_document_private", lockedActionPermission)
+	assertActionPermission(t, db, "signin", publicRoutePermission)
+}
+
 func TestNewImportAdminSessionUserIncludesAdminGroup(t *testing.T) {
 	adminUserId := int64(12)
 	adminUserRefId := daptinid.DaptinReferenceId(uuid.New())
@@ -161,6 +212,17 @@ func TestNewImportAdminSessionUserIncludesAdminGroup(t *testing.T) {
 	}
 	if sessionUser.Groups[0].GroupReferenceId != adminGroupId {
 		t.Fatalf("expected admin group reference id to be set")
+	}
+}
+
+func assertActionPermission(t *testing.T, db *sqlx.DB, actionName string, expected int64) {
+	t.Helper()
+	var permission int64
+	if err := db.QueryRow(`select permission from action where action_name = ?`, actionName).Scan(&permission); err != nil {
+		t.Fatalf("select action permission for %s: %v", actionName, err)
+	}
+	if permission != expected {
+		t.Fatalf("expected action %s permission %d, got %d", actionName, expected, permission)
 	}
 }
 

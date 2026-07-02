@@ -1340,16 +1340,28 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		log.Errorf("Failed to update default_permission in schema json: %v", err)
 	}
 
-	query, args, err = statementbuilder.Squirrel.Update("action").Prepared(true).
+	err = becomeAdminTransitionActionPermissions(transaction)
+	if err != nil {
+		log.Errorf("Failed to update action permissions : %v", err)
+	}
+
+	return true
+}
+
+func becomeAdminTransitionActionPermissions(transaction *sqlx.Tx) error {
+	query, args, err := statementbuilder.Squirrel.Update("action").Prepared(true).
 		Set(goqu.Record{"permission": int64(auth.UserRead | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute | auth.GroupRefer)}).
+		Where(goqu.Ex{
+			"permission": int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN),
+		}).
 		ToSQL()
 	if err != nil {
-		log.Errorf("Failed to create update action permission sql : %v", err)
+		return err
 	}
 
 	_, err = transaction.Exec(query, args...)
 	if err != nil {
-		log.Errorf("Failed to update action permissions : %v", err)
+		return err
 	}
 
 	query, args, err = statementbuilder.Squirrel.Update("action").Prepared(true).
@@ -1359,15 +1371,11 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		}).
 		ToSQL()
 	if err != nil {
-		log.Errorf("Failed to create update sign in action permission sql : %v", err)
+		return err
 	}
 
 	_, err = transaction.Exec(query, args...)
-	if err != nil {
-		log.Errorf("Failed to world update signin action  permissions: %v", err)
-	}
-
-	return true
+	return err
 }
 
 func becomeAdminOwnRows(crud *DbResource, userId int64, transaction *sqlx.Tx) error {
