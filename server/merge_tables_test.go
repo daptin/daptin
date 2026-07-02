@@ -281,6 +281,7 @@ func TestMergeTablesClearsExplicitEmptyCollectionFields(t *testing.T) {
 		{
 			TableName:     "schema_clear_probe",
 			DefaultGroups: table_info.DefaultGroups("administrators"),
+			AccessGroups:  table_info.DefaultGroups("users"),
 			DefaultRelations: map[string][]string{
 				"administrators": {"can_edit"},
 			},
@@ -297,6 +298,7 @@ func TestMergeTablesClearsExplicitEmptyCollectionFields(t *testing.T) {
 		{
 			TableName:        "schema_clear_probe",
 			DefaultGroups:    table_info.DefaultGroupList{},
+			AccessGroups:     table_info.DefaultGroupList{},
 			DefaultRelations: map[string][]string{},
 			Validations:      []columns.ColumnTag{},
 			Conformations:    []columns.ColumnTag{},
@@ -308,6 +310,9 @@ func TestMergeTablesClearsExplicitEmptyCollectionFields(t *testing.T) {
 
 	if len(merged[0].DefaultGroups) != 0 {
 		t.Fatalf("expected explicit empty DefaultGroups to clear state, got %#v", merged[0].DefaultGroups)
+	}
+	if len(merged[0].AccessGroups) != 0 {
+		t.Fatalf("expected explicit empty AccessGroups to clear state, got %#v", merged[0].AccessGroups)
 	}
 	if len(merged[0].DefaultRelations) != 0 {
 		t.Fatalf("expected explicit empty DefaultRelations to clear state, got %#v", merged[0].DefaultRelations)

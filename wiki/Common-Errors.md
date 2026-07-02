@@ -89,7 +89,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   jq '.data[] | select(.attributes.name == "administrators")'
 ```
 
-**Related**: [[Getting-Started-Guide#troubleshooting-unauthorized-error]]
+**Related**: [[Getting-Started-Guide#troubleshooting-unauthorized-error]] | [[Authorization-Scenarios]]
 
 ---
 

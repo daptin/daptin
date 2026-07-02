@@ -26,6 +26,7 @@ Every table in Daptin can use these fields from the `TableInfo` struct:
 | `IsAuditEnabled` | Enable audit logging | ❌ **UNDOCUMENTED** |
 | `TranslationsEnabled` | Multi-language content support | ❌ **UNDOCUMENTED** |
 | `DefaultGroups` | Initial permission groups | ✅ Permissions.md |
+| `AccessGroups` | Table/action access group bindings | ✅ Permissions.md |
 | `DefaultRelations` | Pre-configured relationships | ✅ Relationships.md |
 | `Validations` | Input validation rules | ✅ Custom-Actions.md (Validations section) |
 | `Conformations` | Data transformation rules | ✅ Custom-Actions.md (Conformations section) |

@@ -682,6 +682,19 @@ func getSchemaManagedActionRow(actionName string, worldId interface{}, transacti
 	return rows[0], nil
 }
 
+func getSchemaManagedWorldRow(tableName string, transaction *sqlx.Tx) (map[string]interface{}, error) {
+	rows, err := GetObjectByWhereClauseWithTransaction("world", transaction, goqu.Ex{
+		"table_name": tableName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("world row for table [%s] not found", tableName)
+	}
+	return rows[0], nil
+}
+
 func syncDefaultUsergroupRelationsForObject(entityName string, objectRow map[string]interface{}, groups table_info.DefaultGroupList, transaction *sqlx.Tx) error {
 	objectId, err := schemaSyncInt64(objectRow["id"])
 	if err != nil {
@@ -854,6 +867,12 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
+			err = syncDefaultUsergroupRelationsForObject("action", existingAction, action.AccessGroups, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
+			}
 			invalidateSchemaManagedActionCaches(action.OnType, action.Name, existingAction)
 		} else {
 			log.Printf("[649] Adding new action [%50v][%50v]", action.OnType, action.Name)
@@ -898,6 +917,12 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 				return err
 			}
 			err = syncDefaultUsergroupRelationsForObject("action", createdAction, actionDefaultGroups, transaction)
+			if err != nil {
+				rollbackErr := transaction.Rollback()
+				CheckErr(rollbackErr, "Failed to rollback")
+				return err
+			}
+			err = syncDefaultUsergroupRelationsForObject("action", createdAction, action.AccessGroups, transaction)
 			if err != nil {
 				rollbackErr := transaction.Rollback()
 				CheckErr(rollbackErr, "Failed to rollback")
@@ -1500,6 +1525,20 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 		}
 
+	}
+	for _, table := range initConfig.Tables {
+		if table.AccessGroups == nil {
+			continue
+		}
+
+		worldRow, err := getSchemaManagedWorldRow(table.TableName, transaction)
+		if err != nil {
+			return err
+		}
+		err = syncDefaultUsergroupRelationsForObject("world", worldRow, table.AccessGroups, transaction)
+		if err != nil {
+			return err
+		}
 	}
 	st.Body = stBody
 	if log.GetLevel() == log.DebugLevel {

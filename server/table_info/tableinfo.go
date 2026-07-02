@@ -121,6 +121,7 @@ type TableInfo struct {
 	IsAuditEnabled         bool                `db:"is_audit_enabled"`
 	TranslationsEnabled    bool                `db:"translation_enabled"`
 	DefaultGroups          DefaultGroupList    `db:"default_groups"`
+	AccessGroups           DefaultGroupList    `db:"access_groups"`
 	DefaultRelations       map[string][]string `db:"default_relations"`
 	Validations            []columns.ColumnTag
 	Conformations          []columns.ColumnTag

@@ -16,6 +16,16 @@ scripts/testing/test-runner.sh token
 scripts/testing/test-runner.sh get /api/user_account
 ```
 
+### AccessGroups Authorization E2E
+
+For a fresh, independent server test of public/private/mixed/shared/action authorization patterns:
+
+```bash
+scripts/testing/test-access-groups-e2e.sh
+```
+
+This script builds a temporary Daptin binary, starts it with an isolated SQLite database and schema folder, and validates the scenarios through HTTP with `curl`.
+
 ---
 
 ## Configuration

@@ -12,6 +12,9 @@ nav:
   - User management:
       - New User: user-management/new-users.md
       - Access Permissions: user-management/access.md
+      - Authorization Scenarios: permissions/authorization-scenarios.md
+      - Permission System: permissions/permission-system.md
+      - User Groups: groups/index.md
       - Sign in API: user-management/signin.md
   - Data model: setting-up/data_modeling.md
   - HTTP JSON API:

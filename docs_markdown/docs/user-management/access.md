@@ -8,6 +8,7 @@ Requests **without** a valid `Authorization Bearer` `token` will be referred to 
 
 Daptin has a built-in authorization framework based on users groups and permissions. Users are identified by their authorization token or other means of identification. Each request is identified as coming from a registered user or a guest.
 
+For application-level patterns, see [Authorization scenarios](../permissions/authorization-scenarios.md). It maps public sites, private apps, owner-only rows, mixed public/private rows, shared group workspaces, and action access gates to concrete schema shapes.
 
 ## Permission model
 
@@ -190,4 +191,3 @@ If the token is absent or invalid, the user is considered as a guest. Guests als
 ### Client side
 
 On the client side, for dashboard, the token is stored in local storage. The local storage is cleared on logout or if the server responds with a 401 Unauthorized status.
-

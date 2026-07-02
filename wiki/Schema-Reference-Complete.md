@@ -19,6 +19,7 @@ Complete authoritative reference for all TableInfo properties in Daptin schema d
 | IsAuditEnabled | bool | false | No | 3 | Enable change history logging |
 | TranslationsEnabled | bool | false | No | 4 | Enable multi-language support |
 | DefaultGroups | []string or []object | [] | No | 10 | Auto-share with groups and optional relation permissions |
+| AccessGroups | []string or []object | [] | No | 10 | Grant groups access to this table's schema/type gate |
 | DefaultRelations | map | {} | No | 10 | Pre-configure relationships |
 | Validations | []ColumnTag | [] | No | 9 | Table-level validation rules |
 | Conformations | []ColumnTag | [] | No | 9 | Table-level data transformations |
@@ -611,7 +612,31 @@ Tables:
 
 **Behavior:** When a project record is created, it is automatically shared with the listed usergroups. If `Permission` is set on the group binding, that value is written to the join-table relation row. If `Permission` is omitted, Daptin uses the relation table's default permission.
 
-The same table-level rule applies to built-in entities, including `action`. To make schema-managed actions belong to a group by default, configure `DefaultGroups` on `TableName: action`; do not put usergroup ownership inside an individual action definition.
+For built-in entities, `DefaultGroups` remains table-scoped. `TableName: action` plus `DefaultGroups` applies to every schema-managed action. Use `Actions[].AccessGroups` when only selected actions should belong to a group.
+
+**Tested:** Suite 10 | **Status:** ✅ Working
+
+---
+
+### AccessGroups
+
+**Type:** `[]string` or `[]DefaultGroupBinding`
+**Required:** No
+**Default:** `[]`
+
+Grant usergroups access to this table's schema/type gate. Daptin stores this as a relation from the table's `world` row to the usergroup.
+
+**Example:**
+```yaml
+Tables:
+  - TableName: document
+    Permission: 1003811
+    AccessGroups:
+      - Name: users
+        Permission: 999424
+```
+
+**Behavior:** This creates or updates `world(document) -> users` in `world_world_id_has_usergroup_usergroup_id`. It does not grant access to individual `document` rows; use `DefaultGroups` or explicit row relations for that.
 
 **Tested:** Suite 10 | **Status:** ✅ Working
 
@@ -770,11 +795,12 @@ Tables:
 | Icon | ✅ | Stored | Suite 8 |
 | TableDescription | ✅ | Stored | Suite 8 |
 | DefaultGroups | ✅ | String and object forms | Suite 10 |
+| AccessGroups | ✅ | String and object forms | Suite 10 |
 | DefaultRelations | ❌ | Not tested | Suite 10 |
 | Validations | ⚠️ | Partial | Suite 9 |
 | Conformations | ⚠️ | Partial | Suite 9 |
 
-**Overall: 15/18 properties tested (83%)**
+**Overall: 16/19 properties tested (84%)**
 
 ---
 
@@ -784,6 +810,7 @@ Tables:
 - [[Column-Types|Column Types]] - All 41 column types
 - [[Relationships|Relationships]] - Foreign keys and relations
 - [[Permissions|Permissions]] - Permission system
+- [[Authorization-Scenarios|Authorization Scenarios]] - Tested permission patterns using `AccessGroups`
 - [[State-Machines|State Machines]] - Workflow automation
 - [[Audit-Logging|Audit Logging]] - Change history
 - [[Schema-Examples|Schema Examples]] - Complete use cases

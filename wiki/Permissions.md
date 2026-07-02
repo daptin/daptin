@@ -427,6 +427,158 @@ sleep 10
 
 ---
 
+## Schema Provisioning: Table and Action AccessGroups
+
+For complete application patterns, start with [[Authorization-Scenarios]]. It has tested examples for public sites, private apps, semi-private owner rows, mixed public/private rows, shared workspaces, and selected action access.
+
+**Reproduced on a fresh SQLite Daptin instance: 2026-07-02**
+
+Some applications need schema-managed actions and table access to be deployed without a manual post-deploy repair step. Use `AccessGroups` to declare the usergroup relation for the schema-managed object itself.
+
+For a table, `AccessGroups` relates the table's `world` row to a group:
+
+```yaml
+Tables:
+  - TableName: document
+    Permission: 1003811
+    AccessGroups:
+      - Name: users
+        Permission: 999424
+```
+
+This creates or updates:
+
+```text
+world(document) -> users
+```
+
+`AccessGroups` accepts the same string and object forms as `DefaultGroups`. Use object form when the relation row needs an explicit `Permission`; if omitted, Daptin uses the relation table's default permission.
+
+For an action, `AccessGroups` relates that specific `action` row to a group:
+
+```yaml
+Actions:
+  - Name: set_document_private
+    OnType: document
+    Permission: 32
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+  - Name: set_document_public
+    OnType: document
+    Permission: 32
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+```
+
+This creates or updates:
+
+```text
+action(set_document_private on document) -> users
+action(set_document_public on document) -> users
+```
+
+### Why AccessGroups Is Different From DefaultGroups
+
+`DefaultGroups` applies to data rows created inside a table:
+
+```yaml
+Tables:
+  - TableName: document
+    DefaultGroups:
+      - Name: users
+        Permission: 999424
+```
+
+This creates default relations for `document` records. It does not relate `world(document)` to `users`.
+
+`AccessGroups` applies to the schema-managed object itself:
+
+```text
+Tables[].AccessGroups   = access to the table/type gate: world(table)
+Tables[].DefaultGroups  = default groups for data rows created in that table
+Actions[].AccessGroups  = access to one specific action row
+```
+
+### Broad Action Defaults
+
+The older table-level form is still supported:
+
+```yaml
+Tables:
+  - TableName: action
+    DefaultGroups:
+      - Name: users
+        Permission: 524288
+```
+
+This applies to every schema-managed action. Use `Actions[].AccessGroups` when only selected actions should be related to a group.
+
+If both broad action `DefaultGroups` and an action's `AccessGroups` contain the same group, Daptin applies the broad default first and the action-level `AccessGroups` second. The action-level relation permission wins.
+
+### Canaster-Style Example
+
+Action execution checks both the table/type gate and the action row gate:
+
+```text
+world(document) permission check
+AND
+action(set_canaster_document_private) permission check
+```
+
+Declare both gates in schema:
+
+```yaml
+Tables:
+  - TableName: document
+    Permission: 1003811
+    AccessGroups:
+      - Name: users
+        Permission: 999424
+
+  - TableName: asset
+    Permission: 1003811
+    AccessGroups:
+      - Name: users
+        Permission: 999424
+
+Actions:
+  - Name: set_canaster_document_private
+    OnType: document
+    Permission: 32
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+  - Name: set_canaster_document_public
+    OnType: document
+    Permission: 32
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+  - Name: set_canaster_asset_private
+    OnType: asset
+    Permission: 32
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+  - Name: set_canaster_asset_public
+    OnType: asset
+    Permission: 32
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+```
+
+Expected startup result:
+
+- `world(document) -> users`
+- `world(asset) -> users`
+- only the declared Canaster action rows are related to `users`
+- unrelated actions are unchanged unless broad `TableName: action DefaultGroups` is also configured
+
+---
+
 ## Troubleshooting
 
 ### 403 Forbidden (Most Common Causes)
@@ -463,4 +615,5 @@ The records exist but you don't have Peek permission. Contact the owner or admin
 
 - [[Getting-Started-Guide|Getting Started Guide]] - First-time setup
 - [[Users-and-Groups|Users and Groups]] - Managing users
+- [[Authorization-Scenarios|Authorization Scenarios]] - Tested app-level permission patterns
 - [[Actions-Overview|Actions Overview]] - Running actions

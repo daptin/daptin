@@ -90,6 +90,9 @@ func mergeTableConfigIntoExisting(existing table_info.TableInfo, override table_
 	if override.DefaultGroups != nil {
 		existing.DefaultGroups = override.DefaultGroups
 	}
+	if override.AccessGroups != nil {
+		existing.AccessGroups = override.AccessGroups
+	}
 	if override.DefaultRelations != nil {
 		existing.DefaultRelations = override.DefaultRelations
 	}

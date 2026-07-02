@@ -32,6 +32,7 @@ stack as a sidecar for the backend features you are missing.
 - **[[Core-Concepts]]**
 - **[[Schema-Definition]]**
 - **[[Permissions]]**
+- **[[Authorization-Scenarios]]**
 - **[[Users-and-Groups]]**
 - **[[Actions-Overview]]**
 - **[[State-Machines]]**
@@ -60,6 +61,7 @@ stack as a sidecar for the backend features you are missing.
 
 - Users, usergroups, group membership, and ownership-aware rows.
 - Entity-level and row-level permission checks.
+- Tested patterns for public, private, mixed, owner-row, shared group, and action-gated apps.
 - Guest, owner, and group permission scopes.
 - JWT/session auth, signup/signin, password reset, OTP/2FA.
 - OAuth as a client and OAuth/OIDC-style provider endpoints.

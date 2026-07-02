@@ -439,5 +439,6 @@ curl http://localhost:6336/api/user_account \
 
 - [[Getting-Started-Guide|Getting Started]] - First admin setup
 - [[Permissions|Permissions]] - Control access with groups
+- [[Authorization-Scenarios|Authorization Scenarios]] - Public, private, mixed, owner-row, and shared workspace patterns
 - [[Two-Factor-Auth|Two-Factor Auth]] - 2FA setup
 - [[Authentication|Authentication]] - OAuth and JWT details

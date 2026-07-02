@@ -5,6 +5,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/columns"
 	"github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -50,15 +51,16 @@ type Outcome struct {
 // New actions can be defined and added using JSON or YAML files
 // Actions are stored and reloaded from the `action` table of the storage
 type Action struct {
-	Name                    string                     // Name of the action
-	Label                   string                     // Human-readable text defining the function
-	OnType                  string                     // Name of the entity for this action, used to build url endpoint $BASE/action/<entityName>
-	InstanceOptional        bool                       // if true a "reference_id" parameter is expected to a value of a an existing <entityType> object, the entity object looked up by this reference_id will be passed on in the Context for outcome evaluations
-	RequestSubjectRelations []string                   // if above is true and, this array of strings defined what relations to be fecthed when the subject (above) is fetched and also provided in the context
-	ReferenceId             daptinid.DaptinReferenceId // uuid of this action
-	Permission              *auth.AuthPermission       // row permission for this schema-managed action instance
-	InFields                []api2go.ColumnInfo        // {ColumnName: '', ... }
-	OutFields               []Outcome                  // {Action: '', Type: '', Attributes: {...} }
+	Name                    string                      // Name of the action
+	Label                   string                      // Human-readable text defining the function
+	OnType                  string                      // Name of the entity for this action, used to build url endpoint $BASE/action/<entityName>
+	InstanceOptional        bool                        // if true a "reference_id" parameter is expected to a value of a an existing <entityType> object, the entity object looked up by this reference_id will be passed on in the Context for outcome evaluations
+	RequestSubjectRelations []string                    // if above is true and, this array of strings defined what relations to be fecthed when the subject (above) is fetched and also provided in the context
+	ReferenceId             daptinid.DaptinReferenceId  // uuid of this action
+	Permission              *auth.AuthPermission        // row permission for this schema-managed action instance
+	AccessGroups            table_info.DefaultGroupList // usergroups for this schema-managed action row
+	InFields                []api2go.ColumnInfo         // {ColumnName: '', ... }
+	OutFields               []Outcome                   // {Action: '', Type: '', Attributes: {...} }
 	Validations             []columns.ColumnTag
 	Conformations           []columns.ColumnTag
 }

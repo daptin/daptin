@@ -17,6 +17,7 @@
 - [[Schema-Definition]]
 - [[Column-Types]]
 - [[Permissions]]
+- [[Authorization-Scenarios]]
 - [[Users-and-Groups]]
 
 ## REST API

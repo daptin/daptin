@@ -14,7 +14,7 @@
 | Feature | Files | Status |
 |---------|-------|--------|
 | **Column Types** | Column-Types.md, Column-Type-Reference.md | ✅ All 41 types complete with examples |
-| **Schema Properties** | Schema-Reference-Complete.md, Schema-Examples.md | ✅ All 18 TableInfo properties documented |
+| **Schema Properties** | Schema-Reference-Complete.md, Schema-Examples.md | ✅ All 19 TableInfo properties documented |
 | **State Machines** | State-Machines.md | ✅ Comprehensive with testing notes |
 | **Custom Actions Basics** | Custom-Actions.md | ✅ InFields and OutFields structure covered |
 | **Built-in Actions** | Action-Reference.md, multiple guides | ✅ 50+ system actions with examples |

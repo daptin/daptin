@@ -735,7 +735,8 @@ Key points:
 - Actions use the same permission system as tables
 - Both entity permission AND action permission must allow execution
 - Schema actions can declare `Permission` directly; startup sync writes it to `action.permission`
-- Action usergroup membership is configured on `TableName: action` through `DefaultGroups`, not inside each action definition
+- Selected action usergroup membership is configured inside the action with `AccessGroups`
+- `TableName: action` through `DefaultGroups` is still supported for broad defaults that apply to every schema-managed action
 
 ---
 

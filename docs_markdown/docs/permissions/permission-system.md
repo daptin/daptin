@@ -2,6 +2,8 @@ I'll create a comprehensive technical documentation of the authentication layer 
 
 # Daptin Authorization System: Technical Documentation
 
+For practical application patterns, start with [Authorization scenarios](authorization-scenarios.md).
+
 ## Overview
 
 Daptin implements a sophisticated authorization system inspired by Linux-style permission bits but extended for database operations. This system enables fine-grained access control at both table and row levels across different user contexts (guest, authenticated user, and group).

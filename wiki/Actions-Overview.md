@@ -428,7 +428,22 @@ On startup, Daptin syncs this value into the `action.permission` column for both
 
 ### Schema-Managed Action Usergroups
 
-Action usergroup membership is configured at the `TableInfo` level because every entity has the default `has_many usergroup` relation. Do not put usergroup membership inside one action definition.
+Selected action usergroup membership is configured on the action with `AccessGroups`.
+
+```yaml
+Actions:
+  - Name: post_gig
+    Label: Post gig
+    OnType: gig
+    Permission: 32
+    AccessGroups:
+      - Name: administrators
+        Permission: 524288
+```
+
+This writes rows into `action_action_id_has_usergroup_usergroup_id` for that action only. The optional `Permission` value is stored on the relation row; if omitted, Daptin uses the relation table default permission.
+
+The broad table-level form is still supported when every schema-managed action should receive the same group:
 
 ```yaml
 Tables:
@@ -438,7 +453,7 @@ Tables:
         Permission: 524288
 ```
 
-This writes rows into `action_action_id_has_usergroup_usergroup_id` for schema-managed actions. The optional `Permission` value is stored on the relation row; if omitted, Daptin uses the relation table default permission.
+If both forms include the same group, the action-level `AccessGroups` permission wins.
 
 ### Cache Refresh
 
@@ -607,6 +622,8 @@ Common errors:
 ## See Also
 
 - [[Custom-Actions|Custom-Actions]] - Creating actions with workflows
+- [[Authorization-Scenarios|Authorization Scenarios]] - Tested permission and action access patterns
+- [[Authorization-Scenario-Action-Access-Gates|Action Access Gates]] - Selected action access with `AccessGroups`
 - [[Cloud-Storage|Cloud-Storage]] - Cloud storage action examples
 - [[Authentication|Authentication]] - Auth action details
 - [[State-Machines|State-Machines]] - Trigger actions on state changes

@@ -2,6 +2,8 @@
 
 An action is a set of outcomes (as defined in the action schema) which is executed when action endpoint is invoked.  
 
+For complete permission patterns around selected action access, see [Authorization scenarios](../permissions/authorization-scenarios.md).
+
 An action can have a set of required input fields or none at all. Actions can also be built to handle callbacks/webhooks from other services (like payment gateway server to server notification).
 
 Actions can be thought of as follows:
@@ -136,7 +138,23 @@ Actions:
 
 Daptin syncs this value into the `action.permission` column at startup for both new and existing schema-managed actions. If `Permission` is omitted, new actions keep the historical `ALLOW_ALL_PERMISSIONS` default and existing actions keep their current stored permission.
 
-Action usergroup membership is configured on the `action` table, because every entity has the default `has_many usergroup` relation:
+Selected action usergroup membership is configured directly on the action with `AccessGroups`:
+
+```yaml
+Actions:
+- Name: post_gig
+  Label: Post gig
+  OnType: gig
+  Permission: 32
+  AccessGroups:
+  - Name: administrators
+    Permission: 524288
+```
+
+This creates or updates rows in `action_action_id_has_usergroup_usergroup_id` for that action only. The optional `Permission` value belongs to the relation row.
+`AccessGroups` accepts the same string and object forms as `DefaultGroups`; use the object form when the relation row needs an explicit permission.
+
+The older table-level form is still supported when every schema-managed action should receive the same group:
 
 ```yaml
 Tables:
@@ -146,7 +164,7 @@ Tables:
     Permission: 524288
 ```
 
-This creates or updates rows in `action_action_id_has_usergroup_usergroup_id`. The optional `Permission` value belongs to the relation row. Do not put usergroup membership inside an individual action definition.
+If both forms include the same group, the action-level `AccessGroups` permission wins.
 
 
 ## Input fields
