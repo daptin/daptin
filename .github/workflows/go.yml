@@ -1,485 +1,56 @@
----
-# Github Actions build for daptin
-# -*- compile-command: "yamllint -f parsable build.yml" -*-
-
 name: build
 
-# Trigger the workflow on push or pull request
 on:
   push:
     branches:
       - '*'
-    tags:
-      - '*'
   pull_request:
 
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  build:
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        job_name: ['linux', 'mac', 'windows_amd64', 'other_os', 'modules_race']
+  test:
+    name: linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
-        include:
-          - job_name: linux
-            os: ubuntu-latest
-            go: '1.21.x'
-            modules: 'on'
-            gotags: cmount
-            build_flags: '-include "^linux/"'
-            check: true
-            quicktest: true
-            deploy: true
-
-          - job_name: mac
-            os: macOS-latest
-            go: '1.21.x'
-            modules: 'on'
-            gotags: ''  # cmount doesn't work on osx travis for some reason
-            build_flags: '-include "^darwin/" -cgo'
-            quicktest: true
-            deploy: true
-
-          - job_name: windows_amd64
-            os: windows-latest
-            go: '1.21.x'
-            modules: 'on'
-            gotags: cmount
-            build_flags: '-include "^windows/amd64" -cgo'
-            deploy: true
-
-          - job_name: other_os
-            os: ubuntu-latest
-            go: '1.21.x'
-            modules: 'on'
-            build_flags: "-exclude '^(windows/|darwin/amd64|linux/)'"
-            compile_all: true
-            deploy: true
-
-          - job_name: modules_race
-            os: ubuntu-latest
-            go: '1.21.x'
-            modules: 'on'
-            quicktest: true
-
-    name: ${{ matrix.job_name }}
-
-    runs-on: ${{ matrix.os }}
+    env:
+      GO111MODULE: on
+      GOTAGS: cmount
 
     steps:
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - name: Checkout
-        uses: actions/checkout@v1
-
-      - id: get_version
-        uses: battila7/get-version-action@v2
+        uses: actions/checkout@v4
 
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: '1.21.x'
+          cache: true
 
-      - name: Set environment variables
-        shell: bash
-        run: |
-          
-          echo "GOPATH=${{ runner.workspace }}" >> $GITHUB_ENV
-          echo "GO111MODULE=${{ matrix.modules }}" >> $GITHUB_ENV
-          echo "GOTAGS=${{ matrix.gotags }}" >> $GITHUB_ENV
-          echo "BUILD_FLAGS=${{ matrix.build_flags }}" >> $GITHUB_ENV
-          echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
-          
-          if [[ "${{ matrix.goarch }}" != "" ]]; then echo "GOARCH=${{ matrix.goarch }}" >> $GITHUB_ENV ; fi
-          if [[ "${{ matrix.cgo }}" != "" ]]; then echo "CGO_ENABLED=${{ matrix.cgo }}" >> $GITHUB_ENV  ; fi
-      - name: Install Libraries on Linux
-        shell: bash
+      - name: Install system libraries
         run: |
           sudo modprobe fuse
           sudo chmod 666 /dev/fuse
           sudo chown root:$USER /etc/fuse.conf
-          sudo apt-get install fuse libfuse-dev rpm pkg-config
-        if: matrix.os == 'ubuntu-latest'
+          sudo apt-get update
+          sudo apt-get install -y fuse libfuse-dev pkg-config
 
-
-      - name: Install Libraries on Windows
-        shell: powershell
+      - name: Install build tools
         run: |
-          $ProgressPreference = 'SilentlyContinue'
-          choco install -y winfsp zip wget
-        if: matrix.os == 'windows-latest'
+          go install github.com/ahmetb/govvv@latest
 
-      - name: Print Go version and environment
-        shell: bash
+      - name: Print build environment
         run: |
-          printf "Using go at: $(which go)\n"
           printf "Go version: $(go version)\n"
-          printf "\n\nGo environment:\n\n"
-          go env
-          printf "\n\nDaptin environment:\n\n"
           make vars
-          printf "\n\nSystem environment:\n\n"
-          env
 
       - name: Run quick tests
-        shell: bash
         run: |
           make
           make quicktest
-        if: matrix.quicktest
-
-      - name: Run Race test
-        shell: bash
-        run: |
-          make racequicktest
-        if: matrix.racequicktest
-
-
-
-      - name: Build dashboard
-        shell: bash
-        run: |
-          printf "npm and qusar to build dashboard in ./daptinweb"
-          wget -q https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
-          unzip -q shadcn-admin.zip -d daptinweb
-          rm shadcn-admin.zip
-          ls -lah ./daptinweb
-          go install github.com/GeertJohan/go.rice/rice@latest
-          $GOPATH/bin/rice embed-go
-
-
-
-      - name: Installl gorice on linux
-        shell: bash
-        run: |
-          go get github.com/goreleaser/nfpm/cmd/nfpm
-          go get github.com/ahmetb/govvv
-          go install github.com/ahmetb/govvv
-          go install github.com/goreleaser/nfpm/cmd/nfpm@latest
-          go get
-          ls -lah
-
-
-      - name: Compile all architectures test
-        shell: bash
-        run: |
-          make
-          make compile_all
-          # Clean up build artifacts to save space
-          rm -rf daptin
-          find build -type f -name '*.zip' -delete 2>/dev/null || true
-        if: matrix.compile_all
-
-      - name: Build and deploy built binaries
-        shell: bash
-        run: |
-          make travis_beta
-          ls -lah build/
-          # Clean up intermediate files
-          rm -rf daptin 2>/dev/null || true
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-
-      - uses: actions/upload-artifact@v4
-        name: Upload freebsd amd64 artifact
-        continue-on-error: true
-        with:
-          name: daptin-beta-latest-freebsd-amd64.zip
-          path: build/daptin-beta-latest-freebsd-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        name: Upload linux arm64 artifact
-        continue-on-error: true
-        with:
-          name: daptin-beta-latest-linux-arm64.zip
-          path: build/daptin-beta-latest-linux-arm64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        name: Upload linux amd64 artifact
-        continue-on-error: true
-        with:
-          name: daptin-beta-latest-linux-amd64.zip
-          path: build/daptin-beta-latest-linux-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        name: Upload freebsd arm artifact
-        continue-on-error: true
-        with:
-          name: daptin-beta-latest-freebsd-arm.zip
-          path: build/daptin-beta-latest-freebsd-arm.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        name: Upload windows amd64 artifact
-        with:
-          name: daptin-beta-latest-windows-amd64.zip
-          path: build/daptin-beta-latest-windows-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        name: Upload netbsd amd64 artifact
-        with:
-          name: daptin-beta-latest-netbsd-amd64.zip
-          path: build/daptin-beta-latest-netbsd-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        name: Upload netbsd armartifact
-        with:
-          name: daptin-beta-latest-netbsd-arm.zip
-          path: build/daptin-beta-latest-netbsd-arm.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        name: Upload openbsd amd64 artifact
-        with:
-          name: daptin-beta-latest-openbsd-amd64.zip
-          path: build/daptin-beta-latest-openbsd-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        name: Upload osx amd64 artifact
-        with:
-          name: daptin-beta-latest-osx-amd64.zip
-          path: build/daptin-beta-latest-osx-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        name: Upload solaris amd64 artifact
-        with:
-          name: daptin-beta-latest-solaris-amd64.zip
-          path: build/daptin-beta-latest-solaris-amd64.zip
-        if: matrix.deploy && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-
-  xgo:
-    timeout-minutes: 90
-    name: "xgo cross compile"
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: false
-          swap-storage: true
-
-      - name: Checkout
-        uses: actions/checkout@v1
-
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-
-
-      - name: Print env variable
-        shell: bash
-        id: tagInfo
-        run: echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
-
-
-      - name: Set environment variables
-        shell: bash
-        run: |
-          echo "GOPATH=${{ runner.workspace }}" >> $GITHUB_ENV
-          echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
-
-
-      - name: Copy Code
-        shell: bash
-        run: go get github.com/daptin/daptin
-
-
-      - name: Build dashboard
-        shell: bash
-        run: |
-          printf "npm and qusar to build dashboard in ./daptinweb"
-          wget -q https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
-          unzip -q shadcn-admin.zip -d daptinweb
-          rm shadcn-admin.zip
-          ls -lah ./daptinweb
-          go install github.com/GeertJohan/go.rice/rice@latest
-          $GOPATH/bin/rice embed-go
-
-
-
-#      - name: Installl gorice on linux
-#        shell: bash
-#        run: |
-#          ls -lah
-#          go install github.com/GeertJohan/go.rice/rice@latest
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-amd64
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-darwin-amd64
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-5
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-6
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-arm-7
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mipsle
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-linux-mips64le
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-amd64.exe
-#          $GOPATH/bin/rice append --exec ./build/github.com/daptin/daptin-windows-4.0-386.exe
-#
-
-      - name: Set environment variables
-        shell: bash
-        run: |
-
-          echo "GOPATH=${{ runner.workspace }}" >> $GITHUB_ENV
-          echo "GO111MODULE=${{ matrix.modules }}" >> $GITHUB_ENV
-          echo "GOTAGS=${{ matrix.gotags }}" >> $GITHUB_ENV
-          echo "BUILD_FLAGS=${{ matrix.build_flags }}" >> $GITHUB_ENV
-          echo "${{ runner.workspace }}/bin" >> $GITHUB_PATH
-
-          if [[ "${{ matrix.goarch }}" != "" ]]; then echo "GOARCH=${{ matrix.goarch }}" >> $GITHUB_ENV ; fi
-          if [[ "${{ matrix.cgo }}" != "" ]]; then echo "CGO_ENABLED=${{ matrix.cgo }}" >> $GITHUB_ENV  ; fi
-
-
-      - name: Cross-compile daptin
-        run: |
-          docker pull crazymax/xgo
-          go get github.com/crazy-max/xgo
-          go get github.com/ahmetb/govvv
-          go install github.com/crazy-max/xgo
-          go install github.com/ahmetb/govvv
-          pwd
-          ls -lah /home/runner/work/daptin
-          pwd
-          go env
-          ls -lah
-          $GOPATH/bin/xgo -targets=linux/amd64,linux/arm64 \
-              --tags netgo -ldflags '-linkmode external' -dest build .
-          $GOPATH/bin/xgo -targets='darwin/amd64,darwin/arm64,windows/*' \
-              --tags netgo -ldflags '-linkmode external' -dest build .
-          # Clean up xgo build cache
-          rm -rf /tmp/xgo-cache 2>/dev/null || true
-          docker system prune -f || true
-
-
-      - name: List built artifacts
-        shell: bash
-        run: |
-          ls build
-          find build
-          file build/*
-          echo ${{ github.ref_name }}
-          cp ./build/daptin-linux-amd64 daptin-linux-amd64
-          docker build -t daptin/daptin:${{ github.ref_name }} .
-          docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
-          docker push daptin/daptin:${{ github.ref_name }}
-          # Clean up Docker images after push
-          docker rmi daptin/daptin:${{ github.ref_name }} || true
-          docker system prune -af || true
-
-      - uses: actions/upload-artifact@v4
-        name: Upload linux amd64 artifact
-        with:
-          name: daptin-linux-amd64
-          path: build/daptin-linux-amd64
-        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        name: Upload darwin arm64 artifact
-        with:
-          name: daptin-darwin-arm64
-          path: build/daptin-darwin-arm64
-        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-
-      - uses: actions/upload-artifact@v4
-        name: Upload darwin amd64 artifact
-        with:
-          name: daptin-darwin-amd64
-          path: build/daptin-darwin-amd64
-        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - uses: actions/upload-artifact@v4
-        name: Upload linux arm64 artifact
-        with:
-          name: daptin-linux-arm64
-          path: build/daptin-linux-arm64
-        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-#      - uses: actions/upload-artifact@v4
-#        name: Upload arm-5 artifact
-#        with:
-#          name: daptin-linux-arm-5
-#          path: build/github.com/daptin/daptin-linux-arm-5
-#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-#
-#      - uses: actions/upload-artifact@v4
-#        name: Upload arm-6 artifact
-#        with:
-#          name: daptin-linux-arm-6
-#          path: build/github.com/daptin/daptin-linux-arm-6
-#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-#
-#      - uses: actions/upload-artifact@v4
-#        name: Upload arm-7 artifact
-#        with:
-#          name: daptin-linux-arm-7
-#          path: build/github.com/daptin/daptin-linux-arm-7
-#        if: github.head_ref == '' && github.repository == 'daptin/daptin'
-
-
-      - uses: actions/upload-artifact@v4
-        name: Upload windows amd64 artifact
-        with:
-          name: daptin-windows-amd64.exe
-          path: build/daptin-windows-amd64.exe
-        if: success() && github.head_ref == '' && github.repository == 'daptin/daptin'
-
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          draft: true
-          files: |
-            ./build/daptin-linux-amd64
-            ./build/daptin-darwin-amd64
-            ./build/daptin-linux-arm64
-            ./build/daptin-windows-amd64.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push docker image
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          echo ${{ github.ref_name }}
-          pwd
-          cp ./build/daptin-linux-amd64 daptin-linux-amd64
-          ls -lah
-          docker build -t daptin/daptin:${{ github.ref_name }} .
-          docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
-          docker push daptin/daptin:${{ github.ref_name }}
-          # Clean up Docker images after push
-          docker rmi daptin/daptin:${{ github.ref_name }} || true
-          docker system prune -af || true
-          

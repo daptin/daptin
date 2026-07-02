@@ -1,0 +1,125 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release, for example v0.12.27
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      GO111MODULE: on
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false
+          swap-storage: true
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
+          cache: true
+
+      - name: Install release tools
+        run: |
+          go install github.com/GeertJohan/go.rice/rice@latest
+          go install github.com/crazy-max/xgo@latest
+          go install github.com/ahmetb/govvv@latest
+
+      - name: Build dashboard assets
+        run: |
+          wget -q https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
+          unzip -q shadcn-admin.zip -d daptinweb
+          rm shadcn-admin.zip
+          "$(go env GOPATH)/bin/rice" embed-go
+
+      - name: Cross-compile daptin
+        run: |
+          docker pull crazymax/xgo
+          "$(go env GOPATH)/bin/xgo" -targets=linux/amd64,linux/arm64 \
+            --tags netgo -ldflags '-linkmode external' -dest build .
+          "$(go env GOPATH)/bin/xgo" -targets='darwin/amd64,darwin/arm64,windows/*' \
+            --tags netgo -ldflags '-linkmode external' -dest build .
+
+      - name: List built artifacts
+        run: |
+          find build -maxdepth 1 -type f -print -exec file {} \;
+
+      - name: Upload linux amd64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daptin-linux-amd64
+          path: build/daptin-linux-amd64
+
+      - name: Upload linux arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daptin-linux-arm64
+          path: build/daptin-linux-arm64
+
+      - name: Upload darwin amd64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daptin-darwin-amd64
+          path: build/daptin-darwin-amd64
+
+      - name: Upload darwin arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daptin-darwin-arm64
+          path: build/daptin-darwin-arm64
+
+      - name: Upload windows amd64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daptin-windows-amd64.exe
+          path: build/daptin-windows-amd64.exe
+
+      - name: Create draft GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
+          files: |
+            ./build/daptin-linux-amd64
+            ./build/daptin-darwin-amd64
+            ./build/daptin-linux-arm64
+            ./build/daptin-windows-amd64.exe
+
+      - name: Build and push Docker image
+        run: |
+          cp ./build/daptin-linux-amd64 daptin-linux-amd64
+          docker build -t daptin/daptin:${RELEASE_TAG} .
+          docker login -u="${{ secrets.DOCKER_USERNAME }}" -p="${{ secrets.DOCKER_PASSWORD }}"
+          docker push daptin/daptin:${RELEASE_TAG}
