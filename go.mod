@@ -83,11 +83,13 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/yangxikun/gin-limit-by-key v0.0.0-20190512072151-520697354d5f
 	github.com/zendev-sh/goai v0.7.3
-	golang.org/x/crypto v0.37.0
-	golang.org/x/net v0.38.0
+	golang.org/x/crypto v0.51.0
+	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/text v0.24.0
+	golang.org/x/text v0.37.0
 	golang.org/x/time v0.10.0
+	google.golang.org/grpc v1.71.1
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/go-playground/validator.v9 v9.30.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
@@ -309,7 +311,6 @@ require (
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/muesli/smartcrop v0.3.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/ncw/swift/v2 v2.0.3 // indirect
 	github.com/niklasfasching/go-org v1.6.6 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
@@ -385,24 +386,21 @@ require (
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	gocloud.dev v0.24.0 // indirect
 	golang.org/x/arch v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/image v0.18.0 // indirect
-	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/sync v0.13.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/term v0.31.0 // indirect
-	golang.org/x/tools v0.30.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/term v0.43.0 // indirect
+	golang.org/x/tools v0.44.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/api v0.223.0 // indirect
 	google.golang.org/genproto v0.0.0-20240730163845-b1a4ccb954bf // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250505200425-f936aa4a68b2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2 // indirect
-	google.golang.org/grpc v1.71.1 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
