@@ -189,6 +189,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 
 				if task == backends.TaskSaveMail {
 					var to, body string
+					sentCopyAppended := false
 
 					hash := ""
 					if len(e.Hashes) > 0 {
@@ -385,6 +386,13 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							finalMail := b.Bytes()
 							log.Printf("Final Mail: From [%v] to [%v]", e.MailFrom.String(), rcpt.String())
 
+							if !sentCopyAppended {
+								if _, err := dbResource.AppendSentMailForSender(e.MailFrom.String(), mailBytes, transaction); err != nil {
+									log.Errorf("Failed to append outbound relay mail to Sent for [%v]: %v", e.MailFrom.String(), err)
+									return nil, err
+								}
+							}
+
 							outboxMailBody := dbResource.Cruds["outbox"].MailColumnValue("outbox", "mail", finalMail, hash)
 
 							outboxModel := api2go.NewApi2GoModelWithData("outbox", nil, 0, nil, map[string]interface{}{
@@ -416,7 +424,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								resource.CheckErr(err, "Failed to queue outbound mail in outbox")
 								continue
 							}
-							transaction.Commit()
+							if err := transaction.Commit(); err != nil {
+								return nil, err
+							}
+							sentCopyAppended = true
 							continue
 						}
 

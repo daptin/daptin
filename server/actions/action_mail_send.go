@@ -136,6 +136,11 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	finalMail := b.Bytes()
 	log.Printf("Final Mail: From [%v] to [%v] via [%v]", mailFromAddress.String(), strings.Join(mailTo, ","), mailServerHostname)
 
+	if _, err := d.cruds["mail"].AppendSentMailForSender(mailFromAddress.String(), finalMail, transaction); err != nil {
+		log.Errorf("Failed to append outbound mail to Sent for [%v]: %v", mailFromAddress.String(), err)
+		return nil, nil, []error{err}
+	}
+
 	for _, toAddress := range toAddresses {
 		outboxMailBody := d.cruds["outbox"].MailColumnValue("outbox", "mail", finalMail, subject)
 

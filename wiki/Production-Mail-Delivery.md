@@ -8,8 +8,10 @@ custom action `OutFields`; they are not standalone REST endpoints.
 
 ## Delivery Model
 
-`mail.send` creates an `outbox` row for each recipient. By default that row is
-queued and later processed by the scheduled `process_outbox` task.
+`mail.send` requires the `from` address to match a configured
+`mail_account.username`. It creates one `Sent` mailbox copy for that sender at
+queue time, then creates an `outbox` row for each recipient. By default outbox
+rows are queued and later processed by the scheduled `process_outbox` task.
 
 For login, OTP, and password reset flows, set `send_immediately: true` or
 `attempt_delivery: true` to attempt delivery before the action returns:
@@ -29,14 +31,18 @@ OutFields:
 
 Immediate delivery still uses the outbox:
 
-1. `mail.send` creates an `outbox` row.
-2. The row is committed before SMTP delivery begins.
-3. If `outbox.mail` is cloud-store-backed, Daptin reloads the committed row
+1. `mail.send` appends one message to the sender's `Sent` mailbox.
+2. `mail.send` creates an `outbox` row for each recipient.
+3. The row is committed before SMTP delivery begins.
+4. If `outbox.mail` is cloud-store-backed, Daptin reloads the committed row
    with `mail` included so the `.eml` content is hydrated.
-4. SMTP delivery runs without holding a database transaction open.
-5. On success, `sent=true` stops future retries.
-6. On failure, the row remains pending and `retry_count`, `last_error`, and
+5. SMTP delivery runs without holding a database transaction open.
+6. On success, `sent=true` stops future retries.
+7. On failure, the row remains pending and `retry_count`, `last_error`, and
    `next_retry_at` are updated for scheduled retry.
+
+Outbox retries do not create more `Sent` rows because the mailbox copy is
+created before delivery attempts begin.
 
 The scheduled `process_outbox` task retries rows where `sent=false`,
 `retry_count < 5`, and `next_retry_at` is due.
@@ -165,11 +171,56 @@ openssl s_client -connect localhost:465 -servername mail.example.com -quiet
 For plaintext plus STARTTLS, use port `587` and issue `STARTTLS` before SMTP
 AUTH.
 
+## Local MX Testing
+
+Outbound `mail.send` delivery uses the recipient domain's MX records:
+
+```text
+recipient@local.test -> lookup MX for local.test -> connect to MX host on port 25
+```
+
+An `/etc/hosts` entry can make `mail.local.test` resolve to `127.0.0.1`, but it
+cannot define an MX record for `local.test`. If your test recipient is
+`user@local.test`, configure local DNS so `local.test` has an MX target.
+
+Small CoreDNS example:
+
+```text
+# Corefile
+local.test:1053 {
+  file /etc/coredns/local.test.zone
+  log
+  errors
+}
+```
+
+```dns
+; /etc/coredns/local.test.zone
+$ORIGIN local.test.
+@ 3600 IN SOA ns.local.test. hostmaster.local.test. 1 7200 3600 1209600 3600
+@ 3600 IN NS ns.local.test.
+ns 3600 IN A 127.0.0.1
+mail 3600 IN A 127.0.0.1
+@ 3600 IN MX 10 mail.local.test.
+```
+
+Point the test machine or container running Daptin at that DNS server, then
+verify from the same network namespace as Daptin:
+
+```bash
+dig @127.0.0.1 -p 1053 MX local.test
+dig @127.0.0.1 -p 1053 A mail.local.test
+```
+
+For direct outbox delivery, make sure an SMTP server is reachable at the MX host
+on port `25`. Mapping only port `465` or `587` is not enough for this path.
+
 ## Troubleshooting
 
 | Symptom | Check |
 |---------|-------|
 | Action returns but no mail arrives | Check `outbox.sent`, `retry_count`, `last_error`, and Daptin logs |
+| Local test creates outbox rows but does not deliver | Verify MX DNS from Daptin's runtime environment and ensure the MX host accepts SMTP on port 25 |
 | DKIM lookup fails | Confirm record is under the `From` domain, for example `d1._domainkey.example.com` |
 | Gmail rejects direct mail | Check PTR, forward-confirmed PTR, SPF, DKIM, DMARC, port 25 policy, and IP reputation |
 | Duplicate OTP mail | Look for old `sent=false` rows retried by `process_outbox` |

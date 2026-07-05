@@ -78,7 +78,7 @@ Send email via direct SMTP delivery or configured mail server.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `from` | string | Yes | Sender email address |
+| `from` | string | Yes | Sender email address; must match a configured `mail_account.username` |
 | `to` | array of strings | Yes | Recipient email addresses |
 | `subject` | string | Yes | Email subject line |
 | `body` | string | Yes | Email body (plain text) |
@@ -120,12 +120,16 @@ OutFields:
 
 **Prerequisites:**
 - Mail server must be configured in Daptin
+- Sender address in `from` must exist as a Daptin `mail_account.username`
 - See [[SMTP-Server|SMTP Server Guide]] for setup
 - For production DNS, DKIM, and retry behavior, see [[Production-Mail-Delivery]]
 
 When `mail_server_hostname` is set, Daptin signs with the domain from the
 `from` address. For example, `from: "login@example.com"` signs with
 `example.com`, even if `mail_server_hostname` is `mail.example.com`.
+
+When the message is queued, Daptin also appends one copy to the sender's
+`Sent` mailbox. Outbox retries do not create additional `Sent` copies.
 
 ### Multiple Recipients
 

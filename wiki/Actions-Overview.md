@@ -98,6 +98,31 @@ Every action returns an array of responses. Each response has a `ResponseType` t
 }
 ```
 
+### Success Semantics
+
+HTTP 200 means Daptin accepted the request and the action dispatcher did not
+return a transport-level error. It does not always mean the business operation
+you expected happened.
+
+Actions return an array of response directives. An empty array (`[]`) can mean
+that no `OutFields` produced a response, for example because every outcome was
+conditional and no condition matched. Clients and scripts should check for the
+expected response payload, not only the HTTP status or command exit code.
+
+For example, a custom action that should notify the browser should be checked
+for the expected `client.notify` response:
+
+```bash
+curl -s -X POST http://localhost:6336/action/world/send_notification \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"recipient":"user@example.com","subject":"Welcome","message":"Hello"}}' |
+  jq -e '.[] | select(.ResponseType == "client.notify" and .Attributes.type == "success")'
+```
+
+If the result is `[]`, debug the action's `OutFields`, `Condition` expressions,
+and performer logs before treating the call as successful.
+
 ---
 
 ## Built-in Actions by Category
@@ -253,6 +278,27 @@ Response includes:
 - Requires record ID in URL
 - Example: `POST /action/user_account/{user_id}/generate_jwt_token`
 
+### Subject Row Authorization
+
+For instance actions, Daptin loads the target row as the action subject before
+running `OutFields`. The caller must be allowed to load and execute that row.
+If user B calls an action on user A's private row, Daptin fails before the
+action outcomes run.
+
+That means action JavaScript usually does not need to repeat the basic owner
+check for the subject row. Add custom ownership or membership checks inside the
+action only when there is an extra business rule beyond the normal Daptin object
+permission model.
+
+Test instance actions across contexts:
+
+| Caller | Subject row | Expected |
+|--------|-------------|----------|
+| Owner | Own row | Action runs if table and action gates also allow it |
+| Normal user B | User A's private row | Forbidden before outfields execute |
+| Guest | Private row | Forbidden |
+| Admin | Any row | Allowed by administrator bypass |
+
 ---
 
 ## Defining Custom Actions
@@ -336,6 +382,28 @@ Conformations:
 ---
 
 ## Calling Actions Programmatically
+
+State the endpoint and auth context in examples and test notes. These prove
+different things:
+
+| Context | What it proves |
+|---------|----------------|
+| Guest | Public unauthenticated path works |
+| Normal user A | Owner or signed-in user path works |
+| Normal user B | Cross-user isolation works |
+| Admin/operator | Schema, data, or operator path works, but not normal browser authorization |
+
+When using `daptin-cli`, select or state the context explicitly before showing
+evidence:
+
+```bash
+daptin-cli context use local-user-a
+daptin-cli action execute todo mark_done --todo_id "$TODO_A_ID" |
+  jq -e '.[] | select(.ResponseType == "client.notify" and .Attributes.type == "success")'
+```
+
+Admin success is useful for operator checks, but it should not be presented as
+proof that a guest or normal signed-in browser user can execute the same action.
 
 ### JavaScript/Fetch
 

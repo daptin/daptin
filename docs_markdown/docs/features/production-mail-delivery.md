@@ -8,8 +8,10 @@ custom action `OutFields`; they are not standalone REST endpoints.
 
 ## Delivery model
 
-`mail.send` creates an `outbox` row for each recipient using a configured
-`mail_server`. By default that row is queued and later processed by the
+`mail.send` requires the `from` address to match a configured
+`mail_account.username`. It creates one `Sent` mailbox copy for that sender at
+queue time, then creates an `outbox` row for each recipient using a configured
+`mail_server`. By default outbox rows are queued and later processed by the
 scheduled `process_outbox` task.
 
 For login, OTP, and password reset flows, set `send_immediately: true` or
@@ -33,18 +35,21 @@ Immediate delivery still uses the outbox:
 1. `mail.send` resolves the action `mail_server_hostname` or backend
    `mail.default_server_hostname` to a `mail_server` row and creates an
    `outbox` row with `mail_server_id`.
-2. The row is committed before SMTP delivery begins.
-3. If `outbox.mail` is cloud-store-backed, Daptin reloads the committed row
+2. `mail.send` appends one message to the sender's `Sent` mailbox.
+3. The row is committed before SMTP delivery begins.
+4. If `outbox.mail` is cloud-store-backed, Daptin reloads the committed row
    with `mail` included so the `.eml` content is hydrated.
-4. `process_outbox` uses `mail_server.hostname` as the SMTP EHLO identity and
+5. `process_outbox` uses `mail_server.hostname` as the SMTP EHLO identity and
    the recipient domain only for MX lookup.
-5. SMTP delivery runs without holding a database transaction open.
-6. On success, `sent=true` stops future retries.
-7. On failure, the row remains pending and `retry_count`, `last_error`, and
+6. SMTP delivery runs without holding a database transaction open.
+7. On success, `sent=true` stops future retries.
+8. On failure, the row remains pending and `retry_count`, `last_error`, and
    `next_retry_at` are updated for scheduled retry.
 
 The scheduled `process_outbox` task retries rows where `sent=false`,
 `retry_count < 5`, and `next_retry_at` is due.
+Outbox retries do not create more `Sent` rows because the mailbox copy is
+created before delivery attempts begin.
 
 ## Hostnames and domains
 
@@ -60,7 +65,8 @@ The scheduled `process_outbox` task retries rows where `sent=false`,
 reset. Daptin stores the selected row on `outbox.mail_server_id` and uses
 `mail_server.hostname` as the SMTP EHLO identity for immediate delivery and
 scheduled retries. Daptin signs the outgoing mail with the domain from the
-`From` address.
+`From` address. The `From` address must exist as a Daptin `mail_account`
+username so Daptin can append the sender's `Sent` mailbox copy.
 
 Example:
 

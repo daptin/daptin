@@ -605,11 +605,13 @@ System OutComes are set of independent useful functions to build a variety of wo
 
 `mail.send` resolves a configured `mail_server` by hostname from
 `mail_server_hostname`, or from backend config `mail.default_server_hostname`
-for server-owned flows. It queues an `outbox` row for each recipient with that
-selected mail server. Add `send_immediately: true` or `attempt_delivery: true`
-when the action should attempt delivery before returning, such as OTP or login
-flows. Immediate delivery still leaves failed rows pending for scheduled
-`process_outbox` retries.
+for server-owned flows. The `from` address must match a configured
+`mail_account.username`. It appends one copy to the sender's `Sent` mailbox at
+queue time, then queues an `outbox` row for each recipient with the selected
+mail server. Add `send_immediately: true` or `attempt_delivery: true` when the
+action should attempt delivery before returning, such as OTP or login flows.
+Immediate delivery still leaves failed rows pending for scheduled
+`process_outbox` retries, and retries do not duplicate the `Sent` copy.
 
 ### otp.login.verify
 

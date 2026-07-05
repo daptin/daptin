@@ -221,7 +221,7 @@ To send emails externally, create a custom action with `mail.send` in its OutFie
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| from | string | Yes | Sender address |
+| from | string | Yes | Sender address; must match a configured `mail_account.username` |
 | to | array | Yes | Recipients |
 | subject | string | Yes | Subject line |
 | body | string | Yes | Email content |
@@ -244,6 +244,10 @@ To send emails externally, create a custom action with `mail.send` in its OutFie
 
 For production DNS, DKIM alignment, immediate delivery, cloud-backed outbox
 storage, and retry behavior, see [[Production-Mail-Delivery]].
+
+When `mail.send` or authenticated SMTP relay queues outbound mail, Daptin also
+creates one copy in the sender's `Sent` mailbox. That copy is created at queue
+time, so scheduled outbox retries do not duplicate it.
 
 ### aws.mail.send Parameters
 

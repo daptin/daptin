@@ -173,11 +173,14 @@ OutFields:
 `mail.send` resolves a configured mail server by hostname. Use
 `mail_server_hostname` in action attributes, or set backend config
 `mail.default_server_hostname` for server-owned flows such as built-in password
-reset. Daptin stores that selected server on the outbox row and uses
+reset. The `from` address must match a configured `mail_account.username`.
+Daptin stores that selected server on the outbox row and uses
 `mail_server.hostname` as the SMTP EHLO identity for immediate delivery and
-scheduled retries. Daptin signs with the domain from the `from` address. For
-`from: "login@example.com"` and `mail_server_hostname: "mail.example.com"`, the
-DKIM record belongs under `example.com`, for example
+scheduled retries. It also appends one copy to the sender's `Sent` mailbox at
+queue time, so retries do not duplicate Sent mail. Daptin signs with the domain
+from the `from` address. For `from: "login@example.com"` and
+`mail_server_hostname: "mail.example.com"`, the DKIM record belongs under
+`example.com`, for example
 `d1._domainkey.example.com`.
 
 Production direct SMTP also needs PTR/reverse DNS, forward-confirmed PTR,

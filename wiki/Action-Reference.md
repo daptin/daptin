@@ -821,8 +821,12 @@ Send email via SMTP.
 |-------|------|----------|
 | to | []string | Yes |
 | subject | string | Yes |
-| from | string | Yes |
+| from | string | Yes; must match `mail_account.username` |
 | body | string | Yes |
+
+Queues one `outbox` row per recipient and appends one copy to the sender's
+`Sent` mailbox at queue time. Scheduled outbox retries do not duplicate the
+`Sent` copy.
 | mail_server_hostname | string | No |
 | send_immediately | bool | No |
 | attempt_delivery | bool | No |

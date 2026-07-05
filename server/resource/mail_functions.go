@@ -1,11 +1,13 @@
 package resource
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
+	netmail "net/mail"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -13,9 +15,16 @@ import (
 	"unicode"
 
 	"github.com/artpar/api2go/v2"
+	"github.com/artpar/go-imap"
+	"github.com/artpar/parsemail"
+	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
+	fieldtypes "github.com/daptin/daptin/server/columntypes"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/emersion/go-message"
+	_ "github.com/emersion/go-message/charset"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -233,9 +242,232 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 	}), api2go.Request{
 		PlainRequest: httpRequest,
 	}, transaction)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil || resp.Result() == nil {
+		return nil, errors.New("failed to create mail box")
+	}
 
 	return resp.Result().(api2go.Api2GoModel).GetAttributes(), err
 
+}
+
+func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, messageBytes []byte, transaction *sqlx.Tx) (map[string]interface{}, error) {
+	if transaction == nil {
+		return nil, errors.New("sent mailbox append requires a transaction")
+	}
+
+	senderAddress, err := normalizedMailAddress(fromAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	mailAccount, err := dbResource.GetUserMailAccountRowByEmail(senderAddress, transaction)
+	if err != nil {
+		return nil, fmt.Errorf("sender mail account not found [%s]: %w", senderAddress, err)
+	}
+
+	userCrud := dbResource.Cruds[USER_ACCOUNT_TABLE_NAME]
+	if userCrud == nil {
+		return nil, errors.New("user_account resource is not configured")
+	}
+
+	user, _, err := getMailAccountUserRow(userCrud, mailAccount[USER_ACCOUNT_ID_COLUMN], transaction)
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("failed to get user account for sender [%s]: %w", senderAddress, err)
+	}
+
+	userId, ok := user["id"].(int64)
+	if !ok || userId == 0 {
+		return nil, fmt.Errorf("invalid user id for sender [%s]", senderAddress)
+	}
+
+	sessionUser := &auth.SessionUser{
+		UserId:          userId,
+		UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
+		Groups:          userCrud.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "id", userId),
+	}
+
+	mailAccountId, ok := mailAccount["id"].(int64)
+	if !ok || mailAccountId == 0 {
+		return nil, fmt.Errorf("invalid mail account id for sender [%s]", senderAddress)
+	}
+
+	sentBox, err := dbResource.GetMailAccountBox(mailAccountId, "Sent", transaction)
+	if err != nil {
+		err = dbResource.Cruds["mail_account"].LockMailAccountForMailboxCreation(mailAccountId, transaction)
+		if err != nil {
+			return nil, err
+		}
+		sentBox, err = dbResource.GetMailAccountBox(mailAccountId, "Sent", transaction)
+		if err != nil {
+			_, err = dbResource.CreateMailAccountBox(
+				daptinid.InterfaceToDIR(mailAccount["reference_id"]).String(),
+				sessionUser,
+				"Sent",
+				transaction,
+			)
+			if err != nil {
+				return nil, err
+			}
+			sentBox, err = dbResource.GetMailAccountBox(mailAccountId, "Sent", transaction)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	mailBoxId, ok := sentBox["id"].(int64)
+	if !ok || mailBoxId == 0 {
+		return nil, fmt.Errorf("invalid Sent mailbox id for sender [%s]", senderAddress)
+	}
+	uid, err := dbResource.Cruds["mail_box"].AllocateMailBoxUid(mailBoxId, transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	attrs, err := dbResource.sentMailAttributes(messageBytes, sentBox, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	requestURL, _ := url.Parse("/api/mail")
+	httpRequest := (&http.Request{
+		Method: "POST",
+		URL:    requestURL,
+	}).WithContext(context.WithValue(context.Background(), "user", sessionUser))
+
+	resp, err := dbResource.Cruds["mail"].CreateWithTransaction(
+		api2go.NewApi2GoModelWithData("mail", nil, 768, nil, attrs),
+		api2go.Request{PlainRequest: httpRequest},
+		transaction,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(api2go.Api2GoModel).GetAttributes(), nil
+}
+
+func (dbResource *DbResource) sentMailAttributes(messageBytes []byte, sentBox map[string]interface{}, uid uint32) (map[string]interface{}, error) {
+	messageEntity, err := message.Read(bytes.NewReader(messageBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	hash := GetMD5Hash(messageBytes)
+	storedMailContents := dbResource.MailColumnValue("mail", "mail", messageBytes, hash)
+	parsedMail, err := parsemail.Parse(bytes.NewReader(messageBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	textBody := parsedMail.TextBody
+	if strings.Contains(strings.ToLower(parsedMail.Header.Get("Content-Type")), "iso-8859-1") {
+		converter := latinx.Get(latinx.ISO_8859_1)
+		textBodyBytes, err := converter.Decode([]byte(textBody))
+		if err == nil {
+			textBody = string(textBodyBytes)
+		}
+	}
+
+	mailDate := parsedMail.Date
+	if parsedDate, _, err := fieldtypes.GetDateTime(parsedMail.Header.Get("Date")); err == nil {
+		mailDate = parsedDate
+	}
+	if mailDate.IsZero() {
+		mailDate = time.Now()
+	}
+
+	messageId := parsedMail.MessageID
+	if strings.TrimSpace(messageId) == "" {
+		messageId = uuid.NewString()
+	}
+
+	toAddress := ""
+	if len(parsedMail.To) > 0 {
+		toAddress = parsedMail.To[0].String()
+	}
+
+	replyTo := ""
+	if len(parsedMail.ReplyTo) > 0 {
+		replyTo = parsedMail.ReplyTo[0].String()
+	}
+
+	fromAddress := ""
+	if len(parsedMail.From) > 0 {
+		fromAddress = parsedMail.From[0].String()
+	}
+
+	sender := fromAddress
+	if parsedMail.Sender != nil {
+		sender = parsedMail.Sender.String()
+	}
+
+	return map[string]interface{}{
+		"message_id":       messageId,
+		"mail_id":          hash,
+		"from_address":     fromAddress,
+		"to_address":       toAddress,
+		"sender_address":   sender,
+		"subject":          parsedMail.Subject,
+		"body":             textBody,
+		"mail":             storedMailContents,
+		"spam_score":       0,
+		"spam":             false,
+		"hash":             hash,
+		"internal_date":    mailDate,
+		"content_type":     messageEntity.Header.Get("Content-Type"),
+		"reply_to_address": replyTo,
+		"recipient":        toAddress,
+		"has_attachment":   len(parsedMail.Attachments) > 0,
+		"ip_addr":          "",
+		"return_path":      fromAddress,
+		"is_tls":           false,
+		"mail_box_id":      sentBox["reference_id"],
+		"uid":              uid,
+		"seen":             true,
+		"recent":           false,
+		"deleted":          false,
+		"flags":            imap.SeenFlag,
+		"size":             len(messageBytes),
+	}, nil
+}
+
+func normalizedMailAddress(address string) (string, error) {
+	address = strings.TrimSpace(address)
+	if address == "" {
+		return "", errors.New("mail address is empty")
+	}
+	parsed, err := netmail.ParseAddress(address)
+	if err == nil && parsed != nil {
+		return strings.TrimSpace(parsed.Address), nil
+	}
+	if strings.Contains(address, "@") {
+		return address, nil
+	}
+	return "", err
+}
+
+func getMailAccountUserRow(userCrud *DbResource, userAccountReference interface{}, transaction *sqlx.Tx) (map[string]interface{}, []map[string]interface{}, error) {
+	userRef := daptinid.InterfaceToDIR(userAccountReference)
+	if userRef != daptinid.NullReferenceId {
+		return userCrud.GetSingleRowByReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, userRef, nil, transaction)
+	}
+
+	switch value := userAccountReference.(type) {
+	case int64:
+		user, includes, err := userCrud.GetSingleRowById(USER_ACCOUNT_TABLE_NAME, value, nil, transaction)
+		return user, includes, err
+	case int:
+		user, includes, err := userCrud.GetSingleRowById(USER_ACCOUNT_TABLE_NAME, int64(value), nil, transaction)
+		return user, includes, err
+	case float64:
+		user, includes, err := userCrud.GetSingleRowById(USER_ACCOUNT_TABLE_NAME, int64(value), nil, transaction)
+		return user, includes, err
+	default:
+		return nil, nil, fmt.Errorf("invalid user_account_id reference type: %T", userAccountReference)
+	}
 }
 
 // Returns the user mail account box row of a user

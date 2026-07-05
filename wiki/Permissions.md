@@ -74,6 +74,54 @@ Permissions apply to three groups:
 
 ## Common Tasks
 
+### Private Mail Tables for Signed-In Users
+
+Mail applications often need all signed-in users to reach the mail tables while
+keeping individual mail rows private to their owner. Keep those two concerns
+separate:
+
+- `AccessGroups` opens the table/type gate for a usergroup.
+- Row `permission` and `DefaultPermission` decide which rows a caller can see.
+- Existing rows keep their current `permission`; changing `DefaultPermission`
+  only affects rows created after the schema change.
+
+Example schema shape:
+
+```yaml
+Tables:
+  - TableName: mail
+    Permission: 561408
+    DefaultPermission: 12672
+    AccessGroups:
+      - Name: users
+        Permission: 638976
+
+  - TableName: mail_account
+    Permission: 577792
+    DefaultPermission: 12672
+    AccessGroups:
+      - Name: users
+        Permission: 573440
+
+  - TableName: mail_box
+    Permission: 577792
+    DefaultPermission: 12672
+    AccessGroups:
+      - Name: users
+        Permission: 573440
+```
+
+Do not add broad group row-read permission just because browser users need to
+open `/api/mail`, `/api/mail_account`, or `/api/mail_box`. The table gate lets
+the request reach the table; the row permission should still keep each user's
+mail rows owner-scoped unless a mailbox is intentionally shared.
+
+If old mail rows were created with overly broad permissions, repair those rows
+explicitly after deploying the schema. For example, run an operator-controlled
+SQL or API migration that sets the row `permission` on the affected rows to the
+owner-only value you want. Verify with a normal user token, not only with an
+administrator token.
+
 ### Check Who Can Access a Table
 
 ```bash
