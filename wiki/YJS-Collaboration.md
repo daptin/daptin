@@ -4,6 +4,12 @@ Real-time collaborative document editing with conflict-free replication.
 
 **Tested ✓** (2026-01-26) - YJS endpoints working and verified
 
+> **Security notice:** Daptin versions `0.11.4` through `0.12.29` allow
+> authenticated users to bypass row permissions through canonical names on the
+> generic YJS endpoint. The fix is available on `master` in commit `a1a3c48f`;
+> deploy that commit or upgrade to the first release containing it. See
+> [GHSA-wj7x-58c2-5793](https://github.com/daptin/daptin/security/advisories/GHSA-wj7x-58c2-5793).
+
 ## Overview
 
 YJS enables multiple users to edit documents simultaneously:

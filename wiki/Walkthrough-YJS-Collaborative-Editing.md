@@ -12,6 +12,12 @@ By the end of this walkthrough, you'll have:
 **Time Required**: 30-40 minutes
 **Difficulty**: Intermediate (JavaScript and basic editor knowledge helpful)
 
+> **Security notice:** If you use Daptin `0.11.4` through `0.12.29`, update to
+> commit `a1a3c48f` or the first release containing it before exposing YJS.
+> Earlier affected versions do not enforce row permissions on canonical names
+> sent to the generic endpoint. See
+> [GHSA-wj7x-58c2-5793](https://github.com/daptin/daptin/security/advisories/GHSA-wj7x-58c2-5793).
+
 ---
 
 ## What You'll Learn
