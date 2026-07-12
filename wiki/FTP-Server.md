@@ -1,6 +1,6 @@
 # FTP Server
 
-**Tested ✓ 2026-01-26** - All features verified end-to-end including FTPS/TLS.
+**Tested ✓ 2026-07-12** - Authorization, file operations, malformed commands, and path containment verified end-to-end. FTPS/TLS was previously verified on 2026-01-26.
 
 Host site files via FTP/FTPS with site-based access control and automatic TLS encryption.
 
@@ -8,7 +8,7 @@ Host site files via FTP/FTPS with site-based access control and automatic TLS en
 
 Daptin includes an FTP/FTPS server that provides file access to subsites. Features:
 
-- **Site-based access**: Each FTP-enabled site appears as a directory
+- **Permission-aware site access**: Users see only FTP-enabled sites allowed by the site's Daptin permissions
 - **Daptin authentication**: Login with your Daptin username (email) and password
 - **Automatic FTPS/TLS**: Encryption enabled automatically using site certificates
 - **Full file operations**: Upload, download, delete, create directories
@@ -21,6 +21,8 @@ Before using FTP, you must have:
 1. **Cloud storage configured** - See [[Cloud-Storage|Cloud Storage]]
 2. **At least one site with FTP enabled** - See [[Subsites|Subsites]]
 3. **FTP enabled in configuration** - Set `ftp.enable` to `true`
+
+> Security notice: Daptin versions through `0.12.29` do not enforce site authorization in FTP. Keep FTP disabled or network-restricted until upgrading to a release containing the FTP authorization fix.
 
 ## Quick Start
 
@@ -37,28 +39,24 @@ sqlite3 daptin.db "INSERT OR REPLACE INTO _config (name, value, configtype, conf
 
 **⚠️ Note**: Config API currently returns HTML instead of JSON. Use direct database update as shown above.
 
-### Step 2: Create Cloud Store
+### Step 2: Configure the CLI and Create a Cloud Store
 
 ```bash
+# Sign in with daptin-cli first
+daptin-cli context add local http://localhost:6336
+daptin-cli context set local
+daptin-cli execute user_account signin email=admin@example.com password='your-password'
+
 # Create storage directory
 mkdir -p /tmp/ftp-storage
 
-# Create cloud_store via API
-curl -X POST http://localhost:6336/api/cloud_store \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "cloud_store",
-      "attributes": {
-        "name": "ftp-storage",
-        "store_type": "local",
-        "store_provider": "local",
-        "root_path": "/tmp/ftp-storage",
-        "store_parameters": "{}"
-      }
-    }
-  }'
+# Create cloud_store
+daptin-cli storage add ftp-storage \
+  --type local \
+  --store-provider local \
+  --root-path /tmp/ftp-storage
+
+STORE_ID=$(daptin-cli -q list cloud_store --filter name=ftp-storage --page-size 1 | tail -1)
 ```
 
 ### Step 3: Create Site with FTP Enabled
@@ -68,29 +66,24 @@ curl -X POST http://localhost:6336/api/cloud_store \
 mkdir -p /tmp/ftp-storage/mysite
 
 # Create site with ftp_enabled=true
-STORE_ID="YOUR_CLOUD_STORE_ID"
-curl -X POST http://localhost:6336/api/site \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "site",
-      "attributes": {
-        "name": "my-ftp-site",
-        "hostname": "ftp.example.com",
-        "path": "mysite",
-        "enable": true,
-        "ftp_enabled": true,
-        "site_type": "static"
-      },
-      "relationships": {
-        "cloud_store_id": {
-          "data": {"type": "cloud_store", "id": "'$STORE_ID'"}
-        }
-      }
-    }
-  }'
+daptin-cli create site \
+  name=my-ftp-site \
+  hostname=ftp.example.com \
+  path=mysite \
+  enable=true \
+  ftp_enabled=true \
+  site_type=static \
+  cloud_store_id="$STORE_ID"
+
+SITE_ID=$(daptin-cli -q list site --filter hostname=ftp.example.com --page-size 1 | tail -1)
+
+# Owner-only Peek/Read/Create/Update/Delete. The CLI prints 3968.
+daptin-cli permission encode \
+  +OwnerPeek +OwnerRead +OwnerCreate +OwnerUpdate +OwnerDelete
+daptin-cli update site "$SITE_ID" permission=3968
 ```
+
+To share the site with a usergroup, relate the site to that group and configure the relationship permission with the required `Group*` bits. FTP evaluates the existing `PermissionInstance` owner and relationship permissions; it does not maintain a separate FTP ACL.
 
 ### Step 4: Restart Server
 
@@ -194,7 +187,7 @@ curl -X PATCH "http://localhost:6336/api/site/$SITE_ID" \
 
 ### Root Directory
 
-When you connect to FTP, the root directory (`/`) lists all FTP-enabled sites as subdirectories:
+When you connect to FTP, the root directory (`/`) lists only FTP-enabled sites for which the user has `Peek` permission:
 
 ```
 /
@@ -300,9 +293,21 @@ FTP uses Daptin user accounts for authentication:
 Users can access FTP if:
 1. They have valid Daptin credentials
 2. At least one FTP-enabled site exists
-3. They have permission to access the site (same as HTTP/API permissions)
+3. They have the required permission on the site through ownership, a related usergroup, or the administrator group
 
-**All authenticated users can see all FTP-enabled sites**. Use separate Daptin instances or cloud stores for tenant isolation.
+FTP uses the existing `PermissionInstance` methods:
+
+| FTP operation | Site permission |
+|---------------|-----------------|
+| Show a site in `/`, change into it | `Peek` |
+| List files, inspect metadata, download | `Read` |
+| Upload a new file, create a directory | `Create` |
+| Overwrite, append, rename, chmod, change mtime | `Update` |
+| Delete a file or directory | `Delete` |
+
+The permission may be an `Owner*` bit for the site's owner or a `Group*` bit on a site-usergroup relationship for a member of that group. Members of the administrator group are accepted by the existing permission methods. Unknown and unauthorized sites are intentionally reported in the same way.
+
+Site and relationship permissions are loaded when the FTP server starts. Restart Daptin after changing `ftp_enabled`, site permissions, site-usergroup relationships, or FTP configuration.
 
 ---
 
@@ -366,7 +371,7 @@ Directory: /app-files.example.com
 Use FTP clients like FileZilla for visual file management:
 
 1. Open FileZilla
-2. Host: `sftp://your-server.com`, Port: `2121`
+2. Protocol: FTP with explicit TLS (FTPS), Host: `your-server.com`, Port: `2121`
 3. Username: your Daptin email
 4. Password: your Daptin password
 5. Browse and manage site files visually
@@ -480,17 +485,7 @@ curl -X POST http://localhost:6336/action/user_account/signin \
 
 **Symptom**: FTP LIST command shows empty directory, but files exist.
 
-**This is a known quirk**. Files ARE accessible, just not shown in LIST:
-
-```python
-# LIST may return empty
-ftp.retrlines('LIST')  # Shows nothing
-
-# But RETR works fine
-ftp.retrbinary('RETR index.html', print)  # Works!
-```
-
-**Workaround**: Access files directly by name. Directory listings work for directories you create via FTP.
+Current releases return directory entries normally. An empty root means the authenticated user has no `Peek` permission on any FTP-enabled site. An empty site listing means the directory is empty or the backing site cache has not completed its initial synchronization. Check the user's site permissions and server sync logs; do not grant broad permissions merely to make a site appear.
 
 ### Cannot Create Directory in Root
 
@@ -533,11 +528,12 @@ curl -X POST http://localhost:6336/action/world/acme.tls.generate \
 
 ### Access Control
 
-- **All authenticated users can access all FTP-enabled sites**
-- For tenant isolation:
-  - Use separate Daptin instances, OR
-  - Use separate cloud stores with different credentials, OR
-  - Implement custom authentication (requires code changes)
+- FTP uses the same owner, related-usergroup, and administrator checks as Daptin resources.
+- Grant the minimum `Peek`, `Read`, `Create`, `Update`, and `Delete` bits required for each site.
+- A valid account without permission cannot discover the site hostname or access it by an absolute FTP path.
+- Paths are confined to the selected site's synchronized root. Parent traversal, symlink escape, cross-site rename, and site-root delete/rename are rejected.
+- Keep `ftp.enable=false` when FTP is unused. Bind `ftp.listen_interface` to a private interface or restrict it with a firewall.
+- Restart Daptin after permission or site relationship changes so the FTP site snapshot is refreshed.
 
 ### TLS Encryption
 
@@ -555,7 +551,7 @@ curl -X POST http://localhost:6336/action/world/acme.tls.generate \
 
 ### Password Security
 
-- FTP sends credentials during authentication
+- Plain FTP sends credentials during authentication
 - Use strong passwords for Daptin accounts
 - Consider using dedicated service accounts with limited permissions
 - Rotate passwords periodically

@@ -59,6 +59,10 @@ TOTP secret used for CSRF token generation and 2factor token generator
 
 FTP interface for sites is disabled by default (even if enabled per site). Set to true to start FTP services.
 
+FTP access follows each site's normal Daptin permissions. A user must have the corresponding owner or related-usergroup permission: `Peek` to see or enter a site, `Read` to list or download, `Create` to upload new files or create directories, `Update` to overwrite or rename, and `Delete` to remove content. Administrators are recognized by the existing permission system.
+
+Restart Daptin after changing `ftp.enable`, `ftp.listen_interface`, `site.ftp_enabled`, site permissions, or site-usergroup relationships. Keep FTP disabled or restricted to trusted networks on versions through `0.12.29`.
+
 # Default values
 
 | id |         name          | configtype | configstate | configenv |                value                 | valuetype | previousvalue |         created_at         | updated_at |

@@ -125,7 +125,7 @@ curl -H "Host: www.example.com" http://localhost:6336/style.css
 | `hostname` | varchar(100) | Domain name for routing (e.g., www.example.com) |
 | `path` | varchar(100) | Subdirectory in cloud_store root_path |
 | `enable` | bool | Enable/disable site serving |
-| `ftp_enabled` | bool | Allow FTP access to site files |
+| `ftp_enabled` | bool | Expose site files through FTP, subject to the site's owner/group permissions |
 | `site_type` | varchar(20) | Site category (default: 'static') |
 | `cloud_store_id` | belongs_to | Storage provider for site files |
 

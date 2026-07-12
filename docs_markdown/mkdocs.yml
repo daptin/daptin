@@ -8,6 +8,7 @@ nav:
   - How to use:
     - Download and Deploy: setting-up/installation.md
     - Accessing the web dashboard: setting-up/settingup.md
+    - Manage site files with FTP: guides/ftp-site-files.md
 - Documentation:
   - User management:
       - New User: user-management/new-users.md
