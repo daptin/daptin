@@ -183,6 +183,37 @@ type column struct {
 	reference     string
 }
 
+func (dbResource *DbResource) validateSortOrder(sortOrder []string) ([]string, error) {
+	validSortOrder := make([]string, 0, len(sortOrder))
+
+	for _, sort := range sortOrder {
+		if len(sort) == 0 {
+			continue
+		}
+
+		direction := ""
+		columnName := sort
+		if columnName[0] == '-' || columnName[0] == '+' {
+			direction = columnName[:1]
+			columnName = columnName[1:]
+		}
+		if len(columnName) == 0 {
+			log.Warnf("Table [%v] invalid sort column [%v]", dbResource.model.GetName(), sort)
+			return nil, fmt.Errorf("table [%v] invalid sort column [%v]", dbResource.model.GetName(), sort)
+		}
+
+		columnInfo, ok := dbResource.tableInfo.GetColumnByName(columnName)
+		if !ok {
+			log.Warnf("Table [%v] invalid sort column [%v]", dbResource.model.GetName(), columnName)
+			return nil, fmt.Errorf("table [%v] invalid sort column [%v]", dbResource.model.GetName(), columnName)
+		}
+
+		validSortOrder = append(validSortOrder, direction+columnInfo.ColumnName)
+	}
+
+	return validSortOrder, nil
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request, transaction *sqlx.Tx) (
 	[]map[string]interface{}, [][]map[string]interface{}, *PaginationData, bool, error) {
@@ -309,6 +340,11 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		sortOrder = strings.Split(dbResource.tableInfo.DefaultOrder, ",")
 	} else {
 		sortOrder = []string{"-created_at"}
+	}
+
+	sortOrder, err = dbResource.validateSortOrder(sortOrder)
+	if err != nil {
+		return nil, nil, nil, false, err
 	}
 
 	var filters []string
@@ -933,9 +969,6 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 				orders = append(orders, goqu.I(prefix+so[1:]).Asc())
 			} else {
 				ord := prefix + so
-				if strings.ToLower(so) == "rand()" || strings.ToLower(so) == "random()" {
-					ord = so
-				}
 				// queryBuilder = queryBuilder.OrderBy(ord)
 				// countQueryBuilder = countQueryBuilder.OrderBy(ord)
 				orders = append(orders, goqu.I(ord).Asc())
