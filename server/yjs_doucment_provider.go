@@ -41,7 +41,7 @@ func CreateYjsStore(configStore *resource.ConfigStore, transaction *sqlx.Tx, loc
 		ydb.WithInitialContentProvider(func(documentPath string) []byte {
 			logrus.Debugf("Get initial content for document: %v", documentPath)
 			pathParts := strings.Split(documentPath, ".")
-			if len(pathParts) < 3 {
+			if len(pathParts) != 3 {
 				logrus.Debugf("document path %v does not follow typename.referenceId.columnName format, returning empty content", documentPath)
 				return []byte{}
 			}
@@ -49,17 +49,24 @@ func CreateYjsStore(configStore *resource.ConfigStore, transaction *sqlx.Tx, loc
 			referenceId := pathParts[1]
 			columnName := pathParts[2]
 
+			parsedId, parseErr := uuid.Parse(referenceId)
+			if parseErr != nil {
+				logrus.Warnf("failed to parse reference_id as UUID: %v", referenceId)
+				return []byte{}
+			}
+
 			crud, ok := cruds[typeName]
 			if !ok || crud == nil {
 				logrus.Warnf("no crud for type %v in document provider", typeName)
 				return []byte{}
 			}
 
-			parsedId, parseErr := uuid.Parse(referenceId)
-			if parseErr != nil {
-				logrus.Warnf("failed to parse reference_id as UUID: %v", referenceId)
+			columnInfo, ok := crud.TableInfo().GetColumnByName(columnName)
+			if !ok || !BeginsWithCheck(columnInfo.ColumnType, "file.") {
+				logrus.Warnf("column %v is not a file column on type %v", columnName, typeName)
 				return []byte{}
 			}
+			columnName = columnInfo.ColumnName
 
 			tx, txErr := crud.Connection().Beginx()
 			if txErr != nil {

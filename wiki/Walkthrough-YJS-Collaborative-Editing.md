@@ -175,6 +175,12 @@ true
 
 ## Step 1: Test YJS Connection
 
+This walkthrough starts with a standalone room named `test-document`. Every
+authenticated user who knows this name can read and write it. That is convenient
+for a shared demo, but use a long, unguessable room name for private ad-hoc work.
+For application records, prefer the file-column endpoint described below; it
+enforces the row's existing ownership and user-group permissions.
+
 Let's verify YJS endpoints are working:
 
 ```bash
@@ -216,6 +222,14 @@ Testing YJS endpoint...
   Endpoint: ws://localhost:6336/yjs/test-document
 ← Received YJS protocol message (binary)
 ```
+
+### Choose the right room type
+
+Use `/yjs/{room-name}` for an ad-hoc room shared by name. Use
+`/live/{type}/{reference-id}/{file-column}/yjs` for content stored against a
+database row. On the database-backed endpoint, users with update permission can
+edit, users with read permission can watch in read-only mode, and everyone else
+is denied. Reconnect clients after changing row permissions or group membership.
 
 ---
 

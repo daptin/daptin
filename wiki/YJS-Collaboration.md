@@ -22,7 +22,9 @@ Daptin provides two YJS endpoints:
 ws://localhost:6336/yjs/:documentName
 ```
 
-For collaborative editing of any document type:
+For standalone collaborative rooms. Any authenticated user who knows the same
+room name can read and write that room, so use an unguessable name when the
+room is not intended for every signed-in user:
 ```javascript
 const ws = new WebSocket(`ws://localhost:6336/yjs/test-document?token=${TOKEN}`);
 ```
@@ -43,7 +45,19 @@ const ws = new WebSocket(
 );
 ```
 
-**Authentication:** Pass JWT token as query parameter (`?token=JWT_TOKEN`)
+Access follows the database row's existing permissions:
+
+- Users for whom `CanUpdate` succeeds can read and edit.
+- Users for whom only `CanRead` succeeds receive updates but their edits are ignored.
+- Other users cannot connect. A missing row and a forbidden row both return `404`.
+
+The generic endpoint also accepts the canonical database-room name
+`{typename}.{referenceId}.{columnName}`. Such names use the same row permission
+checks as `/live/...`; they never fall back to a standalone room.
+
+**Authentication:** Pass the JWT token as a query parameter (`?token=JWT_TOKEN`).
+Permissions are captured when the WebSocket connects, so reconnect after a
+permission or group-membership change.
 
 ## Enabling YJS
 

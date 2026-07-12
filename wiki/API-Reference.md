@@ -475,7 +475,18 @@ Subscribe to entity changes via WebSocket.
 WS /yjs/{document_name}
 ```
 
-Real-time document collaboration.
+Real-time document collaboration for authenticated users. Ordinary document
+names are standalone rooms: any authenticated user who knows the name can read
+and write them. A name in the exact form
+`{type}.{reference_id}.{file_column}` is a database-backed room and enforces the
+row's existing permissions (`CanUpdate` for editing, `CanRead` for read-only).
+
+```
+WS /live/{type}/{reference_id}/{file_column}/yjs
+```
+
+Database-backed collaboration for a `file.*` column. Users without read access
+receive `404`. Permission changes take effect on the next connection.
 
 ## GraphQL Endpoint
 

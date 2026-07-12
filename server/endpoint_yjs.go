@@ -3,17 +3,91 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
+
+func canonicalYjsRoomParts(documentName string) ([]string, bool) {
+	parts := strings.Split(documentName, ".")
+	if len(parts) != 3 {
+		return nil, false
+	}
+	if _, err := uuid.Parse(parts[1]); err != nil {
+		return nil, false
+	}
+	return parts, true
+}
+
+func yjsPermissionAccess(objectPermission permission.PermissionInstance, user *auth.SessionUser,
+	administratorGroupId daptinid.DaptinReferenceId) (bool, bool) {
+	if objectPermission.CanUpdate(user.UserReferenceId, user.Groups, administratorGroupId) {
+		return true, false
+	}
+	if objectPermission.CanRead(user.UserReferenceId, user.Groups, administratorGroupId) {
+		return true, true
+	}
+	return false, false
+}
+
+func authorizeYjsRoom(cruds map[string]*resource.DbResource, user *auth.SessionUser,
+	typename string, referenceId string, columnName string) (string, bool, int, error) {
+	crud, ok := cruds[typename]
+	if !ok || crud == nil {
+		return "", false, http.StatusNotFound, nil
+	}
+
+	columnInfo, ok := crud.TableInfo().GetColumnByName(columnName)
+	if !ok || !BeginsWithCheck(columnInfo.ColumnType, "file.") {
+		return "", false, http.StatusNotFound, nil
+	}
+
+	parsedId, err := uuid.Parse(referenceId)
+	if err != nil {
+		return "", false, http.StatusBadRequest, err
+	}
+
+	tx, err := crud.Connection().Beginx()
+	if err != nil {
+		return "", false, http.StatusInternalServerError, err
+	}
+	defer tx.Rollback()
+
+	object, _, err := crud.GetSingleRowByReferenceIdWithTransaction(typename,
+		daptinid.DaptinReferenceId(parsedId), nil, tx)
+	if err != nil || object == nil {
+		return "", false, http.StatusNotFound, nil
+	}
+
+	objectPermission := crud.GetRowPermission(object, tx)
+	allowed, readOnly := yjsPermissionAccess(objectPermission, user, crud.AdministratorGroupId)
+	if allowed {
+		return fmt.Sprintf("%s.%s.%s", typename, parsedId.String(), columnInfo.ColumnName), readOnly, 0, nil
+	}
+
+	return "", false, http.StatusNotFound, nil
+}
+
+func serveYjsRoom(ginContext *gin.Context, yjsConnectionHandler http.HandlerFunc,
+	roomName string, readOnly bool) {
+	requestContext := context.WithValue(ginContext.Request.Context(), "roomname", roomName)
+	if readOnly {
+		requestContext = ydb.WithReadOnlySession(requestContext)
+	}
+	ginContext.Request = ginContext.Request.WithContext(requestContext)
+	yjsConnectionHandler(ginContext.Writer, ginContext.Request)
+}
 
 func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
 	cruds map[string]*resource.DbResource, dtopicMap map[string]*olric.PubSub) error {
@@ -27,13 +101,29 @@ func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
 	defaultRouter.GET("/yjs/:documentName", func(ginContext *gin.Context) {
 
 		sessionUser := ginContext.Request.Context().Value("user")
-		if sessionUser == nil {
+		user, ok := sessionUser.(*auth.SessionUser)
+		if !ok || user == nil {
 			ginContext.AbortWithStatus(403)
 			return
 		}
 
 		logrus.Tracef("Handle new YJS client")
-		yjsConnectionHandler(ginContext.Writer, ginContext.Request)
+		documentName := ginContext.Param("documentName")
+		parts, isCanonicalRoom := canonicalYjsRoomParts(documentName)
+		if isCanonicalRoom {
+			roomName, readOnly, status, authorizeErr := authorizeYjsRoom(cruds, user, parts[0], parts[1], parts[2])
+			if status != 0 {
+				if authorizeErr != nil {
+					logrus.Errorf("failed to authorize YJS room: %v", authorizeErr)
+				}
+				ginContext.AbortWithStatus(status)
+				return
+			}
+			serveYjsRoom(ginContext, yjsConnectionHandler, roomName, readOnly)
+			return
+		}
+
+		serveYjsRoom(ginContext, yjsConnectionHandler, documentName, false)
 
 	})
 
@@ -76,46 +166,17 @@ func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
 						return
 					}
 
-					referenceId := ginContext.Param("referenceId")
-
-					parsedId, parseErr := uuid.Parse(referenceId)
-					if parseErr != nil {
-						ginContext.AbortWithStatus(400)
+					roomName, readOnly, status, authorizeErr := authorizeYjsRoom(cruds, user, typename,
+						ginContext.Param("referenceId"), columnInfo.ColumnName)
+					if status != 0 {
+						if authorizeErr != nil {
+							logrus.Errorf("failed to authorize YJS room: %v", authorizeErr)
+						}
+						ginContext.AbortWithStatus(status)
 						return
 					}
 
-					tx, txErr := cruds[typename].Connection().Beginx()
-					if txErr != nil {
-						resource.CheckErr(txErr, "Failed to begin transaction [840]")
-						return
-					}
-
-					object, _, getErr := cruds[typename].GetSingleRowByReferenceIdWithTransaction(typename,
-						daptinid.DaptinReferenceId(parsedId), nil, tx)
-					tx.Rollback()
-					if getErr != nil {
-						ginContext.AbortWithStatus(404)
-						return
-					}
-
-					tx2, txErr2 := cruds[typename].Connection().Beginx()
-					if txErr2 != nil {
-						resource.CheckErr(txErr2, "Failed to begin transaction [850]")
-						ginContext.AbortWithStatus(500)
-						return
-					}
-					objectPermission := cruds[typename].GetRowPermission(object, tx2)
-					tx2.Rollback()
-
-					if !objectPermission.CanUpdate(user.UserReferenceId, user.Groups, cruds[typename].AdministratorGroupId) {
-						ginContext.AbortWithStatus(401)
-						return
-					}
-
-					roomName := fmt.Sprintf("%v%v%v%v%v", typename, ".", referenceId, ".", columnInfo.ColumnName)
-					ginContext.Request = ginContext.Request.WithContext(context.WithValue(ginContext.Request.Context(), "roomname", roomName))
-
-					yjsConnectionHandler(ginContext.Writer, ginContext.Request)
+					serveYjsRoom(ginContext, yjsConnectionHandler, roomName, readOnly)
 
 				}
 			}(typename, columnInfo))

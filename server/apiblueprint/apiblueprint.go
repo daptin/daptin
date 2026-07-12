@@ -329,12 +329,11 @@ curl -X POST http://localhost:6336/api/calendar \
 # Returns: Success with reference_id for collaboration
 ` + "```" + `
 
-**YJS Endpoints (Infrastructure Present):**
-- **Direct YJS**: ` + "`" + `/yjs/:documentName` + "`" + ` (HTTP 200 ✅)
-- **Live Collaboration**: ` + "`" + `/live/calendar/:referenceId/content/yjs` + "`" + ` (Requires WebSocket auth fix)
-- **File Columns**: Any file-type column gets automatic YJS endpoints
-
-**Status**: YJS infrastructure is ready, collaboration endpoints exist, but require WebSocket authentication resolution for full functionality.
+**YJS Endpoints:**
+- **Standalone rooms**: ` + "`" + `/yjs/:documentName` + "`" + ` — authenticated users share access by room name
+- **Database-backed rooms**: ` + "`" + `/live/calendar/:referenceId/content/yjs` + "`" + ` — row update permission grants editing and row read permission grants read-only access
+- **Canonical database room names**: ` + "`" + `/yjs/calendar.:referenceId.content` + "`" + ` — the same row permission checks apply
+- **File Columns**: Any ` + "`" + `file.*` + "`" + ` column gets an automatic YJS endpoint
 
 ### Live Data Subscription
 Subscribe to real-time changes across all entities:
@@ -441,7 +440,7 @@ curl http://localhost:6336/feed/test-feed
 - Entity creation with file-type columns for collaboration
 
 **Real-time Infrastructure:**
-- YJS endpoints accessible (` + "`" + `/yjs/:documentName` + "`" + ` returns HTTP 200)
+- Authenticated YJS endpoints enforce row permissions for database-backed rooms
 - Calendar entities with file.ical content created successfully
 - WebSocket server running (responds to HTTP requests)
 
@@ -464,7 +463,7 @@ curl http://localhost:6336/feed/test-feed
 1. Resolve WebSocket authentication for real-time features
 2. Create proper feed entities with correct schema
 3. Test SMTP/CalDAV/FTP server functionality after enabling
-4. Verify YJS collaboration end-to-end once WebSocket auth works
+4. Integrate a YJS editor for file-backed application records
 
 ## 🔄 Workflow & Automation Features (Fully Documented)
 
