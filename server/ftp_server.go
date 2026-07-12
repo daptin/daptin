@@ -5,15 +5,17 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/emersion/go-webdav"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
+	ftppath "path"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/daptin/daptin/server/resource"
@@ -37,9 +39,10 @@ type DaptinFtpDriver struct {
 
 // ClientDriver defines a very basic client driver
 type ClientDriver struct {
-	BaseDir    string // Base directory from which to server file
-	CurrentDir string
-	FtpDriver  *DaptinFtpDriver
+	BaseDir     string // Base directory from which to server file
+	CurrentDir  string
+	FtpDriver   *DaptinFtpDriver
+	sessionUser *auth.SessionUser
 }
 
 // DaptinFtpServerSettings defines our settings
@@ -131,6 +134,9 @@ func (driver *DaptinFtpDriver) GetTLSConfig() (*tls.Config, error) {
 		firstSite = s
 		break
 	}
+	if firstSite == "" {
+		return nil, errors.New("cannot configure FTP TLS without an enabled site")
+	}
 
 	transaction, err := driver.cruds["world"].Connection().Beginx()
 	if err != nil {
@@ -185,15 +191,107 @@ func (driver *DaptinFtpDriver) AuthUser(cc server.ClientContext, user, pass stri
 		return nil, err
 	}
 
-	if !resource.BcryptCheckStringHash(pass, userAccount["password"].(string)) {
+	passwordHash, ok := userAccount["password"].(string)
+	if !ok || !resource.BcryptCheckStringHash(pass, passwordHash) {
 		return nil, fmt.Errorf("could not authenticate you")
+	}
+	userId, ok := userAccount["id"].(int64)
+	if !ok {
+		return nil, errors.New("invalid user account id")
+	}
+	groups := driver.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId)
+	sessionUser := &auth.SessionUser{
+		UserId:          userId,
+		UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),
+		Groups:          groups,
+	}
+	if sessionUser.UserReferenceId == daptinid.NullReferenceId {
+		return nil, errors.New("invalid user account reference id")
 	}
 	log.Infof("FTP Login [%s][%s][%s]", driver.BaseDir, user, cc.RemoteAddr())
 	return &ClientDriver{
-		BaseDir:    "/",
-		CurrentDir: "/",
-		FtpDriver:  driver,
+		BaseDir:     "/",
+		CurrentDir:  "/",
+		FtpDriver:   driver,
+		sessionUser: sessionUser,
 	}, nil
+}
+
+func (driver *ClientDriver) sitePath(ftpPath string) (string, SubSiteAssetCache, string, error) {
+	if driver == nil || driver.FtpDriver == nil || driver.sessionUser == nil {
+		return "", SubSiteAssetCache{}, "", errors.New("invalid FTP session")
+	}
+	if strings.ContainsRune(ftpPath, '\x00') {
+		return "", SubSiteAssetCache{}, "", errors.New("invalid path")
+	}
+
+	cleanPath := ftppath.Clean("/" + strings.TrimPrefix(strings.ReplaceAll(ftpPath, "\\", "/"), "/"))
+	pathParts := strings.Split(strings.TrimPrefix(cleanPath, "/"), "/")
+	if len(pathParts) == 0 || pathParts[0] == "" || pathParts[0] == "." {
+		return "", SubSiteAssetCache{}, "", errors.New("invalid site")
+	}
+
+	siteName := pathParts[0]
+	site, ok := driver.FtpDriver.Sites[siteName]
+	if !ok || site.AssetFolderCache == nil || site.LocalSyncPath == "" {
+		return "", SubSiteAssetCache{}, "", errors.New("invalid site")
+	}
+	relativePath := "."
+	if len(pathParts) > 1 {
+		relativePath = filepath.Join(pathParts[1:]...)
+	}
+	return siteName, site, relativePath, nil
+}
+
+func containedPath(rootPath string, relativePath string) (string, error) {
+	rootPath, err := filepath.Abs(rootPath)
+	if err != nil {
+		return "", err
+	}
+	rootPath = filepath.Clean(rootPath)
+	fullPath := filepath.Join(rootPath, relativePath)
+	pathFromRoot, err := filepath.Rel(rootPath, fullPath)
+	if err != nil || pathFromRoot == ".." || strings.HasPrefix(pathFromRoot, ".."+string(filepath.Separator)) {
+		return "", errors.New("path escapes site root")
+	}
+
+	resolvedRoot, err := filepath.EvalSymlinks(rootPath)
+	if err != nil {
+		return "", err
+	}
+	resolvedAncestor := fullPath
+	for {
+		resolvedPath, resolveErr := filepath.EvalSymlinks(resolvedAncestor)
+		if resolveErr == nil {
+			resolvedFromRoot, relErr := filepath.Rel(resolvedRoot, resolvedPath)
+			if relErr != nil || resolvedFromRoot == ".." || strings.HasPrefix(resolvedFromRoot, ".."+string(filepath.Separator)) {
+				return "", errors.New("path escapes site root through symlink")
+			}
+			break
+		}
+		if !errors.Is(resolveErr, os.ErrNotExist) {
+			return "", resolveErr
+		}
+		parent := filepath.Dir(resolvedAncestor)
+		if parent == resolvedAncestor {
+			return "", resolveErr
+		}
+		resolvedAncestor = parent
+	}
+
+	return fullPath, nil
+}
+
+func (driver *ClientDriver) resolveSitePath(ftpPath string) (string, SubSiteAssetCache, string, error) {
+	siteName, site, relativePath, err := driver.sitePath(ftpPath)
+	if err != nil {
+		return "", SubSiteAssetCache{}, "", err
+	}
+	fullPath, err := containedPath(site.LocalSyncPath, relativePath)
+	if err != nil {
+		return "", SubSiteAssetCache{}, "", err
+	}
+	return siteName, site, fullPath, nil
 }
 
 // UserLeft is called when the user disconnects, even if he never authenticated
@@ -202,26 +300,18 @@ func (driver *DaptinFtpDriver) UserLeft(cc server.ClientContext) {
 }
 
 func (driver *ClientDriver) SetFileMtime(cc server.ClientContext, path string, mtime time.Time) error {
-
-	dirParts := strings.Split(path, "/")
-
-	if len(dirParts) == 2 {
-		subsiteName := dirParts[1]
-		_, ok := driver.FtpDriver.Sites[subsiteName]
-		if !ok {
-			return errors.New("invalid path " + subsiteName)
-		}
-		driver.CurrentDir = subsiteName
+	_, site, fullPath, err := driver.resolveSitePath(path)
+	if err != nil {
+		return err
 	}
-
-	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) + strings.Join(dirParts[2:], string(os.PathSeparator))
-	return os.Chtimes(path, mtime, mtime)
+	if !site.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return errors.New("permission denied")
+	}
+	return os.Chtimes(fullPath, mtime, mtime)
 }
 
 // ChangeDirectory changes the current working directory
 func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory string) error {
-
-	var err error
 	log.Printf("Change directory: [%v]", directory)
 
 	if directory == "/" {
@@ -229,131 +319,118 @@ func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory s
 		return nil
 	}
 
-	dirParts := strings.Split(directory, "/")
-	if len(dirParts) == 2 {
-		subsiteName := dirParts[1]
-		_, ok := driver.FtpDriver.Sites[subsiteName]
-		if !ok {
-			return errors.New("invalid site " + subsiteName)
-		}
-		driver.CurrentDir = subsiteName
-	} else {
-		newDirName := dirParts[1]
-		_, ok := driver.FtpDriver.Sites[newDirName]
-		if !ok {
-			err = errors.New(fmt.Sprintf("no such path %v", directory))
-		} else {
-			driver.CurrentDir = newDirName
-			cdPath := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) + strings.Join(dirParts[2:], string(os.PathSeparator))
-			log.Printf("CD Path: %v", cdPath)
-			_, err = os.Stat(cdPath)
-		}
+	siteName, site, fullPath, err := driver.resolveSitePath(directory)
+	if err != nil || !site.Permission.CanPeek(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return fmt.Errorf("no such path %v", directory)
 	}
-	//driver.CurrentDir = directory
-	return err
+	fileInfo, err := os.Stat(fullPath)
+	if err != nil || !fileInfo.IsDir() {
+		return fmt.Errorf("no such path %v", directory)
+	}
+	driver.CurrentDir = siteName
+	return nil
 }
 
 // MakeDirectory creates a directory
 func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, path string) error {
-
-	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
-
-	if len(strings.Split(path, "/")) == 2 {
-		return errors.New("cannot create new directory in /")
+	_, site, relativePath, err := driver.sitePath(path)
+	if err != nil {
+		return err
 	}
-
-	if driver.CurrentDir == "/" {
-		return errors.New("cannot create new directory in /")
+	if !site.Permission.CanCreate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return errors.New("permission denied")
 	}
-
-	return os.Mkdir(path, 0750)
+	if relativePath == "." {
+		return errors.New("cannot create site root")
+	}
+	fullPath, err := containedPath(site.LocalSyncPath, relativePath)
+	if err != nil {
+		return err
+	}
+	return os.Mkdir(fullPath, 0750)
 }
 
 // ListFiles lists the files of a directory
 func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string) ([]fs.FileInfo, error) {
-
-	var err error
 	log.Printf("List files: [%v][%v]", driver.CurrentDir, directory)
 	files := make([]fs.FileInfo, 0)
-	//files, err := os.ReadDir(directory)
 
-	// We add a virtual dir
 	if directory == "/" {
-		for site := range driver.FtpDriver.Sites {
-			files = append(files, virtualFileInfo{
-				name: site,
-				mode: os.FileMode(0666) | os.ModeDir,
-				//size: 4096,
-			})
+		if driver == nil || driver.FtpDriver == nil || driver.sessionUser == nil {
+			return nil, errors.New("invalid FTP session")
 		}
-
-	} else {
-		path := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-			strings.Join(strings.Split(directory, "/")[2:], string(os.PathSeparator))
-		filesDirEntries, err := os.ReadDir(path)
-		if err == nil {
-			log.Errorf("Failed to read path ["+path+"] => ", err)
-			return nil, nil
-		}
-		fileInfoEntries := make([]webdav.FileInfo, len(filesDirEntries))
-		for i, entry := range filesDirEntries {
-			entryInfo, err := entry.Info()
-			if err != nil {
-				log.Warnf("error in getting entry info ["+driver.CurrentDir+"]["+entry.Name()+"] => ", err)
+		for siteName, site := range driver.FtpDriver.Sites {
+			if !site.Permission.CanPeek(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 				continue
 			}
-			fileInfo := webdav.FileInfo{
-				Path:     driver.CurrentDir + string(os.PathSeparator) + entry.Name(),
-				Size:     entryInfo.Size(),
-				ModTime:  entryInfo.ModTime(),
-				IsDir:    entryInfo.IsDir(),
-				MIMEType: "",
-				ETag:     "",
-			}
-			fileInfoEntries[i] = fileInfo
+			files = append(files, virtualFileInfo{
+				name: siteName,
+				mode: os.FileMode(0666) | os.ModeDir,
+			})
 		}
+		return files, nil
 	}
-	log.Printf("list Path: %v", files)
 
-	return files, err
+	_, site, fullPath, err := driver.resolveSitePath(directory)
+	if err != nil {
+		return nil, err
+	}
+	if !site.Permission.CanRead(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return nil, errors.New("permission denied")
+	}
+	entries, err := os.ReadDir(fullPath)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		entryInfo, infoErr := entry.Info()
+		if infoErr != nil {
+			return nil, infoErr
+		}
+		files = append(files, entryInfo)
+	}
+	return files, nil
 }
 
 // OpenFile opens a file in 3 possible modes: read, write, appending write (use appropriate flags)
 func (driver *ClientDriver) OpenFile(cc server.ClientContext, path string, flag int) (server.FileStream, error) {
-
-	baseDir := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath
-	relPath := filepath.Clean(strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator)))
-	for strings.HasPrefix(relPath, "..") {
-		relPath = strings.TrimPrefix(strings.TrimPrefix(relPath, ".."), string(filepath.Separator))
+	_, site, fullPath, err := driver.resolveSitePath(path)
+	if err != nil {
+		return nil, err
 	}
-	fullPath := filepath.Join(baseDir, relPath)
-
-	// If we are writing and we are not in append mode, we should remove the file
-	if (flag & os.O_WRONLY) != 0 {
-		flag |= os.O_CREATE
-		if (flag & os.O_APPEND) == 0 {
-			if err := os.Remove(fullPath); err != nil {
-				fmt.Println("Problem removing file", fullPath, "err:", err)
+	if (flag & (os.O_WRONLY | os.O_RDWR)) != 0 {
+		_, statErr := os.Stat(fullPath)
+		if errors.Is(statErr, os.ErrNotExist) {
+			if !site.Permission.CanCreate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+				return nil, errors.New("permission denied")
+			}
+		} else {
+			if statErr != nil {
+				return nil, statErr
+			}
+			if !site.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+				return nil, errors.New("permission denied")
 			}
 		}
+		flag |= os.O_CREATE
+		if (flag & os.O_APPEND) == 0 {
+			flag |= os.O_TRUNC
+		}
+	} else if !site.Permission.CanRead(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return nil, errors.New("permission denied")
 	}
-
 	return os.OpenFile(fullPath, flag, 0600)
 }
 
 // GetFileInfo gets some info around a file or a directory
 func (driver *ClientDriver) GetFileInfo(cc server.ClientContext, path string) (os.FileInfo, error) {
-
-	baseDir := driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath
-	relPath := filepath.Clean(strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator)))
-	for strings.HasPrefix(relPath, "..") {
-		relPath = strings.TrimPrefix(strings.TrimPrefix(relPath, ".."), string(filepath.Separator))
+	_, site, fullPath, err := driver.resolveSitePath(path)
+	if err != nil {
+		return nil, err
 	}
-	fullPath := filepath.Join(baseDir, relPath)
-
-	log.Printf("Get file info [%v]", fullPath)
-
+	if !site.Permission.CanRead(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return nil, errors.New("permission denied")
+	}
 	return os.Stat(fullPath)
 }
 
@@ -364,28 +441,64 @@ func (driver *ClientDriver) CanAllocate(cc server.ClientContext, size int) (bool
 
 // ChmodFile changes the attributes of the file
 func (driver *ClientDriver) ChmodFile(cc server.ClientContext, path string, mode os.FileMode) error {
-	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
-
-	return os.Chmod(path, mode)
+	_, site, fullPath, err := driver.resolveSitePath(path)
+	if err != nil {
+		return err
+	}
+	if !site.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return errors.New("permission denied")
+	}
+	return os.Chmod(fullPath, mode)
 }
 
 // DeleteFile deletes a file or a directory
 func (driver *ClientDriver) DeleteFile(cc server.ClientContext, path string) error {
-	path = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(path, "/")[2:], string(os.PathSeparator))
-
-	return os.Remove(path)
+	_, site, fullPath, err := driver.resolveSitePath(path)
+	if err != nil {
+		return err
+	}
+	if !site.Permission.CanDelete(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return errors.New("permission denied")
+	}
+	siteRoot, rootErr := filepath.Abs(site.LocalSyncPath)
+	if rootErr != nil {
+		return rootErr
+	}
+	if fullPath == filepath.Clean(siteRoot) {
+		return errors.New("cannot delete site root")
+	}
+	return os.Remove(fullPath)
 }
 
 // RenameFile renames a file or a directory
 func (driver *ClientDriver) RenameFile(cc server.ClientContext, from, to string) error {
-	from = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(from, "/")[2:], string(os.PathSeparator))
-	to = driver.FtpDriver.Sites[driver.CurrentDir].LocalSyncPath + string(os.PathSeparator) +
-		strings.Join(strings.Split(to, "/")[2:], string(os.PathSeparator))
-
-	return os.Rename(from, to)
+	fromSiteName, fromSite, fromPath, err := driver.resolveSitePath(from)
+	if err != nil {
+		return err
+	}
+	toSiteName, toSite, toPath, err := driver.resolveSitePath(to)
+	if err != nil {
+		return err
+	}
+	if fromSiteName != toSiteName {
+		return errors.New("cannot rename across sites")
+	}
+	if !fromSite.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) ||
+		!toSite.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		return errors.New("permission denied")
+	}
+	fromSiteRoot, err := filepath.Abs(fromSite.LocalSyncPath)
+	if err != nil {
+		return err
+	}
+	toSiteRoot, err := filepath.Abs(toSite.LocalSyncPath)
+	if err != nil {
+		return err
+	}
+	if fromPath == filepath.Clean(fromSiteRoot) || toPath == filepath.Clean(toSiteRoot) {
+		return errors.New("cannot rename site root")
+	}
+	return os.Rename(fromPath, toPath)
 }
 
 // The virtual file is an example of how you can implement a purely virtual file
