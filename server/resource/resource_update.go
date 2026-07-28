@@ -447,10 +447,16 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			}
 
 			log.Debugf("Update query [424]: %v", query)
-			_, err = updateTransaction.Exec(query, vals...)
+			res, err := updateTransaction.Exec(query, vals...)
 			if err != nil {
 				log.Errorf("[464] Failed to execute update query [%s] [%v] 411: %v", query, vals, err)
 				return nil, err
+			}
+			rowsAffected, err := res.RowsAffected()
+			if err != nil {
+				log.Warnf("[464] Failed to inspect update rows affected [%s] [%v]: %v", query, vals, err)
+			} else if rowsAffected == 0 {
+				return nil, fmt.Errorf("failed to update %s [%s]: no rows matched current version", dbResource.model.GetName(), updateObjectReferenceId.String())
 			}
 
 		} else if len(languagePreferences) > 0 {

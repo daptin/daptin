@@ -481,7 +481,7 @@ OutFields:
 			}
 
 			userGroups := dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", user["id"].(int64))
-			userGroups = append(sessionUser.Groups, auth.GroupPermission{
+			userGroups = append(userGroups, auth.GroupPermission{
 				GroupReferenceId: dbResource.AdministratorGroupId,
 			})
 

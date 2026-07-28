@@ -309,8 +309,9 @@ func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string
 func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	cacheKey := fmt.Sprintf("object-permission-%v-%v", objectType, referenceId)
+	useCache := transaction == nil && OlricCache != nil
 
-	if OlricCache != nil {
+	if useCache {
 
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
@@ -380,7 +381,7 @@ func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenc
 		log.Errorf("Failed to scan permission 2: %v", err)
 	}
 
-	if OlricCache != nil {
+	if useCache {
 		cachePutErr := OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(5*time.Minute), olric.NX())
 		CheckErr(cachePutErr, "[374] failed to store object permission in cache")
 	}
@@ -695,13 +696,14 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string
 }
 
 func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(objectType string, colName string, colValue string, transaction *sqlx.Tx) permission.PermissionInstance {
-	if OlricCache == nil {
+	if transaction == nil && OlricCache == nil && dbResource.OlricDb != nil {
 		OlricCache, _ = dbResource.OlricDb.NewDMap("default-cache")
 	}
 
 	cacheKey := ""
 	cacheKey = fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue)
-	if OlricCache != nil {
+	useCache := transaction == nil && OlricCache != nil
+	if useCache {
 		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
 		if cachedPermission != nil && err == nil {
 			var pi permission.PermissionInstance
@@ -759,7 +761,7 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 
 	log.Debugf("PermissionInstance for [%v]: %v", objectType, perm)
 
-	if OlricCache != nil {
+	if useCache {
 		OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(10*time.Minute), olric.NX())
 		CheckErr(err, "[617] Failed to set id to reference id in olric cache")
 	}
@@ -1024,8 +1026,9 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64, transaction *sqlx.Tx) auth.GroupPermissionList {
 
 	cacheKey := fmt.Sprintf("object-groups-%v-%v", objectType, objectId)
+	useCache := transaction == nil && OlricCache != nil
 
-	if OlricCache != nil {
+	if useCache {
 
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
@@ -1100,7 +1103,7 @@ func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64,
 		groupPermissionList = append(groupPermissionList, g)
 	}
 
-	if OlricCache != nil {
+	if useCache {
 		cachePutErr := OlricCache.Put(context.Background(), cacheKey, groupPermissionList, olric.EX(30*time.Second), olric.NX())
 		CheckErr(cachePutErr, "[996] failed to store config value in cache [%v]", cacheKey)
 	}
@@ -1639,8 +1642,9 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 	rowType := row["__type"].(string)
 
 	cacheKey := fmt.Sprintf("row-permission-%v-%v", rowType, referenceId)
+	useCache := transaction == nil && OlricCache != nil
 
-	if OlricCache != nil {
+	if useCache {
 
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
 		if err == nil {
@@ -1732,7 +1736,7 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 	}
 	//log.Printf("Row permission: %v  ---------------- %v", perm, row)
 
-	if OlricCache != nil {
+	if useCache {
 		cachePutErr := OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(1*time.Minute), olric.NX())
 		CheckErr(cachePutErr, "failed to store object permission in cache [%v]", cacheKey)
 	}
