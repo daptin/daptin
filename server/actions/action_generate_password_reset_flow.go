@@ -3,7 +3,6 @@ package actions
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
@@ -70,7 +69,6 @@ func (d *generatePasswordResetActionPerformer) DoAction(request actionresponse.O
 		// Sign and get the complete encoded token as a string using the secret
 		tokenString, err := token.SignedString(d.secret)
 		tokenStringBase64 := base64.StdEncoding.EncodeToString([]byte(tokenString))
-		fmt.Printf("%v %v", tokenStringBase64, err)
 		if err != nil {
 			log.Errorf("Failed to sign string: %v", err)
 			return nil, nil, []error{err}

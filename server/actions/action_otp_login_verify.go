@@ -91,7 +91,7 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request actionresponse.Outcome,
 		Algorithm: otp.AlgorithmSHA1,
 	})
 	if !ok {
-		log.Errorf("Failed to validate otp key [%s] [%s]", userAccount["email"].(string), state)
+		log.Errorf("Failed to validate otp key")
 		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
 
@@ -140,8 +140,6 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request actionresponse.Outcome,
 		"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", resource.GetMD5HashString(strings.ToLower(userAccount["email"].(string)))),
 	})
 
-	// Sign and get the complete encoded token as a string using the secret
-	fmt.Printf("%v %v", tokenString, err)
 	if err != nil {
 		log.Errorf("Failed to sign string: %v", err)
 		return nil, nil, []error{err}
