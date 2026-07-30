@@ -47,6 +47,95 @@ func TestLoadConfigFilesTracksExplicitTableFields(t *testing.T) {
 	}
 }
 
+func TestLoadConfigFilesNormalizesNameOnlyBuiltInColumnExtensionBeforeMerge(t *testing.T) {
+	tempDir := t.TempDir()
+	schema := []byte(`Tables:
+  - TableName: usergroup
+    Columns:
+      - Name: owner_account_reference
+        DataType: varchar(64)
+        ColumnType: label
+        IsNullable: true
+        IsIndexed: true
+`)
+	if err := os.WriteFile(filepath.Join(tempDir, "schema_usergroup_extension.yaml"), schema, 0600); err != nil {
+		t.Fatalf("write schema: %v", err)
+	}
+	t.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
+
+	config, errs := LoadConfigFiles()
+	if len(errs) > 0 {
+		t.Fatalf("load config errors: %v", errs)
+	}
+
+	var loadedExtension *api2go.ColumnInfo
+	for i := range config.Tables {
+		if config.Tables[i].TableName != "usergroup" {
+			continue
+		}
+		if column, ok := config.Tables[i].GetColumnByName("owner_account_reference"); ok {
+			loadedExtension = column
+		}
+	}
+	if loadedExtension == nil {
+		t.Fatal("expected name-only usergroup extension in loaded schema")
+	}
+	if loadedExtension.Name != "owner_account_reference" || loadedExtension.ColumnName != "owner_account_reference" {
+		t.Fatalf("expected stable runtime column identity, got Name=%q ColumnName=%q", loadedExtension.Name, loadedExtension.ColumnName)
+	}
+
+	merged := MergeTables(nil, config.Tables)
+	usergroupTables := 0
+	for i := range merged {
+		if merged[i].TableName != "usergroup" {
+			continue
+		}
+		usergroupTables++
+		column, ok := merged[i].GetColumnByName("owner_account_reference")
+		if !ok {
+			t.Fatal("expected usergroup extension to survive built-in table merge")
+		}
+		if column.ColumnName != "owner_account_reference" || column.DataType != "varchar(64)" || !column.IsNullable || !column.IsIndexed {
+			t.Fatalf("unexpected merged extension: %#v", column)
+		}
+		model := api2go.NewApi2GoModel(merged[i].TableName, merged[i].Columns, int64(merged[i].DefaultPermission), merged[i].Relations)
+		foundRuntimeColumn := false
+		for _, columnName := range model.GetColumnNames() {
+			if columnName == "owner_account_reference" {
+				foundRuntimeColumn = true
+				break
+			}
+		}
+		if !foundRuntimeColumn {
+			t.Fatalf("expected runtime model to expose owner_account_reference, got %v", model.GetColumnNames())
+		}
+	}
+	if usergroupTables != 1 {
+		t.Fatalf("expected one merged usergroup runtime table, got %d", usergroupTables)
+	}
+}
+
+func TestNormalizeSchemaTableColumnsRejectsMissingAndCollidingIdentities(t *testing.T) {
+	tests := []struct {
+		name    string
+		columns []api2go.ColumnInfo
+	}{
+		{name: "missing", columns: []api2go.ColumnInfo{{}}},
+		{name: "collision", columns: []api2go.ColumnInfo{
+			{Name: "OwnerAccountReference"},
+			{ColumnName: "owner_account_reference"},
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			table := table_info.TableInfo{TableName: "usergroup", Columns: test.columns}
+			if err := normalizeSchemaTableColumns(&table); err == nil {
+				t.Fatalf("expected invalid column identity to fail, got %#v", table.Columns)
+			}
+		})
+	}
+}
+
 func TestLoadConfigFilesSkipsUnsupportedSchemaExtensions(t *testing.T) {
 	tempDir := t.TempDir()
 	tomlSchema := []byte(`[Tables]

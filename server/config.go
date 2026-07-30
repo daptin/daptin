@@ -2,6 +2,7 @@ package server
 
 import (
 	json1 "encoding/json"
+	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/fsm"
@@ -13,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 //import "github.com/daptin/daptin/datastore"
@@ -123,11 +125,13 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 		for i, table := range initConfig.Tables {
 			table.TableName = flect.Underscore(table.TableName)
 			if len(table.TableName) < 1 {
+				errs = append(errs, fmt.Errorf("schema file %s contains a table without a name", fileName))
 				continue
 			}
 
-			for j, col := range table.Columns {
-				table.Columns[j].ColumnName = flect.Underscore(col.ColumnName)
+			if err := normalizeSchemaTableColumns(&table); err != nil {
+				errs = append(errs, fmt.Errorf("schema file %s: %w", fileName, err))
+				continue
 			}
 			rawTablesValue := initConfigRaw["Tables"]
 			if rawTablesValue == nil {
@@ -170,19 +174,6 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			log.Infof("Action [%v][%v]", fileName, action.Name)
 		}
 
-		for _, table := range initConfig.Tables {
-			for i, col := range table.Columns {
-				if col.Name == "" && col.ColumnName != "" {
-					col.Name = col.ColumnName
-				} else if col.Name != "" && col.ColumnName == "" {
-					col.ColumnName = col.Name
-				} else if col.Name == "" && col.ColumnName == "" {
-					log.Printf("Error, column without name: %v", table)
-				}
-				table.Columns[i] = col
-			}
-		}
-
 		//for _, marketplace := range initConfig.Marketplaces {
 		//	log.Printf("Marketplace [%v][%v]", fileName, marketplace.Endpoint)
 		//}
@@ -202,4 +193,35 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	return globalInitConfig, errs
 
+}
+
+// normalizeSchemaTableColumns establishes the database/runtime identity of
+// every schema column before the table is copied into the global config or
+// merged with a built-in table. YAML schemas historically allowed either Name
+// or ColumnName, so both forms remain supported.
+func normalizeSchemaTableColumns(table *table_info.TableInfo) error {
+	seen := make(map[string]struct{}, len(table.Columns))
+	for i := range table.Columns {
+		column := &table.Columns[i]
+		column.Name = strings.TrimSpace(column.Name)
+		column.ColumnName = strings.TrimSpace(column.ColumnName)
+		if column.Name == "" && column.ColumnName == "" {
+			return fmt.Errorf("table %s contains column %d without Name or ColumnName", table.TableName, i)
+		}
+		if column.ColumnName == "" {
+			column.ColumnName = column.Name
+		}
+		column.ColumnName = flect.Underscore(column.ColumnName)
+		if column.ColumnName == "" {
+			return fmt.Errorf("table %s contains column %d with an invalid name", table.TableName, i)
+		}
+		if column.Name == "" {
+			column.Name = column.ColumnName
+		}
+		if _, exists := seen[column.ColumnName]; exists {
+			return fmt.Errorf("table %s contains duplicate column %s after normalization", table.TableName, column.ColumnName)
+		}
+		seen[column.ColumnName] = struct{}{}
+	}
+	return nil
 }
