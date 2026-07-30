@@ -16,8 +16,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	limit2 "github.com/yangxikun/gin-limit-by-key"
-	"golang.org/x/time/rate"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -76,20 +74,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	//max_connections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
 	//rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 
-	rateLimiter := limit2.NewRateLimiter(func(c *gin.Context) string {
-		requestPath := c.Request.Host + "/" + strings.Split(c.Request.RequestURI, "?")[0]
-		return c.ClientIP() + requestPath // limit rate by client ip
-	}, func(c *gin.Context) (*rate.Limiter, time.Duration) {
-		requestPath := c.Request.Host + "/" + strings.Split(c.Request.RequestURI, "?")[0]
-		limitValue, ok := rateConfig.limits[requestPath]
-		if !ok {
-			limitValue = 10000
-		}
-
-		return rate.NewLimiter(rate.Every(100*time.Millisecond), limitValue), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
-	}, func(c *gin.Context) {
-		c.AbortWithStatus(429) // handle exceed rate limit request
-	})
+	rateLimiter := CreateSubsiteRateLimiterMiddleware(rateConfig, olricClient)
 	maxLimiter := limit.MaxAllowed(max_connections)
 	middlewares := []gin.HandlerFunc{rateLimiter, maxLimiter, authMiddleware.AuthCheckMiddleware}
 

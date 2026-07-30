@@ -43,16 +43,6 @@ import (
 var TaskScheduler task_scheduler.TaskScheduler
 var Stats = stats.New()
 
-type RateConfig struct {
-	version string
-	limits  map[string]int
-}
-
-var defaultRateConfig = RateConfig{
-	version: "default",
-	limits:  map[string]int{},
-}
-
 type YjsConnectionSessionFetcher struct {
 }
 
@@ -184,22 +174,19 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	log.Printf("Limiting max connections per IP: %v", maxConnections)
 	rateConfigJson, err := configStore.GetConfigValueFor("limit.rate", "backend", transaction)
 	if err != nil {
-		rateConfigJson = "{\"version\":\"default\"}"
+		rateConfigJson = defaultRateConfigJSON
 		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
 		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 
-	var rateConfig RateConfig
-	err = json.Unmarshal([]byte(rateConfigJson), rateConfig)
-	if err != nil || rateConfig.version == "" {
+	rateConfig, rateConfigErr := ParseRateConfig(rateConfigJson)
+	if rateConfigErr != nil {
+		log.Errorf("Invalid backend limit.rate configuration; using defaults without overwriting the stored value: %v", rateConfigErr)
 		rateConfig = defaultRateConfig
-		rateConfigJson = "{\"version\":\"default\"}"
-		err = configStore.SetConfigValueFor("limit.rate", rateConfigJson, "backend", transaction)
-		resource.CheckErr(err, "Failed to store limit.rate default value in db")
 	}
 	_ = transaction.Commit()
 
-	var rateLimiter = CreateRateLimiterMiddleware(rateConfig)
+	var rateLimiter = CreateRateLimiterMiddleware(rateConfig, olricDb)
 
 	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
