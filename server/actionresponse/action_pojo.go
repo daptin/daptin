@@ -27,6 +27,14 @@ type ActionPerformerInterface interface {
 	Name() string
 }
 
+// IntegrationPerformerInterface identifies performers created from enabled
+// integration records. Integration routes must use this narrower interface so
+// built-in action performers cannot be invoked through the integration API.
+type IntegrationPerformerInterface interface {
+	ActionPerformerInterface
+	IsIntegrationPerformer()
+}
+
 // Outcome is call to a internal function with attributes as parameters
 // Outcome has a particular `type`, it can be one of the data entities already defined
 // Method is the type of outcome: GET/PUT/POST/DELETE/UPDATE/PATCH/EXECUTE/INTEGRATION

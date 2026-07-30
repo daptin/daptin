@@ -98,6 +98,8 @@ func (d *integrationActionPerformer) Name() string {
 	return d.integration.Name
 }
 
+func (d *integrationActionPerformer) IsIntegrationPerformer() {}
+
 // Perform integration api
 func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 

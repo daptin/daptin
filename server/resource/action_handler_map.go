@@ -56,3 +56,12 @@ func GetActionHandler(dbResource *DbResource, name string) (actionresponse.Actio
 	performer, ok := ActionHandlerMap[name]
 	return performer, ok
 }
+
+func GetIntegrationActionHandler(dbResource *DbResource, name string) (actionresponse.IntegrationPerformerInterface, bool) {
+	performer, ok := GetActionHandler(dbResource, name)
+	if !ok {
+		return nil, false
+	}
+	integrationPerformer, ok := performer.(actionresponse.IntegrationPerformerInterface)
+	return integrationPerformer, ok
+}

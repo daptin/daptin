@@ -12,6 +12,12 @@ type testActionPerformer struct {
 	name string
 }
 
+type testIntegrationPerformer struct {
+	testActionPerformer
+}
+
+func (testIntegrationPerformer) IsIntegrationPerformer() {}
+
 func (p testActionPerformer) Name() string {
 	return p.name
 }
@@ -60,5 +66,20 @@ func TestDeleteActionHandlerOnAllRemovesGlobalAndCrudMaps(t *testing.T) {
 		if _, ok := GetActionHandler(crud, performer.Name()); ok {
 			t.Fatalf("handler was not deleted from crud %s", name)
 		}
+	}
+}
+
+func TestGetIntegrationActionHandlerRejectsOrdinaryPerformers(t *testing.T) {
+	crud := &DbResource{ActionHandlerMap: make(map[string]actionresponse.ActionPerformerInterface)}
+	crud.ActionHandlerMap["$network.request"] = testActionPerformer{name: "$network.request"}
+	crud.ActionHandlerMap["enabled.example"] = testIntegrationPerformer{
+		testActionPerformer{name: "enabled.example"},
+	}
+
+	if _, ok := GetIntegrationActionHandler(crud, "$network.request"); ok {
+		t.Fatal("ordinary action performer was exposed as an integration performer")
+	}
+	if performer, ok := GetIntegrationActionHandler(crud, "enabled.example"); !ok || performer.Name() != "enabled.example" {
+		t.Fatalf("integration performer was not resolved: %#v, %v", performer, ok)
 	}
 }
