@@ -271,7 +271,10 @@ func createServer() (hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.Ta
 	configStore.SetConfigValueFor("imap.listen_interface", ":8743", "backend", transaction)
 	configStore.SetConfigValueFor("logs.enable", "true", "backend", transaction)
 	configStore.SetConfigValueFor("limit.max_connections", "5000", "backend", transaction)
-	//configStore.SetConfigValueFor("limit.rate", "5000", "backend", transaction)
+	// WebSocket stress tests deliberately create hundreds of /live handshakes
+	// in one second. Keep production rate limiting enabled while giving that
+	// route an explicit test allowance above the generated load.
+	configStore.SetConfigValueFor("limit.rate", `{"version":"1","limits":{"/live":5000}}`, "backend", transaction)
 	transaction.Commit()
 
 	hostSwitch, mailDaemon, taskScheduler, configStore, certManager, ftpServer, imapServer, olricDb = server.Main(boxRoot, db, tempDir, olricDb, "")
