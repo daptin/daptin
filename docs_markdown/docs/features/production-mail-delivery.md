@@ -61,8 +61,8 @@ created before delivery attempts begin.
 
 `mail.send` resolves a configured mail server by hostname. Use
 `mail_server_hostname` in the action attributes, or set backend config
-`mail.default_server_hostname` for server-owned flows such as built-in password
-reset. Daptin stores the selected row on `outbox.mail_server_id` and uses
+`mail.default_server_hostname` as the fallback for actions that do not specify
+one. Daptin stores the selected row on `outbox.mail_server_id` and uses
 `mail_server.hostname` as the SMTP EHLO identity for immediate delivery and
 scheduled retries. Daptin signs the outgoing mail with the domain from the
 `From` address. The `From` address must exist as a Daptin `mail_account`
@@ -149,9 +149,91 @@ they are not valid customer mail.
 
 ## Password reset and OTP
 
-The built-in `reset-password` action uses `otp.generate` followed by
-`mail.send` with `send_immediately: true`. It does not accept a mail server
-from the API request; configure `mail.default_server_hostname` on the backend.
+The schema-managed `user_account/reset-password` and
+`user_account/reset-password-verify` actions are basic starter examples built
+with the same Daptin action framework available to applications. They are not
+intended to encode a production deployment's mail identity, templates, or
+password-recovery policy.
+
+Both starter actions currently set `from: no-reply@localhost` directly in
+their `mail.send` outcome. `mail.default_server_hostname` can select the mail
+server used for delivery, but it does **not** replace that `from` address.
+Production deployments should not provision a fake localhost mailbox or
+certificate to accommodate the example.
+
+Instead, create an application-owned action based on the starter sequence and
+set its sender and mail server in server-managed action attributes. Do not add
+`from` or `mail_server_hostname` as guest-supplied action inputs.
+
+For example, a production verification action can use this shape:
+
+```yaml
+Actions:
+  - Name: verify_example_password_reset
+    Label: Verify password reset
+    OnType: user_account
+    InstanceOptional: true
+    InFields:
+      - Name: email
+        ColumnName: email
+        ColumnType: email
+        IsNullable: false
+      - Name: otp
+        ColumnName: otp
+        ColumnType: value
+        IsNullable: false
+    Validations:
+      - ColumnName: email
+        Tags: email
+    Conformations:
+      - ColumnName: email
+        Tags: email
+    OutFields:
+      - Type: user_account
+        Method: GET
+        Reference: user
+        SkipInResponse: true
+        Attributes:
+          query: '[{"column":"email","operator":"is","value":"$email"}]'
+      - Type: otp.login.verify
+        Method: EXECUTE
+        Attributes:
+          otp: "~otp"
+          email: "~email"
+          purpose: password_reset
+      - Type: random.generate
+        Method: EXECUTE
+        Reference: newPassword
+        SkipInResponse: true
+        Attributes:
+          type: password
+      - Type: user_account
+        Method: PATCH
+        SkipInResponse: true
+        Attributes:
+          reference_id: "$user[0].reference_id"
+          password: "!newPassword.value"
+      - Type: mail.send
+        Method: EXECUTE
+        SkipInResponse: true
+        Attributes:
+          from: "login@example.com"
+          to: "~email"
+          subject: "Your password was reset"
+          body: "Your new password is: $newPassword.value"
+          mail_server_hostname: "mail.example.com"
+          send_immediately: true
+```
+
+This example intentionally preserves the starter behavior of generating and
+mailing a password. Applications may instead let the user choose a new password
+after verification, use a one-time continuation token, render a template, or
+add application-specific auditing. Review guest execution permission carefully
+and keep OTP verification before any password change.
+
+The related starter request action follows `otp.generate` with `mail.send` and
+should be customized in the same way so both halves of the flow use the same
+production identity and policy.
 
 The legacy/internal `password.reset.begin` performer stores mail through
 `TaskSaveMail` in the local Daptin mailbox path. These are different flows, so

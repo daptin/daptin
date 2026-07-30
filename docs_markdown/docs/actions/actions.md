@@ -24,6 +24,29 @@ Create/Read/Update/Delete (CRUD) APIs are only basic APIs exposed on the databas
 
 Actions provide a powerful abstraction over the CRUD and to handle a variety of use cases. Actions can also make use of operations imported from OpenAPI Specs of other services.
 
+## Built-in actions are starter definitions
+
+Daptin includes schema-managed actions such as `signup`, `reset-password`, and
+`reset-password-verify` so a new installation has working examples of the
+action framework. Treat these definitions as starting points, not as a fixed
+production workflow or a promise that every deployment-specific policy is
+available as backend configuration.
+
+For production applications, define an application-owned action when the
+workflow needs different senders, templates, validation, password policy,
+outcomes, redirects, permissions, or integrations. Copy the relevant outcome
+sequence, give the action an application-specific name, and keep
+deployment-owned values in its schema rather than accepting security-sensitive
+values from an unauthenticated request.
+
+For example, the built-in `user_account/reset-password-verify` action is a
+basic demonstration composed from normal outcomes: user lookup,
+`otp.login.verify`, `random.generate`, a `user_account` password patch, and
+`mail.send`. Its `no-reply@localhost` sender is deliberately only a local
+starter value. A production password-reset flow should be an application-owned
+action with a reviewed server-controlled sender. See
+[Production Mail Delivery](../features/production-mail-delivery.md#password-reset-and-otp).
+
 To quickly understand what actions are, lets see what happened when you "signed up" on Daptin.
 
 Take a look at how "Sign up" action is defined. We will go through each part of this definition
