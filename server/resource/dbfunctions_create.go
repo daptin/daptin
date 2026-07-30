@@ -125,6 +125,14 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 	}
 }
 
+func usergroupAccessIndexName(tableName, usergroupColumnName, entityColumnName string) string {
+	indexName := fmt.Sprintf("index_auth_%s_%s_%s", tableName, usergroupColumnName, entityColumnName)
+	if len(indexName) <= 60 {
+		return indexName
+	}
+	return "iauth" + GetMD5HashString(indexName)
+}
+
 func GetExistingIndexes(db *sqlx.Tx) map[string]bool {
 
 	existingIndexes := make(map[string]bool)
@@ -140,7 +148,7 @@ FROM
 WHERE
     schemaname = 'public' union SELECT conname  FROM pg_catalog.pg_constraint con`
 	} else if db.DriverName() == "sqlite3" {
-		return existingIndexes
+		indexQuery = `SELECT name FROM sqlite_master WHERE type = 'index'`
 	}
 
 	stmt1, err := db.Preparex(indexQuery)
@@ -169,59 +177,62 @@ WHERE
 
 }
 
+func executeSchemaStatementInTransaction(db database.DatabaseConnection, statement string) error {
+	transaction, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	if _, err = transaction.Exec(statement); err != nil {
+		_ = transaction.Rollback()
+		return err
+	}
+
+	return transaction.Commit()
+}
+
 func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 	log.Printf("Create relations")
 
 	transaction, err := db.Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [176]")
+		return
 	}
 
 	existingIndexes := GetExistingIndexes(transaction)
+	if existingIndexes == nil {
+		existingIndexes = make(map[string]bool)
+	}
+	err = transaction.Rollback()
+	if err != nil {
+		CheckErr(err, "TX rollback failed")
+	}
 
 	for i, table := range initConfig.Tables {
 		if len(table.TableName) < 1 {
 			continue
 		}
+		fkColumns := make([]api2go.ColumnInfo, 0)
 		for _, column := range table.Columns {
 			if column.IsForeignKey && column.ForeignKeyData.DataSource == "self" {
+				fkColumns = append(fkColumns, column)
 				keyName := "fk" + GetMD5HashString(table.TableName+"_"+column.ColumnName+"_"+column.ForeignKeyData.Namespace+"_"+column.ForeignKeyData.KeyName+"_fk")
 
-				if existingIndexes[keyName] {
-					continue
-				}
-
-				if db.DriverName() == "sqlite3" {
-					continue
-				}
-
-				alterSql := "alter table " + table.TableName + " add constraint " + keyName + " foreign key (" + column.ColumnName + ") references " + column.ForeignKeyData.String()
-				//log.Printf("Alter table add constraint sql: %v", alterSql)
-				_, err := db.Exec(alterSql)
-				if err != nil {
-					log.Printf("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
-					transaction.Rollback()
-					transaction, err = db.Beginx()
-					CheckErr(err, "Failed to create a new transaction after rollback.")
-				} else {
-					log.Infof("Key created [%v][%v]", table.TableName, keyName)
-				}
-
-				fkIndexName := fmt.Sprintf("index_fk_%s_%s", table.TableName, column.ColumnName)
-				createFkIndex := "create index " + fkIndexName + " on " + table.TableName + " (" + column.ColumnName + ") "
-				//log.Printf("Alter table add constraint sql: %v", alterSql)
-				_, err = db.Exec(createFkIndex)
-				if err != nil {
-					log.Printf("Failed to create foreign key index [%v],  %v on column [%v][%v]", err, fkIndexName, table.TableName, column.ColumnName)
-					transaction.Rollback()
-					transaction, err = db.Beginx()
-					CheckErr(err, "Failed to create a new transaction after rollback.")
-				} else {
-					log.Infof("Index on FK created [%v][%v]", table.TableName, fkIndexName)
+				if !existingIndexes[keyName] && db.DriverName() != "sqlite3" {
+					alterSql := "alter table " + table.TableName + " add constraint " + keyName + " foreign key (" + column.ColumnName + ") references " + column.ForeignKeyData.String()
+					//log.Printf("Alter table add constraint sql: %v", alterSql)
+					if err := executeSchemaStatementInTransaction(db, alterSql); err != nil {
+						log.Printf("Failed to create foreign key [%v],  %v on column [%v][%v]", err, keyName, table.TableName, column.ColumnName)
+					} else {
+						existingIndexes[keyName] = true
+						log.Infof("Key created [%v][%v]", table.TableName, keyName)
+					}
 				}
 
 			}
 		}
+		createUsergroupAccessIndexes(db, table.TableName, fkColumns, existingIndexes)
 
 		relations := make([]api2go.TableRelation, 0)
 
@@ -234,6 +245,40 @@ func CreateRelations(initConfig *CmsConfig, db database.DatabaseConnection) {
 		//initConfig.Tables[i].AddRelation(relations...)
 		// reset relations
 		initConfig.Tables[i].Relations = relations
+	}
+}
+
+func createUsergroupAccessIndexes(db database.DatabaseConnection, tableName string, fkColumns []api2go.ColumnInfo, existingIndexes map[string]bool) {
+	if !strings.Contains(tableName, "_has_") {
+		return
+	}
+
+	var usergroupColumn *api2go.ColumnInfo
+	entityColumns := make([]api2go.ColumnInfo, 0)
+	for i := range fkColumns {
+		if fkColumns[i].ColumnName == "usergroup_id" {
+			usergroupColumn = &fkColumns[i]
+			continue
+		}
+		entityColumns = append(entityColumns, fkColumns[i])
+	}
+	if usergroupColumn == nil {
+		return
+	}
+
+	for _, entityColumn := range entityColumns {
+		indexName := usergroupAccessIndexName(tableName, usergroupColumn.ColumnName, entityColumn.ColumnName)
+		if existingIndexes[indexName] {
+			continue
+		}
+
+		createAccessIndex := "create index " + indexName + " on " + tableName + " (" + usergroupColumn.ColumnName + ", " + entityColumn.ColumnName + ") "
+		if err := executeSchemaStatementInTransaction(db, createAccessIndex); err != nil {
+			log.Printf("Failed to create usergroup access index [%v],  %v on columns [%v][%v, %v]", err, indexName, tableName, usergroupColumn.ColumnName, entityColumn.ColumnName)
+		} else {
+			existingIndexes[indexName] = true
+			log.Infof("Usergroup access index created [%v][%v]", tableName, indexName)
+		}
 	}
 }
 
@@ -575,6 +620,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				Name:         relation.GetObject(),
 				ColumnName:   relation.GetObjectName(),
 				IsForeignKey: true,
+				IsIndexed:    true,
 				ColumnType:   "alias",
 				IsNullable:   isNullable,
 				ForeignKeyData: api2go.ForeignKeyData{
@@ -643,6 +689,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				ColumnName:   relation.GetSubjectName(),
 				ColumnType:   "alias",
 				IsForeignKey: true,
+				IsIndexed:    true,
 				ForeignKeyData: api2go.ForeignKeyData{
 					DataSource: "self",
 					Namespace:  fromTable,
@@ -658,6 +705,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				ColumnName:   relation.GetObjectName(),
 				ColumnType:   "alias",
 				IsForeignKey: true,
+				IsIndexed:    true,
 				ForeignKeyData: api2go.ForeignKeyData{
 					Namespace:  targetTable,
 					DataSource: "self",
@@ -684,6 +732,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				Name:         relation.GetSubjectName(),
 				ColumnName:   relation.GetSubjectName(),
 				IsForeignKey: true,
+				IsIndexed:    true,
 				ColumnType:   "alias",
 				ForeignKeyData: api2go.ForeignKeyData{
 					Namespace:  fromTable,
@@ -700,6 +749,7 @@ func convertRelationsToColumns(relations []api2go.TableRelation, config *CmsConf
 				ColumnName:   relation.GetObjectName(),
 				ColumnType:   "alias",
 				IsForeignKey: true,
+				IsIndexed:    true,
 				ForeignKeyData: api2go.ForeignKeyData{
 					Namespace:  targetTable,
 					KeyName:    "id",

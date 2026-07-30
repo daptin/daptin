@@ -17,8 +17,8 @@ func InitialiseServerResources(initConfig *resource.CmsConfig, db database.Datab
 	resource.CheckAllTableStatus(initConfig, db)
 	resource.CheckErr(errc, "Failed to commit transaction after creating tables")
 
-	//resource.CreateRelations(initConfig, db)
-	//resource.CheckErr(errc, "Failed to commit transaction after creating relations")
+	resource.CreateRelations(initConfig, db)
+	resource.CheckErr(errc, "Failed to commit transaction after creating relations")
 
 	transaction, err := db.Beginx()
 	if err != nil {
