@@ -24,8 +24,11 @@ func StartSMTPMailServer(mailResource *resource.DbResource, certificateManager *
 		log.Infof("Setup SMTP server at [%v] for hostname [%v] (enabled=%v)", config.ListenInterface, config.Hostname, config.IsEnabled)
 	}
 	primaryMailHost := primaryHostname
-	if len(hosts) > 0 {
-		primaryMailHost = hosts[0]
+	for _, config := range serverConfig {
+		if config.IsEnabled && config.Hostname != "" {
+			primaryMailHost = config.Hostname
+			break
+		}
 	}
 
 	saveWorkersSize := 1

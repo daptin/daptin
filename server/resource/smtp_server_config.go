@@ -9,36 +9,61 @@ import (
 
 	"github.com/artpar/go-guerrilla"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 )
 
 func BuildSMTPServerConfigs(servers []map[string]interface{}, certificateManager *CertificateManager, transaction *sqlx.Tx) ([]guerrilla.ServerConfig, []string, error) {
 	serverConfig := make([]guerrilla.ServerConfig, 0, len(servers))
 	hosts := make([]string, 0, len(servers))
+	seenHosts := make(map[string]struct{}, len(servers))
+	seenListeners := make(map[string]string)
+
+	// Recipient domains are independent of SMTP listeners. Disabled mail_server
+	// rows intentionally remain valid recipient domains, but must not require TLS
+	// material or participate in listener reloads.
+	for _, server := range servers {
+		hostname, ok := server["hostname"].(string)
+		hostname = strings.ToLower(strings.TrimSpace(hostname))
+		if !ok || hostname == "" {
+			return nil, nil, fmt.Errorf("SMTP server entry has a missing hostname")
+		}
+		if _, exists := seenHosts[hostname]; !exists {
+			hosts = append(hosts, hostname)
+			seenHosts[hostname] = struct{}{}
+		}
+
+		if !smtpConfigBool(server["is_enabled"]) {
+			continue
+		}
+		listenInterface := strings.TrimSpace(fmt.Sprintf("%v", server["listen_interface"]))
+		if listenInterface == "" || listenInterface == "<nil>" {
+			return nil, nil, fmt.Errorf("enabled SMTP server %s has a missing listen_interface", hostname)
+		}
+		if existingHost, exists := seenListeners[listenInterface]; exists {
+			return nil, nil, fmt.Errorf("enabled SMTP servers %s and %s share listen_interface %s", existingHost, hostname, listenInterface)
+		}
+		seenListeners[listenInterface] = hostname
+	}
+	if len(seenListeners) == 0 {
+		return serverConfig, hosts, nil
+	}
 
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), "daptin-certs")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp directory for SMTP certs: %w", err)
 	}
 
-	var configErrors []string
 	for _, server := range servers {
+		if !smtpConfigBool(server["is_enabled"]) {
+			continue
+		}
 		maxSize, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_size"]), 10, 32)
 		maxClients, _ := strconv.ParseInt(fmt.Sprintf("%v", server["max_clients"]), 10, 32)
 
-		hostnameVal, ok := server["hostname"].(string)
-		if !ok || hostnameVal == "" {
-			log.Printf("Skipping SMTP server entry with missing hostname")
-			continue
-		}
-		hostname := hostnameVal
+		hostname := strings.ToLower(strings.TrimSpace(server["hostname"].(string)))
 
 		cert, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 		if err != nil {
-			msg := fmt.Sprintf("failed to generate certificates for SMTP server %s: %v", hostname, err)
-			log.Print(msg)
-			configErrors = append(configErrors, msg)
-			continue
+			return nil, nil, fmt.Errorf("failed to generate certificates for SMTP server %s: %w", hostname, err)
 		}
 
 		privateKeyFilePath := filepath.Join(tempDirectoryPath, hostname+".private.cert.pem")
@@ -46,22 +71,13 @@ func BuildSMTPServerConfigs(servers []map[string]interface{}, certificateManager
 		rootCaFile := filepath.Join(tempDirectoryPath, hostname+".root.cert.pem")
 
 		if err := os.WriteFile(publicKeyFilePath, certificateChainPEM(cert.CertPEM, cert.RootCert), 0600); err != nil {
-			msg := fmt.Sprintf("failed to write certificate chain for SMTP server %s: %v", hostname, err)
-			log.Print(msg)
-			configErrors = append(configErrors, msg)
-			continue
+			return nil, nil, fmt.Errorf("failed to write certificate chain for SMTP server %s: %w", hostname, err)
 		}
 		if err := os.WriteFile(rootCaFile, cert.RootCert, 0600); err != nil {
-			msg := fmt.Sprintf("failed to write root certificate for SMTP server %s: %v", hostname, err)
-			log.Print(msg)
-			configErrors = append(configErrors, msg)
-			continue
+			return nil, nil, fmt.Errorf("failed to write root certificate for SMTP server %s: %w", hostname, err)
 		}
 		if err := os.WriteFile(privateKeyFilePath, cert.PrivatePEMDecrypted, 0600); err != nil {
-			msg := fmt.Sprintf("failed to write private key for SMTP server %s: %v", hostname, err)
-			log.Print(msg)
-			configErrors = append(configErrors, msg)
-			continue
+			return nil, nil, fmt.Errorf("failed to write private key for SMTP server %s: %w", hostname, err)
 		}
 
 		config := guerrilla.ServerConfig{
@@ -85,15 +101,7 @@ func BuildSMTPServerConfigs(servers []map[string]interface{}, certificateManager
 			AuthTypes:    []string{"LOGIN"},
 		}
 
-		hosts = append(hosts, hostname)
 		serverConfig = append(serverConfig, config)
-	}
-
-	if len(serverConfig) == 0 && len(configErrors) > 0 {
-		return nil, hosts, fmt.Errorf("failed to build SMTP server configs: %s", strings.Join(configErrors, "; "))
-	}
-	if len(configErrors) > 0 {
-		log.Warnf("Built SMTP config with skipped server entries: %s", strings.Join(configErrors, "; "))
 	}
 
 	return serverConfig, hosts, nil

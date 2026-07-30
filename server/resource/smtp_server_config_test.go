@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/pem"
+	"strings"
 	"testing"
 )
 
@@ -76,6 +77,48 @@ func TestSMTPConfigBoolAcceptsDatabaseBooleanRepresentations(t *testing.T) {
 		if smtpConfigBool(value) {
 			t.Fatalf("expected %v (%T) to parse as false", value, value)
 		}
+	}
+}
+
+func TestBuildSMTPServerConfigsIncludesDisabledRowsAsAllowedHosts(t *testing.T) {
+	configs, hosts, err := BuildSMTPServerConfigs([]map[string]interface{}{
+		{
+			"hostname":         " Example.Test ",
+			"is_enabled":       false,
+			"listen_interface": ":2525",
+		},
+		{
+			"hostname":   "example.test",
+			"is_enabled": false,
+		},
+	}, nil, nil)
+	if err != nil {
+		t.Fatalf("build config: %v", err)
+	}
+	if len(configs) != 0 {
+		t.Fatalf("disabled rows must not create listeners: %#v", configs)
+	}
+	if len(hosts) != 1 || hosts[0] != "example.test" {
+		t.Fatalf("unexpected allowed hosts: %#v", hosts)
+	}
+}
+
+func TestBuildSMTPServerConfigsRejectsDuplicateEnabledListeners(t *testing.T) {
+	_, _, err := BuildSMTPServerConfigs([]map[string]interface{}{
+		{"hostname": "mail.example.test", "is_enabled": true, "listen_interface": ":2525"},
+		{"hostname": "mail.example.net", "is_enabled": true, "listen_interface": ":2525"},
+	}, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "share listen_interface") {
+		t.Fatalf("expected duplicate listener error, got %v", err)
+	}
+}
+
+func TestBuildSMTPServerConfigsRejectsMissingHostname(t *testing.T) {
+	_, _, err := BuildSMTPServerConfigs([]map[string]interface{}{{
+		"is_enabled": false,
+	}}, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "missing hostname") {
+		t.Fatalf("expected missing hostname error, got %v", err)
 	}
 }
 

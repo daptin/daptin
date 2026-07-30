@@ -57,16 +57,21 @@ func (d *mailServersSyncActionPerformer) DoAction(request actionresponse.Outcome
 		}
 	}
 
-	err = d.mailDaemon.ReloadConfig(guerrilla.AppConfig{
-		Servers:      serverConfig,
-		AllowedHosts: hosts,
-		BackendConfig: backends.BackendConfig{
-			"save_process":       "HeadersParser|Debugger|Hasher|Header|Compressor|DaptinSql",
-			"log_received_mails": true,
-			"save_workers_size":  saveWorkersSize,
-			"primary_mail_host":  primaryMailHost,
-		},
-	})
+	backendConfig := make(backends.BackendConfig, len(d.mailDaemon.Config.BackendConfig))
+	for key, value := range d.mailDaemon.Config.BackendConfig {
+		backendConfig[key] = value
+	}
+	backendConfig["save_process"] = "HeadersParser|Debugger|Hasher|Header|Compressor|DaptinSql"
+	backendConfig["log_received_mails"] = true
+	backendConfig["mail_table"] = "mail"
+	backendConfig["save_workers_size"] = saveWorkersSize
+	backendConfig["primary_mail_host"] = primaryMailHost
+
+	newConfig := *d.mailDaemon.Config
+	newConfig.Servers = serverConfig
+	newConfig.AllowedHosts = hosts
+	newConfig.BackendConfig = backendConfig
+	err = d.mailDaemon.ReloadConfig(newConfig)
 	if err != nil {
 		log.Printf("Failed to reload mail server: %v", err)
 		return nil, responses, []error{err}
