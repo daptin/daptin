@@ -479,7 +479,8 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					defer transaction.Commit()
 					perm := resources[table.TableName].GetObjectPermissionByWhereClause("world", "table_name", table.TableName, transaction)
-					if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, resources[table.TableName].AdministratorGroupId) {
+					if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, resources[table.TableName].AdministratorGroupId) ||
+						!perm.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, resources[table.TableName].AdministratorGroupId) {
 						return nil, errors.New("unauthorized")
 					}
 
@@ -499,7 +500,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						filters := params.Args["filter"].([]interface{})
 						aggReq.Filter = make([]string, 0)
 						for _, grp := range filters {
-							aggReq.Filter = append(aggReq.GroupBy, grp.(string))
+							aggReq.Filter = append(aggReq.Filter, grp.(string))
 						}
 					}
 
@@ -507,7 +508,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						havingClauseList := params.Args["having"].([]interface{})
 						aggReq.Having = make([]string, 0)
 						for _, grp := range havingClauseList {
-							aggReq.Having = append(aggReq.GroupBy, grp.(string))
+							aggReq.Having = append(aggReq.Having, grp.(string))
 						}
 					}
 
@@ -533,12 +534,34 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						}
 					}
 
+					joinTables, err := resources[table.TableName].AggregationJoinTables(aggReq)
+					if err != nil {
+						log.Warnf("invalid GraphQL aggregation request for [%v]: %v", table.TableName, err)
+						return nil, errors.New("invalid aggregation query")
+					}
+					for _, joinTable := range joinTables {
+						joinPermission := resources[joinTable].GetObjectPermissionByWhereClause("world", "table_name", joinTable, transaction)
+						if !joinPermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, resources[table.TableName].AdministratorGroupId) ||
+							!joinPermission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, resources[table.TableName].AdministratorGroupId) {
+							return nil, errors.New("unauthorized")
+						}
+					}
+
 					//params.Args["query"].(string)
 					//aggReq.Query =
 
 					aggResponse, err := resources[table.TableName].DataStats(aggReq, transaction)
+					if err != nil {
+						var validationError *resource.AggregationValidationError
+						if errors.As(err, &validationError) {
+							log.Warnf("invalid GraphQL aggregation request for [%v]: %v", table.TableName, err)
+							return nil, errors.New("invalid aggregation query")
+						}
+						log.Errorf("GraphQL aggregation failed for [%v]: %v", table.TableName, err)
+						return nil, errors.New("aggregation query failed")
+					}
 
-					return aggResponse.Data, err
+					return aggResponse.Data, nil
 				}
 			}(table),
 		}

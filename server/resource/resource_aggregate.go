@@ -8,29 +8,27 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
-	"github.com/pkg/errors"
 )
 
 type TimeStamp string
 
 type AggregationRequest struct {
-	RootEntity    string
-	Join          []string
-	GroupBy       []string
-	ProjectColumn []string
-	Query         []Query
-	Order         []string
-	Having        []string
-	Filter        []string
-	TimeSample    TimeStamp
-	TimeFrom      string
-	TimeTo        string
+	RootEntity    string    `json:"root_entity,omitempty"`
+	Join          []string  `json:"join,omitempty"`
+	GroupBy       []string  `json:"group,omitempty"`
+	ProjectColumn []string  `json:"column,omitempty"`
+	Query         []Query   `json:"query,omitempty"`
+	Order         []string  `json:"order,omitempty"`
+	Having        []string  `json:"having,omitempty"`
+	Filter        []string  `json:"filter,omitempty"`
+	TimeSample    TimeStamp `json:"timesample,omitempty"`
+	TimeFrom      string    `json:"timefrom,omitempty"`
+	TimeTo        string    `json:"timeto,omitempty"`
 }
 
 type AggregateRow struct {
@@ -73,29 +71,6 @@ func ToInterfaceArray(s []string) []interface{} {
 	return r
 }
 
-func ToOrderedExpressionArray(s []string) []exp.OrderedExpression {
-	r := make([]exp.OrderedExpression, 0, len(s))
-	for _, e := range s {
-		if e == "" {
-			continue
-		}
-		if e[0] == '-' {
-			r = append(r, goqu.C(e[1:]).Desc())
-		} else {
-			r = append(r, goqu.C(e).Asc())
-		}
-	}
-	return r
-}
-
-func ToExpressionArray(s []string) []exp.Expression {
-	r := make([]exp.Expression, len(s))
-	for i, e := range s {
-		r[i] = goqu.C(e).Asc()
-	}
-	return r
-}
-
 func MapArrayToInterfaceArray(s []map[string]interface{}) []interface{} {
 	r := make([]interface{}, len(s))
 	for i, e := range s {
@@ -134,6 +109,136 @@ var scalarFuncs = map[string]bool{
 	"ltrim": true, "rtrim": true, "replace": true, "hex": true,
 	"abs": true, "round": true,
 	"coalesce": true, "ifnull": true, "nullif": true,
+}
+
+// AggregationValidationError identifies malformed or out-of-scope aggregate
+// input. Callers may safely expose the stable error code, but not the detailed
+// message, which can contain schema names.
+type AggregationValidationError struct {
+	Parameter string
+	Err       error
+}
+
+func (e *AggregationValidationError) Error() string {
+	return fmt.Sprintf("invalid aggregate %s: %v", e.Parameter, e.Err)
+}
+
+func (e *AggregationValidationError) Unwrap() error { return e.Err }
+
+func invalidAggregation(parameter, format string, args ...interface{}) error {
+	return &AggregationValidationError{Parameter: parameter, Err: fmt.Errorf(format, args...)}
+}
+
+var aggregateConditionOperators = map[string]bool{
+	"eq": true, "not": true, "lt": true, "lte": true,
+	"gt": true, "gte": true, "in": true, "notin": true, "is": true,
+}
+
+type aggregateCondition struct {
+	Operator string
+	Left     string
+	Right    string
+}
+
+// splitTopLevelComma splits at the first comma outside nested parentheses and
+// quoted strings. It is used for conditions such as gt(sum(total),100).
+func splitTopLevelComma(input string) (string, string, bool) {
+	depth := 0
+	var quote rune
+	for i, r := range input {
+		if quote != 0 {
+			if r == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch r {
+		case '\'', '"':
+			quote = r
+		case '(':
+			depth++
+		case ')':
+			if depth == 0 {
+				return "", "", false
+			}
+			depth--
+		case ',':
+			if depth == 0 {
+				return strings.TrimSpace(input[:i]), strings.TrimSpace(input[i+1:]), true
+			}
+		}
+	}
+	return "", "", false
+}
+
+// parseAggregateCondition parses the entire condition. Prefix/suffix matches
+// are deliberately rejected so trailing SQL cannot be ignored by the parser.
+func parseAggregateCondition(raw string) (aggregateCondition, error) {
+	raw = strings.TrimSpace(raw)
+	open := strings.IndexByte(raw, '(')
+	if open <= 0 || !strings.HasSuffix(raw, ")") {
+		return aggregateCondition{}, fmt.Errorf("expected operator(left,right)")
+	}
+	operator := strings.TrimSpace(raw[:open])
+	if !isSimpleIdentifier(operator) || !aggregateConditionOperators[operator] {
+		return aggregateCondition{}, fmt.Errorf("unsupported operator %q", operator)
+	}
+	left, right, ok := splitTopLevelComma(raw[open+1 : len(raw)-1])
+	if !ok || left == "" || right == "" {
+		return aggregateCondition{}, fmt.Errorf("condition requires non-empty left and right operands")
+	}
+	return aggregateCondition{Operator: operator, Left: left, Right: right}, nil
+}
+
+func parseAggregateValue(raw string) interface{} {
+	raw = strings.TrimSpace(raw)
+	if value, err := strconv.ParseInt(raw, 10, 64); err == nil {
+		return value
+	}
+	if value, err := strconv.ParseFloat(raw, 64); err == nil {
+		return value
+	}
+	if strings.EqualFold(raw, "true") {
+		return true
+	}
+	if strings.EqualFold(raw, "false") {
+		return false
+	}
+	if strings.EqualFold(raw, "null") {
+		return nil
+	}
+	return raw
+}
+
+func buildAggregateComparison(left interface {
+	exp.Comparable
+	exp.Inable
+	exp.Isable
+}, operator string, right interface{}) (exp.BooleanExpression, error) {
+	switch operator {
+	case "eq":
+		return left.Eq(right), nil
+	case "not":
+		if right == nil || right == true || right == false {
+			return left.IsNot(right), nil
+		}
+		return left.Neq(right), nil
+	case "lt":
+		return left.Lt(right), nil
+	case "lte":
+		return left.Lte(right), nil
+	case "gt":
+		return left.Gt(right), nil
+	case "gte":
+		return left.Gte(right), nil
+	case "is":
+		if right != nil && right != true && right != false {
+			return nil, fmt.Errorf("is only accepts null, true, or false")
+		}
+		return left.Is(right), nil
+	default:
+		return nil, fmt.Errorf("operator %q requires a list value", operator)
+	}
 }
 
 // isSimpleIdentifier returns true if s is a valid SQL identifier:
@@ -346,36 +451,162 @@ func (dbResource *DbResource) parseAggExpr(expr string, tables []string, allowAg
 	return col, nil
 }
 
+// AggregationJoinTables validates the outer structure and table name of every
+// requested join. It is shared by authorization and query construction so a
+// joined table cannot bypass either layer.
+func (dbResource *DbResource) AggregationJoinTables(req AggregationRequest) ([]string, error) {
+	tables := make([]string, 0, len(req.Join))
+	seen := make(map[string]bool)
+	for _, rawJoin := range req.Join {
+		parts := strings.SplitN(strings.TrimSpace(rawJoin), "@", 2)
+		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+			return nil, invalidAggregation("join", "expected table@condition")
+		}
+		table := parts[0]
+		if !isSimpleIdentifier(table) || dbResource.Cruds[table] == nil {
+			return nil, invalidAggregation("join", "unknown join table %q", table)
+		}
+		if !seen[table] {
+			tables = append(tables, table)
+			seen[table] = true
+		}
+	}
+	return tables, nil
+}
+
+func projectionAliases(projections []string) map[string]bool {
+	aliases := make(map[string]bool)
+	if len(projections) == 0 {
+		aliases["count"] = true
+	}
+	for _, projection := range projections {
+		for _, item := range splitFuncArgs(projection) {
+			item = strings.TrimSpace(item)
+			if item == "count" {
+				aliases["count"] = true
+			}
+			if idx := strings.LastIndex(item, " as "); idx > 0 {
+				alias := strings.TrimSpace(item[idx+4:])
+				if isSimpleIdentifier(alias) {
+					aliases[alias] = true
+				}
+			}
+		}
+	}
+	return aliases
+}
+
+func (dbResource *DbResource) buildAggregateOrder(rawOrder []string, projections []string, tables []string) ([]exp.OrderedExpression, error) {
+	aliases := projectionAliases(projections)
+	result := make([]exp.OrderedExpression, 0, len(rawOrder))
+	for _, raw := range rawOrder {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			return nil, invalidAggregation("order", "empty order expression")
+		}
+		descending := strings.HasPrefix(raw, "-")
+		if descending {
+			raw = strings.TrimSpace(raw[1:])
+			if raw == "" {
+				return nil, invalidAggregation("order", "missing expression after '-'")
+			}
+		}
+
+		var orderable exp.Orderable
+		if aliases[raw] {
+			orderable = goqu.I(raw)
+		} else {
+			parsed, err := dbResource.parseAggExpr(raw, tables, true)
+			if err != nil {
+				return nil, invalidAggregation("order", "%v", err)
+			}
+			var ok bool
+			orderable, ok = parsed.(exp.Orderable)
+			if !ok {
+				return nil, invalidAggregation("order", "expression %q cannot be ordered", raw)
+			}
+		}
+		if descending {
+			result = append(result, orderable.Desc())
+		} else {
+			result = append(result, orderable.Asc())
+		}
+	}
+	return result, nil
+}
+
+func buildAggregatePredicate(left interface {
+	exp.Comparable
+	exp.Inable
+	exp.Isable
+}, condition aggregateCondition) (exp.BooleanExpression, error) {
+	if condition.Operator == "in" || condition.Operator == "notin" {
+		rawValues := strings.Split(condition.Right, ",")
+		values := make([]interface{}, 0, len(rawValues))
+		for _, raw := range rawValues {
+			raw = strings.TrimSpace(raw)
+			if raw == "" {
+				return nil, fmt.Errorf("list values cannot be empty")
+			}
+			values = append(values, parseAggregateValue(raw))
+		}
+		if condition.Operator == "in" {
+			return left.In(values...), nil
+		}
+		return left.NotIn(values...), nil
+	}
+	return buildAggregateComparison(left, condition.Operator, parseAggregateValue(condition.Right))
+}
+
+func (dbResource *DbResource) parseHavingExpression(raw string, tables []string) (exp.SQLFunctionExpression, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "count" {
+		return goqu.COUNT(goqu.Star()), nil
+	}
+	open := strings.IndexByte(raw, '(')
+	if open <= 0 || !strings.HasSuffix(raw, ")") {
+		return nil, fmt.Errorf("having requires an aggregate expression")
+	}
+	name := strings.TrimSpace(raw[:open])
+	builder, ok := aggregateFuncs[name]
+	if !ok {
+		return nil, fmt.Errorf("unsupported aggregate function %q", name)
+	}
+	args := splitFuncArgs(raw[open+1 : len(raw)-1])
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%s() takes exactly one argument", name)
+	}
+	built, err := dbResource.buildFuncArgs(name, args, tables)
+	if err != nil {
+		return nil, err
+	}
+	return builder(built[0]), nil
+}
+
 func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sqlx.Tx) (*AggregateData, error) {
+	if !isSimpleIdentifier(req.RootEntity) || dbResource.Cruds[req.RootEntity] == nil {
+		return nil, invalidAggregation("entity", "unknown root entity %q", req.RootEntity)
+	}
 
 	requestedGroupBys := req.GroupBy
 	projections := req.ProjectColumn
-	joinedTables := make([]string, 0)
+	joinedTables, err := dbResource.AggregationJoinTables(req)
+	if err != nil {
+		return nil, err
+	}
 
 	// Pre-pass: validate join table names and build allowedTables.
 	// Projections and group-by are validated against this set so cross-table
 	// column references (e.g. "customer.name") can be schema-checked.
 	allowedTables := []string{req.RootEntity}
-	for _, join := range req.Join {
-		joinParts := strings.Split(join, "@")
-		joinTable := joinParts[0]
-		if dbResource.Cruds[joinTable] == nil {
-			return nil, fmt.Errorf("unknown join table: %q", joinTable)
-		}
-		allowedTables = append(allowedTables, joinTable)
-	}
+	allowedTables = append(allowedTables, joinedTables...)
 
 	// Parse and validate projections (column param).
 	// Top-level comma-splitting is preserved for the "column=a,b,c" shorthand.
 	projectionsAdded := make([]interface{}, 0)
 	updatedProjections := make([]string, 0)
 	for _, project := range projections {
-		if strings.Index(project, ",") > -1 {
-			parts := strings.Split(project, ",")
-			updatedProjections = append(updatedProjections, parts...)
-		} else {
-			updatedProjections = append(updatedProjections, project)
-		}
+		updatedProjections = append(updatedProjections, splitFuncArgs(project)...)
 	}
 	projections = updatedProjections
 
@@ -383,7 +614,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		project = strings.TrimSpace(project)
 		expr, err := dbResource.parseAggExpr(project, allowedTables, true)
 		if err != nil {
-			return nil, fmt.Errorf("invalid column %q: %w", project, err)
+			return nil, invalidAggregation("column", "%v", err)
 		}
 		projectionsAdded = append(projectionsAdded, expr)
 	}
@@ -394,7 +625,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 	for _, group := range requestedGroupBys {
 		expr, err := dbResource.parseAggExpr(group, allowedTables, false)
 		if err != nil {
-			return nil, fmt.Errorf("invalid group-by %q: %w", group, err)
+			return nil, invalidAggregation("group", "%v", err)
 		}
 		projectionsAdded = append(projectionsAdded, expr)
 		groupBysAdded = append(groupBysAdded, expr)
@@ -409,191 +640,125 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 
 	builder = builder.GroupBy(groupBysAdded...)
 
-	builder = builder.Order(ToOrderedExpressionArray(req.Order)...)
+	orderExpressions, err := dbResource.buildAggregateOrder(req.Order, projections, allowedTables)
+	if err != nil {
+		return nil, err
+	}
+	builder = builder.Order(orderExpressions...)
 
-	// functionName(param1, param2)
-	querySyntax, err := regexp.Compile("([a-zA-Z0-9=<>]+)\\(([^,]+?),(.+)\\)")
-	CheckErr(err, "Failed to build query regex")
 	whereExpressions := make([]goqu.Expression, 0)
-	for _, filter := range req.Filter {
-
-		if !querySyntax.MatchString(filter) {
-			CheckErr(errors.New("Invalid filter syntax"), "Failed to parse query [%v]", filter)
-		} else {
-
-			parts := querySyntax.FindStringSubmatch(filter)
-
-			var rightVal interface{}
-			functionName := strings.TrimSpace(parts[1])
-			leftVal := strings.TrimSpace(parts[2])
-			rightVal = strings.TrimSpace(parts[3])
-
-			if strings.Index(rightVal.(string), "@") > -1 {
-				rightValParts := strings.Split(rightVal.(string), "@")
-				entityName := rightValParts[0]
-				entityReferenceId, err := uuid.Parse(rightValParts[1])
-				if err != nil {
-					return nil, fmt.Errorf("invalid reference id in where clause - [%v][%v]: %v", entityName, rightValParts[1], err)
-				}
-				entityId, err := GetReferenceIdToIdWithTransaction(entityName, daptinid.DaptinReferenceId(entityReferenceId), transaction)
-				if err != nil {
-					return nil, fmt.Errorf("referenced entity in where clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
-				}
-				rightVal = entityId
-
-			}
-
-			//function := builder.Where
-			whereClause, err := BuildWhereClause(functionName, leftVal, rightVal)
-			if err != nil {
-				return nil, err
-			}
-			whereExpressions = append(whereExpressions, whereClause)
-
+	for _, rawFilter := range req.Filter {
+		condition, err := parseAggregateCondition(rawFilter)
+		if err != nil {
+			return nil, invalidAggregation("filter", "%v", err)
 		}
+		if err := dbResource.validateColumnRef(condition.Left, allowedTables); err != nil {
+			return nil, invalidAggregation("filter", "%v", err)
+		}
+		if condition.Operator != "in" && condition.Operator != "notin" && strings.Count(condition.Right, "@") == 1 {
+			reference := strings.SplitN(condition.Right, "@", 2)
+			referenceID, referenceErr := uuid.Parse(reference[1])
+			if referenceErr == nil && isSimpleIdentifier(reference[0]) && dbResource.Cruds[reference[0]] != nil {
+				entityID, err := GetReferenceIdToIdWithTransaction(reference[0], daptinid.DaptinReferenceId(referenceID), transaction)
+				if err != nil {
+					return nil, invalidAggregation("filter", "referenced entity not found")
+				}
+				condition.Right = strconv.FormatInt(entityID, 10)
+			}
+		}
+		whereClause, err := buildAggregatePredicate(goqu.I(condition.Left), condition)
+		if err != nil {
+			return nil, invalidAggregation("filter", "%v", err)
+		}
+		whereExpressions = append(whereExpressions, whereClause)
 	}
 	builder = builder.Where(whereExpressions...)
 
 	havingExpressions := make([]goqu.Expression, 0)
-	for _, filter := range req.Having {
-
-		if !querySyntax.MatchString(filter) {
-			CheckErr(errors.New("Invalid filter syntax"), "Failed to parse query [%v]", filter)
-		} else {
-
-			parts := querySyntax.FindStringSubmatch(filter)
-
-			functionName := strings.TrimSpace(parts[1])
-			leftVal := strings.TrimSpace(parts[2])
-			rightVal := strings.TrimSpace(parts[3])
-
-			//function := builder.Where
-
-			var rightValInterface interface{}
-			rightValInterface = rightVal
-
-			if functionName == "in" || functionName == "notin" {
-				rightValInterface = strings.Split(rightVal, ",")
-				havingExpressions = append(havingExpressions, goqu.Ex{
-					leftVal: rightValInterface,
-				})
-			} else {
-				leftValParts := strings.Split(leftVal, "(")
-				var colName string
-				var aggregateFunc string
-
-				// Handle both "count" and "count(column)" syntax
-				if len(leftValParts) > 1 {
-					// Complex form: sum(price), count(id), etc.
-					colName = strings.Split(leftValParts[1], ")")[0]
-					aggregateFunc = leftValParts[0]
-				} else {
-					// Simple form: count - use "*" for COUNT(*)
-					aggregateFunc = leftVal
-					if aggregateFunc == "count" {
-						colName = "*"
-					} else {
-						return nil, fmt.Errorf("aggregate function %s requires a column name in having clause", aggregateFunc)
-					}
-				}
-
-				var expr exp.SQLFunctionExpression
-				var finalExpr exp.Expression
-
-				switch aggregateFunc {
-				case "count":
-					expr = goqu.COUNT(colName)
-				case "sum":
-					expr = goqu.SUM(colName)
-				case "min":
-					expr = goqu.MIN(colName)
-				case "max":
-					expr = goqu.MAX(colName)
-				case "avg":
-					expr = goqu.AVG(colName)
-				case "first":
-					expr = goqu.FIRST(colName)
-				case "last":
-					expr = goqu.LAST(colName)
-				default:
-					return nil, fmt.Errorf("invalid function name in having clause - %s", aggregateFunc)
-				}
-
-				// Convert rightVal to appropriate type (try int, then float, fallback to string)
-				var rightValTyped interface{}
-				if intVal, err := strconv.ParseInt(rightVal, 10, 64); err == nil {
-					rightValTyped = intVal
-				} else if floatVal, err := strconv.ParseFloat(rightVal, 64); err == nil {
-					rightValTyped = floatVal
-				} else {
-					rightValTyped = rightVal
-				}
-
-				switch functionName {
-				case "lt":
-					finalExpr = expr.Lt(rightValTyped)
-				case "lte":
-					finalExpr = expr.Lte(rightValTyped)
-				case "gt":
-					finalExpr = expr.Gt(rightValTyped)
-				case "gte":
-					finalExpr = expr.Gte(rightValTyped)
-				case "eq":
-					finalExpr = expr.Eq(rightValTyped)
-				}
-
-				havingExpressions = append(havingExpressions, finalExpr)
-
-			}
+	for _, rawHaving := range req.Having {
+		condition, err := parseAggregateCondition(rawHaving)
+		if err != nil {
+			return nil, invalidAggregation("having", "%v", err)
 		}
+		left, err := dbResource.parseHavingExpression(condition.Left, allowedTables)
+		if err != nil {
+			return nil, invalidAggregation("having", "%v", err)
+		}
+		predicate, err := buildAggregatePredicate(left, condition)
+		if err != nil {
+			return nil, invalidAggregation("having", "%v", err)
+		}
+		havingExpressions = append(havingExpressions, predicate)
 	}
 	builder = builder.Having(havingExpressions...)
 
 	for _, join := range req.Join {
-		joinParts := strings.Split(join, "@")
-
+		joinParts := strings.SplitN(join, "@", 2)
 		joinTable := joinParts[0]
-		joinClause := strings.Join(joinParts[1:], "@")
+		joinClause := joinParts[1]
 		joinClauseList := strings.Split(joinClause, "&")
 
-		joinedTables = append(joinedTables, joinTable)
-
 		joinWhereList := make([]goqu.Expression, 0)
-		for _, joinClause := range joinClauseList {
-
-			if !querySyntax.MatchString(joinClause) {
-				return nil, fmt.Errorf("invalid join condition format: %v", joinClause)
-			} else {
-				parts := querySyntax.FindStringSubmatch(joinClause)
-
-				var rightValue interface{}
-				if BeginsWith(parts[3], "\"") || BeginsWith(parts[3], "'") {
-					rightValue, _ = strconv.Unquote(parts[3])
-				} else {
-					if strings.Index(parts[3], "@") > -1 {
-						rightValParts := strings.Split(parts[3], "@")
-						entityName := rightValParts[0]
-						entityReferenceId, err := uuid.Parse(rightValParts[1])
-						if err != nil {
-							return nil, fmt.Errorf("invalid reference id in join clause - [%v][%v]: %v", entityName, rightValParts[1], err)
-						}
-						entityId, err := GetReferenceIdToIdWithTransaction(entityName, daptinid.DaptinReferenceId(entityReferenceId), transaction)
-						if err != nil {
-							return nil, fmt.Errorf("referenced entity in join clause not found - [%v][%v] -%v", entityName, entityReferenceId, err)
-						}
-						rightValue = entityId
-					} else {
-						rightValue = goqu.I(parts[3])
-					}
-				}
-
-				joinWhere, err := BuildWhereClause(parts[1], parts[2], rightValue)
-				if err != nil {
-					return nil, err
-				}
-				joinWhereList = append(joinWhereList, joinWhere)
+		for _, rawClause := range joinClauseList {
+			condition, err := parseAggregateCondition(rawClause)
+			if err != nil {
+				return nil, invalidAggregation("join", "%v", err)
+			}
+			if condition.Operator == "in" || condition.Operator == "notin" || condition.Operator == "is" {
+				return nil, invalidAggregation("join", "operator %q is not supported for joins", condition.Operator)
+			}
+			if err := dbResource.validateColumnRef(condition.Left, allowedTables); err != nil {
+				return nil, invalidAggregation("join", "%v", err)
 			}
 
+			var rightValue interface{}
+			rightRaw := strings.TrimSpace(condition.Right)
+			if (strings.HasPrefix(rightRaw, "\"") && strings.HasSuffix(rightRaw, "\"")) ||
+				(strings.HasPrefix(rightRaw, "'") && strings.HasSuffix(rightRaw, "'")) {
+				if len(rightRaw) < 2 || strings.Contains(rightRaw[1:len(rightRaw)-1], rightRaw[:1]) {
+					return nil, invalidAggregation("join", "invalid quoted literal")
+				}
+				rightValue = rightRaw[1 : len(rightRaw)-1]
+			} else if strings.Count(rightRaw, "@") == 1 {
+				reference := strings.SplitN(rightRaw, "@", 2)
+				if !isSimpleIdentifier(reference[0]) || dbResource.Cruds[reference[0]] == nil {
+					return nil, invalidAggregation("join", "unknown reference entity %q", reference[0])
+				}
+				referenceID, err := uuid.Parse(reference[1])
+				if err != nil {
+					return nil, invalidAggregation("join", "invalid reference id")
+				}
+				entityID, err := GetReferenceIdToIdWithTransaction(reference[0], daptinid.DaptinReferenceId(referenceID), transaction)
+				if err != nil {
+					return nil, invalidAggregation("join", "referenced entity not found")
+				}
+				rightValue = entityID
+			} else {
+				if err := dbResource.validateColumnRef(rightRaw, allowedTables); err != nil {
+					return nil, invalidAggregation("join", "%v", err)
+				}
+				rightValue = goqu.I(rightRaw)
+			}
+
+			left := goqu.I(condition.Left)
+			var joinWhere exp.BooleanExpression
+			switch condition.Operator {
+			case "eq":
+				joinWhere = left.Eq(rightValue)
+			case "not":
+				joinWhere = left.Neq(rightValue)
+			case "lt":
+				joinWhere = left.Lt(rightValue)
+			case "lte":
+				joinWhere = left.Lte(rightValue)
+			case "gt":
+				joinWhere = left.Gt(rightValue)
+			case "gte":
+				joinWhere = left.Gte(rightValue)
+			default:
+				return nil, invalidAggregation("join", "unsupported join operator %q", condition.Operator)
+			}
+			joinWhereList = append(joinWhereList, joinWhere)
 		}
 		builder = builder.LeftJoin(goqu.T(joinTable), goqu.On(joinWhereList...))
 
@@ -703,89 +868,4 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 		Data: returnRows,
 	}, err
 
-}
-
-func BuildWhereClause(functionName string, leftVal string, rightVal interface{}) (goqu.Expression, error) {
-
-	var rightValInterface interface{}
-	rightValInterface = rightVal
-	if rightValInterface == "null" {
-		rightValInterface = nil
-
-		switch functionName {
-		case "is":
-			return goqu.C(leftVal).IsNull(), nil
-
-		case "not":
-			return goqu.C(leftVal).IsNotNull(), nil
-
-		default:
-			return nil, fmt.Errorf("invalid function name for null rhs - %v", functionName)
-
-		}
-
-	}
-	if rightValInterface == "true" {
-		rightValInterface = nil
-
-		switch functionName {
-		case "is":
-			return goqu.C(leftVal).IsTrue(), nil
-
-		case "not":
-			return goqu.C(leftVal).IsNotTrue(), nil
-
-		default:
-			return nil, fmt.Errorf("invalid function name for true rhs - %v", functionName)
-
-		}
-
-	}
-	if rightValInterface == "false" {
-		rightValInterface = nil
-
-		switch functionName {
-		case "is":
-			return goqu.C(leftVal).IsFalse(), nil
-
-		case "not":
-			return goqu.C(leftVal).IsNotFalse(), nil
-
-		default:
-			return nil, fmt.Errorf("invalid function name for false rhs - %v", functionName)
-
-		}
-
-	}
-
-	if functionName == "in" || functionName == "notin" {
-		rightValInterface = strings.Split(rightVal.(string), ",")
-	}
-
-	switch functionName {
-	case "in":
-		fallthrough
-	case "notin":
-		rightValInterface = strings.Split(rightVal.(string), ",")
-		return goqu.Ex{
-			leftVal: rightValInterface,
-		}, nil
-	case "=":
-		return goqu.Ex{
-			leftVal: rightValInterface,
-		}, nil
-	case "not":
-		return goqu.Ex{
-			leftVal: goqu.Op{
-				"neq": rightValInterface,
-			},
-		}, nil
-	default:
-		return goqu.Ex{
-			leftVal: goqu.Op{
-				functionName: rightValInterface,
-			},
-		}, nil
-
-	}
 }

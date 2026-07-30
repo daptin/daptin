@@ -1,6 +1,8 @@
 # Aggregation API
 
-**Tested ✓** 2026-04-16
+**Tested ✓** 2026-07-30
+
+End-to-end verified with fresh SQLite and PostgreSQL databases through REST GET, REST POST, and GraphQL. MySQL uses the same validation path, but a fresh MySQL 8 instance could not complete Daptin schema initialization because of unrelated existing MySQL schema compatibility errors.
 
 SQL-like aggregation queries via REST API.
 
@@ -11,7 +13,8 @@ SQL-like aggregation queries via REST API.
 - ✅ ORDER BY - Working
 - ✅ POST method - Fixed in commit 9e3b5650 ([Issue #174](https://github.com/daptin/daptin/issues/174))
 - ✅ HAVING clause - Fixed in commit e1c3017c ([Issue #173](https://github.com/daptin/daptin/issues/173))
-- ✅ Security: column/group expressions validated against schema (CWE-89 fix, v0.11.4)
+- ✅ Security: every identifier in `column`, `group`, `order`, `filter`, `having`, and `join` is validated against the in-scope schema
+- ✅ Joined tables require the caller to have aggregate execution and peek permission on each table
 
 ## Endpoint
 
@@ -21,6 +24,8 @@ POST /aggregate/{entity}   ✅ Working (fixed in commit 9e3b5650)
 ```
 
 Both GET and POST methods work identically. Use POST for complex queries that would exceed URL length limits.
+
+Authentication is required. The caller must have both execute and peek permission on the root entity and every entity named by `join`. A join cannot be used to aggregate a table that the caller cannot otherwise access.
 
 ## Quick Start (Tested)
 
@@ -152,6 +157,23 @@ These safe data-transformation functions are permitted. System functions, I/O fu
 | Null handling | `coalesce`, `ifnull`, `nullif` |
 
 Scalar functions require at least one schema column argument. Zero-argument calls (e.g. `random()`, `sqlite_version()`) are rejected.
+
+## Ordering
+
+Use one or more `order` parameters. Prefix an expression with `-` for descending order; ascending is the default.
+
+```bash
+curl "http://localhost:6336/aggregate/order?group=status&column=status,count&order=-count" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+An order expression must be one of:
+
+- a root or joined-table schema column, such as `created_at` or `customer.name`;
+- a validated aggregate expression, such as `sum(total)`; or
+- a simple alias declared by `column`, such as `sum(total) as total_sum` followed by `order=-total_sum`.
+
+Arbitrary SQL fragments, comments, unknown columns, and unknown aliases are rejected.
 
 ### Examples
 
@@ -360,8 +382,7 @@ curl "http://localhost:6336/aggregate/order?\
 group=customer_id&\
 column=customer_id,count,sum(total)&\
 having=gte(count,5)&\
-sort=-count&\
-limit=10"
+order=-count"
 ```
 
 ### Product Analytics
@@ -413,6 +434,8 @@ column=month(created_at),year(created_at),count"
 
 Aggregation queries support LEFT JOIN operations for cross-table analysis.
 
+The join table must be a known entity and the caller must have execute and peek permission on it. Both identifier operands must resolve to columns of the root entity or a declared joined entity. Literal join values must be quoted; reference values use the `entity@uuid` form.
+
 ### Join Syntax
 
 ```
@@ -456,5 +479,20 @@ column=count,sum(total)"
 
 ## Limitations
 
-- Maximum 1000 result rows
-- Use GraphQL for more complex nested queries
+- The endpoint does not currently implement pagination or a `limit` parameter.
+- Use GraphQL for more complex nested queries.
+
+## Validation errors
+
+Malformed syntax, unsupported operators or functions, unknown identifiers, and SQL-like input are rejected before a statement is prepared:
+
+```http
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{"Message":"Invalid aggregation query","Code":"invalid_aggregation_query"}
+```
+
+Database-driver messages are logged on the server and are not returned to clients. GraphQL reports the stable message `invalid aggregation query` in its `errors` array.
+
+All identifier-bearing inputs use an allowlist derived from the live Daptin schema. Quoting performed by the database driver or SQL builder is not treated as a security boundary.

@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -76,7 +77,8 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 		defer transaction.Rollback()
 
 		perm := cruds[typeName].GetObjectPermissionByWhereClause("world", "table_name", typeName, transaction)
-		if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
+		if sessionUser == nil || !perm.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) ||
+			!perm.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
 			log.Infof("user [%v] not allowed to execute aggregate on [%v]", sessionUser, typeName)
 			c.AbortWithStatus(403)
 			return
@@ -106,11 +108,32 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 			aggReq.Order = c.QueryArray("order")
 		}
 
+		joinTables, err := cruds[typeName].AggregationJoinTables(aggReq)
+		if err != nil {
+			log.Warnf("invalid aggregation request for [%v]: %v", typeName, err)
+			c.JSON(http.StatusBadRequest, resource.NewDaptinError("Invalid aggregation query", "invalid_aggregation_query"))
+			return
+		}
+		for _, joinTable := range joinTables {
+			joinPermission := cruds[joinTable].GetObjectPermissionByWhereClause("world", "table_name", joinTable, transaction)
+			if !joinPermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) ||
+				!joinPermission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
+				log.Infof("user [%v] not allowed to aggregate joined table [%v]", sessionUser, joinTable)
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
+		}
+
 		aggResponse, err := cruds[typeName].DataStats(aggReq, transaction)
 
 		if err != nil {
 			log.Errorf("failed to execute aggregation [%v] - %v", typeName, err)
-			c.JSON(500, resource.NewDaptinError("Failed to query stats", "query failed - "+err.Error()))
+			var validationError *resource.AggregationValidationError
+			if errors.As(err, &validationError) {
+				c.JSON(http.StatusBadRequest, resource.NewDaptinError("Invalid aggregation query", "invalid_aggregation_query"))
+				return
+			}
+			c.JSON(http.StatusInternalServerError, resource.NewDaptinError("Failed to query stats", "aggregation_query_failed"))
 			return
 		}
 
