@@ -183,6 +183,40 @@ type column struct {
 	reference     string
 }
 
+// resolveDefaultSortOrder normalizes the persisted world.default_order value.
+// Empty values and direction-only tokens must not reach goqu because they
+// produce an empty quoted identifier. If no usable configured token remains,
+// use the conventional created_at order only when that column exists.
+func resolveDefaultSortOrder(defaultOrder string, hasCreatedAt bool) []string {
+	defaultOrder = strings.TrimSpace(defaultOrder)
+	if len(defaultOrder) >= 2 {
+		first, last := defaultOrder[0], defaultOrder[len(defaultOrder)-1]
+		if (first == '\'' && last == '\'') || (first == '"' && last == '"') {
+			defaultOrder = strings.TrimSpace(defaultOrder[1 : len(defaultOrder)-1])
+		}
+	}
+
+	if defaultOrder != "" {
+		parts := strings.Split(defaultOrder, ",")
+		cleaned := make([]string, 0, len(parts))
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if part == "" || part == "-" || part == "+" {
+				continue
+			}
+			cleaned = append(cleaned, part)
+		}
+		if len(cleaned) > 0 {
+			return cleaned
+		}
+	}
+
+	if hasCreatedAt {
+		return []string{"-created_at"}
+	}
+	return nil
+}
+
 func (dbResource *DbResource) validateSortOrder(sortOrder []string) ([]string, error) {
 	validSortOrder := make([]string, 0, len(sortOrder))
 
@@ -331,15 +365,9 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	var sortOrder []string
 	if len(req.QueryParams["sort"]) > 0 {
 		sortOrder = req.QueryParams["sort"]
-	} else if dbResource.tableInfo.DefaultOrder != "" && len(dbResource.tableInfo.DefaultOrder) > 2 {
-		if dbResource.tableInfo.DefaultOrder[0] == '\'' || dbResource.tableInfo.DefaultOrder[0] == '"' {
-			rep := strings.ReplaceAll(dbResource.tableInfo.DefaultOrder, "'", "\"")
-			unquotedOrder, _ := strconv.Unquote(rep)
-			dbResource.tableInfo.DefaultOrder = unquotedOrder
-		}
-		sortOrder = strings.Split(dbResource.tableInfo.DefaultOrder, ",")
 	} else {
-		sortOrder = []string{"-created_at"}
+		_, hasCreatedAt := dbResource.tableInfo.GetColumnByName("created_at")
+		sortOrder = resolveDefaultSortOrder(dbResource.tableInfo.DefaultOrder, hasCreatedAt)
 	}
 
 	sortOrder, err = dbResource.validateSortOrder(sortOrder)

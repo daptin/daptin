@@ -73,3 +73,30 @@ func TestValidateSortOrder(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveDefaultSortOrder(t *testing.T) {
+	tests := []struct {
+		name         string
+		defaultOrder string
+		hasCreatedAt bool
+		want         []string
+	}{
+		{name: "empty uses created at", hasCreatedAt: true, want: []string{"-created_at"}},
+		{name: "whitespace uses created at", defaultOrder: "   ", hasCreatedAt: true, want: []string{"-created_at"}},
+		{name: "empty without created at omits order", want: nil},
+		{name: "quoted bare direction uses created at", defaultOrder: "'-'", hasCreatedAt: true, want: []string{"-created_at"}},
+		{name: "bare directions without created at omit order", defaultOrder: "-, +", want: nil},
+		{name: "quoted order", defaultOrder: "'-created_at'", hasCreatedAt: true, want: []string{"-created_at"}},
+		{name: "comma separated order", defaultOrder: "-created_at,, +name", hasCreatedAt: true, want: []string{"-created_at", "+name"}},
+		{name: "configured order without created at", defaultOrder: "name", want: []string{"name"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := resolveDefaultSortOrder(test.defaultOrder, test.hasCreatedAt)
+			if !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("resolveDefaultSortOrder(%q, %v) = %q, want %q", test.defaultOrder, test.hasCreatedAt, got, test.want)
+			}
+		})
+	}
+}
