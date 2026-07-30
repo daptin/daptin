@@ -150,8 +150,10 @@ curl -X POST http://localhost:6336/_config/backend/jwt.secret \
 #### Set Encryption Secret
 
 ```bash
-# For data encryption at rest
-ENCRYPTION_SECRET=$(openssl rand -base64 32)
+# For data encryption at rest.
+# Daptin uses this value as raw AES key bytes, so it must be exactly
+# 16, 24, or 32 characters. This command generates a 32-character key.
+ENCRYPTION_SECRET=$(openssl rand -hex 16)
 
 curl -X POST http://localhost:6336/_config/backend/encryption.secret \
   -H "Authorization: Bearer $TOKEN" \

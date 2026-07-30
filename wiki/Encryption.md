@@ -23,22 +23,26 @@ Tables:
 
 1. Data encrypted before storage
 2. Decrypted when retrieved
-3. Uses AES-256-GCM
-4. Key derived from master secret
+3. Uses AES with the configured `encryption.secret` as raw key bytes
+4. AES requires a 16, 24, or 32 character secret
 
 ## Encryption Key
 
 ### Environment Variable
 
 ```bash
-DAPTIN_ENCRYPTION_KEY="your-32-byte-encryption-key-here" ./daptin
+DAPTIN_ENCRYPTION_KEY="$(openssl rand -hex 16)" ./daptin
 ```
 
 ### Generate Key
 
 ```bash
-openssl rand -base64 32
+openssl rand -hex 16
 ```
+
+Do not use `openssl rand -base64 32` for `encryption.secret`: that command
+produces a 44-character string, which is not a valid AES key length when Daptin
+uses the value as raw bytes.
 
 ## Encrypted Column Types
 
