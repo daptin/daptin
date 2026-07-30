@@ -39,6 +39,43 @@ The limit for max connections from a single IP
 
 The limit for request rate limit per minute
 
+## Cross-origin requests (CORS)
+
+Daptin does not allow cross-origin browser access by default. Configure an exact origin allowlist with the versioned `cors.config` backend setting:
+
+```json
+{
+  "version": "1",
+  "allowed_origins": [
+    "https://app.example.com",
+    "http://localhost:3000"
+  ],
+  "allowed_methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  "allowed_headers": ["Authorization", "Content-Type"],
+  "exposed_headers": ["X-Request-Id"],
+  "allow_credentials": true,
+  "max_age": 600
+}
+```
+
+Set it through the administrator-only `_config` API:
+
+```bash
+curl -X PUT \
+  -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -H "Content-Type: application/json" \
+  http://localhost:6336/_config/backend/cors.config \
+  --data '{"version":"1","allowed_origins":["https://app.example.com"],"allowed_methods":["GET","POST"],"allowed_headers":["Authorization","Content-Type"],"exposed_headers":[],"allow_credentials":true,"max_age":600}'
+```
+
+Origins are matched exactly after normalizing the scheme and host case. Wildcards, opaque `null` origins, URL paths, queries, fragments, and embedded credentials are rejected. Methods and preflight request headers must appear in their respective allowlists. `allow_credentials` is valid only when at least one origin is configured. `max_age` is limited to 86400 seconds.
+
+An invalid configuration fails closed: Daptin logs the validation error, leaves the stored value unchanged for correction, and disables cross-origin access.
+
+The CORS policy is loaded once when the HTTP router is initialized. After changing `cors.config`, re-init or restart every serving member. Cluster members read the same shared `_config` value and enforce it locally without database or distributed-cache work on each request.
+
+CORS controls which browser origins may read cross-origin responses. It does not replace Daptin authentication, authorization, or application-level CSRF protection.
+
 ## Enable Graphql
 
 Graphql endpoint `/graphql` is disabled by default. Set to true to use graphql endpoint

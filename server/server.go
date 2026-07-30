@@ -184,11 +184,23 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		log.Errorf("Invalid backend limit.rate configuration; using defaults without overwriting the stored value: %v", rateConfigErr)
 		rateConfig = defaultRateConfig
 	}
+	corsConfigJSON, corsConfigErr := configStore.GetConfigValueFor("cors.config", "backend", transaction)
+	if corsConfigErr != nil {
+		corsConfigJSON = defaultCorsConfigJSON
+		if err := configStore.SetConfigValueFor("cors.config", corsConfigJSON, "backend", transaction); err != nil {
+			resource.CheckErr(err, "Failed to store cors.config default value")
+		}
+	}
+	corsConfig, corsParseErr := ParseCorsConfig(corsConfigJSON)
+	if corsParseErr != nil {
+		log.Errorf("Invalid backend cors.config; disabling cross-origin access without overwriting the stored value: %v", corsParseErr)
+		corsConfig = defaultCorsConfig
+	}
 	_ = transaction.Commit()
 
 	var rateLimiter = CreateRateLimiterMiddleware(rateConfig, olricDb)
 
-	defaultRouter.Use(NewCorsMiddleware().CorsMiddlewareFunc)
+	defaultRouter.Use(NewCorsMiddleware(corsConfig).CorsMiddlewareFunc)
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 	defaultRouter.Use(rateLimiter)
 
