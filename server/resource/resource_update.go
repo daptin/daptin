@@ -586,6 +586,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 				}
 				auditModel.Set("source_reference_id", updateObjectReferenceId.String())
+				auditModel.Set("operation", AuditOperationUpdate)
 				pr := &http.Request{
 					URL:    req.PlainRequest.URL,
 					Method: "POST",
@@ -594,7 +595,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				auditCreateRequest := api2go.Request{
 					PlainRequest: pr,
 				}
-				_, err := creator.CreateWithTransaction(auditModel, auditCreateRequest, updateTransaction)
+				_, err := creator.CreateWithoutFilter(auditModel, auditCreateRequest, updateTransaction)
 				if err != nil {
 					log.Errorf("[542] Failed to create audit entry: %v\n%v", err, auditModel)
 					return nil, err

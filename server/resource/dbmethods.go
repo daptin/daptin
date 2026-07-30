@@ -1313,7 +1313,7 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 
 	query, args, err = statementbuilder.Squirrel.Update("world").Prepared(true).
 		Set(goqu.Record{
-			"permission": int64(auth.UserCreate | auth.GroupCreate),
+			"permission": int64(AuditTablePermission),
 		}).
 		Where(goqu.Ex{
 			"table_name": goqu.Op{"like": "%_audit"},
@@ -1330,15 +1330,15 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		rowsAffected, rowsErr = result.RowsAffected()
 		if rowsErr != nil {
 			log.Debugf("BecomeAdmin world permission transition table_scope=audit from=%d to=%d rows_affected=unknown error=%v",
-				auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.UserCreate|auth.GroupCreate, rowsErr)
+				auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, AuditTablePermission, rowsErr)
 		} else {
 			log.Debugf("BecomeAdmin world permission transition table_scope=audit from=%d to=%d rows_affected=%d",
-				auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.UserCreate|auth.GroupCreate, rowsAffected)
+				auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, AuditTablePermission, rowsAffected)
 		}
 	}
 
 	// Transition bootstrap default permissions inside world_schema_json.
-	err = updateDefaultPermissionInSchemaJson(transaction, auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, auth.UserRead|auth.GroupRead)
+	err = updateDefaultPermissionInSchemaJson(transaction, auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, AuditRowDefaultPermission)
 	if err != nil {
 		log.Errorf("Failed to update default_permission in schema json: %v", err)
 	}

@@ -1540,6 +1540,25 @@ func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			return err
 		}
 	}
+	for _, table := range initConfig.Tables {
+		if !table.ExplicitFields[generatedAuditTableField] {
+			continue
+		}
+		query, args, err := statementbuilder.Squirrel.Update(table.TableName).Prepared(true).
+			Set(goqu.Record{"permission": int64(AuditRowDefaultPermission)}).
+			Where(goqu.Ex{"permission": int64(auth.GuestCreate | auth.GuestRead | auth.GroupRead)}).
+			ToSQL()
+		if err != nil {
+			return err
+		}
+		result, err := transaction.Exec(query, args...)
+		if err != nil {
+			return err
+		}
+		if rows, rowsErr := result.RowsAffected(); rowsErr == nil && rows > 0 {
+			log.Infof("Updated %d legacy audit row permissions in [%s]", rows, table.TableName)
+		}
+	}
 	st.Body = stBody
 	if log.GetLevel() == log.DebugLevel {
 		st.Print()

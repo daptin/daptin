@@ -149,8 +149,9 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 			}
 
 			stateAudit.Set("source_reference_id", objectStateMachine.GetReferenceId())
+			stateAudit.Set("operation", resource.AuditOperationStateTransition)
 
-			_, err := creator.CreateWithTransaction(stateAudit, req, transaction)
+			_, err := creator.CreateWithoutFilter(stateAudit, req, transaction)
 			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
 		}
 

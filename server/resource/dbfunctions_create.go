@@ -12,6 +12,40 @@ import (
 	"strings"
 )
 
+const (
+	AuditOperationUpdate          = "update"
+	AuditOperationDelete          = "delete"
+	AuditOperationStateTransition = "state_transition"
+	generatedAuditTableField      = "generated_audit_table"
+)
+
+var (
+	AuditTablePermission      = auth.UserCreate | auth.GroupCreate
+	AuditRowDefaultPermission = auth.UserRead | auth.GroupRead
+)
+
+func shouldCopyColumnToAudit(col api2go.ColumnInfo) bool {
+	columnName := strings.ToLower(col.ColumnName)
+	columnType := strings.ToLower(col.ColumnType)
+	dataType := strings.ToLower(col.DataType)
+
+	switch columnName {
+	case "id", "reference_id", "permission", USER_ACCOUNT_ID_COLUMN, "source_reference_id", "operation":
+		return false
+	}
+
+	switch columnType {
+	case "password", "bcrypt", "encrypted":
+		return false
+	}
+
+	if strings.HasPrefix(columnType, "file.") || strings.Contains(dataType, "blob") || strings.Contains(dataType, "binary") {
+		return false
+	}
+
+	return true
+}
+
 func CreateUniqueConstraints(initConfig *CmsConfig, db *sqlx.Tx) {
 	log.Printf("Create constraints and indexes")
 
@@ -446,7 +480,6 @@ func CheckAuditTables(config *CmsConfig) {
 	}
 
 	createAuditTableFor := make([]string, 0)
-	updateAuditTableFor := make([]string, 0)
 
 	for _, table := range config.Tables {
 
@@ -456,16 +489,16 @@ func CheckAuditTables(config *CmsConfig) {
 		}
 
 		auditTableName := table.TableName + "_audit"
-		existingAuditTable, ok := tableMap[auditTableName]
+		_, ok := tableMap[auditTableName]
 		if !ok {
 			if table.IsAuditEnabled {
 				createAuditTableFor = append(createAuditTableFor, table.TableName)
 			}
 		} else {
-			if len(table.Columns) > len(existingAuditTable.Columns) {
-				log.Printf("New columns added to the table, audit table need to be updated")
-				updateAuditTableFor = append(updateAuditTableFor, table.TableName)
-			}
+			// An audit table already present in CmsConfig was declared explicitly.
+			// Keep its columns and permissions unchanged. Generated audit tables are
+			// rebuilt from the source schema on each normal startup because persisted
+			// *_audit definitions are intentionally excluded by GetTablesFromWorld.
 		}
 
 	}
@@ -478,15 +511,14 @@ func CheckAuditTables(config *CmsConfig) {
 		log.Printf("Create audit table [%s] for table [%v]", table.TableName, auditTableName)
 
 		for _, col := range table.Columns {
+			if !shouldCopyColumnToAudit(col) {
+				continue
+			}
 
 			var c api2go.ColumnInfo
 			err := copier.Copy(&c, &col)
 			if err != nil {
 				log.Errorf("Failed to copy columns for audit table: %v", err)
-				continue
-			}
-
-			if c.ColumnName == "id" {
 				continue
 			}
 
@@ -516,6 +548,13 @@ func CheckAuditTables(config *CmsConfig) {
 			DataType:   "varchar(64)",
 			IsNullable: false,
 		})
+		columnsCopy = append(columnsCopy, api2go.ColumnInfo{
+			Name:       "operation",
+			ColumnName: "operation",
+			ColumnType: "label",
+			DataType:   "varchar(32)",
+			IsNullable: false,
+		})
 
 		//newRelation := api2go.TableRelation{
 		//	Subject:    auditTableName,
@@ -530,57 +569,17 @@ func CheckAuditTables(config *CmsConfig) {
 			TableName:         auditTableName,
 			Columns:           columnsCopy,
 			IsHidden:          true,
-			DefaultPermission: auth.GuestCreate | auth.GuestRead | auth.GroupRead,
-			Permission:        auth.GuestCreate | auth.UserCreate | auth.GroupCreate,
+			DefaultPermission: AuditRowDefaultPermission,
+			Permission:        AuditTablePermission,
+			ExplicitFields: map[string]bool{
+				generatedAuditTableField: true,
+			},
 		}
 
 		config.Tables = append(config.Tables, newTable)
 	}
 
 	log.Infof("%d Audit tables are new", len(createAuditTableFor))
-	log.Infof("%d Audit tables are updated", len(updateAuditTableFor))
-
-	for _, tableName := range updateAuditTableFor {
-
-		table := tableMap[tableName]
-		auditTable := tableMap[tableName+"_audit"]
-		existingColumns := auditTable.Columns
-
-		existingColumnMap := make(map[string]api2go.ColumnInfo)
-		for _, col := range existingColumns {
-			existingColumnMap[col.Name] = col
-		}
-
-		tableColumnMap := make(map[string]api2go.ColumnInfo)
-		for _, col := range table.Columns {
-			tableColumnMap[col.Name] = col
-		}
-
-		newColsToAdd := make([]api2go.ColumnInfo, 0)
-
-		for _, newCols := range table.Columns {
-
-			_, ok := existingColumnMap[newCols.Name]
-			if !ok {
-				var newAuditCol api2go.ColumnInfo
-				copier.Copy(&newAuditCol, &newCols)
-				newColsToAdd = append(newColsToAdd, newAuditCol)
-			}
-
-		}
-
-		if len(newColsToAdd) > 0 {
-
-			for i := range config.Tables {
-
-				if config.Tables[i].TableName == auditTable.TableName {
-					config.Tables[i].Columns = append(config.Tables[i].Columns, newColsToAdd...)
-				}
-			}
-
-		}
-
-	}
 
 	convertRelationsToColumns(newRelations, config)
 

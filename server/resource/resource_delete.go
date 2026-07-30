@@ -37,6 +37,8 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 
 	if !EndsWithCheck(apiModel.GetTableName(), "_audit") && dbResource.tableInfo.IsAuditEnabled {
 		auditModel := apiModel.GetAuditModel()
+		auditModel.Set("source_reference_id", id.String())
+		auditModel.Set("operation", AuditOperationDelete)
 		log.Printf("Object [%v][%v] has been changed, trying to audit in %v", apiModel.GetTableName(), apiModel.GetID(), auditModel.GetTableName())
 		if auditModel.GetTableName() != "" {
 			//auditModel.Data["deleted_at"] = time.Now()
@@ -54,7 +56,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 				createRequest := api2go.Request{
 					PlainRequest: pr,
 				}
-				_, err := creator.CreateWithTransaction(auditModel, createRequest, transaction)
+				_, err := creator.CreateWithoutFilter(auditModel, createRequest, transaction)
 				if err != nil {
 					log.Errorf("[66] Failed to create audit entry: %v", err)
 				} else {
