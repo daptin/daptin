@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -13,9 +14,68 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func TestServeResolvedMediaAssetFromLocalCloudStoreKey(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	rootDir := t.TempDir()
+	localSyncDir := t.TempDir()
+	keyName := filepath.Join("assets", "media")
+	fileName := "sample.bin"
+	contents := []byte("0123456789")
+	filePath := filepath.Join(rootDir, keyName, fileName)
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, contents, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	assetCache := &assetcachepojo.AssetFolderCache{
+		LocalSyncPath: localSyncDir,
+		Keyname:       keyName,
+		CloudStore: rootpojo.CloudStore{
+			RootPath:      rootDir,
+			StoreProvider: "local",
+		},
+	}
+
+	for _, fileType := range []string{"audio/wav", "video/mp4"} {
+		t.Run(fileType, func(t *testing.T) {
+			file, err := assetCache.GetFileByName(fileName)
+			if err != nil {
+				t.Fatalf("GetFileByName: %v", err)
+			}
+			defer file.Close()
+			fileInfo, err := file.Stat()
+			if err != nil {
+				t.Fatalf("Stat: %v", err)
+			}
+
+			request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file", nil)
+			request.Header.Set("Range", "bytes=2-5")
+			response := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(response)
+			ctx.Request = request
+
+			serveResolvedMediaAsset(ctx, fileName, fileType, file, fileInfo)
+
+			if response.Code != http.StatusPartialContent {
+				t.Fatalf("status = %d, want %d", response.Code, http.StatusPartialContent)
+			}
+			if got, want := response.Body.String(), "2345"; got != want {
+				t.Fatalf("body = %q, want %q", got, want)
+			}
+			if got := response.Header().Get("Content-Type"); got != fileType {
+				t.Fatalf("Content-Type = %q, want %q", got, fileType)
+			}
+		})
+	}
+}
 
 func TestCachedAssetAllowedUsesPermissionSnapshot(t *testing.T) {
 	gin.SetMode(gin.TestMode)

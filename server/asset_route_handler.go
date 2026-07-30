@@ -237,34 +237,9 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 		isVideo := strings.HasPrefix(fileType, "video/")
 		isAudio := strings.HasPrefix(fileType, "audio/")
 		if isVideo || isAudio {
-			// For video/audio files, always use streaming with http.ServeContent for range request support
-			file, err := os.Open(filePath)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-			defer file.Close()
-
-			// Set media-specific headers for optimal streaming
-			c.Header("Content-Type", fileType)
-			c.Header("Accept-Ranges", "bytes")
-			c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", fileNameToServe))
-
-			// Set cache control for media files (shorter cache time due to size)
-			setPrivateAssetCacheHeaders(c, 3600)
-
-			// Generate ETag for media files
-			etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
-			c.Header("ETag", etag)
-
-			// Check if client has fresh copy
-			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
-				c.AbortWithStatus(http.StatusNotModified)
-				return
-			}
-
-			// Use http.ServeContent for efficient video streaming with range request support
-			http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
+			// Serve the handle returned by GetFileByName. It may point beneath a
+			// cloud-store key or may have just been downloaded into the cache.
+			serveResolvedMediaAsset(c, fileNameToServe, fileType, assetFileByName, fileInfo)
 			return
 		}
 
@@ -362,33 +337,29 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			return
 		}
 
-		// For larger files, use http.ServeContent for efficient range requests
-		// This is important for video/audio streaming
-		file, err := os.Open(filePath)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		defer file.Close()
-
-		// Set ETag for large files too
-		// Instead of reading the entire file, use file info to generate ETag
-		etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
-		c.Header("ETag", etag)
-
-		// Add streaming-specific headers for video/audio files
-		if isVideo || isAudio {
-			c.Header("Accept-Ranges", "bytes")
-		}
-
-		// Check if client has fresh copy
-		if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
-			c.AbortWithStatus(http.StatusNotModified)
-			return
-		}
-
-		http.ServeContent(c.Writer, c.Request, fileNameToServe, fileInfo.ModTime(), file)
+		// Stream larger files from the handle already resolved by the asset cache.
+		serveResolvedAsset(c, fileNameToServe, assetFileByName, fileInfo)
 	}
+}
+
+func serveResolvedMediaAsset(c *gin.Context, fileName, fileType string, file *os.File, fileInfo os.FileInfo) {
+	c.Header("Content-Type", fileType)
+	c.Header("Accept-Ranges", "bytes")
+	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", fileName))
+	setPrivateAssetCacheHeaders(c, 3600)
+
+	serveResolvedAsset(c, fileName, file, fileInfo)
+}
+
+func serveResolvedAsset(c *gin.Context, fileName string, file *os.File, fileInfo os.FileInfo) {
+	etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
+	c.Header("ETag", etag)
+	if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+		c.AbortWithStatus(http.StatusNotModified)
+		return
+	}
+
+	http.ServeContent(c.Writer, c.Request, fileName, fileInfo.ModTime(), file)
 }
 
 const cachedAssetAuthzVersion byte = 1
