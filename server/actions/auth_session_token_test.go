@@ -202,8 +202,8 @@ func TestOtpLoginVerifyDoesNotPrintIssuedToken(t *testing.T) {
 	defer tx.Rollback()
 
 	code, err := totp.GenerateCodeCustom(otpSecret, time.Now().UTC(), totp.ValidateOpts{
-		Period:    300,
-		Digits:    4,
+		Period:    otpPeriodSeconds,
+		Digits:    6,
 		Algorithm: otp.AlgorithmSHA1,
 	})
 	if err != nil {
@@ -222,8 +222,9 @@ func TestOtpLoginVerifyDoesNotPrintIssuedToken(t *testing.T) {
 	var errs []error
 	output := captureProcessOutput(t, func() {
 		_, responses, errs = performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{
-			"email": "otp@example.com",
-			"otp":   code,
+			"email":       "otp@example.com",
+			"otp":         code,
+			"sessionUser": &auth.SessionUser{UserId: 1, UserReferenceId: userRef},
 		}, tx)
 	})
 	if len(errs) > 0 {
@@ -264,8 +265,9 @@ func TestOtpLoginVerifyDoesNotLogSubmittedOtpOnFailure(t *testing.T) {
 	var errs []error
 	output := captureProcessOutput(t, func() {
 		_, _, errs = performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{
-			"email": "otp@example.com",
-			"otp":   submittedOtp,
+			"email":       "otp@example.com",
+			"otp":         submittedOtp,
+			"sessionUser": &auth.SessionUser{UserId: 1},
 		}, tx)
 	})
 	if len(errs) == 0 || errs[0].Error() != "Invalid OTP" {
@@ -276,6 +278,76 @@ func TestOtpLoginVerifyDoesNotLogSubmittedOtpOnFailure(t *testing.T) {
 	}
 	if strings.Contains(output, submittedOtp) {
 		t.Fatalf("output leaked submitted OTP on invalid OTP")
+	}
+}
+
+func TestOtpPasswordResetVerificationDoesNotIssueSessionToken(t *testing.T) {
+	db, cruds, _, otpSecret := setupAuthTokenOutputTestDB(t)
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	defer tx.Rollback()
+	code, err := totp.GenerateCodeCustom(otpSecret, time.Now().UTC(), totp.ValidateOpts{
+		Period:    otpPeriodSeconds,
+		Digits:    6,
+		Algorithm: otp.AlgorithmSHA1,
+	})
+	if err != nil {
+		t.Fatalf("generate OTP: %v", err)
+	}
+	performer := &otpLoginVerifyActionPerformer{
+		cruds:            cruds,
+		encryptionSecret: []byte("12345678901234567890123456789012"),
+		secret:           []byte("test-secret"),
+		tokenLifeTime:    3,
+		jwtTokenIssuer:   "issuer",
+	}
+	_, responses, errs := performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{
+		"email":   "otp@example.com",
+		"otp":     code,
+		"purpose": "password_reset",
+	}, tx)
+	if len(errs) > 0 {
+		t.Fatalf("password-reset OTP returned errors: %v", errs)
+	}
+	if len(responses) != 0 {
+		t.Fatalf("password-reset OTP must not issue a session response: %v", responses)
+	}
+}
+
+func TestOtpLoginRejectsUnverifiedEnrollment(t *testing.T) {
+	db, cruds, _, otpSecret := setupAuthTokenOutputTestDB(t)
+	if _, err := db.Exec(`update user_otp_account set verified = 0 where id = 1`); err != nil {
+		t.Fatalf("mark profile unverified: %v", err)
+	}
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	defer tx.Rollback()
+	code, err := totp.GenerateCodeCustom(otpSecret, time.Now().UTC(), totp.ValidateOpts{
+		Period:    otpPeriodSeconds,
+		Digits:    6,
+		Algorithm: otp.AlgorithmSHA1,
+	})
+	if err != nil {
+		t.Fatalf("generate OTP: %v", err)
+	}
+	performer := &otpLoginVerifyActionPerformer{
+		cruds:            cruds,
+		encryptionSecret: []byte("12345678901234567890123456789012"),
+		secret:           []byte("test-secret"),
+		tokenLifeTime:    3,
+		jwtTokenIssuer:   "issuer",
+	}
+	_, responses, errs := performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{
+		"email":       "otp@example.com",
+		"otp":         code,
+		"sessionUser": &auth.SessionUser{UserId: 1},
+	}, tx)
+	if len(errs) == 0 || errs[0].Error() != "OTP is not enrolled for this account" {
+		t.Fatalf("expected unverified enrollment rejection, got responses=%v errors=%v", responses, errs)
 	}
 }
 
@@ -450,9 +522,9 @@ func setupAuthTokenOutputTestDB(t *testing.T) (*sqlx.DB, map[string]*resource.Db
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "issuer",
 		AccountName: "otp@example.com",
-		Period:      300,
-		Digits:      4,
-		SecretSize:  10,
+		Period:      otpPeriodSeconds,
+		Digits:      6,
+		SecretSize:  20,
 	})
 	if err != nil {
 		db.Close()
@@ -464,7 +536,7 @@ func setupAuthTokenOutputTestDB(t *testing.T) (*sqlx.DB, map[string]*resource.Db
 		t.Fatalf("encrypt otp secret: %v", err)
 	}
 	if _, err := db.Exec(`insert into user_otp_account (id, mobile_number, otp_secret, verified, otp_of_account, user_account_id, permission, version, created_at, updated_at, reference_id) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		1, "", encryptedSecret, 0, 1, 1, int64(auth.DEFAULT_PERMISSION), 1, now, now, otpRef[:]); err != nil {
+		1, "", encryptedSecret, 1, 1, 1, int64(auth.DEFAULT_PERMISSION), 1, now, now, otpRef[:]); err != nil {
 		db.Close()
 		t.Fatalf("insert user_otp_account: %v", err)
 	}
@@ -495,17 +567,9 @@ func setupAuthTokenOutputTestDB(t *testing.T) (*sqlx.DB, map[string]*resource.Db
 	}
 	otpColumns = append(otpColumns, resource.StandardColumns...)
 
-	cfg := olricConfig.New("local")
-	cfg.LogOutput = nil
-	emb, err := olric.New(cfg)
-	if err != nil {
-		db.Close()
-		t.Fatalf("create olric: %v", err)
-	}
-	client := emb.NewEmbeddedClient()
+	client, _ := startOTPTestOlric(t)
 
 	oldCache := resource.OlricCache
-	resource.OlricCache = nil
 	oldUserAccountCrud := resource.CRUD_MAP[resource.USER_ACCOUNT_TABLE_NAME]
 	oldOtpCrud := resource.CRUD_MAP["user_otp_account"]
 	t.Cleanup(func() {

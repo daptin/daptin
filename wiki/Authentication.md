@@ -329,14 +329,15 @@ curl -X POST "http://localhost:6336/action/user_account/register_otp" \
 
 **Note**: Instance actions pass the reference ID as `{typename}_id` in the body, not in the URL path.
 
-**Verify OTP** (separate flow after signin):
+**Verify OTP** (authenticated owner, after enrollment):
 ```bash
 curl -X POST http://localhost:6336/action/user_account/verify_otp \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
       "email": "user@example.com",
-      "otp": "1234",
+      "otp": "123456",
       "mobile_number": ""
     }
   }'
@@ -344,10 +345,10 @@ curl -X POST http://localhost:6336/action/user_account/verify_otp \
 
 **Parameters**:
 - `email` - User's email address (required if not providing mobile_number)
-- `otp` - The 4-digit OTP code
+- `otp` - The 6-digit OTP code
 - `mobile_number` - Optional, can be used instead of email for verification
 
-**Important**: Daptin uses 4-digit codes with 300-second (5-minute) validity, not the standard 6-digit/30-second TOTP. On successful verification, a JWT token is returned.
+**Important**: OTP profiles must be enrolled and verified by the authenticated account owner. Codes use a 120-second period with no adjacent-window skew. Verification is protected by atomic Olric counters (five attempts per account and 50 per source per 15 minutes) and successful codes cannot be replayed. See [[Two-Factor-Auth|OTP Authentication and Account Recovery]].
 
 ---
 

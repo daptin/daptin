@@ -69,6 +69,15 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request actionrespon
 		mobile = ""
 		phoneOk = true
 	}
+	purpose, _ := inFieldMap["purpose"].(string)
+	sessionUser, _ := inFieldMap["sessionUser"].(*auth.SessionUser)
+	accountID, _ := userAccount["id"].(int64)
+	if (purpose == "enrollment" || purpose == "send") && (sessionUser == nil || sessionUser.UserId == 0 || sessionUser.UserId != accountID) {
+		return nil, nil, []error{errors.New("OTP operation requires the account owner")}
+	}
+	if purpose != "enrollment" && (userOtpProfile == nil || !otpProfileVerified(userOtpProfile["verified"])) {
+		return nil, nil, []error{errors.New("OTP is not enrolled for this account")}
+	}
 
 	ur, _ := url.Parse("/user_otp_account")
 	httpReq := &http.Request{
@@ -84,13 +93,12 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request actionrespon
 	}
 
 	if userOtpProfile == nil {
-
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "site.daptin.com",
 			AccountName: userAccount["email"].(string),
-			Period:      300,
-			Digits:      4,
-			SecretSize:  10,
+			Period:      otpPeriodSeconds,
+			Digits:      6,
+			SecretSize:  20,
 		})
 
 		if err != nil {
@@ -139,9 +147,9 @@ func (actionPerformer *otpGenerateActionPerformer) DoAction(request actionrespon
 	}
 
 	state, err := totp.GenerateCodeCustom(key, time.Now(), totp.ValidateOpts{
-		Period:    300,
-		Skew:      1,
-		Digits:    4,
+		Period:    otpPeriodSeconds,
+		Skew:      0,
+		Digits:    6,
 		Algorithm: otp.AlgorithmSHA1,
 	})
 	if err != nil {

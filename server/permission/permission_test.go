@@ -59,3 +59,14 @@ func TestPermission(t *testing.T) {
 	}, daptinid.NullReferenceId)
 
 }
+
+func TestAuthenticatedExecuteExcludesGuestsAndAllowsAuthenticatedUsers(t *testing.T) {
+	permission := PermissionInstance{Permission: auth.AuthenticatedExecute}
+	if permission.CanExecute(daptinid.NullReferenceId, nil, daptinid.NullReferenceId) {
+		t.Fatal("guest must not satisfy AuthenticatedExecute")
+	}
+	userID := daptinid.DaptinReferenceId(uuid.New())
+	if !permission.CanExecute(userID, nil, daptinid.NullReferenceId) {
+		t.Fatal("authenticated user should satisfy AuthenticatedExecute")
+	}
+}

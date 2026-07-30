@@ -2572,7 +2572,7 @@ func generateActionDescription(action actionresponse.Action) string {
 - Duplicate number check
 - User authentication required`,
 
-		"verify_otp": `Verifies an OTP code for authentication. Validates the one-time password and returns authentication tokens.
+		"verify_otp": `Verifies a six-digit OTP for the authenticated account owner. Requires a previously enrolled and verified OTP profile and returns authentication tokens.
 
 **Response Types:**
 - client.token.set - JWT token for authentication
@@ -2580,9 +2580,9 @@ func generateActionDescription(action actionresponse.Action) string {
 - client.notify - Success/failure notification
 - client.redirect - Redirect after successful login
 
-**OTP Expiry:** Codes expire after 5 minutes`,
+**OTP protection:** Codes use a 120-second period with no adjacent-window skew. Atomic Olric counters allow five attempts per account and 50 per source per 15 minutes, and successful codes cannot be replayed.`,
 
-		"send_otp": "Sends a one-time password to a registered mobile number or email. Use this action to trigger OTP delivery for authentication or verification purposes.",
+		"send_otp": "Generates a one-time password for the authenticated account owner's existing verified OTP profile. It does not enroll arbitrary accounts.",
 
 		"remove_column": `Permanently removes a column from a database table. This is a destructive DDL operation that cannot be undone.
 

@@ -57,6 +57,7 @@ const (
 	GroupDelete
 	GroupExecute
 	GroupRefer
+	AuthenticatedExecute
 )
 
 const x = GroupPeek | GroupRefer

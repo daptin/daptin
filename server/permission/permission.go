@@ -63,6 +63,9 @@ func (p *PermissionInstance) UnmarshalBinary(data []byte) error {
 
 func (p PermissionInstance) CanExecute(userId daptinid.DaptinReferenceId, usergroupId auth.GroupPermissionList,
 	adminGroupId daptinid.DaptinReferenceId) bool {
+	if userId != daptinid.NullReferenceId && p.Permission&auth.AuthenticatedExecute == auth.AuthenticatedExecute {
+		return true
+	}
 
 	if (p.UserId == userId && p.UserId != daptinid.NullReferenceId) && (p.Permission&auth.UserExecute == auth.UserExecute) {
 		return true

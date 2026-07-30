@@ -3,11 +3,14 @@ package resource
 import (
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/columns"
 	"github.com/daptin/daptin/server/fsm"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/daptin/daptin/server/task"
 )
+
+var authenticatedOTPActionPermission = auth.AuthenticatedExecute
 
 func IsStandardColumn(colName string) bool {
 
@@ -268,8 +271,9 @@ var SystemActions = []actionresponse.Action{
 				Method:    "EXECUTE",
 				Reference: "otp",
 				Attributes: map[string]interface{}{
-					"email":  "$.email",
-					"mobile": "~mobile_number",
+					"email":   "$.email",
+					"mobile":  "~mobile_number",
+					"purpose": "enrollment",
 				},
 			},
 			//{
@@ -288,6 +292,7 @@ var SystemActions = []actionresponse.Action{
 		Label:            "Verify Mobile Number",
 		OnType:           "user_otp_account",
 		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "mobile_number",
@@ -310,9 +315,10 @@ var SystemActions = []actionresponse.Action{
 				Type:   "otp.login.verify",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"otp":    "~otp",
-					"mobile": "~mobile_number",
-					"email":  "~email",
+					"otp":     "~otp",
+					"mobile":  "~mobile_number",
+					"email":   "~email",
+					"purpose": "enrollment",
 				},
 			},
 		},
@@ -322,6 +328,7 @@ var SystemActions = []actionresponse.Action{
 		Label:            "Send OTP to mobile",
 		OnType:           "user_otp_account",
 		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "mobile_number",
@@ -340,8 +347,9 @@ var SystemActions = []actionresponse.Action{
 				Method:    "EXECUTE",
 				Reference: "otp",
 				Attributes: map[string]interface{}{
-					"email":  "~email",
-					"mobile": "~mobile_number",
+					"email":   "~email",
+					"mobile":  "~mobile_number",
+					"purpose": "send",
 				},
 			},
 			//{
@@ -360,6 +368,7 @@ var SystemActions = []actionresponse.Action{
 		Label:            "Login with OTP",
 		OnType:           "user_account",
 		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "otp",
@@ -382,9 +391,10 @@ var SystemActions = []actionresponse.Action{
 				Type:   "otp.login.verify",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"otp":    "~otp",
-					"mobile": "~mobile_number",
-					"email":  "~email",
+					"otp":     "~otp",
+					"mobile":  "~mobile_number",
+					"email":   "~email",
+					"purpose": "login",
 				},
 			},
 		},
@@ -1258,17 +1268,6 @@ var SystemActions = []actionresponse.Action{
 				},
 			},
 			{
-				Type:           "otp.generate",
-				Method:         "EXECUTE",
-				Reference:      "otp",
-				SkipInResponse: true,
-				Condition:      "!mobile != null && mobile != undefined && mobile != ''",
-				Attributes: map[string]interface{}{
-					"mobile": "~mobile",
-					"email":  "~email",
-				},
-			},
-			{
 				Type:   "client.notify",
 				Method: "ACTIONRESPONSE",
 				Attributes: map[string]interface{}{
@@ -1329,7 +1328,8 @@ var SystemActions = []actionresponse.Action{
 				Reference:      "otp",
 				SkipInResponse: true,
 				Attributes: map[string]interface{}{
-					"email": "$email",
+					"email":   "$email",
+					"purpose": "password_reset",
 				},
 			},
 			{
@@ -1390,8 +1390,9 @@ var SystemActions = []actionresponse.Action{
 				Type:   "otp.login.verify",
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
-					"otp":   "~otp",
-					"email": "~email",
+					"otp":     "~otp",
+					"email":   "~email",
+					"purpose": "password_reset",
 				},
 			},
 			{

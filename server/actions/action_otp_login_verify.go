@@ -79,37 +79,52 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request actionresponse.Outcome,
 	if err != nil || userOtpProfile == nil {
 		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
+	accountID, ok := userAccount["id"].(int64)
+	if !ok || accountID == 0 {
+		return nil, nil, []error{errors.New("Invalid OTP")}
+	}
+	purpose, _ := inFieldMap["purpose"].(string)
+	if purpose == "" {
+		purpose = "login"
+	}
+	verified := otpProfileVerified(userOtpProfile["verified"])
+	sessionUser, _ := inFieldMap["sessionUser"].(*auth.SessionUser)
+	if purpose == "enrollment" || purpose == "login" {
+		if sessionUser == nil || sessionUser.UserId == 0 || sessionUser.UserId != accountID {
+			return nil, nil, []error{errors.New("OTP verification requires the account owner")}
+		}
+	}
+	if purpose != "enrollment" && !verified {
+		return nil, nil, []error{errors.New("OTP is not enrolled for this account")}
+	}
+	req, _ := inFieldMap["httpRequest"].(*http.Request)
+	source := otpSource(req)
+	if err := consumeOTPAttempt(accountID, source); err != nil {
+		return nil, nil, []error{otpProtectionHTTPError(err)}
+	}
 
-	key, _ := resource.Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
-
-	timeInstance := time.Now().UTC()
-	timeInstance.Add(2 * time.Minute) // allow clock skew of 2 minutes
-	ok, err = totp.ValidateCustom(state, key, timeInstance, totp.ValidateOpts{
-		Period:    300,
-		Skew:      1,
-		Digits:    4,
-		Algorithm: otp.AlgorithmSHA1,
-	})
-	if !ok {
-		log.Errorf("Failed to validate otp key")
+	key, decryptErr := resource.Decrypt(d.encryptionSecret, userOtpProfile["otp_secret"].(string))
+	if decryptErr != nil {
 		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
 
-	verifiedAsInt64, isInt64 := userOtpProfile["verified"].(int64)
-	if !isInt64 {
-		vAsBool, isBool := userOtpProfile["verified"].(bool)
-		if isBool {
-			if vAsBool {
-				verifiedAsInt64 = 1
-			}
-		} else {
-			vAsStr := fmt.Sprintf("%s", userOtpProfile["verified"])
-			if vAsStr == "true" || vAsStr == "1" {
-				verifiedAsInt64 = 1
-			}
-		}
+	timeInstance := time.Now().UTC()
+	ok, err = totp.ValidateCustom(state, key, timeInstance, totp.ValidateOpts{
+		Period:    otpPeriodSeconds,
+		Skew:      0,
+		Digits:    6,
+		Algorithm: otp.AlgorithmSHA1,
+	})
+	if !ok {
+		log.Warnf("Failed to validate OTP")
+		return nil, nil, []error{errors.New("Invalid OTP")}
 	}
-	if verifiedAsInt64 == 0 {
+	if err := consumeOTPCode(accountID, timeInstance); err != nil {
+		return nil, nil, []error{otpProtectionHTTPError(err)}
+	}
+	clearOTPAttempts(accountID, source)
+
+	if purpose == "enrollment" && !verified {
 		model := api2go.NewApi2GoModelWithData("user_otp_account", nil, 0, nil, userOtpProfile)
 		model.SetAttributes(map[string]interface{}{
 			"verified": 1,
@@ -135,6 +150,9 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request actionresponse.Outcome,
 		}
 
 	}
+	if purpose != "login" {
+		return nil, responses, nil
+	}
 
 	tokenString, err := newAuthSessionToken(d.secret, d.tokenLifeTime, d.jwtTokenIssuer, userAccount, timeInstance, map[string]interface{}{
 		"picture": fmt.Sprintf("https://www.gravatar.com/avatar/%s&d=monsterid", resource.GetMD5HashString(strings.ToLower(userAccount["email"].(string)))),
@@ -152,6 +170,21 @@ func (d *otpLoginVerifyActionPerformer) DoAction(request actionresponse.Outcome,
 	responses = append(responses, actionResponse)
 
 	return nil, responses, nil
+}
+
+func otpProfileVerified(value interface{}) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case int64:
+		return typed == 1
+	case int:
+		return typed == 1
+	case string:
+		return typed == "true" || typed == "1"
+	default:
+		return fmt.Sprintf("%v", value) == "1"
+	}
 }
 
 func NewOtpLoginVerifyActionPerformer(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx) (actionresponse.ActionPerformerInterface, error) {

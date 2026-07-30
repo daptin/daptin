@@ -118,12 +118,13 @@ Register a mobile number for OTP authentication.
 
 ### verify_otp
 
-Login using OTP code.
+Verify a six-digit OTP for the authenticated account owner. Requires a previously verified OTP profile and distributed attempt/replay protection.
 
 | Property | Value |
 |----------|-------|
 | Entity | `user_account` |
 | Instance Required | No |
+| Authentication | Required |
 
 **Input Fields:**
 | Field | Type | Required |
@@ -134,12 +135,13 @@ Login using OTP code.
 
 ### send_otp
 
-Send OTP to registered mobile number.
+Generate an OTP for the authenticated account owner's existing verified OTP profile. This action does not enroll arbitrary accounts.
 
 | Property | Value |
 |----------|-------|
 | Entity | `user_otp_account` |
 | Instance Required | No |
+| Authentication | Required |
 
 **Input Fields:**
 | Field | Type | Required |

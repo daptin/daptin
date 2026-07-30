@@ -604,6 +604,8 @@ OutFields:
 				performerFields := model.GetAttributes()
 				performerFields["sessionUser"] = sessionUser
 				performerFields["requestSessionUser"] = requestSessionUser
+				performerFields["httpRequest"] = req.PlainRequest
+				performerFields["httpRequestHeaders"] = map[string][]string(req.PlainRequest.Header)
 				responder, responses1, errors1 = performer.DoAction(outcome, performerFields, transaction)
 
 				actionResponses = append(actionResponses, responses1...)
@@ -645,6 +647,8 @@ OutFields:
 			performerFields := model.GetAttributes()
 			performerFields["sessionUser"] = sessionUser
 			performerFields["requestSessionUser"] = requestSessionUser
+			performerFields["httpRequest"] = req.PlainRequest
+			performerFields["httpRequestHeaders"] = map[string][]string(req.PlainRequest.Header)
 			responder, responses1, err1 := handler.DoAction(outcome, performerFields, transaction)
 			if err1 != nil {
 				err = err1[0]
