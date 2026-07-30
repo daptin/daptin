@@ -311,14 +311,12 @@ func (hs *HostStats) GetProcessInfo() (interface{}, error) {
 		}
 
 		name, _ := p.Name()
-		cmdline, _ := p.Cmdline()
 		cpuPercent, _ := p.CPUPercent()
 		memPercent, _ := p.MemoryPercent()
 
 		procInfo := map[string]interface{}{
 			"pid":         pids[i],
 			"name":        name,
-			"cmdline":     cmdline,
 			"cpu_percent": cpuPercent,
 			"mem_percent": memPercent,
 		}

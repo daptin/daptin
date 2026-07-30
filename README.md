@@ -114,7 +114,7 @@ products, dashboards, portals, API products, content sites, and AI products.
 ### Operations
 
 - Runtime configuration through `/_config`.
-- Health and statistics through `/ping` and `/statistics`.
+- Health and public, secret-free operational statistics through `/ping` and `/statistics`.
 - Optional audit tables and audit rows.
 - Olric-backed cache, PubSub, and clustered rate-limit counters.
 - TLS certificate management, including ACME/self-signed certificate actions.

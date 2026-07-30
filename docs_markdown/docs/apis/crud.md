@@ -673,6 +673,5 @@ Meatadata APIs expose information about the daptin server itself
 | ------ | ---- | ------------- | ------------ | ----------- |
 | GET    | /apispec.raml                                             |                                       |                                                                                               | RAML Spec for all API's  exposed by the current instance                                                                             |
 | GET    | /ping                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for liveness probe                                                            |
-| GET    | /statistics                                                     |                                       |                                                                                               | Replies with PONG, Endpoint for healht check probe                                                            |
-
+| GET    | /statistics                                                     |                                       |                                                                                               | Public operational statistics with CPU, memory, disk, host, database-pool, web, load, and secret-free process summaries. Process command lines and arguments are never returned. |
 
