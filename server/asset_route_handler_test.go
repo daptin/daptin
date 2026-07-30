@@ -4,12 +4,15 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 
+	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/cache"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -139,5 +142,94 @@ func TestCachedAssetRequiresAuthzSnapshot(t *testing.T) {
 	}
 	if !cachedAssetHasAuthz(&cache.CachedFile{AuthzVersion: cachedAssetAuthzVersion}) {
 		t.Fatal("expected current authz snapshot version to be accepted")
+	}
+}
+
+func TestAssetAuthzAllowedUsesFreshSnapshot(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file", nil)
+	request = request.WithContext(context.WithValue(request.Context(), "user", &auth.SessionUser{}))
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = request
+
+	stalePrivateCachedFile := &cache.CachedFile{
+		AuthzVersion: cachedAssetAuthzVersion,
+		TablePermission: permission.PermissionInstance{
+			Permission: auth.UserPeek,
+			UserId:     daptinid.DaptinReferenceId(uuid.New()),
+		},
+		RowPermission: permission.PermissionInstance{
+			Permission: auth.UserRead,
+			UserId:     daptinid.DaptinReferenceId(uuid.New()),
+		},
+	}
+	if cachedAssetAllowed(stalePrivateCachedFile, ctx) {
+		t.Fatal("expected stale private cached snapshot to deny guest")
+	}
+
+	currentPublicAuthz := assetAuthzSnapshot{
+		tablePermission: permission.PermissionInstance{Permission: auth.GuestPeek},
+		rowPermission:   permission.PermissionInstance{Permission: auth.GuestRead},
+	}
+	if !assetAuthzAllowed(currentPublicAuthz, ctx) {
+		t.Fatal("expected current public authorization to allow guest")
+	}
+}
+
+func TestCachedAssetFileStillCurrentRequiresCurrentRowReference(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tempDir := t.TempDir()
+	cachedFile := &cache.CachedFile{
+		Path: filepath.Join(tempDir, "folder", "image.png"),
+	}
+	cruds := map[string]*resource.DbResource{
+		"world": {
+			AssetFolderCache: map[string]map[string]*assetcachepojo.AssetFolderCache{
+				"asset": {
+					"file": {
+						LocalSyncPath: tempDir,
+					},
+				},
+			},
+		},
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file?index=0&file=image.png", nil)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = request
+
+	currentRow := map[string]interface{}{
+		"file": []map[string]interface{}{
+			{
+				"path": "folder",
+				"name": "image.png",
+				"type": "image/png",
+			},
+		},
+	}
+	if !cachedAssetFileStillCurrent(cachedFile, currentRow, cruds, "asset", "file", ctx) {
+		t.Fatal("expected cached file to match current row file reference")
+	}
+
+	updatedRow := map[string]interface{}{
+		"file": []map[string]interface{}{
+			{
+				"path": "folder",
+				"name": "replacement.png",
+				"type": "image/png",
+			},
+		},
+	}
+	if cachedAssetFileStillCurrent(cachedFile, updatedRow, cruds, "asset", "file", ctx) {
+		t.Fatal("expected cached file to be stale after current row references a different file")
+	}
+
+	deletedFileRow := map[string]interface{}{
+		"file": []map[string]interface{}{},
+	}
+	if cachedAssetFileStillCurrent(cachedFile, deletedFileRow, cruds, "asset", "file", ctx) {
+		t.Fatal("expected cached file to be stale after current row no longer references files")
 	}
 }

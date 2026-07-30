@@ -65,10 +65,23 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			if cachedFile, found := fileCache.Get(cacheKey); found {
 				if !cachedAssetHasAuthz(cachedFile) {
 					fileCache.RemoveAsync(cacheKey)
-				} else if !cachedAssetAllowed(cachedFile, c) {
-					c.AbortWithStatus(http.StatusForbidden)
-					return
 				} else {
+					row, authz, err := loadAuthorizedAssetRow(cruds, typeName, resourceUuid, c)
+					if err != nil {
+						fileCache.RemoveAsync(cacheKey)
+						abortAssetError(c, err)
+						return
+					}
+					if !assetAuthzAllowed(authz, c) {
+						fileCache.RemoveAsync(cacheKey)
+						c.AbortWithStatus(http.StatusForbidden)
+						return
+					}
+					if colInfo.ColumnType != "markdown" && !cachedAssetFileStillCurrent(cachedFile, row, cruds, typeName, columnName, c) {
+						fileCache.RemoveAsync(cacheKey)
+						c.AbortWithStatus(http.StatusNotFound)
+						return
+					}
 					serveCachedAsset(c, cachedFile)
 					return
 				}
@@ -429,6 +442,17 @@ func cachedAssetHasAuthz(cachedFile *cache.CachedFile) bool {
 }
 
 func cachedAssetAllowed(cachedFile *cache.CachedFile, c *gin.Context) bool {
+	if cachedFile == nil {
+		return false
+	}
+	return assetAuthzAllowed(assetAuthzSnapshot{
+		tablePermission: cachedFile.TablePermission,
+		rowPermission:   cachedFile.RowPermission,
+		adminGroupId:    cachedFile.AdminGroupId,
+	}, c)
+}
+
+func assetAuthzAllowed(authz assetAuthzSnapshot, c *gin.Context) bool {
 	sessionUser := &auth.SessionUser{}
 	if user := c.Request.Context().Value("user"); user != nil {
 		if typedUser, ok := user.(*auth.SessionUser); ok && typedUser != nil {
@@ -437,13 +461,70 @@ func cachedAssetAllowed(cachedFile *cache.CachedFile, c *gin.Context) bool {
 	}
 
 	for _, group := range sessionUser.Groups {
-		if group.GroupReferenceId == cachedFile.AdminGroupId {
+		if group.GroupReferenceId == authz.adminGroupId {
 			return true
 		}
 	}
 
-	return cachedFile.TablePermission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, cachedFile.AdminGroupId) &&
-		cachedFile.RowPermission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, cachedFile.AdminGroupId)
+	return authz.tablePermission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, authz.adminGroupId) &&
+		authz.rowPermission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, authz.adminGroupId)
+}
+
+func cachedAssetFileStillCurrent(cachedFile *cache.CachedFile, row map[string]interface{}, cruds map[string]*resource.DbResource, typeName, columnName string, c *gin.Context) bool {
+	if cachedFile == nil || row == nil {
+		return false
+	}
+
+	worldCrud, ok := cruds["world"]
+	if !ok || worldCrud == nil || worldCrud.AssetFolderCache == nil {
+		return false
+	}
+	tableAssetCaches, ok := worldCrud.AssetFolderCache[typeName]
+	if !ok {
+		return false
+	}
+	assetCache, ok := tableAssetCaches[columnName]
+	if !ok || assetCache == nil {
+		return false
+	}
+
+	files, ok := assetColumnFileList(row[columnName])
+	if !ok {
+		return false
+	}
+
+	indexByQueryInt := -1
+	if indexByQuery := c.Query("index"); indexByQuery != "" {
+		if parsedIndex, err := strconv.Atoi(indexByQuery); err == nil {
+			indexByQueryInt = parsedIndex
+		}
+	}
+	fileNameToServe, _ := GetFileToServe(indexByQueryInt, files, c.Query("file"))
+	if fileNameToServe == "" {
+		return false
+	}
+
+	expectedPath := filepath.Clean(assetCache.LocalSyncPath + string(os.PathSeparator) + fileNameToServe)
+	return filepath.Clean(cachedFile.Path) == expectedPath
+}
+
+func assetColumnFileList(colData interface{}) ([]map[string]interface{}, bool) {
+	switch typed := colData.(type) {
+	case []map[string]interface{}:
+		return typed, true
+	case []interface{}:
+		files := make([]map[string]interface{}, 0, len(typed))
+		for _, item := range typed {
+			file, ok := item.(map[string]interface{})
+			if !ok {
+				return nil, false
+			}
+			files = append(files, file)
+		}
+		return files, true
+	default:
+		return nil, false
+	}
 }
 
 func serveCachedAsset(c *gin.Context, cachedFile *cache.CachedFile) {
