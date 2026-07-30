@@ -11,6 +11,11 @@ import (
 )
 
 var authenticatedOTPActionPermission = auth.AuthenticatedExecute
+var adminOnlyActionPermission = auth.None
+var adminGroupExecutePermission = auth.GroupExecute
+var adminOnlyActionAccessGroups = table_info.DefaultGroupList{
+	{Name: "administrators", Permission: &adminGroupExecutePermission},
+}
 
 func IsStandardColumn(colName string) bool {
 
@@ -661,6 +666,8 @@ var SystemActions = []actionresponse.Action{
 		Label:            "Export data for backup",
 		OnType:           "world",
 		InstanceOptional: true,
+		Permission:       &adminOnlyActionPermission,
+		AccessGroups:     adminOnlyActionAccessGroups,
 		InFields: []api2go.ColumnInfo{
 			{
 				ColumnName: "table_name",
@@ -702,6 +709,8 @@ var SystemActions = []actionresponse.Action{
 		Label:            "Export CSV data",
 		OnType:           "world",
 		InstanceOptional: true,
+		Permission:       &adminOnlyActionPermission,
+		AccessGroups:     adminOnlyActionAccessGroups,
 		InFields: []api2go.ColumnInfo{
 			{
 				ColumnName: "table_name",
