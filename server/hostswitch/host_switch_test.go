@@ -42,6 +42,12 @@ func TestHostSwitchRoutesWellDefinedApiPathsToDashboardRouter(t *testing.T) {
 			path:       "/_config",
 			wantStatus: http.StatusOK,
 		},
+		{
+			name:       "nested config key",
+			method:     http.MethodGet,
+			path:       "/_config/backend/cors.config",
+			wantStatus: http.StatusOK,
+		},
 	}
 
 	for _, tt := range tests {
@@ -99,6 +105,10 @@ func testHostSwitch() HostSwitch {
 		c.Header("X-Test-Router", "dashboard")
 		c.JSON(http.StatusOK, gin.H{"config": true})
 	})
+	dashboardRouter.GET("/_config/:end/:key", func(c *gin.Context) {
+		c.Header("X-Test-Router", "dashboard")
+		c.JSON(http.StatusOK, gin.H{"config": true})
+	})
 	dashboardRouter.NoRoute(func(c *gin.Context) {
 		c.Header("X-Test-Router", "dashboard")
 		c.Data(http.StatusOK, "text/html; charset=UTF-8", []byte("<!doctype html><html><body>dashboard</body></html>"))
@@ -130,4 +140,27 @@ func testHostSwitch() HostSwitch {
 
 func containsAppShell(body string) bool {
 	return strings.Contains(strings.ToLower(body), "<!doctype html")
+}
+
+func TestIsWellDefinedAPIPathMatchesOnlyPathSegments(t *testing.T) {
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{path: "/integration/provider/operation", want: true},
+		{path: "/_config/backend/cors.config", want: true},
+		{path: "/api/items", want: true},
+		{path: "//api/items//", want: true},
+		{path: "/integrationevil/provider/operation", want: false},
+		{path: "/_configuration", want: false},
+		{path: "/", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			if got := isWellDefinedAPIPath(tt.path); got != tt.want {
+				t.Fatalf("isWellDefinedAPIPath(%q) = %v, want %v", tt.path, got, tt.want)
+			}
+		})
+	}
 }
