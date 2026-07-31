@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
@@ -147,7 +148,7 @@ var ConfigTableStructure = table_info.TableInfo{
 			Name:       "PreviousValue",
 			ColumnName: "previousvalue",
 			ColumnType: "string",
-			DataType:   "varchar(100)",
+			DataType:   "varchar(5000)",
 			IsNullable: true,
 			IsIndexed:  true,
 		},
@@ -539,6 +540,7 @@ func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 		CheckErr(err, "Failed to create config table")
 		if err != nil {
 			log.Debugf("create config table query: %v", createTableQuery)
+			return &cs, fmt.Errorf("create config table: %w", err)
 		}
 
 	} else {
@@ -546,8 +548,55 @@ func NewConfigStore(db database.DatabaseConnection) (*ConfigStore, error) {
 		log.Debugf("Config table already exists")
 	}
 
+	if err := ensureConfigPreviousValueCapacity(db); err != nil {
+		return &cs, fmt.Errorf("upgrade _config.previousvalue to hold config history: %w", err)
+	}
+
 	return &ConfigStore{
 		defaultEnv: "release",
 	}, nil
 
+}
+
+// ensureConfigPreviousValueCapacity keeps previousvalue capable of storing any
+// value accepted by the value column. Older installations created it as
+// varchar(100), which made otherwise valid config updates fail when the old
+// value was longer than 100 characters.
+func ensureConfigPreviousValueCapacity(db database.DatabaseConnection) error {
+	const requiredLength int64 = 5000
+
+	var maximumLength sql.NullInt64
+	var inspectQuery, alterQuery string
+	switch db.DriverName() {
+	case "postgres":
+		inspectQuery = `SELECT character_maximum_length
+			FROM information_schema.columns
+			WHERE table_schema = current_schema()
+			  AND table_name = $1
+			  AND column_name = $2`
+		alterQuery = `ALTER TABLE _config ALTER COLUMN previousvalue TYPE varchar(5000)`
+	case "mysql":
+		inspectQuery = `SELECT character_maximum_length
+			FROM information_schema.columns
+			WHERE table_schema = DATABASE()
+			  AND table_name = ?
+			  AND column_name = ?`
+		alterQuery = `ALTER TABLE _config MODIFY COLUMN previousvalue varchar(5000) NULL`
+	default:
+		// SQLite does not enforce varchar length declarations.
+		return nil
+	}
+
+	if err := db.Get(&maximumLength, inspectQuery, settingsTableName, "previousvalue"); err != nil {
+		return fmt.Errorf("inspect current column size: %w", err)
+	}
+	// A NULL maximum denotes an unbounded character type such as text.
+	if !maximumLength.Valid || maximumLength.Int64 >= requiredLength {
+		return nil
+	}
+
+	if _, err := db.Exec(alterQuery); err != nil {
+		return fmt.Errorf("widen column from %d to %d characters: %w", maximumLength.Int64, requiredLength, err)
+	}
+	return nil
 }
