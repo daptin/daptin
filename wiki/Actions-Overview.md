@@ -525,7 +525,7 @@ If both forms include the same group, the action-level `AccessGroups` permission
 
 ### Cache Refresh
 
-Schema startup sync invalidates the action, action-permission, object-permission, and object-group caches for updated schema-managed actions. Manual permission changes made through the API may still require a restart or explicit cache invalidation depending on the path used.
+Schema startup sync invalidates the action, action-permission, object-permission, and object-group caches for updated schema-managed actions. Manual permission changes made through the generic API do not require a restart, but a previously cached authorization decision can remain for up to the 10-second cache TTL.
 
 ### View Action Permissions
 

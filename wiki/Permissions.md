@@ -310,7 +310,9 @@ curl -X PATCH "http://localhost:6336/api/action/ACTION_ID" \
   }'
 ```
 
-No restart is required. Updating the action invalidates the relevant action-permission caches immediately.
+No restart is required. If authorization for `signup` was checked immediately
+before the update, the previous decision can remain cached for up to 10
+seconds; retry after that cache window.
 
 ---
 

@@ -61,6 +61,10 @@ Note that the `reference_id` is in two places there.
 
 `561441` works for public actions in general, but `signup` does not need to be reset to that broader profile after admin setup.
 
+A server restart is not required. If authorization for `signup` was checked
+immediately before the update, the previous decision can remain cached for up
+to 10 seconds; retry after that cache window.
+
 ## New user from CRUD API
 
 Users can be created by directly create an entry in the `user_account` table.

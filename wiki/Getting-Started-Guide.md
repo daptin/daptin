@@ -234,7 +234,7 @@ curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
   }'
 ```
 
-**Note**: `2085152` is the current post-admin reopen value for `signup` (`2085120 + GuestExecute`). `561441` is the generic public-action profile used for `signin`; you do not need to reset `signup` to that broader profile. No restart is required after updating the action permission.
+**Note**: `2085152` is the current post-admin reopen value for `signup` (`2085120 + GuestExecute`). `561441` is the generic public-action profile used for `signin`; you do not need to reset `signup` to that broader profile. No restart is required. If authorization for `signup` was checked immediately before the update, retry after the action-permission cache window of up to 10 seconds.
 
 ---
 
