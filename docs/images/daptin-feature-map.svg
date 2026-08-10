@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1040" viewBox="0 0 1200 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Complete Daptin feature map</title>
+  <desc id="desc">Eight groups summarize Daptin features: schema and data, APIs and discovery, identity and permissions, actions and orchestration, files sites and templates, realtime and protocols, integrations and LLMs, and metering and operations.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#101923"/><stop offset="1" stop-color="#172733"/></linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#379CBD"/><stop offset="1" stop-color="#FF9B00"/></linearGradient>
+    <style>
+      .f{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.eye{font-size:11px;font-weight:800;letter-spacing:1.8px;fill:#7E98A8}.title{font-size:25px;font-weight:790;fill:#F8FBFC}.head{font-size:18px;font-weight:760;fill:#F8FBFC}.body{font-size:13px;font-weight:520;fill:#A9BCC7}.tag{font-size:10px;font-weight:800;letter-spacing:1.1px}.card{fill:#1A2934;stroke:#2E4350;stroke-width:1.2}.rule{stroke:#2C414E;stroke-width:1}
+    </style>
+  </defs>
+  <rect width="1200" height="1040" rx="28" fill="url(#bg)"/>
+  <circle cx="1120" cy="-20" r="250" fill="#379CBD" opacity=".05"/><circle cx="20" cy="1060" r="260" fill="#FF9B00" opacity=".04"/>
+  <g class="f">
+    <text x="54" y="48" class="eye">APPLICATION SERVER FEATURE MAP</text>
+    <text x="54" y="83" class="title">The full backend surface—not just generated CRUD.</text>
+    <rect x="54" y="105" width="1092" height="4" rx="2" fill="url(#bar)"/>
+
+    <!-- Row 1 -->
+    <g transform="translate(54 135)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="92" height="23" rx="11.5" fill="#203C49"/><text x="64" y="34" text-anchor="middle" class="tag" fill="#64BAD5">FOUNDATION</text>
+      <text x="18" y="70" class="head">Schema &amp; data runtime</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• YAML or JSON schema stored in world metadata</text>
+      <text x="18" y="131" class="body">• 41 column types · relations · joins · composite keys · default ordering</text>
+      <text x="18" y="153" class="body">• validations · conformations · translations · standard columns</text>
+      <text x="18" y="175" class="body">• audit/state/metering flags · import/export · random data generation</text>
+    </g>
+    <g transform="translate(614 135)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="92" height="23" rx="11.5" fill="#3B3122"/><text x="64" y="34" text-anchor="middle" class="tag" fill="#FFBE59">DELIVERY</text>
+      <text x="18" y="70" class="head">APIs &amp; discovery</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• JSON:API CRUD · relationships · filtering · sorting · pagination</text>
+      <text x="18" y="131" class="body">• aggregation API · optional GraphQL queries, mutations, actions</text>
+      <text x="18" y="153" class="body">• /openapi.yaml · /meta · /jsmodel/{typename}</text>
+      <text x="18" y="175" class="body">• asset, feed, action, state, integration, config, ping, statistics routes</text>
+    </g>
+
+    <!-- Row 2 -->
+    <g transform="translate(54 349)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="92" height="23" rx="11.5" fill="#203C49"/><text x="64" y="34" text-anchor="middle" class="tag" fill="#64BAD5">POLICY</text>
+      <text x="18" y="70" class="head">Identity &amp; permissions</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• users · usergroups · ownership · default/access groups</text>
+      <text x="18" y="131" class="body">• table, row, relation, and action permission gates</text>
+      <text x="18" y="153" class="body">• signup/signin · JWT sessions · reset flows · OTP/2FA</text>
+      <text x="18" y="175" class="body">• OAuth consumer with PKCE · OAuth 2/OIDC provider + JWKS</text>
+    </g>
+    <g transform="translate(614 349)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="118" height="23" rx="11.5" fill="#3B3122"/><text x="77" y="34" text-anchor="middle" class="tag" fill="#FFBE59">ORCHESTRATION</text>
+      <text x="18" y="70" class="head">Actions, tasks &amp; state tracking</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• action inputs · validation · conformation · conditions · ordered outcomes</text>
+      <text x="18" y="131" class="body">• CRUD outcomes · Go performers · client responses · chained steps</text>
+      <text x="18" y="153" class="body">• cron tasks execute any action as a selected user in a transaction</text>
+      <text x="18" y="175" class="body">• smd definitions · generated state tables · transition audit · data exchange</text>
+    </g>
+
+    <!-- Row 3 -->
+    <g transform="translate(54 563)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="92" height="23" rx="11.5" fill="#203C49"/><text x="64" y="34" text-anchor="middle" class="tag" fill="#64BAD5">CONTENT</text>
+      <text x="18" y="70" class="head">Files, sites &amp; templates</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• encrypted credentials · rclone-backed local/cloud stores</text>
+      <text x="18" y="131" class="body">• asset columns · uploads · multipart/presigned flows · direct serving</text>
+      <text x="18" y="153" class="body">• ETag · gzip · memory/client/negative cache · storage sync tasks</text>
+      <text x="18" y="175" class="body">• sites/subsites · host/path routing · Go templates · routed responses</text>
+    </g>
+    <g transform="translate(614 563)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="92" height="23" rx="11.5" fill="#3B3122"/><text x="64" y="34" text-anchor="middle" class="tag" fill="#FFBE59">SERVICES</text>
+      <text x="18" y="70" class="head">Realtime &amp; built-in protocols</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• CRUD create/update/delete events → Olric PubSub → /live WebSocket</text>
+      <text x="18" y="131" class="body">• topic permissions · publish action · optional YJS collaboration</text>
+      <text x="18" y="153" class="body">• streams · RSS/Atom/JSON feeds · HTTP/HTTPS · TLS certificates</text>
+      <text x="18" y="175" class="body">• SMTP + IMAP · FTP/FTPS · WebDAV-style CalDAV/CardDAV routes</text>
+    </g>
+
+    <!-- Row 4 -->
+    <g transform="translate(54 777)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="92" height="23" rx="11.5" fill="#203C49"/><text x="64" y="34" text-anchor="middle" class="tag" fill="#64BAD5">PROVIDERS</text>
+      <text x="18" y="70" class="head">Integrations &amp; LLM routing</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• install OpenAPI v2/v3 operations as Daptin actions</text>
+      <text x="18" y="131" class="body">• REST · GraphQL · short-lived WebSocket · unary gRPC transports</text>
+      <text x="18" y="153" class="body">• OAuth token or custom credential execution boundaries</text>
+      <text x="18" y="175" class="body">• multi-provider LLM models · chat/SSE · completion · embedding · tools</text>
+    </g>
+    <g transform="translate(614 777)">
+      <rect width="532" height="194" rx="20" class="card"/>
+      <rect x="18" y="18" width="92" height="23" rx="11.5" fill="#3B3122"/><text x="64" y="34" text-anchor="middle" class="tag" fill="#FFBE59">OPERATIONS</text>
+      <text x="18" y="70" class="head">Metering, clustering &amp; operations</text><line x1="18" y1="85" x2="514" y2="85" class="rule"/>
+      <text x="18" y="109" class="body">• plans · memberships · usage events · quota counters · credit hooks</text>
+      <text x="18" y="131" class="body">• meter CRUD, actions, and LLM tokens · global and plan rate limits</text>
+      <text x="18" y="153" class="body">• Olric cache/PubSub/counters · multi-node discovery · outbox dedupe</text>
+      <text x="18" y="175" class="body">• /ping · /statistics · /_config · audit · logs · profiles · TLS</text>
+    </g>
+
+    <text x="54" y="1008" class="eye">DATABASES: SQLITE · POSTGRESQL · MYSQL/MARIADB</text>
+    <text x="1146" y="1008" text-anchor="end" class="eye">SHARED RUNTIME CONFIGURATION · DATA-MANAGED CAPABILITIES</text>
+  </g>
+</svg>

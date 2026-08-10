@@ -1,163 +1,112 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
-  <title id="title">Daptin platform overview</title>
-  <desc id="desc">A business model, people, and rules enter Daptin. Daptin provides data, access control, automation, and APIs to websites, mobile apps, admin tools, and AI agents, while connecting to external services.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">How the Daptin application server fits together</title>
+  <desc id="desc">Schema and configuration load into CmsConfig and the world metadata table. Daptin creates a resource for every entity. A shared request pipeline applies table permissions, row permissions, metering, validation, data exchange, YJS behavior, and CRUD event publishing. The resource graph powers JSON API, GraphQL, actions, state tracking, assets, integrations, LLM APIs, WebSockets, feeds, templates, sites, and built-in protocols.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#101923"/>
-      <stop offset="1" stop-color="#172633"/>
-    </linearGradient>
-    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#17394A"/>
-      <stop offset="1" stop-color="#1B2B37"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#379CBD"/>
-      <stop offset="1" stop-color="#FF9B00"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#060A0E" flood-opacity=".35"/>
-    </filter>
-    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-      <path d="M0 0 9 4.5 0 9Z" fill="#526978"/>
-    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#101923"/><stop offset="1" stop-color="#172733"/></linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#183D4E"/><stop offset="1" stop-color="#1A2C38"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#379CBD"/><stop offset="1" stop-color="#FF9B00"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#05090C" flood-opacity=".32"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#668090"/></marker>
     <style>
-      .font{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-      .eyebrow{font-size:12px;font-weight:700;letter-spacing:2px;fill:#7790A0}
-      .heading{font-size:22px;font-weight:750;fill:#F7FAFC}
-      .label{font-size:16px;font-weight:650;fill:#F7FAFC}
-      .small{font-size:13px;font-weight:500;fill:#A9BBC6}
-      .micro{font-size:11px;font-weight:700;letter-spacing:1.2px;fill:#89A0AF}
-      .card{fill:#1B2934;stroke:#2A3B48;stroke-width:1.2}
-      .chip{fill:#21323F;stroke:#314655;stroke-width:1}
-      .icon{fill:none;stroke:#A9BBC6;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+      .f{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.eye{font-size:11px;font-weight:800;letter-spacing:1.8px;fill:#7E98A8}.h1{font-size:24px;font-weight:780;fill:#F8FBFC}.h2{font-size:17px;font-weight:740;fill:#F8FBFC}.h3{font-size:14px;font-weight:720;fill:#F8FBFC}.body{font-size:12px;font-weight:520;fill:#A9BCC7}.micro{font-size:10px;font-weight:650;fill:#8FA7B5}.card{fill:#1B2A35;stroke:#2E4350;stroke-width:1.2}.soft{fill:#21333F;stroke:#354B58;stroke-width:1}.line{fill:none;stroke:#668090;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.dash{fill:none;stroke:#5C7585;stroke-width:1.7;stroke-dasharray:4 6}
     </style>
   </defs>
+  <rect width="1200" height="760" rx="28" fill="url(#bg)"/>
+  <circle cx="1110" cy="-30" r="245" fill="#379CBD" opacity=".055"/><circle cx="40" cy="810" r="260" fill="#FF9B00" opacity=".045"/>
+  <g class="f">
+    <text x="54" y="48" class="eye">DAPTIN RUNTIME ARCHITECTURE</text>
+    <text x="54" y="82" class="h1">One runtime brings your data, backend services, and protocols together.</text>
 
-  <rect width="1200" height="660" rx="28" fill="url(#bg)"/>
-  <circle cx="1045" cy="-35" r="225" fill="#379CBD" opacity=".055"/>
-  <circle cx="165" cy="705" r="245" fill="#FF9B00" opacity=".045"/>
-
-  <g class="font">
-    <text x="62" y="58" class="eyebrow">FROM MODEL TO PRODUCT</text>
-    <text x="62" y="92" class="heading">Describe your business once. Daptin builds the backend around it.</text>
-
-    <text x="62" y="143" class="eyebrow">YOU DEFINE</text>
-    <text x="934" y="143" class="eyebrow">YOU SHIP</text>
-
-    <!-- Input cards -->
-    <g transform="translate(62 165)">
-      <rect width="220" height="86" rx="16" class="card"/>
-      <rect x="16" y="18" width="48" height="48" rx="13" fill="#243A47"/>
-      <path d="M29 31h22M29 42h22M29 53h15" class="icon" stroke="#56B3D1"/>
-      <text x="80" y="38" class="label">Data model</text>
-      <text x="80" y="59" class="small">Orders, products, files</text>
-    </g>
-    <g transform="translate(62 267)">
-      <rect width="220" height="86" rx="16" class="card"/>
-      <rect x="16" y="18" width="48" height="48" rx="13" fill="#333027"/>
-      <circle cx="40" cy="34" r="7" class="icon" stroke="#FFAE33"/>
-      <path d="M27 57c2-9 24-9 26 0" class="icon" stroke="#FFAE33"/>
-      <text x="80" y="38" class="label">People</text>
-      <text x="80" y="59" class="small">Customers, teams, roles</text>
-    </g>
-    <g transform="translate(62 369)">
-      <rect width="220" height="86" rx="16" class="card"/>
-      <rect x="16" y="18" width="48" height="48" rx="13" fill="#2A3338"/>
-      <path d="M28 34h24M28 50h24M35 29v10M46 45v10" class="icon"/>
-      <text x="80" y="38" class="label">Business rules</text>
-      <text x="80" y="59" class="small">Who can do what</text>
+    <!-- Configuration -->
+    <g transform="translate(54 116)">
+      <rect width="1092" height="76" rx="17" class="card"/>
+      <text x="22" y="28" class="eye">LOAD AT STARTUP</text>
+      <text x="22" y="52" class="h3">Schema files</text><text x="115" y="52" class="body">YAML · JSON</text>
+      <path d="M250 38h45" class="line" marker-end="url(#arrow)"/>
+      <rect x="307" y="15" width="450" height="46" rx="13" fill="#213742" stroke="#3A5765"/>
+      <text x="329" y="35" class="h3">CmsConfig</text>
+      <text x="418" y="35" class="body">tables · relations · actions · tasks · state machines</text>
+      <text x="329" y="52" class="body">imports · exchanges · streams · subsites · GraphQL flag · performers</text>
+      <text x="802" y="28" class="h3">Runtime settings</text><text x="802" y="49" class="body">/_config</text>
+      <path d="M888 38h39" class="line" marker-end="url(#arrow)"/>
+      <rect x="939" y="15" width="131" height="46" rx="13" fill="#213742" stroke="#3A5765"/>
+      <text x="1004.5" y="35" text-anchor="middle" class="h3">ConfigStore</text>
+      <text x="1004.5" y="52" text-anchor="middle" class="micro">backend settings</text>
     </g>
 
-    <!-- Connectors -->
-    <path d="M292 208H342M292 310H342M292 412H342" stroke="#526978" stroke-width="2" stroke-dasharray="4 6" marker-end="url(#arrow)"/>
-    <path d="M858 208H908M858 310H908M858 412H908" stroke="#526978" stroke-width="2" stroke-dasharray="4 6" marker-end="url(#arrow)"/>
-
-    <!-- Daptin core -->
-    <g filter="url(#shadow)">
-      <rect x="356" y="135" width="488" height="358" rx="26" fill="url(#core)" stroke="#34505F" stroke-width="1.5"/>
-      <rect x="356" y="135" width="488" height="5" rx="2.5" fill="url(#accent)"/>
+    <!-- Core -->
+    <g filter="url(#shadow)"><rect x="322" y="226" width="556" height="322" rx="25" fill="url(#core)" stroke="#3A5968" stroke-width="1.5"/><rect x="322" y="226" width="556" height="5" rx="2.5" fill="url(#accent)"/></g>
+    <g transform="translate(350 254)">
+      <path d="M2 12 18 1l5 20ZM7 31 21 20l5 20ZM-5 29 7 17l4 21Z" fill="none" stroke-width="3.5" stroke-linejoin="round" stroke="#379CBD"/>
+      <path d="M7 31 21 20l5 20Z" stroke="#FF9B00"/>
+      <text x="43" y="25" font-size="24" font-weight="800" fill="#FFF">Daptin resource runtime</text>
+      <text x="43" y="45" class="body">Each configured table becomes a permission-aware API resource.</text>
     </g>
 
-    <!-- Mark -->
-    <g transform="translate(388 166)">
-      <path d="M0 11 16 0l5 20Z" fill="none" stroke="#379CBD" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M4 29 18 18l5 20Z" fill="none" stroke="#FF9B00" stroke-width="4" stroke-linejoin="round"/>
-      <path d="M-7 27 5 15l4 21Z" fill="none" stroke="#DDE7EC" stroke-width="4" stroke-linejoin="round"/>
-    </g>
-    <text x="438" y="192" font-size="27" font-weight="780" fill="#FFFFFF">Daptin</text>
-    <text x="438" y="215" class="small">One application server · one policy boundary</text>
-
-    <g transform="translate(388 242)">
-      <rect width="200" height="96" rx="16" class="chip"/>
-      <circle cx="29" cy="30" r="13" fill="#379CBD" opacity=".16"/>
-      <path d="M22 25h14M22 30h14M22 35h10" class="icon" stroke="#56B3D1"/>
-      <text x="52" y="34" class="label">Data &amp; files</text>
-      <text x="20" y="63" class="small">Tables · relations · assets</text>
-      <text x="20" y="82" class="small">validation · import/export</text>
-    </g>
-    <g transform="translate(612 242)">
-      <rect width="200" height="96" rx="16" class="chip"/>
-      <circle cx="29" cy="30" r="13" fill="#FF9B00" opacity=".14"/>
-      <path d="M29 21 38 25v7c0 7-5 11-9 13-4-2-9-6-9-13v-7Z" class="icon" stroke="#FFAE33"/>
-      <text x="52" y="34" class="label">Access</text>
-      <text x="20" y="63" class="small">Login · users · teams</text>
-      <text x="20" y="82" class="small">row-level permissions</text>
-    </g>
-    <g transform="translate(388 354)">
-      <rect width="200" height="104" rx="16" class="chip"/>
-      <circle cx="29" cy="30" r="13" fill="#FF9B00" opacity=".14"/>
-      <path d="m30 18-10 15h8l-2 13 12-18h-8Z" fill="none" stroke="#FFAE33" stroke-width="2" stroke-linejoin="round"/>
-      <text x="52" y="34" class="label">Automation</text>
-      <text x="20" y="64" class="small">Actions · schedules</text>
-      <text x="20" y="84" class="small">states · background jobs</text>
-    </g>
-    <g transform="translate(612 354)">
-      <rect width="200" height="104" rx="16" class="chip"/>
-      <circle cx="29" cy="30" r="13" fill="#379CBD" opacity=".16"/>
-      <path d="m24 23-7 7 7 7M34 23l7 7-7 7" class="icon" stroke="#56B3D1"/>
-      <text x="52" y="34" class="label">Delivery</text>
-      <text x="20" y="64" class="small">REST · GraphQL · realtime</text>
-      <text x="20" y="84" class="small">OpenAPI · hosted sites</text>
+    <g transform="translate(350 320)">
+      <rect width="150" height="74" rx="15" class="soft"/>
+      <text x="17" y="25" class="eye">METADATA</text><text x="17" y="47" class="h2">world</text><text x="17" y="64" class="micro">schema JSON · table gate</text>
+      <path d="M161 37h42" class="line" marker-end="url(#arrow)"/>
+      <rect x="215" width="313" height="74" rx="15" class="soft"/>
+      <text x="232" y="25" class="eye">GENERATED RESOURCE</text><text x="232" y="47" class="h2">/api/{entity}</text><text x="232" y="64" class="micro">CRUD · relations · filters · sorting · pagination</text>
     </g>
 
-    <!-- Output cards -->
-    <g transform="translate(922 165)">
-      <rect width="216" height="86" rx="16" class="card"/>
-      <rect x="16" y="18" width="48" height="48" rx="13" fill="#243A47"/>
-      <rect x="26" y="27" width="28" height="20" rx="2" class="icon" stroke="#56B3D1"/>
-      <path d="M22 57h36M35 48v9M45 48v9" class="icon" stroke="#56B3D1"/>
-      <text x="80" y="38" class="label">Web &amp; mobile</text>
-      <text x="80" y="59" class="small">Any frontend</text>
-    </g>
-    <g transform="translate(922 267)">
-      <rect width="216" height="86" rx="16" class="card"/>
-      <rect x="16" y="18" width="48" height="48" rx="13" fill="#333027"/>
-      <rect x="25" y="26" width="30" height="28" rx="3" class="icon" stroke="#FFAE33"/>
-      <path d="M25 34h30M33 42h14" class="icon" stroke="#FFAE33"/>
-      <text x="80" y="38" class="label">Admin tools</text>
-      <text x="80" y="59" class="small">Manage live data</text>
-    </g>
-    <g transform="translate(922 369)">
-      <rect width="216" height="86" rx="16" class="card"/>
-      <rect x="16" y="18" width="48" height="48" rx="13" fill="#2A3338"/>
-      <circle cx="32" cy="34" r="5" class="icon"/>
-      <circle cx="49" cy="34" r="5" class="icon"/>
-      <path d="M32 39v10h17V39M40 49v8" class="icon"/>
-      <text x="80" y="38" class="label">Services &amp; AI</text>
-      <text x="80" y="59" class="small">Tools, agents, partners</text>
+    <text x="350" y="425" class="eye">SHARED MIDDLEWARE · APPLIED BY OPERATION</text>
+    <g transform="translate(350 442)">
+      <rect width="500" height="76" rx="15" fill="#14232D" stroke="#304754"/>
+      <g transform="translate(13 13)"><rect width="69" height="50" rx="11" fill="#20333F"/><text x="34.5" y="22" text-anchor="middle" class="micro">TABLE</text><text x="34.5" y="38" text-anchor="middle" class="micro">ACCESS</text></g>
+      <path d="M89 38h17" class="dash"/>
+      <g transform="translate(113 13)"><rect width="69" height="50" rx="11" fill="#20333F"/><text x="34.5" y="22" text-anchor="middle" class="micro">ROW</text><text x="34.5" y="38" text-anchor="middle" class="micro">ACCESS</text></g>
+      <path d="M189 38h17" class="dash"/>
+      <g transform="translate(213 13)"><rect width="78" height="50" rx="11" fill="#3A3123"/><text x="39" y="30" text-anchor="middle" class="micro" fill="#FFD28A">METERING</text></g>
+      <path d="M298 38h17" class="dash"/>
+      <g transform="translate(322 13)"><rect width="78" height="50" rx="11" fill="#20333F"/><text x="39" y="22" text-anchor="middle" class="micro">VALIDATE</text><text x="39" y="38" text-anchor="middle" class="micro">CONFORM</text></g>
+      <path d="M407 38h17" class="dash"/>
+      <g transform="translate(431 13)"><rect width="56" height="50" rx="11" fill="#20333F"/><text x="28" y="22" text-anchor="middle" class="micro">SYNC</text><text x="28" y="38" text-anchor="middle" class="micro">EVENTS</text></g>
     </g>
 
-    <!-- Integrations rail -->
-    <text x="62" y="548" class="eyebrow">CONNECT WHAT YOUR PRODUCT NEEDS</text>
-    <path d="M600 493v30" stroke="#526978" stroke-width="2" stroke-dasharray="4 6" marker-end="url(#arrow)"/>
-    <g transform="translate(62 570)">
-      <rect width="1076" height="52" rx="15" fill="#141F28" stroke="#293B47"/>
-      <g transform="translate(29 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">Email</text></g>
-      <g transform="translate(191 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">Payments</text></g>
-      <g transform="translate(353 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">Cloud storage</text></g>
-      <g transform="translate(515 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">SaaS APIs</text></g>
-      <g transform="translate(677 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">LLM providers</text></g>
-      <g transform="translate(839 13)"><rect width="208" height="26" rx="13" fill="#202E38"/><text x="104" y="18" text-anchor="middle" class="small">Postgres · MySQL · SQLite</text></g>
+    <!-- Left system tables -->
+    <text x="54" y="230" class="eye">DATA-MANAGED SUBSYSTEMS</text>
+    <g transform="translate(54 250)">
+      <rect width="232" height="124" rx="17" class="card"/>
+      <text x="18" y="27" class="h3">Identity &amp; policy</text>
+      <text x="18" y="51" class="body">user_account · usergroup</text><text x="18" y="71" class="body">JWT · OTP · OAuth client</text><text x="18" y="91" class="body">OAuth/OIDC provider tables</text><text x="18" y="111" class="body">table · row · action permissions</text>
     </g>
+    <g transform="translate(54 390)">
+      <rect width="232" height="124" rx="17" class="card"/>
+      <text x="18" y="27" class="h3">Logic &amp; tracking</text>
+      <text x="18" y="51" class="body">action · task · smd</text><text x="18" y="71" class="body">performers · action outcomes</text><text x="18" y="91" class="body">data_exchange · stream · feed</text><text x="18" y="111" class="body">timeline · generated audit tables</text>
+    </g>
+    <path d="M286 312h24M286 452h24" class="dash" marker-end="url(#arrow)"/>
+
+    <!-- Right system tables -->
+    <g transform="translate(914 250)">
+      <rect width="232" height="124" rx="17" class="card"/>
+      <text x="18" y="27" class="h3">Content &amp; storage</text>
+      <text x="18" y="51" class="body">credential · cloud_store</text><text x="18" y="71" class="body">asset columns · document</text><text x="18" y="91" class="body">site · template · collection</text><text x="18" y="111" class="body">rclone stores · hosted subsites</text>
+    </g>
+    <g transform="translate(914 390)">
+      <rect width="232" height="124" rx="17" class="card"/>
+      <text x="18" y="27" class="h3">Providers &amp; product</text>
+      <text x="18" y="51" class="body">integration · oauth_token</text><text x="18" y="71" class="body">llm_provider · llm_usage</text><text x="18" y="91" class="body">api_plan · member · usage · quota</text><text x="18" y="111" class="body">mail_server · account · box · outbox</text>
+    </g>
+    <path d="M890 312h12M890 452h12" class="dash" marker-end="url(#arrow)"/>
+
+    <!-- Surface rail -->
+    <text x="54" y="596" class="eye">SURFACES ATTACHED TO THE SAME RESOURCE GRAPH</text>
+    <g transform="translate(54 615)">
+      <rect width="1092" height="92" rx="18" fill="#121F28" stroke="#2B414E"/>
+      <g transform="translate(17 16)"><rect width="123" height="60" rx="13" class="soft"/><text x="61.5" y="25" text-anchor="middle" class="h3">Data APIs</text><text x="61.5" y="45" text-anchor="middle" class="micro">JSON:API · GraphQL</text></g>
+      <g transform="translate(151 16)"><rect width="123" height="60" rx="13" class="soft"/><text x="61.5" y="25" text-anchor="middle" class="h3">Discovery</text><text x="61.5" y="45" text-anchor="middle" class="micro">OpenAPI · meta</text></g>
+      <g transform="translate(285 16)"><rect width="123" height="60" rx="13" class="soft"/><text x="61.5" y="25" text-anchor="middle" class="h3">Actions</text><text x="61.5" y="45" text-anchor="middle" class="micro">/action · /track</text></g>
+      <g transform="translate(419 16)"><rect width="123" height="60" rx="13" class="soft"/><text x="61.5" y="25" text-anchor="middle" class="h3">Files &amp; sites</text><text x="61.5" y="45" text-anchor="middle" class="micro">assets · templates</text></g>
+      <g transform="translate(553 16)"><rect width="123" height="60" rx="13" class="soft"/><text x="61.5" y="25" text-anchor="middle" class="h3">Realtime</text><text x="61.5" y="45" text-anchor="middle" class="micro">/live · YJS · feeds</text></g>
+      <g transform="translate(687 16)"><rect width="123" height="60" rx="13" class="soft"/><text x="61.5" y="25" text-anchor="middle" class="h3">Providers</text><text x="61.5" y="45" text-anchor="middle" class="micro">/integration · /v1</text></g>
+      <g transform="translate(821 16)"><rect width="123" height="60" rx="13" class="soft"/><text x="61.5" y="25" text-anchor="middle" class="h3">Protocols</text><text x="61.5" y="45" text-anchor="middle" class="micro">mail · FTP · WebDAV</text></g>
+      <g transform="translate(955 16)"><rect width="120" height="60" rx="13" class="soft"/><text x="60" y="25" text-anchor="middle" class="h3">Operations</text><text x="60" y="45" text-anchor="middle" class="micro">ping · stats · TLS</text></g>
+    </g>
+
+    <!-- Persistence -->
+    <text x="600" y="578" text-anchor="middle" class="micro">SQLite · PostgreSQL · MySQL/MariaDB  |  Olric cache/PubSub  |  rclone-backed storage</text>
   </g>
 </svg>

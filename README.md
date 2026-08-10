@@ -1,8 +1,8 @@
 <div align="center">
   <img src="docs/images/logo.png" width="96" alt="Daptin logo">
   <h1>Daptin</h1>
-  <p><strong>The application server that builds a complete backend around your data.</strong></p>
-  <p>Model your business once. Get APIs, authentication, permissions, files, automation, integrations, and operations in one deployable server.</p>
+  <p><strong>A self-hosted application server built around your data model.</strong></p>
+  <p>Define resources once. Daptin runs their APIs, identity, permissions, files, automation, integrations, realtime delivery, and operational controls.</p>
 
   <p>
     <a href="https://github.com/daptin/daptin/releases/latest"><img src="https://img.shields.io/github/v/release/daptin/daptin?style=flat-square" alt="Latest release"></a>
@@ -11,33 +11,36 @@
     <a href="https://discord.gg/t564q8SQVk"><img src="https://img.shields.io/badge/chat-Discord-5865F2?style=flat-square&amp;logo=discord&amp;logoColor=white" alt="Discord"></a>
   </p>
   <p>
-    <a href="#start-in-a-minute">Quickstart</a> · <a href="#how-automation-works">How it works</a> · <a href="https://github.com/daptin/daptin/wiki">Documentation</a> · <a href="https://github.com/daptin/daptin-schema-samples">Example schemas</a>
+    <a href="#start-in-a-minute">Quickstart</a> · <a href="#the-complete-feature-map">Feature map</a> · <a href="#actions-scheduled-tasks-and-state-tracking">Automation explained</a> · <a href="https://github.com/daptin/daptin/wiki">Documentation</a>
   </p>
 </div>
 
 <br>
 
-[![Daptin turns a business model into a complete backend for web apps, mobile apps, admin tools, services, and AI agents](docs/images/daptin-overview.svg)](docs/images/daptin-overview.svg)
+[![Daptin runtime architecture: schema and runtime settings feed a shared resource graph, which supplies APIs, identity, automation, storage, integrations, protocols, and operations](docs/images/daptin-overview.svg)](docs/images/daptin-overview.svg)
 
-## One server instead of a backend patchwork
+## One model, many backend surfaces
 
-| Build with Daptin | What that means for your product |
+Daptin loads schema files into its runtime configuration. Each configured table is recorded as `world` metadata and becomes a permission-aware JSON:API resource at `/api/{entity}`. The running server attaches its other API, automation, storage, integration, and protocol surfaces around that resource runtime.
+
+Many capabilities are configured as ordinary data. Rows in tables such as `action`, `task`, `smd`, `cloud_store`, `site`, `integration`, `llm_provider`, and `api_plan` tell the running server what to execute or expose.
+
+| Part | Plain-English meaning |
 |---|---|
-| **Model data** | Tables, relations, validation, imports, exports, and generated test data |
-| **Control access** | Login, users, teams, ownership, and permissions down to each row |
-| **Automate work** | Reusable actions, scheduled tasks, state tracking, and background jobs |
-| **Handle files** | Uploads, asset fields, cloud storage, caching, and hosted static sites |
-| **Connect everything** | REST, GraphQL, OpenAPI, WebSockets, external APIs, OAuth, and LLM providers |
-| **Operate the product** | Metering, quotas, rate limits, audit history, TLS, health, and monitoring |
+| **Schema** | Describes the records, fields, relationships, validation, and optional behavior flags your application needs. |
+| **Resource runtime** | Turns every configured table into stored data plus CRUD and relationship APIs. |
+| **Permission gates** | Check access to the table, individual row, relation, or action before work is performed. |
+| **System tables** | Configure Daptin itself—actions, schedules, state definitions, storage, sites, integrations, mail, plans, and more. |
+| **Attached surfaces** | Expose the same model through JSON:API, optional GraphQL, WebSockets, feeds, files, OAuth/OIDC, LLM routes, and built-in protocols. |
 
-Use it as the primary backend for a new product, or place it beside an existing system to add only the capabilities you need.
+Read the source-oriented [application server feature map](https://github.com/daptin/daptin/wiki/Daptin-Application-Server-Feature-Map) for the runtime components behind this diagram.
 
 ## Start in a minute
 
 ### Docker
 
 ```bash
-docker run --rm -p 6336:8080 -p 6443:6443 daptin/daptin:v0.12.31
+docker run --rm -p 6336:8080 -p 6443:6443 daptin/daptin:v0.12.34
 ```
 
 ### Linux binary
@@ -48,9 +51,28 @@ chmod +x daptin
 ./daptin -port=6336
 ```
 
-Open **http://localhost:6336**, create the first administrator, and you have a working backend. Continue with the [Getting Started Guide](https://github.com/daptin/daptin/wiki/Getting-Started-Guide).
+Open **http://localhost:6336**, create the first administrator, and continue with the [Getting Started Guide](https://github.com/daptin/daptin/wiki/Getting-Started-Guide).
 
-## A small model becomes a usable API
+## The complete feature map
+
+This map groups the implemented surface by responsibility. Open the image for a full-size view.
+
+[![Daptin feature map covering schema and data, APIs, identity, actions and schedules, files and sites, realtime protocols, integrations and LLM routing, metering, clustering, and operations](docs/images/daptin-feature-map.svg)](docs/images/daptin-feature-map.svg)
+
+| Capability | What Daptin provides | Learn more |
+|---|---|---|
+| **Schema and data runtime** | YAML or JSON schema; 41 column types; relations and joins; composite keys; validation and conformation; translations; audit, state, and metering flags; import, export, and generated test data. | [Core concepts](https://github.com/daptin/daptin/wiki/Core-Concepts) · [Relationships](https://github.com/daptin/daptin/wiki/Relationships) · [Validation](https://github.com/daptin/daptin/wiki/Validation-Reference) |
+| **APIs and discovery** | JSON:API CRUD and relationships with filtering, sorting, and pagination; a separate aggregation API; optional GraphQL queries, mutations, and actions; OpenAPI, metadata, and JavaScript model discovery routes. | [API overview](https://github.com/daptin/daptin/wiki/API-Overview) · [GET reference](https://github.com/daptin/daptin/wiki/GET-API-Complete-Reference) · [GraphQL](https://github.com/daptin/daptin/wiki/GraphQL-API) |
+| **Identity and permissions** | Users, groups, ownership, default and access groups; table, row, relation, and action permissions; JWT login flows and OTP; OAuth client connections; OAuth 2/OIDC provider endpoints and JWKS. | [Permissions](https://github.com/daptin/daptin/wiki/Permissions) · [OAuth authentication](https://github.com/daptin/daptin/wiki/OAuth-Authentication) · [OAuth provider](https://github.com/daptin/daptin/wiki/OAuth-Provider) |
+| **Actions and orchestration** | Actions with inputs, validation, conformations, conditions, ordered outcomes, CRUD steps, Go performers, client responses, and chained work; scheduled action invocation; state tracking; data exchange. | [Actions overview](https://github.com/daptin/daptin/wiki/Actions-Overview) · [Action reference](https://github.com/daptin/daptin/wiki/Action-Reference) · [Task scheduling](https://github.com/daptin/daptin/wiki/Task-Scheduling) |
+| **Files, sites, and templates** | Encrypted credentials; rclone-backed local or cloud stores; asset columns and uploads; direct and presigned file flows; caching, ETags, gzip, and storage sync; sites, subsites, host/path routing, and Go templates. | [Cloud storage](https://github.com/daptin/daptin/wiki/Cloud-Storage-Complete-Guide) · [Asset columns](https://github.com/daptin/daptin/wiki/Asset-Columns) · [Subsites](https://github.com/daptin/daptin/wiki/Subsites) · [Templates](https://github.com/daptin/daptin/wiki/Template-Rendering) |
+| **Realtime and protocols** | CRUD events over Olric PubSub and `/live` WebSockets; topic permissions and optional YJS collaboration; streams and RSS/Atom/JSON feeds; HTTP(S), SMTP/IMAP, FTP/FTPS, and WebDAV-style CalDAV/CardDAV routes. | [WebSocket API](https://github.com/daptin/daptin/wiki/WebSocket-API) · [Feeds](https://github.com/daptin/daptin/wiki/RSS-Atom-Feeds) · [FTP server](https://github.com/daptin/daptin/wiki/FTP-Server) |
+| **Integrations and LLM routing** | OpenAPI v2/v3 operations installed as Daptin actions; REST, GraphQL, short-lived WebSocket, and unary gRPC transports; OAuth or custom credentials; multi-provider LLM routing with OpenAI-compatible chat, streaming, completion, embedding, model, and tool-call surfaces. | [Integrations](https://github.com/daptin/daptin/wiki/Integrations) · [LLM providers](https://github.com/daptin/daptin/wiki/LLM-Providers) |
+| **Metering, clustering, and operations** | Plans, memberships, usage, quotas, credit hooks, and rate limits; metering for CRUD, actions, and LLM tokens; Olric cache, PubSub, counters, clustering, and outbox deduplication; audit logs, TLS, ping, statistics, config, logs, and profiles. | [API metering](https://github.com/daptin/daptin/wiki/API-Metering) · [Clustering](https://github.com/daptin/daptin/wiki/Clustering) · [Audit logging](https://github.com/daptin/daptin/wiki/Audit-Logging) · [Production](https://github.com/daptin/daptin/wiki/Production-Deployment) |
+
+> **Protocol scope:** Daptin’s CalDAV/CardDAV routes provide basic WebDAV-style file storage. They are not documented as complete calendar/contact protocol implementations.
+
+## A small schema becomes a permission-aware API
 
 Place `schema_product.yaml` beside the Daptin binary:
 
@@ -71,7 +93,7 @@ Tables:
         DefaultValue: "false"
 ```
 
-Start Daptin. It creates the storage, validates incoming data, applies permissions, and exposes the model:
+When Daptin starts, it creates the table and exposes the resource through JSON:API:
 
 ```http
 GET    /api/product
@@ -80,99 +102,48 @@ PATCH  /api/product/{reference_id}
 DELETE /api/product/{reference_id}
 ```
 
-The same model also appears in GraphQL, OpenAPI, metadata, and the administration interface. Add [relations](https://github.com/daptin/daptin/wiki/Relationships), [permissions](https://github.com/daptin/daptin/wiki/Permissions), [actions](https://github.com/daptin/daptin/wiki/Actions-Overview), or [file storage](https://github.com/daptin/daptin/wiki/Cloud-Storage) when the product needs them.
+The shared middleware checks table and row access, validates and conforms data, applies metering when configured, and publishes successful CRUD events. Optional GraphQL, `/openapi.yaml`, `/meta`, and `/jsmodel/{typename}` expose additional ways to query or discover the same model.
 
-## How automation works
+Add [relations](https://github.com/daptin/daptin/wiki/Relationships), [permissions](https://github.com/daptin/daptin/wiki/Permissions), [assets](https://github.com/daptin/daptin/wiki/Asset-Columns), or [audit history](https://github.com/daptin/daptin/wiki/Audit-Logging) as the resource needs them.
 
-[![An action performs reusable work when started by a button, API request, or schedule; a state machine separately controls valid stage changes](docs/images/daptin-automation.svg)](docs/images/daptin-automation.svg)
+## Actions, scheduled tasks, and state tracking
 
-| Term | Plain-English meaning | Example |
+[![Daptin automation model: an action executes ordered outcomes, a scheduled task invokes that same action handler as a selected user, and state tracking separately validates and records allowed transitions](docs/images/daptin-automation.svg)](docs/images/daptin-automation.svg)
+
+These are related building blocks, not one workflow engine:
+
+| Term | What it actually stores | What happens at runtime |
 |---|---|---|
-| **Action** | A named task that runs when asked | Approve an order, generate an invoice, or send a receipt |
-| **Schedule** | A timer that starts an action | Send overdue reminders every morning |
-| **State machine** | The allowed stages and moves for a record | An order can move from `new` to `paid`, but not directly to `shipped` |
-| **Integration** | A protected connection to another service | Take a payment, send email, create an issue, or call an AI model |
+| **Action** | Inputs, validation/conformation rules, conditions, permissions, and ordered output fields attached to a `world` entity. | A call to `/action/{type}/{name}` or a GraphQL action can run CRUD outcomes, registered Go performers, and client-response outcomes. |
+| **Task** | A schedule, entity name, action name, attributes, active flag, job type, and an `as_user` relation. | At server startup it is loaded into the cron scheduler. When due, Daptin loads that user’s identity and groups, then calls the same action handler inside a database transaction. |
+| **State machine definition (`smd`)** | An initial state and named events with allowed source and destination states. | `/track/start` creates an `{entity}_state` record. `/track/event` verifies the current source state, records the transition, increments its version, writes audit data, and publishes an event. |
+| **Data exchange** | A mapping for synchronizing resource data with another source or destination. | Exchange middleware runs before and after configured resource operations. |
 
-Actions do the work. Buttons, API requests, and schedules decide when that work begins. State machines track and restrict stage changes separately.
+State tracking does **not** provide guards, entry/exit actions, parallel states, or hierarchical states. If a transition should perform work, invoke an action separately. See [State Machines](https://github.com/daptin/daptin/wiki/State-Machines) for the exact supported model.
 
-## Built for more than content
-
-Daptin can power:
-
-- SaaS products with teams, tenants, quotas, and row-level access.
-- Internal tools with generated APIs, admin screens, files, and workflows.
-- Content sites and portals with structured data, assets, feeds, and hosted frontends.
-- API products with plans, usage metering, rate limits, and audit history.
-- AI products with OpenAI-compatible endpoints, provider routing, credentials, and usage controls.
-- Existing stacks that need authentication, storage, integrations, automation, or realtime events.
-
-<details>
-<summary><strong>Explore the complete platform</strong></summary>
-
-### Data and APIs
-
-- SQLite, PostgreSQL, and MySQL/MariaDB.
-- JSON:API CRUD, GraphQL, OpenAPI, and live metadata.
-- Relations, composite keys, validation, filtering, pagination, aggregation, import, and export.
-
-### Identity and permissions
-
-- Signup, signin, password reset, JWT sessions, OTP/2FA flows, users, and usergroups.
-- Entity-level and row-level access for guests, owners, and groups.
-- OAuth client connections and OAuth/OIDC-style provider endpoints.
-
-### Automation and integrations
-
-- Actions with inputs, validation, conditions, outcomes, and permissions.
-- Scheduled actions, state machines, data exchange, and background processing.
-- OpenAPI-backed integrations with OAuth tokens or encrypted credentials.
-
-### Files, sites, and realtime
-
-- Local and cloud storage through rclone-backed providers.
-- File and media fields, direct asset serving, cache headers, ETags, and gzip.
-- Static site hosting, WebSocket change events, streams, feeds, and optional YJS collaboration.
-
-### Product and operations
-
-- OpenAI-compatible chat, completion, embedding, and model endpoints.
-- Plans, quotas, credits, usage logs, and clustered rate limits.
-- Audit tables, caching, TLS certificates, health, statistics, and monitoring.
-
-</details>
-
-## Choose your path
+## Choose a starting point
 
 | I want to… | Start here |
 |---|---|
 | Install and configure Daptin | [Installation](https://github.com/daptin/daptin/wiki/Installation) · [First admin setup](https://github.com/daptin/daptin/wiki/First-Admin-Setup) |
-| Model data and expose APIs | [Core concepts](https://github.com/daptin/daptin/wiki/Core-Concepts) · [API reference](https://github.com/daptin/daptin/wiki/API-Reference) |
-| Secure users, rows, and actions | [Permissions](https://github.com/daptin/daptin/wiki/Permissions) · [OAuth](https://github.com/daptin/daptin/wiki/OAuth-Authentication) |
-| Automate backend behavior | [Actions](https://github.com/daptin/daptin/wiki/Actions-Overview) · [State machines](https://github.com/daptin/daptin/wiki/State-Machines) |
-| Connect services or LLMs | [Integrations](https://github.com/daptin/daptin/wiki/Integrations) · [LLM providers](https://github.com/daptin/daptin/wiki/LLM-Providers) |
-| Deploy to production | [Production deployment](https://github.com/daptin/daptin/wiki/Production-Deployment) · [Database setup](https://github.com/daptin/daptin/wiki/Database-Setup) |
-
-<details>
-<summary><strong>Production checklist</strong></summary>
-
-- Use PostgreSQL or MySQL/MariaDB instead of development SQLite.
-- Set stable `jwt.secret` and `encryption.secret` values.
-- Configure HTTPS/TLS, hostnames, backups, restore tests, and durable file storage.
-- Enable only the protocols your product needs.
-- Configure rate limits, metering, monitoring, and audit behavior.
-
-</details>
+| Model resources and query them | [Core concepts](https://github.com/daptin/daptin/wiki/Core-Concepts) · [API reference](https://github.com/daptin/daptin/wiki/API-Reference) |
+| Secure users, rows, and actions | [Permissions](https://github.com/daptin/daptin/wiki/Permissions) · [Authorization scenario](https://github.com/daptin/daptin/wiki/Authorization-Scenario-Action-Access-Gates) |
+| Build reusable backend operations | [Actions](https://github.com/daptin/daptin/wiki/Actions-Overview) · [Custom actions](https://github.com/daptin/daptin/wiki/Custom-Actions) |
+| Schedule work or track record states | [Task scheduling](https://github.com/daptin/daptin/wiki/Task-Scheduling) · [State machines](https://github.com/daptin/daptin/wiki/State-Machines) |
+| Connect external services or LLMs | [Integrations](https://github.com/daptin/daptin/wiki/Integrations) · [LLM providers](https://github.com/daptin/daptin/wiki/LLM-Providers) |
+| Store files or host a subsite | [Cloud storage](https://github.com/daptin/daptin/wiki/Cloud-Storage) · [Subsites](https://github.com/daptin/daptin/wiki/Subsites) |
+| Meter or run Daptin in production | [API metering](https://github.com/daptin/daptin/wiki/API-Metering) · [Production deployment](https://github.com/daptin/daptin/wiki/Production-Deployment) · [Database setup](https://github.com/daptin/daptin/wiki/Database-Setup) |
 
 ## Ecosystem
 
 | Project | Purpose |
 |---|---|
-| [Daptin CLI](https://github.com/daptin/daptin-cli) | Manage data, actions, OAuth, integrations, storage, and assets |
-| [JavaScript client](https://github.com/daptin/daptin-js-client) · [Go client](https://github.com/daptin/daptin-go-client) | Connect applications to Daptin |
-| [Schema samples](https://github.com/daptin/daptin-schema-samples) | Start from blogs, stores, task lists, FAQs, payments, and more |
-| [LLM demo](https://github.com/daptin/daptin-llm-demo) · [Metering demo](https://github.com/daptin/daptin-metering-credit-demo) | Explore metered AI and API products |
-| [Integration auth demo](https://github.com/daptin/daptin-integration-auth-demo) · [OAuth provider demo](https://github.com/daptin/daptin-oauth-provider-demo) | Explore secure integrations and identity |
-| [Dadadash](https://github.com/daptin/dadadash) | See a larger application built on Daptin |
+| [Daptin CLI](https://github.com/daptin/daptin-cli) | Manage data, actions, OAuth, integrations, storage, and assets. |
+| [JavaScript client](https://github.com/daptin/daptin-js-client) · [Go client](https://github.com/daptin/daptin-go-client) | Connect applications to Daptin. |
+| [Schema samples](https://github.com/daptin/daptin-schema-samples) | Start from working schema examples. |
+| [LLM demo](https://github.com/daptin/daptin-llm-demo) · [Metering demo](https://github.com/daptin/daptin-metering-credit-demo) | Explore metered AI and API products. |
+| [Integration auth demo](https://github.com/daptin/daptin-integration-auth-demo) · [OAuth provider demo](https://github.com/daptin/daptin-oauth-provider-demo) | Explore integrations and identity. |
+| [Dadadash](https://github.com/daptin/dadadash) | A larger application built on Daptin. |
 
 ---
 
@@ -182,5 +153,5 @@ Daptin can power:
   · <a href="https://github.com/daptin/daptin/issues">Issues</a>
   · <a href="https://github.com/daptin/daptin/releases">Releases</a>
   <br><br>
-  LGPL v3 · Build the product. Let Daptin run the backend.
+  LGPL v3
 </div>
