@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="590" viewBox="0 0 1200 590" role="img" aria-labelledby="title desc">
+  <title id="title">How Daptin automation works</title>
+  <desc id="desc">A button or API request can start an action immediately, while a schedule can start an action later. Actions check permissions, update data, and connect services. State machines separately control valid stage changes.</desc>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F7FAFC"/>
+      <stop offset="1" stop-color="#EEF4F7"/>
+    </linearGradient>
+    <linearGradient id="action" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFAA21"/>
+      <stop offset="1" stop-color="#F28B00"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#253641" flood-opacity=".12"/>
+    </filter>
+    <marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0 0 9 4.5 0 9Z" fill="#8BA0AC"/>
+    </marker>
+    <style>
+      .font{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      .eyebrow{font-size:12px;font-weight:750;letter-spacing:2px;fill:#718591}
+      .heading{font-size:24px;font-weight:760;fill:#17232C}
+      .label{font-size:16px;font-weight:700;fill:#17232C}
+      .small{font-size:13px;font-weight:520;fill:#627783}
+      .tiny{font-size:11px;font-weight:750;letter-spacing:1px;fill:#718591}
+      .card{fill:#FFFFFF;stroke:#D8E3E9;stroke-width:1.2}
+      .line{fill:none;stroke:#8BA0AC;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    </style>
+  </defs>
+
+  <rect width="1200" height="590" rx="28" fill="url(#bg2)"/>
+  <g class="font">
+    <text x="58" y="55" class="eyebrow">AUTOMATION, IN PLAIN ENGLISH</text>
+    <text x="58" y="89" class="heading">An action is the work. A trigger decides when it starts.</text>
+
+    <!-- Trigger column -->
+    <text x="58" y="138" class="eyebrow">1 · START</text>
+    <g transform="translate(58 158)">
+      <rect width="236" height="88" rx="17" class="card"/>
+      <circle cx="38" cy="44" r="21" fill="#E5F4F9"/>
+      <path d="M31 34h14v20H31zM35 29h6M35 58h6" class="line" stroke="#379CBD"/>
+      <text x="74" y="38" class="label">Run now</text>
+      <text x="74" y="61" class="small">Button or API request</text>
+    </g>
+    <g transform="translate(58 266)">
+      <rect width="236" height="88" rx="17" class="card"/>
+      <circle cx="38" cy="44" r="21" fill="#FFF0D9"/>
+      <circle cx="38" cy="43" r="12" class="line" stroke="#F28B00"/>
+      <path d="M38 36v8l6 4" class="line" stroke="#F28B00"/>
+      <text x="74" y="38" class="label">Run later</text>
+      <text x="74" y="61" class="small">Schedule · every day at 9</text>
+    </g>
+
+    <path d="M306 202h71" class="line" marker-end="url(#arr2)"/>
+    <path d="M306 310h39q24 0 24-24v-60q0-24 24-24h1" class="line" marker-end="url(#arr2)"/>
+
+    <!-- Action -->
+    <text x="401" y="138" class="eyebrow">2 · DO THE WORK</text>
+    <g transform="translate(392 158)" filter="url(#soft)">
+      <rect width="310" height="196" rx="22" fill="url(#action)"/>
+      <rect x="24" y="23" width="74" height="24" rx="12" fill="#FFFFFF" opacity=".25"/>
+      <text x="61" y="40" text-anchor="middle" font-size="11" font-weight="800" letter-spacing="1.2" fill="#FFFFFF">ACTION</text>
+      <text x="24" y="83" font-size="23" font-weight="780" fill="#FFFFFF">Approve order</text>
+      <path d="M25 109h260" stroke="#FFFFFF" opacity=".3"/>
+      <circle cx="37" cy="135" r="9" fill="#FFFFFF" opacity=".22"/>
+      <path d="m33 135 3 3 6-7" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="56" y="140" font-size="14" font-weight="600" fill="#FFFFFF">Check permission and input</text>
+      <circle cx="37" cy="166" r="9" fill="#FFFFFF" opacity=".22"/>
+      <path d="M33 166h8M37 162v8" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+      <text x="56" y="171" font-size="14" font-weight="600" fill="#FFFFFF">Run one reusable task</text>
+    </g>
+
+    <path d="M714 256h68" class="line" marker-end="url(#arr2)"/>
+
+    <!-- Outcomes -->
+    <text x="801" y="138" class="eyebrow">3 · CREATE AN OUTCOME</text>
+    <g transform="translate(795 158)">
+      <rect width="347" height="58" rx="15" class="card"/>
+      <circle cx="31" cy="29" r="15" fill="#E5F4F9"/>
+      <path d="M24 25h14M24 30h14M24 35h10" class="line" stroke="#379CBD"/>
+      <text x="58" y="27" class="label">Update data</text>
+      <text x="58" y="45" class="small">Set the order to approved</text>
+    </g>
+    <g transform="translate(795 226)">
+      <rect width="347" height="58" rx="15" class="card"/>
+      <circle cx="31" cy="29" r="15" fill="#FFF0D9"/>
+      <path d="M22 23h18v13H22zM22 24l9 7 9-7" class="line" stroke="#F28B00"/>
+      <text x="58" y="27" class="label">Notify someone</text>
+      <text x="58" y="45" class="small">Send a confirmation email</text>
+    </g>
+    <g transform="translate(795 294)">
+      <rect width="347" height="58" rx="15" class="card"/>
+      <circle cx="31" cy="29" r="15" fill="#E9EDF0"/>
+      <path d="M24 29h14M31 22v14" class="line" stroke="#536975"/>
+      <text x="58" y="27" class="label">Connect a service</text>
+      <text x="58" y="45" class="small">Charge payment or call an API</text>
+    </g>
+
+    <!-- State machine lane -->
+    <g transform="translate(58 410)">
+      <rect width="1084" height="122" rx="20" fill="#172630"/>
+      <text x="28" y="31" font-size="11" font-weight="800" letter-spacing="1.4" fill="#7F98A7">STATE MACHINE · CONTROLS WHICH STAGE CHANGES ARE VALID</text>
+      <text x="28" y="68" font-size="16" font-weight="700" fill="#FFFFFF">Order journey</text>
+
+      <g transform="translate(216 43)">
+        <rect width="150" height="46" rx="23" fill="#233A47" stroke="#3C5969"/>
+        <circle cx="27" cy="23" r="8" fill="#379CBD"/>
+        <text x="78" y="29" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">New</text>
+      </g>
+      <path d="M377 66h61" stroke="#607785" stroke-width="2" marker-end="url(#arr2)"/>
+      <g transform="translate(450 43)">
+        <rect width="150" height="46" rx="23" fill="#3B3325" stroke="#66502F"/>
+        <circle cx="27" cy="23" r="8" fill="#FF9B00"/>
+        <text x="78" y="29" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">Paid</text>
+      </g>
+      <path d="M611 66h61" stroke="#607785" stroke-width="2" marker-end="url(#arr2)"/>
+      <g transform="translate(684 43)">
+        <rect width="150" height="46" rx="23" fill="#233A47" stroke="#3C5969"/>
+        <circle cx="27" cy="23" r="8" fill="#379CBD"/>
+        <text x="80" y="29" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">Shipped</text>
+      </g>
+      <g transform="translate(863 35)">
+        <path d="M20 4 37 11v14c0 13-9 20-17 24C12 45 3 38 3 25V11Z" fill="#203541" stroke="#3E5A69"/>
+        <path d="m12 25 6 6 11-14" fill="none" stroke="#56B3D1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="55" y="24" font-size="13" font-weight="700" fill="#FFFFFF">Invalid jumps</text>
+        <text x="55" y="43" font-size="13" fill="#9CB0BC">are rejected</text>
+      </g>
+    </g>
+  </g>
+</svg>

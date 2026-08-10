@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+  <title id="title">Daptin platform overview</title>
+  <desc id="desc">A business model, people, and rules enter Daptin. Daptin provides data, access control, automation, and APIs to websites, mobile apps, admin tools, and AI agents, while connecting to external services.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101923"/>
+      <stop offset="1" stop-color="#172633"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17394A"/>
+      <stop offset="1" stop-color="#1B2B37"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#379CBD"/>
+      <stop offset="1" stop-color="#FF9B00"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#060A0E" flood-opacity=".35"/>
+    </filter>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0 0 9 4.5 0 9Z" fill="#526978"/>
+    </marker>
+    <style>
+      .font{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      .eyebrow{font-size:12px;font-weight:700;letter-spacing:2px;fill:#7790A0}
+      .heading{font-size:22px;font-weight:750;fill:#F7FAFC}
+      .label{font-size:16px;font-weight:650;fill:#F7FAFC}
+      .small{font-size:13px;font-weight:500;fill:#A9BBC6}
+      .micro{font-size:11px;font-weight:700;letter-spacing:1.2px;fill:#89A0AF}
+      .card{fill:#1B2934;stroke:#2A3B48;stroke-width:1.2}
+      .chip{fill:#21323F;stroke:#314655;stroke-width:1}
+      .icon{fill:none;stroke:#A9BBC6;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    </style>
+  </defs>
+
+  <rect width="1200" height="660" rx="28" fill="url(#bg)"/>
+  <circle cx="1045" cy="-35" r="225" fill="#379CBD" opacity=".055"/>
+  <circle cx="165" cy="705" r="245" fill="#FF9B00" opacity=".045"/>
+
+  <g class="font">
+    <text x="62" y="58" class="eyebrow">FROM MODEL TO PRODUCT</text>
+    <text x="62" y="92" class="heading">Describe your business once. Daptin builds the backend around it.</text>
+
+    <text x="62" y="143" class="eyebrow">YOU DEFINE</text>
+    <text x="934" y="143" class="eyebrow">YOU SHIP</text>
+
+    <!-- Input cards -->
+    <g transform="translate(62 165)">
+      <rect width="220" height="86" rx="16" class="card"/>
+      <rect x="16" y="18" width="48" height="48" rx="13" fill="#243A47"/>
+      <path d="M29 31h22M29 42h22M29 53h15" class="icon" stroke="#56B3D1"/>
+      <text x="80" y="38" class="label">Data model</text>
+      <text x="80" y="59" class="small">Orders, products, files</text>
+    </g>
+    <g transform="translate(62 267)">
+      <rect width="220" height="86" rx="16" class="card"/>
+      <rect x="16" y="18" width="48" height="48" rx="13" fill="#333027"/>
+      <circle cx="40" cy="34" r="7" class="icon" stroke="#FFAE33"/>
+      <path d="M27 57c2-9 24-9 26 0" class="icon" stroke="#FFAE33"/>
+      <text x="80" y="38" class="label">People</text>
+      <text x="80" y="59" class="small">Customers, teams, roles</text>
+    </g>
+    <g transform="translate(62 369)">
+      <rect width="220" height="86" rx="16" class="card"/>
+      <rect x="16" y="18" width="48" height="48" rx="13" fill="#2A3338"/>
+      <path d="M28 34h24M28 50h24M35 29v10M46 45v10" class="icon"/>
+      <text x="80" y="38" class="label">Business rules</text>
+      <text x="80" y="59" class="small">Who can do what</text>
+    </g>
+
+    <!-- Connectors -->
+    <path d="M292 208H342M292 310H342M292 412H342" stroke="#526978" stroke-width="2" stroke-dasharray="4 6" marker-end="url(#arrow)"/>
+    <path d="M858 208H908M858 310H908M858 412H908" stroke="#526978" stroke-width="2" stroke-dasharray="4 6" marker-end="url(#arrow)"/>
+
+    <!-- Daptin core -->
+    <g filter="url(#shadow)">
+      <rect x="356" y="135" width="488" height="358" rx="26" fill="url(#core)" stroke="#34505F" stroke-width="1.5"/>
+      <rect x="356" y="135" width="488" height="5" rx="2.5" fill="url(#accent)"/>
+    </g>
+
+    <!-- Mark -->
+    <g transform="translate(388 166)">
+      <path d="M0 11 16 0l5 20Z" fill="none" stroke="#379CBD" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M4 29 18 18l5 20Z" fill="none" stroke="#FF9B00" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M-7 27 5 15l4 21Z" fill="none" stroke="#DDE7EC" stroke-width="4" stroke-linejoin="round"/>
+    </g>
+    <text x="438" y="192" font-size="27" font-weight="780" fill="#FFFFFF">Daptin</text>
+    <text x="438" y="215" class="small">One application server · one policy boundary</text>
+
+    <g transform="translate(388 242)">
+      <rect width="200" height="96" rx="16" class="chip"/>
+      <circle cx="29" cy="30" r="13" fill="#379CBD" opacity=".16"/>
+      <path d="M22 25h14M22 30h14M22 35h10" class="icon" stroke="#56B3D1"/>
+      <text x="52" y="34" class="label">Data &amp; files</text>
+      <text x="20" y="63" class="small">Tables · relations · assets</text>
+      <text x="20" y="82" class="small">validation · import/export</text>
+    </g>
+    <g transform="translate(612 242)">
+      <rect width="200" height="96" rx="16" class="chip"/>
+      <circle cx="29" cy="30" r="13" fill="#FF9B00" opacity=".14"/>
+      <path d="M29 21 38 25v7c0 7-5 11-9 13-4-2-9-6-9-13v-7Z" class="icon" stroke="#FFAE33"/>
+      <text x="52" y="34" class="label">Access</text>
+      <text x="20" y="63" class="small">Login · users · teams</text>
+      <text x="20" y="82" class="small">row-level permissions</text>
+    </g>
+    <g transform="translate(388 354)">
+      <rect width="200" height="104" rx="16" class="chip"/>
+      <circle cx="29" cy="30" r="13" fill="#FF9B00" opacity=".14"/>
+      <path d="m30 18-10 15h8l-2 13 12-18h-8Z" fill="none" stroke="#FFAE33" stroke-width="2" stroke-linejoin="round"/>
+      <text x="52" y="34" class="label">Automation</text>
+      <text x="20" y="64" class="small">Actions · schedules</text>
+      <text x="20" y="84" class="small">states · background jobs</text>
+    </g>
+    <g transform="translate(612 354)">
+      <rect width="200" height="104" rx="16" class="chip"/>
+      <circle cx="29" cy="30" r="13" fill="#379CBD" opacity=".16"/>
+      <path d="m24 23-7 7 7 7M34 23l7 7-7 7" class="icon" stroke="#56B3D1"/>
+      <text x="52" y="34" class="label">Delivery</text>
+      <text x="20" y="64" class="small">REST · GraphQL · realtime</text>
+      <text x="20" y="84" class="small">OpenAPI · hosted sites</text>
+    </g>
+
+    <!-- Output cards -->
+    <g transform="translate(922 165)">
+      <rect width="216" height="86" rx="16" class="card"/>
+      <rect x="16" y="18" width="48" height="48" rx="13" fill="#243A47"/>
+      <rect x="26" y="27" width="28" height="20" rx="2" class="icon" stroke="#56B3D1"/>
+      <path d="M22 57h36M35 48v9M45 48v9" class="icon" stroke="#56B3D1"/>
+      <text x="80" y="38" class="label">Web &amp; mobile</text>
+      <text x="80" y="59" class="small">Any frontend</text>
+    </g>
+    <g transform="translate(922 267)">
+      <rect width="216" height="86" rx="16" class="card"/>
+      <rect x="16" y="18" width="48" height="48" rx="13" fill="#333027"/>
+      <rect x="25" y="26" width="30" height="28" rx="3" class="icon" stroke="#FFAE33"/>
+      <path d="M25 34h30M33 42h14" class="icon" stroke="#FFAE33"/>
+      <text x="80" y="38" class="label">Admin tools</text>
+      <text x="80" y="59" class="small">Manage live data</text>
+    </g>
+    <g transform="translate(922 369)">
+      <rect width="216" height="86" rx="16" class="card"/>
+      <rect x="16" y="18" width="48" height="48" rx="13" fill="#2A3338"/>
+      <circle cx="32" cy="34" r="5" class="icon"/>
+      <circle cx="49" cy="34" r="5" class="icon"/>
+      <path d="M32 39v10h17V39M40 49v8" class="icon"/>
+      <text x="80" y="38" class="label">Services &amp; AI</text>
+      <text x="80" y="59" class="small">Tools, agents, partners</text>
+    </g>
+
+    <!-- Integrations rail -->
+    <text x="62" y="548" class="eyebrow">CONNECT WHAT YOUR PRODUCT NEEDS</text>
+    <path d="M600 493v30" stroke="#526978" stroke-width="2" stroke-dasharray="4 6" marker-end="url(#arrow)"/>
+    <g transform="translate(62 570)">
+      <rect width="1076" height="52" rx="15" fill="#141F28" stroke="#293B47"/>
+      <g transform="translate(29 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">Email</text></g>
+      <g transform="translate(191 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">Payments</text></g>
+      <g transform="translate(353 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">Cloud storage</text></g>
+      <g transform="translate(515 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">SaaS APIs</text></g>
+      <g transform="translate(677 13)"><rect width="142" height="26" rx="13" fill="#202E38"/><text x="71" y="18" text-anchor="middle" class="small">LLM providers</text></g>
+      <g transform="translate(839 13)"><rect width="208" height="26" rx="13" fill="#202E38"/><text x="104" y="18" text-anchor="middle" class="small">Postgres · MySQL · SQLite</text></g>
+    </g>
+  </g>
+</svg>
