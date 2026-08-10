@@ -17,26 +17,52 @@
 
 ---
 
-## From schema to backend
+## From idea to working product
 
 ```mermaid
 flowchart LR
-    A["schema.yaml"] --> D{"Daptin"}
-    D --> API["REST · GraphQL<br/>OpenAPI · Metadata"]
-    D --> SEC["Auth · Users<br/>Row permissions"]
-    D --> LOGIC["Actions · Workflows<br/>Scheduled tasks"]
-    D --> DATA["SQL · Files<br/>Cloud storage"]
-    D --> RUN["Realtime · Sites<br/>Integrations · Ops"]
+    IDEA["1 · Describe your business<br/>Products · Orders · Customers"]
+    BASE["2 · Get the foundation<br/>Database · APIs · Login · Permissions"]
+    BEHAVIOR["3 · Add business behavior<br/>Approve · Notify · Publish · Bill"]
+    APP["4 · Connect your product<br/>Website · Mobile app · Internal tool"]
+    RUN["5 · Run it reliably<br/>Files · Realtime · Limits · Audit"]
+
+    IDEA -->|schema| BASE
+    BASE -->|you add actions + rules| BEHAVIOR
+    BEHAVIOR -->|a working backend| APP
+    APP -->|real usage| RUN
 ```
 
-Use Daptin as the backend for a new product, or place it beside an existing stack to add the pieces you need.
+The steps build on each other, but you do not need every feature. Start with data and login; add automation only where your product needs it.
 
-| Define | Daptin generates | You ship |
-| :---: | :---: | :---: |
-| Tables & relations | CRUD APIs & validation | Web and mobile apps |
-| Users & groups | Auth & row-level policy | SaaS and internal tools |
-| Actions & states | Workflows & scheduled jobs | API and AI products |
-| Assets & stores | Uploads & hosted sites | Portals and content sites |
+### What do these words mean?
+
+| Daptin term | In plain English | Example |
+|---|---|---|
+| **Schema** | A description of the information your product keeps | An `order` has a customer, items, total, and status |
+| **Action** | A named job that runs when asked | “Approve order”, “send receipt”, or “generate invoice” |
+| **State machine** | A record of the allowed stages and moves; actions that do the work stay separate | An order may move **new → paid → shipped**, but not **new → shipped** |
+| **Schedule** | A timer that starts an action automatically | Every night, find overdue invoices and send reminders |
+| **Integration** | A safe connection to another service | Charge through Stripe, create a GitHub issue, or call an AI model |
+
+### How automation fits together
+
+```mermaid
+flowchart LR
+    TRIGGER{"What starts the work?"}
+    PERSON["A person clicks<br/>Approve order"] --> TRIGGER
+    APPREQ["Your app asks<br/>Create order through the API"] --> TRIGGER
+    CLOCK["A schedule fires<br/>Every day at 9:00"] --> TRIGGER
+
+    TRIGGER --> ACTION["Action<br/>A reusable business task"]
+    ACTION --> CHECK["Check rules<br/>Is this user allowed?"]
+    CHECK --> CHANGE["Change data<br/>Update the order"]
+    CHECK --> CONNECT["Contact a service<br/>Send email or take payment"]
+    CHANGE --> RESULT["Return a result<br/>and publish a live update"]
+    CONNECT --> RESULT
+```
+
+An **action** is the work. A **schedule**, button click, or API request decides when that work starts.
 
 ## What is inside?
 
@@ -91,15 +117,17 @@ Tables:
         DefaultValue: "false"
 ```
 
-Restart Daptin. The model is now available through several generated surfaces:
+Restart Daptin. That short description becomes a backend your product can use:
 
 ```mermaid
 flowchart LR
-    S["product schema"] --> T[("product table")]
-    T --> R["/api/product"]
-    T --> G["/graphql"]
-    T --> O["/openapi.yaml"]
-    T --> M["/meta"]
+    S["You describe a product<br/>name · price · published"] --> D{"Daptin builds"}
+    D --> STORE["A place to store products"]
+    D --> API["A secured way for apps<br/>to create, read, edit, and delete"]
+    D --> ADMIN["An admin screen<br/>to manage the data"]
+    D --> DOCS["Live API documentation<br/>for developers and tools"]
+
+    API --> USE["Your website, mobile app,<br/>dashboard, or automation"]
 ```
 
 ```http
@@ -111,23 +139,23 @@ DELETE /api/product/{reference_id}
 
 Next, add [relations](https://github.com/daptin/daptin/wiki/Relationships), [permissions](https://github.com/daptin/daptin/wiki/Permissions), [actions](https://github.com/daptin/daptin/wiki/Actions-Overview), or [file storage](https://github.com/daptin/daptin/wiki/Cloud-Storage).
 
-## How it works
+## What happens when someone uses your app?
 
 ```mermaid
-flowchart TB
-    CLIENTS["Apps · CLI · Services · Agents"]
-    EDGE["REST · GraphQL · WebSocket · Protocols"]
-    POLICY["Authentication + permission checks"]
-    CORE["CRUD · Actions · State machines · Scheduler"]
-    EXT["Integrations · LLM providers · Events"]
-    STORE[("SQL database + asset storage")]
+flowchart LR
+    USER["1 · Someone does something<br/>Place order · Upload file · Approve request"]
+    ID["2 · Daptin identifies them<br/>Guest · Customer · Team member · Admin"]
+    RULE["3 · Daptin checks the rules<br/>Can they see or change this specific item?"]
+    WORK["4 · Daptin does the work<br/>Save data · Run action · Move to next stage"]
+    EFFECT["5 · Other things can happen<br/>Send email · Call service · Notify live app"]
+    RECORD["6 · The result is recorded<br/>Response · Usage · History · Audit"]
 
-    CLIENTS --> EDGE --> POLICY --> CORE
-    CORE <--> STORE
-    CORE <--> EXT
+    USER --> ID --> RULE
+    RULE -->|allowed| WORK --> EFFECT --> RECORD
+    RULE -->|not allowed| STOP["Safe rejection<br/>Nothing is changed"]
 ```
 
-Every row gets a public `reference_id`, version, timestamps, and permissions. Daptin applies validation and policy before work reaches storage, actions, or external integrations.
+The same safety checks apply whether the request comes from a website, mobile app, command line, scheduled job, or another service.
 
 ## See it
 
