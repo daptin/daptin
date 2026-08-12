@@ -426,6 +426,11 @@ curl -X POST "http://localhost:6336/action/cloud_store/move_path" \
 
 Sites allow you to host static websites on cloud storage. See [[Subsites|Subsites.md]] for detailed site management documentation.
 
+Hosted-site responses use negotiated GZIP compression by default when the client
+advertises `Accept-Encoding: gzip`. Compression follows the global
+`gzip.enable` backend setting; byte-range responses and common pre-compressed
+binary formats are served without GZIP. Restart Daptin after changing the setting.
+
 ### Create Site
 
 **Status Unknown** - Not tested yet, but likely requires the same attribute format as other cloud store actions.

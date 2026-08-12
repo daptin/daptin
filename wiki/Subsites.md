@@ -11,6 +11,7 @@ Daptin subsites allow you to:
 - Route traffic by domain name (Host header)
 - Store site files in any cloud storage provider
 - Serve HTML, CSS, JavaScript, and assets
+- Compress eligible responses with GZIP by default
 - Enable FTP access for file management (optional)
 
 ## Quick Start
@@ -246,6 +247,41 @@ aws s3 sync ./site-files/ s3://my-bucket/sites/my-site/
 See [[Cloud-Storage|Cloud Storage]] for provider setup.
 
 ### 4. Performance Optimization for Large Sites
+
+#### Response Compression
+
+GZIP compression is enabled by default for hosted sites. When a client sends
+`Accept-Encoding: gzip`, Daptin compresses eligible responses and returns
+`Content-Encoding: gzip` with `Vary: Accept-Encoding`.
+
+Already-compressed or binary formats with these extensions are not compressed:
+`.pdf`, `.mp4`, `.jpg`, `.png`, `.wav`, `.gif`, and `.mp3`. Requests containing a
+`Range` header are also served without compression so that `206 Partial Content`
+and `Content-Range` continue to describe the transmitted bytes correctly.
+
+Compression is controlled globally by the backend `gzip.enable` configuration:
+
+```bash
+# Disable compression for APIs, the dashboard, and hosted sites
+curl -X POST http://localhost:6336/_config/backend/gzip.enable \
+  -H "Authorization: Bearer $TOKEN" \
+  -d 'false'
+```
+
+The default is `true`. Restart Daptin after changing this setting because site
+routers and their middleware are created during startup.
+
+To verify compression for a site:
+
+```bash
+curl -sS --compressed -D - -o /dev/null \
+  -H "Host: www.example.com" \
+  http://localhost:6336/style.css
+```
+
+Look for `Content-Encoding: gzip` in the response. Small responses may be larger
+after compression due to GZIP framing, so pre-compressed media should use one of
+the excluded extensions or be served through a CDN configured for that format.
 
 #### Storage Configuration
 

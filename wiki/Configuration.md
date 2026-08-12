@@ -26,7 +26,7 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `graphql.enable` | bool | false | Enable GraphQL endpoint |
-| `gzip.enable` | bool | true | Enable GZIP compression |
+| `gzip.enable` | bool | true | Enable negotiated GZIP compression for API, dashboard, and hosted-site responses; restart after changing |
 | `limit.rate` | int | 500 | Rate limit (requests/second) |
 | `yjs.enabled` | bool | true | Enable YJS collaborative editing |
 | `yjs.storage.path` | string | ./yjs | YJS document storage path |
