@@ -24,7 +24,8 @@ import (
 
 func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
-	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
+	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient, gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
+	enableGzip := len(gzipEnabled) == 0 || gzipEnabled[0]
 
 	hs := hostswitch.HostSwitch{
 		AdministratorGroupId: cruds["usergroup"].AdministratorGroupId,
@@ -157,7 +158,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 
 		resource.CheckErr(err, "Failed to register task to sync storage")
 
-		hostRouter := CreateSubsiteEngine(site, subsiteAssetCache, middlewares)
+		hostRouter := CreateSubsiteEngine(site, subsiteAssetCache, middlewares, enableGzip)
 
 		hs.HandlerMap[site.Hostname] = hostRouter
 		siteMap[subSiteInformation.SubSite.Hostname] = subSiteInformation

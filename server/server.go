@@ -429,7 +429,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [559]")
 	}
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections, olricDb)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections, olricDb, enableGzip == "true")
 	transaction.Commit()
 
 	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)
