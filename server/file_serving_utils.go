@@ -35,7 +35,7 @@ var DefaultFileServingConfig = FileServingConfig{
 
 // generateETagFromStat creates a consistent ETag from file metadata
 func generateETagFromStat(info os.FileInfo) string {
-	return fmt.Sprintf(`"%x-%x"`, info.ModTime().Unix(), info.Size())
+	return fmt.Sprintf(`"%x-%x"`, info.ModTime().UnixNano(), info.Size())
 }
 
 // setOptimalCacheHeaders sets consistent cache headers for static files

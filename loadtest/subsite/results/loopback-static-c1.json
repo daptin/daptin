@@ -1,0 +1,19 @@
+{
+  "url": "http://127.0.0.1:18080/assets/javascripts/bundle.f9edbbd5.min.js",
+  "duration_seconds": 5.00004475,
+  "concurrency": 1,
+  "requests": 42426,
+  "requests_per_second": 8485.12405813968,
+  "successes": 42426,
+  "errors": 0,
+  "latency_p50_ms": 0.094834,
+  "latency_p95_ms": 0.137709,
+  "latency_p99_ms": 0.228166,
+  "latency_max_ms": 1.398666,
+  "bytes_read": 1991730996,
+  "mib_per_second": 379.889139207292,
+  "go_version": "go1.25.0",
+  "goos": "darwin",
+  "goarch": "arm64",
+  "gomaxprocs": 10
+}

@@ -1,0 +1,31 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/daptin/daptin/server
+cpu: Apple M1 Max
+BenchmarkSubsiteIndexCached   	  388879	      6146 ns/op	1207.94 MB/s	   10535 B/op	      42 allocs/op
+BenchmarkSubsiteIndexCached   	  386882	      6195 ns/op	1198.31 MB/s	   10535 B/op	      42 allocs/op
+BenchmarkSubsiteIndexCached   	  375295	      6211 ns/op	1195.23 MB/s	   10535 B/op	      42 allocs/op
+BenchmarkSubsiteIndexCached   	  389494	      6195 ns/op	1198.45 MB/s	   10535 B/op	      42 allocs/op
+BenchmarkSubsiteIndexCached   	  377094	      6224 ns/op	1192.75 MB/s	   10535 B/op	      42 allocs/op
+BenchmarkSubsiteStatic64K     	   36312	     65633 ns/op	1029.72 MB/s	  265079 B/op	      54 allocs/op
+BenchmarkSubsiteStatic64K     	   34652	     65589 ns/op	1030.42 MB/s	  265079 B/op	      54 allocs/op
+BenchmarkSubsiteStatic64K     	   36446	     66715 ns/op	1013.03 MB/s	  265079 B/op	      54 allocs/op
+BenchmarkSubsiteStatic64K     	   35744	     66908 ns/op	1010.11 MB/s	  265079 B/op	      54 allocs/op
+BenchmarkSubsiteStatic64K     	   36091	     67168 ns/op	1006.19 MB/s	  265080 B/op	      54 allocs/op
+BenchmarkSubsiteStatic64KGzip 	   74434	     32123 ns/op	   8.44 MB/s	    4304 B/op	      63 allocs/op
+BenchmarkSubsiteStatic64KGzip 	   74226	     32095 ns/op	   8.44 MB/s	    4304 B/op	      63 allocs/op
+BenchmarkSubsiteStatic64KGzip 	   75067	     32265 ns/op	   8.40 MB/s	    4304 B/op	      63 allocs/op
+BenchmarkSubsiteStatic64KGzip 	   74218	     31933 ns/op	   8.49 MB/s	    4304 B/op	      63 allocs/op
+BenchmarkSubsiteStatic64KGzip 	   75288	     32083 ns/op	   8.45 MB/s	    4304 B/op	      63 allocs/op
+BenchmarkSubsiteNotModified   	  141135	     16579 ns/op	    3085 B/op	      44 allocs/op
+BenchmarkSubsiteNotModified   	  144634	     16640 ns/op	    3085 B/op	      44 allocs/op
+BenchmarkSubsiteNotModified   	  143545	     16619 ns/op	    3085 B/op	      44 allocs/op
+BenchmarkSubsiteNotModified   	  144680	     16634 ns/op	    3085 B/op	      44 allocs/op
+BenchmarkSubsiteNotModified   	  142118	     16613 ns/op	    3069 B/op	      44 allocs/op
+BenchmarkSubsiteRange1K       	  110918	     21621 ns/op	  47.36 MB/s	    5527 B/op	      61 allocs/op
+BenchmarkSubsiteRange1K       	  111454	     21513 ns/op	  47.60 MB/s	    5527 B/op	      61 allocs/op
+BenchmarkSubsiteRange1K       	  109532	     21544 ns/op	  47.53 MB/s	    5527 B/op	      61 allocs/op
+BenchmarkSubsiteRange1K       	  109832	     21582 ns/op	  47.45 MB/s	    5527 B/op	      61 allocs/op
+BenchmarkSubsiteRange1K       	  111492	     21743 ns/op	  47.10 MB/s	    5527 B/op	      61 allocs/op
+PASS
+ok  	github.com/daptin/daptin/server	72.882s

@@ -37,3 +37,4 @@ docs_markdown/site/*
 daptinweb/
 
 profiles/
+**/.daptin-compressed/

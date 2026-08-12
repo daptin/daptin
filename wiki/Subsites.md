@@ -254,6 +254,12 @@ GZIP compression is enabled by default for hosted sites. When a client sends
 `Accept-Encoding: gzip`, Daptin compresses eligible responses and returns
 `Content-Encoding: gzip` with `Vary: Accept-Encoding`.
 
+For static assets of at least 1 KiB, Daptin creates a compressed representation
+in its local site cache on first use and reuses it for later requests. Source file
+changes invalidate the cached representation. These internal sidecars are cache
+artifacts and are not written back to the configured cloud store. Cached index
+HTML keeps its compressed representation in memory.
+
 Already-compressed or binary formats with these extensions are not compressed:
 `.pdf`, `.mp4`, `.jpg`, `.png`, `.wav`, `.gif`, and `.mp3`. Requests containing a
 `Range` header are also served without compression so that `206 Partial Content`
