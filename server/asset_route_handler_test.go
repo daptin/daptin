@@ -1,12 +1,16 @@
 package server
 
 import (
+	"compress/gzip"
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
@@ -18,6 +22,163 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func TestServeCachedAssetUsesRepresentationSpecificGzip(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	data := []byte("abcdefghijklmnopqrstuvwxyz")
+	gzipData, err := cache.CompressData(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cachedFile := &cache.CachedFile{
+		Data:      data,
+		GzipData:  gzipData,
+		ETag:      `"plain"`,
+		Modtime:   time.Unix(1_700_000_000, 0),
+		MimeType:  "text/plain; charset=utf-8",
+		Path:      "asset.txt",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+
+	t.Run("gzip", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file", nil)
+		request.Header.Set("Accept-Encoding", "gzip")
+		response := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(response)
+		ctx.Request = request
+
+		serveCachedAsset(ctx, cachedFile)
+
+		if got := response.Header().Get("Content-Encoding"); got != "gzip" {
+			t.Fatalf("Content-Encoding = %q, want gzip", got)
+		}
+		if got := response.Header().Get("ETag"); got != `"plain-gzip"` {
+			t.Fatalf("ETag = %q, want gzip representation ETag", got)
+		}
+		if got := response.Header().Get("Vary"); got != "Accept-Encoding, Authorization" {
+			t.Fatalf("Vary = %q", got)
+		}
+		reader, err := gzip.NewReader(response.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := io.ReadAll(reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != string(data) {
+			t.Fatalf("body = %q", got)
+		}
+	})
+
+	t.Run("q zero", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file", nil)
+		request.Header.Set("Accept-Encoding", "gzip;q=0")
+		response := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(response)
+		ctx.Request = request
+
+		serveCachedAsset(ctx, cachedFile)
+
+		if got := response.Header().Get("Content-Encoding"); got != "" {
+			t.Fatalf("Content-Encoding = %q, want empty", got)
+		}
+		if got := response.Header().Get("ETag"); got != cachedFile.ETag {
+			t.Fatalf("ETag = %q, want %q", got, cachedFile.ETag)
+		}
+		if got := response.Body.Bytes(); string(got) != string(data) {
+			t.Fatalf("body = %q", got)
+		}
+	})
+
+	t.Run("range bypasses gzip", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file", nil)
+		request.Header.Set("Accept-Encoding", "gzip")
+		request.Header.Set("Range", "bytes=2-5")
+		response := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(response)
+		ctx.Request = request
+
+		serveCachedAsset(ctx, cachedFile)
+
+		if response.Code != http.StatusPartialContent {
+			t.Fatalf("status = %d, want %d", response.Code, http.StatusPartialContent)
+		}
+		if got := response.Header().Get("Content-Encoding"); got != "" {
+			t.Fatalf("Content-Encoding = %q, want empty", got)
+		}
+		if got := response.Body.String(); got != "cdef" {
+			t.Fatalf("body = %q, want cdef", got)
+		}
+	})
+
+	t.Run("gzip conditional", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file", nil)
+		request.Header.Set("Accept-Encoding", "gzip")
+		request.Header.Set("If-None-Match", `"plain-gzip"`)
+		response := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(response)
+		ctx.Request = request
+
+		serveCachedAsset(ctx, cachedFile)
+
+		if response.Code != http.StatusNotModified {
+			t.Fatalf("status = %d, want %d", response.Code, http.StatusNotModified)
+		}
+	})
+}
+
+func TestServeResolvedAssetCompressionBypassesRanges(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	root := t.TempDir()
+	filePath := filepath.Join(root, "large.txt")
+	data := []byte(strings.Repeat("compressible asset data\n", 512))
+	if err := os.WriteFile(filePath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	serve := func(rangeHeader string) *httptest.ResponseRecorder {
+		file, err := os.Open(filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer file.Close()
+		info, err := file.Stat()
+		if err != nil {
+			t.Fatal(err)
+		}
+		request := httptest.NewRequest(http.MethodGet, "/asset/asset/ref/file", nil)
+		request.Header.Set("Accept-Encoding", "gzip")
+		if rangeHeader != "" {
+			request.Header.Set("Range", rangeHeader)
+		}
+		response := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(response)
+		ctx.Request = request
+		setPrivateAssetCacheHeaders(ctx, 3600)
+		serveResolvedAssetWithCompression(ctx, "large.txt", file, info, root, true)
+		return response
+	}
+
+	compressed := serve("")
+	if got := compressed.Header().Get("Content-Encoding"); got != "gzip" {
+		t.Fatalf("Content-Encoding = %q, want gzip", got)
+	}
+	if !strings.HasSuffix(compressed.Header().Get("ETag"), `-gzip"`) {
+		t.Fatalf("ETag = %q, want gzip representation", compressed.Header().Get("ETag"))
+	}
+
+	partial := serve("bytes=2-5")
+	if partial.Code != http.StatusPartialContent {
+		t.Fatalf("range status = %d, want %d", partial.Code, http.StatusPartialContent)
+	}
+	if got := partial.Header().Get("Content-Encoding"); got != "" {
+		t.Fatalf("range Content-Encoding = %q, want empty", got)
+	}
+	if got := partial.Body.String(); got != string(data[2:6]) {
+		t.Fatalf("range body = %q, want %q", got, data[2:6])
+	}
+}
 
 func TestServeResolvedMediaAssetFromLocalCloudStoreKey(t *testing.T) {
 	gin.SetMode(gin.TestMode)

@@ -1,8 +1,11 @@
 package server
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/cache"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -108,14 +111,6 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			// Generate ETag
 			etag := cache.GenerateETag([]byte(markdownContent), time.Now())
 
-			// Check if client has fresh copy
-			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
-				c.Header("ETag", etag)
-				setPrivateAssetCacheHeaders(c, 86400)
-				c.AbortWithStatus(http.StatusNotModified)
-				return
-			}
-
 			// Cache the markdown content
 			htmlContent := fmt.Sprintf("<pre>%s</pre>", markdownContent)
 			cachedMarkdown := &cache.CachedFile{
@@ -144,20 +139,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				fileCache.Set(cacheKey, cachedMarkdown)
 			}
 
-			// Return markdown as HTML with appropriate headers
-			c.Header("Content-Type", "text/html; charset=utf-8")
-			setPrivateAssetCacheHeaders(c, int(time.Until(cachedMarkdown.ExpiresAt).Seconds()))
-			c.Header("ETag", etag)
-
-			// Use compression if client accepts it and we have compressed data
-			if cachedMarkdown.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-				c.Header("Content-Encoding", "gzip")
-				c.Header("Vary", "Authorization, Accept-Encoding")
-				c.Data(http.StatusOK, "text/html; charset=utf-8", cachedMarkdown.GzipData)
-				return
-			}
-
-			c.Data(http.StatusOK, "text/html; charset=utf-8", cachedMarkdown.Data)
+			serveCachedAsset(c, cachedMarkdown)
 			return
 		}
 
@@ -207,10 +189,10 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 		// Get file path
 		filePath := assetCache.LocalSyncPath + string(os.PathSeparator) + fileNameToServe
-		assetFileByName, err := assetCache.GetFileByName(fileNameToServe)
+		assetFileByName, err := assetCache.GetFileByNameContext(c.Request.Context(), fileNameToServe)
 		if err != nil {
 			log.Errorf("[239] Failed to get file [%s] from asset cache: %v", filePath, err)
-			c.AbortWithStatus(http.StatusNotFound)
+			abortAssetStorageError(c, err)
 			return
 		}
 		fileInfo, err := assetFileByName.Stat()
@@ -222,14 +204,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 
 		// Check if it's an image that needs processing
 		if isImage := strings.HasPrefix(fileType, "image/"); isImage && c.Query("processImage") == "true" {
-			// Use separate function for image processing
-			file, err := cruds["world"].AssetFolderCache[typeName][columnName].GetFileByName(fileNameToServe)
-			if err != nil {
-				_ = c.AbortWithError(500, err)
-				return
-			}
-			defer file.Close()
-			HandleImageProcessing(c, file)
+			HandleImageProcessing(c, assetFileByName)
 			return
 		}
 
@@ -280,13 +255,6 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			// Generate ETag for client-side caching
 			etag := cache.GenerateETag(data, fileInfo.ModTime())
 
-			// Check if client has fresh copy before we do anything else
-			if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
-				c.Header("ETag", etag)
-				c.AbortWithStatus(http.StatusNotModified)
-				return
-			}
-
 			// Create cache entry
 			newCachedFile := &cache.CachedFile{
 				Data:            data,
@@ -321,24 +289,13 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 				fileCache.Set(cacheKey, newCachedFile)
 			}
 
-			// Set ETag header
-			c.Header("ETag", etag)
-
-			// Use compression if client accepts it and we have compressed data
-			if newCachedFile.GzipData != nil && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-				c.Header("Content-Encoding", "gzip")
-				c.Header("Vary", "Authorization, Accept-Encoding")
-				c.Data(http.StatusOK, fileType, newCachedFile.GzipData)
-				return
-			}
-
-			// Serve uncompressed data
-			c.Data(http.StatusOK, fileType, data)
+			serveCachedAsset(c, newCachedFile)
 			return
 		}
 
-		// Stream larger files from the handle already resolved by the asset cache.
-		serveResolvedAsset(c, fileNameToServe, assetFileByName, fileInfo)
+		// Stream larger files from the handle already resolved by the asset cache,
+		// using the same reusable gzip sidecar strategy as hosted sites.
+		serveResolvedAssetWithCompression(c, fileNameToServe, assetFileByName, fileInfo, assetCache.LocalSyncPath, cache.ShouldCompress(fileType))
 	}
 }
 
@@ -352,7 +309,7 @@ func serveResolvedMediaAsset(c *gin.Context, fileName, fileType string, file *os
 }
 
 func serveResolvedAsset(c *gin.Context, fileName string, file *os.File, fileInfo os.FileInfo) {
-	etag := fmt.Sprintf("\"%x-%x\"", fileInfo.ModTime().Unix(), fileInfo.Size())
+	etag := generateETagFromStat(fileInfo)
 	c.Header("ETag", etag)
 	if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
 		c.AbortWithStatus(http.StatusNotModified)
@@ -360,6 +317,30 @@ func serveResolvedAsset(c *gin.Context, fileName string, file *os.File, fileInfo
 	}
 
 	http.ServeContent(c.Writer, c.Request, fileName, fileInfo.ModTime(), file)
+}
+
+func serveResolvedAssetWithCompression(c *gin.Context, fileName string, file *os.File, fileInfo os.FileInfo, cacheRoot string, compressible bool) {
+	etag := generateETagFromStat(fileInfo)
+	servedFile := file
+	compressible = compressible && fileInfo.Size() > cache.CompressionThreshold
+	if compressible {
+		c.Header("Vary", appendVary(c.Writer.Header().Get("Vary"), "Accept-Encoding"))
+	}
+	if compressible && c.GetHeader("Range") == "" && acceptsGzip(c.GetHeader("Accept-Encoding")) {
+		if compressed, err := openPrecompressedSubsiteFile(file, fileInfo, cacheRoot, fileName); err == nil {
+			servedFile = compressed
+			defer compressed.Close()
+			etag = gzipETag(etag)
+			c.Header("Content-Encoding", "gzip")
+		}
+	}
+
+	c.Header("ETag", etag)
+	if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
+		c.AbortWithStatus(http.StatusNotModified)
+		return
+	}
+	http.ServeContent(c.Writer, c.Request, fileName, fileInfo.ModTime(), servedFile)
 }
 
 const cachedAssetAuthzVersion byte = 1
@@ -499,15 +480,25 @@ func assetColumnFileList(colData interface{}) ([]map[string]interface{}, bool) {
 }
 
 func serveCachedAsset(c *gin.Context, cachedFile *cache.CachedFile) {
-	if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == cachedFile.ETag {
+	useGzip := cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && c.GetHeader("Range") == "" && acceptsGzip(c.GetHeader("Accept-Encoding"))
+	etag := cachedFile.ETag
+	if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 {
+		c.Header("Vary", appendVary(c.Writer.Header().Get("Vary"), "Accept-Encoding"))
+	}
+	if useGzip {
+		etag = gzipETag(etag)
+		c.Header("Content-Encoding", "gzip")
+	}
+
+	if clientEtag := c.GetHeader("If-None-Match"); clientEtag != "" && clientEtag == etag {
 		setPrivateAssetCacheHeaders(c, int(time.Until(cachedFile.ExpiresAt).Seconds()))
-		c.Header("ETag", cachedFile.ETag)
+		c.Header("ETag", etag)
 		c.AbortWithStatus(http.StatusNotModified)
 		return
 	}
 
 	c.Header("Content-Type", cachedFile.MimeType)
-	c.Header("ETag", cachedFile.ETag)
+	c.Header("ETag", etag)
 	setPrivateAssetCacheHeaders(c, int(time.Until(cachedFile.ExpiresAt).Seconds()))
 
 	if cachedFile.IsDownload {
@@ -516,14 +507,12 @@ func serveCachedAsset(c *gin.Context, cachedFile *cache.CachedFile) {
 		c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%v\"", filepath.Base(cachedFile.Path)))
 	}
 
-	if cachedFile.GzipData != nil && len(cachedFile.GzipData) > 0 && strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-		c.Header("Content-Encoding", "gzip")
-		c.Header("Vary", "Authorization, Accept-Encoding")
+	if useGzip {
 		c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.GzipData)
 		return
 	}
 
-	c.Data(http.StatusOK, cachedFile.MimeType, cachedFile.Data)
+	http.ServeContent(c.Writer, c.Request, filepath.Base(cachedFile.Path), cachedFile.Modtime, bytes.NewReader(cachedFile.Data))
 }
 
 func setPrivateAssetCacheHeaders(c *gin.Context, maxAge int) {
@@ -531,7 +520,7 @@ func setPrivateAssetCacheHeaders(c *gin.Context, maxAge int) {
 		maxAge = 60
 	}
 	c.Header("Cache-Control", fmt.Sprintf("private, max-age=%d", maxAge))
-	c.Header("Vary", "Authorization")
+	c.Header("Vary", appendVary(c.Writer.Header().Get("Vary"), "Authorization"))
 }
 
 func abortAssetError(c *gin.Context, err error) {
@@ -540,6 +529,18 @@ func abortAssetError(c *gin.Context, err error) {
 		return
 	}
 	c.AbortWithStatus(http.StatusInternalServerError)
+}
+
+func abortAssetStorageError(c *gin.Context, err error) {
+	if assetcachepojo.IsAssetNotFound(err) {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		c.AbortWithStatus(http.StatusServiceUnavailable)
+		return
+	}
+	c.AbortWithStatus(http.StatusBadGateway)
 }
 
 func GetFileToServe(indexByQueryInt int, colDataMapArray []map[string]interface{}, nameByQuery string) (string, string) {

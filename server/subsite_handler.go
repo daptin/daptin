@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"mime"
 	"net/http"
@@ -130,8 +131,12 @@ func serveIndexWithMemoryCache(c *gin.Context, host, filePath string, assetCache
 	}
 
 	// Cache miss or expired, fetch from cloud/disk
-	file, err := assetCache.GetFileByName(filePath)
+	file, err := assetCache.GetFileByNameContext(c.Request.Context(), filePath)
 	if err != nil {
+		if !assetcachepojo.IsAssetNotFound(err) {
+			abortSubsiteStorageError(c, err)
+			return
+		}
 		negativeKey := host + ":" + filePath
 		addToNegativeCache(negativeKey)
 		// Index.html not found, serve root index.html
@@ -226,8 +231,12 @@ func clientHasCurrentSubsiteRepresentation(c *gin.Context, etag string, modTime 
 // serveStaticAsset serves regular static assets with zero-copy
 func serveStaticAsset(c *gin.Context, filePath string, assetCache *assetcachepojo.AssetFolderCache, negativeKey string, enableGzip bool) {
 	// Try to get file (cloud sync)
-	file, err := assetCache.GetFileByName(filePath)
+	file, err := assetCache.GetFileByNameContext(c.Request.Context(), filePath)
 	if err != nil {
+		if !assetcachepojo.IsAssetNotFound(err) {
+			abortSubsiteStorageError(c, err)
+			return
+		}
 		// Add to negative cache and serve root index.html
 		addToNegativeCache(negativeKey)
 		serveRootIndexHtml(c, c.Request.Host, assetCache, enableGzip)
@@ -298,8 +307,12 @@ func serveRootIndexHtml(c *gin.Context, host string, assetCache *assetcachepojo.
 	}
 
 	// Try to get root index.html
-	file, err := assetCache.GetFileByName(rootIndexPath)
+	file, err := assetCache.GetFileByNameContext(c.Request.Context(), rootIndexPath)
 	if err != nil {
+		if !assetcachepojo.IsAssetNotFound(err) {
+			abortSubsiteStorageError(c, err)
+			return
+		}
 		// Even root index.html doesn't exist, return a basic HTML response
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(`<!DOCTYPE html>
 <html>
@@ -312,4 +325,12 @@ func serveRootIndexHtml(c *gin.Context, host string, assetCache *assetcachepojo.
 
 	// Serve root index.html with caching
 	serveIndexWithMemoryCache(c, host, rootIndexPath, assetCache, enableGzip)
+}
+
+func abortSubsiteStorageError(c *gin.Context, err error) {
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+	c.Status(http.StatusBadGateway)
 }

@@ -14,8 +14,21 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
+
+const maxConcurrentCloudDownloads = 16
+
+var (
+	cloudDownloads        singleflight.Group
+	cloudDownloadSlots    = make(chan struct{}, maxConcurrentCloudDownloads)
+	rcloneConfigurationMu sync.Mutex
+)
+
+var ErrAssetNotFound = errors.New("asset not found")
 
 type AssetFolderCache struct {
 	LocalSyncPath string
@@ -25,6 +38,13 @@ type AssetFolderCache struct {
 }
 
 func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
+	return afc.GetFileByNameContext(context.Background(), fileName)
+}
+
+// GetFileByNameContext opens a cached file, downloading it once when concurrent
+// requests miss the same cloud-backed object. Every caller receives its own file
+// descriptor; only the cache fill is shared.
+func (afc *AssetFolderCache) GetFileByNameContext(ctx context.Context, fileName string) (*os.File, error) {
 	baseDir := afc.storageBaseDir()
 	fileName = cleanAssetRelativePath(fileName)
 	if fileName == "" {
@@ -40,12 +60,44 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 
 	// If file not found in local cache and cloud store is not local, try to download it
 	if os.IsNotExist(err) && afc.CloudStore.StoreProvider != "local" {
-		log.Infof("File [%v] not found in local cache, attempting to download from cloud storage", fileName)
-
 		// Download the file from cloud storage
-		err = afc.downloadFileFromCloudStore(fileName)
+		key, keyErr := filepath.Abs(localFilePath)
+		if keyErr != nil {
+			key = filepath.Clean(localFilePath)
+		}
+		result := cloudDownloads.DoChan(key, func() (interface{}, error) {
+			// Another process may have completed the cache fill before this
+			// singleflight leader started.
+			if existing, openErr := os.Open(localFilePath); openErr == nil {
+				_ = existing.Close()
+				return nil, nil
+			} else if !os.IsNotExist(openErr) {
+				return nil, openErr
+			}
+			log.Infof("File [%v] not found in local cache, attempting to download from cloud storage", fileName)
+
+			downloadCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			select {
+			case cloudDownloadSlots <- struct{}{}:
+				defer func() { <-cloudDownloadSlots }()
+			case <-downloadCtx.Done():
+				return nil, downloadCtx.Err()
+			}
+			downloadErr := afc.downloadFileFromCloudStore(downloadCtx, fileName)
+			if downloadErr != nil {
+				log.Errorf("[42] Failed to download file[%s] from cloud storage: %v", fileName, downloadErr)
+			}
+			return nil, downloadErr
+		})
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case downloadResult := <-result:
+			err = downloadResult.Err
+		}
 		if err != nil {
-			log.Errorf("[42] Failed to download file[%s] from cloud storage: %v", fileName, err)
 			return nil, err
 		}
 
@@ -56,8 +108,12 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 	return nil, err
 }
 
+func IsAssetNotFound(err error) bool {
+	return errors.Is(err, ErrAssetNotFound) || os.IsNotExist(err)
+}
+
 // downloadFileFromCloudStore downloads a specific file from cloud storage to local cache
-func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
+func (afc *AssetFolderCache) downloadFileFromCloudStore(ctx context.Context, fileName string) error {
 	// Setup credentials if available
 	fileName = strings.Trim(fileName, "/")
 	fileName = path.Clean(fileName)
@@ -65,16 +121,6 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	if strings.Index(afc.CloudStore.RootPath, ":") > -1 {
 		configSetName = strings.Split(afc.CloudStore.RootPath, ":")[0]
 	}
-	if afc.Credentials != nil {
-		for key, val := range afc.Credentials {
-			config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
-		}
-	} else if afc.CloudStore.StoreParameters != nil {
-		for key, val := range afc.CloudStore.StoreParameters {
-			config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
-		}
-	}
-
 	// Prepare source and destination paths
 	keyname := afc.Keyname
 	keyname = strings.Trim(keyname, "/")
@@ -82,28 +128,17 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	destPathFolder := afc.LocalSyncPath + string(os.PathSeparator)
 	destFilePath := path.Clean(destPathFolder + string(os.PathSeparator) + fileName)
 
-	// Ensure destination directory exists
-	destDir := filepath.Dir(destPathFolder)
+	// Ensure the final file and its temporary sibling share a directory so the
+	// rename is atomic.
+	destDir := filepath.Dir(destFilePath)
 	err := os.MkdirAll(destDir, 0755)
 	if err != nil {
 		return errors.Wrap(err, "failed to create destination directory")
 	}
 
-	// Create a temporary file for download
-	tmpFile := path.Clean(destPathFolder + string(os.PathSeparator) + fileName + ".tmp")
-	defer func() {
-		// Clean up temp file if it exists
-		if _, err := os.Stat(tmpFile); err == nil {
-			os.Remove(tmpFile)
-		}
-	}()
-
-	// Download the file
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	// Parse remote filesystem
-	fsrc, err := fs.NewFs(ctx, sourcePath)
+	// rclone's configuration is process-global. Protect configuration and
+	// filesystem construction so one store cannot observe another's credentials.
+	fsrc, err := afc.newCloudFilesystem(ctx, sourcePath, configSetName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create source filesystem [%s]", sourcePath)
 	}
@@ -111,17 +146,26 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	// Get the file object
 	srcObj, err := fsrc.NewObject(ctx, fileName)
 	if err != nil {
+		if errors.Is(err, fs.ErrorObjectNotFound) {
+			return errors.Wrapf(ErrAssetNotFound, "source object [%s][%s]", sourcePath, fileName)
+		}
 		return errors.Wrapf(err, "failed to create source object [%s][%s]", sourcePath, fileName)
 	}
 
-	// Open destination file
-	tmpFileDir := filepath.Dir(tmpFile)
-	os.MkdirAll(tmpFileDir, 0755)
-	dst, err := os.Create(tmpFile)
+	// Each download owns its temporary file. This also makes the operation safe
+	// across multiple daptin processes sharing the same cache directory.
+	dst, err := os.CreateTemp(destDir, "."+filepath.Base(fileName)+".download-*")
 	if err != nil {
-		return errors.Wrapf(err, "failed to create destination file [%s]", tmpFile)
+		return errors.Wrapf(err, "failed to create temporary file in [%s]", destDir)
 	}
-	defer dst.Close()
+	tmpFile := dst.Name()
+	removeTemporary := true
+	defer func() {
+		_ = dst.Close()
+		if removeTemporary {
+			_ = os.Remove(tmpFile)
+		}
+	}()
 
 	// Open source for reading
 	srcReader, err := srcObj.Open(ctx)
@@ -137,16 +181,43 @@ func (afc *AssetFolderCache) downloadFileFromCloudStore(fileName string) error {
 	}
 
 	// Close the destination file before rename
-	dst.Close()
+	if err := dst.Close(); err != nil {
+		return errors.Wrap(err, "failed to close downloaded file")
+	}
+	if err := os.Chmod(tmpFile, 0644); err != nil {
+		return errors.Wrap(err, "failed to set downloaded file permissions")
+	}
 
 	// Move temp file to final destination
 	err = os.Rename(tmpFile, destFilePath)
 	if err != nil {
+		// Another process may have won the same atomic cache fill. Its completed
+		// file is equivalent and safe to use.
+		if _, statErr := os.Stat(destFilePath); statErr == nil {
+			return nil
+		}
 		return errors.Wrap(err, "failed to move downloaded file to final location")
 	}
+	removeTemporary = false
 
 	log.Debugf("Successfully downloaded file [%v] from cloud storage[%v] to cache", sourcePath, fileName)
 	return nil
+}
+
+func (afc *AssetFolderCache) newCloudFilesystem(ctx context.Context, sourcePath, configSetName string) (fs.Fs, error) {
+	rcloneConfigurationMu.Lock()
+	defer rcloneConfigurationMu.Unlock()
+
+	if afc.Credentials != nil {
+		for key, val := range afc.Credentials {
+			config.Data().SetValue(configSetName, key, fmt.Sprintf("%v", val))
+		}
+	} else if afc.CloudStore.StoreParameters != nil {
+		for key, val := range afc.CloudStore.StoreParameters {
+			config.Data().SetValue(configSetName, key, fmt.Sprintf("%v", val))
+		}
+	}
+	return fs.NewFs(ctx, sourcePath)
 }
 func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
 	fileName = cleanAssetRelativePath(fileName)
