@@ -1,95 +1,108 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
-  <title id="title">Daptin actions, scheduled tasks, and state tracking</title>
-  <desc id="desc">Actions, scheduled tasks, and state machines are separate Daptin primitives. Actions are stored executable definitions. Tasks use cron to invoke an action as a chosen user in a database transaction. State machine descriptions define allowed transitions and track state in generated entity state tables; state transitions do not automatically run actions.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">How actions, scheduled tasks, and state tracking differ</title>
+  <desc id="desc">An action runs ordered backend work after checking access and inputs. A scheduled task calls the same action as a selected user. State tracking validates and records allowed changes, but it does not run actions automatically.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F8FBFC"/><stop offset="1" stop-color="#EDF4F7"/></linearGradient>
-    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFAA1F"/><stop offset="1" stop-color="#F38B00"/></linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="11" flood-color="#20333E" flood-opacity=".13"/></filter>
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#8197A4"/></marker>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 8 4 0 8Z" fill="#858585"/>
+    </marker>
     <style>
-      .f{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.eye{font-size:11px;font-weight:800;letter-spacing:1.7px;fill:#526874}.h1{font-size:24px;font-weight:780;fill:#17242D}.h2{font-size:17px;font-weight:760;fill:#17242D}.h3{font-size:14px;font-weight:720;fill:#17242D}.body{font-size:12px;font-weight:520;fill:#566C78}.micro{font-size:10px;font-weight:690;fill:#526874}.card{fill:#FFF;stroke:#D6E2E8;stroke-width:1.2}.line{fill:none;stroke:#8197A4;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.dark{fill:#172833;stroke:#2D4552;stroke-width:1.2}
+      .sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+      .mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace}
+      .eyebrow{font-size:13px;font-weight:650;letter-spacing:.7px;fill:#666}
+      .title{font-size:30px;font-weight:700;fill:#202020}
+      .head{font-size:20px;font-weight:700;fill:#242424}
+      .body{font-size:15px;fill:#626262}
+      .small{font-size:13px;fill:#757575}
+      .darkhead{font-size:20px;font-weight:700;fill:#FFF}
+      .darksmall{font-size:13px;fill:#BDBDBD}
+      .code{font-size:14px;fill:#303030}
     </style>
   </defs>
-  <rect width="1200" height="760" rx="28" fill="url(#bg)"/>
-  <g class="f">
-    <text x="54" y="48" class="eye">DAPTIN LOGIC &amp; WORKFLOW PRIMITIVES</text>
-    <text x="54" y="82" class="h1">Actions, tasks, and state tracking work together—but they are not the same thing.</text>
 
-    <!-- Actions lane -->
-    <g transform="translate(54 116)">
-      <rect width="1092" height="218" rx="22" class="card"/>
-      <rect width="8" height="218" rx="4" fill="#FF9B00"/>
-      <text x="28" y="33" class="eye">ACTION · EXECUTABLE BACKEND OPERATION</text>
-      <text x="28" y="58" class="body">Stored in the action table and attached to a world entity.</text>
+  <rect x="1" y="1" width="1198" height="698" rx="12" fill="#FAFAF8" stroke="#DEDEDA" stroke-width="2"/>
+  <text class="sans eyebrow" x="48" y="49">DAPTIN / AUTOMATION</text>
+  <text class="sans title" x="48" y="88">Three tools, three different jobs</text>
+  <text class="sans body" x="48" y="117">Actions do work. Tasks decide when to run it. State tracking records allowed changes.</text>
+  <path d="M48 145h1104" stroke="#D8D8D3"/>
 
-      <g transform="translate(28 82)">
-        <rect width="204" height="104" rx="16" fill="url(#orange)" filter="url(#shadow)"/>
-        <text x="18" y="27" font-size="11" font-weight="800" letter-spacing="1.2" fill="#FFF">ACTION ROW</text>
-        <text x="18" y="52" font-size="16" font-weight="760" fill="#FFF">OnType + action name</text>
-        <text x="18" y="75" font-size="12" font-weight="600" fill="#FFF">inputs · conditions · outcomes</text>
-        <text x="18" y="94" font-size="12" font-weight="600" fill="#FFF">instance optional or required</text>
-      </g>
-      <path d="M244 134h49" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(307 82)">
-        <rect width="178" height="104" rx="16" fill="#F6FAFC" stroke="#D5E2E8"/>
-        <text x="16" y="25" class="eye">CALL</text>
-        <text x="16" y="48" class="h3">/action/{type}/{name}</text>
-        <text x="16" y="70" class="body">or GraphQL action</text>
-        <text x="16" y="90" class="body">entity or instance scope</text>
-      </g>
-      <path d="M497 134h41" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(552 82)">
-        <rect width="188" height="104" rx="16" fill="#E8F5F9" stroke="#BEDCE7"/>
-        <text x="16" y="25" class="eye">AUTHORIZE + PREPARE</text>
-        <text x="16" y="48" class="body">action permission</text>
-        <text x="16" y="68" class="body">target object for instance actions</text>
-        <text x="16" y="88" class="body">validate · conform · meter if enabled</text>
-      </g>
-      <path d="M752 134h41" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(807 82)">
-        <rect width="257" height="104" rx="16" fill="#F6FAFC" stroke="#D5E2E8"/>
-        <text x="16" y="25" class="eye">ORDERED OUTFIELDS</text>
-        <text x="16" y="48" class="body">CRUD: GET · POST · PATCH · DELETE</text>
-        <text x="16" y="68" class="body">EXECUTE: registered Go performer</text>
-        <text x="16" y="88" class="body">ACTIONRESPONSE: notify · redirect · file</text>
-      </g>
+  <!-- Actions -->
+  <g transform="translate(48 178)">
+    <rect width="1104" height="166" rx="8" fill="#FFF" stroke="#D8D8D3"/>
+    <rect width="6" height="166" rx="3" fill="#FF9B00"/>
+    <text class="sans eyebrow" x="24" y="32" fill="#A86300">ACTION</text>
+    <text class="sans head" x="24" y="65">Run backend work</text>
+    <text class="sans small" x="24" y="91">Example: approve an order</text>
+
+    <g transform="translate(260 47)">
+      <rect width="245" height="72" rx="7" fill="#FAFAF8" stroke="#D8D8D3"/>
+      <text class="mono code" x="18" y="31">POST /action/order/</text>
+      <text class="mono code" x="18" y="52">approve</text>
+    </g>
+    <path d="M517 83h48" fill="none" stroke="#858585" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <g transform="translate(579 47)">
+      <rect width="210" height="72" rx="7" fill="#FAFAF8" stroke="#D8D8D3"/>
+      <text class="sans" x="18" y="30" font-size="15" font-weight="650" fill="#303030">Check access + input</text>
+      <text class="sans small" x="18" y="52">validate, conform, meter</text>
+    </g>
+    <path d="M801 83h48" fill="none" stroke="#858585" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <g transform="translate(863 47)">
+      <rect width="217" height="72" rx="7" fill="#FFF7E9" stroke="#E9D2AB"/>
+      <text class="sans" x="18" y="30" font-size="15" font-weight="650" fill="#303030">Run steps in order</text>
+      <text class="sans small" x="18" y="52">CRUD, performer, response</text>
+    </g>
+  </g>
+
+  <!-- Scheduled tasks -->
+  <g transform="translate(48 360)">
+    <rect width="1104" height="126" rx="8" fill="#FFF" stroke="#D8D8D3"/>
+    <rect width="6" height="126" rx="3" fill="#379CBD"/>
+    <text class="sans eyebrow" x="24" y="32" fill="#247E9B">SCHEDULED TASK</text>
+    <text class="sans head" x="24" y="65">Run an action later</text>
+    <text class="sans small" x="24" y="91">Stored in the task table</text>
+
+    <g transform="translate(310 28)">
+      <rect width="188" height="70" rx="7" fill="#EAF5F8" stroke="#C8DFE6"/>
+      <text class="mono" x="18" y="30" font-size="14" fill="#303030">0 9 * * *</text>
+      <text class="sans small" x="18" y="51">every day at 09:00</text>
+    </g>
+    <path d="M510 63h56" fill="none" stroke="#858585" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <g transform="translate(580 28)">
+      <rect width="208" height="70" rx="7" fill="#FAFAF8" stroke="#D8D8D3"/>
+      <text class="sans" x="18" y="30" font-size="15" font-weight="650" fill="#303030">Load the selected user</text>
+      <text class="sans small" x="18" y="51">identity + groups</text>
+    </g>
+    <path d="M800 63h56" fill="none" stroke="#858585" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <g transform="translate(870 28)">
+      <rect width="210" height="70" rx="7" fill="#FAFAF8" stroke="#D8D8D3"/>
+      <text class="sans" x="18" y="30" font-size="15" font-weight="650" fill="#303030">Call the same action</text>
+      <text class="sans small" x="18" y="51">inside a transaction</text>
+    </g>
+  </g>
+
+  <!-- State tracking -->
+  <g transform="translate(48 502)">
+    <rect width="1104" height="150" rx="8" fill="#242424"/>
+    <rect width="6" height="150" rx="3" fill="#8D8D8D"/>
+    <text class="sans eyebrow" x="24" y="32" fill="#BDBDBD">STATE TRACKING</text>
+    <text class="sans darkhead" x="24" y="65">Record valid changes</text>
+    <text class="sans darksmall" x="24" y="91">Example: the life of an order</text>
+
+    <g transform="translate(342 39)">
+      <rect width="104" height="46" rx="23" fill="#393939" stroke="#606060"/>
+      <text class="mono" x="52" y="29" text-anchor="middle" font-size="14" fill="#FFF">new</text>
+      <path d="M116 23h52" fill="none" stroke="#9A9A9A" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <rect x="182" width="104" height="46" rx="23" fill="#393939" stroke="#379CBD"/>
+      <text class="mono" x="234" y="29" text-anchor="middle" font-size="14" fill="#FFF">paid</text>
+      <path d="M298 23h52" fill="none" stroke="#9A9A9A" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <rect x="364" width="104" height="46" rx="23" fill="#393939" stroke="#FF9B00"/>
+      <text class="mono" x="416" y="29" text-anchor="middle" font-size="14" fill="#FFF">shipped</text>
     </g>
 
-    <!-- Task lane -->
-    <g transform="translate(54 354)">
-      <rect width="1092" height="158" rx="22" class="card"/>
-      <rect width="8" height="158" rx="4" fill="#379CBD"/>
-      <text x="28" y="32" class="eye">TASK · SCHEDULED ACTION INVOCATION</text>
-      <text x="28" y="56" class="body">Stored in the task table. Loaded into the cron scheduler at server startup.</text>
-
-      <g transform="translate(28 78)"><rect width="222" height="56" rx="14" fill="#E8F5F9" stroke="#BEDCE7"/><text x="15" y="21" class="h3">task row</text><text x="15" y="37" class="micro">schedule · entity · action · attributes</text><text x="15" y="50" class="micro">relation: as_user</text></g>
-      <path d="M262 106h63" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(339 78)"><rect width="183" height="56" rx="14" fill="#F6FAFC" stroke="#D5E2E8"/><text x="15" y="23" class="h3">robfig/cron</text><text x="15" y="42" class="micro">predefined · interval · 5-field cron</text></g>
-      <path d="M534 106h63" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(611 78)"><rect width="195" height="56" rx="14" fill="#F6FAFC" stroke="#D5E2E8"/><text x="15" y="23" class="h3">Load user context</text><text x="15" y="42" class="micro">as_user identity + groups</text></g>
-      <path d="M818 106h63" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(895 78)"><rect width="169" height="56" rx="14" fill="#FFF0D9" stroke="#F1D09A"/><text x="15" y="23" class="h3">Run the action</text><text x="15" y="42" class="micro">same handler · DB transaction</text></g>
+    <g transform="translate(832 27)">
+      <path d="M0 0h248v96H0Z" fill="#303030" stroke="#555"/>
+      <text class="sans" x="16" y="28" font-size="14" font-weight="650" fill="#FFF">What it does</text>
+      <text class="sans darksmall" x="16" y="52">validates + records transitions</text>
+      <text class="sans" x="16" y="78" font-size="13" fill="#FFBD59">It does not run an action.</text>
     </g>
-
-    <!-- State lane -->
-    <g transform="translate(54 532)">
-      <rect width="1092" height="174" rx="22" class="dark"/>
-      <rect width="8" height="174" rx="4" fill="#536A77"/>
-      <text x="28" y="32" font-size="11" font-weight="800" letter-spacing="1.7" fill="#86A0AF">STATE TRACKING · SEPARATE FROM ACTION EXECUTION</text>
-      <text x="28" y="56" font-size="12" font-weight="520" fill="#A7BBC6">An smd row defines allowed transitions. IsStateTrackingEnabled creates an {entity}_state table.</text>
-
-      <g transform="translate(28 78)"><rect width="196" height="60" rx="15" fill="#203642" stroke="#3B5867"/><text x="15" y="25" font-size="14" font-weight="720" fill="#FFF">smd definition</text><text x="15" y="44" font-size="10" font-weight="650" fill="#9DB1BC">initial_state · events: src → dst</text></g>
-      <path d="M236 108h51" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(301 78)"><rect width="196" height="60" rx="15" fill="#203642" stroke="#3B5867"/><text x="15" y="25" font-size="14" font-weight="720" fill="#FFF">/track/start</text><text x="15" y="44" font-size="10" font-weight="650" fill="#9DB1BC">create {entity}_state instance</text></g>
-      <path d="M509 108h51" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(574 78)"><rect width="196" height="60" rx="15" fill="#203642" stroke="#3B5867"/><text x="15" y="25" font-size="14" font-weight="720" fill="#FFF">/track/event</text><text x="15" y="44" font-size="10" font-weight="650" fill="#9DB1BC">validate current source state</text></g>
-      <path d="M782 108h51" class="line" marker-end="url(#arrow)"/>
-      <g transform="translate(847 78)"><rect width="217" height="60" rx="15" fill="#203642" stroke="#3B5867"/><text x="15" y="25" font-size="14" font-weight="720" fill="#FFF">Record transition</text><text x="15" y="44" font-size="10" font-weight="650" fill="#9DB1BC">state version · audit row · PubSub event</text></g>
-
-      <rect x="748" y="17" width="316" height="36" rx="18" fill="#3B3022" stroke="#6A502A"/>
-      <text x="906" y="40" text-anchor="middle" font-size="10" font-weight="750" fill="#FFD28A">NO ENTRY/EXIT ACTIONS · CALL ACTIONS SEPARATELY</text>
-    </g>
-
-    <text x="54" y="738" class="micro">Sources: action table and HandleActionRequest · task scheduler · smd and generated state tables · /track endpoints</text>
   </g>
 </svg>

@@ -17,7 +17,7 @@
 
 <br>
 
-[![Daptin runtime architecture: schema and runtime settings feed a shared resource graph, which supplies APIs, identity, automation, storage, integrations, protocols, and operations](docs/images/daptin-overview.svg)](docs/images/daptin-overview.svg)
+[![A product schema is loaded by Daptin and exposed through resource APIs, actions, realtime updates, and API discovery](docs/images/daptin-overview.svg)](docs/images/daptin-overview.svg)
 
 ## One model, many backend surfaces
 
@@ -57,7 +57,7 @@ Open **http://localhost:6336**, create the first administrator, and continue wit
 
 This map groups the implemented surface by responsibility. Open the image for a full-size view.
 
-[![Daptin feature map covering schema and data, APIs, identity, actions and schedules, files and sites, realtime protocols, integrations and LLM routing, metering, clustering, and operations](docs/images/daptin-feature-map.svg)](docs/images/daptin-feature-map.svg)
+[![Daptin includes data modeling, APIs, access control, backend jobs, files, realtime protocols, integrations, and production tooling](docs/images/daptin-feature-map.svg)](docs/images/daptin-feature-map.svg)
 
 | Capability | What Daptin provides | Learn more |
 |---|---|---|
@@ -108,7 +108,7 @@ Add [relations](https://github.com/daptin/daptin/wiki/Relationships), [permissio
 
 ## Actions, scheduled tasks, and state tracking
 
-[![Daptin automation model: an action executes ordered outcomes, a scheduled task invokes that same action handler as a selected user, and state tracking separately validates and records allowed transitions](docs/images/daptin-automation.svg)](docs/images/daptin-automation.svg)
+[![Actions run backend work, scheduled tasks call actions later, and state tracking records allowed changes without running actions](docs/images/daptin-automation.svg)](docs/images/daptin-automation.svg)
 
 These are related building blocks, not one workflow engine:
 
