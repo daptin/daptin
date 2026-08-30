@@ -9,10 +9,7 @@ import (
 	"github.com/buraksezer/olric"
 	olricConfig "github.com/buraksezer/olric/config"
 	"github.com/daptin/daptin/server/auth"
-	"github.com/daptin/daptin/server/hostswitch"
 	daptinid "github.com/daptin/daptin/server/id"
-	"github.com/daptin/daptin/server/task_scheduler"
-	server2 "github.com/fclairamb/ftpserver/server"
 	"github.com/go-redis/redis/v8"
 	jsoniter "github.com/json-iterator/go"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -28,20 +25,18 @@ import (
 	"time"
 
 	"github.com/GeertJohan/go.rice"
-	"github.com/artpar/go-guerrilla"
-	imapServer "github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/health"
 	"github.com/jamiealquiza/envy"
-	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 
 	//"io"
 	"net/http"
 	"os"
+	"os/signal"
 	"syscall"
 )
 
@@ -194,8 +189,6 @@ func printVersion() {
 }
 
 func main() {
-
-	restartLock := sync.Mutex{}
 	//eventEmitter := &emitter.Emitter{}
 
 	var dbType = flag.String("db_type", "sqlite3", "Database to use: sqlite3/mysql/postgres")
@@ -218,9 +211,17 @@ func main() {
 	var olricPort = flag.Int("olric_port", 0, "base port for olric cache (membership = olric_port+1). Default: auto-derived from HTTP port")
 	var olricSeed = flag.String("olric_seed", "", "hostname to resolve for cluster peer discovery (e.g., daptin-headless.default.svc.cluster.local)")
 	var olricConfigEnv = flag.String("olric_env", "local", "env value for olric: local/lan/wan, default: lan")
+	var shutdownTimeout = flag.Duration("shutdown_timeout", 30*time.Second, "maximum time allowed for graceful shutdown")
+	var shutdownReadinessDelay = flag.Duration("shutdown_readiness_delay", 2*time.Second, "time allowed for readiness changes to reach upstream proxies")
 
 	envy.Parse("DAPTIN") // looks for DAPTIN_PORT, DAPTIN_DASHBOARD, DAPTIN_DB_TYPE, DAPTIN_RUNTIME
 	flag.Parse()
+	if *shutdownTimeout <= 0 || *shutdownReadinessDelay < 0 {
+		log.Fatal("shutdown_timeout must be positive and shutdown_readiness_delay cannot be negative")
+	}
+
+	processCtx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stopSignals()
 
 	printVersion()
 
@@ -342,13 +343,6 @@ func main() {
 		portValue = ":" + portValue
 	}
 
-	var hostSwitch hostswitch.HostSwitch
-	var mailDaemon *guerrilla.Daemon
-	var taskScheduler task_scheduler.TaskScheduler
-	var certManager *resource.CertificateManager
-	var configStore *resource.ConfigStore
-	var ftpServer *server2.FtpServer
-	var imapServerInstance *imapServer.Server
 	var olricDb *olric.EmbeddedClient
 
 	if localStoragePath != nil && *localStoragePath != "" {
@@ -449,44 +443,43 @@ func main() {
 	log.Infof("PubSub pinned to local Olric: %s", localOlricAddr)
 
 	var membersTopic *olric.PubSub
-
-	go func() {
-
-		time.Sleep(5 * time.Second)
-		membersTopic, err := olricDb.NewPubSub(olric.ToAddress(localOlricAddr))
-		if err != nil || membersTopic == nil {
-			log.Errorf("failed to create PubSub, skipping member subscription: %v", err)
-			return
-		}
-
-		sub := membersTopic.Subscribe(context.Background(), "members")
+	var membersSubscription *redis.PubSub
+	membersTopic, err = olricDb.NewPubSub(olric.ToAddress(localOlricAddr))
+	if err != nil || membersTopic == nil {
+		log.Errorf("failed to create PubSub, skipping member subscription: %v", err)
+	} else {
+		membersSubscription = membersTopic.Subscribe(processCtx, "members")
 		go func(pubsub *redis.PubSub) {
 			channel := pubsub.Channel()
 			for msg := range channel {
 				log.Printf("[402] [%s] Member says: [%v]", msg.Channel, msg.String())
 			}
-		}(sub)
-		resource.CheckErr(err, "Failed to add listener to _members topic")
+		}(membersSubscription)
 
-		_, err = membersTopic.Publish(context.Background(), "members",
+		_, err = membersTopic.Publish(processCtx, "members",
 			fmt.Sprintf("Joining from %v", olricConfig1.MemberlistConfig.Name))
-
 		resource.CheckErr(err, "Failed to publish message at _members topic")
-
-	}()
-
-	hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-		ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb, localOlricAddr)
-	rhs := RestartHandlerServer{
-		HostSwitch: &hostSwitch,
 	}
+
+	runtimeInstance, err := server.NewRuntime(processCtx, boxRoot, db, *localStoragePath, olricDb, localOlricAddr)
+	if err != nil {
+		log.Fatalf("failed to initialize server runtime: %v", err)
+	}
+	configStore := runtimeInstance.ConfigStore
+	certManager := runtimeInstance.CertificateManager
+	gate := newReadinessGate(runtimeInstance.Handler, db.PingContext)
 
 	if *runtimeMode == "profile" {
 
 		go func() {
-
+			ticker := time.NewTicker(time.Duration(*profileDumpPeriod) * time.Minute)
+			defer ticker.Stop()
 			for {
-				time.Sleep(time.Duration(*profileDumpPeriod) * time.Minute)
+				select {
+				case <-processCtx.Done():
+					return
+				case <-ticker.C:
+				}
 				profileDumpCount += 1
 				pprof.StopCPUProfile()
 
@@ -511,65 +504,6 @@ func main() {
 
 	}
 
-	err = trigger.On("restart", func() {
-		log.Printf("Trigger restart")
-		restartLock.Lock()
-		defer restartLock.Unlock()
-
-		if membersTopic != nil {
-			membersTopic.Publish(context.Background(), "members",
-				fmt.Sprintf("I need to restart: %v", olricConfig1.MemberlistConfig.Name))
-		}
-
-		startTime := time.Now()
-
-		log.Printf("Close down services and db connection")
-		taskScheduler.StopTasks()
-		if ftpServer != nil {
-			ftpServer.Stop()
-		}
-
-		if mailDaemon != nil {
-			mailDaemon.Shutdown()
-		}
-
-		if imapServerInstance != nil {
-			err = imapServerInstance.Close()
-			if err != nil {
-				log.Printf("Failed to close imap server connections: %v", err)
-			}
-		}
-
-		//err = db.Close()
-		//resource.CheckErr(err, "Failed to close database connection")
-
-		log.Printf("All connections closed")
-		log.Printf("Create new connections")
-		//db1, err := server.GetDbConnection(*dbType, *connectionString)
-		//auth.CheckErr(err, "Failed to create new db connection")
-		//if err != nil {
-		//	return
-		//}
-
-		//transaction := db1.MustBegin()
-		//_ = transaction.Rollback()
-		log.Printf("connection acquired from database [%s]", *dbType)
-
-		hostSwitch, mailDaemon, taskScheduler, configStore, certManager,
-			ftpServer, imapServerInstance, olricDb = server.Main(boxRoot, db, *localStoragePath, olricDb, localOlricAddr)
-		rhs.HostSwitch = &hostSwitch
-
-		secondsToRestart := float64(time.Now().UnixNano()-startTime.UnixNano()) / float64(1000000000)
-		log.Printf("Restart complete, took %f seconds", secondsToRestart)
-		if membersTopic != nil {
-			membersTopic.Publish(context.Background(), "members",
-				fmt.Sprintf("I am back: %v, took me [%v] seconds to restart", olricConfig1.MemberlistConfig.Name, secondsToRestart))
-		}
-
-	})
-
-	resource.CheckErr(err, "Error while adding restart trigger function")
-
 	if port_variable != nil && *port_variable != "DAPTIN_PORT" {
 		portVarString := *port_variable
 
@@ -587,75 +521,146 @@ func main() {
 	log.Infof("[ProcessId=%v] Listening at port: %v", syscall.Getpid(), portValue)
 
 	transaction, err = db.Beginx()
-	resource.CheckErr(err, "Failed to begin transaction")
+	if err != nil {
+		log.Fatalf("failed to begin HTTPS configuration transaction: %v", err)
+	}
 	enableHttps, err := configStore.GetConfigValueFor("enable_https", "backend", transaction)
 	if err != nil {
 		enableHttps = "false"
 		_ = configStore.SetConfigValueFor("enable_https", enableHttps, "backend", transaction)
 	}
 
-	hostname, err := configStore.GetConfigValueFor("hostname", "backend", transaction)
+	var hostname string
+	var backendHostnameCertificate *resource.TLSCertificate
+	var subsitesCertificateMap map[string]*resource.TLSCertificate
+	if enableHttps == "true" {
+		hostname, err = configStore.GetConfigValueFor("hostname", "backend", transaction)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Fatalf("failed to load HTTPS hostname: %v", err)
+		}
+		backendHostnameCertificate, err = certManager.GetTLSConfig(hostname, true, transaction)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Fatalf("failed to load HTTPS certificate for %s: %v", hostname, err)
+		}
+		subsitesCertificateMap, err = certManager.GetTLSForEnabledSubsites(transaction)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Fatalf("failed to load HTTPS subsite certificates: %v", err)
+		}
+	}
+	if err = transaction.Commit(); err != nil {
+		log.Fatalf("failed to commit HTTPS configuration: %v", err)
+	}
 
-	backendHostnameCertificate, err := certManager.GetTLSConfig(hostname, true, transaction)
-	subsitesCertificateMap, err := certManager.GetTLSForEnabledSubsites(transaction)
-	transaction.Commit()
+	tracker := server.NewConnectionTracker()
+	plainListener, err := net.Listen("tcp", portValue)
+	if err != nil {
+		log.Fatalf("failed to listen on %s: %v", portValue, err)
+	}
+	plainServer := &http.Server{Addr: portValue, Handler: gate}
+	httpServers := []*http.Server{plainServer}
+	serveErrors := make(chan error, 3)
+	go func() {
+		if serveErr := plainServer.Serve(tracker.Wrap(plainListener)); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			serveErrors <- fmt.Errorf("HTTP server: %w", serveErr)
+		}
+	}()
 
-	if err == nil && enableHttps == "true" {
+	if enableHttps == "true" {
+		keyPairMap := make(map[string]tls.Certificate)
+		backendCertKeyPair, pairErr := CreateKeyPairFromTLSCertificate(backendHostnameCertificate)
+		if pairErr != nil {
+			log.Fatalf("failed to create backend TLS key pair: %v", pairErr)
+		}
+		keyPairMap[hostname] = backendCertKeyPair
+		for subsiteHostname, subsiteCertificate := range subsitesCertificateMap {
+			certKeyPair, pairErr := CreateKeyPairFromTLSCertificate(subsiteCertificate)
+			if pairErr != nil {
+				log.Fatalf("failed to create TLS key pair for subsite %s: %v", subsiteHostname, pairErr)
+			}
+			keyPairMap[subsiteHostname] = certKeyPair
+		}
+		tlsConfig := &tls.Config{GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			cert, ok := keyPairMap[info.ServerName]
+			if !ok {
+				return nil, fmt.Errorf("certificate not found for hostname [%v]", info.ServerName)
+			}
+			return &cert, nil
+		}}
+		httpsListener, listenErr := net.Listen("tcp", *httpsPort)
+		if listenErr != nil {
+			log.Fatalf("failed to listen on HTTPS address %s: %v", *httpsPort, listenErr)
+		}
+		tlsServer := &http.Server{Addr: *httpsPort, Handler: gate, TLSConfig: tlsConfig}
+		httpServers = append(httpServers, tlsServer)
 		go func() {
-
-			keyPairMap := make(map[string]tls.Certificate)
-
-			backendCertKeyPair, err := CreateKeyPairFromTLSCertificate(backendHostnameCertificate)
-			if err != nil {
-				panic(err)
-			}
-
-			keyPairMap[hostname] = backendCertKeyPair
-
-			for subsiteHostname, subsiteCertificate := range subsitesCertificateMap {
-				certKeyPair, err := CreateKeyPairFromTLSCertificate(subsiteCertificate)
-				if err != nil {
-					log.Errorf("Failed to create key pair for subsite [%v]: %v", subsiteHostname, err)
-					continue
-				}
-				keyPairMap[subsiteHostname] = certKeyPair
-			}
-
-			tlsServer := &http.Server{
-				Addr:    *httpsPort,
-				Handler: &rhs,
-				TLSConfig: &tls.Config{
-					GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
-						cert, ok := keyPairMap[info.ServerName]
-						if ok {
-							return &cert, nil
-						}
-						return nil, fmt.Errorf("certificate not found for hostname [%v]", info.ServerName)
-					},
-				},
-			}
-
-			log.Infof("TLS server listening on port %v", *httpsPort)
-			err1 := tlsServer.ListenAndServeTLS("", "")
-			if err1 != nil {
-				log.Errorf("Failed to start TLS server: %v", err1)
+			listener := tls.NewListener(tracker.Wrap(httpsListener), tlsConfig)
+			if serveErr := tlsServer.Serve(listener); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+				serveErrors <- fmt.Errorf("HTTPS server: %w", serveErr)
 			}
 		}()
+		log.Infof("TLS server listening on port %v", *httpsPort)
 	} else {
-		log.Warnf("Not starting HTTPS server: %v: %v", hostname, err)
+		log.Info("HTTPS is disabled")
 	}
 
+	gate.SetReady(true)
 	log.Infof("Listening at: [%v]", portValue)
-	err = http.ListenAndServe(portValue, &rhs)
-	if err != nil {
-		panic(err)
+	var lifecycleErr error
+	select {
+	case <-processCtx.Done():
+		log.Infof("Shutdown signal received")
+	case lifecycleErr = <-serveErrors:
+		log.Errorf("Server stopped unexpectedly: %v", lifecycleErr)
+	case lifecycleErr = <-runtimeInstance.Errors():
+		log.Errorf("Runtime service stopped unexpectedly: %v", lifecycleErr)
 	}
-	if membersTopic != nil {
-		membersTopic.Publish(context.Background(), "members",
-			fmt.Sprintf("I am shutting down: %v", olricConfig1.MemberlistConfig.Name))
+	gate.SetReady(false)
+	stopSignals()
+
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), *shutdownTimeout)
+	defer cancelShutdown()
+	_ = runtimeInstance.Quiesce() // Drain reports any quiesce error below.
+
+	delay := time.NewTimer(*shutdownReadinessDelay)
+	select {
+	case <-delay.C:
+	case <-shutdownCtx.Done():
+		delay.Stop()
 	}
 
-	log.Printf("Why quit now ?")
+	serverShutdownErrors := make(chan error, len(httpServers))
+	for _, httpServer := range httpServers {
+		go func(srv *http.Server) { serverShutdownErrors <- srv.Shutdown(shutdownCtx) }(httpServer)
+	}
+	for range httpServers {
+		if shutdownErr := <-serverShutdownErrors; shutdownErr != nil {
+			lifecycleErr = errors.Join(lifecycleErr, shutdownErr)
+		}
+	}
+	if runtimeErr := runtimeInstance.Drain(shutdownCtx); runtimeErr != nil {
+		lifecycleErr = errors.Join(lifecycleErr, runtimeErr)
+	}
+	tracker.CloseAll()
+
+	if membersTopic != nil {
+		_, _ = membersTopic.Publish(shutdownCtx, "members", fmt.Sprintf("I am shutting down: %v", olricConfig1.MemberlistConfig.Name))
+	}
+	if membersSubscription != nil {
+		_ = membersSubscription.Close()
+	}
+	if olricErr := emb.Shutdown(shutdownCtx); olricErr != nil {
+		lifecycleErr = errors.Join(lifecycleErr, olricErr)
+	}
+	if dbErr := db.Close(); dbErr != nil {
+		lifecycleErr = errors.Join(lifecycleErr, dbErr)
+	}
+	if lifecycleErr != nil {
+		log.Errorf("Shutdown failed: %v", lifecycleErr)
+		os.Exit(1)
+	}
 }
 
 // resolveOlricPeers resolves a DNS hostname to olric peer addresses.
@@ -707,13 +712,4 @@ func CreateKeyPairFromTLSCertificate(backendHostnameCertificate *resource.TLSCer
 		return tls.Certificate{}, err
 	}
 	return backendCertKeyPair, nil
-}
-
-// RestartHandlerServer helps in switching the new router with old router with restart is triggered
-type RestartHandlerServer struct {
-	HostSwitch *hostswitch.HostSwitch
-}
-
-func (rhs *RestartHandlerServer) ServeHTTP(rew http.ResponseWriter, req *http.Request) {
-	rhs.HostSwitch.ServeHTTP(rew, req)
 }

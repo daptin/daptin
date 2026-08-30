@@ -1,6 +1,10 @@
 package server
 
 import (
+	"crypto/tls"
+	"errors"
+	"fmt"
+	"net"
 	"strings"
 
 	"github.com/artpar/go-imap"
@@ -13,7 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func InitializeImapResources(configStore *resource.ConfigStore, transaction *sqlx.Tx, cruds map[string]*resource.DbResource, imapServer *server.Server, certificateManager *resource.CertificateManager) *server.Server {
+func InitializeImapResources(configStore *resource.ConfigStore, transaction *sqlx.Tx, cruds map[string]*resource.DbResource,
+	imapServer *server.Server, certificateManager *resource.CertificateManager, runtimeErrors chan<- error) (*server.Server, error) {
 	imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend", transaction)
 	if err != nil {
 		err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend", transaction)
@@ -35,24 +40,28 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 	cert, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 	if err != nil {
 		logrus.Printf("Failed to get certificate for IMAP [%v]: %v — IMAP server will not start", hostname, err)
-		return nil
+		return nil, err
 	}
 	imapServer.TLSConfig = cert.TLSConfig
 
 	logrus.Printf("Starting IMAP server at %s: %v", imapListenInterface, hostname)
 
+	listener, err := net.Listen("tcp", imapListenInterface)
+	if err != nil {
+		return nil, err
+	}
+	if EndsWithCheck(imapListenInterface, ":993") {
+		listener = tls.NewListener(listener, imapServer.TLSConfig)
+	}
 	go func() {
-		if EndsWithCheck(imapListenInterface, ":993") {
-			if err := imapServer.ListenAndServeTLS(); err != nil {
-				resource.CheckErr(err, "Imap server is not listening anymore 1")
-			}
-		} else {
-			if err := imapServer.ListenAndServe(); err != nil {
-				resource.CheckErr(err, "Imap server is not listening anymore 2")
+		if serveErr := imapServer.Serve(listener); serveErr != nil && !errors.Is(serveErr, net.ErrClosed) {
+			select {
+			case runtimeErrors <- fmt.Errorf("IMAP server: %w", serveErr):
+			default:
 			}
 		}
 	}()
-	return imapServer
+	return imapServer, nil
 }
 
 func resolveIMAPHostname(configStore *resource.ConfigStore, transaction *sqlx.Tx) string {

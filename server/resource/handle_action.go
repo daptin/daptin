@@ -910,10 +910,9 @@ func BuildOutcome(inFieldMap map[string]interface{},
 	case "system_json_schema_update":
 
 		ur, _ := url.Parse("/")
-		responseModel := api2go.NewApi2GoModel("__restart", nil, 0, nil)
 		returnRequest := api2go.Request{
 			PlainRequest: &http.Request{
-				Method: "EXECUTE",
+				Method: "ACTIONRESPONSE",
 				URL:    ur,
 			},
 		}
@@ -966,7 +965,12 @@ func BuildOutcome(inFieldMap map[string]interface{},
 
 		}
 
-		log.Printf("Written all json files. Attempting restart")
+		log.Printf("Written all schema files; a process restart is required to apply them")
+		responseModel := api2go.NewApi2GoModelWithData("client.notify", nil, int64(auth.DEFAULT_PERMISSION), nil, map[string]interface{}{
+			"type":    "success",
+			"title":   "Schema uploaded",
+			"message": "Schema files were stored. Restart the Daptin process to apply them.",
+		})
 
 		return &responseModel, returnRequest, nil
 

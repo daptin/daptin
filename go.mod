@@ -77,7 +77,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/sadlil/go-trigger v0.0.0-20170328161825-cfc3d83007cd
 	github.com/shirou/gopsutil/v4 v4.25.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1

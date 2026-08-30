@@ -204,7 +204,6 @@ From `SystemActions` array (lines 110-1536):
 
 | Action Name | OnType | Status | Documented In |
 |-------------|--------|--------|---------------|
-| `restart_daptin` | world | ✅ | Getting-Started-Guide.md, multiple docs |
 | `sync_mail_servers` | mail_server | ❌ | **UNDOCUMENTED** - Mail table actions missing |
 | `add_exchange` | world | ✅ | Data-Actions.md (Google Sheets example) |
 

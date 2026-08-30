@@ -386,7 +386,6 @@ OutFields:
 | `world.column.delete` | Delete a column |
 | `world.column.rename` | Rename a column |
 | `__become_admin` | Become administrator |
-| `__restart` | Restart server |
 | `__enable_graphql` | Enable GraphQL |
 | `__data_export` | Export table data |
 | `__data_import` | Import table data |

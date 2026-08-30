@@ -177,6 +177,7 @@ var SubsiteCache olric.DMap
 var olricClient *olric.EmbeddedClient
 var subsiteCacheInitialized bool
 var subsiteCacheMutex sync.Mutex
+var subsiteCacheCancel context.CancelFunc
 
 // Track in-flight cache loading to prevent race conditions
 var inFlightLoads = &sync.Map{}
@@ -283,7 +284,7 @@ func isCacheExpired(entry *SubsiteCacheEntry) bool {
 }
 
 // InitSubsiteCache initializes the Olric cache for subsites
-func InitSubsiteCache(client *olric.EmbeddedClient) error {
+func InitSubsiteCache(ctx context.Context, client *olric.EmbeddedClient) error {
 	subsiteCacheMutex.Lock()
 	defer subsiteCacheMutex.Unlock()
 
@@ -303,7 +304,9 @@ func InitSubsiteCache(client *olric.EmbeddedClient) error {
 	}
 
 	// Start periodic metrics logging
-	go logCacheMetricsPeriodically()
+	metricsCtx, cancel := context.WithCancel(ctx)
+	subsiteCacheCancel = cancel
+	go logCacheMetricsPeriodically(metricsCtx)
 
 	log.Infof("Subsite cache initialized with max entry size: %d KB", CacheConfig.MaxEntrySize/1024)
 	subsiteCacheInitialized = true
@@ -445,20 +448,34 @@ func TrackCacheBypassed() {
 }
 
 // logCacheMetricsPeriodically logs cache performance metrics every 5 minutes
-func logCacheMetricsPeriodically() {
+func logCacheMetricsPeriodically(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		metrics := GetCacheMetrics()
-		log.WithFields(log.Fields{
-			"hits":       metrics["cache_hits"],
-			"misses":     metrics["cache_misses"],
-			"bypassed":   metrics["cache_bypassed"],
-			"rejected":   metrics["cache_rejected"],
-			"added":      metrics["cache_added"],
-			"hit_rate":   fmt.Sprintf("%.2f%%", metrics["hit_rate"].(float64)*100),
-			"total_reqs": metrics["total_requests"],
-		}).Info("Cache performance metrics")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			metrics := GetCacheMetrics()
+			log.WithFields(log.Fields{
+				"hits":       metrics["cache_hits"],
+				"misses":     metrics["cache_misses"],
+				"bypassed":   metrics["cache_bypassed"],
+				"rejected":   metrics["cache_rejected"],
+				"added":      metrics["cache_added"],
+				"hit_rate":   fmt.Sprintf("%.2f%%", metrics["hit_rate"].(float64)*100),
+				"total_reqs": metrics["total_requests"],
+			}).Info("Cache performance metrics")
+		}
+	}
+}
+
+func ShutdownSubsiteCache() {
+	subsiteCacheMutex.Lock()
+	defer subsiteCacheMutex.Unlock()
+	if subsiteCacheCancel != nil {
+		subsiteCacheCancel()
+		subsiteCacheCancel = nil
 	}
 }

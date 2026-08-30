@@ -17,6 +17,16 @@ curl http://localhost:6336/ping
 pong
 ```
 
+`/ping` is a liveness check: it remains HTTP 200 while the process is draining.
+
+### Readiness
+
+```bash
+curl http://localhost:6336/ready
+```
+
+`/ready` checks database availability and returns HTTP 503 while starting or draining. Load balancers and Kubernetes readiness probes should use this endpoint.
+
 ### /health - Admin Dashboard
 
 **Purpose:** Browser-accessible admin dashboard for visual monitoring
@@ -30,7 +40,7 @@ curl http://localhost:6336/health
 - Content-Type: text/html
 - Full admin UI interface (HTML/JavaScript application)
 
-**Note:** This is the full admin web application, not a simple health check. For programmatic health checks (monitoring scripts, uptime tools), use `/ping` instead.
+**Note:** This is the full admin web application, not a health check. Use `/ping` for liveness and `/ready` for traffic routing.
 
 ## Statistics
 

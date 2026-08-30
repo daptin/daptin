@@ -1,6 +1,7 @@
 package websockets
 
 import (
+	"context"
 	"net/http"
 	"sync"
 
@@ -25,7 +26,9 @@ type Server struct {
 	clients       map[int]*Client
 	addCh         chan *Client
 	delCh         chan *Client
-	doneCh        chan bool
+	doneCh        chan struct{}
+	stoppedCh     chan struct{}
+	stopOnce      sync.Once
 	errCh         chan error
 	dtopicMap     *map[string]*olric.PubSub
 	dtopicMapLock sync.RWMutex
@@ -39,33 +42,52 @@ func NewServer(pattern string, dtopicMap *map[string]*olric.PubSub, cruds map[st
 	clients := make(map[int]*Client)
 	addCh := make(chan *Client, 256)
 	delCh := make(chan *Client, 16)
-	doneCh := make(chan bool)
+	doneCh := make(chan struct{})
 	errCh := make(chan error, 16)
 
+	var olricDb *olric.EmbeddedClient
+	if world := cruds["world"]; world != nil {
+		olricDb = world.OlricDb
+	}
 	return &Server{
-		pattern:   pattern,
-		clients:   clients,
-		addCh:     addCh,
-		delCh:     delCh,
-		doneCh:    doneCh,
-		errCh:     errCh,
+		pattern:      pattern,
+		clients:      clients,
+		addCh:        addCh,
+		delCh:        delCh,
+		doneCh:       doneCh,
+		stoppedCh:    make(chan struct{}),
+		errCh:        errCh,
 		dtopicMap:    dtopicMap,
-		olricDb:      cruds["world"].OlricDb,
+		olricDb:      olricDb,
 		cruds:        cruds,
 		sharedPubSub: sharedPubSub,
 	}
 }
 
 func (s *Server) Add(c *Client) {
-	s.addCh <- c
+	select {
+	case s.addCh <- c:
+	case <-s.doneCh:
+		c.Close()
+	}
 }
 
 func (s *Server) Del(c *Client) {
-	s.delCh <- c
+	select {
+	case s.delCh <- c:
+	case <-s.doneCh:
+		c.Close()
+	}
 }
 
-func (s *Server) Done() {
-	s.doneCh <- true
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.stopOnce.Do(func() { close(s.doneCh) })
+	select {
+	case <-s.stoppedCh:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (s *Server) Err(err error) {
@@ -80,6 +102,7 @@ type WebSocketConnectionHandler interface {
 // Listen and serve.
 // It serves client connection and broadcast request.
 func (s *Server) Listen(router *gin.Engine) {
+	defer close(s.stoppedCh)
 
 	log.Printf("Listening websocket server at ... %v", s.pattern)
 
@@ -132,6 +155,10 @@ func (s *Server) Listen(router *gin.Engine) {
 			log.Infof("[136] error: %s", err.Error())
 
 		case <-s.doneCh:
+			for _, client := range s.clients {
+				client.Close()
+			}
+			clear(s.clients)
 			return
 		}
 	}

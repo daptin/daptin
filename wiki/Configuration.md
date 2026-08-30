@@ -151,9 +151,8 @@ Most configuration changes take effect immediately. These require a restart:
 - New actions
 
 ```bash
-# Restart via API
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN"
+# Restart through your process supervisor
+docker restart daptin
 ```
 
 ## Export Configuration

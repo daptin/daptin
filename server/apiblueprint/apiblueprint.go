@@ -202,11 +202,7 @@ curl -X POST http://localhost:6336/api/world \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"data":{"type":"world","attributes":{"table_name":"books","world_schema_json":"{\"tableName\":\"books\",\"columns\":[{\"name\":\"id\",\"columnType\":\"id\",\"dataType\":\"INTEGER\",\"isPrimaryKey\":true},{\"name\":\"title\",\"columnType\":\"label\",\"dataType\":\"varchar(100)\"}]}"}}}'
 
-# Restart to activate new entity (transparent hot-reload)
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{}'
+# Restart the Daptin process through your process supervisor to activate schema changes.
 ` + "```" + `
 
 ## 🎓 Advanced Self-Management
@@ -220,7 +216,7 @@ curl -X POST http://localhost:6336/action/world/restart_daptin \
 ### Dynamic Schema Management
 - **Create entities**: POST /api/world with table_name and world_schema_json
 - **Add columns**: Use world actions like add_column, remove_column, rename_column
-- **Hot-reload**: /action/world/restart_daptin applies schema changes without process restart
+- **Schema activation**: restart the Daptin process through Kubernetes, Docker, or systemd after schema changes
 
 ### Multi-Admin Support
 - **Additional admins**: Add users to "administrators" usergroup
@@ -1485,7 +1481,6 @@ Example: Authorization: Bearer <your-jwt-token>`,
 			"description": `Core system administration actions that affect the entire Daptin instance.
 
 **Key Actions:**
-- restart_daptin - Gracefully restart the system
 - become_an_administrator - Elevate user privileges
 - download_system_schema - Export complete configuration
 - upload_system_schema - Import configuration changes`,
@@ -2490,7 +2485,6 @@ func categorizeAction(actionName string) string {
 		"oauth.login.response":  "User Management",
 
 		// System Actions
-		"restart_daptin":          "System Actions",
 		"become_an_administrator": "System Actions",
 		"sync_mail_servers":       "System Actions",
 		"install_integration":     "System Actions",
@@ -2645,14 +2639,6 @@ func generateActionDescription(action actionresponse.Action) string {
 - Creates mail_box records for new emails
 - Updates sync timestamps
 - May trigger email processing workflows`,
-
-		"restart_daptin": `Initiates a graceful system restart. Returns success immediately but actual restart happens asynchronously.
-
-**Response Types:**
-- client.notify - "Initiating system update"
-- client.redirect - Redirects to home after 5 seconds
-
-**Note:** The actual restart is handled by the process manager (systemd, Docker, etc.)`,
 
 		"generate_random_data": `Generates realistic test data for a specified table based on column types.
 
@@ -3545,24 +3531,6 @@ func generateActionResponseExample(action actionresponse.Action) []map[string]in
 					"type":    "success",
 					"title":   "Success",
 					"message": "Column renamed",
-				},
-			},
-		},
-		"restart_daptin": {
-			{
-				"ResponseType": "client.notify",
-				"Attributes": map[string]interface{}{
-					"type":    "success",
-					"title":   "Success",
-					"message": "Initiating system update.",
-				},
-			},
-			{
-				"ResponseType": "client.redirect",
-				"Attributes": map[string]interface{}{
-					"location": "/",
-					"window":   "self",
-					"delay":    5000,
 				},
 			},
 		},

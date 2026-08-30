@@ -26,16 +26,7 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 ]
 ```
 
-## restart_daptin
-
-Restart the Daptin server.
-
-```bash
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"attributes": {}}'
-```
+Process restarts are managed by Kubernetes, Docker, systemd, or another process supervisor rather than an administrative HTTP action.
 
 **Use cases:**
 - Apply schema changes
@@ -70,10 +61,8 @@ curl -X POST http://localhost:6336/_config/backend/graphql.enable \
   -H "Authorization: Bearer $TOKEN" \
   -d 'true'
 
-# Restart required
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {}}'
+# Restart required; use your process supervisor
+docker restart daptin
 ```
 
 GraphQL endpoint: `http://localhost:6336/graphql`

@@ -8,39 +8,49 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/task"
-	"github.com/daptin/daptin/server/task_scheduler"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 type DefaultTaskScheduler struct {
-	//cmsConfig   *CmsConfig
 	cruds       map[string]*DbResource
-	configStore *ConfigStore
 	cronService *cron.Cron
-	activeTasks []*ActiveTaskInstance
+	stopOnce    sync.Once
+	stopped     context.Context
 }
 
-func NewTaskScheduler(cmsConfig *CmsConfig, cruds map[string]*DbResource, configStore *ConfigStore) task_scheduler.TaskScheduler {
-	cronService := cron.New()
-	cronService.Start()
-	dts := &DefaultTaskScheduler{
-		//cmsConfig:   cmsConfig,
+func NewTaskScheduler(cruds map[string]*DbResource) *DefaultTaskScheduler {
+	return &DefaultTaskScheduler{
 		cruds:       cruds,
-		configStore: configStore,
-		cronService: cronService,
-		activeTasks: make([]*ActiveTaskInstance, 0),
+		cronService: cron.New(),
 	}
-	return dts
 }
 
-func (dts *DefaultTaskScheduler) StopTasks() {
-	dts.cronService.Stop()
+func (dts *DefaultTaskScheduler) Start() {
+	dts.cronService.Start()
 }
 
-func (dts *DefaultTaskScheduler) StartTasks() {
+// Quiesce prevents new scheduled jobs from starting.
+func (dts *DefaultTaskScheduler) Quiesce() {
+	dts.stopOnce.Do(func() {
+		dts.stopped = dts.cronService.Stop()
+	})
+}
+
+func (dts *DefaultTaskScheduler) Stop(ctx context.Context) error {
+	dts.Quiesce()
+	select {
+	case <-dts.stopped.Done():
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (dts *DefaultTaskScheduler) LoadPersistedTasks() {
 
 	tasks, err := dts.cruds["task"].GetAllTasks()
 	if CheckErr(err, "Failed to fetch tasks from database") {
@@ -115,7 +125,6 @@ func (ati *ActiveTaskInstance) Run() {
 func (dts *DefaultTaskScheduler) AddTask(task task.Task) error {
 	log.Printf("Register task [%v] at %v", task.ActionName, task.Schedule)
 	at := dts.cruds["task"].NewActiveTaskInstance(task)
-	dts.activeTasks = append(dts.activeTasks, at)
 	_, err := dts.cronService.AddJob(task.Schedule, at)
 
 	return err

@@ -193,8 +193,6 @@ outbox lifecycle and DNS checklist.
 Restart the server to start/update listening to as the SMTP server/IMAP server
 
 ```bash
-curl 'http://localhost:8080/action/world/restart_daptin' -X POST \
-    -H 'Authorization: Bearer <TOKEN>' \
-    -H 'Content-Type: application/json;charset=utf-8' \
-    --data-raw '{"attributes":{}}'
+# Use your process supervisor, for example:
+docker restart daptin
 ```

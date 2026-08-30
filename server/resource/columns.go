@@ -610,22 +610,6 @@ var SystemActions = []actionresponse.Action{
 		},
 	},
 	{
-		Name:             "restart_daptin",
-		Label:            "Restart system",
-		OnType:           "world",
-		InstanceOptional: true,
-		InFields:         []api2go.ColumnInfo{},
-		OutFields: []actionresponse.Outcome{
-			{
-				Type:   "system_json_schema_update",
-				Method: "EXECUTE",
-				Attributes: map[string]interface{}{
-					"json_schema": "!JSON.parse('[{\"name\":\"empty.json\",\"file\":\"data:application/json;base64,e30K\",\"type\":\"application/json\"}]')",
-				},
-			},
-		},
-	},
-	{
 		Name:             "generate_random_data",
 		Label:            "Generate random data",
 		OnType:           "world",

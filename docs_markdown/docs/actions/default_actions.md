@@ -10,37 +10,7 @@ Actions can use certain inbuilt methods to perform wide variety of operations.
 ## Default actions
 
 
-### Restart daptin
-
-Restarts daptin immediately and reads file system for new config and data files and apply updates to the APIs as necessary.
-
-Takes about 15 seconds (async) to reconfigure everything.
-
-```
-var request = require('request');
-
-var headers = {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFydHBhcjFAZ21haWwuY29tIiwiZXhwIjoxNTIzMTgzMTA0LCJpYXQiOiIyMDE4LTA0LTA1VDE1OjU1OjA0LjYyMzU4NTYxKzA1OjMwIiwiaXNzIjoiZGFwdGluIiwianRpIjoiNmJhMmFhZjgtODBlNS00OGIwLTgwZmItMzEzYzk3Nzg0Y2E4IiwibmFtZSI6InBhcnRoIiwibmJmIjoxNTIyOTIzOTA0LCJwaWN0dXJlIjoiaHR0cHM6Ly93d3cuZ3JhdmF0YXIuY29tL2F2YXRhci9mNGJmNmI2Nzg5NGU5MzAzYjZlMTczMTMyZWE0ZTkwYVx1MDAyNmQ9bW9uc3RlcmlkIn0.eb5Vp00cHLeshZBtwJIyarJ6RQOLeVPj15n8ubVnGYo'
-};
-
-var dataString = '{"attributes":{}}';
-
-var options = {
-    url: 'http://localhost:6336/action/world/restart_daptin',
-    method: 'POST',
-    headers: headers,
-    body: dataString
-};
-
-function callback(error, response, body) {
-    if (!error && response.statusCode == 200) {
-        console.log(body);
-    }
-}
-
-request(options, callback);
-
-```
+Schema and startup configuration changes are activated by restarting the Daptin process through Kubernetes, Docker, systemd, or another process supervisor.
 
 
 ### Generate random data
@@ -281,7 +251,6 @@ These methods can be used in actions
 | otp.generate                 | email/mobile                                                 | generate a TOTP for the account (can be sent via SMS/EMAIL)                                            |   |   |
 | otp.login.verify             | email/mobile and otp code                                    | verify a TOTP code presented by the user, generate a JWT token if valid                                |   |   |
 | world.column.rename          | table id, column name, new column name                       | try to rename a table column                                                                           |   |   |
-| __restart                    | no input                                                     | reload all configurations and settings (after changes in config/site/cloudstore etc)                   |   |   |
 | site.file.get                | site id, file path                                           | get file contents at the certain path                                                                  |   |   |
 | site.file.list               | site id, path                                                | get list of contents of a folder                                                                       |   |   |
 | site.storage.sync            | site id                                                      | sync down all changes from the storage provider                                                        |   |   |

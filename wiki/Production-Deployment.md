@@ -73,9 +73,8 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
     }
   }'
 
-# Restart Daptin to use certificate
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN"
+# Restart Daptin through your process supervisor to use the certificate
+docker restart daptin
 ```
 
 #### Option B: Your Own Certificate
@@ -227,6 +226,8 @@ curl http://api.example.com/ping
 # Frequency: Every 30 seconds
 # Alert on: Connection refused, timeout, non-"pong" response
 ```
+
+Use `/ready` for load-balancer and Kubernetes readiness checks. It returns HTTP 503 before Daptin begins draining requests. Configure the shutdown budget with `DAPTIN_SHUTDOWN_TIMEOUT` (default `30s`) and readiness propagation delay with `DAPTIN_SHUTDOWN_READINESS_DELAY` (default `2s`).
 
 #### Statistics Monitoring
 
@@ -385,8 +386,8 @@ frontend http_front
 
 backend daptin_backend
     balance roundrobin
-    option httpchk GET /ping
-    http-check expect string pong
+    option httpchk GET /ready
+    http-check expect status 200
     server daptin1 10.0.1.10:6336 check
     server daptin2 10.0.1.11:6336 check
     server daptin3 10.0.1.12:6336 check

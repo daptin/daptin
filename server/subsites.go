@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	limit "github.com/aviddiviner/gin-limit"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/assetcachepojo"
@@ -22,9 +23,10 @@ import (
 	"time"
 )
 
-func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
+func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
-	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient, gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
+	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient,
+	scheduler *resource.DefaultTaskScheduler, gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
 	enableGzip := len(gzipEnabled) == 0 || gzipEnabled[0]
 
 	hs := hostswitch.HostSwitch{
@@ -37,7 +39,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 
 	// Initialize the subsite cache with Olric client
 	if olricClient != nil {
-		err := InitSubsiteCache(olricClient)
+		err := InitSubsiteCache(ctx, olricClient)
 		if err != nil {
 			log.Errorf("Failed to initialize subsite cache: %v", err)
 		} else {
@@ -139,7 +141,7 @@ func CreateSubSites(cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 			}()
 		}(activeTask)
 
-		err = TaskScheduler.AddTask(syncTask)
+		err = scheduler.AddTask(syncTask)
 		var credentials map[string]interface{}
 		if cloudStore.CredentialName != "" {
 			cred, err := cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)

@@ -92,8 +92,8 @@ curl -X POST http://localhost:8081/api/world \
 
 ### 2. Restart Server (Required for Schema Changes)
 ```bash
-curl -X POST http://localhost:8081/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN"
+# Use your supervisor, for example:
+docker restart daptin
 ```
 
 ## Authentication Best Practices
@@ -136,7 +136,7 @@ curl http://localhost:8081/api/user_account
 
 ### Schema Changes Not Reflected
 - Cause: Server needs restart after entity creation
-- Solution: Use `/action/world/restart_daptin` action
+- Solution: Restart the Daptin process through Kubernetes, Docker, or systemd
 
 ## Restricted Actions (Even for Admins)
 Some actions remain restricted:

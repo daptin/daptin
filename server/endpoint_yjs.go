@@ -89,12 +89,27 @@ func serveYjsRoom(ginContext *gin.Context, yjsConnectionHandler http.HandlerFunc
 	yjsConnectionHandler(ginContext.Writer, ginContext.Request)
 }
 
-func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
-	cruds map[string]*resource.DbResource, dtopicMap map[string]*olric.PubSub) error {
+type YjsRuntime struct {
+	database      *ydb.Ydb
+	subscriptions []*redis.PubSub
+}
+
+func (r *YjsRuntime) Close() {
+	for _, subscription := range r.subscriptions {
+		_ = subscription.Close()
+	}
+	if r.database != nil {
+		r.database.Close()
+	}
+}
+
+func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter *gin.Engine,
+	cruds map[string]*resource.DbResource, dtopicMap map[string]*olric.PubSub) (*YjsRuntime, error) {
 	var err error
 
 	broadcaster := ydb.NewLocalBroadcaster(64)
 	ydbInstance := ydb.InitYdb(store, broadcaster)
+	runtime := &YjsRuntime{database: ydbInstance}
 
 	yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
 
@@ -142,7 +157,8 @@ func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
 				if !ok || pubSub == nil {
 					logrus.Warnf("no pub/sub topic for type %v, skipping subscription", typename)
 				} else {
-					redisPubSub := pubSub.Subscribe(context.Background(), typename)
+					redisPubSub := pubSub.Subscribe(ctx, typename)
+					runtime.subscriptions = append(runtime.subscriptions, redisPubSub)
 					go func(rps *redis.PubSub) {
 						channel := rps.Channel()
 						for msg := range channel {
@@ -185,5 +201,5 @@ func InitializeYjsResources(store ydb.Store, defaultRouter *gin.Engine,
 
 	}
 
-	return err
+	return runtime, err
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -28,6 +29,7 @@ type Client struct {
 	doneCh                     chan bool
 	user                       *auth.SessionUser
 	webSocketConnectionHandler WebSocketConnectionHandler
+	closeOnce                  sync.Once
 }
 
 // Create new chat client.
@@ -108,7 +110,10 @@ func (c *Client) Done() {
 }
 
 func (c *Client) Close() {
-	c.webSocketConnectionHandler.Close()
+	c.closeOnce.Do(func() {
+		c.webSocketConnectionHandler.Close()
+		_ = c.ws.Close()
+	})
 }
 
 // Listen Write and Read request via chanel

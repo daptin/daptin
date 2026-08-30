@@ -11,7 +11,6 @@ import (
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/jmoiron/sqlx"
-	"github.com/sadlil/go-trigger"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
@@ -271,7 +270,7 @@ nextFile:
 			resource.ImportDataFiles(sources, transaction, d.cruds)
 		}
 
-		trigger.Fire("clean_up_uploaded_files")
+		resource.CleanUpConfigFiles()
 
 		return nil, successResponses, nil
 	} else {

@@ -355,22 +355,6 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
   -d '{"attributes":{}}'
 ```
 
-### restart_daptin
-
-Restart the Daptin server to apply configuration changes.
-
-| Property | Value |
-|----------|-------|
-| Entity | `world` |
-| Instance Required | No |
-
-```bash
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{}}'
-```
-
 ### download_system_schema
 
 Download complete system schema as JSON.
@@ -1005,7 +989,6 @@ These are the internal action executors:
 | `random.generate` | Generate random values |
 | `mail.send` | Send email |
 | `oauth.login.response` | Handle OAuth response |
-| `__restart` | Restart system |
 | `__data_export` | Export data |
 | `cloudstore.path.move` | Move cloud store path |
 | `__upload_xlsx_file_to_entity` | Upload XLSX to entity |

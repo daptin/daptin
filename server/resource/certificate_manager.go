@@ -146,6 +146,7 @@ func (cm *CertificateManager) GetTLSForEnabledSubsites(transaction *sqlx.Tx) (ma
 	}
 
 	responseMap := make(map[string]*TLSCertificate)
+	var certificateErrors []error
 	for _, site := range allSites {
 		if !site.Enable {
 			continue
@@ -153,12 +154,13 @@ func (cm *CertificateManager) GetTLSForEnabledSubsites(transaction *sqlx.Tx) (ma
 		certificate, err := cm.GetTLSConfig(site.Hostname, true, transaction)
 		if err != nil {
 			log.Errorf("Failed to get TLS config for site [%s]: %s", site.Hostname, err)
+			certificateErrors = append(certificateErrors, fmt.Errorf("%s: %w", site.Hostname, err))
 			continue
 		}
 		responseMap[site.Hostname] = certificate
 	}
 
-	return responseMap, nil
+	return responseMap, errors.Join(certificateErrors...)
 }
 
 func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound bool,

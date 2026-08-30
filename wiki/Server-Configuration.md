@@ -212,7 +212,7 @@ After deletion, GET returns HTTP 404.
 
 ## What Requires Restart
 
-**Tested finding:** The `restart_daptin` action does NOT actually restart the server. It returns a success response but `trigger.Fire("restart")` is never called in the codebase.
+Process restarts are managed externally through Kubernetes, Docker, systemd, or another process supervisor.
 
 ### Requires HARD Restart (stop and start process)
 
@@ -233,25 +233,9 @@ After deletion, GET returns HTTP 404.
 
 ## Known Issues
 
-### Hot Restart is Broken
+### Restart ownership
 
-The `restart_daptin` action:
-
-```bash
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{}'
-```
-
-Returns:
-```json
-[
-  {"ResponseType": "client.notify", "Attributes": {"message": "Initiating system update."}},
-  {"ResponseType": "client.redirect", "Attributes": {"delay": 5000, "location": "/"}}
-]
-```
-
-But the server does NOT actually restart. The `trigger.On("restart")` handler is registered in main.go but `trigger.Fire("restart")` is never called.
+Daptin deliberately has no HTTP restart action. Use the deployment's process supervisor so the normal SIGTERM readiness and drain contract is followed.
 
 **Workaround:** Stop and restart the process for any changes that require restart.
 

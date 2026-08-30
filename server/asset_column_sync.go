@@ -4,6 +4,7 @@ import (
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/cloud_store"
 	"github.com/daptin/daptin/server/dbresourceinterface"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/task"
 	"github.com/jmoiron/sqlx"
@@ -12,7 +13,8 @@ import (
 	"os"
 )
 
-func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterface, transaction *sqlx.Tx) map[string]map[string]*assetcachepojo.AssetFolderCache {
+func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterface, transaction *sqlx.Tx,
+	scheduler *resource.DefaultTaskScheduler) map[string]map[string]*assetcachepojo.AssetFolderCache {
 	log.Tracef("CreateAssetColumnSync")
 
 	stores, err := cloud_store.GetAllCloudStores(cruds["cloud_store"], transaction)
@@ -70,7 +72,7 @@ func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterf
 
 				log.Infof("[71] Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
 				if cloudStore.StoreProvider != "local" && cloudStore.StoreType == "cached" {
-					err = TaskScheduler.AddTask(task.Task{
+					err = scheduler.AddTask(task.Task{
 						EntityName: "world",
 						ActionName: "sync_column_storage",
 						Attributes: map[string]interface{}{

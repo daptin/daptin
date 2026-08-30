@@ -370,12 +370,9 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 Certificates are automatically loaded from the database at server startup. To use new certificates:
 
-**Option 1: Restart Daptin**
+**Restart Daptin through your process supervisor**
 ```bash
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{}}'
+docker restart daptin
 ```
 
 **Option 2: Manual Restart**
@@ -573,11 +570,8 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
     }
   }"
 
-# Restart to load new certificate
-curl -X POST http://localhost:6336/action/world/restart_daptin \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{}}'
+# Restart through your process supervisor to load the new certificate
+docker restart daptin
 ```
 
 **Automated Renewal (Recommended):**

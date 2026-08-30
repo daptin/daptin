@@ -6,8 +6,8 @@ import (
 	"encoding/binary"
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/jmoiron/sqlx"
+	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
@@ -17,10 +17,10 @@ import (
 
 // EventWorkerPool manages event publishing workers
 type EventWorkerPool struct {
-	workers    chan struct{}
 	eventQueue chan EventJob
 	wg         sync.WaitGroup
-	shutdown   chan struct{}
+	mu         sync.RWMutex
+	closed     bool
 	metrics    EventMetrics
 }
 
@@ -42,6 +42,7 @@ type EventMetrics struct {
 var (
 	globalEventPool *EventWorkerPool
 	eventPoolOnce   sync.Once
+	eventPoolMu     sync.RWMutex
 )
 
 // GetEventWorkerPool returns the global event worker pool (singleton)
@@ -62,16 +63,17 @@ func GetEventWorkerPool() *EventWorkerPool {
 			}
 		}
 
-		globalEventPool = &EventWorkerPool{
-			workers:    make(chan struct{}, poolSize),
+		pool := &EventWorkerPool{
 			eventQueue: make(chan EventJob, queueSize),
-			shutdown:   make(chan struct{}),
 		}
+		eventPoolMu.Lock()
+		globalEventPool = pool
+		eventPoolMu.Unlock()
 
 		// Start workers
 		for i := 0; i < poolSize; i++ {
-			globalEventPool.wg.Add(1)
-			go globalEventPool.worker()
+			pool.wg.Add(1)
+			go pool.worker()
 		}
 
 		log.Infof("Event worker pool initialized with %d workers and queue size %d", poolSize, queueSize)
@@ -83,14 +85,8 @@ func GetEventWorkerPool() *EventWorkerPool {
 // worker processes events from the queue
 func (p *EventWorkerPool) worker() {
 	defer p.wg.Done()
-
-	for {
-		select {
-		case job := <-p.eventQueue:
-			p.processEvent(job)
-		case <-p.shutdown:
-			return
-		}
+	for job := range p.eventQueue {
+		p.processEvent(job)
 	}
 }
 
@@ -111,6 +107,11 @@ func (p *EventWorkerPool) processEvent(job EventJob) {
 
 // PublishEvent queues an event for publishing
 func (p *EventWorkerPool) PublishEvent(topic *olric.PubSub, tableName string, message WsOutMessage) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if p.closed {
+		return
+	}
 	job := EventJob{
 		topic:     topic,
 		tableName: tableName,
@@ -126,6 +127,36 @@ func (p *EventWorkerPool) PublishEvent(topic *olric.PubSub, tableName string, me
 		p.metrics.dropped++
 		p.metrics.mu.Unlock()
 		log.Warnf("Event queue full, dropping %s event for %s", message.Event, tableName)
+	}
+}
+
+// ShutdownEventWorkerPool rejects new events, drains the queue, and waits for
+// all publishers before Olric is closed.
+func ShutdownEventWorkerPool(ctx context.Context) error {
+	eventPoolMu.RLock()
+	pool := globalEventPool
+	eventPoolMu.RUnlock()
+	if pool == nil {
+		return nil
+	}
+
+	pool.mu.Lock()
+	if !pool.closed {
+		pool.closed = true
+		close(pool.eventQueue)
+	}
+	pool.mu.Unlock()
+
+	done := make(chan struct{})
+	go func() {
+		pool.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi2conv"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/ghodss/yaml"
+	"github.com/go-redis/redis/v8"
 	"github.com/gobuffalo/flect"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -441,13 +442,13 @@ func PublishIntegrationRuntimeInstallEvent(cruds map[string]*resource.DbResource
 	return err
 }
 
-func StartIntegrationRuntimeInstallSubscriber(cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, sourceInstanceID string) {
+func StartIntegrationRuntimeInstallSubscriber(ctx context.Context, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, sourceInstanceID string) *redis.PubSub {
 	worldCrud := cruds["world"]
 	if worldCrud == nil || worldCrud.PubSub == nil {
 		log.Warnf("Integration runtime refresh subscriber not started: PubSub not available")
-		return
+		return nil
 	}
-	subscription := worldCrud.PubSub.Subscribe(context.Background(), IntegrationRuntimeInstallTopic)
+	subscription := worldCrud.PubSub.Subscribe(ctx, IntegrationRuntimeInstallTopic)
 	go func() {
 		channel := subscription.Channel()
 		for msg := range channel {
@@ -475,6 +476,7 @@ func StartIntegrationRuntimeInstallSubscriber(cruds map[string]*resource.DbResou
 				payload.ProviderName, payload.ReferenceID, payload.RequestID)
 		}
 	}()
+	return subscription
 }
 
 func integrationFromRow(row map[string]interface{}, enable bool) (resource.Integration, error) {

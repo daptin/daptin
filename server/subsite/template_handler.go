@@ -48,6 +48,12 @@ type HostRouterProvider interface {
 
 var fileCache *cache.FileCache
 
+func ShutdownTemplateCache() {
+	if fileCache != nil {
+		fileCache.Close()
+	}
+}
+
 // generateCacheKey creates a unique key for the cache based on the request and configuration
 func generateCacheKey(c *gin.Context, config *CacheConfig) string {
 	if config == nil {

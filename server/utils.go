@@ -2,8 +2,6 @@ package server
 
 import (
 	"github.com/daptin/daptin/server/actionresponse"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/artpar/api2go/v2"
@@ -338,27 +336,6 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		meteringMiddleware,
 	}
 	return ms
-}
-
-func CleanUpConfigFiles() {
-
-	files, _ := filepath.Glob("*_uploaded_*")
-	log.Debugf("Clean up uploaded config files: %v", files)
-
-	for _, fileName := range files {
-		err := os.Remove(fileName)
-		CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
-	}
-
-	schemaFolderDefinedByEnv, _ := os.LookupEnv("DAPTIN_SCHEMA_FOLDER")
-	files, _ = filepath.Glob(schemaFolderDefinedByEnv + string(os.PathSeparator) + "*_uploaded_*")
-
-	for _, fileName := range files {
-		err := os.Remove(fileName)
-		log.Infof("Deleted config files: %v", fileName)
-		CheckErr(err, "Failed to delete uploaded schema file: %s", fileName)
-	}
-
 }
 
 func EndsWith(str string, endsWith string) (string, bool) {

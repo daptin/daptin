@@ -124,7 +124,6 @@ curl "http://localhost:7337/api/action" -H "Authorization: Bearer $TOKEN"
 ### System Actions
 | Action Name | Wiki Documents | Status |
 |-------------|----------------|--------|
-| `restart_daptin` | `restart_daptin` | CORRECT |
 | `become_an_administrator` | Correct | OK |
 
 ### Cloud Storage Actions
@@ -175,7 +174,6 @@ remove_table
 rename_column
 reset-password
 reset-password-verify
-restart_daptin
 send_otp
 signin
 signup
@@ -341,7 +339,7 @@ delete_file                     remove_table
 delete_path                     rename_column
 download_certificate            reset-password
 download_public_key             reset-password-verify
-download_system_schema          restart_daptin
+download_system_schema
 export_csv_data                 send_otp
 export_data                     signin
 generate_acme_certificate       signup

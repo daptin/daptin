@@ -28,12 +28,10 @@ curl \
 http://localhost:6336/_config/backend/graphql.enable
 ```
 
-You need to restart daptin for this setting to take effect. You can issue a restart by calling this:
+You need to restart Daptin through your process supervisor for this setting to take effect:
 
 ```bash
-curl 'http://localhost:6336/action/world/restart_daptin' \
--H 'Authorization: Bearer TOKEN' \
---data '{"attributes":{}}'
+docker restart daptin
 ```
 
 If everything goes well, the graphql endpoint should be enabled. You can test it

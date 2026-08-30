@@ -122,8 +122,7 @@ curl http://localhost:6336/health
 
 ### 7. ~~GraphQL Restart Action (GraphQL-API.md)~~ - VERIFIED CORRECT
 
-**Wiki States:** `/action/world/restart_daptin`
-**Actual:** Wiki is CORRECT. `restart_daptin` is the action endpoint name (defined in columns.go:526). `__restart` is just the internal performer name.
+Process restart is owned by the deployment supervisor; there is no restart HTTP action.
 
 **Status:** No fix needed.
 
@@ -257,7 +256,6 @@ Execute external processes (action_execute_process.go) - security-sensitive, not
 | action_mail_send_ses.go | `aws.mail.send` | N/A (internal) | ✅ Documented as internal performer |
 | action_mail_servers_sync.go | `mail.servers.sync` | `sync_mail_servers` | ✅ Fixed |
 | action_network_request.go | `$network.request` | N/A (performer only) | ✅ Documented in Custom-Actions.md |
-| action_restart_system.go | `__restart` | `restart_daptin` | ✅ Documented |
 | action_enable_graphql.go | `__enable_graphql` | `enable_graphql` | ✅ Documented |
 | action_generate_acme_tls_certificate.go | `acme.tls.generate` | `generate_acme_certificate` | ✅ Fixed |
 | action_generate_self_tls_certificate.go | `self.tls.generate` | `generate_self_certificate` | ✅ Fixed |

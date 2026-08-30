@@ -3061,7 +3061,7 @@
 ## server/actions/action_restart_system.go
 
 ### 🚨 Functional Misrepresentation
-- **Misleading action name:** Named "__restart" but performs no system restart functionality
+- **Resolved:** The misleading `__restart` performer and HTTP restart action were removed; process supervisors now own restart.
 - **False messaging:** Claims "Initiating system update" but performs no update
 - **Incomplete implementation:** Commented imports suggest intended but unimplemented restart functionality
 
@@ -4717,7 +4717,7 @@
 
 ### Critical Issues
 - **Line 191:** Ignored Error in JSON Unmarshaling - JSON unmarshaling error for rate configuration ignored, could enable rate limiting bypass through configuration corruption
-- **Lines 41-42, 75-77:** Global Variable Exposure - TaskScheduler and Stats variables globally accessible without access control, could enable unauthorized system manipulation
+- **Resolved:** Scheduler ownership moved into `Runtime`; the package-global task scheduler was removed.
 - **Lines 226-231:** Hardcoded Secret Generation - JWT secret generation using UUID without proper cryptographic randomness validation, could enable token compromise
 - **Lines 127-129, 338-340:** Panic in Error Handling - application panic in database transaction handling, could crash entire server on database connection issues
 - **Lines 450, 480, 596:** Silent Transaction Rollback - database transaction rollback errors ignored, could leave system in inconsistent state

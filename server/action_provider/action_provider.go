@@ -170,10 +170,6 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create mail send performer")
 	performers = append(performers, awsMailSendActionPerformer)
 
-	restartPerformer, err := actions.NewRestartSystemPerformer(initConfig)
-	resource.CheckErr(err, "Failed to create restart performer")
-	performers = append(performers, restartPerformer)
-
 	xlsUploadPerformer, err := actions.NewUploadFileToEntityPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create xls upload performer")
 	performers = append(performers, xlsUploadPerformer)

@@ -9,19 +9,15 @@ import (
 	"github.com/daptin/daptin/server/actions"
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	"github.com/daptin/daptin/server/fsm"
-	"github.com/daptin/daptin/server/hostswitch"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/daptin/daptin/server/task"
-	"github.com/daptin/daptin/server/task_scheduler"
 	"github.com/go-redis/redis/v8"
 	"github.com/hashicorp/golang-lru"
-	"github.com/sadlil/go-trigger"
 	"os"
 
 	"github.com/artpar/api2go/v2"
-	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-imap/server"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/stats"
@@ -40,7 +36,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var TaskScheduler task_scheduler.TaskScheduler
 var Stats = stats.New()
 
 type YjsConnectionSessionFetcher struct {
@@ -68,11 +63,11 @@ var (
 	indexFileContents []byte
 )
 
-func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string, olricDb *olric.EmbeddedClient, localOlricAddr string) (
-	hostswitch.HostSwitch, *guerrilla.Daemon, task_scheduler.TaskScheduler, *resource.ConfigStore, *resource.CertificateManager,
-	*server2.FtpServer, *server.Server, *olric.EmbeddedClient) {
+func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.DatabaseConnection, localStoragePath string,
+	olricDb *olric.EmbeddedClient, localOlricAddr string) (*Runtime, error) {
 
 	PrintCliBanner()
+	runtimeErrors := make(chan error, 8)
 
 	/// Start system initialise
 	log.Printf("Load config files")
@@ -108,6 +103,9 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	} else {
 		log.Infof("ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value: %v", skipResourceInitialise)
 		InitialiseServerResources(&initConfig, db)
+	}
+	if err := resource.RemoveObsoleteSystemActions(db); err != nil {
+		log.Warnf("Failed to remove obsolete system actions: %v", err)
 	}
 
 	configStore, err := resource.NewConfigStore(db)
@@ -302,13 +300,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	log.Tracef("Added ResourcesToApi2Go")
 	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub(olric.ToAddress(localOlricAddr))
-	resource.CheckErr(err, "Failed to create topic")
 	if err != nil {
-		log.Fatalf("failed to create olric topic - %v", err)
+		return nil, fmt.Errorf("failed to create Olric topic: %w", err)
 	}
 	log.Infof("Created PubSub pinned to local Olric: %s", localOlricAddr)
 
-	tableTopicSubscription := tablesPubSub.Subscribe(context.Background(), "members")
+	tableTopicSubscription := tablesPubSub.Subscribe(ctx, "members")
 	go func(topicSubscription *redis.PubSub) {
 		channel := topicSubscription.Channel()
 		for msg := range channel {
@@ -358,7 +355,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		}
 
 		if err != nil {
-			log.Errorf("Failed to mail daemon start: %s", err)
+			return nil, fmt.Errorf("failed to start SMTP server: %w", err)
 		} else {
 			log.Printf("Started mail server")
 		}
@@ -376,7 +373,11 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend", transaction)
 	if err == nil && enableImapServer == "true" {
-		imapServer = InitializeImapResources(configStore, transaction, cruds, imapServer, certificateManager)
+		imapServer, err = InitializeImapResources(configStore, transaction, cruds, imapServer, certificateManager, runtimeErrors)
+		if err != nil {
+			_ = transaction.Rollback()
+			return nil, fmt.Errorf("failed to start IMAP server: %w", err)
+		}
 	} else {
 		if err != nil {
 			err = configStore.SetConfigValueFor("imap.enabled", "false", "backend", transaction)
@@ -394,7 +395,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	log.Printf("[CALDAV INIT] enableCaldav read from config: '%s', err: %v", enableCaldav, err)
 	transaction.Commit()
 
-	TaskScheduler = resource.NewTaskScheduler(&initConfig, cruds, configStore)
+	taskScheduler := resource.NewTaskScheduler(cruds)
 
 	skipImportData, skipImportValFound := os.LookupEnv("DAPTIN_SKIP_IMPORT_DATA")
 	if skipImportValFound && skipImportData == "true" {
@@ -429,7 +430,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [559]")
 	}
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(&initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections, olricDb, enableGzip == "true")
+	hostSwitch, subsiteCacheFolders := CreateSubSites(ctx, &initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections, olricDb, taskScheduler, enableGzip == "true")
 	transaction.Commit()
 
 	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)
@@ -463,7 +464,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		cruds[k].ActionHandlerMap = actionHandlerMap
 		cruds[k].EncryptionSecret = []byte(encryptionSecret)
 	}
-	actions.StartIntegrationRuntimeInstallSubscriber(cruds, configStore, integrationRuntimeInstanceID)
+	integrationSubscription := actions.StartIntegrationRuntimeInstallSubscriber(ctx, cruds, configStore, integrationRuntimeInstanceID)
 
 	transaction, err = db.Beginx()
 	if err != nil {
@@ -479,7 +480,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		resource.CheckErr(err, "Failed to begin transaction [642]")
 	}
 
-	err = TaskScheduler.AddTask(task.Task{
+	err = taskScheduler.AddTask(task.Task{
 		EntityName:  "mail_server",
 		ActionName:  "sync_mail_servers",
 		Attributes:  map[string]interface{}{},
@@ -487,7 +488,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 		Schedule:    "@every 1h",
 	})
 
-	err = TaskScheduler.AddTask(task.Task{
+	err = taskScheduler.AddTask(task.Task{
 		EntityName:  "outbox",
 		ActionName:  "process_outbox",
 		Attributes:  map[string]interface{}{},
@@ -496,14 +497,15 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	})
 	transaction.Rollback()
 
-	TaskScheduler.StartTasks()
+	taskScheduler.LoadPersistedTasks()
 
 	transaction = db.MustBegin()
-	assetColumnFolders := CreateAssetColumnSync(crudsInterface, transaction)
+	assetColumnFolders := CreateAssetColumnSync(crudsInterface, transaction, taskScheduler)
 	transaction.Commit()
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
+	taskScheduler.Start()
 
 	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -520,25 +522,18 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 
 	var ftpServer *server2.FtpServer
+	var ftpConnections *ConnectionTracker
 	if enableFtp == "true" {
-
-		ftpServer = InitializeFtpResources(configStore, transaction, ftpServer, cruds, crudsInterface, certificateManager)
+		ftpServer, ftpConnections, err = InitializeFtpResources(ctx, configStore, transaction, cruds, crudsInterface, certificateManager, runtimeErrors)
+		if err != nil {
+			_ = transaction.Rollback()
+			return nil, fmt.Errorf("failed to start FTP server: %w", err)
+		}
 	}
 
 	// Register OpenAI-compatible LLM endpoints (drop-in replacement)
 	goaiProvider := llm.NewGoAIProvider(cruds)
 	RegisterLLMEndpoints(defaultRouter, goaiProvider, cruds)
-
-	defaultRouter.GET("/ping", func(c *gin.Context) {
-		transaction, err := cruds["world"].Connection().Beginx()
-		if err != nil {
-			resource.CheckErr(err, "Failed to begin transaction [665]")
-			c.String(500, fmt.Sprintf("%v", err))
-		}
-		//_, err := cruds["world"].GetObjectByWhereClause("world", "table_name", "world")
-		_ = transaction.Rollback()
-		c.String(200, "pong")
-	})
 
 	resource.InitialiseColumnManager()
 	jsModelHandler := CreateJsModelHandler(&initConfig, cruds, transaction)
@@ -599,8 +594,12 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 
 	websocketServer := websockets.NewServer("/live", &dtopicMap, cruds, tablesPubSub)
 
+	var yjsRuntime *YjsRuntime
 	if enableYjs == "true" {
-		err = InitializeYjsResources(store, defaultRouter, cruds, dtopicMap)
+		yjsRuntime, err = InitializeYjsResources(ctx, store, defaultRouter, cruds, dtopicMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize YJS: %w", err)
+		}
 	}
 
 	go func() {
@@ -610,11 +609,7 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	SetupNoRouteRouter(boxRoot, defaultRouter)
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
-	CleanUpConfigFiles()
-
-	trigger.On("clean_up_uploaded_files", func() {
-		CleanUpConfigFiles()
-	})
+	resource.CleanUpConfigFiles()
 	transaction, err = db.Beginx()
 	if err != nil {
 		resource.CheckErr(err, "Failed to begin transaction [906]")
@@ -626,6 +621,20 @@ func Main(boxRoot http.FileSystem, db database.DatabaseConnection, localStorageP
 	}
 	log.Printf("Our admin is [%v]", adminEmail)
 
-	return hostSwitch, mailDaemon, TaskScheduler, configStore, certificateManager, ftpServer, imapServer, olricDb
+	return &Runtime{
+		Handler:                 &hostSwitch,
+		ConfigStore:             configStore,
+		CertificateManager:      certificateManager,
+		mailDaemon:              mailDaemon,
+		scheduler:               taskScheduler,
+		ftpServer:               ftpServer,
+		ftpConnections:          ftpConnections,
+		imapServer:              imapServer,
+		websocketServer:         websocketServer,
+		yjs:                     yjsRuntime,
+		tableSubscription:       tableTopicSubscription,
+		integrationSubscription: integrationSubscription,
+		errors:                  runtimeErrors,
+	}, nil
 
 }

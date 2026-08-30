@@ -48,10 +48,7 @@ If `imap.hostname` is not set, Daptin falls back to the legacy derived hostname
 ### Restart to Apply
 
 ```bash
-curl -X POST 'http://localhost:6336/action/world/restart_daptin' \
-  -H 'Authorization: Bearer $TOKEN' \
-  -H 'Content-Type: application/json' \
-  -d '{"attributes":{}}'
+docker restart daptin
 ```
 
 ## Prerequisites
