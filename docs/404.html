@@ -7,7 +7,7 @@
   <title>Daptin has moved</title>
   <script>
     const section = location.pathname.replace(/^\/daptin\/?/, "").split("/")[0];
-    const routes = new Set(["features", "platform", "use-cases", "open-source"]);
+    const routes = new Set(["features", "platform", "why-daptin", "use-cases", "ecosystem", "open-source"]);
     const path = routes.has(section) ? `/${section}/` : "/";
     location.replace(`https://daptin.github.io${path}${location.search}${location.hash}`);
   </script>
