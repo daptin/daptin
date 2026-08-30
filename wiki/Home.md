@@ -16,9 +16,9 @@ stack as a sidecar for the backend features you are missing.
 
 ### First Time Users
 
-- **[[Installation]]** (2 min)
-- **[[First-Admin-Setup]]** (5 min)
-- **[[Getting-Started-Guide]]**
+- **[[Getting-Started-Guide]]** — one localhost-to-authenticated-API path
+- **[[Installation]]** — containers, binaries, databases, and storage
+- **[[Production-Deployment]]** — move the local setup onto durable infrastructure
 
 ### Building Apps And Filling Backend Gaps
 
@@ -41,11 +41,11 @@ stack as a sidecar for the backend features you are missing.
 
 - **[[Walkthrough-Product-Catalog]]** (30-45 min, tested end-to-end)
 
-### Troubleshooting
+### Troubleshooting And Reference
 
 - **[[Common-Errors]]**
 - **[[Key-Behaviors]]**
-- **[[Testing-Onboarding-Journey]]**
+- **[[API-Reference]]**
 
 ## What Daptin Provides
 

@@ -1,358 +1,180 @@
 # Getting Started with Daptin
 
-Get up and running with Daptin in minutes.
+This is the shortest complete path from a new installation to an authenticated,
+inspectable Daptin server. It keeps the first-run server on localhost, creates
+the first administrator, verifies the API, and points to the next guide for each
+kind of project.
 
----
+## 1. Run Daptin locally
 
-## Before You Start: Kill Stale Processes
-
-**⚠️ CRITICAL:** Daptin uses a distributed cache (Olric) on port 5336. Stale processes will cause permission errors even with a fresh database.
-
-**Always run these commands before starting Daptin:**
+The container listens on port 8080. Daptin does not publish a `latest`
+container manifest, so use an explicit release tag:
 
 ```bash
-# Kill all Daptin processes
-pkill -9 -f daptin 2>/dev/null || true
-pkill -9 -f "go run main" 2>/dev/null || true
-
-# Free both ports
-lsof -i :6336 -t | xargs kill -9 2>/dev/null || true  # HTTP API
-lsof -i :5336 -t | xargs kill -9 2>/dev/null || true  # Olric cache
-
-# Verify ports are free
-lsof -i :6336 || echo "✓ Port 6336 free"
-lsof -i :5336 || echo "✓ Port 5336 free"
-
-sleep 2
+docker run --rm \
+  --name daptin \
+  -p 127.0.0.1:6336:8080 \
+  daptin/daptin:v0.12.36
 ```
 
-**Why This Matters:**
-- **Port 6336**: HTTP API
-- **Port 5336**: Olric distributed cache (stores permissions, admin IDs, user groups)
-- **Cache TTL**: 60 minutes
-- **Symptom if forgotten**: `become_an_administrator` returns "Unauthorized" even on fresh database
+Wait for `Listening at`, then verify the server from another terminal:
 
-**Alternative:** Use the test runner script which handles this automatically:
 ```bash
-./scripts/testing/test-runner.sh stop
-./scripts/testing/test-runner.sh start
+curl --fail http://localhost:6336/ping
+# pong
 ```
 
----
+Binding to `127.0.0.1` matters during first setup. A fresh instance has no
+administrator yet; do not expose it publicly until the first administrator is
+claimed.
 
-## 1. Start Daptin
+Prefer a native binary? See [[Installation]] for release downloads, source
+builds, database selection, and persistent storage.
+
+## 2. Create and claim the first administrator
+
+Choose your own email and a strong password. The examples below use shell
+variables so the credentials do not need to be repeated in command history.
 
 ```bash
-# Default (SQLite)
-go run main.go
-
-# With PostgreSQL
-go run main.go -db_type postgres -db_connection_string "host=localhost port=5432 user=postgres password=secret dbname=daptin sslmode=disable"
+export DAPTIN_URL=http://localhost:6336
+export DAPTIN_ADMIN_EMAIL=admin@example.test
+read -s DAPTIN_ADMIN_PASSWORD
+export DAPTIN_ADMIN_PASSWORD
 ```
 
-Open `http://localhost:6336` to access the dashboard.
-
----
-
-## 2. Set Up Your First Admin
-
-On a fresh install, **anyone can do anything**. You need to claim admin immediately.
+Create the first account:
 
 ```bash
-# Sign up
-curl -X POST http://localhost:6336/action/user_account/signup \
+curl --fail-with-body -sS \
+  -X POST "$DAPTIN_URL/action/user_account/signup" \
   -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "name": "Admin",
-      "email": "admin@example.com",
-      "password": "yourpassword",
-      "passwordConfirm": "yourpassword"
-    }
-  }'
+  --data "$(jq -n \
+    --arg email "$DAPTIN_ADMIN_EMAIL" \
+    --arg password "$DAPTIN_ADMIN_PASSWORD" \
+    '{attributes:{name:"Administrator",email:$email,password:$password,passwordConfirm:$password}}')"
+```
 
-# Sign in and extract token
-TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
+Sign in and keep the returned JWT in memory:
+
+```bash
+export DAPTIN_TOKEN="$(
+  curl --fail-with-body -sS \
+    -X POST "$DAPTIN_URL/action/user_account/signin" \
+    -H "Content-Type: application/json" \
+    --data "$(jq -n \
+      --arg email "$DAPTIN_ADMIN_EMAIL" \
+      --arg password "$DAPTIN_ADMIN_PASSWORD" \
+      '{attributes:{email:$email,password:$password}}')" |
+  jq -r '.[] | select(.ResponseType == "client.store.set" and .Attributes.key == "token") | .Attributes.value'
+)"
+test -n "$DAPTIN_TOKEN"
+```
+
+Claim administrator access:
+
+```bash
+curl --fail-with-body -sS \
+  -X POST "$DAPTIN_URL/action/world/become_an_administrator" \
+  -H "Authorization: Bearer $DAPTIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "email": "admin@example.com",
-      "password": "yourpassword"
-    }
-  }' | jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
-
-echo "$TOKEN" > /tmp/daptin-token.txt
-echo "Token saved to /tmp/daptin-token.txt"
-
-# Become admin (NOTE: action is on "world", not "user_account")
-curl -X POST http://localhost:6336/action/world/become_an_administrator \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{}'
+  --data '{}'
 ```
 
-The server may restart. Sign in again to get a fresh token - you're now admin.
+This action is intentionally available only for the first administrator. It
+locks down public signup and may restart the runtime. Wait for the server to
+answer `/ping`, then run the sign-in command again to obtain a fresh token.
+
+For recovery cases and the exact security transition, use
+[[First-Admin-Setup]]. Avoid deleting databases or killing unrelated processes
+as a first troubleshooting step.
+
+## 3. Inspect the running resource model
+
+Daptin represents its configured tables in the `world` resource. Verify the
+authenticated JSON:API surface:
 
 ```bash
-# Get fresh token after server restart
-sleep 5
-TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{"email":"admin@example.com","password":"yourpassword"}}' | \
-  jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
-
-echo "$TOKEN" > /tmp/daptin-token.txt
+curl --fail-with-body -sS \
+  "$DAPTIN_URL/api/world?page[size]=5" \
+  -H "Authorization: Bearer $DAPTIN_TOKEN" |
+  jq '.data[] | {type, id, table_name: .attributes.table_name}'
 ```
 
-**After this**: The system locks down. Public signup is disabled. Only you can create new users.
+Open [http://localhost:6336](http://localhost:6336) for the administrative
+interface. The API remains the system contract; the dashboard and clients use
+the same resources and actions.
 
----
+Useful discovery endpoints:
 
-## 3. What If Signup Fails?
+```text
+GET /openapi.yaml       OpenAPI description
+GET /meta               Runtime metadata
+GET /jsmodel/{typename} Generated JavaScript model
+GET /statistics         Operational statistics
+GET /ping               Lightweight liveness response
+```
 
-If you get a **403 error** on signup, someone already claimed admin. You have two options:
+## 4. Add your first application resource
 
-### Option A: Contact the Admin
+Daptin loads schema files and turns each declared table into a
+permission-aware JSON:API resource. Follow [[Schema-Definition]] for the schema
+format and loading options, or use the tested [[Walkthrough-Product-Catalog]]
+to build a complete product catalog with relationships and API calls.
 
-Ask them to create an account for you (see "Admin: Create a User" below).
+A table named `product` becomes:
 
-### Option B: Reset the Database
+```http
+GET    /api/product
+POST   /api/product
+PATCH  /api/product/{reference_id}
+DELETE /api/product/{reference_id}
+```
 
-If this is your own server and you lost access:
+The same resource can participate in permissions, actions, events, asset
+storage, audit history, metering, GraphQL, and realtime delivery without a
+parallel application model.
+
+## 5. Use the CLI when the API is familiar
+
+Install the current CLI through Homebrew, Scoop, a release package, or Go. Then
+create a context and inspect the server:
 
 ```bash
-# Stop Daptin
-# Delete the database file (default: daptin.db)
-rm daptin.db
-# Restart Daptin
+daptin-cli context add local http://localhost:6336
+daptin-cli context set local
+daptin-cli execute user_account signin \
+  email="$DAPTIN_ADMIN_EMAIL" password="$DAPTIN_ADMIN_PASSWORD"
+daptin-cli list --columns table_name,is_top_level world
+daptin-cli describe action world import_data
 ```
 
-This wipes everything. Start fresh with step 2.
+See the [Daptin CLI repository](https://github.com/daptin/daptin-cli) for CRUD,
+relations, actions, OAuth, integrations, storage, assets, logs, and WebSocket
+commands.
 
----
+## Choose the next path
 
-## 3.1. Troubleshooting: "Unauthorized" Error on become_an_administrator
+| Goal | Continue with |
+|---|---|
+| Model tables, columns, and relationships | [[Core-Concepts]] · [[Schema-Definition]] · [[Relationships]] |
+| Build and secure an API | [[API-Overview]] · [[Authentication]] · [[Permissions]] |
+| Add backend behavior | [[Actions-Overview]] · [[Task-Scheduling]] · [[State-Machines]] |
+| Store and deliver files | [[Cloud-Storage]] · [[Asset-Columns]] · [[Subsites]] |
+| Connect external APIs or LLMs | [[Integrations]] · [[Credentials]] · [[LLM-Providers]] |
+| Add plans, quotas, or usage accounting | [[API-Metering]] · [[Rate-Limiting]] |
+| Deploy outside localhost | [[Production-Deployment]] · [[Database-Setup]] · [[TLS-Certificates]] |
 
-If you get an **"Unauthorized"** error when trying to become administrator on a **fresh database**, it's caused by stale Olric cache from a previous Daptin process.
+## Before production
 
-**Symptoms:**
-```json
-{
-  "ResponseType": "client.notify",
-  "Attributes": {
-    "message": "Unauthorized",
-    "title": "failed",
-    "type": "error"
-  }
-}
-```
+Do not carry the disposable first-run command directly into production.
+Configure durable database and file storage, stable JWT and encryption secrets,
+TLS, backups, monitoring, and only the protocols the application needs. The
+[[Production-Deployment]] checklist covers the transition.
 
-**Root Cause:**
-- Olric cache (port 5336) stores admin reference IDs with 60-minute TTL
-- Old process keeps cache alive even after "stopping" server
-- Cache says admin exists → become_an_administrator rejects you
-- **This happens even with a fresh database!**
+## If something fails
 
-**Solution:**
-```bash
-# CRITICAL: Kill port 5336 (Olric cache)
-lsof -i :5336 -t | xargs kill -9 2>/dev/null || true
-
-# Also kill all Daptin processes
-pkill -9 -f daptin 2>/dev/null || true
-pkill -9 -f "go run main" 2>/dev/null || true
-
-# Verify port is free
-lsof -i :5336 || echo "✓ Port 5336 is free"
-
-sleep 2
-
-# Now start fresh
-./scripts/testing/test-runner.sh start
-```
-
-**Prevention:**
-Always use the test runner script, which now kills both ports:
-```bash
-./scripts/testing/test-runner.sh stop   # Kills ports 6336 AND 5336
-./scripts/testing/test-runner.sh start
-```
-
----
-
-## 4. Admin: Create a User
-
-Since signup is disabled after admin setup, create users directly:
-
-```bash
-# As admin, create a new user
-curl -X POST http://localhost:6336/api/user_account \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "user_account",
-      "attributes": {
-        "name": "New User",
-        "email": "user@example.com",
-        "password": "userpassword"
-      }
-    }
-  }'
-```
-
-The user can now sign in with these credentials.
-
----
-
-## 5. Admin: Re-enable Public Signup
-
-If you want anyone to sign up:
-
-```bash
-# Find the signup action
-ACTION_ID=$(curl --get \
-  --data-urlencode 'query=[{"column":"action_name","operator":"is","value":"signup"}]' \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:6336/api/action" | jq -r '.data[0].id')
-
-echo "Signup action ID: $ACTION_ID"
-
-# Update permission to allow guest execute (add 32 to guest bits)
-# Current locked value is 2085120, so public signup becomes 2085152
-curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "action",
-      "id": "'$ACTION_ID'",
-      "attributes": {
-        "permission": 2085152
-      }
-    }
-  }'
-```
-
-**Note**: `2085152` is the current post-admin reopen value for `signup` (`2085120 + GuestExecute`). `561441` is the generic public-action profile used for `signin`; you do not need to reset `signup` to that broader profile. No restart is required. If authorization for `signup` was checked immediately before the update, retry after the action-permission cache window of up to 10 seconds.
-
----
-
-## 6. Create Your Data
-
-### Define a Table
-
-Create a file `schema.yaml`:
-
-```yaml
-Tables:
-  - TableName: todo
-    Columns:
-      - Name: title
-        DataType: varchar(500)
-        ColumnType: label
-      - Name: completed
-        DataType: bool
-        ColumnType: truefalse
-        DefaultValue: "false"
-```
-
-**Place schema file in Daptin directory:**
-```bash
-# Copy schema file with schema_* prefix
-cp schema.yaml schema_todo.yaml
-
-# Restart Daptin to load schema
-pkill -f daptin
-./daptin &
-sleep 10
-```
-
-**Note:** The `upload_system_schema` action exists but currently does not create tables after upload. Use the file placement method above until this is fixed.
-
-### Use the API
-
-```bash
-# Create
-curl -X POST http://localhost:6336/api/todo \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "todo",
-      "attributes": {"title": "My first task"}
-    }
-  }'
-
-# List
-curl http://localhost:6336/api/todo \
-  -H "Authorization: Bearer $TOKEN"
-
-# Update
-curl -X PATCH http://localhost:6336/api/todo/RECORD_ID \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "todo",
-      "id": "RECORD_ID",
-      "attributes": {"completed": true}
-    }
-  }'
-
-# Delete
-curl -X DELETE http://localhost:6336/api/todo/RECORD_ID \
-  -H "Authorization: Bearer $TOKEN"
-```
-
----
-
-## 7. Filter and Sort
-
-```bash
-# Filter (use 0 for false, 1 for true on boolean fields)
-curl --get \
-  --data-urlencode 'query=[{"column":"completed","operator":"is","value":0}]' \
-  -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/todo"
-
-# Sort (descending with -)
-curl 'http://localhost:6336/api/todo?sort=-created_at' \
-  -H "Authorization: Bearer $TOKEN"
-
-# Paginate
-curl 'http://localhost:6336/api/todo?page[number]=1&page[size]=10' \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Filter Operators
-
-| Operator | Meaning |
-|----------|---------|
-| `is` | Equals |
-| `is not` | Not equals |
-| `contains` | Substring match |
-| `begins with` | Starts with |
-| `ends with` | Ends with |
-| `any of` | In list |
-| `is empty` | Is null |
-
----
-
-## Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| **403 on signup** | Admin exists. Contact admin or reset database. |
-| **401 Unauthorized** | Token expired. Sign in again. |
-| **API returns HTML** | Add header: `Accept: application/vnd.api+json` |
-| **"become_an_administrator" fails** | Admin already exists. Only first user can claim. |
-
----
-
-## Next Steps
-
-- [[Permissions|Permissions]] - Control who can access what
-- [[Relationships|Relationships]] - Link tables together
-- [[Actions-Overview|Actions Overview]] - Add business logic
-- [[Schema-Definition|Schema Definition]] - Full schema options
+Start with the response body and the Daptin process log, then consult
+[[Common-Errors]]. Include the Daptin release, database type, command or request,
+HTTP status, response body, and relevant log lines when opening a
+[GitHub issue](https://github.com/daptin/daptin/issues).

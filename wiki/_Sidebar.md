@@ -1,19 +1,20 @@
 ## Getting Started
 - [[Home]]
-- [[Installation]]
-- [[First-Admin-Setup]] ⭐ NEW
-- [[Common-Errors]] 🔧 NEW
 - [[Getting-Started-Guide]]
+- [[Installation]]
+- [[First-Admin-Setup]]
 - [[Configuration]]
 - [[Database-Setup]]
+- [[Production-Deployment]]
+- [[Common-Errors]]
 
 ## Walkthroughs
 - [[Walkthrough-Product-Catalog]]
-- [[Walkthrough-WebSocket-Real-Time]] ✨ NEW
-- [[Walkthrough-YJS-Collaborative-Editing]] ✨ NEW
+- [[Walkthrough-WebSocket-Real-Time]]
+- [[Walkthrough-YJS-Collaborative-Editing]]
 
 ## Core Concepts
-- [[Key-Behaviors]] ⚠️ NEW
+- [[Key-Behaviors]]
 - [[Schema-Definition]]
 - [[Column-Types]]
 - [[Permissions]]
@@ -53,20 +54,23 @@
 ## Storage
 - [[Cloud-Storage]]
 - [[Asset-Columns]]
-- [[Subsites]] ✓ NEW
+- [[Subsites]]
 
 ## Advanced
-- [[GraphQL-API]] ✓ NEW
+- [[GraphQL-API]]
 - [[State-Machines]]
-- [[Task-Scheduling]] ✓ NEW
-- [[Template-Rendering]] ✓ NEW
+- [[Task-Scheduling]]
+- [[Template-Rendering]]
 - [[Data-Exchange]]
 - [[Integrations]]
+- [[LLM-Providers]]
+- [[API-Metering]]
 
 ## Security
 - [[Authentication]]
-- [[OAuth-Authentication]] ✓ NEW
-- [[Two-Factor-Auth]] ✓ NEW
+- [[OAuth-Authentication]]
+- [[OAuth-Provider]]
+- [[Two-Factor-Auth]]
 - [[TLS-Certificates]]
 - [[Encryption]]
 
@@ -75,6 +79,7 @@
 - [[Caching]]
 - [[Rate-Limiting]]
 - [[Clustering]]
+- [[Audit-Logging]]
 
 ## Reference
 - [[API-Reference]]
@@ -83,6 +88,3 @@
 
 ## Contributing
 - [[Documentation-Guide]]
-
-## Meta
-- [[WIKI_AUDIT_REPORT]]

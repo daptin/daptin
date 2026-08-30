@@ -38,7 +38,7 @@ Read the source-oriented [application server feature map](https://github.com/dap
 ### Docker
 
 ```bash
-docker run --rm -p 6336:8080 -p 6443:6443 daptin/daptin:v0.12.34
+docker run --rm -p 127.0.0.1:6336:8080 daptin/daptin:v0.12.36
 ```
 
 ### Linux binary
