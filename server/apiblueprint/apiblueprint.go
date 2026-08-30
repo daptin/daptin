@@ -568,7 +568,7 @@ ETL and synchronization capabilities.
 }
 ` + "```" + ``,
 			"x-logo": map[string]interface{}{
-				"url":     "https://daptin.github.io/daptin/images/logo.png",
+				"url":     "https://daptin.github.io/daptin/images/theme-logo.png",
 				"altText": "Daptin Logo",
 			},
 		},

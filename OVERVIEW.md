@@ -45,10 +45,7 @@ The Daptin repository is organized into several key directories:
 - **`dockercomposeexamples/`**: Example `dockercompose.yml` files demonstrating how to run Daptin with dependencies
   like PostgreSQL.
 
-- **`docs/`**: Contains the prebuilt HTML documentation site, likely generated from Markdown sources.
-
-- **`docsmarkdown/`**: Holds the source Markdown files (`.md`) and configuration (`mkdocs.yml`) for the project
-  documentation, built using MkDocs.
+- **`docs/`**: Contains the static GitHub Pages marketing site. Product documentation is maintained in the GitHub Wiki.
 
 - **`images/`**: Stores project logos, diagrams, and icons used in documentation and potentially the application UI.
 
@@ -62,7 +59,7 @@ The Daptin repository is organized into several key directories:
 - **`schema/`**: Example schema definitions (e.g., `paybystripe.yaml`) used to configure Daptin entities or
   integrations.
 
-- **`scripts/`**: General build and utility shell scripts (e.g., `build.sh`, `builddocs.sh`, `crosscompile.sh`).
+- **`scripts/`**: General build and utility shell scripts (e.g., `build.sh` and `crosscompile.sh`).
 
 - **`server/`**: Contains the core Go source code for the Daptin server application. This is the heart of the project,
   organized into subpackages like `auth`, `database`, `resource`, `websockets`, etc.
@@ -253,9 +250,6 @@ experiments.
 
 - **`scripts/build.sh`**: Appears to be a primary build script that builds the `daptinweb` frontend, embeds assets
   using `go.rice`, builds the Go binary, appends Rice data, and builds/tags a Docker image (`daptin/daptin`).
-
-- **`scripts/builddocs.sh`**: Builds the MkDocs documentation (`mkdocs build`) and copies the output to the `docs/`
-  directory.
 
 - **`scripts/buildosx.sh`**: Similar to `build.sh` but potentially tailored for macOS builds, using Docker for Go
   compilation.

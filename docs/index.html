@@ -1,1293 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daptin — Your data model is the backend</title>
+  <meta name="description" content="Daptin is a self-hosted application server that turns your data model into APIs, identity, permissions, files, automation, integrations, and realtime delivery.">
+  <meta name="theme-color" content="#111316">
+  <link rel="canonical" href="https://daptin.github.io/daptin/">
+  <link rel="icon" href="images/theme-favicon.png">
+  <link rel="stylesheet" href="styles.css">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Daptin — Your data model is the backend">
+  <meta property="og:description" content="A self-hosted application server with APIs, auth, storage, automation, integrations, and realtime built in.">
+  <meta property="og:url" content="https://daptin.github.io/daptin/">
+  <meta property="og:image" content="https://daptin.github.io/daptin/images/theme-logo.png">
+  <meta name="twitter:card" content="summary">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
 
-<!doctype html>
-<html lang="en" class="no-js">
-  <head>
-    
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      
-      
-      
-        <link rel="canonical" href="https://daptin.github.io/daptin/">
-      
-      <link rel="icon" href="images/theme-favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.2.4">
-    
-    
-      
-        <title>About - Daptin</title>
-      
-    
-    
-      <link rel="stylesheet" href="assets/stylesheets/main.2d9f7617.min.css">
-      
-        
-        <link rel="stylesheet" href="assets/stylesheets/palette.e6a45f82.min.css">
-        
-      
-    
-    
-    
-      
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
-    
-    
-      <link rel="stylesheet" href="css/theme_extra.css">
-    
-    <script>__md_scope=new URL(".",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
-    
-      
-
-    
-    
-  </head>
-  
-  
-    
-    
-    
-    
-    
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
-  
-    
-    
-    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
-    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" for="__drawer"></label>
-    <div data-md-component="skip">
-      
-        
-        <a href="#daptin" class="md-skip">
-          Skip to content
-        </a>
-      
-    </div>
-    <div data-md-component="announce">
-      
-    </div>
-    
-    
-      
-
-<header class="md-header" data-md-component="header">
-  <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Daptin" class="md-header__button md-logo" aria-label="Daptin" data-md-component="logo">
-      
-  <img src="images/theme-logo.png" alt="logo">
-
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Daptin home">
+      <img src="images/theme-logo.png" width="40" height="40" alt="">
+      <span>Daptin</span>
     </a>
-    <label class="md-header__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
-    </label>
-    <div class="md-header__title" data-md-component="header-title">
-      <div class="md-header__ellipsis">
-        <div class="md-header__topic">
-          <span class="md-ellipsis">
-            Daptin
-          </span>
-        </div>
-        <div class="md-header__topic" data-md-component="header-topic">
-          <span class="md-ellipsis">
-            
-              About
-            
-          </span>
-        </div>
-      </div>
-    </div>
-    
-    
-    
-      <label class="md-header__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
-  <label class="md-search__overlay" for="__search"></label>
-  <div class="md-search__inner" role="search">
-    <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
-      <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </label>
-      <nav class="md-search__options" aria-label="Search">
-        
-        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-        </button>
-      </nav>
-      
-    </form>
-    <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="search-result">
-          <div class="md-search-result__meta">
-            Initializing search
-          </div>
-          <ol class="md-search-result__list"></ol>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-    
-    
-  </nav>
-  
-</header>
-    
-    <div class="md-container" data-md-component="container">
-      
-      
-        
-          
-        
-      
-      <main class="md-main" data-md-component="main">
-        <div class="md-main__inner md-grid">
-          
-            
-              
-              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-
-
-<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
-  <label class="md-nav__title" for="__drawer">
-    <a href="." title="Daptin" class="md-nav__button md-logo" aria-label="Daptin" data-md-component="logo">
-      
-  <img src="images/theme-logo.png" alt="logo">
-
-    </a>
-    Daptin
-  </label>
-  
-  <ul class="md-nav__list" data-md-scrollfix>
-    
-      
-      
-      
-
-  
-  
-    
-  
-  
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_1" type="checkbox" id="__nav_1" checked>
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_1">
-          Introduction
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Introduction" data-md-level="1">
-        <label class="md-nav__title" for="__nav_1">
-          <span class="md-nav__icon md-icon"></span>
-          Introduction
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-    
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          About
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
-        About
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    Features
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
-    Guides
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="faq.md" class="md-nav__link">
-        FAQs
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_1_3" type="checkbox" id="__nav_1_3" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_1_3">
-          How to use
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="How to use" data-md-level="2">
-        <label class="md-nav__title" for="__nav_1_3">
-          <span class="md-nav__icon md-icon"></span>
-          How to use
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="setting-up/installation/" class="md-nav__link">
-        Download and Deploy
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="setting-up/settingup/" class="md-nav__link">
-        Accessing the web dashboard
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2">
-          Documentation
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Documentation" data-md-level="1">
-        <label class="md-nav__title" for="__nav_2">
-          <span class="md-nav__icon md-icon"></span>
-          Documentation
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_1" type="checkbox" id="__nav_2_1" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2_1">
-          User management
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="User management" data-md-level="2">
-        <label class="md-nav__title" for="__nav_2_1">
-          <span class="md-nav__icon md-icon"></span>
-          User management
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="user-management/new-users/" class="md-nav__link">
-        New User
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="user-management/access/" class="md-nav__link">
-        Access Permissions
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="user-management/signin/" class="md-nav__link">
-        Sign in API
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="setting-up/data_modeling/" class="md-nav__link">
-        Data model
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3" type="checkbox" id="__nav_2_3" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2_3">
-          HTTP JSON API
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="HTTP JSON API" data-md-level="2">
-        <label class="md-nav__title" for="__nav_2_3">
-          <span class="md-nav__icon md-icon"></span>
-          HTTP JSON API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="apis/crud/" class="md-nav__link">
-        CRUD API
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="apis/crud/" class="md-nav__link">
-        Action API
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="apis/crud/" class="md-nav__link">
-        Relation API
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="apis/crud/" class="md-nav__link">
-        Aggregation API
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="apis/crud/" class="md-nav__link">
-        State machine API
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="apis/crud/" class="md-nav__link">
-        Metadata API
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_4" type="checkbox" id="__nav_2_4" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2_4">
-          Actions
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Actions" data-md-level="2">
-        <label class="md-nav__title" for="__nav_2_4">
-          <span class="md-nav__icon md-icon"></span>
-          Actions
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="actions/actions/" class="md-nav__link">
-        What are actions
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="actions/default_actions/" class="md-nav__link">
-        Actions list
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="actions/outcomes/" class="md-nav__link">
-        Action OutComes
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="actions/examples/" class="md-nav__link">
-        Examples
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="features/enable-graphql/" class="md-nav__link">
-        GraphQL
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="features/enable-data-auditing/" class="md-nav__link">
-        Data Auditing
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="features/enable-multilingual-table/" class="md-nav__link">
-        Multilingual Table
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="features/enable-smtp-imap/" class="md-nav__link">
-        SMTP/IMPS server
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="state/machines/" class="md-nav__link">
-        State tracking
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_10" type="checkbox" id="__nav_2_10" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2_10">
-          OAuth
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="OAuth" data-md-level="2">
-        <label class="md-nav__title" for="__nav_2_10">
-          <span class="md-nav__icon md-icon"></span>
-          OAuth
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="extend/oauth_connection/" class="md-nav__link">
-        OAuth Connections
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="extend/oauth_token/" class="md-nav__link">
-        OAuth Tokens
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="integrations/overview/" class="md-nav__link">
-        3rd party API Integrations
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_12" type="checkbox" id="__nav_2_12" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2_12">
-          Cloud store
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Cloud store" data-md-level="2">
-        <label class="md-nav__title" for="__nav_2_12">
-          <span class="md-nav__icon md-icon"></span>
-          Cloud store
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="cloudstore/" class="md-nav__link">
-        Cloud store
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="cloudstore/cloudstore/" class="md-nav__link">
-        Available cloud stores
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="cloudstore/cloudstore/" class="md-nav__link">
-        Asset columns
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="cloudstore/cloudstore/" class="md-nav__link">
-        Asset columns
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="cloudstore/sites/" class="md-nav__link">
-        Sites
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="cloudstore/assetcolumns/" class="md-nav__link">
-        Cloud store backed asset columns
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="websockets/websocket/" class="md-nav__link">
-        Websockets
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_15" type="checkbox" id="__nav_2_15" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2_15">
-          Sub-sites
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Sub-sites" data-md-level="2">
-        <label class="md-nav__title" for="__nav_2_15">
-          <span class="md-nav__icon md-icon"></span>
-          Sub-sites
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="subsite/subsite/" class="md-nav__link">
-        Creating a subsite
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="subsite/grapes/" class="md-nav__link">
-        Live editing a subsite
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="subsite/basic_auth/" class="md-nav__link">
-        Basic Authentication
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_16" type="checkbox" id="__nav_2_16" >
-      
-      
-      
-      
-        <label class="md-nav__link" for="__nav_2_16">
-          Internal Documents
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <nav class="md-nav" aria-label="Internal Documents" data-md-level="2">
-        <label class="md-nav__title" for="__nav_2_16">
-          <span class="md-nav__icon md-icon"></span>
-          Internal Documents
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="data-modeling/data_storage/" class="md-nav__link">
-        Data store format
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="extend/data_exchange/" class="md-nav__link">
-        Data exchange and sync
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="streams/streams/" class="md-nav__link">
-        Data streams
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="setting-up/configurations/" class="md-nav__link">
-        Global Configuration
-      </a>
-    </li>
-  
-
-            
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-  </ul>
-</nav>
-                  </div>
-                </div>
-              </div>
-            
-            
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    Features
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
-    Guides
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-                  </div>
-                </div>
-              </div>
-            
-          
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
-                
-
-
-<h1 id="daptin">Daptin</h1>
-<p>The most powerful ready to use data and services API server.</p>
-<div class="highlight"><pre><span></span><code>- User management
-  - Sign up and sign in (1fa/2fa with password/TOTP)
-  - Extensive authorization control table level/action level and row level
-  - Rate limiting/connection throttling at IP/API level
-- Data management
-  - Declarative schema definition, relations and column properties
-  - CRUD APIs with Authorization/Pagination/Search/Relations
-  - File asset columns to store images/video/audio/blobs
-- Storage management
-  - localhost/gDrive/S3/B2/DropBox/FTP and many more supported
-- Site management
-  - Create HTTP sites based by storage anywhere
-  - Enable HTTPS using LetsEncrypt
-  - Create and Build HUGO static sites
-  - Expose directories as FTP sites
-- Integration and action management
-  - Create workflows and expose as APIs
-  - Call any 3rd party API by importing OpenAPI Spec
-- Mail management
-  - Enable SMTPS and IMAPS services and use daptin as your regular email provider
-  - Multi hostname mail server
-  - Multiple email accounts
-- With a clean white-branded dashboard
-</code></pre></div>
-<p><br /></p>
-<h2 id="features">Features</h2>
-<p>Consume the following features easily on any device</p>
-<ul>
-<li><a href="setting-up/installation/#database-configuration">Database backed</a> persistence, 3NF normalized tables</li>
-<li><a href="apis/overview/">JSON API</a>/<a href="features/enable-graphql/">GraphQL</a> for CRUD apis</li>
-<li><a href="setting-up/access/">User</a> and <a href="setting-up/access/">group management</a> and access control</li>
-<li>Social login with <a href="extend/oauth_connection/">OAuth</a>: tested with google, github, linkedin</li>
-<li><a href="actions/overview/">Actions</a> for abstracting out business flows</li>
-<li>Extensive <a href="state/machines/">state tracking APIs</a></li>
-<li>Enable <a href="features/enable-data-auditing/">Data Auditing</a> from a single toggle</li>
-<li><a href="extend/data_exchange/">Synchronous Data Exchange</a> with 3rd party APIs</li>
-<li><a href="features/enable-multilingual-table/">Multilingual tables</a> support, supports Accept-Language header </li>
-<li><a href="cloudstore/cloudstore/">Cloud storage sync</a> like gdrive, dropbox, b2, s3 and more</li>
-<li><a href="cloudstore/assetcolumns/">Asset column</a> to hold file and blob data, backed by storage</li>
-<li><a href="subsite/subsite/">Multiple websites</a> under separate sub-domain/sub-paths</li>
-<li><a href="integrations/overview/">Connect with external APIs</a> by using extension points</li>
-<li><a href="streams/streams/">Data View Streams</a></li>
-<li>
-<p>Flexible <a href="setting-up/data_import/">data import</a> (auto create new tables and automated schema generation)</p>
-<ul>
-<li>XLSX </li>
-<li>JSON</li>
-<li>CSV</li>
-</ul>
-</li>
-<li>
-<p><strong>Database</strong> to have consistent single source of truth [Postgres/MySQL/SQLite]</p>
-</li>
-<li><strong>Flexible auth</strong> using the JWT-based authentication &amp; permission system</li>
-<li><strong>Works with all frontend frameworks</strong> like React, Vue.js, Angular, Android, iOS</li>
-<li><strong>Very low memory requirement</strong> and horizontally scalable</li>
-<li><strong>Can be deployed on a wide range of hardware</strong> arm5,arm6,arm7,arm64,mips,mips64,mips64le,mipsle (or build for your target using go)</li>
-</ul>
-<h2 id="guides">Guides</h2>
-<ul>
-<li><a href="https://medium.com/@012parth/daptin-walk-through-oauth2-google-drive-subsites-and-grapejs-a6de27d9658a">Create a site using a google drive folder</a></li>
-<li><a href="https://hackernoon.com/creating-a-todolist-backend-with-persistence-a1e8d7d39f62">Creating a todo list backend</a></li>
-</ul>
-
-              
-            </article>
-          </div>
-        </div>
-        
-      </main>
-      
-        <footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-      
-        
-        <a href="setting-up/installation/" class="md-footer__link md-footer__link--next" aria-label="Next: Download and Deploy" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Download and Deploy
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
+    <nav aria-label="Primary navigation">
+      <a href="features/">Features</a>
+      <a href="platform/">Platform</a>
+      <a href="use-cases/">Use cases</a>
+      <a href="open-source/">Open source</a>
+      <a href="https://github.com/daptin/daptin/wiki">Documentation</a>
     </nav>
-  
-  <div class="md-footer-meta md-typeset">
-    <div class="md-footer-meta__inner md-grid">
-      <div class="md-copyright">
-  
-  
-    Made with
-    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
-      Material for MkDocs
-    </a>
-  
-</div>
-      
-    </div>
-  </div>
-</footer>
-      
-    </div>
-    <div class="md-dialog" data-md-component="dialog">
-      <div class="md-dialog__inner md-typeset"></div>
-    </div>
-    <script id="__config" type="application/json">{"base": ".", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "assets/javascripts/workers/search.bd0b6b67.min.js"}</script>
-    
-    
-      <script src="assets/javascripts/bundle.5413a266.min.js"></script>
-      
-    
-  </body>
+    <a class="header-cta" href="https://github.com/daptin/daptin/wiki/Getting-Started-Guide">Get started <span>→</span></a>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> Open source · Self-hosted · LGPL-3.0</p>
+        <h1>Your data model<br><em>is the backend.</em></h1>
+        <p class="lede">Daptin turns a schema into a production-ready application server—with APIs, identity, permissions, files, automation, integrations, and realtime delivery already connected.</p>
+        <div class="actions">
+          <a class="button button-primary" href="https://github.com/daptin/daptin/wiki/Getting-Started-Guide">Start building <span>→</span></a>
+          <a class="button button-secondary" href="https://github.com/daptin/daptin">View on GitHub ↗</a>
+        </div>
+        <p class="proof">One Go binary. SQLite, MySQL, or PostgreSQL. Your infrastructure.</p>
+      </div>
+
+      <div class="system-card" role="img" aria-label="A product schema connected to generated backend capabilities">
+        <div class="window-bar"><span>schema_product.yaml</span><i aria-hidden="true"></i></div>
+        <pre><code><span class="code-accent">Tables:</span>
+  - <span class="code-key">TableName:</span> product
+    <span class="code-key">Columns:</span>
+      - <span class="code-key">Name:</span> title
+        <span class="code-key">DataType:</span> varchar(200)
+      - <span class="code-key">Name:</span> price
+        <span class="code-key">DataType:</span> float</code></pre>
+        <div class="route"><span>POST</span> /api/product <strong>201</strong></div>
+        <div class="surface-grid">
+          <span>JSON:API</span><span>GraphQL</span><span>OpenAPI</span>
+          <span>Auth</span><span>Events</span><span>Files</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="quickstart" aria-labelledby="quickstart-title">
+      <div>
+        <span class="kicker">01 / RUN</span>
+        <h2 id="quickstart-title">A backend in one command</h2>
+      </div>
+      <code><span>$</span> docker run --rm -p 6336:8080 daptin/daptin:latest</code>
+      <a href="https://github.com/daptin/daptin/wiki/Getting-Started-Guide">Open localhost:6336 →</a>
+    </section>
+
+    <section class="section-intro" id="features">
+      <div>
+        <span class="kicker">02 / BUILD</span>
+        <h2>Define the data.<br>Get the whole backend.</h2>
+      </div>
+      <div class="intro-copy">
+        <p>Stop rebuilding the same plumbing for every product. Daptin composes its capabilities around one shared resource model, so APIs, permissions, events, and operations stay consistent as your application grows.</p>
+        <a class="text-link" href="https://github.com/daptin/daptin/wiki/Core-Concepts">Explore core concepts <span>→</span></a>
+      </div>
+    </section>
+
+    <section class="feature-grid" aria-label="Daptin features">
+      <article class="feature feature-blue">
+        <span class="feature-number">01</span>
+        <h3>Model-driven APIs</h3>
+        <p>JSON:API CRUD, relationships, filtering, pagination, aggregation, optional GraphQL, OpenAPI, and runtime metadata.</p>
+        <a href="https://github.com/daptin/daptin/wiki/API-Overview">Explore APIs →</a>
+      </article>
+      <article class="feature feature-orange">
+        <span class="feature-number">02</span>
+        <h3>Identity &amp; permissions</h3>
+        <p>Users, groups, ownership, JWT and OTP flows, plus table, row, relation, and action-level access control.</p>
+        <a href="https://github.com/daptin/daptin/wiki/Permissions">Secure your data →</a>
+      </article>
+      <article class="feature">
+        <span class="feature-number">03</span>
+        <h3>Actions &amp; schedules</h3>
+        <p>Build backend operations from validated inputs and ordered outcomes, then invoke them through APIs or scheduled tasks.</p>
+        <a href="https://github.com/daptin/daptin/wiki/Actions-Overview">Automate work →</a>
+      </article>
+      <article class="feature">
+        <span class="feature-number">04</span>
+        <h3>Files &amp; cloud storage</h3>
+        <p>Attach files to records, use local or cloud-backed stores, sync assets, and serve sites from the same runtime.</p>
+        <a href="https://github.com/daptin/daptin/wiki/Asset-Columns">Manage assets →</a>
+      </article>
+      <article class="feature">
+        <span class="feature-number">05</span>
+        <h3>Realtime &amp; protocols</h3>
+        <p>Publish resource events over WebSockets, collaborate with YJS, and enable HTTP(S), FTP, SMTP, or IMAP services.</p>
+        <a href="https://github.com/daptin/daptin/wiki/WebSocket-API">Connect in realtime →</a>
+      </article>
+      <article class="feature feature-dark">
+        <span class="feature-number">06</span>
+        <h3>Integrations &amp; AI</h3>
+        <p>Import OpenAPI operations as actions and route OpenAI-compatible requests across configured LLM providers.</p>
+        <a href="https://github.com/daptin/daptin/wiki/Integrations">Connect services →</a>
+      </article>
+    </section>
+
+    <section class="how" id="how-it-works">
+      <div class="how-heading">
+        <span class="kicker">03 / SHIP</span>
+        <h2>From schema to running product.</h2>
+      </div>
+      <ol>
+        <li><span>1</span><div><h3>Describe</h3><p>Define tables, columns, relationships, validation, and behavior in YAML or JSON.</p></div></li>
+        <li><span>2</span><div><h3>Configure</h3><p>Set permissions, actions, schedules, storage, integrations, and protocols as ordinary data.</p></div></li>
+        <li><span>3</span><div><h3>Operate</h3><p>Run one binary with health checks, TLS, audit logs, caching, clustering, and graceful shutdown.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="architecture">
+      <div class="architecture-copy">
+        <span class="kicker">ONE MODEL / MANY SURFACES</span>
+        <h2>A connected runtime,<br>not a box of plugins.</h2>
+        <p>Schema, access control, automation, and delivery all share the same resource layer. Add a capability without inventing a second source of truth.</p>
+        <a class="text-link" href="https://github.com/daptin/daptin/wiki/Daptin-Application-Server-Feature-Map">See the complete feature map <span>→</span></a>
+      </div>
+      <div class="architecture-map" role="img" aria-label="Daptin architecture overview">
+        <div class="model-node">Your data model</div>
+        <div class="connector" aria-hidden="true"></div>
+        <div class="runtime-node">Daptin runtime</div>
+        <div class="outputs">
+          <span>APIs</span><span>Auth</span><span>Actions</span><span>Storage</span><span>Realtime</span><span>Ops</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="use-case-preview">
+      <div class="preview-heading">
+        <span class="kicker">04 / ADAPT</span>
+        <h2>One runtime.<br>Many kinds of product.</h2>
+        <p>Start with the complete backend or add Daptin beside an existing stack for the capabilities you are missing.</p>
+      </div>
+      <div class="preview-list">
+        <a href="use-cases/#saas"><span>01</span><strong>SaaS &amp; multi-tenant apps</strong><em>Users, groups, row permissions, plans, and quotas.</em><b>→</b></a>
+        <a href="use-cases/#internal-tools"><span>02</span><strong>Internal tools &amp; operations</strong><em>Structured data, admin UI, actions, and integrations.</em><b>→</b></a>
+        <a href="use-cases/#ai"><span>03</span><strong>AI &amp; integration gateways</strong><em>Provider routing, metering, credentials, and OpenAPI actions.</em><b>→</b></a>
+        <a href="use-cases/#realtime"><span>04</span><strong>Realtime &amp; collaborative products</strong><em>Events, WebSockets, feeds, and optional YJS.</em><b>→</b></a>
+      </div>
+    </section>
+
+    <section class="ownership-band">
+      <div>
+        <span class="kicker">OWN THE WHOLE STACK</span>
+        <h2>Small deployment.<br>Serious backend.</h2>
+      </div>
+      <div>
+        <p>Run Daptin as a single Go binary, choose SQLite for local work or MySQL/PostgreSQL for production, and keep your application data on infrastructure you control.</p>
+        <div class="ownership-points"><span>No proprietary database</span><span>No mandatory cloud</span><span>No per-seat platform bill</span><span>No client framework lock-in</span></div>
+        <a class="text-link" href="open-source/">Why teams self-host Daptin <span>→</span></a>
+      </div>
+    </section>
+
+    <section class="final-cta">
+      <div>
+        <span class="kicker">READY WHEN YOU ARE</span>
+        <h2>Build the product.<br>Skip the backend boilerplate.</h2>
+      </div>
+      <div class="final-actions">
+        <a class="button button-light" href="https://github.com/daptin/daptin/wiki/Getting-Started-Guide">Read the quickstart <span>→</span></a>
+        <a href="https://github.com/daptin/daptin/releases/latest">Download latest release ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="brand footer-brand"><img src="images/theme-logo.png" width="36" height="36" alt=""><span>Daptin</span></div>
+    <p>Open source application infrastructure for teams that want to own their backend.</p>
+    <nav aria-label="Footer navigation">
+      <a href="https://github.com/daptin/daptin/wiki">Docs</a>
+      <a href="features/">Features</a>
+      <a href="use-cases/">Use cases</a>
+      <a href="https://github.com/daptin/daptin/releases">Releases</a>
+      <a href="https://discord.gg/t564q8SQVk">Discord</a>
+      <a href="https://github.com/daptin/daptin/issues">Issues</a>
+    </nav>
+    <small>LGPL-3.0 · Built in Go</small>
+  </footer>
+</body>
 </html>

@@ -134,14 +134,15 @@ install: daptin
 clean:
 	go clean ./...
 	find . -name \*~ | xargs -r rm -f
-	rm -rf build docs/public
+	rm -rf build
 	rm -f daptin fs/operations/operations.test fs/sync/sync.test fs/test_all.log test.log
 
 website:
-	cd docs && hugo
-
-upload_website:	website
-	rclone -v sync docs/public memstore:www-daptin-org
+	test -f docs/index.html
+	test -f docs/features/index.html
+	test -f docs/platform/index.html
+	test -f docs/use-cases/index.html
+	test -f docs/open-source/index.html
 
 tarball:
 	git archive -9 --format=tar.gz --prefix=daptin-$(TAG)/ -o build/daptin-$(TAG).tar.gz $(TAG)
@@ -203,18 +204,14 @@ fetch_binaries:
 	rclone -P sync --exclude "/testbuilds/**" --delete-excluded $(BETA_UPLOAD) build/
 
 serve:	website
-	cd docs && hugo server -v -w
+	python3 -m http.server 8000 --directory docs
 
 tag:	doc
 	@echo "Old tag is $(VERSION)"
 	@echo "New tag is $(NEXT_VERSION)"
 	echo -e "package fs\n\n// Version of daptin\nvar Version = \"$(NEXT_VERSION)\"\n" | gofmt > fs/version.go
-	echo -n "$(NEXT_VERSION)" > docs/layouts/partials/version.html
 	echo "$(NEXT_VERSION)" > VERSION
 	git tag -s -m "Version $(NEXT_VERSION)" $(NEXT_VERSION)
-	bin/make_changelog.py $(LAST_TAG) $(NEXT_VERSION) > docs/content/changelog.md.new
-	mv docs/content/changelog.md.new docs/content/changelog.md
-	@echo "Edit the new changelog in docs/content/changelog.md"
 	@echo "Then commit all the changes"
 	@echo git commit -m \"Version $(NEXT_VERSION)\" -a -v
 	@echo "And finally run make retag before make cross etc"

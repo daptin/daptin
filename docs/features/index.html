@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Features — Daptin</title>
+  <meta name="description" content="Explore Daptin's complete application-server feature set: data APIs, auth, automation, storage, realtime, integrations, AI routing, metering, and operations.">
+  <meta name="theme-color" content="#111316">
+  <link rel="canonical" href="https://daptin.github.io/daptin/features/">
+  <link rel="icon" href="../images/theme-favicon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Daptin features — one model, every backend surface">
+  <meta property="og:description" content="A source-grounded look at the APIs, identity, automation, files, protocols, integrations, AI, metering, and operations built into Daptin.">
+  <meta property="og:url" content="https://daptin.github.io/daptin/features/">
+</head>
+<body class="inner-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../" aria-label="Daptin home"><img src="../images/theme-logo.png" width="40" height="40" alt=""><span>Daptin</span></a>
+    <nav aria-label="Primary navigation">
+      <a aria-current="page" href="./">Features</a><a href="../platform/">Platform</a><a href="../use-cases/">Use cases</a><a href="../open-source/">Open source</a><a href="https://github.com/daptin/daptin/wiki">Documentation</a>
+    </nav>
+    <a class="header-cta" href="https://github.com/daptin/daptin/wiki/Getting-Started-Guide">Get started <span>→</span></a>
+  </header>
+
+  <main id="main">
+    <section class="page-hero page-hero-blue">
+      <div><p class="eyebrow"><span></span> Complete feature catalog</p><h1>Every backend surface.<br><em>One shared model.</em></h1></div>
+      <div class="page-hero-copy"><p>Daptin is an application server, not a loose bundle of services. Every capability below connects to the same resources, permissions, credentials, and operational runtime.</p><div class="hero-facts"><span><b>8</b> capability areas</span><span><b>1</b> permission model</span><span><b>1</b> deployable binary</span></div></div>
+    </section>
+
+    <nav class="feature-index" aria-label="Feature categories">
+      <a href="#data">Data &amp; schema</a><a href="#apis">APIs &amp; discovery</a><a href="#identity">Identity &amp; access</a><a href="#automation">Automation</a><a href="#files">Files &amp; sites</a><a href="#realtime">Realtime &amp; protocols</a><a href="#integrations">Integrations &amp; AI</a><a href="#operations">Metering &amp; operations</a>
+    </nav>
+
+    <div class="feature-details">
+      <section class="detail-block" id="data">
+        <div class="detail-heading"><span>01</span><div><p class="kicker">FOUNDATION</p><h2>Data &amp; schema runtime</h2><p>Describe application resources once and give every other backend surface a durable contract.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>Declarative resources</h3><p>Load YAML or JSON schemas with tables, columns, indexes, relationships, validation rules, defaults, and behavior flags.</p></article>
+          <article><h3>Production data shape</h3><p>Every resource receives stable public references, timestamps, versions, and permission metadata without repeating boilerplate.</p></article>
+          <article><h3>Rich field vocabulary</h3><p>Use types for text, numbers, dates, JSON, location, identity, security, ratings, measurements, files, images, audio, and video.</p></article>
+          <article><h3>Database choice</h3><p>Develop quickly with SQLite, then run against MySQL, MariaDB, or PostgreSQL using the same application model.</p></article>
+          <article><h3>Relations and joins</h3><p>Model belongs-to, has-one, has-many, and many-to-many relationships with generated relationship APIs.</p></article>
+          <article><h3>Data lifecycle</h3><p>Import CSV, XLSX, JSON, or YAML; export structured data; generate test records; enable multilingual fields, auditing, state, or metering.</p></article>
+        </div>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/Schema-Definition">Explore schema definition <span>→</span></a>
+      </section>
+
+      <section class="detail-block detail-tint" id="apis">
+        <div class="detail-heading"><span>02</span><div><p class="kicker">DELIVERY</p><h2>APIs &amp; discovery</h2><p>Expose the same resource model through query, mutation, aggregation, and machine-readable discovery surfaces.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>JSON:API resources</h3><p>CRUD and relationship endpoints with filtering, sorting, pagination, includes, sparse fields, and permission-aware responses.</p></article>
+          <article><h3>Optional GraphQL</h3><p>Generate queries, mutations, relationships, aggregations, and action execution from the configured model.</p></article>
+          <article><h3>Aggregation API</h3><p>Group, join, filter, sample, order, and calculate count, sum, average, minimum, maximum, first, or last values.</p></article>
+          <article><h3>OpenAPI output</h3><p>Publish an OpenAPI description of resources, actions, integrations, auth requirements, examples, and data features.</p></article>
+          <article><h3>Runtime metadata</h3><p>Inspect available entities through metadata and generated JavaScript model routes for dynamic tools and clients.</p></article>
+          <article><h3>Framework independent</h3><p>Use plain HTTP from web, mobile, server, automation, or agent clients without adopting a proprietary frontend SDK.</p></article>
+        </div>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/API-Overview">Explore the API surface <span>→</span></a>
+      </section>
+
+      <section class="detail-block" id="identity">
+        <div class="detail-heading"><span>03</span><div><p class="kicker">GOVERNANCE</p><h2>Identity &amp; access</h2><p>Apply the same ownership and group policy to data, relations, actions, topics, and integrations.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>Users and groups</h3><p>Model users, teams, roles, tenant boundaries, memberships, ownership, and default access groups as connected resources.</p></article>
+          <article><h3>Granular permissions</h3><p>Gate read, create, update, delete, refer, execute, and peek operations at entity, row, relation, and action levels.</p></article>
+          <article><h3>Authentication flows</h3><p>Support password signup and signin, JWT sessions, reset flows, and TOTP-based two-factor authentication.</p></article>
+          <article><h3>OAuth client</h3><p>Connect to external OAuth providers, complete browser authorization flows, and store linked tokens securely.</p></article>
+          <article><h3>OAuth/OIDC provider</h3><p>Issue, refresh, revoke, and introspect tokens through authorization, JWKS, userinfo, and discovery endpoints.</p></article>
+          <article><h3>Multi-tenant patterns</h3><p>Combine ownership, usergroups, relations, and row permissions for isolated workspaces without separate application servers.</p></article>
+        </div>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/Permissions">Understand permissions <span>→</span></a>
+      </section>
+
+      <section class="detail-block detail-tint" id="automation">
+        <div class="detail-heading"><span>04</span><div><p class="kicker">BACKEND LOGIC</p><h2>Actions, schedules &amp; state</h2><p>Move product logic out of frontend glue and into permission-aware backend operations.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>Composable actions</h3><p>Define inputs, validation, conformations, conditions, ordered outcomes, responses, and instance requirements as data.</p></article>
+          <article><h3>Backend outcomes</h3><p>Perform CRUD, invoke registered Go performers, render content, download files, set headers or cookies, and chain work.</p></article>
+          <article><h3>Scheduled tasks</h3><p>Call the same actions on cron schedules under a selected user identity and permission context.</p></article>
+          <article><h3>State tracking</h3><p>Define allowed source-to-destination events, record transitions, versions, and audit history for resource state.</p></article>
+          <article><h3>Data exchange</h3><p>Map and synchronize resources with external sources or destinations before and after configured operations.</p></article>
+          <article><h3>Built-in operations</h3><p>Handle auth, OAuth, storage, mail, sites, integrations, certificates, publishing, imports, exports, and administration.</p></article>
+        </div>
+        <p class="scope-note"><strong>Clear scope:</strong> state tracking records allowed transitions; it is not a BPM engine with hierarchical states, parallel branches, or implicit entry and exit actions.</p>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/Actions-Overview">Build with actions <span>→</span></a>
+      </section>
+
+      <section class="detail-block" id="files">
+        <div class="detail-heading"><span>05</span><div><p class="kicker">CONTENT</p><h2>Files, storage &amp; sites</h2><p>Keep structured records, binary assets, credentials, and hosted frontends in one governed runtime.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>Asset columns</h3><p>Attach images, video, audio, documents, or other blobs to records with dedicated retrieval and upload routes.</p></article>
+          <article><h3>Cloud stores</h3><p>Connect local or rclone-backed storage providers using encrypted credentials and resource-managed configuration.</p></article>
+          <article><h3>Upload workflows</h3><p>Support direct, multipart, and presigned-style operations where the configured storage provider allows them.</p></article>
+          <article><h3>Fast delivery</h3><p>Serve assets with ETags, cache headers, gzip, in-memory caches, negative caching, and optimized filesystem paths.</p></article>
+          <article><h3>Subsites</h3><p>Route sites by host or path, sync content from storage, apply basic auth, and serve multiple frontends from Daptin.</p></article>
+          <article><h3>Go templates</h3><p>Render resource data into hosted pages with template hooks while retaining the same storage and routing layer.</p></article>
+        </div>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/Cloud-Storage-Complete-Guide">Explore storage and assets <span>→</span></a>
+      </section>
+
+      <section class="detail-block detail-tint" id="realtime">
+        <div class="detail-heading"><span>06</span><div><p class="kicker">CONNECTIONS</p><h2>Realtime &amp; protocols</h2><p>Use the protocol that fits the product without standing up another service for each surface.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>Resource events</h3><p>Publish create, update, and delete events through a bounded worker pool and Olric-backed PubSub.</p></article>
+          <article><h3>WebSockets</h3><p>Subscribe to permission-aware table and topic updates through the structured <code>/live</code> message protocol.</p></article>
+          <article><h3>YJS collaboration</h3><p>Optionally add collaborative document behavior and YJS endpoints to configured resource columns.</p></article>
+          <article><h3>Feeds and streams</h3><p>Expose selected data through stream definitions and RSS, Atom, or JSON-style feed routes.</p></article>
+          <article><h3>Mail and files</h3><p>Enable database-backed SMTP, IMAP, FTP, and FTPS services alongside the HTTP application server.</p></article>
+          <article><h3>WebDAV-style routes</h3><p>Enable CalDAV/CardDAV routes for basic file-oriented storage and discovery where that limited scope is sufficient.</p></article>
+        </div>
+        <p class="scope-note"><strong>Clear scope:</strong> CalDAV/CardDAV support is basic WebDAV-style storage, not a claim of complete calendar or contact protocol compatibility.</p>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/Event-System">Explore events and protocols <span>→</span></a>
+      </section>
+
+      <section class="detail-block" id="integrations">
+        <div class="detail-heading"><span>07</span><div><p class="kicker">CONNECTIVITY</p><h2>Integrations &amp; LLM routing</h2><p>Turn external APIs and model providers into governed backend capabilities instead of leaking credentials into apps.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>OpenAPI imports</h3><p>Install OpenAPI v2 or v3 operations and expose provider-scoped discovery and execution routes.</p></article>
+          <article><h3>Multiple transports</h3><p>Connect REST, GraphQL, short-lived WebSocket, and unary gRPC operations through one integration model.</p></article>
+          <article><h3>Credential boundaries</h3><p>Resolve OAuth tokens or custom encrypted credentials at runtime without mixing secrets into user input.</p></article>
+          <article><h3>OpenAI-compatible API</h3><p>Serve chat completions, streaming chat, completions, embeddings, models, and tool-call-compatible payloads under <code>/v1</code>.</p></article>
+          <article><h3>Provider routing</h3><p>Map requested model names to configured providers and credentials while keeping clients on one API contract.</p></article>
+          <article><h3>Discoverable operations</h3><p>Publish installed provider operations into Daptin’s OpenAPI output for clients, tools, and agents.</p></article>
+        </div>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/Integrations">Explore integrations <span>→</span></a>
+      </section>
+
+      <section class="detail-block detail-dark" id="operations">
+        <div class="detail-heading"><span>08</span><div><p class="kicker">PRODUCTION</p><h2>Metering, caching &amp; operations</h2><p>Run the application as a product with the controls that are usually postponed until after launch.</p></div></div>
+        <div class="detail-grid">
+          <article><h3>Plans and quotas</h3><p>Define plans, memberships, request and compute limits, pricing metadata, overages, and period quotas.</p></article>
+          <article><h3>Usage metering</h3><p>Record CRUD, action, and LLM usage—including token dimensions—and invoke post-metering credit hooks.</p></article>
+          <article><h3>Rate limits</h3><p>Apply API limits with clustered Olric counters and reject requests before recording usage when hard quotas fail.</p></article>
+          <article><h3>Cache and PubSub</h3><p>Use embedded Olric, LRU/file caches, event queues, and distributed PubSub for coordinated runtime behavior.</p></article>
+          <article><h3>Health and visibility</h3><p>Expose liveness, readiness, statistics, configuration, logs, profiles, metadata, and optional audit records.</p></article>
+          <article><h3>Reliable lifecycle</h3><p>Bind services synchronously, manage TLS, and perform graceful shutdown by draining HTTP and protocol sessions, flushing events, and closing dependencies in order.</p></article>
+        </div>
+        <a class="detail-cta" href="https://github.com/daptin/daptin/wiki/Production-Deployment">Plan a production deployment <span>→</span></a>
+      </section>
+    </div>
+
+    <section class="final-cta">
+      <div><span class="kicker">START WITH THE MODEL</span><h2>See how the pieces<br>fit together.</h2></div>
+      <div class="final-actions"><a class="button button-light" href="../platform/">Explore the platform <span>→</span></a><a href="https://github.com/daptin/daptin/wiki/Getting-Started-Guide">Follow the getting started guide ↗</a></div>
+    </section>
+  </main>
+
+  <footer><div class="brand footer-brand"><img src="../images/theme-logo.png" width="36" height="36" alt=""><span>Daptin</span></div><p>Open source application infrastructure for teams that want to own their backend.</p><nav aria-label="Footer navigation"><a href="https://github.com/daptin/daptin/wiki">Docs</a><a href="../platform/">Platform</a><a href="../use-cases/">Use cases</a><a href="https://github.com/daptin/daptin/releases">Releases</a><a href="https://discord.gg/t564q8SQVk">Discord</a></nav><small>LGPL-3.0 · Built in Go</small></footer>
+</body>
+</html>

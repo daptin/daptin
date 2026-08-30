@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open source &amp; self-hosting — Daptin</title>
+  <meta name="description" content="Run Daptin on your infrastructure as an LGPL-3.0 Go application server with SQLite, MySQL, MariaDB, or PostgreSQL.">
+  <meta name="theme-color" content="#111316">
+  <link rel="canonical" href="https://daptin.github.io/daptin/open-source/">
+  <link rel="icon" href="../images/theme-favicon.png">
+  <link rel="stylesheet" href="../styles.css">
+  <meta property="og:type" content="website"><meta property="og:title" content="Own your backend with Daptin"><meta property="og:description" content="Open source, self-hosted application infrastructure in one Go binary."><meta property="og:url" content="https://daptin.github.io/daptin/open-source/">
+</head>
+<body class="inner-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../" aria-label="Daptin home"><img src="../images/theme-logo.png" width="40" height="40" alt=""><span>Daptin</span></a>
+    <nav aria-label="Primary navigation"><a href="../features/">Features</a><a href="../platform/">Platform</a><a href="../use-cases/">Use cases</a><a aria-current="page" href="./">Open source</a><a href="https://github.com/daptin/daptin/wiki">Documentation</a></nav>
+    <a class="header-cta" href="https://github.com/daptin/daptin/wiki/Getting-Started-Guide">Get started <span>→</span></a>
+  </header>
+
+  <main id="main">
+    <section class="page-hero page-hero-blue">
+      <div><p class="eyebrow"><span></span> Open source from runtime to roadmap</p><h1>Your backend.<br><em>Your infrastructure.</em></h1></div>
+      <div class="page-hero-copy"><p>Inspect the code, run it locally, deploy it wherever a Go application and database can run, and keep the application model portable.</p><div class="actions"><a class="button button-primary" href="https://github.com/daptin/daptin">Explore the repository ↗</a><a class="button button-secondary" href="https://github.com/daptin/daptin/releases/latest">Download a release</a></div></div>
+    </section>
+
+    <section class="ownership-pillars">
+      <article><span>01</span><h2>Own the data plane</h2><p>Daptin persists application state in SQLite, MySQL, MariaDB, or PostgreSQL and connects files to local or configured cloud storage. There is no mandatory hosted control plane between your clients and your backend.</p></article>
+      <article><span>02</span><h2>Own the deployment</h2><p>Run a downloadable binary, build from source, package it in a container, or schedule it on your preferred infrastructure. Enable only the protocols your application needs.</p></article>
+      <article><span>03</span><h2>Own the contract</h2><p>Your schema is YAML or JSON, your interfaces are standard HTTP, JSON:API, GraphQL, OpenAPI, WebSocket, OAuth/OIDC, and OpenAI-compatible routes, and your behavior is inspectable in source.</p></article>
+    </section>
+
+    <section class="install-band">
+      <div><span class="kicker">FROM ZERO TO LOCAL</span><h2>Run it before you commit to it.</h2></div>
+      <div><code><span>$</span> docker run --rm -p 6336:8080 daptin/daptin:latest</code><p>Open <strong>localhost:6336</strong>, create the first administrator, and start with SQLite. Move to durable infrastructure when the product is ready.</p><a class="text-link" href="https://github.com/daptin/daptin/wiki/Installation">Installation options <span>→</span></a></div>
+    </section>
+
+    <section class="tradeoff-section">
+      <div><span class="kicker">AN HONEST TRADE</span><h2>Control replaces platform dependency—not operational responsibility.</h2><p>Self-hosting removes a required vendor runtime, but production reliability still belongs to the operator. Daptin provides the application controls; your deployment provides the service discipline.</p></div>
+      <div class="tradeoff-grid">
+        <article class="gain"><h3>What Daptin gives you</h3><ul><li>Integrated backend capabilities in one runtime</li><li>Standard database and protocol choices</li><li>Source-visible behavior and upgrade history</li><li>No required cloud account or per-seat platform plan</li><li>Configurable services and portable schemas</li><li>Health, statistics, audit, cache, TLS, and graceful shutdown controls</li></ul></article>
+        <article><h3>What production still requires</h3><ul><li>Database backups and tested restores</li><li>Stable JWT and encryption secrets</li><li>HTTPS, DNS, and certificate operations</li><li>Durable storage and capacity planning</li><li>Monitoring, alerting, and log retention</li><li>Upgrade, security, and incident processes</li></ul></article>
+      </div>
+    </section>
+
+    <section class="deployment-ladder">
+      <div><span class="kicker">GROW WITHOUT CHANGING THE MODEL</span><h2>A practical deployment path.</h2></div>
+      <ol><li><span>STEP 1</span><h3>Evaluate</h3><p>One binary, SQLite, and local asset storage on a developer machine.</p></li><li><span>STEP 2</span><h3>Launch</h3><p>PostgreSQL or MySQL, persistent storage, HTTPS, backups, and monitoring.</p></li><li><span>STEP 3</span><h3>Coordinate</h3><p>Multiple instances with shared database and Olric-backed distributed runtime behavior.</p></li></ol>
+    </section>
+
+    <section class="ecosystem-section">
+      <div><span class="kicker">BUILD IN THE OPEN</span><h2>Repository, clients, samples, and demos.</h2><p>Daptin’s surrounding projects provide clients, reusable schemas, and focused examples for identity, integrations, LLM routing, and metering.</p></div>
+      <div class="ecosystem-grid"><a href="https://github.com/daptin/daptin"><strong>Core server</strong><span>Go application runtime →</span></a><a href="https://github.com/daptin/daptin-cli"><strong>Daptin CLI</strong><span>Manage backend resources →</span></a><a href="https://github.com/daptin/daptin-js-client"><strong>JavaScript client</strong><span>Browser and Node client →</span></a><a href="https://github.com/daptin/daptin-go-client"><strong>Go client</strong><span>Typed Go integration →</span></a><a href="https://github.com/daptin/daptin-schema-samples"><strong>Schema samples</strong><span>Reusable starting points →</span></a><a href="https://discord.gg/t564q8SQVk"><strong>Community</strong><span>Join the Discord →</span></a></div>
+    </section>
+
+    <section class="license-band"><div><span class="kicker">LICENSE</span><h2>LGPL-3.0</h2></div><div><p>Daptin is distributed under the GNU Lesser General Public License v3. Review the license text for the terms that apply to your distribution and modifications.</p><a class="detail-cta" href="https://github.com/daptin/daptin/blob/master/LICENSE">Read the license ↗</a></div></section>
+
+    <section class="final-cta"><div><span class="kicker">TAKE CONTROL OF THE BACKEND</span><h2>Download it.<br>Inspect it. Run it.</h2></div><div class="final-actions"><a class="button button-light" href="https://github.com/daptin/daptin/releases/latest">Get the latest release <span>→</span></a><a href="https://github.com/daptin/daptin/wiki/Production-Deployment">Read the production guide ↗</a></div></section>
+  </main>
+  <footer><div class="brand footer-brand"><img src="../images/theme-logo.png" width="36" height="36" alt=""><span>Daptin</span></div><p>Open source application infrastructure for teams that want to own their backend.</p><nav aria-label="Footer navigation"><a href="https://github.com/daptin/daptin/wiki">Docs</a><a href="../features/">Features</a><a href="../platform/">Platform</a><a href="../use-cases/">Use cases</a><a href="https://github.com/daptin/daptin/releases">Releases</a></nav><small>LGPL-3.0 · Built in Go</small></footer>
+</body>
+</html>

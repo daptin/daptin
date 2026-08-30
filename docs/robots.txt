@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://daptin.github.io/daptin/sitemap.xml
