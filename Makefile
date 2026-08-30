@@ -139,10 +139,7 @@ clean:
 
 website:
 	test -f docs/index.html
-	test -f docs/features/index.html
-	test -f docs/platform/index.html
-	test -f docs/use-cases/index.html
-	test -f docs/open-source/index.html
+	test -f docs/404.html
 
 tarball:
 	git archive -9 --format=tar.gz --prefix=daptin-$(TAG)/ -o build/daptin-$(TAG).tar.gz $(TAG)

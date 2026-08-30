@@ -45,7 +45,8 @@ The Daptin repository is organized into several key directories:
 - **`dockercomposeexamples/`**: Example `dockercompose.yml` files demonstrating how to run Daptin with dependencies
   like PostgreSQL.
 
-- **`docs/`**: Contains the static GitHub Pages marketing site. Product documentation is maintained in the GitHub Wiki.
+- **`docs/`**: Contains compatibility redirects from the former project Pages URL. The marketing site lives in
+  `daptin/daptin.github.io`, while product documentation is maintained in the GitHub Wiki.
 
 - **`images/`**: Stores project logos, diagrams, and icons used in documentation and potentially the application UI.
 

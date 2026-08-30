@@ -3,21 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Page not found — Daptin</title>
-  <meta name="robots" content="noindex">
-  <link rel="icon" href="/daptin/images/theme-favicon.png">
-  <link rel="stylesheet" href="/daptin/styles.css">
+  <link rel="canonical" href="https://daptin.github.io/">
+  <title>Daptin has moved</title>
+  <script>
+    const section = location.pathname.replace(/^\/daptin\/?/, "").split("/")[0];
+    const routes = new Set(["features", "platform", "use-cases", "open-source"]);
+    const path = routes.has(section) ? `/${section}/` : "/";
+    location.replace(`https://daptin.github.io${path}${location.search}${location.hash}`);
+  </script>
 </head>
 <body>
-  <main class="not-found">
-    <a class="brand" href="/daptin/"><img src="/daptin/images/theme-logo.png" width="40" height="40" alt=""><span>Daptin</span></a>
-    <p class="kicker">404 / PAGE NOT FOUND</p>
-    <h1>Looking for the docs?</h1>
-    <p>Daptin documentation now lives in the GitHub Wiki. The marketing site is back at the homepage.</p>
-    <div class="actions">
-      <a class="button button-primary" href="https://github.com/daptin/daptin/wiki">Open documentation <span>→</span></a>
-      <a class="button button-secondary" href="/daptin/">Back to Daptin</a>
-    </div>
-  </main>
+  <p>Daptin has moved to <a href="https://daptin.github.io/">daptin.github.io</a>.</p>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/images/logo.png" width="96" alt="Daptin logo">
+  <img src="https://daptin.github.io/images/theme-logo.png" width="96" alt="Daptin logo">
   <h1>Daptin</h1>
   <p><strong>A self-hosted application server built around your data model.</strong></p>
   <p>Define resources once. Daptin runs their APIs, identity, permissions, files, automation, integrations, realtime delivery, and operational controls.</p>
@@ -11,13 +11,11 @@
     <a href="https://discord.gg/t564q8SQVk"><img src="https://img.shields.io/badge/chat-Discord-5865F2?style=flat-square&amp;logo=discord&amp;logoColor=white" alt="Discord"></a>
   </p>
   <p>
-    <a href="#start-in-a-minute">Quickstart</a> · <a href="#the-complete-feature-map">Feature map</a> · <a href="#actions-scheduled-tasks-and-state-tracking">Automation explained</a> · <a href="https://github.com/daptin/daptin/wiki">Documentation</a>
+    <a href="https://daptin.github.io/">Website</a> · <a href="#start-in-a-minute">Quickstart</a> · <a href="#the-complete-feature-map">Feature map</a> · <a href="#actions-scheduled-tasks-and-state-tracking">Automation explained</a> · <a href="https://github.com/daptin/daptin/wiki">Documentation</a>
   </p>
 </div>
 
 <br>
-
-[![A product schema is loaded by Daptin and exposed through resource APIs, actions, realtime updates, and API discovery](docs/images/daptin-overview.svg)](docs/images/daptin-overview.svg)
 
 ## One model, many backend surfaces
 
@@ -55,9 +53,7 @@ Open **http://localhost:6336**, create the first administrator, and continue wit
 
 ## The complete feature map
 
-This map groups the implemented surface by responsibility. Open the image for a full-size view.
-
-[![Daptin includes data modeling, APIs, access control, backend jobs, files, realtime protocols, integrations, and production tooling](docs/images/daptin-feature-map.svg)](docs/images/daptin-feature-map.svg)
+The table below groups the implemented surface by responsibility.
 
 | Capability | What Daptin provides | Learn more |
 |---|---|---|
@@ -107,8 +103,6 @@ The shared middleware checks table and row access, validates and conforms data, 
 Add [relations](https://github.com/daptin/daptin/wiki/Relationships), [permissions](https://github.com/daptin/daptin/wiki/Permissions), [assets](https://github.com/daptin/daptin/wiki/Asset-Columns), or [audit history](https://github.com/daptin/daptin/wiki/Audit-Logging) as the resource needs them.
 
 ## Actions, scheduled tasks, and state tracking
-
-[![Actions run backend work, scheduled tasks call actions later, and state tracking records allowed changes without running actions](docs/images/daptin-automation.svg)](docs/images/daptin-automation.svg)
 
 These are related building blocks, not one workflow engine:
 
