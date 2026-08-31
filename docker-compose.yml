@@ -1,0 +1,72 @@
+name: daptin
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17-bookworm}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-daptin}
+      POSTGRES_USER: ${POSTGRES_USER:-daptin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-daptin-development-password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    shm_size: 128mb
+    security_opt:
+      - no-new-privileges:true
+
+  daptin:
+    image: ${DAPTIN_IMAGE:-daptin/daptin:latest}
+    pull_policy: always
+    restart: unless-stopped
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DAPTIN_PORT: ":8080"
+      DAPTIN_RUNTIME: release
+      DAPTIN_DB_TYPE: postgres
+      DAPTIN_DB_CONNECTION_STRING: >-
+        host=postgres port=5432 user=${POSTGRES_USER:-daptin}
+        password=${POSTGRES_PASSWORD:-daptin-development-password}
+        dbname=${POSTGRES_DB:-daptin} sslmode=disable
+      DAPTIN_LOCAL_STORAGE_PATH: /var/lib/daptin/storage
+      DAPTIN_CACHE_FOLDER: /var/cache/daptin
+      DAPTIN_DISABLE_SMTP: "true"
+      DAPTIN_SHUTDOWN_TIMEOUT: 30s
+      DAPTIN_SHUTDOWN_READINESS_DELAY: 2s
+      TZ: ${TZ:-UTC}
+    ports:
+      - "127.0.0.1:${DAPTIN_HOST_PORT:-6336}:8080"
+    healthcheck:
+      test:
+        - CMD
+        - /bin/bash
+        - -ec
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080 &&
+          printf 'GET /ready HTTP/1.0\r\n\r\n' >&3 &&
+          head -n 1 <&3 | grep -q ' 200 '
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    stop_grace_period: 45s
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1770
+      - /var/cache/daptin:uid=10001,gid=10001,mode=0750
+    volumes:
+      - daptin-data:/var/lib/daptin/storage
+
+volumes:
+  daptin-data:
+  postgres-data:

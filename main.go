@@ -346,8 +346,10 @@ func main() {
 	var olricDb *olric.EmbeddedClient
 
 	if localStoragePath != nil && *localStoragePath != "" {
-		if _, err := os.Stat(*localStoragePath); err == os.ErrNotExist {
-			_ = os.Mkdir(*localStoragePath, 0644)
+		if _, err := os.Stat(*localStoragePath); os.IsNotExist(err) {
+			if mkdirErr := os.MkdirAll(*localStoragePath, 0750); mkdirErr != nil {
+				log.Fatalf("failed to create local storage path %s: %v", *localStoragePath, mkdirErr)
+			}
 		}
 	}
 	olricPortValue := *olricPort

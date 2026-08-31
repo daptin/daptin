@@ -1,28 +1,45 @@
-FROM alpine as certs
-RUN apk update && apk add ca-certificates
+FROM ubuntu:24.04
 
-FROM  --platform=linux/amd64 ubuntu
+ARG TARGETARCH
+ARG VERSION=dev
+ARG VCS_REF=unknown
+ARG BUILD_DATE=unknown
 
-MAINTAINER Parth Mudgal <artpar@gmail.com>
-WORKDIR /opt/daptin
+LABEL org.opencontainers.image.title="Daptin" \
+      org.opencontainers.image.description="Open source backend and data platform" \
+      org.opencontainers.image.url="https://dapt.in" \
+      org.opencontainers.image.source="https://github.com/daptin/daptin" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.licenses="LGPL-3.0-only"
 
-COPY --from=certs /etc/ssl/certs /etc/ssl/certs
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        curl \
+        tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 daptin \
+    && useradd --uid 10001 --gid daptin --no-create-home --home-dir /var/lib/daptin daptin \
+    && install --directory --owner=daptin --group=daptin --mode=0750 \
+        /var/lib/daptin /var/lib/daptin/storage /var/cache/daptin
 
-COPY daptin-linux-amd64 /opt/daptin/daptin
-RUN chmod +x /opt/daptin/daptin
-RUN ls -lah /opt/daptin/daptin
+COPY --chmod=0755 build/daptin-linux-${TARGETARCH} /usr/local/bin/daptin
 
+USER 10001:10001
+WORKDIR /var/lib/daptin
 
+ENV DAPTIN_PORT=:8080 \
+    DAPTIN_RUNTIME=release \
+    DAPTIN_LOCAL_STORAGE_PATH=/var/lib/daptin/storage \
+    DAPTIN_CACHE_FOLDER=/var/cache/daptin
 
-# Install glibc
-#RUN apk add --force-overwrite --no-cache bash curl \
-#    && curl -Lo /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub \
-#    && curl -Lo /tmp/glibc.apk https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r0/glibc-2.35-r0.apk \
-#    && apk add --force-overwrite /tmp/glibc.apk
+EXPOSE 8080 5336 5337
+STOPSIGNAL SIGTERM
 
-#RUN apk --force-overwrite add libc6-compat
-#RUN apk add gcompat
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
+    CMD ["curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/ping"]
 
-
-EXPOSE 8080
-ENTRYPOINT ["/opt/daptin/daptin", "-runtime", "release", "-port", ":8080"]
+ENTRYPOINT ["/usr/local/bin/daptin"]
+CMD []

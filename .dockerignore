@@ -1,0 +1,5 @@
+*
+!Dockerfile
+!build/
+!build/daptin-linux-amd64
+!build/daptin-linux-arm64

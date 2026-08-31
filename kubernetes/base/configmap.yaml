@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: daptin
+data:
+  DAPTIN_PORT: ":8080"
+  DAPTIN_RUNTIME: release
+  DAPTIN_DB_TYPE: postgres
+  DAPTIN_LOCAL_STORAGE_PATH: /var/lib/daptin/storage
+  DAPTIN_CACHE_FOLDER: /var/cache/daptin
+  DAPTIN_DISABLE_SMTP: "true"
+  DAPTIN_SHUTDOWN_TIMEOUT: 30s
+  DAPTIN_SHUTDOWN_READINESS_DELAY: 2s
+  TZ: UTC

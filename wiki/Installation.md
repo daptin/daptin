@@ -35,13 +35,13 @@ chmod +x daptin-darwin-amd64
 
 ```bash
 # Using SQLite (default) - TESTED ✓
-docker run -p 6336:8080 -p 6443:6443 daptin/daptin:v0.9.82
+docker run --pull=always -p 6336:8080 -p 6443:6443 daptin/daptin:latest
 
 # With persistent storage - TESTED ✓
-docker run -p 6336:8080 -p 6443:6443 \
+docker run --pull=always -p 6336:8080 -p 6443:6443 \
   -e DAPTIN_DB_CONNECTION_STRING=/data/daptin.db \
   -v /path/to/data:/data \
-  daptin/daptin:v0.9.82
+  daptin/daptin:latest
 
 # With MySQL/MariaDB - TESTED ✓
 # First start MariaDB
@@ -53,11 +53,11 @@ docker run -d --name mysql \
   mariadb:10.11
 
 # Then start Daptin
-docker run -p 6336:8080 -p 6443:6443 \
+docker run --pull=always -p 6336:8080 -p 6443:6443 \
   --link mysql:mysql \
   -e DAPTIN_DB_TYPE=mysql \
   -e DAPTIN_DB_CONNECTION_STRING="daptinuser:daptinpass@tcp(mysql:3306)/daptindb?charset=utf8mb4&parseTime=True" \
-  daptin/daptin:v0.9.82
+  daptin/daptin:latest
 
 # With PostgreSQL - TESTED ✓
 # First start PostgreSQL
@@ -68,15 +68,15 @@ docker run -d --name postgres \
   postgres:15
 
 # Then start Daptin
-docker run -p 6336:8080 -p 6443:6443 \
+docker run --pull=always -p 6336:8080 -p 6443:6443 \
   --link postgres:postgres \
   -e DAPTIN_DB_TYPE=postgres \
   -e DAPTIN_DB_CONNECTION_STRING="host=postgres user=daptinuser password=pgpass dbname=daptindb port=5432 sslmode=disable" \
-  daptin/daptin:v0.9.82
+  daptin/daptin:latest
 ```
 
 **Important Notes**:
-- Always specify the image tag (e.g., `v0.9.82`) - there is no `latest` tag
+- Use `daptin/daptin:latest` with `--pull=always` to fetch the newest image
 - Port mapping is `6336:8080` (host:container), not `6336:6336`
 - For persistent storage, mount to `/data` and set `DAPTIN_DB_CONNECTION_STRING=/data/daptin.db`
 - MySQL 8.0 may fail with OOM errors; use MariaDB 10.11 instead
@@ -89,7 +89,8 @@ docker run -p 6336:8080 -p 6443:6443 \
 version: '3'
 services:
   daptin:
-    image: daptin/daptin:v0.9.82
+    image: daptin/daptin:latest
+    pull_policy: always
     ports:
       - "6336:8080"  # Map host 6336 to container 8080
       - "6443:6443"
@@ -133,7 +134,8 @@ spec:
     spec:
       containers:
       - name: daptin
-        image: daptin/daptin:v0.9.82
+        image: daptin/daptin:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080  # Daptin listens on 8080
         - containerPort: 6443

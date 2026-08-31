@@ -1,0 +1,74 @@
+name: deployment-assets
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker-compose.yml
+      - .env.example
+      - kubernetes/**
+      - .github/workflows/deployments.yml
+  push:
+    branches:
+      - master
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker-compose.yml
+      - .env.example
+      - kubernetes/**
+      - .github/workflows/deployments.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+
+      - name: Render Compose configuration
+        run: docker compose --env-file .env.example config --quiet
+
+      - name: Render Kubernetes configurations
+        run: |
+          kubectl kustomize kubernetes/base > /tmp/daptin-base.yaml
+          kubectl kustomize kubernetes/overlays/demo-postgres > /tmp/daptin-demo.yaml
+          kubectl kustomize kubernetes/overlays/ingress > /tmp/daptin-ingress.yaml
+
+      - name: Validate Kubernetes schemas
+        run: |
+          for manifest in /tmp/daptin-base.yaml /tmp/daptin-demo.yaml /tmp/daptin-ingress.yaml; do
+            docker run --rm -i ghcr.io/yannh/kubeconform:v0.6.7 \
+              -strict -summary -kubernetes-version 1.30.0 < "$manifest"
+          done
+
+      - name: Build Linux binary and container image
+        run: |
+          mkdir -p build
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o build/daptin-linux-amd64 .
+          docker build --platform linux/amd64 --tag daptin/daptin:ci .
+
+      - name: Smoke-test container health
+        run: |
+          docker run --detach --name daptin-ci --publish 127.0.0.1:6336:8080 daptin/daptin:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:6336/ready; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs daptin-ci
+          exit 1

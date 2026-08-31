@@ -1,0 +1,85 @@
+# Kubernetes deployment
+
+The manifests use Kustomize and target Kubernetes 1.25 or newer. The base is a
+single Daptin replica with persistent local asset storage and an external
+PostgreSQL database. The bundled PostgreSQL overlay is for evaluation and local
+clusters, not production database hosting.
+
+## External PostgreSQL
+
+Create the namespace and the database connection secret before applying the
+base. Keep the complete connection string in the Secret because Kubernetes does
+not interpolate one environment variable into another.
+
+```sh
+kubectl apply -f kubernetes/base/namespace.yaml
+kubectl -n daptin create secret generic daptin-database \
+  --from-literal='connection-string=host=postgres.example.net port=5432 user=daptin password=replace-me dbname=daptin sslmode=require'
+kubectl apply -k kubernetes/base
+kubectl -n daptin rollout status deployment/daptin --timeout=5m
+```
+
+The base tracks `daptin/daptin:latest` and uses `imagePullPolicy: Always`. New
+pods therefore pull the current image. Restart the deployment after publishing
+a new image when you want already-running pods to adopt it:
+
+```sh
+kubectl -n daptin rollout restart deployment/daptin
+kubectl -n daptin rollout status deployment/daptin --timeout=5m
+```
+
+If the cluster has no default StorageClass, set `storageClassName` in
+`base/pvc.yaml`. The application volume contains local file assets; back it up
+along with PostgreSQL.
+
+## Local or evaluation cluster
+
+The demo overlay creates PostgreSQL with development-only credentials. Its
+official-image entrypoint starts briefly as root to set PVC ownership and then
+drops to the `postgres` user; this is another reason not to treat the overlay as
+a production database deployment.
+
+```sh
+kubectl apply -k kubernetes/overlays/demo-postgres
+kubectl -n daptin rollout status statefulset/postgres --timeout=5m
+kubectl -n daptin rollout status deployment/daptin --timeout=5m
+kubectl -n daptin port-forward service/daptin 6336:80
+curl --fail http://127.0.0.1:6336/ready
+```
+
+Do not reuse the generated demo password outside an isolated development
+cluster.
+
+## Ingress
+
+The ingress overlay is an example for an nginx ingress controller. Change
+`ingressClassName`, the hostname, and TLS configuration for the target cluster.
+It expects the external database Secret described above.
+
+```sh
+kubectl apply -k kubernetes/overlays/ingress
+```
+
+## Scaling and upgrades
+
+The base deliberately uses one replica and `Recreate`: the default asset store
+is a ReadWriteOnce volume and Daptin initializes database schema at startup.
+Before scaling beyond one replica, configure shared cloud/RWX asset storage,
+validate concurrent schema startup, expose Olric ports 5336 and 5337 through a
+headless Service, and configure `DAPTIN_OLRIC_SEED`. Do not add an HPA to the
+base deployment.
+
+The process marks `/ready` unavailable before draining on SIGTERM. Keep
+`terminationGracePeriodSeconds` greater than `DAPTIN_SHUTDOWN_TIMEOUT` plus
+`DAPTIN_SHUTDOWN_READINESS_DELAY`. Back up and restore-test PostgreSQL and local
+asset storage before changing the Daptin image.
+
+## Validation
+
+Render manifests locally before applying them:
+
+```sh
+kubectl kustomize kubernetes/base >/dev/null
+kubectl kustomize kubernetes/overlays/demo-postgres >/dev/null
+kubectl kustomize kubernetes/overlays/ingress >/dev/null
+```

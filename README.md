@@ -38,8 +38,21 @@ Read the source-oriented [application server feature map](https://github.com/dap
 ### Docker
 
 ```bash
-docker run --rm -p 127.0.0.1:6336:8080 daptin/daptin:v0.12.36
+docker run --pull=always --rm -p 127.0.0.1:6336:8080 daptin/daptin:latest
 ```
+
+For a durable local stack with PostgreSQL:
+
+```bash
+cp .env.example .env
+docker compose up --wait
+```
+
+The Compose stack binds Daptin only to `127.0.0.1:6336` and keeps PostgreSQL
+inside its private network. Database and asset data are stored in named
+volumes. Change the development password in `.env` before using the stack
+beyond local evaluation. Kubernetes users should start with the
+[Kustomize deployment guide](kubernetes/README.md).
 
 ### Linux binary
 

@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: daptin
+resources:
+  - ../../base
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
+patchesStrategicMerge:
+  - daptin-init-patch.yaml
+secretGenerator:
+  - name: daptin-database
+    literals:
+      - connection-string=host=postgres port=5432 user=daptin password=daptin-development-password dbname=daptin sslmode=disable
+  - name: daptin-postgres
+    literals:
+      - database=daptin
+      - username=daptin
+      - password=daptin-development-password
+generatorOptions:
+  disableNameSuffixHash: true

@@ -7,14 +7,14 @@ kind of project.
 
 ## 1. Run Daptin locally
 
-The container listens on port 8080. Daptin does not publish a `latest`
-container manifest, so use an explicit release tag:
+The container listens on port 8080. Pull the current `latest` image whenever
+the container starts:
 
 ```bash
-docker run --rm \
+docker run --pull=always --rm \
   --name daptin \
   -p 127.0.0.1:6336:8080 \
-  daptin/daptin:v0.12.36
+  daptin/daptin:latest
 ```
 
 Wait for `Listening at`, then verify the server from another terminal:
