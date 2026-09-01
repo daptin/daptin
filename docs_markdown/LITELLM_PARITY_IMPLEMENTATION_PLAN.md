@@ -49,6 +49,12 @@ router also covers multi-deployment load balancing, cooldowns, timeouts,
 retries, fallbacks, and several routing strategies. Daptin must make only
 capabilities backed by conformance tests and certified provider tests.
 
+The compatibility manifest is deliberately frozen at LiteLLM `1.98.0` for
+this release. LiteLLM `1.99.0` was published on 2026-09-01 after that freeze
+and expands the product into Agent/MCP gateway, batch, OCR, and newer router
+surfaces. Those additions do not silently change this release contract; a
+future manifest revision must classify them explicitly and add its own tests.
+
 Official comparison sources:
 
 - [LiteLLM overview](https://docs.litellm.ai/docs/)
