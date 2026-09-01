@@ -40,8 +40,8 @@ func TestRealIntegrationTransportE2E(t *testing.T) {
 	port := freeTransportE2EPort(t, usedPorts)
 	httpsPort := freeTransportE2EPort(t, usedPorts)
 	daptinBaseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	stopDaptin := startTransportE2EDaptin(t, port, httpsPort, daptinBaseURL)
-	defer stopDaptin()
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, daptinBaseURL)
+	defer daptinProcess.stopProcess()
 
 	client := &http.Client{Timeout: 20 * time.Second}
 	adminToken := transportE2ESignupSigninAdmin(t, client, daptinBaseURL)
@@ -226,7 +226,16 @@ type transportE2EDaptinOptions struct {
 	schema           string
 }
 
-func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL string, requested ...transportE2EDaptinOptions) func() {
+type transportE2EDaptinProcess struct {
+	processGroupID int
+	stop           func()
+}
+
+func (process *transportE2EDaptinProcess) stopProcess() {
+	process.stop()
+}
+
+func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL string, requested ...transportE2EDaptinOptions) *transportE2EDaptinProcess {
 	t.Helper()
 	if len(requested) > 1 {
 		t.Fatal("start Daptin E2E accepts at most one options value")
@@ -307,7 +316,7 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 			_, _ = io.Copy(io.Discard, resp.Body)
 			_ = resp.Body.Close()
 			if resp.StatusCode < 500 {
-				return func() {
+				return &transportE2EDaptinProcess{processGroupID: cmd.Process.Pid, stop: func() {
 					if cmd.Process != nil {
 						_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
 					}
@@ -320,14 +329,14 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 						<-done
 					}
 					cancel()
-				}
+				}}
 			}
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
 	cancel()
 	t.Fatalf("daptin did not become ready\n%s", logs.String())
-	return func() {}
+	return nil
 }
 
 func transportE2EEnvironment(name, value string) []string {

@@ -40,8 +40,8 @@ func TestLiveLLMActions(t *testing.T) {
 	port := freeTransportE2EPort(t, usedPorts)
 	httpsPort := freeTransportE2EPort(t, usedPorts)
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	stopDaptin := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
-	defer stopDaptin()
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
+	defer daptinProcess.stopProcess()
 	client := &http.Client{Timeout: 2 * time.Minute}
 	token := transportE2ESignupSigninAdmin(t, client, baseURL)
 
@@ -71,8 +71,8 @@ func TestLiveLLMActionCredentialRejection(t *testing.T) {
 	port := freeTransportE2EPort(t, usedPorts)
 	httpsPort := freeTransportE2EPort(t, usedPorts)
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	stopDaptin := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
-	defer stopDaptin()
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
+	defer daptinProcess.stopProcess()
 	client := &http.Client{Timeout: 2 * time.Minute}
 	token := transportE2ESignupSigninAdmin(t, client, baseURL)
 

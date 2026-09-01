@@ -59,15 +59,15 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	baseA := fmt.Sprintf("http://127.0.0.1:%d", portA)
 	baseB := fmt.Sprintf("http://127.0.0.1:%d", portB)
 
-	stopA := startTransportE2EDaptin(t, portA, httpsPortA, baseA, transportE2EDaptinOptions{
+	processA := startTransportE2EDaptin(t, portA, httpsPortA, baseA, transportE2EDaptinOptions{
 		databaseType: "postgres", connectionString: dsn, olricPort: olricPortA,
 	})
-	defer stopA()
-	stopB := startTransportE2EDaptin(t, portB, httpsPortB, baseB, transportE2EDaptinOptions{
+	defer processA.stopProcess()
+	processB := startTransportE2EDaptin(t, portB, httpsPortB, baseB, transportE2EDaptinOptions{
 		databaseType: "postgres", connectionString: dsn, olricPort: olricPortB,
 		olricPeers: net.JoinHostPort("127.0.0.1", fmt.Sprint(olricPortA+1)),
 	})
-	defer stopB()
+	defer processB.stopProcess()
 
 	client := &http.Client{Timeout: 20 * time.Second}
 	token := transportE2ESignupSigninAdmin(t, client, baseA)
