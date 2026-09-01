@@ -35,7 +35,7 @@ func TestAuthenticatedSQLiteReadsWithEmptyDefaultOrder(t *testing.T) {
 		CRUD_MAP[USER_ACCOUNT_TABLE_NAME] = oldUserAccountCrud
 	}()
 
-	for _, tableName := range []string{"llm_usage", "credential", "api_usage", "api_quota"} {
+	for _, tableName := range []string{"credential", "api_usage", "api_quota"} {
 		t.Run(tableName, func(t *testing.T) {
 			assertAuthenticatedSQLiteListWithEmptyDefaultOrder(t, db, tableName, adminGroupRef)
 		})

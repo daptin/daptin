@@ -9,9 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"math"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -170,6 +168,13 @@ func (op *OAuthProvider) CreateCode(sessionUser *auth.SessionUser, app map[strin
 	if err != nil {
 		return "", err
 	}
+	appID, err := ResourceRowInt64(app["id"])
+	if err != nil {
+		return "", fmt.Errorf("invalid oauth_app id: %w", err)
+	}
+	if appID <= 0 {
+		return "", fmt.Errorf("invalid oauth_app id: must be positive")
+	}
 
 	err = op.createInternalRow("oauth_code", map[string]interface{}{
 		"code_hash":             OAuthHashToken(code),
@@ -179,7 +184,7 @@ func (op *OAuthProvider) CreateCode(sessionUser *auth.SessionUser, app map[strin
 		"code_challenge":        codeChallenge,
 		"code_challenge_method": codeChallengeMethod,
 		"nonce":                 nonce,
-		"oauth_app_id":          oauthInt64(app["id"]),
+		"oauth_app_id":          appID,
 		"user_account_id":       sessionUser.UserId,
 	}, transaction)
 	if err != nil {
@@ -197,7 +202,15 @@ func (op *OAuthProvider) ExchangeCode(app map[string]interface{}, code string, r
 		return nil, nil, nil, fmt.Errorf("invalid grant")
 	}
 	codeRow := rows[0]
-	if oauthInt64(codeRow["expires_at"]) <= time.Now().Unix() || oauthInt64(codeRow["used_at"]) > 0 {
+	expiresAt, conversionErr := ResourceRowInt64(codeRow["expires_at"])
+	if conversionErr != nil || expiresAt <= time.Now().Unix() {
+		return nil, nil, nil, fmt.Errorf("invalid grant")
+	}
+	var usedAt int64
+	if codeRow["used_at"] != nil {
+		usedAt, conversionErr = ResourceRowInt64(codeRow["used_at"])
+	}
+	if conversionErr != nil || usedAt > 0 {
 		return nil, nil, nil, fmt.Errorf("invalid grant")
 	}
 	if fmt.Sprintf("%v", codeRow["redirect_uri"]) != redirectURI {
@@ -214,7 +227,11 @@ func (op *OAuthProvider) ExchangeCode(app map[string]interface{}, code string, r
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if err := op.markUsed("oauth_code", oauthInt64(codeRow["id"]), transaction); err != nil {
+	codeID, conversionErr := ResourceRowInt64(codeRow["id"])
+	if conversionErr != nil || codeID <= 0 {
+		return nil, nil, nil, fmt.Errorf("invalid grant")
+	}
+	if err := op.markUsed("oauth_code", codeID, transaction); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -234,7 +251,15 @@ func (op *OAuthProvider) Refresh(app map[string]interface{}, refreshToken string
 		return nil, nil, fmt.Errorf("invalid grant")
 	}
 	refreshRow := rows[0]
-	if oauthInt64(refreshRow["expires_at"]) <= time.Now().Unix() || oauthInt64(refreshRow["revoked_at"]) > 0 {
+	expiresAt, conversionErr := ResourceRowInt64(refreshRow["expires_at"])
+	if conversionErr != nil || expiresAt <= time.Now().Unix() {
+		return nil, nil, fmt.Errorf("invalid grant")
+	}
+	var revokedAt int64
+	if refreshRow["revoked_at"] != nil {
+		revokedAt, conversionErr = ResourceRowInt64(refreshRow["revoked_at"])
+	}
+	if conversionErr != nil || revokedAt > 0 {
 		return nil, nil, fmt.Errorf("invalid grant")
 	}
 	if !op.RowBelongsToApp(refreshRow, app) {
@@ -245,7 +270,11 @@ func (op *OAuthProvider) Refresh(app map[string]interface{}, refreshToken string
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := op.revokeByID("oauth_refresh", oauthInt64(refreshRow["id"]), transaction); err != nil {
+	refreshID, conversionErr := ResourceRowInt64(refreshRow["id"])
+	if conversionErr != nil || refreshID <= 0 {
+		return nil, nil, fmt.Errorf("invalid grant")
+	}
+	if err := op.revokeByID("oauth_refresh", refreshID, transaction); err != nil {
 		return nil, nil, err
 	}
 	token, err := op.createTokenPair(sessionUser, app, fmt.Sprintf("%v", refreshRow["scope"]), transaction)
@@ -264,7 +293,15 @@ func (op *OAuthProvider) ValidateAccessToken(token string, transaction *sqlx.Tx)
 		return nil, nil, fmt.Errorf("invalid token")
 	}
 	accessRow := rows[0]
-	if oauthInt64(accessRow["expires_at"]) <= time.Now().Unix() || oauthInt64(accessRow["revoked_at"]) > 0 {
+	expiresAt, conversionErr := ResourceRowInt64(accessRow["expires_at"])
+	if conversionErr != nil || expiresAt <= time.Now().Unix() {
+		return nil, nil, fmt.Errorf("invalid token")
+	}
+	var revokedAt int64
+	if accessRow["revoked_at"] != nil {
+		revokedAt, conversionErr = ResourceRowInt64(accessRow["revoked_at"])
+	}
+	if conversionErr != nil || revokedAt > 0 {
 		return nil, nil, fmt.Errorf("invalid token")
 	}
 	sessionUser, err := op.sessionUserFromRow(accessRow, transaction)
@@ -321,7 +358,13 @@ func (op *OAuthProvider) createTokenPair(sessionUser *auth.SessionUser, app map[
 		return nil, err
 	}
 
-	appID := oauthInt64(app["id"])
+	appID, err := ResourceRowInt64(app["id"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid oauth_app id: %w", err)
+	}
+	if appID <= 0 {
+		return nil, fmt.Errorf("invalid oauth_app id: must be positive")
+	}
 	err = op.createInternalRow("oauth_access", map[string]interface{}{
 		"token_hash":      OAuthHashToken(accessToken),
 		"token_type":      "Bearer",
@@ -359,7 +402,9 @@ func (op *OAuthProvider) RowBelongsToApp(row map[string]interface{}, app map[str
 	if rowRef != daptinid.NullReferenceId && appRef != daptinid.NullReferenceId {
 		return rowRef == appRef
 	}
-	return oauthInt64(row["oauth_app_id"]) == oauthInt64(app["id"])
+	rowAppID, rowErr := ResourceRowInt64(row["oauth_app_id"])
+	appID, appErr := ResourceRowInt64(app["id"])
+	return rowErr == nil && appErr == nil && rowAppID > 0 && rowAppID == appID
 }
 
 func (op *OAuthProvider) createInternalRow(tableName string, values map[string]interface{}, transaction *sqlx.Tx) error {
@@ -477,7 +522,13 @@ func (op *OAuthProvider) sessionUserFromRow(row map[string]interface{}, transact
 	if err != nil {
 		return nil, err
 	}
-	userID := oauthInt64(userRow["id"])
+	userID, err := ResourceRowInt64(userRow["id"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid user_account id: %w", err)
+	}
+	if userID <= 0 {
+		return nil, fmt.Errorf("invalid user_account id: must be positive")
+	}
 	groups := op.cruds[USER_ACCOUNT_TABLE_NAME].GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "id", userID)
 	return &auth.SessionUser{
 		UserId:          userID,
@@ -575,31 +626,5 @@ func oauthBool(value interface{}) bool {
 		return v == "true" || v == "1"
 	default:
 		return false
-	}
-}
-
-func oauthInt64(value interface{}) int64 {
-	switch v := value.(type) {
-	case int:
-		return int64(v)
-	case int64:
-		return v
-	case int32:
-		return int64(v)
-	case uint64:
-		if v > math.MaxInt64 {
-			return 0
-		}
-		return int64(v)
-	case float64:
-		if v > float64(math.MaxInt64) || v < float64(math.MinInt64) {
-			return 0
-		}
-		return int64(v)
-	case string:
-		i, _ := strconv.ParseInt(v, 10, 64)
-		return i
-	default:
-		return 0
 	}
 }

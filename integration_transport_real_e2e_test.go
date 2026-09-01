@@ -217,25 +217,51 @@ func startTransportE2EGRPCUpstream(t *testing.T) (string, func()) {
 	}
 }
 
-func startTransportE2EDaptin(t *testing.T, port int, httpsPort int, baseURL string) func() {
+type transportE2EDaptinOptions struct {
+	databaseType     string
+	connectionString string
+	olricPort        int
+	olricPeers       string
+}
+
+func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL string, requested ...transportE2EDaptinOptions) func() {
 	t.Helper()
+	if len(requested) > 1 {
+		t.Fatal("start Daptin E2E accepts at most one options value")
+	}
 
 	tmpDir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(tmpDir, "storage"), 0o755); err != nil {
 		t.Fatalf("create daptin storage: %v", err)
 	}
+	options := transportE2EDaptinOptions{
+		databaseType: "sqlite3", connectionString: filepath.Join(tmpDir, "daptin.db"),
+	}
+	if len(requested) == 1 {
+		options = requested[0]
+	}
+	if options.databaseType == "" || options.connectionString == "" {
+		t.Fatal("Daptin E2E database type and connection string are required")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	logs := &lockedTransportE2EBuffer{}
-	cmd := exec.CommandContext(ctx, "go", "run", ".",
+	arguments := []string{"run", ".",
 		"-port", fmt.Sprintf(":%d", port),
 		"-https_port", fmt.Sprintf(":%d", httpsPort),
-		"-db_type", "sqlite3",
-		"-db_connection_string", filepath.Join(tmpDir, "daptin.db"),
+		"-db_type", options.databaseType,
+		"-db_connection_string", options.connectionString,
 		"-local_storage_path", filepath.Join(tmpDir, "storage"),
 		"-runtime", "test",
 		"-log_level", "error",
-	)
+	}
+	if options.olricPort > 0 {
+		arguments = append(arguments, "-olric_port", fmt.Sprint(options.olricPort))
+	}
+	if options.olricPeers != "" {
+		arguments = append(arguments, "-olric_peers", options.olricPeers)
+	}
+	cmd := exec.CommandContext(ctx, "go", arguments...)
 	cmd.Stdout = logs
 	cmd.Stderr = logs
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -285,7 +311,7 @@ func startTransportE2EDaptin(t *testing.T, port int, httpsPort int, baseURL stri
 	return func() {}
 }
 
-func transportE2ESignupSigninAdmin(t *testing.T, client *http.Client, baseURL string) string {
+func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL string) string {
 	t.Helper()
 
 	email := fmt.Sprintf("admin-%d@test.local", time.Now().UnixNano())
@@ -464,7 +490,7 @@ func transportE2EJSONResponses() map[string]interface{} {
 	}
 }
 
-func transportE2EPostJSON(t *testing.T, client *http.Client, url string, token string, payload interface{}) interface{} {
+func transportE2EPostJSON(t testing.TB, client *http.Client, url string, token string, payload interface{}) interface{} {
 	t.Helper()
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -485,7 +511,7 @@ func transportE2EPostJSON(t *testing.T, client *http.Client, url string, token s
 	return transportE2EDoJSON(t, client, req)
 }
 
-func transportE2EGetJSON(t *testing.T, client *http.Client, url string, token string) interface{} {
+func transportE2EGetJSON(t testing.TB, client *http.Client, url string, token string) interface{} {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -497,7 +523,7 @@ func transportE2EGetJSON(t *testing.T, client *http.Client, url string, token st
 	return transportE2EDoJSON(t, client, req)
 }
 
-func transportE2EDoJSON(t *testing.T, client *http.Client, req *http.Request) interface{} {
+func transportE2EDoJSON(t testing.TB, client *http.Client, req *http.Request) interface{} {
 	t.Helper()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -518,7 +544,7 @@ func transportE2EDoJSON(t *testing.T, client *http.Client, req *http.Request) in
 	return decoded
 }
 
-func transportE2EReferenceID(t *testing.T, response interface{}) string {
+func transportE2EReferenceID(t testing.TB, response interface{}) string {
 	t.Helper()
 	if ref, ok := transportE2EFindString(response, "reference_id"); ok && ref != "" {
 		return ref

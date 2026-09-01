@@ -229,15 +229,18 @@ Integration capabilities:
 
 LLM capabilities:
 
-- `llm_provider` stores provider routing config.
+- `llm_provider`, `llm_model`, and `llm_deployment` store provider accounts,
+  public model policy, and weighted upstream routes.
 - Credentials are linked through the same encrypted credential system.
 - Daptin exposes OpenAI-compatible endpoints:
   - `/v1/chat/completions`
-  - `/v1/completions`
+  - `/v1/responses`
   - `/v1/embeddings`
+  - `/v1/images/generations`
   - `/v1/models`
-- Model names resolve to configured providers.
-- Streaming chat uses SSE response format.
+- Model names resolve through enabled, healthy, capability-compatible
+  deployments with bounded priority/weighted retry and fallback routing.
+- Streaming chat and Responses use their OpenAI-compatible SSE contracts.
 
 Metering capabilities:
 

@@ -928,7 +928,11 @@ func getColumnLine(c *api2go.ColumnInfo, sqlDriverName string) string {
 	}
 
 	if c.DefaultValue != "" {
-		columnParams = append(columnParams, "default "+c.DefaultValue)
+		defaultValue := c.DefaultValue
+		if sqlDriverName == "mysql" && strings.HasSuffix(strings.ToLower(datatype), "text") && !strings.HasPrefix(defaultValue, "(") {
+			defaultValue = "(" + defaultValue + ")"
+		}
+		columnParams = append(columnParams, "default "+defaultValue)
 	}
 
 	//if sqlDriverName == "mysql" && (c.DataType == "text" || BeginsWith(c.DataType, "varchar(")) {

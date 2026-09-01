@@ -8,6 +8,7 @@ import (
 
 	"github.com/artpar/go-guerrilla"
 	imapserver "github.com/artpar/go-imap/server"
+	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/daptin/daptin/server/websockets"
@@ -29,6 +30,7 @@ type Runtime struct {
 	imapServer              *imapserver.Server
 	websocketServer         *websockets.Server
 	yjs                     *YjsRuntime
+	llmGateway              *llm.Gateway
 	tableSubscription       *redis.PubSub
 	integrationSubscription *redis.PubSub
 	errors                  chan error
@@ -75,6 +77,9 @@ func (r *Runtime) Drain(ctx context.Context) error {
 	}
 	if r.websocketServer != nil {
 		errs = append(errs, r.websocketServer.Shutdown(ctx))
+	}
+	if r.llmGateway != nil {
+		errs = append(errs, r.llmGateway.Drain(ctx))
 	}
 	errs = append(errs, resource.ShutdownEventWorkerPool(ctx))
 	if r.yjs != nil {

@@ -3041,45 +3041,7 @@ func (dbResource *DbResource) GetIdByWhereClause(typeName string, transaction *s
 
 // GetIdToReferenceId Looks up an integer id and return a string reference id of an object of type `typeName`
 func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64, transaction *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
-
-	var idd daptinid.DaptinReferenceId
-	k := fmt.Sprintf("itr-%v-%v", typeName, id)
-	if OlricCache != nil {
-		v, err := OlricCache.Get(context.Background(), k)
-		if err == nil {
-			var bytes [16]byte
-			err = v.Scan(bytes)
-			return bytes, err
-		}
-	}
-
-	s, q, err := statementbuilder.Squirrel.Select("reference_id").
-		Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
-	if err != nil {
-		return idd, err
-	}
-
-	stmt, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[1636] failed to prepare statment: %v", err)
-		return idd, err
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
-
-	var str daptinid.DaptinReferenceId
-	row := stmt.QueryRowx(q...)
-	err = row.Scan(&str)
-	if OlricCache != nil {
-		err1 := OlricCache.Put(context.Background(), k, str, olric.EX(60*time.Minute), olric.NX())
-		CheckErr(err1, "[2856] Failed to set if to reference id in olric cache")
-	}
-	return str, err
-
+	return GetIdToReferenceIdWithTransaction(typeName, id, transaction)
 }
 
 // GetIdToReferenceIdWithTransaction Looks up an integer id and return a string reference id of an object of type `typeName`
@@ -3090,8 +3052,10 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 		v, err := OlricCache.Get(context.Background(), k)
 		if err == nil {
 			var dri daptinid.DaptinReferenceId
-			err := v.Scan(&dri)
-			return dri, err
+			if scanErr := v.Scan(&dri); scanErr == nil {
+				return dri, nil
+			}
+			_, _ = OlricCache.Delete(context.Background(), k)
 		}
 	}
 

@@ -281,10 +281,10 @@ func (cm *CertificateManager) GetTLSConfig(hostname string, createIfNotFound boo
 		log.Infof("Certificate exists for [%s]", certMap["hostname"])
 		certPEM := certMap["certificate_pem"].(string)
 
-		privatePEM := AsStringOrEmpty(certMap["private_key_pem"])
+		privatePEM := StringOrEmpty(certMap["private_key_pem"])
 
-		publicPEM := AsStringOrEmpty(certMap["public_key_pem"])
-		rootCert := AsStringOrEmpty(certMap["root_certificate"])
+		publicPEM := StringOrEmpty(certMap["public_key_pem"])
+		rootCert := StringOrEmpty(certMap["root_certificate"])
 
 		privatePEMDecrypted, err := Decrypt([]byte(cm.encryptionSecret), privatePEM)
 		publicPEMDecrypted := publicPEM
@@ -343,11 +343,4 @@ func appendCertificateBlocks(out *bytes.Buffer, seen map[string]bool, raw []byte
 		}
 		rest = bytes.TrimSpace(remaining)
 	}
-}
-
-func AsStringOrEmpty(i interface{}) string {
-	if i == nil {
-		return ""
-	}
-	return i.(string)
 }

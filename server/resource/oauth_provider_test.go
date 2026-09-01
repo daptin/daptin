@@ -30,3 +30,28 @@ func TestValidatePKCES256(t *testing.T) {
 		t.Fatalf("expected wrong verifier to fail")
 	}
 }
+
+func TestOAuthRowBelongsToAppFailsClosedOnInvalidNumericIdentity(t *testing.T) {
+	provider := &OAuthProvider{}
+	tests := []struct {
+		name string
+		row  map[string]interface{}
+		app  map[string]interface{}
+		want bool
+	}{
+		{name: "equal", row: map[string]interface{}{"oauth_app_id": int64(7)}, app: map[string]interface{}{"id": int64(7)}, want: true},
+		{name: "equal string", row: map[string]interface{}{"oauth_app_id": "7"}, app: map[string]interface{}{"id": int64(7)}, want: true},
+		{name: "different", row: map[string]interface{}{"oauth_app_id": int64(7)}, app: map[string]interface{}{"id": int64(8)}},
+		{name: "missing", row: map[string]interface{}{}, app: map[string]interface{}{}},
+		{name: "zero", row: map[string]interface{}{"oauth_app_id": int64(0)}, app: map[string]interface{}{"id": int64(0)}},
+		{name: "malformed row", row: map[string]interface{}{"oauth_app_id": "invalid"}, app: map[string]interface{}{"id": int64(7)}},
+		{name: "malformed app", row: map[string]interface{}{"oauth_app_id": int64(7)}, app: map[string]interface{}{"id": "invalid"}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := provider.RowBelongsToApp(test.row, test.app); got != test.want {
+				t.Fatalf("RowBelongsToApp() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}

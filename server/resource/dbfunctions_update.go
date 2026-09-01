@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -601,25 +600,6 @@ func UpdateStateMachineDescriptions(initConfig *CmsConfig, db *sqlx.Tx) {
 	}
 }
 
-func schemaSyncInt64(value interface{}) (int64, error) {
-	switch typedValue := value.(type) {
-	case int64:
-		return typedValue, nil
-	case int:
-		return int64(typedValue), nil
-	case int32:
-		return int64(typedValue), nil
-	case uint64:
-		return int64(typedValue), nil
-	case []uint8:
-		return strconv.ParseInt(string(typedValue), 10, 64)
-	case string:
-		return strconv.ParseInt(typedValue, 10, 64)
-	default:
-		return 0, fmt.Errorf("cannot convert [%T] to int64", value)
-	}
-}
-
 func schemaSyncTableInfo(tableName string, transaction *sqlx.Tx) (table_info.TableInfo, error) {
 	var tableInfo table_info.TableInfo
 	rows, err := GetObjectByWhereClauseWithTransaction("world", transaction, goqu.Ex{"table_name": tableName})
@@ -696,7 +676,7 @@ func getSchemaManagedWorldRow(tableName string, transaction *sqlx.Tx) (map[strin
 }
 
 func syncDefaultUsergroupRelationsForObject(entityName string, objectRow map[string]interface{}, groups table_info.DefaultGroupList, transaction *sqlx.Tx) error {
-	objectId, err := schemaSyncInt64(objectRow["id"])
+	objectId, err := ResourceRowInt64(objectRow["id"])
 	if err != nil {
 		return err
 	}
@@ -767,7 +747,7 @@ func invalidateSchemaManagedActionCaches(actionOnType string, actionName string,
 		return
 	}
 
-	if objectId, err := schemaSyncInt64(actionRow["id"]); err == nil {
+	if objectId, err := ResourceRowInt64(actionRow["id"]); err == nil {
 		InvalidateObjectGroupsCache("action", objectId)
 	}
 	if referenceId, ok := actionRow["reference_id"]; ok {

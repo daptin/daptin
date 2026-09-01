@@ -1,96 +1,73 @@
 package actions
 
 import (
-	"context"
+	"errors"
 	"fmt"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/llmgateway/contract"
+	"github.com/daptin/llmgateway/protocol/openai"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
 type llmEmbeddingActionPerformer struct {
-	cruds    map[string]*resource.DbResource
-	provider *llm.GoAIProvider
+	gateway *llm.Gateway
+	cruds   map[string]*resource.DbResource
 }
 
-func (d *llmEmbeddingActionPerformer) Name() string {
-	return "$llm.embedding"
-}
+func (performer *llmEmbeddingActionPerformer) Name() string { return "$llm.embedding" }
 
-func (d *llmEmbeddingActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
-
-	modelName, _ := inFieldMap["model"].(string)
-	if modelName == "" {
-		return nil, nil, []error{fmt.Errorf("model is required")}
+func (performer *llmEmbeddingActionPerformer) DoAction(outcome actionresponse.Outcome, input map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
+	model, _ := input["model"].(string)
+	if model == "" {
+		return nil, nil, []error{errors.New("model is required")}
 	}
-
-	llmProvider, err := d.cruds["world"].ResolveLLMProviderByModel(modelName, transaction)
-	if err != nil {
-		log.Errorf("[$llm.embedding] failed to resolve provider for model=%s: %v", modelName, err)
-		return nil, nil, []error{err}
-	}
-
-	req := llm.OpenAIEmbeddingRequest{
-		Model: modelName,
-		Input: inFieldMap["input"],
-	}
-
-	log.Infof("[$llm.embedding] provider=%s model=%s", llmProvider.Name, modelName)
-
-	model, err := d.provider.ResolveEmbeddingModel(llmProvider, req.Model, transaction)
-	if err != nil {
-		log.Errorf("[$llm.embedding] failed to resolve model: provider=%s model=%s error=%v", llmProvider.Name, modelName, err)
-		return nil, nil, []error{err}
-	}
-
-	if transaction != nil {
-		err = transaction.Commit()
-		if err != nil {
-			return nil, nil, []error{err}
+	body := map[string]interface{}{"model": model, "input": input["input"]}
+	for _, field := range []string{"dimensions", "encoding_format", "user"} {
+		if value, exists := input[field]; exists {
+			body[field] = value
 		}
 	}
-	response, err := d.provider.EmbeddingWithResolvedModel(context.Background(), llmProvider, req, model)
-	if transaction != nil {
-		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
-		if beginErr != nil {
-			return nil, nil, []error{beginErr}
-		}
-		*transaction = *newTransaction
-	}
+	payload, err := json.Marshal(body)
 	if err != nil {
-		log.Errorf("[$llm.embedding] failed: provider=%s model=%s error=%v", llmProvider.Name, modelName, err)
+		return nil, nil, []error{fmt.Errorf("encode LLM embedding action: %w", err)}
+	}
+	canonical, err := openai.DecodeEmbeddingsRequest(contract.ID(uuid.Must(uuid.NewV7()).String()), payload)
+	if err != nil {
 		return nil, nil, []error{err}
 	}
-
-	responseMap := make(map[string]interface{})
-	embeddings := make([]interface{}, 0, len(response.Data))
-	for _, emb := range response.Data {
-		embeddings = append(embeddings, emb.Embedding)
+	response, err := invokeLLMAction(performer.gateway, performer.cruds, input, transaction, canonical)
+	if err != nil {
+		return nil, nil, []error{err}
 	}
-	responseMap["embeddings"] = embeddings
-	responseMap["model"] = response.Model
-	responseMap["usage"] = map[string]interface{}{
-		"prompt_tokens": response.Usage.PromptTokens,
-		"total_tokens":  response.Usage.TotalTokens,
+	if response.Embeddings == nil {
+		return nil, nil, []error{errors.New("LLM gateway returned no embeddings response")}
 	}
-
+	embeddings := make([]interface{}, 0, len(response.Embeddings.Data))
+	for _, embedding := range response.Embeddings.Data {
+		if embedding.Base64 != "" {
+			embeddings = append(embeddings, embedding.Base64)
+		} else {
+			embeddings = append(embeddings, embedding.Vector)
+		}
+	}
+	responseMap := map[string]interface{}{
+		"embeddings": embeddings, "model": response.Model, "usage": gatewayUsageResponse(response.Usage),
+	}
 	return api2go.Response{
-			Res: api2go.NewApi2GoModelWithData("$llm.embedding.response", nil, 0, nil, responseMap),
-		}, []actionresponse.ActionResponse{{
-			ResponseType: request.Type,
-			Attributes:   responseMap,
-		}}, nil
+		Res: api2go.NewApi2GoModelWithData("$llm.embedding.response", nil, 0, nil, responseMap),
+	}, []actionresponse.ActionResponse{{ResponseType: outcome.Type, Attributes: responseMap}}, nil
 }
 
-func NewLLMEmbeddingPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, provider *llm.GoAIProvider) (actionresponse.ActionPerformerInterface, error) {
-	handler := llmEmbeddingActionPerformer{
-		cruds:    cruds,
-		provider: provider,
+func NewLLMEmbeddingPerformer(cruds map[string]*resource.DbResource, gateway *llm.Gateway) (actionresponse.ActionPerformerInterface, error) {
+	if gateway == nil {
+		return nil, errors.New("LLM gateway is required")
 	}
 	log.Infof("[$llm.embedding] performer registered")
-	return &handler, nil
+	return &llmEmbeddingActionPerformer{gateway: gateway, cruds: cruds}, nil
 }

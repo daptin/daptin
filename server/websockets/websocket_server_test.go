@@ -12,7 +12,8 @@ func TestServerShutdownStopsListener(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	server := NewServer("/live", nil, nil, nil)
 	router := gin.New()
-	go server.Listen(router)
+	server.Register(router)
+	go server.Listen()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

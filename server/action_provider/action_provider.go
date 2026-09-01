@@ -12,7 +12,8 @@ import (
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
 	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
-	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager, integrationRuntimeInstanceID string) []actionresponse.ActionPerformerInterface {
+	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager, integrationRuntimeInstanceID string,
+	llmGateway *llm.Gateway) []actionresponse.ActionPerformerInterface {
 	log.Tracef("GetActionPerformers")
 	transaction, err := cruds["world"].Connection().Beginx()
 	resource.CheckErr(err, "Failed to begin transaction [14]")
@@ -103,14 +104,11 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create generate network request performer")
 	performers = append(performers, NewNetworkRequestPerformer)
 
-	// LLM performers (GoAI SDK — like rclone for cloud storage)
-	goaiProvider := llm.NewGoAIProvider(cruds)
-
-	llmChatPerformer, err := actions.NewLLMChatPerformer(initConfig, cruds, goaiProvider)
+	llmChatPerformer, err := actions.NewLLMChatPerformer(cruds, llmGateway)
 	resource.CheckErr(err, "Failed to create LLM chat performer")
 	performers = append(performers, llmChatPerformer)
 
-	llmEmbeddingPerformer, err := actions.NewLLMEmbeddingPerformer(initConfig, cruds, goaiProvider)
+	llmEmbeddingPerformer, err := actions.NewLLMEmbeddingPerformer(cruds, llmGateway)
 	resource.CheckErr(err, "Failed to create LLM embedding performer")
 	performers = append(performers, llmEmbeddingPerformer)
 

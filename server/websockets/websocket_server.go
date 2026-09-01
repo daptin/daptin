@@ -99,14 +99,8 @@ type WebSocketConnectionHandler interface {
 	Close()
 }
 
-// Listen and serve.
-// It serves client connection and broadcast request.
-func (s *Server) Listen(router *gin.Engine) {
-	defer close(s.stoppedCh)
-
-	log.Printf("Listening websocket server at ... %v", s.pattern)
-
-	// websocket handler
+// Register attaches the websocket HTTP route before the router begins serving.
+func (s *Server) Register(router *gin.Engine) {
 	onConnected := func(ws *websocket.Conn) {
 		defer func() {
 			err := ws.Close()
@@ -134,8 +128,14 @@ func (s *Server) Listen(router *gin.Engine) {
 	router.GET(s.pattern, func(ginContext *gin.Context) {
 		wsHandler.ServeHTTP(ginContext.Writer, ginContext.Request)
 	})
-
 	log.Debugf("Created websocket handler")
+}
+
+// Listen serves client connection and broadcast events after route registration.
+func (s *Server) Listen() {
+	defer close(s.stoppedCh)
+
+	log.Printf("Listening websocket server at ... %v", s.pattern)
 
 	for {
 		select {

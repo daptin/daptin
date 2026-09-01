@@ -224,3 +224,17 @@ func assertSqliteIndexColumns(t *testing.T, db *sqlx.DB, indexName string, colum
 		}
 	}
 }
+
+func TestMySQLTextDefaultUsesExpressionSyntax(t *testing.T) {
+	column := api2go.ColumnInfo{
+		ColumnName:   "document",
+		DataType:     "text",
+		DefaultValue: "'{}'",
+	}
+	if got, want := getColumnLine(&column, "mysql"), "document text not null default ('{}')"; got != want {
+		t.Fatalf("MySQL text column = %q, want %q", got, want)
+	}
+	if got, want := getColumnLine(&column, "postgres"), "document text not null default '{}'"; got != want {
+		t.Fatalf("PostgreSQL text column = %q, want %q", got, want)
+	}
+}

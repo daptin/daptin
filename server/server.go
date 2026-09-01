@@ -16,6 +16,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/hashicorp/golang-lru"
 	"os"
+	"time"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-imap/server"
@@ -395,7 +396,10 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	log.Printf("[CALDAV INIT] enableCaldav read from config: '%s', err: %v", enableCaldav, err)
 	transaction.Commit()
 
-	taskScheduler := resource.NewTaskScheduler(cruds)
+	taskScheduler, err := resource.NewTaskScheduler(cruds)
+	if err != nil {
+		return nil, fmt.Errorf("initialize task scheduler: %w", err)
+	}
 
 	skipImportData, skipImportValFound := os.LookupEnv("DAPTIN_SKIP_IMPORT_DATA")
 	if skipImportValFound && skipImportData == "true" {
@@ -451,8 +455,23 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	hostSwitch.HandlerMap["api"] = defaultRouter
 	hostSwitch.HandlerMap["dashboard"] = defaultRouter
 
+	llmGateway, err := llm.NewGateway(ctx, cruds, olricDb)
+	if err != nil {
+		return nil, fmt.Errorf("initialize LLM gateway: %w", err)
+	}
+	llmGatewayTransferred := false
+	defer func() {
+		if !llmGatewayTransferred {
+			drainContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if drainErr := llmGateway.Drain(drainContext); drainErr != nil {
+				log.WithError(drainErr).Error("failed to drain LLM gateway after runtime initialization failure")
+			}
+		}
+	}()
+
 	integrationRuntimeInstanceID := uuid.NewString()
-	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID)
+	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID, llmGateway)
 	initConfig.ActionPerformers = actionPerformers
 	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -531,9 +550,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		}
 	}
 
-	// Register OpenAI-compatible LLM endpoints (drop-in replacement)
-	goaiProvider := llm.NewGoAIProvider(cruds)
-	RegisterLLMEndpoints(defaultRouter, goaiProvider, cruds)
+	RegisterLLMEndpoints(defaultRouter, llmGateway)
 
 	resource.InitialiseColumnManager()
 	jsModelHandler := CreateJsModelHandler(&initConfig, cruds, transaction)
@@ -602,11 +619,9 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		}
 	}
 
-	go func() {
-		websocketServer.Listen(defaultRouter)
-	}()
-
 	SetupNoRouteRouter(boxRoot, defaultRouter)
+	websocketServer.Register(defaultRouter)
+	go websocketServer.Listen()
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))
 	resource.CleanUpConfigFiles()
@@ -621,6 +636,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}
 	log.Printf("Our admin is [%v]", adminEmail)
 
+	llmGatewayTransferred = true
 	return &Runtime{
 		Handler:                 &hostSwitch,
 		ConfigStore:             configStore,
@@ -632,6 +648,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		imapServer:              imapServer,
 		websocketServer:         websocketServer,
 		yjs:                     yjsRuntime,
+		llmGateway:              llmGateway,
 		tableSubscription:       tableTopicSubscription,
 		integrationSubscription: integrationSubscription,
 		errors:                  runtimeErrors,

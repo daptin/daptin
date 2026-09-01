@@ -1,13 +1,15 @@
 package resource
 
 import (
+	"context"
 	"time"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 )
+
+type meteringDecisionContextKey struct{}
 
 type MeteringMiddleware struct {
 	service *MeteringService
@@ -29,7 +31,7 @@ func (m *MeteringMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request
 	if user == nil || user.UserId == 0 {
 		return rows, nil
 	}
-	_, err := m.service.Preflight(MeteringContext{
+	decision, err := m.service.Admit(MeteringContext{
 		Request:     req.PlainRequest,
 		User:        user,
 		Endpoint:    endpointFromRequest(req),
@@ -45,6 +47,7 @@ func (m *MeteringMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request
 	if err != nil {
 		return nil, err
 	}
+	req.PlainRequest = req.PlainRequest.WithContext(context.WithValue(req.PlainRequest.Context(), meteringDecisionContextKey{}, decision))
 	return rows, nil
 }
 
@@ -60,7 +63,8 @@ func (m *MeteringMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
 	response := map[string]interface{}{
 		"rows": rows,
 	}
-	err := m.service.Record(MeteringContext{
+	decision, _ := req.PlainRequest.Context().Value(meteringDecisionContextKey{}).(*MeteringDecision)
+	err := m.service.Complete(MeteringContext{
 		Request:       req.PlainRequest,
 		User:          user,
 		Endpoint:      endpointFromRequest(req),
@@ -77,9 +81,9 @@ func (m *MeteringMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
 			"row_count": len(rows),
 		},
 		Response: response,
-	}, nil, tx)
+	}, decision, tx)
 	if err != nil {
-		log.Errorf("[metering] failed to record CRUD usage for %s: %v", dr.TableInfo().TableName, err)
+		return nil, err
 	}
 	return rows, nil
 }

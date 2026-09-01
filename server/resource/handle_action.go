@@ -365,7 +365,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	if actionMetering != nil && actionMetering.Enabled && req.PlainRequest != nil && !IsMeteringInternalRequest(req.PlainRequest) {
 		meteringService = NewMeteringService(&dbResource.Cruds)
 		var meteringErr error
-		meteringDecision, meteringErr = meteringService.Preflight(MeteringContext{
+		meteringDecision, meteringErr = meteringService.Admit(MeteringContext{
 			Request:     req.PlainRequest,
 			User:        sessionUser,
 			Endpoint:    req.PlainRequest.URL.Path,
@@ -752,7 +752,7 @@ OutFields:
 		for _, response := range responses {
 			responseTypes = append(responseTypes, response.ResponseType)
 		}
-		recordErr := meteringService.Record(MeteringContext{
+		recordErr := meteringService.Complete(MeteringContext{
 			Request:       req.PlainRequest,
 			User:          sessionUser,
 			Endpoint:      req.PlainRequest.URL.Path,
@@ -776,7 +776,7 @@ OutFields:
 			},
 		}, meteringDecision, transaction)
 		if recordErr != nil {
-			log.Errorf("[metering] failed to record action usage for %s:%s: %v", actionRequest.Type, actionRequest.Action, recordErr)
+			return nil, recordErr
 		}
 	}
 

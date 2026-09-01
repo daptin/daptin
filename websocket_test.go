@@ -1609,9 +1609,13 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 	signupDuration := time.Since(signupStart)
 
 	var validUsers int
+	var setupToken string
 	for _, tok := range tokens {
 		if tok != "" {
 			validUsers++
+			if setupToken == "" {
+				setupToken = tok
+			}
 		}
 	}
 	t.Logf("  created %d/%d users in %v (%d signup errors)", validUsers, numUsers, signupDuration, signupErrors)
@@ -1621,7 +1625,7 @@ func TestWebSocketMultiUserMessaging(t *testing.T) {
 
 	// Phase 2: Create topics — each user gets an "inbox" topic, set permissions to allow all
 	t.Log("Phase 2: Creating per-user topics...")
-	setupWs := dialWS(t, tokens[0])
+	setupWs := dialWS(t, setupToken)
 	topicNames := make([]string, numUsers)
 	for i := 0; i < numUsers; i++ {
 		if tokens[i] == "" {

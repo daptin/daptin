@@ -100,7 +100,6 @@ type MeteringConfig struct {
 	CostExpr           string                    `json:"cost_expr,omitempty"`
 	MeterType          string                    `json:"meter_type,omitempty"`
 	PostMeteringAction string                    `json:"post_metering_action,omitempty"`
-	EnforceMode        string                    `json:"enforce_mode,omitempty"`
 	OnActions          map[string]MeteringConfig `json:"on_actions,omitempty"`
 }
 

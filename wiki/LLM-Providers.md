@@ -1,25 +1,64 @@
-# LLM Providers
+# LLM Gateway
 
-Daptin integrates with LLM providers using the same pattern as cloud storage: the admin configures a **provider** record linked to a **credential**, and the system handles routing, authentication, and API translation automatically.
+Daptin exposes one OpenAI-compatible gateway backed by the reusable
+`github.com/daptin/llmgateway` engine. HTTP requests and the built-in LLM
+actions share the same catalog, authorization, routing, provider adapters,
+reliability controls, cost calculation, and generic metering lifecycle.
 
-| Cloud Storage | LLM Providers |
+Configuration uses ordinary Daptin resources and relationships:
+
+- `llm_provider` describes one provider account and links to a `credential`;
+- `llm_model` defines a public model name and its allowed capabilities;
+- `llm_deployment` maps a public model to an upstream provider/model;
+- `api_plan`, `api_member`, `api_usage`, and `api_quota` provide generic
+  metering for LLM and non-LLM workloads.
+
+There is no comma-separated provider model list and no provider-specific usage
+ledger. Catalog changes are reloaded after resource events, with periodic
+fingerprint polling as recovery; a server restart is not required.
+
+## Supported provider adapters
+
+The first release uses the strict OpenAI-compatible adapter.
+
+| `provider_type` | Default base URL |
 |---|---|
-| `cloud_store` table | `llm_provider` table |
-| rclone SDK | GoAI SDK (24+ providers) |
-| `credential` table | `credential` table (same) |
+| `openai` | `https://api.openai.com/v1` |
+| `google` | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| `openrouter` | `https://openrouter.ai/api/v1` |
+| `lilac` | `https://api.getlilac.com/v1` |
+| `openai-compatible` | none; `base_url` is required |
 
----
+Each provider credential must contain a non-empty `api_key`:
 
-## Quick Start
+```json
+{"api_key":"provider-secret"}
+```
 
-### 1. Create a Credential
+HTTPS is required by default. An HTTP endpoint requires
+`allow_insecure: true`; loopback, link-local, or private-network access
+separately requires `allow_private_network: true`. Redirects are not followed.
 
-Store your API key in the credential table (encrypted at rest):
+The OpenAI-compatible `provider_parameters` object accepts only:
+
+```json
+{
+  "organization": "optional OpenAI organization",
+  "project": "optional OpenAI project",
+  "image_generation_path": "/images/generations"
+}
+```
+
+`image_generation_path` may be `/images/generations` or `/images`.
+
+## Configure the gateway
+
+The examples use JSON:API resource reference IDs. Keep provider secrets out of
+shell history and source control; the inline value below is only a placeholder.
+
+### 1. Create and link a credential
 
 ```bash
-TOKEN=$(cat /tmp/daptin-token.txt)
-
-# OpenAI
 curl -X POST http://localhost:6336/api/credential \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -27,14 +66,12 @@ curl -X POST http://localhost:6336/api/credential \
     "data": {
       "type": "credential",
       "attributes": {
-        "name": "openai-key",
-        "content": "{\"api_key\": \"sk-...\"}"
+        "name": "gateway-provider-key",
+        "content": "{\"api_key\":\"provider-secret\"}"
       }
     }
   }'
 ```
-
-### 2. Create an LLM Provider
 
 ```bash
 curl -X POST http://localhost:6336/api/llm_provider \
@@ -44,470 +81,211 @@ curl -X POST http://localhost:6336/api/llm_provider \
     "data": {
       "type": "llm_provider",
       "attributes": {
-        "name": "my-openai",
+        "name": "primary-openai",
         "provider_type": "openai",
-        "models": "gpt-4o,gpt-4o-mini,gpt-3.5-turbo",
-        "credential_name": "openai-key",
+        "provider_parameters": "{}",
+        "enable": true
+      },
+      "relationships": {
+        "credential_id": {
+          "data": {"type": "credential", "id": "CREDENTIAL_REFERENCE_ID"}
+        }
+      }
+    }
+  }'
+```
+
+### 2. Create a public model
+
+Operations are `chat`, `responses`, `embeddings`, and `image_generation`.
+Capabilities are explicit and may include `tools`, `vision`, `audio`,
+`json_schema`, `logprobs`, `penalties`, `parallel_tools`, `reasoning`,
+`dimensions`, `token_ids`, `exact_cache`, and `public_cache`.
+
+```bash
+curl -X POST http://localhost:6336/api/llm_model \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "llm_model",
+      "attributes": {
+        "name": "assistant",
+        "operations": "[\"chat\",\"responses\"]",
+        "capabilities": "{\"tools\":true,\"vision\":true,\"json_schema\":true}",
+        "routing_strategy": "priority_weighted",
+        "fallback_models": "[]",
+        "default_parameters": "{\"chat\":{\"max_completion_tokens\":512}}",
+        "unsupported_parameter_policy": "reject",
         "enable": true
       }
     }
   }'
 ```
 
-### 3. Link Credential via Relationship
+`fallback_models` is an ordered JSON array of other public model names. Cycles
+or missing models reject the candidate catalog. Supported parameter policies
+are:
+
+- `reject`: reject a request that asks for a capability the model does not
+  declare;
+- `drop`: remove only optional non-semantic controls; semantic media or tool
+  history is never silently removed;
+- `passthrough`: preserve typed fields when the selected adapter supports them.
+
+Unknown wire fields are always rejected.
+
+### 3. Create a deployment and its relationships
 
 ```bash
-CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/credential | jq -r '.data[] | select(.attributes.name=="openai-key") | .id')
-
-PROVIDER_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/llm_provider | jq -r '.data[] | select(.attributes.name=="my-openai") | .id')
-
-curl -X PATCH "http://localhost:6336/api/llm_provider/$PROVIDER_ID" \
+curl -X POST http://localhost:6336/api/llm_deployment \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  -d "{\"data\":{\"type\":\"llm_provider\",\"id\":\"$PROVIDER_ID\",\"relationships\":{\"credential_id\":{\"data\":{\"type\":\"credential\",\"id\":\"$CRED_ID\"}}}}}"
-```
-
-### 4. Restart Server
-
-```bash
-./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
-```
-
-### 5. Use It
-
-```bash
-# Drop-in OpenAI-compatible endpoint
-curl http://localhost:6336/v1/chat/completions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4o-mini",
-    "messages": [{"role": "user", "content": "Hello!"}]
+    "data": {
+      "type": "llm_deployment",
+      "attributes": {
+        "name": "assistant-primary",
+        "upstream_model": "gpt-4o-mini",
+        "operations": "[\"chat\",\"responses\"]",
+        "priority": 0,
+        "weight": 1,
+        "request_timeout_ms": 90000,
+        "connect_timeout_ms": 10000,
+        "max_concurrency": 100,
+        "rpm": -1,
+        "tpm": -1,
+        "pricing": "{\"input_micros_per_million\":150000,\"output_micros_per_million\":600000}",
+        "parameters": "{}",
+        "health_check": "{\"enabled\":true,\"interval_ms\":30000,\"timeout_ms\":5000,\"failure_threshold\":3}",
+        "enable": true
+      },
+      "relationships": {
+        "llm_model_id": {
+          "data": {"type": "llm_model", "id": "MODEL_REFERENCE_ID"}
+        },
+        "llm_provider_id": {
+          "data": {"type": "llm_provider", "id": "PROVIDER_REFERENCE_ID"}
+        }
+      }
+    }
   }'
 ```
 
----
+Deployments in the lowest eligible priority tier are selected by positive
+weight without replacement. Retryable failures may move to another deployment
+or an ordered fallback model, within the engine's bounded attempt and request
+deadlines. Disabled, unhealthy, saturated, rate-protected, or
+capability-incompatible deployments are excluded. A streaming request may
+switch only before its first client-visible event.
 
-## Supported Providers
+Pricing uses fixed-point micros per one million tokens. Available keys are
+`input_micros_per_million`, `output_micros_per_million`,
+`cache_read_micros_per_million`, `cache_write_micros_per_million`, and
+`reasoning_micros_per_million`.
 
-| Provider | `provider_type` | Credential Fields | Notes |
-|----------|----------------|-------------------|-------|
-| OpenAI | `openai` | `{"api_key": "sk-..."}` | GPT-4, GPT-4o, o1, etc. |
-| Anthropic | `anthropic` | `{"api_key": "sk-ant-..."}` | Claude Opus, Sonnet, Haiku |
-| Google Gemini | `gemini` | `{"api_key": "AIza..."}` | Gemini Pro, Flash, etc. |
-| Ollama | `ollama` | `{}` (no auth) | Local models. Set `base_url` |
-| Groq | `groq` | `{"api_key": "gsk_..."}` | Fast inference |
-| Azure OpenAI | `azure` | `{"api_key": "..."}` | Set `base_url` to your endpoint |
-| AWS Bedrock | `bedrock` | `{"access_key_id": "...", "secret_access_key": "...", "region": "us-east-1"}` | Claude, Titan, etc. |
-| DeepSeek | `deepseek` | `{"api_key": "..."}` | DeepSeek Chat, Coder |
-| Mistral | `mistral` | `{"api_key": "..."}` | Mistral Large, Medium, etc. |
-| OpenAI-compatible | Any other value | `{"api_key": "..."}` | Set `base_url`. Falls back to compat mode |
+## HTTP API
 
----
+The implemented OpenAI-compatible routes are:
 
-## Credential Formats
+- `POST /v1/chat/completions`
+- `POST /v1/responses` (stateless; `store` and `previous_response_id` are
+  rejected)
+- `POST /v1/embeddings`
+- `POST /v1/images/generations`
+- `GET /v1/models`
+- `GET /v1/models/{id}`
 
-### OpenAI
-```json
-{"api_key": "sk-proj-..."}
-```
+`POST /v1/completions` is not implemented because converting a completion
+prompt into chat would be lossy compatibility. Stateful Responses, audio,
+moderation, rerank, batch, file, assistant, fine-tuning, and vector-store APIs
+are not advertised.
 
-### Anthropic
-```json
-{"api_key": "sk-ant-api03-..."}
-```
+All routes use Daptin authentication and model resource permissions. Model
+listing hides models the authenticated principal cannot read.
 
-### Google Gemini
-```json
-{"api_key": "AIzaSy..."}
-```
-
-### Ollama (local, no auth)
-```json
-{}
-```
-Set `base_url` to `http://localhost:11434` on the llm_provider record.
-
-### Azure OpenAI
-```json
-{"api_key": "your-azure-key"}
-```
-Set `base_url` to `https://your-resource.openai.azure.com`.
-
-### AWS Bedrock
-```json
-{
-  "access_key_id": "AKIA...",
-  "secret_access_key": "...",
-  "region": "us-east-1"
-}
-```
-
-### Any OpenAI-compatible endpoint
-```json
-{"api_key": "your-key"}
-```
-Set `base_url` to the endpoint URL (e.g. `https://api.together.xyz/v1`).
-
----
-
-## LLM Provider Table Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | varchar(100) | Yes | Unique identifier |
-| `provider_type` | varchar(100) | Yes | Provider backend (openai, anthropic, etc.) |
-| `base_url` | varchar(500) | No | Custom endpoint URL |
-| `models` | text | Yes | Comma-separated model names for routing |
-| `credential_name` | varchar(1000) | No | Name of credential record |
-| `provider_parameters` | text (JSON) | No | Provider-specific defaults |
-| `enable` | bool | Yes | Active/inactive toggle |
-
----
-
-## OpenAI-Compatible Endpoints (Drop-in Replacement)
-
-Daptin exposes standard OpenAI API endpoints. Any tool or SDK that works with OpenAI can point at Daptin instead.
-
-### POST /v1/chat/completions
-
-Standard chat completion with streaming support.
-
-**Non-streaming:**
 ```bash
 curl http://localhost:6336/v1/chat/completions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4o",
-    "messages": [
-      {"role": "system", "content": "You are helpful."},
-      {"role": "user", "content": "What is 2+2?"}
-    ],
-    "temperature": 0.7,
-    "max_tokens": 100
+    "model": "assistant",
+    "messages": [{"role":"user","content":"Hello"}],
+    "stream": false
   }'
 ```
 
-**Response:**
-```json
-{
-  "id": "chatcmpl-daptin",
-  "object": "chat.completion",
-  "created": 1714400000,
-  "model": "gpt-4o",
-  "choices": [{
-    "index": 0,
-    "message": {"role": "assistant", "content": "2+2 equals 4."},
-    "finish_reason": "stop"
-  }],
-  "usage": {
-    "prompt_tokens": 20,
-    "completion_tokens": 8,
-    "total_tokens": 28
-  }
-}
-```
+OpenAI SDKs can use `http://localhost:6336/v1` as their base URL and a Daptin
+bearer token as their API key.
 
-**Streaming:**
-```bash
-curl http://localhost:6336/v1/chat/completions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "stream": true
-  }'
-```
+## Daptin actions
 
-**SSE Response:**
-```
-data: {"id":"chatcmpl-daptin-stream","object":"chat.completion.chunk","model":"gpt-4o","choices":[{"index":0,"delta":{"role":"assistant"}}]}
-
-data: {"id":"chatcmpl-daptin-stream","object":"chat.completion.chunk","model":"gpt-4o","choices":[{"index":0,"delta":{"content":"Hello"}}]}
-
-data: {"id":"chatcmpl-daptin-stream","object":"chat.completion.chunk","model":"gpt-4o","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":9,"completion_tokens":5,"total_tokens":14}}
-
-data: [DONE]
-```
-
-### POST /v1/completions
-
-Legacy completions endpoint. Maps `prompt` to a chat message internally.
-
-```bash
-curl http://localhost:6336/v1/completions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4o-mini", "prompt": "Once upon a time"}'
-```
-
-### POST /v1/embeddings
-
-Generate vector embeddings.
-
-```bash
-curl http://localhost:6336/v1/embeddings \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "text-embedding-3-small",
-    "input": ["Hello world", "Daptin is great"]
-  }'
-```
-
-### GET /v1/models
-
-List all models from active providers.
-
-```bash
-curl http://localhost:6336/v1/models \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Response:**
-```json
-{
-  "object": "list",
-  "data": [
-    {"id": "gpt-4o", "object": "model", "owned_by": "openai"},
-    {"id": "claude-sonnet-4-20250514", "object": "model", "owned_by": "anthropic"}
-  ]
-}
-```
-
----
-
-## Using with Python OpenAI SDK
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:6336/v1",
-    api_key="your-daptin-jwt-token"
-)
-
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-print(response.choices[0].message.content)
-
-# Streaming
-for chunk in client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Tell me a story"}],
-    stream=True
-):
-    print(chunk.choices[0].delta.content or "", end="")
-```
-
----
-
-## Model Routing
-
-When a request arrives at `/v1/chat/completions` with `"model": "gpt-4o"`, Daptin:
-
-1. Scans all active `llm_provider` records
-2. Finds the provider whose `models` field contains `gpt-4o`
-3. Loads the linked credential (decrypts API key)
-4. Routes the request to that provider via GoAI SDK
-5. Translates the response back to OpenAI format
-
-Multiple providers can coexist. Each handles its own set of models.
-
----
-
-## Action Performers
-
-Use LLM capabilities within Daptin action chains (YAML/JSON schemas).
-
-### $llm.chat
-
-Non-streaming chat completion for use in action OutFields.
-
-```yaml
-Actions:
-  - Name: summarize_text
-    Label: Summarize Text
-    OnType: document
-    InstanceOptional: true
-    InFields:
-      - ColumnName: text
-        ColumnType: content
-        IsNullable: false
-    OutFields:
-      - Type: $llm.chat
-        Method: EXECUTE
-        Reference: llm_result
-        Attributes:
-          model: "gpt-4o-mini"
-          system_prompt: "Summarize the following text concisely."
-          messages:
-            - role: "user"
-              content: "~text"
-          max_tokens: 500
-          temperature: 0.3
-      - Type: client.notify
-        Method: ACTIONRESPONSE
-        Attributes:
-          type: success
-          title: Summary
-          message: "!llm_result.content"
-```
-
-**Input Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `model` | string | Yes | Model name (must match an active provider) |
-| `messages` | array | Yes | `[{role, content}]` conversation |
-| `system_prompt` | string | No | Convenience: prepended as system message |
-| `max_tokens` | int | No | Max response tokens |
-| `temperature` | float | No | Sampling temperature (0-2) |
-| `top_p` | float | No | Nucleus sampling |
-| `seed` | int | No | Deterministic generation |
-| `stop` | string/array | No | Stop sequences |
-| `tools` | array | No | Function/tool definitions |
-| `tool_choice` | string/object | No | Tool selection control |
-| `response_format` | object | No | JSON mode / structured output |
-| `extra_params` | object | No | Provider-specific parameters |
-
-**Output Fields (in ActionResponse):**
-
-| Field | Description |
-|-------|-------------|
-| `content` | Generated text |
-| `role` | `assistant` |
-| `model` | Model used |
-| `finish_reason` | `stop`, `length`, `tool_calls` |
-| `tool_calls` | Array of tool calls (if tools used) |
-| `usage` | `{prompt_tokens, completion_tokens, total_tokens}` |
-| `raw` | Full response object |
-
-### $llm.embedding
-
-Generate embeddings for use in action chains.
-
-```yaml
-OutFields:
-  - Type: $llm.embedding
-    Method: EXECUTE
-    Reference: embed_result
-    Attributes:
-      model: "text-embedding-3-small"
-      input: "~text_to_embed"
-```
-
-**Output:** `embeddings` (array of float arrays), `model`, `usage`
-
----
-
-## Tool Calling
+`$llm.chat` and `$llm.embedding` use the same engine as HTTP. They apply the
+same strict request decoder, model authorization, route plan, provider call,
+costing, and generic metering. `$llm.chat` is non-streaming in action chains.
 
 ```yaml
 OutFields:
   - Type: $llm.chat
     Method: EXECUTE
+    Reference: llm_result
     Attributes:
-      model: "gpt-4o"
+      model: assistant
       messages:
-        - role: "user"
-          content: "What's the weather in Tokyo?"
-      tools:
-        - type: "function"
-          function:
-            name: "get_weather"
-            description: "Get current weather for a location"
-            parameters:
-              type: "object"
-              properties:
-                location:
-                  type: "string"
-                  description: "City name"
-              required: ["location"]
+        - role: user
+          content: "~prompt"
+      max_completion_tokens: 256
+      temperature: 0.2
 ```
 
----
+The chat result includes `content`, `role`, `model`, `finish_reason`, optional
+`tool_calls`, and `usage`. The embedding result includes `embeddings`, `model`,
+and `usage`. `usage` includes input/output/total/cache/reasoning tokens,
+`cost_micros`, and whether usage is estimated. Arbitrary `extra_params` are
+rejected; configure operation-scoped deployment parameters instead.
 
-## Provider-Specific Features
+## Metering and cost
 
-Pass provider-specific options via `extra_params` or `provider_parameters`:
+LLM metering composes with Daptin's generic metering resources; it is not an
+LLM-owned quota system. Admission reserves named measures before provider I/O,
+and completion/cancellation terminalizes the same `api_usage` record afterward.
+No database transaction remains open during provider inference or streaming.
 
-| Provider | Feature | How |
-|----------|---------|-----|
-| Anthropic | Extended thinking | `extra_params: {thinking: {type: "enabled", budget_tokens: 10000}}` |
-| Anthropic | Prompt caching | Automatic via GoAI SDK |
-| OpenAI | Structured output | `response_format: {type: "json_schema", json_schema: {...}}` |
-| OpenAI | Reproducibility | `seed: 42` |
-| Gemini | Google Search grounding | `extra_params: {grounding: {google_search: true}}` |
-| Gemini | Safety settings | `extra_params: {safety_settings: [...]}` |
+The emitted measures are `input_tokens`, `output_tokens`,
+`cache_read_tokens`, `cache_write_tokens`, `reasoning_tokens`, `total_tokens`,
+and `cost_micros`. The same `api_plan` limits can be applied to any other
+metered Daptin resource using its own named measures.
 
----
+Backend configuration keys are:
 
-## Multiple Providers Example
+- `metering.llm.enabled` (default `true`)
+- `metering.llm.cost_expr` (default `1`)
+- `metering.llm.meter_type` (default `requests`)
+- `metering.llm.post_metering_action` (optional `type.action`)
 
-Run OpenAI, Anthropic, and local Ollama side by side:
+Hard limits use the database-backed generic quota state and fail closed when
+that authority is unavailable. Olric counters protect deployments
+(`max_concurrency`, RPM, TPM) and do not replace durable customer quotas.
 
-```bash
-# 1. Create credentials
-curl -X POST http://localhost:6336/api/credential \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"credential","attributes":{"name":"openai-key","content":"{\"api_key\":\"sk-...\"}"}}}'
+## Health, reload, and shutdown
 
-curl -X POST http://localhost:6336/api/credential \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"credential","attributes":{"name":"anthropic-key","content":"{\"api_key\":\"sk-ant-...\"}"}}}'
-
-# 2. Create providers
-curl -X POST http://localhost:6336/api/llm_provider \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"llm_provider","attributes":{"name":"openai","provider_type":"openai","models":"gpt-4o,gpt-4o-mini","credential_name":"openai-key","enable":true}}}'
-
-curl -X POST http://localhost:6336/api/llm_provider \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"llm_provider","attributes":{"name":"anthropic","provider_type":"anthropic","models":"claude-sonnet-4-20250514,claude-haiku-4-5-20251001","credential_name":"anthropic-key","enable":true}}}'
-
-curl -X POST http://localhost:6336/api/llm_provider \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"llm_provider","attributes":{"name":"local-ollama","provider_type":"ollama","base_url":"http://localhost:11434","models":"llama3,mistral,codellama","enable":true}}}'
-
-# 3. Restart, then use any model:
-curl http://localhost:6336/v1/chat/completions \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"model":"claude-sonnet-4-20250514","messages":[{"role":"user","content":"Hello from Anthropic!"}]}'
-```
-
----
+- `/llm/healthz` reports process liveness.
+- `/llm/readyz` requires a valid active catalog and reports rejected reloads.
+- Resource events trigger a debounced reload; a periodic content fingerprint
+  recovers missed events and observes credential version changes.
+- Invalid candidates never replace the last valid immutable snapshot.
+- Shutdown stops new admission, waits for bounded in-flight requests, then
+  closes adapter transports before Daptin closes shared database/Olric state.
 
 ## Troubleshooting
 
-### "model 'xxx' not found in any configured provider"
-
-- Check that an `llm_provider` with `enable: true` lists this model in its `models` field
-- Models must match exactly (case-sensitive)
-- Restart server after creating providers
-
-### "failed to get credential"
-
-- Verify `credential_name` in llm_provider matches a credential record's `name` field
-- Link credential via relationship PATCH (see Quick Start step 3)
-
-### Provider returns authentication error
-
-- Check the credential `content` JSON has the correct `api_key` field
-- Verify the API key is valid with the provider directly
-
-### Streaming not working
-
-- Ensure `"stream": true` is in the request body
-- Check that the client supports SSE (Server-Sent Events)
-- Response Content-Type must be `text/event-stream`
-
-### Server restart required
-
-After creating or modifying `llm_provider` or `credential` records, restart the server for changes to take effect in the Olric cache.
+- **Model not found:** verify the public `llm_model.name`, its `enable` flag,
+  operation list, model permission, and at least one enabled related deployment.
+- **No healthy deployment:** verify provider/deployment enable flags,
+  capabilities, operation lists, timeouts, health state, and protection limits.
+- **Authentication error:** verify the provider's credential relationship and
+  that decrypted credential content contains a non-empty `api_key`.
+- **Catalog reload rejected:** inspect `/llm/readyz` and logs for the stable
+  failure stage; the previous valid catalog remains active.
+- **Quota denied:** inspect the user's active `api_member`, related `api_plan`,
+  and the generic `api_quota` bucket for the named metric/window.

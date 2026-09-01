@@ -12,7 +12,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -157,7 +156,7 @@ func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Int
 	if err == nil && len(rows) > 0 {
 
 		for _, row := range rows {
-			enable, err := integrationEnableFlag(row["enable"])
+			enable, err := resourceRowBool(row["enable"])
 			if err != nil {
 				return integrations, err
 			}
@@ -178,37 +177,6 @@ func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Int
 
 	return integrations, err
 
-}
-
-func integrationEnableFlag(value interface{}) (bool, error) {
-	switch typed := value.(type) {
-	case bool:
-		return typed, nil
-	case int:
-		return typed == 1, nil
-	case int64:
-		return typed == 1, nil
-	case int32:
-		return typed == 1, nil
-	case float64:
-		return typed == 1, nil
-	case string:
-		if strings.EqualFold(typed, "true") {
-			return true, nil
-		}
-		if strings.EqualFold(typed, "false") || typed == "" {
-			return false, nil
-		}
-		i, err := strconv.ParseInt(typed, 10, 32)
-		if err != nil {
-			return false, err
-		}
-		return i == 1, nil
-	case nil:
-		return false, nil
-	default:
-		return false, fmt.Errorf("unsupported integration enable value type [%T]", value)
-	}
 }
 
 func (dbResource *DbResource) GetCloudStoreByNameWithTransaction(name string, transaction *sqlx.Tx) (rootpojo.CloudStore, error) {
@@ -286,80 +254,6 @@ func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.Da
 
 }
 
-func StringOrEmpty(i interface{}) string {
-	s, ok := i.(string)
-	if ok {
-		return s
-	}
-	return ""
-}
-
-func (dbResource *DbResource) GetLLMProviderByNameWithTransaction(name string, transaction *sqlx.Tx) (rootpojo.LLMProvider, error) {
-	var llmProvider rootpojo.LLMProvider
-
-	cacheKey := fmt.Sprintf("llm-provider-%v", name)
-	if OlricCache != nil {
-		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
-		if err == nil {
-			bytes, err := cachedValue.Byte()
-			if err == nil {
-				err = json.Unmarshal(bytes, &llmProvider)
-				if err == nil {
-					return llmProvider, nil
-				}
-			}
-		}
-	}
-
-	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("llm_provider", nil, transaction, goqu.Ex{"name": name})
-	if err != nil || len(rows) == 0 {
-		return llmProvider, fmt.Errorf("llm provider not found [%v]", name)
-	}
-
-	row := rows[0]
-	llmProvider.Name = row["name"].(string)
-	llmProvider.ProviderType = row["provider_type"].(string)
-	llmProvider.BaseUrl = StringOrEmpty(row["base_url"])
-	llmProvider.Models = row["models"].(string)
-	llmProvider.CredentialName = StringOrEmpty(row["credential_name"])
-	llmProvider.Id = row["id"].(int64)
-	llmProvider.ReferenceId = daptinid.InterfaceToDIR(row["reference_id"])
-	llmProvider.Version = int(row["version"].(int64))
-
-	params := make(map[string]interface{})
-	providerParamsStr := StringOrEmpty(row["provider_parameters"])
-	if providerParamsStr != "" {
-		err = json.Unmarshal([]byte(providerParamsStr), &params)
-		CheckInfo(err, "Failed to unmarshal llm provider parameters [%v]", llmProvider.Name)
-	}
-	llmProvider.ProviderParameters = params
-
-	pricing := make(map[string]rootpojo.ModelPricing)
-	pricingStr := StringOrEmpty(row["model_pricing"])
-	if pricingStr != "" {
-		err = json.Unmarshal([]byte(pricingStr), &pricing)
-		CheckInfo(err, "Failed to unmarshal llm model_pricing [%v]", llmProvider.Name)
-	}
-	llmProvider.ModelPricing = pricing
-
-	enableVal, ok := row["enable"].(int64)
-	if !ok {
-		enableInt, ok := row["enable"].(int)
-		if ok {
-			enableVal = int64(enableInt)
-		}
-	}
-	llmProvider.Enable = enableVal == 1
-
-	if OlricCache != nil {
-		asJson := ToJson(llmProvider)
-		OlricCache.Put(context.Background(), cacheKey, asJson, olric.EX(10*time.Minute), olric.NX())
-	}
-
-	log.Debugf("[llm] loaded provider: name=%s type=%s models=%s", llmProvider.Name, llmProvider.ProviderType, llmProvider.Models)
-	return llmProvider, nil
-}
-
 func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]rootpojo.LLMProvider, error) {
 	providers := make([]rootpojo.LLMProvider, 0)
 	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("llm_provider", nil, transaction)
@@ -368,49 +262,12 @@ func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]roo
 	}
 
 	for _, row := range rows {
-		enableVal, ok := row["enable"].(int64)
-		if !ok {
-			enableInt, ok := row["enable"].(int)
-			if ok {
-				enableVal = int64(enableInt)
-			} else {
-				strI, ok := row["enable"].(string)
-				if ok {
-					enableVal, err = strconv.ParseInt(strI, 10, 32)
-					CheckErr(err, "Failed to convert llm_provider 'enable' value to int")
-				}
-			}
+		provider, rowErr := llmProviderFromRow(row)
+		if rowErr != nil {
+			return providers, rowErr
 		}
-		if enableVal != 1 {
+		if !provider.Enable {
 			continue
-		}
-
-		params := make(map[string]interface{})
-		providerParamsStr := StringOrEmpty(row["provider_parameters"])
-		if providerParamsStr != "" {
-			err = json.Unmarshal([]byte(providerParamsStr), &params)
-			CheckInfo(err, "Failed to unmarshal llm provider parameters [%v]", row["name"])
-		}
-
-		pricing := make(map[string]rootpojo.ModelPricing)
-		pricingStr := StringOrEmpty(row["model_pricing"])
-		if pricingStr != "" {
-			err = json.Unmarshal([]byte(pricingStr), &pricing)
-			CheckInfo(err, "Failed to unmarshal llm model_pricing [%v]", row["name"])
-		}
-
-		provider := rootpojo.LLMProvider{
-			Name:               row["name"].(string),
-			ProviderType:       row["provider_type"].(string),
-			BaseUrl:            StringOrEmpty(row["base_url"]),
-			Models:             row["models"].(string),
-			CredentialName:     StringOrEmpty(row["credential_name"]),
-			ProviderParameters: params,
-			ModelPricing:       pricing,
-			Enable:             true,
-			Id:                 row["id"].(int64),
-			ReferenceId:        daptinid.InterfaceToDIR(row["reference_id"]),
-			Version:            int(row["version"].(int64)),
 		}
 		providers = append(providers, provider)
 	}
@@ -419,42 +276,46 @@ func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]roo
 	return providers, nil
 }
 
-func (dbResource *DbResource) ResolveLLMProviderByModel(modelName string, transaction *sqlx.Tx) (rootpojo.LLMProvider, error) {
-	cacheKey := fmt.Sprintf("llm-model-%v", modelName)
-	if OlricCache != nil {
-		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
-		if err == nil {
-			bytes, err := cachedValue.Byte()
-			if err == nil {
-				var provider rootpojo.LLMProvider
-				err = json.Unmarshal(bytes, &provider)
-				if err == nil {
-					return provider, nil
-				}
-			}
+func llmProviderFromRow(row map[string]interface{}) (rootpojo.LLMProvider, error) {
+	name, ok := row["name"].(string)
+	if !ok || strings.TrimSpace(name) == "" {
+		return rootpojo.LLMProvider{}, fmt.Errorf("llm provider has no name")
+	}
+	providerType, ok := row["provider_type"].(string)
+	if !ok || strings.TrimSpace(providerType) == "" {
+		return rootpojo.LLMProvider{}, fmt.Errorf("llm provider [%s] has no provider_type", name)
+	}
+	params := make(map[string]interface{})
+	if value := StringOrEmpty(row["provider_parameters"]); value != "" {
+		if err := json.Unmarshal([]byte(value), &params); err != nil {
+			return rootpojo.LLMProvider{}, fmt.Errorf("failed to decode llm provider parameters [%s]: %w", name, err)
 		}
 	}
-
-	providers, err := dbResource.GetActiveLLMProviders(transaction)
+	enable, err := resourceRowBool(row["enable"])
 	if err != nil {
-		return rootpojo.LLMProvider{}, fmt.Errorf("failed to get active llm providers: %v", err)
+		return rootpojo.LLMProvider{}, fmt.Errorf("invalid enable value for llm provider [%s]: %w", name, err)
 	}
-
-	for _, provider := range providers {
-		models := strings.Split(provider.Models, ",")
-		for _, model := range models {
-			if strings.TrimSpace(model) == modelName {
-				log.Debugf("[llm] resolved model=%s to provider=%s type=%s", modelName, provider.Name, provider.ProviderType)
-				if OlricCache != nil {
-					asJson := ToJson(provider)
-					OlricCache.Put(context.Background(), cacheKey, asJson, olric.EX(10*time.Minute), olric.NX())
-				}
-				return provider, nil
-			}
-		}
+	allowInsecure, err := resourceRowBool(row["allow_insecure"])
+	if err != nil {
+		return rootpojo.LLMProvider{}, fmt.Errorf("invalid allow_insecure value for llm provider [%s]: %w", name, err)
 	}
-
-	return rootpojo.LLMProvider{}, fmt.Errorf("no llm provider found for model [%v]", modelName)
+	allowPrivateNetwork, err := resourceRowBool(row["allow_private_network"])
+	if err != nil {
+		return rootpojo.LLMProvider{}, fmt.Errorf("invalid allow_private_network value for llm provider [%s]: %w", name, err)
+	}
+	return rootpojo.LLMProvider{
+		Id:                  row["id"].(int64),
+		Name:                name,
+		ProviderType:        providerType,
+		BaseUrl:             StringOrEmpty(row["base_url"]),
+		CredentialId:        daptinid.InterfaceToDIR(row["credential_id"]),
+		AllowInsecure:       allowInsecure,
+		AllowPrivateNetwork: allowPrivateNetwork,
+		ProviderParameters:  params,
+		Enable:              enable,
+		ReferenceId:         daptinid.InterfaceToDIR(row["reference_id"]),
+		Version:             int(row["version"].(int64)),
+	}, nil
 }
 
 func (dbResource *DbResource) GetAllTasks() ([]task.Task, error) {

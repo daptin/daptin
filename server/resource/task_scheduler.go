@@ -3,6 +3,10 @@ package resource
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
+	"sync"
+
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
@@ -10,10 +14,9 @@ import (
 	"github.com/daptin/daptin/server/task"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"net/url"
-	"sync"
 )
+
+const meteringReservationRecoverySchedule = "@every 10s"
 
 type DefaultTaskScheduler struct {
 	cruds       map[string]*DbResource
@@ -22,11 +25,26 @@ type DefaultTaskScheduler struct {
 	stopped     context.Context
 }
 
-func NewTaskScheduler(cruds map[string]*DbResource) *DefaultTaskScheduler {
-	return &DefaultTaskScheduler{
+func NewTaskScheduler(cruds map[string]*DbResource) (*DefaultTaskScheduler, error) {
+	scheduler := &DefaultTaskScheduler{
 		cruds:       cruds,
 		cronService: cron.New(),
 	}
+	if cruds["api_usage"] == nil {
+		return nil, fmt.Errorf("task scheduler requires canonical api_usage resource")
+	}
+	metering := NewMeteringService(&cruds)
+	if _, err := scheduler.cronService.AddFunc(meteringReservationRecoverySchedule, func() {
+		expired, recoveryErr := metering.recoverExpiredReservations(metering.now(), 100)
+		if recoveryErr != nil {
+			log.WithError(recoveryErr).Error("failed to recover expired metering reservations")
+		} else if expired > 0 {
+			log.WithField("expired", expired).Debug("recovered expired metering reservations")
+		}
+	}); err != nil {
+		return nil, fmt.Errorf("register metering reservation recovery: %w", err)
+	}
+	return scheduler, nil
 }
 
 func (dts *DefaultTaskScheduler) Start() {
