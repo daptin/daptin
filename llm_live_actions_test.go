@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -19,14 +20,15 @@ type liveActionProvider struct {
 	embeddingModel string
 }
 
+var liveActionProviders = []liveActionProvider{
+	{name: "google", apiVersion: "v1beta-openai", providerType: "google", apiKeyEnv: "GOOGLE_API_KEY", chatModel: "gemini-3.7-flash", embeddingModel: "gemini-embedding-001"},
+	{name: "openrouter", apiVersion: "v1", providerType: "openrouter", apiKeyEnv: "OPENROUTER_API_KEY", chatModel: "openai/gpt-4o-mini", embeddingModel: "openai/text-embedding-3-small"},
+	{name: "lilac", apiVersion: "v1", providerType: "lilac", apiKeyEnv: "LILAC_API_KEY", chatModel: "moonshotai/kimi-k2.6"},
+}
+
 func TestLiveLLMActions(t *testing.T) {
-	providers := []liveActionProvider{
-		{name: "google", apiVersion: "v1beta-openai", providerType: "google", apiKeyEnv: "GOOGLE_API_KEY", chatModel: "gemini-3.7-flash", embeddingModel: "gemini-embedding-001"},
-		{name: "openrouter", apiVersion: "v1", providerType: "openrouter", apiKeyEnv: "OPENROUTER_API_KEY", chatModel: "openai/gpt-4o-mini", embeddingModel: "openai/text-embedding-3-small"},
-		{name: "lilac", apiVersion: "v1", providerType: "lilac", apiKeyEnv: "LILAC_API_KEY", chatModel: "moonshotai/kimi-k2.6"},
-	}
 	availableKeys := 0
-	for _, provider := range providers {
+	for _, provider := range liveActionProviders {
 		if os.Getenv(provider.apiKeyEnv) != "" {
 			availableKeys++
 		}
@@ -43,7 +45,7 @@ func TestLiveLLMActions(t *testing.T) {
 	client := &http.Client{Timeout: 2 * time.Minute}
 	token := transportE2ESignupSigninAdmin(t, client, baseURL)
 
-	for _, provider := range providers {
+	for _, provider := range liveActionProviders {
 		provider := provider
 		t.Run(provider.name, func(t *testing.T) {
 			apiKey := os.Getenv(provider.apiKeyEnv)
@@ -60,6 +62,71 @@ func TestLiveLLMActions(t *testing.T) {
 				runLiveEmbeddingActionCell(t, client, baseURL, token, provider, apiKey)
 			})
 		})
+	}
+}
+
+func TestLiveLLMActionCredentialRejection(t *testing.T) {
+	const invalidCredential = "daptin-intentionally-invalid-live-credential"
+	usedPorts := make(map[int]bool, 2)
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	stopDaptin := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
+	defer stopDaptin()
+	client := &http.Client{Timeout: 2 * time.Minute}
+	token := transportE2ESignupSigninAdmin(t, client, baseURL)
+
+	for _, provider := range liveActionProviders {
+		provider := provider
+		t.Run(provider.name, func(t *testing.T) {
+			modelName := "live-action-invalid-" + provider.name
+			createLLME2ECatalog(t, client, baseURL, token, llmE2ECatalog{
+				name: modelName, providerType: provider.providerType, apiKey: invalidCredential, upstreamModel: provider.chatModel,
+				operations: []string{"chat"}, maxConcurrency: 1, requestTimeoutMS: 20_000, connectTimeoutMS: 10_000,
+			})
+			waitForLLME2EModel(t, client, baseURL, token, modelName)
+			status, body := postLLMActionForStatus(t, client, baseURL+"/action/world/llm_e2e_chat", token, map[string]interface{}{
+				"attributes": map[string]interface{}{"model": modelName, "prompt": "Reply with the single word pong."},
+			})
+			bodyText := string(body)
+			normalized := ""
+			for _, code := range []string{"authentication_error", "permission_error", "invalid_request"} {
+				if strings.Contains(bodyText, code) {
+					normalized = code
+					break
+				}
+			}
+			if status < http.StatusBadRequest || normalized == "" || strings.Contains(bodyText, invalidCredential) {
+				t.Fatalf("credential rejection was not safely normalized: status=%d body=%s", status, bodyText)
+			}
+			t.Logf("certification entrypoint=$llm.chat provider=%s api_version=%s model=%s feature=invalid_credential normalized_result=%s usage_available=false skip_reason=none",
+				provider.name, provider.apiVersion, provider.chatModel, normalized)
+		})
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		response := transportE2EGetJSON(t, client, baseURL+"/api/api_usage", token)
+		rows, _ := transportE2EPath(response, "data")
+		entries, _ := rows.([]interface{})
+		terminal := 0
+		for _, entry := range entries {
+			entityType, _ := transportE2EPath(entry, "attributes.entity_type")
+			requestType, _ := transportE2EPath(entry, "attributes.request_type")
+			state, _ := transportE2EPath(entry, "attributes.state")
+			statusValue, _ := transportE2EPath(entry, "attributes.status_code")
+			statusCode, validStatus := statusValue.(float64)
+			if entityType == "llm_model" && requestType == "llm_chat" && state == "completed" && validStatus && statusCode >= 400 {
+				terminal++
+			}
+		}
+		if terminal == len(liveActionProviders) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("credential rejections did not terminalize through generic api_usage: %#v", response)
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
