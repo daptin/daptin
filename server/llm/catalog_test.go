@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -36,55 +37,79 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	providerReference := daptinid.DaptinReferenceId(uuid.New())
 	modelReference := daptinid.DaptinReferenceId(uuid.New())
 	deploymentReference := daptinid.DaptinReferenceId(uuid.New())
-	now := time.Date(2026, time.September, 1, 10, 0, 0, 0, time.UTC)
-
 	tx, err := database.Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	encryptedCredential, err := resource.Encrypt([]byte("0123456789abcdef0123456789abcdef"), `{"api_key":"test-key"}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for tableName, record := range map[string]goqu.Record{
-		"credential": {
-			"id": 20, "name": "provider-key", "content": encryptedCredential,
-			"reference_id": credentialReference[:], "permission": auth.DEFAULT_PERMISSION, "user_account_id": 1,
-			"created_at": now, "updated_at": now,
-		},
-		"llm_provider": {
-			"id": 11, "name": "provider", "provider_type": "openai-compatible", "base_url": "https://example.test/v1",
-			"provider_parameters": "{}", "allow_insecure": false, "allow_private_network": false, "enable": true, "credential_id": 20,
-			"reference_id": providerReference[:], "permission": auth.DEFAULT_PERMISSION, "user_account_id": 1,
-			"created_at": now, "updated_at": now,
-		},
-		"llm_model": {
-			"id": 10, "name": "public-model", "operations": `["chat"]`, "capabilities": `{}`, "routing_strategy": "priority_weighted",
+	owner := &auth.SessionUser{UserId: 1, UserReferenceId: userReference, Groups: auth.GroupPermissionList{{
+		GroupReferenceId: cruds["user_account"].AdministratorGroupId,
+	}}}
+	for _, fixture := range []struct {
+		table      string
+		attributes map[string]interface{}
+	}{
+		{"credential", map[string]interface{}{
+			"name": "provider-key", "content": `{"api_key":"test-key"}`, "reference_id": credentialReference.String(),
+		}},
+		{"llm_provider", map[string]interface{}{
+			"name": "provider", "provider_type": "openai-compatible", "base_url": "https://example.test/v1",
+			"provider_parameters": "{}", "allow_insecure": false, "allow_private_network": false, "enable": true,
+			"credential_id": credentialReference.String(), "reference_id": providerReference.String(),
+		}},
+		{"llm_model", map[string]interface{}{
+			"name": "public-model", "operations": `["chat"]`, "capabilities": `{}`, "routing_strategy": "priority_weighted",
 			"fallback_models": `[]`, "default_parameters": `{}`, "unsupported_parameter_policy": "reject", "enable": true,
-			"reference_id": modelReference[:], "permission": auth.DEFAULT_PERMISSION, "user_account_id": 1,
-			"created_at": now, "updated_at": now,
-		},
-		"llm_deployment": {
-			"id": 12, "name": "deployment", "llm_model_id": 10, "llm_provider_id": 11, "upstream_model": "upstream-model",
+			"reference_id": modelReference.String(),
+		}},
+		{"llm_deployment", map[string]interface{}{
+			"name": "deployment", "llm_model_id": modelReference.String(), "llm_provider_id": providerReference.String(), "upstream_model": "upstream-model",
 			"operations": `["chat"]`, "priority": 1, "weight": 2, "request_timeout_ms": 90000,
 			"connect_timeout_ms": 10000, "max_concurrency": 8, "rpm": 60, "tpm": 10000,
 			"pricing": `{}`, "parameters": `{}`, "health_check": `{}`, "enable": true,
-			"reference_id": deploymentReference[:], "permission": auth.DEFAULT_PERMISSION, "user_account_id": 1,
-			"created_at": now, "updated_at": now,
-		},
+			"reference_id": deploymentReference.String(),
+		}},
 	} {
-		insert := statementbuilder.Squirrel.Insert(tableName).Prepared(true).Rows(record)
-		query, arguments, buildErr := insert.ToSQL()
-		if buildErr != nil {
-			t.Fatal(buildErr)
-		}
-		if _, execErr := tx.Exec(query, arguments...); execErr != nil {
-			t.Fatalf("insert %s: %v", tableName, execErr)
+		tableName, attributes := fixture.table, fixture.attributes
+		requestURL, _ := url.Parse("/" + tableName)
+		request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: requestURL}).WithContext(context.WithValue(context.Background(), "user", owner))}
+		if _, createErr := cruds[tableName].CreateWithoutFilter(
+			api2go.NewApi2GoModelWithData(tableName, nil, 0, nil, attributes), request, tx,
+		); createErr != nil {
+			t.Fatalf("create %s through canonical resource path: %v", tableName, createErr)
 		}
 	}
 	if err := tx.Commit(); err != nil {
 		t.Fatal(err)
+	}
+	references := map[string]daptinid.DaptinReferenceId{
+		"credential": credentialReference, "llm_provider": providerReference,
+		"llm_model": modelReference, "llm_deployment": deploymentReference,
+	}
+	update := func(tableName, field string, value interface{}) {
+		t.Helper()
+		transaction, beginErr := database.Beginx()
+		if beginErr != nil {
+			t.Fatal(beginErr)
+		}
+		defer transaction.Rollback()
+		requestURL, _ := url.Parse("/" + tableName + "/" + references[tableName].String())
+		request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch, URL: requestURL}).WithContext(context.WithValue(context.Background(), "user", owner))}
+		responder, findErr := cruds[tableName].FindOneWithTransaction(references[tableName], request, transaction)
+		if findErr != nil {
+			t.Fatalf("load %s through canonical resource path: %v", tableName, findErr)
+		}
+		model, ok := responder.Result().(api2go.Api2GoModel)
+		if !ok {
+			t.Fatalf("load %s returned %T", tableName, responder.Result())
+		}
+		model.SetAttributes(map[string]interface{}{field: value})
+		if _, updateErr := cruds[tableName].UpdateWithoutFilters(model, request, transaction); updateErr != nil {
+			t.Fatalf("update %s.%s through canonical resource path: %v", tableName, field, updateErr)
+		}
+		if commitErr := transaction.Commit(); commitErr != nil {
+			t.Fatal(commitErr)
+		}
 	}
 
 	source := &daptinCatalog{cruds: cruds}
@@ -107,27 +132,36 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		t.Fatalf("unchanged catalog reload = %v, want stale revision", err)
 	}
 	for field, value := range map[string]string{
-		"pricing":      `{"unknown_rate":1}`,
 		"health_check": `{"unknown_probe":true}`,
 	} {
-		updateCatalogField(t, database, "llm_deployment", field, value)
+		update("llm_deployment", field, value)
 		if _, err := source.Load(context.Background(), document.Revision); err == nil {
 			t.Fatalf("catalog accepted unknown %s field", field)
 		}
-		updateCatalogField(t, database, "llm_deployment", field, `{}`)
+		update("llm_deployment", field, `{}`)
 	}
+	update("llm_deployment", "pricing", `{"ocr_pages":500000}`)
+	priced, err := source.Load(context.Background(), document.Revision)
+	if err != nil || priced.Deployments[0].Pricing.Rates["ocr_pages"] != 500000 {
+		t.Fatalf("generic pricing map was not preserved: document=%#v err=%v", priced, err)
+	}
+	update("llm_deployment", "pricing", `{"ocr_pages":"invalid"}`)
+	if _, err := source.Load(context.Background(), document.Revision); err == nil {
+		t.Fatal("catalog accepted a non-integer pricing rate")
+	}
+	update("llm_deployment", "pricing", `{}`)
 
-	updateCatalogField(t, database, "llm_model", "fallback_models", `["missing-model"]`)
+	update("llm_model", "fallback_models", `["missing-model"]`)
 	if _, err := source.Load(context.Background(), document.Revision); err == nil {
 		t.Fatal("catalog accepted an unresolved fallback relation")
 	}
-	updateCatalogField(t, database, "llm_model", "fallback_models", `[]`)
-	updateCatalogField(t, database, "llm_deployment", "weight", 3)
+	update("llm_model", "fallback_models", `[]`)
+	update("llm_deployment", "weight", 3)
 	reloaded, err := source.Load(context.Background(), document.Revision)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reloaded.Revision != 2 || reloaded.Deployments[0].Weight != 3 {
+	if reloaded.Revision <= document.Revision || reloaded.Deployments[0].Weight != 3 {
 		t.Fatalf("catalog reload = revision %d deployment %#v", reloaded.Revision, reloaded.Deployments[0])
 	}
 
@@ -150,7 +184,7 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		t.Fatalf("gateway hosts started with different snapshot state: first %#v, second %#v", initialStatus, secondStatus)
 	}
 
-	updateCatalogField(t, database, "llm_deployment", "weight", 0)
+	update("llm_deployment", "weight", 0)
 	publishCatalogEvent(t, cruds["world"].PubSub, "llm_deployment")
 	for index, host := range []*Gateway{hostA, hostB} {
 		rejectedStatus := waitForGatewayStatus(t, host, func(status gateway.Status) bool {
@@ -162,7 +196,7 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		}
 	}
 
-	updateCatalogField(t, database, "llm_deployment", "weight", 4)
+	update("llm_deployment", "weight", 4)
 	publishCatalogEvent(t, cruds["world"].PubSub, "llm_deployment")
 	var recoveredRevision uint64
 	for index, host := range []*Gateway{hostA, hostB} {
@@ -178,12 +212,7 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 			t.Fatalf("gateway hosts recovered to different revisions: first %d, second %d", recoveredRevision, recoveredStatus.Revision)
 		}
 	}
-	rotatedCredential, err := resource.Encrypt([]byte("0123456789abcdef0123456789abcdef"), `{"api_key":"rotated-key"}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	updateCatalogField(t, database, "credential", "content", rotatedCredential)
-	updateCatalogField(t, database, "credential", "version", 2)
+	update("credential", "content", `{"api_key":"rotated-key"}`)
 	publishCatalogEvent(t, cruds["world"].PubSub, "credential")
 	for index, host := range []*Gateway{hostA, hostB} {
 		rotatedStatus := waitForGatewayStatus(t, host, func(status gateway.Status) bool {
@@ -195,9 +224,7 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}
 	request := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
 	request.Header.Set("Authorization", "Bearer daptin-session-token")
-	request = request.WithContext(context.WithValue(request.Context(), "user", &auth.SessionUser{
-		UserId: 1, UserReferenceId: userReference,
-	}))
+	request = request.WithContext(context.WithValue(request.Context(), "user", owner))
 	response := httptest.NewRecorder()
 	hostA.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -210,7 +237,9 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		t.Fatalf("ready status = %d, body = %s", readyResponse.Code, readyResponse.Body.String())
 	}
 	upstreamCancelled := make(chan struct{}, 1)
+	upstreamStarted := make(chan struct{}, 1)
 	upstream := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		upstreamStarted <- struct{}{}
 		response.Header().Set("Content-Type", "text/event-stream")
 		response.WriteHeader(http.StatusOK)
 		_, _ = response.Write([]byte("data: {\"id\":\"chatcmpl-cancel\",\"object\":\"chat.completion.chunk\",\"created\":1,\"model\":\"upstream-model\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"partial\"},\"finish_reason\":null}]}\n\n"))
@@ -220,9 +249,9 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}))
 	defer upstream.Close()
 	streamRevision := hostA.Status().Revision
-	updateCatalogField(t, database, "llm_provider", "base_url", upstream.URL+"/v1")
-	updateCatalogField(t, database, "llm_provider", "allow_insecure", true)
-	updateCatalogField(t, database, "llm_provider", "allow_private_network", true)
+	update("llm_provider", "base_url", upstream.URL+"/v1")
+	update("llm_provider", "allow_insecure", true)
+	update("llm_provider", "allow_private_network", true)
 	publishCatalogEvent(t, cruds["world"].PubSub, "llm_provider")
 	waitForGatewayStatus(t, hostA, func(status gateway.Status) bool { return status.Revision > streamRevision && status.Ready })
 	legacyCacheKey := "itr-user_account-1"
@@ -241,14 +270,12 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}
 	modelPermission := cruds["llm_model"].GetObjectPermissionByReferenceId("llm_model", modelReference, authorizationTransaction)
 	_ = authorizationTransaction.Rollback()
-	if !modelPermission.CanRead(userReference, nil, cruds["llm_model"].AdministratorGroupId) {
+	if !modelPermission.CanRead(userReference, owner.Groups, cruds["llm_model"].AdministratorGroupId) {
 		t.Fatalf("canonical model owner cannot read model: permission=%#v user=%s", modelPermission, userReference.String())
 	}
 
 	httpGateway := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		request = request.WithContext(context.WithValue(request.Context(), "user", &auth.SessionUser{
-			UserId: 1, UserReferenceId: userReference,
-		}))
+		request = request.WithContext(context.WithValue(request.Context(), "user", owner))
 		hostA.Handler().ServeHTTP(response, request)
 	}))
 	defer httpGateway.Close()
@@ -269,6 +296,11 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		body, _ := io.ReadAll(streamResponse.Body)
 		_ = streamResponse.Body.Close()
 		t.Fatalf("stream status = %d, body = %s", streamResponse.StatusCode, body)
+	}
+	select {
+	case <-upstreamStarted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("provider stream did not start")
 	}
 	firstDrainContext, cancelFirstDrain := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	if err := hostA.Drain(firstDrainContext); !errors.Is(err, context.DeadlineExceeded) {
@@ -323,10 +355,10 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}))
 	defer healthUpstream.Close()
 	healthRevision := hostB.Status().Revision
-	updateCatalogField(t, database, "llm_provider", "base_url", healthUpstream.URL+"/v1")
-	updateCatalogField(t, database, "llm_provider", "allow_insecure", true)
-	updateCatalogField(t, database, "llm_provider", "allow_private_network", true)
-	updateCatalogField(t, database, "llm_deployment", "health_check", `{"enabled":true,"interval_ms":1000,"timeout_ms":500,"failure_threshold":1}`)
+	update("llm_provider", "base_url", healthUpstream.URL+"/v1")
+	update("llm_provider", "allow_insecure", true)
+	update("llm_provider", "allow_private_network", true)
+	update("llm_deployment", "health_check", `{"enabled":true,"interval_ms":1000,"timeout_ms":500,"failure_threshold":1}`)
 	publishCatalogEvent(t, cruds["world"].PubSub, "llm_deployment")
 	waitForGatewayStatus(t, hostB, func(status gateway.Status) bool { return status.Revision > healthRevision && status.Ready })
 	healthDeadline := time.Now().Add(3 * time.Second)
@@ -343,6 +375,56 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}
 	if err := hostB.Drain(drainContext); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestDaptinFilesRejectUnconfiguredDocumentStorageWithoutWriting(t *testing.T) {
+	_, cruds, _, userReference := newCatalogTestResources(t)
+	owner := &auth.SessionUser{UserId: 1, UserReferenceId: userReference, Groups: auth.GroupPermissionList{{
+		GroupReferenceId: cruds["user_account"].AdministratorGroupId,
+	}}}
+	ctx := context.WithValue(context.Background(), "user", owner)
+	store := daptinFiles{cruds: cruds}
+	_, err := store.Create(ctx, contract.Principal{}, contract.CreateFileRequest{
+		Filename: "requests.jsonl", ContentType: "application/jsonl", Purpose: contract.FilePurposeBatch,
+		Data: []byte("{\"custom_id\":\"one\",\"method\":\"POST\",\"url\":\"/v1/chat/completions\",\"body\":{\"model\":\"public-model\",\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]}}\n"),
+	})
+	var public *contract.Error
+	if !errors.As(err, &public) || public.Code != contract.ErrorUnavailable || public.HTTPStatus != http.StatusServiceUnavailable {
+		t.Fatalf("unconfigured document storage = %v", err)
+	}
+	transaction, err := cruds["document"].Connection().Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer transaction.Rollback()
+	for _, tableName := range []string{"document", "llm_file"} {
+		rows, _, readErr := cruds[tableName].GetRowsByWhereClauseWithTransaction(tableName, nil, transaction)
+		if readErr != nil || len(rows) != 0 {
+			t.Fatalf("%s partial rows = %d, %v", tableName, len(rows), readErr)
+		}
+	}
+}
+
+func TestBatchProcessorCanonicalQueriesReturnEmptyPages(t *testing.T) {
+	database, cruds, _, userReference := newCatalogTestResources(t)
+	owner := &auth.SessionUser{UserId: 1, UserReferenceId: userReference, Groups: auth.GroupPermissionList{{
+		GroupReferenceId: cruds["user_account"].AdministratorGroupId,
+	}}}
+	ctx := context.WithValue(context.Background(), "user", owner)
+	processor := &daptinBatchProcessor{cruds: cruds}
+	transaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidates, err := processor.claimCandidates(ctx, time.Now().UTC(), transaction)
+	_ = transaction.Rollback()
+	if err != nil || len(candidates) != 0 {
+		t.Fatalf("claim candidates = %#v, %v", candidates, err)
+	}
+	items, err := processor.pendingItems(ctx, contract.ID(daptinid.DaptinReferenceId(uuid.New()).String()))
+	if err != nil || len(items) != 0 {
+		t.Fatalf("pending items = %#v, %v", items, err)
 	}
 }
 
@@ -366,10 +448,19 @@ func newCatalogTestResources(t *testing.T) (*sqlx.DB, map[string]*resource.DbRes
 	config := resource.CmsConfig{Tables: tables}
 	resource.CheckRelations(&config)
 	required := map[string]bool{
-		"world": true, "usergroup": true, "user_account": true, "credential": true,
+		"world": true, "usergroup": true, "user_account": true, "credential": true, "document": true,
 		"llm_provider": true, "llm_model": true, "llm_deployment": true,
+		"llm_file": true, "llm_batch": true, "llm_batch_item": true,
 		"api_plan": true, "api_member": true, "api_usage": true, "api_quota": true,
-		"llm_model_llm_model_id_has_usergroup_usergroup_id": true,
+		"llm_model_llm_model_id_has_usergroup_usergroup_id":           true,
+		"user_account_user_account_id_has_usergroup_usergroup_id":     true,
+		"credential_credential_id_has_usergroup_usergroup_id":         true,
+		"llm_provider_llm_provider_id_has_usergroup_usergroup_id":     true,
+		"llm_deployment_llm_deployment_id_has_usergroup_usergroup_id": true,
+		"document_document_id_has_usergroup_usergroup_id":             true,
+		"llm_file_llm_file_id_has_usergroup_usergroup_id":             true,
+		"llm_batch_llm_batch_id_has_usergroup_usergroup_id":           true,
+		"llm_batch_item_llm_batch_item_id_has_usergroup_usergroup_id": true,
 	}
 	selected := make([]table_info.TableInfo, 0, len(required))
 	for _, table := range config.Tables {
@@ -390,34 +481,28 @@ func newCatalogTestResources(t *testing.T) (*sqlx.DB, map[string]*resource.DbRes
 	}
 	resource.CreateIndexes(&config, database)
 
-	adminReference := daptinid.DaptinReferenceId(uuid.New())
-	userReference := daptinid.DaptinReferenceId(uuid.New())
-	for tableName, record := range map[string]goqu.Record{
-		"usergroup": {
-			"id": 2, "name": "administrators", "reference_id": adminReference[:], "permission": auth.DEFAULT_PERMISSION,
-		},
-		"user_account": {
-			"id": 1, "name": "Catalog Test", "email": "catalog@example.test", "reference_id": userReference[:],
-			"permission": auth.DEFAULT_PERMISSION,
-		},
-	} {
-		query, arguments, buildErr := statementbuilder.Squirrel.Insert(tableName).Prepared(true).Rows(record).ToSQL()
-		if buildErr != nil {
-			t.Fatal(buildErr)
-		}
-		if _, execErr := database.Exec(query, arguments...); execErr != nil {
-			t.Fatalf("insert %s: %v", tableName, execErr)
-		}
-	}
-	usersReference := daptinid.DaptinReferenceId(uuid.New())
-	query, arguments, err := statementbuilder.Squirrel.Insert("usergroup").Prepared(true).Rows(goqu.Record{
-		"id": 3, "name": "users", "reference_id": usersReference[:], "permission": auth.DEFAULT_PERMISSION,
-	}).ToSQL()
+	bootstrapTransaction, err := database.Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := database.Exec(query, arguments...); err != nil {
-		t.Fatalf("insert users group: %v", err)
+	if err := resource.UpdateWorldTable(&config, bootstrapTransaction); err != nil {
+		_ = bootstrapTransaction.Rollback()
+		t.Fatalf("bootstrap canonical Daptin data: %v", err)
+	}
+	if err := bootstrapTransaction.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	referenceTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	userReference, err := resource.GetIdToReferenceIdWithTransaction("user_account", 1, referenceTransaction)
+	if err != nil {
+		_ = referenceTransaction.Rollback()
+		t.Fatalf("resolve canonical bootstrap user: %v", err)
+	}
+	if err := referenceTransaction.Commit(); err != nil {
+		t.Fatal(err)
 	}
 
 	configStore, err := resource.NewConfigStore(database)
@@ -506,17 +591,6 @@ func newCatalogTestResources(t *testing.T) (*sqlx.DB, map[string]*resource.DbRes
 		}
 	})
 	return database, cruds, client, userReference
-}
-
-func updateCatalogField(t *testing.T, database *sqlx.DB, tableName, field string, value interface{}) {
-	t.Helper()
-	query, arguments, err := statementbuilder.Squirrel.Update(tableName).Prepared(true).Set(goqu.Record{field: value}).ToSQL()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := database.Exec(query, arguments...); err != nil {
-		t.Fatalf("update %s.%s: %v", tableName, field, err)
-	}
 }
 
 func waitForCatalogSubscribers(t *testing.T, pubsub *olric.PubSub, expected int64) {

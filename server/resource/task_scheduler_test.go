@@ -6,8 +6,8 @@ import (
 )
 
 func TestTaskSchedulerRegistersMeteringReservationRecovery(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
-	scheduler, err := NewTaskScheduler(map[string]*DbResource{"api_usage": {connection: database}})
+	_, cruds, _ := newCanonicalMeteringDatabase(t)
+	scheduler, err := NewTaskScheduler(cruds)
 	if err != nil {
 		t.Fatal(err)
 	}

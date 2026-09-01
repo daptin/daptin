@@ -133,9 +133,10 @@ func invokeLLMAction(gateway *llm.Gateway, cruds map[string]*resource.DbResource
 }
 
 func gatewayUsageResponse(usage contract.Usage) map[string]interface{} {
-	return map[string]interface{}{
-		"prompt_tokens": usage.InputTokens, "completion_tokens": usage.OutputTokens, "total_tokens": usage.TotalTokens,
-		"cache_read_tokens": usage.CacheReadTokens, "cache_write_tokens": usage.CacheWriteTokens,
-		"reasoning_tokens": usage.ReasoningTokens, "cost_micros": usage.CostMicros, "estimated": usage.Estimated,
+	result := make(map[string]interface{}, len(usage.Measures)+8)
+	for name, value := range usage.AllMeasures() {
+		result[name] = value
 	}
+	result["estimated"] = usage.Estimated
+	return result
 }

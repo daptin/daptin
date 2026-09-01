@@ -14,8 +14,11 @@ import (
 func RegisterLLMEndpoints(router *gin.Engine, gateway *llm.Gateway) {
 	handler := gin.WrapH(gateway.Handler())
 	router.Any("/v1/*path", handler)
+	router.POST("/v2/rerank", handler)
+	router.POST("/ocr", handler)
+	router.POST("/rerank", handler)
 	healthHandler := gin.WrapH(http.StripPrefix("/llm", gateway.Handler()))
 	router.GET("/llm/healthz", healthHandler)
 	router.GET("/llm/readyz", healthHandler)
-	log.Info("[llm] registered shared gateway endpoints under /v1 and /llm")
+	log.Info("[llm] registered shared gateway endpoints under /v1, /v2/rerank, /ocr, /rerank, and /llm")
 }

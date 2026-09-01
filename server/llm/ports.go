@@ -2,12 +2,9 @@ package llm
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"math"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/artpar/api2go/v2"
@@ -15,12 +12,10 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/daptin/daptin/server/table_info"
 	gateway "github.com/daptin/llmgateway"
 	"github.com/daptin/llmgateway/catalog"
 	"github.com/daptin/llmgateway/contract"
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 )
 
 const olricCoordinationTimeout = 5 * time.Second
@@ -99,14 +94,11 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 		return contract.ReservationToken{}, fmt.Errorf("begin metering admission: %w", err)
 	}
 	defer transaction.Rollback()
-	config, err := llmMeteringConfig(metering.cruds["world"].ConfigStore, transaction)
-	if err != nil {
-		return contract.ReservationToken{}, err
-	}
+	config := resource.MeteringConfigForAction(metering.cruds["llm_model"].TableInfo().Metering, "invoke")
 	decision, err := metering.service.Admit(resource.MeteringContext{
 		RequestID: string(admission.RequestID), User: user, Endpoint: "/v1/" + string(admission.Operation), Method: "POST",
 		EntityType: "llm_model", RequestType: "llm_" + string(admission.Operation),
-		EstimatedMeasures: gatewayUsageMeasures(admission.EstimatedUsage), Metering: config,
+		EstimatedMeasures: admission.EstimatedUsage.AllMeasures(), Metering: config,
 		Metadata: map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation},
 	}, transaction)
 	if err != nil {
@@ -148,13 +140,10 @@ func (metering daptinMetering) terminalize(ctx context.Context, token contract.R
 		return fmt.Errorf("begin metering terminalization: %w", err)
 	}
 	defer transaction.Rollback()
-	config, err := llmMeteringConfig(metering.cruds["world"].ConfigStore, transaction)
-	if err != nil {
-		return err
-	}
+	config := resource.MeteringConfigForAction(metering.cruds["llm_model"].TableInfo().Metering, "invoke")
 	decision := &resource.MeteringDecision{Enabled: true, RequestID: string(token.RequestID), ReservationToken: token.Opaque}
 	meteringContext := resource.MeteringContext{
-		RequestID: string(token.RequestID), User: user, StatusCode: status, Measures: gatewayUsageMeasures(usage),
+		RequestID: string(token.RequestID), User: user, StatusCode: status, Measures: usage.AllMeasures(),
 		Metering: config, ErrorMessage: reason,
 		Metadata: metadata,
 	}
@@ -172,52 +161,12 @@ func (metering daptinMetering) terminalize(ctx context.Context, token contract.R
 	return nil
 }
 
-func gatewayUsageMeasures(usage contract.Usage) map[string]int64 {
-	return map[string]int64{
-		"input_tokens": usage.InputTokens, "output_tokens": usage.OutputTokens,
-		"cache_read_tokens": usage.CacheReadTokens, "cache_write_tokens": usage.CacheWriteTokens,
-		"reasoning_tokens": usage.ReasoningTokens, "total_tokens": usage.TotalTokens, "cost_micros": usage.CostMicros,
-	}
-}
-
 func daptinSessionUser(ctx context.Context) (*auth.SessionUser, error) {
 	user, _ := ctx.Value("user").(*auth.SessionUser)
 	if user == nil || user.UserId == 0 || user.UserReferenceId == daptinid.NullReferenceId {
 		return nil, errors.New("authenticated Daptin session is required")
 	}
 	return user, nil
-}
-
-func llmMeteringConfig(configStore *resource.ConfigStore, transaction *sqlx.Tx) (*table_info.MeteringConfig, error) {
-	config := &table_info.MeteringConfig{Enabled: true, CostExpr: "1", MeterType: "requests"}
-	if configStore == nil || transaction == nil {
-		return nil, errors.New("LLM metering requires Daptin's config store and transaction")
-	}
-	enabled, err := configStore.GetConfigValueFor("metering.llm.enabled", "backend", transaction)
-	if err == nil {
-		config.Enabled, err = strconv.ParseBool(strings.TrimSpace(enabled))
-		if err != nil {
-			return nil, fmt.Errorf("invalid metering.llm.enabled: %w", err)
-		}
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("read metering.llm.enabled: %w", err)
-	}
-	if costExpression, err := configStore.GetConfigValueFor("metering.llm.cost_expr", "backend", transaction); err == nil && strings.TrimSpace(costExpression) != "" {
-		config.CostExpr = costExpression
-	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("read metering.llm.cost_expr: %w", err)
-	}
-	if meterType, err := configStore.GetConfigValueFor("metering.llm.meter_type", "backend", transaction); err == nil && strings.TrimSpace(meterType) != "" {
-		config.MeterType = meterType
-	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("read metering.llm.meter_type: %w", err)
-	}
-	if postAction, err := configStore.GetConfigValueFor("metering.llm.post_metering_action", "backend", transaction); err == nil && strings.TrimSpace(postAction) != "" {
-		config.PostMeteringAction = postAction
-	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("read metering.llm.post_metering_action: %w", err)
-	}
-	return config, nil
 }
 
 type olricCounterStore struct {

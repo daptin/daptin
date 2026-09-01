@@ -256,7 +256,7 @@ func (dbResource *DbResource) GetCloudStoreByReferenceId(referenceID daptinid.Da
 
 func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]rootpojo.LLMProvider, error) {
 	providers := make([]rootpojo.LLMProvider, 0)
-	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("llm_provider", nil, transaction)
+	rows, _, err := dbResource.GetRowsByWhereClauseWithTransaction("llm_provider", nil, transaction, goqu.Ex{"enable": true})
 	if err != nil {
 		return providers, err
 	}
@@ -265,9 +265,6 @@ func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]roo
 		provider, rowErr := llmProviderFromRow(row)
 		if rowErr != nil {
 			return providers, rowErr
-		}
-		if !provider.Enable {
-			continue
 		}
 		providers = append(providers, provider)
 	}

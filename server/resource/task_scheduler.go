@@ -30,9 +30,6 @@ func NewTaskScheduler(cruds map[string]*DbResource) (*DefaultTaskScheduler, erro
 		cruds:       cruds,
 		cronService: cron.New(),
 	}
-	if cruds["api_usage"] == nil {
-		return nil, fmt.Errorf("task scheduler requires canonical api_usage resource")
-	}
 	metering := NewMeteringService(&cruds)
 	recovery := cron.FuncJob(func() {
 		expired, recoveryErr := metering.recoverExpiredReservations(metering.now(), 100)

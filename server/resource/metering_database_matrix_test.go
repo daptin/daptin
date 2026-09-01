@@ -41,23 +41,25 @@ func TestMeteringDatabaseMatrix(t *testing.T) {
 			if err := database.Ping(); err != nil {
 				t.Fatal(err)
 			}
-			initializeCanonicalMeteringSchema(t, database, test.dialect, map[string]bool{
+			config := initializeCanonicalMeteringSchema(t, database, test.dialect, map[string]bool{
 				"user_account": true,
+				"usergroup":    true,
 				"api_plan":     true,
 				"api_member":   true,
 				"api_usage":    true,
 				"api_quota":    true,
 			})
-			runMeteringDatabaseContract(t, database)
+			cruds, user := newMeteringTestResources(t, database, &config)
+			runMeteringDatabaseContract(t, database, cruds, user)
 		})
 	}
 }
 
-func runMeteringDatabaseContract(t *testing.T, database *sqlx.DB) {
+func runMeteringDatabaseContract(t *testing.T, database *sqlx.DB, cruds map[string]*DbResource, user *auth.SessionUser) {
 	t.Helper()
 	now := time.Date(2026, time.September, 1, 15, 0, 0, 0, time.UTC)
-	insertMeteringPlanAndMember(t, database, now, `[{"metric":"requests","window":"minute","maximum":5,"mode":"hard"}]`)
-	services := []*MeteringService{NewMeteringService(nil), NewMeteringService(nil)}
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"requests","window":"minute","maximum":5,"mode":"hard"}]`)
+	services := []*MeteringService{NewMeteringService(&cruds), NewMeteringService(&cruds)}
 	for _, service := range services {
 		service.now = func() time.Time { return now }
 	}
@@ -84,7 +86,7 @@ func runMeteringDatabaseContract(t *testing.T, database *sqlx.DB) {
 				return
 			}
 			decision, err := service.Admit(MeteringContext{
-				RequestID: fmt.Sprintf("matrix-%s-%d", requestPrefix, index), User: &auth.SessionUser{UserId: 7}, Metering: config,
+				RequestID: fmt.Sprintf("matrix-%s-%d", requestPrefix, index), User: user, Metering: config,
 			}, tx)
 			if err != nil {
 				_ = tx.Rollback()
@@ -121,7 +123,7 @@ func runMeteringDatabaseContract(t *testing.T, database *sqlx.DB) {
 		go func(service *MeteringService) {
 			tx, err := database.Beginx()
 			if err == nil {
-				err = service.Complete(MeteringContext{User: &auth.SessionUser{UserId: 7}, Metering: config}, acceptedDecisions[0], tx)
+				err = service.Complete(MeteringContext{User: user, Metering: config}, acceptedDecisions[0], tx)
 			}
 			if err == nil {
 				err = tx.Commit()
@@ -145,5 +147,5 @@ func runMeteringDatabaseContract(t *testing.T, database *sqlx.DB) {
 	for key := range acceptedDecisions[0].reservation {
 		bucketKey = key
 	}
-	assertMeteringBucket(t, verify, "requests", bucketKey, accepted-1, 1)
+	assertMeteringBucket(t, services[0], verify, "requests", bucketKey, accepted-1, 1)
 }

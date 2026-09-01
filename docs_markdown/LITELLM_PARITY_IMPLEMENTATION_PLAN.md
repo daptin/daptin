@@ -1,22 +1,45 @@
 # Daptin LLM Gateway: Corrected Implementation Plan
 
-Status: implementation substantially complete; release qualification pending
+Status: core gateway foundation complete; LLM API parity implementation active
 Prepared: 2026-08-31
 Daptin baseline: `4dec8199`
-Standalone module baseline: `github.com/daptin/llmgateway@db40b5d`
+Standalone module release: `github.com/daptin/llmgateway@v0.1.0-dev.31` (`81f292d`)
 
-### Implementation status as of 2026-09-01
+### Implementation status as of 2026-09-02
 
 | Area | Evidence-backed status |
 |---|---|
 | Reusable module boundary | Complete. `github.com/daptin/llmgateway` owns protocol, routing, retries, streaming, cache, guardrails, health, and provider-neutral usage facts. Its architecture test prohibits Daptin, Gin, api2go, SQL/sqlx, Goqu, and Olric imports and module-owned metering policy. |
-| Daptin composition | Complete. One gateway is constructed in `server/server.go`, shared by HTTP and both LLM actions, and drained by `Runtime`. Catalog reads use `DbResource`, relation expansion, existing credential APIs, and `DaptinReferenceId`. |
+| Daptin composition | Complete. One gateway is constructed in `server/server.go`, shared by HTTP and both LLM actions, and drained by `Runtime`. Catalog reads use `DbResource`, relation expansion, existing credential APIs, and `DaptinReferenceId`. File assets use the existing `document` resource and asset-column lifecycle; file, batch, usage, and quota mutations use only canonical resource create/update/delete methods. Architecture tests scan production and test files for direct SQL execution and alternate transaction write paths. |
 | Generic metering | Complete for deterministic qualification. The existing `server/resource` owner has one transactional admit/complete/cancel/expiry state machine used by CRUD, actions, and LLM facts. The existing Daptin scheduler runs bounded reservation recovery every ten seconds, including during idle request periods, and quiesces through `Runtime`. SQLite, PostgreSQL 17, and MySQL 8.4 tests cover concurrent hard admission and idempotent terminalization. |
-| One-way cutover | Complete. GoAI execution, duplicate OpenAI wire types, comma-separated model resolution, `llm_usage`, and lossy `/v1/completions` are removed; no compatibility branch remains. |
-| Deterministic verification | Passing: both repositories' full normal, race, and vet suites; module vulnerability and dependency-boundary checks; protocol/adapter fixtures; bounded JSON/SSE/provider-response/tool-argument fuzzing; routing/fallback; cache isolation/coalescing; admitted-request cancellation; lifecycle; architecture scans; two-host catalog fan-out; active-snapshot age and rejected-reload readiness; lifecycle-safe scheduled provider health checks; registered action success and safely normalized provider-failure E2E; isolated declarative HTTP action chat/embedding/failure and generic-usage terminalization; and the Daptin database matrix. The latest Daptin full runs pass in 81.2 seconds normal and 167.1 seconds under `-race`; live-tag compilation also passes repository-wide. |
-| Live certification | Partially complete; the manifest remains `kind: target`. The previous real-provider run passed 8 Google cells, all 10 Lilac cells, and 11 of 12 OpenRouter cells across chat, streaming, tools, structured output, vision, embeddings, Responses, and image generation. The current matrix additionally requires Google parallel-tools and reasoning; its real invalid-credential cells pass for all three providers with secret-safe normalized errors. The same three credential-rejection paths also pass through isolated Daptin startup, canonical HTTP catalog creation, registered declarative `$llm.chat` actions, the shared engine, and generic `api_usage` terminalization. Daptin's positive live action gate covers Google and OpenRouter chat/embeddings and Lilac chat through the registered `$llm` performers. These positive cells have compiled but have not run because `GOOGLE_API_KEY`, `OPENROUTER_API_KEY`, and `LILAC_API_KEY` are absent from the test process environment. OpenRouter image generation remains an explicit non-pass because the supplied account returned HTTP 402 `insufficient_quota`; a skip or account failure is not certification. No credential or provider payload is stored in either repository. |
+| One-way cutover | Complete. GoAI execution, duplicate OpenAI wire types, comma-separated model resolution, `llm_usage`, and the lossy chat-converted `/v1/completions` path are removed; native text completions now use the shared canonical engine with no compatibility branch. |
+| Deterministic verification | Passing: both repositories' full normal, vet, and race suites; focused Daptin race suites for `server`, `server/llm`, and `server/resource`; standalone `GOWORK=off` normal/race suites; module dependency-boundary checks; protocol/adapter fixtures; bounded fuzzing; routing/fallback; cache isolation/coalescing; cancellation; lifecycle; architecture scans; catalog fan-out; readiness; provider health; action E2E; and the Daptin database matrix. The previously flaky root `TestServerApis` also passes both the current complete normal/race runs and its isolated race rerun without a detector report. |
+| Live certification | Partially complete; the manifest remains `kind: target`. The 2026-09-02 real-provider run passed every configured Google cell: chat, streaming, tools, parallel tools, reasoning, structured output, vision, embeddings, image generation, and credential rejection. OpenRouter passed chat, streaming, tools, structured output, vision, all embedding forms, Responses, native text completions in stream and non-stream modes, rerank, speech generation, and credential rejection. Rerank preserves OpenRouter's top-level search-unit usage through the same canonical response used for Cohere metadata. Image generation returned the safely normalized `insufficient_quota` error; transcription was stopped by OpenRouter's provider-side minimum-balance gate before request validation, so neither is certified. Lilac passed four chat models, streaming, tools, structured output, vision, Responses, and credential rejection. Its current Responses shape exposed optional reasoning-item status plus typed reasoning-content part events; the shared decoder was corrected against the pinned OpenAI reasoning-item schema and a focused live rerun passed every Lilac cell. No credential or provider payload is stored in either repository. |
 | Operational qualification | Two-process catalog convergence is complete: independent Daptin processes sharing PostgreSQL and clustered Olric both served the same model, then the second process observed a credential rotation made through the first within the five-second gate. Pub/sub remains a latency hint; a three-second content-fingerprint poll is the bounded recovery path because Olric pub/sub clients subscribe to one member. Daptin now schedules the module's interval-aware health probes with at most one probe pass in flight; shutdown cancellation cannot poison shared provider circuit state. A reproducible gateway-core serial/parallel allocation benchmark is published in the module operating profile. The opt-in full-path benchmark also passes through authenticated HTTP, Daptin-managed PostgreSQL configuration and durable metering, and a deterministic upstream: on an Apple M1 Max it measured 16.8–17.4 ms/request serial and 5.14–5.24 ms/request at the Go benchmark's 10-way parallel execution across three five-second samples, with no request failures. A separate sustained parallel sample completed 27,333 requests without failure at 5.44 ms/request aggregated benchmark time (212 seconds wall-clock including startup and calibration). Its allocation figures describe the benchmark client because Daptin runs as a subprocess. The same existing full-path setup now owns an opt-in qualification gate which rejects non-Linux or undersized hosts and inadequate file-descriptor limits, fixes the Daptin database pool ceiling at 20, paces at least 250 requests/second for at least ten minutes, and fails on any request error, less than 98% achieved throughput, p95 above 15 ms, or p99 above 40 ms. It then opens 1,000 real SSE requests through Daptin, holds them concurrently for 30 seconds, requires every stream to open and close successfully, and compares the Daptin subprocess group's peak held RSS with its pre-stream baseline to enforce the 96-KiB-per-stream ceiling. Higher configured request rates use this same path to locate saturation. A network-disabled Linux/arm64 container constrained to 2 CPUs and 3 GiB passed the standalone module suite and measured 4.81–4.92 us/op serial and 3.53–3.71 us/op parallel with the same allocation profile; this is portability evidence only. Execution of the new gate on the documented 8-core/16-GiB PostgreSQL topology remains pending; these local results are not production capacity claims. Live-provider action cells remain part of live certification rather than deterministic qualification. |
-| Release reproducibility | The last published baseline is module commit `db40b5d` at `v0.1.0-dev.30`, whose exact tagged SHA passes the hosted [module CI run](https://github.com/daptin/llmgateway/actions/runs/33478482489). Production hardening commit `a722bc1` passes local normal, race, vet, fuzz-smoke, vulnerability, single-module, dependency-boundary, and Daptin integration gates; `ee41f2e` adds the live credential-rejection cells, `68677b2` aligns the documented capacity topology on PostgreSQL 17, `0c62a68` independently certifies those bad-key paths while keeping the live chat baseline within current provider capabilities, and `8b83248` closes readiness-age and lifecycle-cancellation gaps. The current module head is intentionally not yet tagged or pinned. A fresh positive live run, publishing, and `GOWORK=off` verification of the new tag remain release gates. |
+| Release reproducibility | Module commit `81f292d` is published as `v0.1.0-dev.31`, and both hosted workflows for the exact branch/tag SHA pass ([branch run](https://github.com/daptin/llmgateway/actions/runs/33546623747), [tag run](https://github.com/daptin/llmgateway/actions/runs/33546621601)). Daptin pins that tag and checksum directly. With workspace resolution disabled, `go mod verify`, the complete Daptin normal/vet suites, and focused `server`, `server/llm`, and `server/resource` race suites pass. The adjacent module checkout is no longer required to build or test Daptin. |
+
+Current parity increment: native completions, moderation, rerank, speech,
+transcription/translation, image edits and variations, Anthropic Messages, stateless Responses
+fidelity (including inline files), search, and OCR now use the same canonical
+engine. Responses streaming uses typed, explicitly supported lifecycle, output,
+content, refusal, function-call, and reasoning events; it preserves required
+indices, annotations, log probabilities, cached/reasoning-token usage, and
+strictly increasing sequence numbers while rejecting unknown event types. SSE
+keepalives cover both stream setup and idle intervals. Stateless Responses
+compaction now uses the same operation pipeline, preserves opaque compaction
+items and detailed usage, and explicitly rejects stored `previous_response_id`
+state. OCR accepts bounded
+multipart uploads or safe URL/data-URI documents and
+rejects filesystem/provider-owned identifiers. Usage and provider pricing are
+now named-measure based (`measure -> micros per million units`), so token, page,
+search-unit, byte, credit, and future non-LLM measures share one calculation and
+the existing generic Daptin metering owner. No token-specific pricing path
+remains. The standalone normal/race suites and the complete Daptin normal/race
+suites pass after this increment. The compatibility manifest records every
+in-scope route found in LiteLLM `v1.98.0` commit
+`d8f71d7bdbd7c9873d98293f83d64c6db72847e6` as implemented or explicitly
+unsupported with its missing invariant. Complete live certification and release
+gates remain pending until the remaining surface is complete.
 
 ## 1. Purpose
 
@@ -49,11 +72,12 @@ router also covers multi-deployment load balancing, cooldowns, timeouts,
 retries, fallbacks, and several routing strategies. Daptin must make only
 capabilities backed by conformance tests and certified provider tests.
 
-The compatibility manifest is deliberately frozen at LiteLLM `1.98.0` for
-this release. LiteLLM `1.99.0` was published on 2026-09-01 after that freeze
-and expands the product into Agent/MCP gateway, batch, OCR, and newer router
-surfaces. Those additions do not silently change this release contract; a
-future manifest revision must classify them explicitly and add its own tests.
+The compatibility manifest is compared with the stable LiteLLM `1.98.0`. Hardware and
+live-provider qualification are release evidence, not blockers for implementing
+the LLM API contract. Agent/MCP gateway and administrative UI parity are outside
+the LLM API goal, but every LLM-facing endpoint advertised by LiteLLM must be
+classified as supported, intentionally host-composed, or unsupported with a
+specific missing invariant. An arbitrary release freeze must not hide API gaps.
 
 Official comparison sources:
 
@@ -479,27 +503,86 @@ manifested capabilities.
 
 ## 10. OpenAI compatibility scope
 
-### First parity release
+### Implemented foundation
 
 | Endpoint | Required behavior |
 |---|---|
 | `POST /v1/chat/completions` | text/multimodal input, tools/tool choice, structured output, sampling fields, `n`, streaming chunks, tool deltas, optional stream usage, normalized errors |
-| `POST /v1/responses` | stateless text/multimodal/tool input and streaming; reject unsupported stored-response/state fields |
+| `POST /v1/completions` | native prompt text/token inputs, sampling/logprob controls, `n`/`best_of`, streaming chunks, optional stream usage, normalized errors; never converted through chat |
+| `POST /v1/responses` | stateless text/multimodal/tool input; typed named SSE lifecycle/output/content/refusal/function/reasoning events with ordered sequence numbers and detailed usage; reject unsupported stored-response/state fields and unknown upstream event types |
+| `POST /v1/responses/compact` | stateless explicit input, opaque compaction-item preservation, prompt-cache controls, detailed usage; reject `previous_response_id` rather than introducing gateway-owned response state |
 | `POST /v1/embeddings` | scalar/list text and supported token inputs, dimensions and encoding policy |
 | `POST /v1/images/generations` | generation for capable deployments and normalized URL/base64 response |
+| `POST /v1/moderations` | text/list and multimodal moderation input with normalized category and score maps |
+| `POST /rerank`, `/v1/rerank`, and `/v2/rerank` | Cohere-compatible query/document ranking, document objects, provider controls, billed-unit/token metadata |
+| `POST /v1/audio/speech` | bounded speech request, binary media response, format/content-type validation |
+| `POST /v1/audio/transcriptions` and `/v1/audio/translations` | bounded in-memory multipart input, JSON/text subtitle modes, usage normalization |
+| `POST /v1/images/edits` | single/multiple images, optional mask, current edit controls, normalized URL/base64 response |
+| `POST /v1/images/variations` | bounded multipart source image, variation count/size/format controls, normalized URL/base64 response |
+| `POST /v1/messages` | Anthropic request/response/error/SSE compatibility translated into the canonical chat operation, including tools, tool results, images, and `x-api-key` authentication |
+| `POST /v1/search` and `/v1/search/:tool` | Perplexity-compatible scalar/list queries, bounds/domain controls, normalized results, and named search measures |
+| `POST /v1/ocr` and `/ocr` | normalized OCR for URL/data-URI or bounded multipart documents, typed extraction controls/results, safe file semantics, and page/document/credit measures |
 | `GET /v1/models` | only enabled models visible to the principal |
 | `GET /v1/models/:id` | OpenAI-compatible model shape plus non-breaking `llmgateway` metadata |
 
-`POST /v1/completions` must not remain as the current lossy chat conversion.
-Either implement its actual contract and conformance suite in the module or
-remove it at cutover. There is no fake compatibility endpoint.
+`POST /v1/completions` is a native `text_completion` operation with its own
+prompt, choice, logprob, usage, and stream contracts. It is never translated
+through chat. There is no fake compatibility endpoint.
 
-### Later endpoint packs
+### Active parity work
 
-Audio speech/transcription, moderation, rerank, batches, files, assistants,
-fine-tuning, and vector stores are not declared supported until their lifecycle
-and conformance tests exist. Stateful APIs require durable job/resource design;
-they must not be shallow upstream proxies presented as parity.
+The remaining surface is split by lifecycle and ownership, not by a convenient
+"later" label:
+
+1. Complete current operations first: chat parameter forwarding and streaming
+   keepalives; Responses field/event fidelity; provider-reported streaming usage
+   and cost preservation. These modify the existing protocol, canonical
+   contract, adapter, and stream owners only.
+2. The stateless inference operations now share the same canonical pipeline:
+   actual text completions, moderation, rerank, audio speech, audio
+   transcription/translation, and image edits. Each operation has one contract,
+   one strict protocol decoder/encoder, one adapter translation, capability
+   validation, routing, generic metering facts, and manifest conformance. There
+   is no chat-conversion shim and no generic pass-through escape hatch.
+3. Provider-native compatibility surfaces such as `/v1/messages` are added only when
+   their wire contract can translate losslessly into an existing canonical
+   operation. The wire adapter remains in `protocol`; provider routing remains
+   unchanged.
+4. Implement files and batches as Daptin-composed durable resources and actions.
+   The standalone module owns provider-neutral batch/file contracts and provider
+   adapters; Daptin owns persistence, permissions, relationships, encrypted
+   credentials, recovery, and scheduling through existing resource/action
+   mechanisms. No module database dependency and no shallow upstream-only proxy.
+5. Classify video, vector-store inference, and
+   other newly advertised LLM surfaces individually after the preceding common
+   contracts exist. Assistants, fine-tuning, Agent/A2A, MCP, containers, skills,
+   and administrative UI are separate product domains and are not silently
+   counted as LLM API parity.
+
+Every operation is enabled only by `llm_model.operations`, deployment
+operations, adapter capabilities, and the verified manifest. Adding an endpoint
+does not create a second router, provider client, catalog loader, usage ledger,
+or Daptin action execution path.
+
+### Pinned LiteLLM route reconciliation
+
+The canonical route inventory was checked against LiteLLM `v1.98.0` commit
+`d8f71d7bdbd7c9873d98293f83d64c6db72847e6`, including its proxy endpoint
+modules and `ROUTE_ENDPOINT_MAPPING`. The compatibility manifest records each
+canonical in-scope route as implemented or unsupported; LiteLLM's unversioned,
+`/openai/v1`, provider-prefixed, and Azure deployment aliases are not claimed
+as distinct protocol implementations.
+
+| Route family | Classification |
+|---|---|
+| Stateless chat, completions, Responses, compaction, embeddings, images, moderation, rerank, audio, search, OCR | Implemented through the one canonical engine; `/v2/rerank` uses the same rerank handler and operation |
+| Token counting | Unsupported until model-revision-correct tokenizer/provider contracts exist; byte and character estimates are not accepted as token counts |
+| Stored/background Responses | Unsupported because retrieval, input-item listing, cancellation, and deletion require durable state and ownership semantics |
+| Realtime sessions and calls | Unsupported until bidirectional lifecycle, ephemeral-secret, cancellation, and backpressure contracts exist |
+| Video jobs and characters | Unsupported until canonical asynchronous jobs, durable media, authorization, and provider certification exist |
+| Gemini, Bedrock, and provider-native wire routes | Unsupported until lossless typed protocol adapters and streaming fixtures exist; generic pass-through remains prohibited |
+| Google Interactions and vector-store search | Unsupported until their state/ownership contracts have a canonical host owner |
+| Assistants, fine-tuning, Agent/A2A, MCP, containers, skills, RAG ingestion, evals, and administrative endpoints | Separate product domains, excluded from the LLM inference parity claim rather than silently counted |
 
 ### Error and streaming consistency
 
@@ -732,7 +815,7 @@ from artifacts and logs.
 |---|---|
 | Entry point | HTTP endpoint, `$llm.chat`, `$llm.embedding`, later actions for newly supported operations |
 | Provider | Google, OpenRouter, Lilac, local deterministic OpenAI-compatible fixture, each added native adapter |
-| Operation | chat, Responses, embeddings, image generation; later audio/moderation/rerank |
+| Operation | chat, native text completions, Responses, embeddings, image generation; then audio/moderation/rerank |
 | Mode | non-stream, stream, tools, parallel tools where supported, structured output, reasoning where supported |
 | Media | text, image input, image output; audio only after endpoint support exists |
 | Outcome | success, provider 4xx, auth failure, rate limit, timeout, malformed response, disconnect, retryable 5xx |

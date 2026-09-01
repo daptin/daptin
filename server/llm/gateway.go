@@ -19,6 +19,7 @@ import (
 	"github.com/daptin/llmgateway/catalog"
 	"github.com/daptin/llmgateway/contract"
 	"github.com/daptin/llmgateway/guardrail"
+	"github.com/daptin/llmgateway/protocol/openai"
 	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 )
@@ -26,8 +27,11 @@ import (
 type Gateway struct {
 	engine             *gateway.Engine
 	handler            http.Handler
+	batchProcessor     *daptinBatchProcessor
 	maintenanceCancel  context.CancelFunc
+	batchCancel        context.CancelFunc
 	maintenanceDone    chan struct{}
+	batchDone          chan struct{}
 	reloadSubscription *redis.PubSub
 	drainOnce          sync.Once
 	drainErr           error
@@ -36,13 +40,6 @@ type Gateway struct {
 func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olricClient *olric.EmbeddedClient) (*Gateway, error) {
 	if ctx == nil {
 		return nil, errors.New("LLM gateway requires a lifecycle context")
-	}
-	for _, resourceName := range []string{
-		"world", "credential", "llm_provider", "llm_model", "llm_deployment", "api_plan", "api_member", "api_usage", "api_quota",
-	} {
-		if cruds[resourceName] == nil {
-			return nil, fmt.Errorf("LLM gateway requires canonical Daptin resource %q", resourceName)
-		}
 	}
 	if olricClient == nil {
 		return nil, errors.New("LLM gateway requires Daptin's Olric client")
@@ -59,6 +56,7 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 	if err != nil {
 		return nil, fmt.Errorf("create LLM gateway cache map: %w", err)
 	}
+	coordination := olricCounterStore{values: counters, leases: leases}
 
 	adapters := adapter.NewRegistry()
 	compatible := openaicompat.Factory{}
@@ -70,22 +68,37 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 	engine, err := gateway.New(gateway.Dependencies{
 		Catalog: &daptinCatalog{cruds: cruds}, Secrets: daptinSecrets{cruds: cruds}, Adapters: adapters,
 		Authorizer: daptinAuthorizer{cruds: cruds}, Metering: daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)},
-		Counters: olricCounterStore{values: counters, leases: leases}, Cache: olricResponseCache{values: cache},
+		Counters: coordination, Cache: olricResponseCache{values: cache},
 		Guardrails: guardrail.NewRegistry(), Telemetry: daptinTelemetry{}, Selector: gateway.RandomSelector{}, Clock: gateway.SystemClock{},
 	}, gateway.Options{})
 	if err != nil {
 		return nil, err
 	}
-	handler, err := engine.Handler(gateway.HTTPOptions{Authenticator: daptinAuthenticator{}})
+	files := daptinFiles{cruds: cruds}
+	handler, err := engine.Handler(gateway.HTTPOptions{Authenticator: daptinAuthenticator{}, Protocol: openai.Options{
+		Files: files, Batches: daptinBatches{cruds: cruds, files: files},
+	}})
 	if err != nil {
 		return nil, err
 	}
 	if err := engine.Reload(ctx); err != nil {
 		return nil, fmt.Errorf("load LLM gateway catalog: %w", err)
 	}
-	gatewayHost := &Gateway{engine: engine, handler: handler}
+	gatewayHost := &Gateway{engine: engine, handler: handler, batchProcessor: &daptinBatchProcessor{
+		cruds: cruds, files: files, batches: daptinBatches{cruds: cruds, files: files}, handler: handler, coordination: coordination,
+	}}
 	gatewayHost.startMaintenance(ctx, cruds["world"].PubSub)
 	return gatewayHost, nil
+}
+
+func (gatewayHost *Gateway) StartBatchProcessing(ctx context.Context) {
+	gatewayHost.batchDone = make(chan struct{})
+	batchContext, cancel := context.WithCancel(ctx)
+	gatewayHost.batchCancel = cancel
+	go func() {
+		defer close(gatewayHost.batchDone)
+		gatewayHost.batchProcessor.Run(batchContext)
+	}()
 }
 
 func (gatewayHost *Gateway) Handler() http.Handler {
@@ -113,6 +126,9 @@ func (gatewayHost *Gateway) Drain(ctx context.Context) error {
 		if gatewayHost.maintenanceCancel != nil {
 			gatewayHost.maintenanceCancel()
 		}
+		if gatewayHost.batchCancel != nil {
+			gatewayHost.batchCancel()
+		}
 		if gatewayHost.reloadSubscription != nil {
 			gatewayHost.drainErr = gatewayHost.reloadSubscription.Close()
 		}
@@ -121,6 +137,13 @@ func (gatewayHost *Gateway) Drain(ctx context.Context) error {
 	if gatewayHost.maintenanceDone != nil {
 		select {
 		case <-gatewayHost.maintenanceDone:
+		case <-ctx.Done():
+			err = errors.Join(err, ctx.Err())
+		}
+	}
+	if gatewayHost.batchDone != nil {
+		select {
+		case <-gatewayHost.batchDone:
 		case <-ctx.Done():
 			err = errors.Join(err, ctx.Err())
 		}

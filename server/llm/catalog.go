@@ -147,13 +147,7 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 		if err := json.Unmarshal([]byte(resource.StringOrEmpty(row["operations"])), &operations); err != nil {
 			return catalog.Document{}, fmt.Errorf("decode LLM deployment %q operations: %w", name, err)
 		}
-		var pricing struct {
-			Input      int64 `json:"input_micros_per_million"`
-			Output     int64 `json:"output_micros_per_million"`
-			CacheRead  int64 `json:"cache_read_micros_per_million"`
-			CacheWrite int64 `json:"cache_write_micros_per_million"`
-			Reasoning  int64 `json:"reasoning_micros_per_million"`
-		}
+		var pricing map[string]int64
 		if err := decodeCatalogObject(resource.StringOrEmpty(row["pricing"]), &pricing); err != nil {
 			return catalog.Document{}, fmt.Errorf("decode LLM deployment %q pricing: %w", name, err)
 		}
@@ -177,11 +171,7 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 			RequestTimeout: time.Duration(requestTimeoutMS) * time.Millisecond,
 			ConnectTimeout: time.Duration(connectTimeoutMS) * time.Millisecond,
 			MaxConcurrency: maxConcurrency, RPM: rpm, TPM: tpm,
-			Pricing: catalog.Pricing{
-				InputMicrosPerMillion: pricing.Input, OutputMicrosPerMillion: pricing.Output,
-				CacheReadMicrosPerMillion: pricing.CacheRead, CacheWriteMicrosPerMillion: pricing.CacheWrite,
-				ReasoningMicrosPerMillion: pricing.Reasoning,
-			},
+			Pricing:    catalog.Pricing{Rates: pricing},
 			Parameters: []byte(resource.StringOrEmpty(row["parameters"])),
 			HealthCheck: catalog.HealthCheck{
 				Enabled: health.Enabled, Path: health.Path, Model: health.Model,

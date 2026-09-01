@@ -524,6 +524,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
+	llmGateway.StartBatchProcessing(ctx)
 	taskScheduler.Start()
 
 	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])

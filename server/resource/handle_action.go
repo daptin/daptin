@@ -361,7 +361,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 
 	var meteringService *MeteringService
 	var meteringDecision *MeteringDecision
-	actionMetering := meteringConfigForAction(dbResource.TableInfo().Metering, actionRequest.Action)
+	actionMetering := MeteringConfigForAction(dbResource.TableInfo().Metering, actionRequest.Action)
 	if actionMetering != nil && actionMetering.Enabled && req.PlainRequest != nil && !IsMeteringInternalRequest(req.PlainRequest) {
 		meteringService = NewMeteringService(&dbResource.Cruds)
 		var meteringErr error

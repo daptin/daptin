@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/doug-martin/goqu/v9"
@@ -24,9 +26,7 @@ import (
 const (
 	meteringInternalContextKey = "metering_internal"
 	defaultReservationTTL      = 5 * time.Minute
-	meteringStateAdmitting     = "admitting"
 	meteringStateHeld          = "held"
-	meteringStateSettling      = "settling"
 	meteringStateCompleted     = "completed"
 	meteringStateCancelled     = "cancelled"
 	meteringStateExpired       = "expired"
@@ -100,6 +100,20 @@ func NewMeteringService(cruds *map[string]*DbResource) *MeteringService {
 	return &MeteringService{cruds: cruds, now: time.Now}
 }
 
+func (m *MeteringService) internalUser(user *auth.SessionUser) *auth.SessionUser {
+	copyOfUser := *user
+	groups := append(auth.GroupPermissionList(nil), user.Groups...)
+	administrator := (*m.cruds)["api_usage"].AdministratorGroupId
+	for _, group := range groups {
+		if group.GroupReferenceId == administrator {
+			copyOfUser.Groups = groups
+			return &copyOfUser
+		}
+	}
+	copyOfUser.Groups = append(groups, auth.GroupPermission{GroupReferenceId: administrator})
+	return &copyOfUser
+}
+
 func IsMeteringInternalRequest(req *http.Request) bool {
 	if req == nil {
 		return false
@@ -127,6 +141,9 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	}
 	decision.Enabled = true
 	decision.config = config
+	if err := m.lockMeteringUser(ctx.User.UserId, tx); err != nil {
+		return nil, err
+	}
 
 	member, memberErr := m.findActiveMember(ctx.User.UserId, tx)
 	if memberErr == nil {
@@ -196,26 +213,8 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	if !errors.Is(err, errMeteringRowNotFound) {
 		return nil, err
 	}
-	if err := m.insertAdmission(ctx, decision, tx); err != nil {
-		return nil, err
-	}
-	usage, err := m.findUsageByRequestID(requestID, tx)
-	if err != nil {
-		return nil, err
-	}
-	if StringOrEmpty(usage["reservation_token"]) != decision.ReservationToken {
-		return m.existingDecision(usage, config, tx)
-	}
-	decision.UsageID, err = ResourceRowInt64(usage["id"])
-	if err != nil {
-		return nil, fmt.Errorf("invalid api_usage id: %w", err)
-	}
-	if decision.UsageID <= 0 {
-		return nil, errors.New("invalid api_usage id: must be positive")
-	}
-
 	for _, limit := range limits {
-		reservation, reserveErr := m.reserve(decision, limit, estimated[limit.Metric], tx)
+		reservation, reserveErr := m.reserve(decision, limit, estimated[limit.Metric], ctx.User, tx)
 		if reserveErr != nil {
 			return nil, reserveErr
 		}
@@ -225,19 +224,16 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	if err != nil {
 		return nil, err
 	}
-	query, arguments, err := statementbuilder.Squirrel.Update("api_usage").Prepared(true).
-		Set(goqu.Record{"state": meteringStateHeld, "reservation_buckets": reservationJSON, "updated_at": m.now()}).
-		Where(goqu.Ex{"id": decision.UsageID, "state": meteringStateAdmitting}).ToSQL()
+	usage, err := m.insertAdmission(ctx, decision, reservationJSON, tx)
 	if err != nil {
 		return nil, err
 	}
-	result, err := tx.Exec(query, arguments...)
+	decision.UsageID, err = ResourceRowInt64(usage["id"])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid api_usage id: %w", err)
 	}
-	updated, err := result.RowsAffected()
-	if err != nil || updated != 1 {
-		return nil, errors.New("metering admission state transition failed")
+	if decision.UsageID <= 0 {
+		return nil, errors.New("invalid api_usage id: must be positive")
 	}
 	return decision, nil
 }
@@ -267,20 +263,11 @@ func (m *MeteringService) ExpireReservations(now time.Time, limit uint, tx *sqlx
 	if err != nil {
 		return 0, err
 	}
-	usages := make([]map[string]interface{}, 0)
-	for rows.Next() {
-		usage := map[string]interface{}{}
-		if err := rows.MapScan(usage); err != nil {
-			rows.Close()
-			return 0, err
-		}
-		usages = append(usages, usage)
+	usages, err := RowsToMap(rows, "api_usage")
+	if closeErr := rows.Close(); err == nil {
+		err = closeErr
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		return 0, err
-	}
-	if err := rows.Close(); err != nil {
+	if err != nil {
 		return 0, err
 	}
 	released := 0
@@ -304,9 +291,6 @@ func (m *MeteringService) ExpireReservations(now time.Time, limit uint, tx *sqlx
 }
 
 func (m *MeteringService) recoverExpiredReservations(now time.Time, limit uint) (int, error) {
-	if m.cruds == nil || (*m.cruds)["api_usage"] == nil {
-		return 0, errors.New("metering reservation recovery requires the canonical api_usage resource")
-	}
 	transaction, err := (*m.cruds)["api_usage"].Connection().Beginx()
 	if err != nil {
 		return 0, err
@@ -361,24 +345,6 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if state == meteringStateCompleted || state == meteringStateCancelled || state == meteringStateExpired {
 		return fmt.Errorf("%w: current=%s requested=%s", errMeteringRequestTerminal, state, terminalState)
 	}
-	query, arguments, err := statementbuilder.Squirrel.Update("api_usage").Prepared(true).
-		Set(goqu.Record{"state": meteringStateSettling, "updated_at": m.now()}).
-		Where(goqu.Ex{"id": usageID, "state": meteringStateHeld}).ToSQL()
-	if err != nil {
-		return err
-	}
-	result, err := tx.Exec(query, arguments...)
-	if err != nil {
-		return err
-	}
-	claimed, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if claimed != 1 {
-		return errors.New("metering terminalization could not claim reservation")
-	}
-
 	if len(decision.reservation) == 0 {
 		if err := json.UnmarshalFromString(StringOrEmpty(usage["reservation_buckets"]), &decision.reservation); err != nil {
 			return fmt.Errorf("decode metering reservation buckets: %w", err)
@@ -402,23 +368,33 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	for _, bucketKey := range bucketKeys {
 		reservation := decision.reservation[bucketKey]
 		actual := measures[reservation.Metric]
-		query, arguments, err = statementbuilder.Squirrel.Update("api_quota").Prepared(true).
-			Set(goqu.Record{
-				"reserved": goqu.L("reserved - ?", reservation.Amount),
-				"consumed": goqu.L("consumed + ?", actual), "updated_at": m.now(),
-			}).
-			Where(goqu.Ex{"bucket_key": reservation.BucketKey}).
-			Where(goqu.L("reserved >= ?", reservation.Amount)).ToSQL()
+		quota, err := m.findQuota(reservation.BucketKey, tx)
 		if err != nil {
 			return err
 		}
-		result, err = tx.Exec(query, arguments...)
+		reserved, err := ResourceRowInt64(quota["reserved"])
 		if err != nil {
-			return err
+			return fmt.Errorf("invalid api_quota reserved: %w", err)
 		}
-		updated, err := result.RowsAffected()
-		if err != nil || updated != 1 {
+		consumed, err := ResourceRowInt64(quota["consumed"])
+		if err != nil {
+			return fmt.Errorf("invalid api_quota consumed: %w", err)
+		}
+		if reserved < reservation.Amount {
 			return fmt.Errorf("metering quota terminalization failed for metric %s", reservation.Metric)
+		}
+		updatedConsumed, overflow := addInt64(consumed, actual)
+		if overflow {
+			return fmt.Errorf("metering quota consumption overflow for metric %s", reservation.Metric)
+		}
+		quotaModel := api2go.NewApi2GoModelWithData("api_quota", (*m.cruds)["api_quota"].TableInfo().Columns,
+			int64((*m.cruds)["api_quota"].TableInfo().DefaultPermission), (*m.cruds)["api_quota"].TableInfo().Relations, quota)
+		quotaModel.SetAttributes(map[string]interface{}{"reserved": reserved - reservation.Amount, "consumed": updatedConsumed})
+		request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
+			URL: &url.URL{Path: "/api_quota/" + daptinid.InterfaceToDIR(quota["reference_id"]).String()}}).
+			WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", ctx.User))}
+		if _, err := (*m.cruds)["api_quota"].UpdateWithoutFilters(quotaModel, request, tx); err != nil {
+			return fmt.Errorf("terminalize metering quota: %w", err)
 		}
 	}
 
@@ -430,24 +406,18 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if metadata == "" || metadata == "null" {
 		metadata = "{}"
 	}
-	terminalAt := m.now()
-	query, arguments, err = statementbuilder.Squirrel.Update("api_usage").Prepared(true).
-		Set(goqu.Record{
-			"state": terminalState, "status_code": ctx.StatusCode, "latency_ms": ctx.LatencyMS,
-			"request_bytes": ctx.RequestBytes, "response_bytes": ctx.ResponseBytes, "measures": measuresJSON,
-			"metadata": metadata, "error_message": nullableString(ctx.ErrorMessage),
-			"terminal_at": terminalAt, "updated_at": terminalAt,
-		}).Where(goqu.Ex{"id": usageID, "state": meteringStateSettling}).ToSQL()
-	if err != nil {
-		return err
-	}
-	result, err = tx.Exec(query, arguments...)
-	if err != nil {
-		return err
-	}
-	updated, err := result.RowsAffected()
-	if err != nil || updated != 1 {
-		return errors.New("metering terminal state update failed")
+	usageModel := api2go.NewApi2GoModelWithData("api_usage", (*m.cruds)["api_usage"].TableInfo().Columns,
+		int64((*m.cruds)["api_usage"].TableInfo().DefaultPermission), (*m.cruds)["api_usage"].TableInfo().Relations, usage)
+	usageModel.SetAttributes(map[string]interface{}{
+		"state": terminalState, "status_code": ctx.StatusCode, "latency_ms": ctx.LatencyMS,
+		"request_bytes": ctx.RequestBytes, "response_bytes": ctx.ResponseBytes, "measures": measuresJSON,
+		"metadata": metadata, "error_message": nullableString(ctx.ErrorMessage), "terminal_at": m.now(),
+	})
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
+		URL: &url.URL{Path: "/api_usage/" + daptinid.InterfaceToDIR(usage["reference_id"]).String()}}).
+		WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", ctx.User))}
+	if _, err := (*m.cruds)["api_usage"].UpdateWithoutFilters(usageModel, request, tx); err != nil {
+		return fmt.Errorf("terminalize metering usage: %w", err)
 	}
 	if config != nil && config.PostMeteringAction != "" {
 		m.invokePostMeteringAction(config.PostMeteringAction, ctx, decision, usageID, measures, tx)
@@ -455,7 +425,7 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	return nil
 }
 
-func (m *MeteringService) insertAdmission(ctx MeteringContext, decision *MeteringDecision, tx *sqlx.Tx) error {
+func (m *MeteringService) insertAdmission(ctx MeteringContext, decision *MeteringDecision, reservationJSON string, tx *sqlx.Tx) (map[string]interface{}, error) {
 	now := m.now()
 	lease := ctx.ReservationTTL
 	if lease <= 0 {
@@ -463,33 +433,37 @@ func (m *MeteringService) insertAdmission(ctx MeteringContext, decision *Meterin
 	}
 	reservedJSON, err := json.MarshalToString(decision.ReservedMeasures)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	metadata := ToJson(ctx.Metadata)
 	if metadata == "" || metadata == "null" {
 		metadata = "{}"
 	}
-	reference := uuid.Must(uuid.NewV7())
-	record := goqu.Record{
-		"user_account_id": ctx.User.UserId, "api_plan_id": nullableID(decision.PlanID), "api_member_id": nullableID(decision.MemberID),
+	record := map[string]interface{}{
 		"request_id": decision.RequestID, "reservation_token": decision.ReservationToken, "api_key_id": nullableString(ctx.APIKeyID),
 		"endpoint": ctx.Endpoint, "method": ctx.Method, "entity_type": nullableString(ctx.EntityType),
 		"action_name": nullableString(ctx.ActionName), "request_type": nullableString(ctx.RequestType),
 		"status_code": 0, "latency_ms": 0, "request_bytes": ctx.RequestBytes, "response_bytes": 0,
-		"state": meteringStateAdmitting, "reservation_expires_at": now.Add(lease),
-		"reserved_measures": reservedJSON, "reservation_buckets": "{}", "measures": "{}", "metadata": metadata,
-		"reference_id": reference[:], "permission": auth.DEFAULT_PERMISSION, "created_at": now, "updated_at": now,
+		"state": meteringStateHeld, "reservation_expires_at": now.Add(lease),
+		"reserved_measures": reservedJSON, "reservation_buckets": reservationJSON, "measures": "{}", "metadata": metadata,
 	}
-	query, arguments, err := statementbuilder.Squirrel.Insert("api_usage").Prepared(true).Rows(record).
-		OnConflict(goqu.DoNothing()).ToSQL()
+	if decision.Plan != nil {
+		record["api_plan_id"] = daptinid.InterfaceToDIR(decision.Plan["reference_id"]).String()
+	}
+	if decision.Member != nil {
+		record["api_member_id"] = daptinid.InterfaceToDIR(decision.Member["reference_id"]).String()
+	}
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api_usage"}}).
+		WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", m.internalUser(ctx.User)))}
+	_, err = (*m.cruds)["api_usage"].CreateWithoutFilter(
+		api2go.NewApi2GoModelWithData("api_usage", nil, 0, nil, record), request, tx)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("create metering admission: %w", err)
 	}
-	_, err = tx.Exec(query, arguments...)
-	return err
+	return m.findUsageByRequestID(decision.RequestID, tx)
 }
 
-func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimit, amount int64, tx *sqlx.Tx) (meteringReservation, error) {
+func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimit, amount int64, user *auth.SessionUser, tx *sqlx.Tx) (meteringReservation, error) {
 	windowStart, windowEnd, err := meteringWindow(limit.Window, decision.Member, m.now())
 	if err != nil {
 		return meteringReservation{}, err
@@ -502,33 +476,13 @@ func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimi
 	if memberUserID <= 0 {
 		return meteringReservation{}, errors.New("invalid api_member user_account_id: must be positive")
 	}
-	now := m.now()
-	reference := uuid.Must(uuid.NewV7())
-	record := goqu.Record{
-		"user_account_id": memberUserID,
-		"api_plan_id":     decision.PlanID, "api_member_id": decision.MemberID,
-		"bucket_key": bucketKey, "metric": limit.Metric, "window_start": windowStart, "window_end": windowEnd,
-		"maximum": limit.Maximum, "reserved": amount, "consumed": 0,
-		"reference_id": reference[:], "permission": auth.DEFAULT_PERMISSION, "created_at": now, "updated_at": now,
-	}
-	query, arguments, err := statementbuilder.Squirrel.Insert("api_quota").Prepared(true).Rows(record).
-		OnConflict(goqu.DoUpdate("bucket_key", goqu.Record{
-			"reserved":   goqu.L("? + ?", goqu.I("api_quota.reserved"), amount),
-			"updated_at": now,
-		})).ToSQL()
-	if err != nil {
-		return meteringReservation{}, err
-	}
-	if _, err = tx.Exec(query, arguments...); err != nil {
-		return meteringReservation{}, err
-	}
-	query, arguments, err = statementbuilder.Squirrel.Select("maximum", "reserved", "consumed").Prepared(true).
-		From("api_quota").Where(goqu.Ex{"bucket_key": bucketKey}).Limit(1).ToSQL()
-	if err != nil {
-		return meteringReservation{}, err
-	}
-	quota, err := querySingleMeteringRow(tx, query, arguments...)
-	if err != nil {
+	quota, err := m.findQuota(bucketKey, tx)
+	if errors.Is(err, errMeteringRowNotFound) {
+		quota = map[string]interface{}{"bucket_key": bucketKey, "metric": limit.Metric, "window_start": windowStart,
+			"window_end": windowEnd, "maximum": limit.Maximum, "reserved": int64(0), "consumed": int64(0),
+			"api_plan_id":   daptinid.InterfaceToDIR(decision.Plan["reference_id"]).String(),
+			"api_member_id": daptinid.InterfaceToDIR(decision.Member["reference_id"]).String()}
+	} else if err != nil {
 		return meteringReservation{}, err
 	}
 	maximum, err := ResourceRowInt64(quota["maximum"])
@@ -543,9 +497,31 @@ func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimi
 	if err != nil {
 		return meteringReservation{}, fmt.Errorf("invalid api_quota consumed: %w", err)
 	}
-	if limit.Mode == "hard" && maximum >= 0 && (consumed > maximum || reserved > maximum-consumed) {
+	updatedReserved, overflow := addInt64(reserved, amount)
+	if overflow {
+		return meteringReservation{}, errors.New("metering quota reservation overflow")
+	}
+	if limit.Mode == "hard" && maximum >= 0 && (consumed > maximum || updatedReserved > maximum-consumed) {
 		message := fmt.Sprintf("%s limit exceeded", limit.Metric)
 		return meteringReservation{}, api2go.NewHTTPError(errors.New(message), "insufficient_quota", http.StatusPaymentRequired)
+	}
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api_quota"}}).
+		WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", m.internalUser(user)))}
+	if quota["reference_id"] == nil {
+		quota["reserved"] = updatedReserved
+		if _, err := (*m.cruds)["api_quota"].CreateWithoutFilter(
+			api2go.NewApi2GoModelWithData("api_quota", nil, 0, nil, quota), request, tx); err != nil {
+			return meteringReservation{}, fmt.Errorf("create metering quota: %w", err)
+		}
+	} else {
+		quotaModel := api2go.NewApi2GoModelWithData("api_quota", (*m.cruds)["api_quota"].TableInfo().Columns,
+			int64((*m.cruds)["api_quota"].TableInfo().DefaultPermission), (*m.cruds)["api_quota"].TableInfo().Relations, quota)
+		quotaModel.SetAttributes(map[string]interface{}{"reserved": updatedReserved})
+		request.PlainRequest.Method = http.MethodPatch
+		request.PlainRequest.URL.Path += "/" + daptinid.InterfaceToDIR(quota["reference_id"]).String()
+		if _, err := (*m.cruds)["api_quota"].UpdateWithoutFilters(quotaModel, request, tx); err != nil {
+			return meteringReservation{}, fmt.Errorf("update metering quota: %w", err)
+		}
 	}
 	return meteringReservation{BucketKey: bucketKey, Metric: limit.Metric, Amount: amount}, nil
 }
@@ -631,7 +607,10 @@ func normalizeMeteringConfig(config *table_info.MeteringConfig) *table_info.Mete
 	return &normalized
 }
 
-func meteringConfigForAction(config *table_info.MeteringConfig, actionName string) *table_info.MeteringConfig {
+// MeteringConfigForAction resolves an action override while inheriting the
+// resource defaults. Non-CRUD adapters use the same metering configuration
+// owner as Daptin actions.
+func MeteringConfigForAction(config *table_info.MeteringConfig, actionName string) *table_info.MeteringConfig {
 	if config == nil {
 		return nil
 	}
@@ -805,13 +784,25 @@ func addInt64(left, right int64) (int64, bool) {
 	return left + right, false
 }
 
+func (m *MeteringService) lockMeteringUser(userID int64, tx *sqlx.Tx) error {
+	query, arguments, err := statementbuilder.Squirrel.Select("id").Prepared(true).From(USER_ACCOUNT_TABLE_NAME).
+		Where(goqu.Ex{"id": userID}).Limit(1).ForUpdate(goqu.Wait).ToSQL()
+	if err != nil {
+		return err
+	}
+	if _, err := querySingleMeteringRow(USER_ACCOUNT_TABLE_NAME, tx, query, arguments...); err != nil {
+		return fmt.Errorf("lock metering user: %w", err)
+	}
+	return nil
+}
+
 func (m *MeteringService) findActiveMember(userID int64, tx *sqlx.Tx) (map[string]interface{}, error) {
 	query, arguments, err := statementbuilder.Squirrel.Select("*").Prepared(true).From("api_member").
 		Where(goqu.Ex{"user_account_id": userID, "status": "active"}).Order(goqu.I("id").Desc()).Limit(1).ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	return querySingleMeteringRow(tx, query, arguments...)
+	return querySingleMeteringRow("api_member", tx, query, arguments...)
 }
 
 func (m *MeteringService) findMember(memberID int64, tx *sqlx.Tx) (map[string]interface{}, error) {
@@ -820,7 +811,7 @@ func (m *MeteringService) findMember(memberID int64, tx *sqlx.Tx) (map[string]in
 	if err != nil {
 		return nil, err
 	}
-	return querySingleMeteringRow(tx, query, arguments...)
+	return querySingleMeteringRow("api_member", tx, query, arguments...)
 }
 
 func (m *MeteringService) findPlan(planID int64, tx *sqlx.Tx) (map[string]interface{}, error) {
@@ -829,7 +820,7 @@ func (m *MeteringService) findPlan(planID int64, tx *sqlx.Tx) (map[string]interf
 	if err != nil {
 		return nil, err
 	}
-	return querySingleMeteringRow(tx, query, arguments...)
+	return querySingleMeteringRow("api_plan", tx, query, arguments...)
 }
 
 func (m *MeteringService) findUsageByRequestID(requestID string, tx *sqlx.Tx) (map[string]interface{}, error) {
@@ -838,7 +829,7 @@ func (m *MeteringService) findUsageByRequestID(requestID string, tx *sqlx.Tx) (m
 	if err != nil {
 		return nil, err
 	}
-	return querySingleMeteringRow(tx, query, arguments...)
+	return querySingleMeteringRow("api_usage", tx, query, arguments...)
 }
 
 func (m *MeteringService) findUsageByToken(token string, tx *sqlx.Tx) (map[string]interface{}, error) {
@@ -850,26 +841,32 @@ func (m *MeteringService) findUsageByToken(token string, tx *sqlx.Tx) (map[strin
 	if err != nil {
 		return nil, err
 	}
-	return querySingleMeteringRow(tx, query, arguments...)
+	return querySingleMeteringRow("api_usage", tx, query, arguments...)
 }
 
-func querySingleMeteringRow(tx *sqlx.Tx, query string, arguments ...interface{}) (map[string]interface{}, error) {
+func (m *MeteringService) findQuota(bucketKey string, tx *sqlx.Tx) (map[string]interface{}, error) {
+	query, arguments, err := statementbuilder.Squirrel.Select("*").Prepared(true).From("api_quota").
+		Where(goqu.Ex{"bucket_key": bucketKey}).Limit(1).ForUpdate(goqu.Wait).ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	return querySingleMeteringRow("api_quota", tx, query, arguments...)
+}
+
+func querySingleMeteringRow(resourceName string, tx *sqlx.Tx, query string, arguments ...interface{}) (map[string]interface{}, error) {
 	rows, err := tx.Queryx(query, arguments...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	if !rows.Next() {
-		if err = rows.Err(); err != nil {
-			return nil, err
-		}
-		return nil, errMeteringRowNotFound
-	}
-	row := map[string]interface{}{}
-	if err = rows.MapScan(row); err != nil {
+	result, err := RowsToMap(rows, resourceName)
+	if err != nil {
 		return nil, err
 	}
-	return row, nil
+	if len(result) == 0 {
+		return nil, errMeteringRowNotFound
+	}
+	return result[0], nil
 }
 
 func (m *MeteringService) invokePostMeteringAction(actionName string, ctx MeteringContext, decision *MeteringDecision, usageID int64, measures map[string]int64, tx *sqlx.Tx) {
@@ -915,13 +912,6 @@ func userEnv(user *auth.SessionUser) map[string]interface{} {
 
 func nullableString(value string) interface{} {
 	if value == "" {
-		return nil
-	}
-	return value
-}
-
-func nullableID(value int64) interface{} {
-	if value == 0 {
 		return nil
 	}
 	return value

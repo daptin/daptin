@@ -1,8 +1,11 @@
 package resource
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -10,6 +13,7 @@ import (
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/doug-martin/goqu/v9"
@@ -19,12 +23,11 @@ import (
 )
 
 func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 10, 0, 0, 0, time.UTC)
-	insertMeteringPlanAndMember(t, database, now, `[{"metric":"requests","window":"minute","maximum":1,"mode":"hard"}]`)
-	service := NewMeteringService(nil)
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"requests","window":"minute","maximum":1,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
 	service.now = func() time.Time { return now }
-	user := &auth.SessionUser{UserId: 7}
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
 
 	tx, err := database.Beginx()
@@ -61,7 +64,7 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 	if err := service.Complete(MeteringContext{User: user, Metering: config}, &mismatched, tx); err == nil {
 		t.Fatal("mismatched request_id terminalized a metering reservation")
 	}
-	assertMeteringBucket(t, tx, "requests", "", 1, 0)
+	assertMeteringBucket(t, service, tx, "requests", "", 1, 0)
 	if err := service.Complete(MeteringContext{
 		User: user, Endpoint: "/items", Method: "GET", RequestType: "crud", StatusCode: 200, Metering: config,
 	}, decision, tx); err != nil {
@@ -70,7 +73,7 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 	if err := service.Complete(MeteringContext{User: user, Metering: config}, decision, tx); err != nil {
 		t.Fatalf("duplicate completion must be idempotent: %v", err)
 	}
-	assertMeteringBucket(t, tx, "requests", "", 0, 1)
+	assertMeteringBucket(t, service, tx, "requests", "", 0, 1)
 	if err := tx.Commit(); err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +99,7 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer verifyTx.Rollback()
-	assertMeteringBucket(t, verifyTx, "requests", "", 0, 1)
+	assertMeteringBucket(t, service, verifyTx, "requests", "", 0, 1)
 	usage, err := service.findUsageByRequestID("request-1", verifyTx)
 	if err != nil {
 		t.Fatal(err)
@@ -110,12 +113,11 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 }
 
 func TestMeteringSettlesActualMeasuresAndReleasesUnusedReservation(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 11, 0, 0, 0, time.UTC)
-	insertMeteringPlanAndMember(t, database, now, `[{"metric":"total_tokens","window":"month","maximum":100,"mode":"hard"}]`)
-	service := NewMeteringService(nil)
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"total_tokens","window":"month","maximum":100,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
 	service.now = func() time.Time { return now }
-	user := &auth.SessionUser{UserId: 7}
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "total_tokens", CostExpr: "1"}
 
 	firstTx, err := database.Beginx()
@@ -129,14 +131,14 @@ func TestMeteringSettlesActualMeasuresAndReleasesUnusedReservation(t *testing.T)
 		firstTx.Rollback()
 		t.Fatal(err)
 	}
-	assertMeteringBucket(t, firstTx, "total_tokens", "", 80, 0)
+	assertMeteringBucket(t, service, firstTx, "total_tokens", "", 80, 0)
 	if err := service.Complete(MeteringContext{
 		User: user, Metering: config, Measures: map[string]int64{"total_tokens": 20},
 	}, first, firstTx); err != nil {
 		firstTx.Rollback()
 		t.Fatal(err)
 	}
-	assertMeteringBucket(t, firstTx, "total_tokens", "", 0, 20)
+	assertMeteringBucket(t, service, firstTx, "total_tokens", "", 0, 20)
 	if err := firstTx.Commit(); err != nil {
 		t.Fatal(err)
 	}
@@ -174,19 +176,18 @@ func TestMeteringSettlesActualMeasuresAndReleasesUnusedReservation(t *testing.T)
 		cancelTx.Rollback()
 		t.Fatal(err)
 	}
-	assertMeteringBucket(t, cancelTx, "total_tokens", "", 0, 25)
+	assertMeteringBucket(t, service, cancelTx, "total_tokens", "", 0, 25)
 	if err := cancelTx.Commit(); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestMeteringReconstructedDecisionUsesCompletionConfig(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 11, 30, 0, 0, time.UTC)
-	insertMeteringPlanAndMember(t, database, now, `[{"metric":"compute_units","window":"month","maximum":100,"mode":"hard"}]`)
-	service := NewMeteringService(nil)
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"compute_units","window":"month","maximum":100,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
 	service.now = func() time.Time { return now }
-	user := &auth.SessionUser{UserId: 7}
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "compute_units", CostExpr: "response.units"}
 
 	admitTransaction, err := database.Beginx()
@@ -218,17 +219,17 @@ func TestMeteringReconstructedDecisionUsesCompletionConfig(t *testing.T) {
 		_ = terminalTransaction.Rollback()
 		t.Fatal(err)
 	}
-	assertMeteringBucket(t, terminalTransaction, "compute_units", "", 0, 3)
+	assertMeteringBucket(t, service, terminalTransaction, "compute_units", "", 0, 3)
 	if err := terminalTransaction.Commit(); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestMeteringConcurrentAdmissionCannotOversubscribe(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 12, 0, 0, 0, time.UTC)
-	insertMeteringPlanAndMember(t, database, now, `[{"metric":"requests","window":"minute","maximum":5,"mode":"hard"}]`)
-	service := NewMeteringService(nil)
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"requests","window":"minute","maximum":5,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
 	service.now = func() time.Time { return now }
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
 	start := make(chan struct{})
@@ -245,7 +246,7 @@ func TestMeteringConcurrentAdmissionCannotOversubscribe(t *testing.T) {
 				return
 			}
 			_, err = service.Admit(MeteringContext{
-				RequestID: fmt.Sprintf("concurrent-%d", index), User: &auth.SessionUser{UserId: 7}, Metering: config,
+				RequestID: fmt.Sprintf("concurrent-%d", index), User: user, Metering: config,
 			}, tx)
 			if err != nil {
 				tx.Rollback()
@@ -276,14 +277,14 @@ func TestMeteringConcurrentAdmissionCannotOversubscribe(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer verifyTx.Rollback()
-	assertMeteringBucket(t, verifyTx, "requests", "", accepted, 0)
+	assertMeteringBucket(t, service, verifyTx, "requests", "", accepted, 0)
 }
 
 func TestMeteringExpiryReleasesReservedEstimateOnce(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 13, 0, 0, 0, time.UTC)
-	insertMeteringPlanAndMember(t, database, now, `[{"metric":"requests","window":"minute","maximum":10,"mode":"hard"}]`)
-	service := NewMeteringService(nil)
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"requests","window":"minute","maximum":10,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
 	service.now = func() time.Time { return now }
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
 
@@ -292,7 +293,7 @@ func TestMeteringExpiryReleasesReservedEstimateOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	decision, err := service.Admit(MeteringContext{
-		RequestID: "expires", User: &auth.SessionUser{UserId: 7}, Metering: config,
+		RequestID: "expires", User: user, Metering: config,
 		EstimatedMeasures: map[string]int64{"requests": 3}, ReservationTTL: time.Minute,
 	}, admitTx)
 	if err != nil {
@@ -317,7 +318,7 @@ func TestMeteringExpiryReleasesReservedEstimateOnce(t *testing.T) {
 		expireTx.Rollback()
 		t.Fatalf("expired reservations = %d, want 1", expired)
 	}
-	assertMeteringBucket(t, expireTx, "requests", "", 0, 0)
+	assertMeteringBucket(t, service, expireTx, "requests", "", 0, 0)
 	usage, err := service.findUsageByToken(decision.ReservationToken, expireTx)
 	if err != nil {
 		expireTx.Rollback()
@@ -343,9 +344,9 @@ func TestMeteringExpiryReleasesReservedEstimateOnce(t *testing.T) {
 }
 
 func TestMeteringScheduledRecoveryUsesCanonicalTransaction(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 13, 30, 0, 0, time.UTC)
-	service := NewMeteringService(nil)
+	service := NewMeteringService(&cruds)
 	service.now = func() time.Time { return now }
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
 
@@ -354,7 +355,7 @@ func TestMeteringScheduledRecoveryUsesCanonicalTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := service.Admit(MeteringContext{
-		RequestID: "scheduled-expiry", User: &auth.SessionUser{UserId: 7}, Metering: config,
+		RequestID: "scheduled-expiry", User: user, Metering: config,
 		EstimatedMeasures: map[string]int64{"requests": 1}, ReservationTTL: time.Minute,
 	}, admitTransaction); err != nil {
 		_ = admitTransaction.Rollback()
@@ -364,7 +365,6 @@ func TestMeteringScheduledRecoveryUsesCanonicalTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cruds := map[string]*DbResource{"api_usage": {connection: database}}
 	service = NewMeteringService(&cruds)
 	expired, err := service.recoverExpiredReservations(now.Add(2*time.Minute), 100)
 	if err != nil || expired != 1 {
@@ -385,7 +385,7 @@ func TestMeteringScheduledRecoveryUsesCanonicalTransaction(t *testing.T) {
 }
 
 func TestMeteringFailsClosedWhenPersistenceIsUnavailable(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, _, _ := newCanonicalMeteringDatabase(t)
 	tx, err := database.Beginx()
 	if err != nil {
 		t.Fatal(err)
@@ -404,31 +404,31 @@ func TestMeteringFailsClosedWhenPersistenceIsUnavailable(t *testing.T) {
 }
 
 func TestMeteringRequestIDBoundMatchesGatewayProtocol(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	transaction, err := database.Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer transaction.Rollback()
-	service := NewMeteringService(nil)
+	service := NewMeteringService(&cruds)
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
 	if _, err := service.Admit(MeteringContext{
-		RequestID: strings.Repeat("a", 128), User: &auth.SessionUser{UserId: 7}, Metering: config,
+		RequestID: strings.Repeat("a", 128), User: user, Metering: config,
 	}, transaction); err != nil {
 		t.Fatalf("128-character request_id: %v", err)
 	}
 	if _, err := service.Admit(MeteringContext{
-		RequestID: strings.Repeat("b", 129), User: &auth.SessionUser{UserId: 7}, Metering: config,
+		RequestID: strings.Repeat("b", 129), User: user, Metering: config,
 	}, transaction); err == nil {
 		t.Fatal("129-character request_id was accepted")
 	}
 }
 
 func TestMeteringFailsClosedOnInvalidQuotaCounters(t *testing.T) {
-	database := newCanonicalMeteringDatabase(t)
+	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 14, 0, 0, 0, time.UTC)
-	insertMeteringPlanAndMember(t, database, now, `[{"metric":"requests","window":"minute","maximum":10,"mode":"hard"}]`)
-	service := NewMeteringService(nil)
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"requests","window":"minute","maximum":10,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
 	service.now = func() time.Time { return now }
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
 
@@ -437,7 +437,7 @@ func TestMeteringFailsClosedOnInvalidQuotaCounters(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := service.Admit(MeteringContext{
-		RequestID: "valid-counter", User: &auth.SessionUser{UserId: 7}, Metering: config,
+		RequestID: "valid-counter", User: user, Metering: config,
 	}, firstTx); err != nil {
 		firstTx.Rollback()
 		t.Fatal(err)
@@ -450,13 +450,30 @@ func TestMeteringFailsClosedOnInvalidQuotaCounters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	query, arguments, err := statementbuilder.Squirrel.Update("api_quota").Prepared(true).
-		Set(goqu.Record{"maximum": "invalid"}).Where(goqu.Ex{"metric": "requests"}).ToSQL()
+	usage, err := service.findUsageByRequestID("valid-counter", corruptTx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision, err := service.decisionFromUsage(usage, config, corruptTx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bucketKey string
+	for key := range decision.reservation {
+		bucketKey = key
+	}
+	quota, err := service.findQuota(bucketKey, corruptTx)
 	if err != nil {
 		corruptTx.Rollback()
 		t.Fatal(err)
 	}
-	if _, err := corruptTx.Exec(query, arguments...); err != nil {
+	quotaModel := api2go.NewApi2GoModelWithData("api_quota", cruds["api_quota"].TableInfo().Columns,
+		int64(cruds["api_quota"].TableInfo().DefaultPermission), cruds["api_quota"].TableInfo().Relations, quota)
+	quotaModel.SetAttributes(map[string]interface{}{"maximum": "invalid"})
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
+		URL: &url.URL{Path: "/api_quota/" + daptinid.InterfaceToDIR(quota["reference_id"]).String()}}).
+		WithContext(context.WithValue(context.Background(), "user", user))}
+	if _, err := cruds["api_quota"].UpdateWithoutFilters(quotaModel, request, corruptTx); err != nil {
 		corruptTx.Rollback()
 		t.Fatal(err)
 	}
@@ -469,7 +486,7 @@ func TestMeteringFailsClosedOnInvalidQuotaCounters(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = service.Admit(MeteringContext{
-		RequestID: "invalid-counter", User: &auth.SessionUser{UserId: 7}, Metering: config,
+		RequestID: "invalid-counter", User: user, Metering: config,
 	}, admitTx)
 	if err == nil || !strings.Contains(err.Error(), "invalid api_quota maximum") {
 		admitTx.Rollback()
@@ -484,13 +501,13 @@ func TestMeteringFailsClosedOnInvalidQuotaCounters(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer verifyTx.Rollback()
-	assertMeteringBucket(t, verifyTx, "requests", "", 1, 0)
+	assertMeteringBucket(t, service, verifyTx, "requests", "", 1, 0)
 	if _, err := service.findUsageByRequestID("invalid-counter", verifyTx); !errors.Is(err, errMeteringRowNotFound) {
 		t.Fatalf("failed admission survived caller rollback: %v", err)
 	}
 }
 
-func newCanonicalMeteringDatabase(t *testing.T) *sqlx.DB {
+func newCanonicalMeteringDatabase(t *testing.T) (*sqlx.DB, map[string]*DbResource, *auth.SessionUser) {
 	t.Helper()
 	database, err := sqlx.Open("sqlite3", fmt.Sprintf("file:metering-%s?mode=memory&cache=shared&_busy_timeout=10000", uuid.NewString()))
 	if err != nil {
@@ -498,11 +515,12 @@ func newCanonicalMeteringDatabase(t *testing.T) *sqlx.DB {
 	}
 	database.SetMaxOpenConns(1)
 	t.Cleanup(func() { database.Close() })
-	initializeCanonicalMeteringSchema(t, database, "sqlite3", nil)
-	return database
+	config := initializeCanonicalMeteringSchema(t, database, "sqlite3", nil)
+	cruds, user := newMeteringTestResources(t, database, &config)
+	return database, cruds, user
 }
 
-func initializeCanonicalMeteringSchema(t *testing.T, database *sqlx.DB, dialect string, included map[string]bool) {
+func initializeCanonicalMeteringSchema(t *testing.T, database *sqlx.DB, dialect string, included map[string]bool) CmsConfig {
 	t.Helper()
 	statementbuilder.InitialiseStatementBuilder(dialect)
 	config := CmsConfig{Tables: standardTablesForTest(nil)}
@@ -526,45 +544,115 @@ func initializeCanonicalMeteringSchema(t *testing.T, database *sqlx.DB, dialect 
 		t.Fatal(err)
 	}
 	CreateIndexes(&config, database)
+	return config
 }
 
-func insertMeteringPlanAndMember(t *testing.T, database *sqlx.DB, now time.Time, limits string) {
+func newMeteringTestResources(t *testing.T, database *sqlx.DB, config *CmsConfig) (map[string]*DbResource, *auth.SessionUser) {
 	t.Helper()
-	tx, err := database.Beginx()
+	bootstrap, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := UpdateWorldTable(config, bootstrap); err != nil {
+		_ = bootstrap.Rollback()
+		t.Fatalf("bootstrap canonical Daptin data: %v", err)
+	}
+	if err := bootstrap.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	references, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminReference, err := GetIdToReferenceIdWithTransaction("usergroup", 2, references)
+	if err != nil {
+		_ = references.Rollback()
+		t.Fatalf("resolve canonical administrator group: %v", err)
+	}
+	bootstrapUserReference, err := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, 1, references)
+	if err != nil {
+		_ = references.Rollback()
+		t.Fatalf("resolve canonical bootstrap user: %v", err)
+	}
+	if err := references.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	userReference := daptinid.DaptinReferenceId(uuid.New())
+	otherReference := daptinid.DaptinReferenceId(uuid.New())
+	cruds := make(map[string]*DbResource)
+	previous := make(map[string]*DbResource)
+	for index := range config.Tables {
+		table := config.Tables[index]
+		if table.TableName != USER_ACCOUNT_TABLE_NAME && table.TableName != "api_plan" && table.TableName != "api_member" &&
+			table.TableName != "api_usage" && table.TableName != "api_quota" {
+			continue
+		}
+		previous[table.TableName] = CRUD_MAP[table.TableName]
+		crud := &DbResource{model: api2go.NewApi2GoModel(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations),
+			connection: database, tableInfo: &table, Cruds: cruds, ms: &MiddlewareSet{}, AdministratorGroupId: adminReference}
+		cruds[table.TableName] = crud
+		CRUD_MAP[table.TableName] = crud
+	}
+	t.Cleanup(func() {
+		for name, crud := range previous {
+			if crud == nil {
+				delete(CRUD_MAP, name)
+			} else {
+				CRUD_MAP[name] = crud
+			}
+		}
+	})
+	createTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer createTransaction.Rollback()
+	administrator := &auth.SessionUser{UserId: 1, UserReferenceId: bootstrapUserReference,
+		Groups: auth.GroupPermissionList{{GroupReferenceId: adminReference}}}
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/user_account"}}).
+		WithContext(context.WithValue(context.Background(), "user", administrator))}
+	for _, attributes := range []map[string]interface{}{
+		{"name": "Metering Test", "email": "metering@example.test", "reference_id": userReference.String()},
+		{"name": "Other Metering Test", "email": "other-metering@example.test", "reference_id": otherReference.String()},
+	} {
+		_, createErr := cruds[USER_ACCOUNT_TABLE_NAME].CreateWithoutFilter(
+			api2go.NewApi2GoModelWithData(USER_ACCOUNT_TABLE_NAME, nil, 0, nil, attributes), request, createTransaction,
+		)
+		if createErr != nil {
+			t.Fatalf("create metering user through canonical resource path: %v", createErr)
+		}
+	}
+	userID, err := GetReferenceIdToIdWithTransaction(USER_ACCOUNT_TABLE_NAME, userReference, createTransaction)
+	if err != nil {
+		t.Fatalf("resolve created metering user: %v", err)
+	}
+	if err := createTransaction.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	return cruds, &auth.SessionUser{UserId: userID, UserReferenceId: userReference}
+}
+
+func insertMeteringPlanAndMember(t *testing.T, cruds map[string]*DbResource, user *auth.SessionUser, now time.Time, limits string) {
+	t.Helper()
+	tx, err := cruds["api_plan"].Connection().Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	planReference := uuid.Must(uuid.NewV7())
 	planName := "test-plan-" + uuid.NewString()
-	query, arguments, err := statementbuilder.Squirrel.Insert("api_plan").Prepared(true).Rows(goqu.Record{
-		"name": planName, "limits": limits, "user_account_id": 7,
-		"reference_id": planReference[:], "permission": auth.DEFAULT_PERMISSION, "created_at": now, "updated_at": now,
-	}).ToSQL()
+	administrator := *user
+	administrator.Groups = auth.GroupPermissionList{{GroupReferenceId: cruds["api_plan"].AdministratorGroupId}}
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api_plan"}}).
+		WithContext(context.WithValue(context.Background(), "user", &administrator))}
+	plan, err := cruds["api_plan"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("api_plan", nil, 0, nil,
+		map[string]interface{}{"name": planName, "limits": limits}), request, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := tx.Exec(query, arguments...); err != nil {
-		t.Fatal(err)
-	}
-	var planID int64
-	query, arguments, err = statementbuilder.Squirrel.Select("id").Prepared(true).From("api_plan").Where(goqu.Ex{"name": planName}).ToSQL()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Get(&planID, query, arguments...); err != nil {
-		t.Fatal(err)
-	}
-	memberReference := uuid.Must(uuid.NewV7())
-	query, arguments, err = statementbuilder.Squirrel.Insert("api_member").Prepared(true).Rows(goqu.Record{
-		"status": "active", "period_start": now, "period_end": now.AddDate(0, 1, 0),
-		"api_plan_id": planID, "user_account_id": 7, "reference_id": memberReference[:],
-		"permission": auth.DEFAULT_PERMISSION, "created_at": now, "updated_at": now,
-	}).ToSQL()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tx.Exec(query, arguments...); err != nil {
+	request.PlainRequest.URL.Path = "/api_member"
+	if _, err := cruds["api_member"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("api_member", nil, 0, nil,
+		map[string]interface{}{"status": "active", "period_start": now, "period_end": now.AddDate(0, 1, 0),
+			"api_plan_id": daptinid.InterfaceToDIR(plan["reference_id"]).String()}), request, tx); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -572,25 +660,31 @@ func insertMeteringPlanAndMember(t *testing.T, database *sqlx.DB, now time.Time,
 	}
 }
 
-func assertMeteringBucket(t *testing.T, tx *sqlx.Tx, metric, bucketKey string, reserved, consumed int64) {
+func assertMeteringBucket(t *testing.T, service *MeteringService, tx *sqlx.Tx, metric, bucketKey string, reserved, consumed int64) {
 	t.Helper()
-	selectBucket := statementbuilder.Squirrel.Select("reserved", "consumed").Prepared(true).
-		From("api_quota").Where(goqu.Ex{"metric": metric})
+	var row map[string]interface{}
+	var err error
 	if bucketKey != "" {
-		selectBucket = selectBucket.Where(goqu.Ex{"bucket_key": bucketKey})
+		row, err = service.findQuota(bucketKey, tx)
+	} else {
+		var rows []map[string]interface{}
+		rows, _, err = (*service.cruds)["api_quota"].GetRowsByWhereClauseWithTransaction("api_quota", nil, tx, goqu.Ex{"metric": metric})
+		if err == nil && len(rows) != 1 {
+			t.Fatalf("quota rows for %s = %d, want 1", metric, len(rows))
+		}
+		if len(rows) == 1 {
+			row = rows[0]
+		}
 	}
-	query, arguments, err := selectBucket.ToSQL()
 	if err != nil {
 		t.Fatal(err)
 	}
-	var actual struct {
-		Reserved int64 `db:"reserved"`
-		Consumed int64 `db:"consumed"`
+	actualReserved, reservedErr := ResourceRowInt64(row["reserved"])
+	actualConsumed, consumedErr := ResourceRowInt64(row["consumed"])
+	if reservedErr != nil || consumedErr != nil {
+		t.Fatalf("invalid quota counters: %v, %v", reservedErr, consumedErr)
 	}
-	if err := tx.Get(&actual, query, arguments...); err != nil {
-		t.Fatal(err)
-	}
-	if actual.Reserved != reserved || actual.Consumed != consumed {
-		t.Fatalf("quota bucket = reserved %d consumed %d, want %d/%d", actual.Reserved, actual.Consumed, reserved, consumed)
+	if actualReserved != reserved || actualConsumed != consumed {
+		t.Fatalf("quota bucket = reserved %d consumed %d, want %d/%d", actualReserved, actualConsumed, reserved, consumed)
 	}
 }

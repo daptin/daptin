@@ -12,6 +12,9 @@ func TestLLMGatewayUsesCanonicalResourcesAndRelations(t *testing.T) {
 		"llm_provider":   {"name", "provider_type", "base_url", "provider_parameters", "allow_insecure", "allow_private_network", "enable"},
 		"llm_model":      {"name", "operations", "capabilities", "routing_strategy", "fallback_models", "default_parameters", "unsupported_parameter_policy", "enable"},
 		"llm_deployment": {"name", "upstream_model", "operations", "priority", "weight", "request_timeout_ms", "connect_timeout_ms", "max_concurrency", "rpm", "tpm", "pricing", "parameters", "health_check", "enable"},
+		"llm_file":       {"purpose", "status", "status_details", "expires_at"},
+		"llm_batch":      {"endpoint", "completion_window", "status", "metadata", "errors", "request_counts", "output_expiration_seconds", "claim_expires_at"},
+		"llm_batch_item": {"line_number", "custom_id", "body", "status", "response_status", "response_request_id", "response_body"},
 		"api_plan":       {"name", "limits"},
 		"api_usage":      {"request_id", "reservation_token", "state", "reservation_expires_at", "terminal_at", "reserved_measures", "reservation_buckets", "measures"},
 		"api_quota":      {"bucket_key", "metric", "window_start", "window_end", "maximum", "reserved", "consumed"},
@@ -36,13 +39,17 @@ func TestLLMGatewayUsesCanonicalResourcesAndRelations(t *testing.T) {
 	}
 
 	requiredRelations := map[string]bool{
-		"llm_provider|has_one|credential":        false,
-		"llm_deployment|belongs_to|llm_model":    false,
-		"llm_deployment|belongs_to|llm_provider": false,
+		"llm_provider|has_one|credential|credential_id":          false,
+		"llm_deployment|belongs_to|llm_model|llm_model_id":       false,
+		"llm_deployment|belongs_to|llm_provider|llm_provider_id": false,
+		"llm_file|belongs_to|document|document_id":               false,
+		"llm_batch|belongs_to|llm_file|input_file_id":            false,
+		"llm_batch|has_one|llm_file|output_file_id":              false,
+		"llm_batch_item|belongs_to|llm_batch|llm_batch_id":       false,
 	}
 	for index := range StandardRelations {
 		relation := &StandardRelations[index]
-		key := relation.GetSubject() + "|" + relation.GetRelation() + "|" + relation.GetObject()
+		key := relation.GetSubject() + "|" + relation.GetRelation() + "|" + relation.GetObject() + "|" + relation.GetObjectName()
 		if _, required := requiredRelations[key]; required {
 			requiredRelations[key] = true
 		}
@@ -51,6 +58,18 @@ func TestLLMGatewayUsesCanonicalResourcesAndRelations(t *testing.T) {
 		if !found {
 			t.Errorf("%s is missing from StandardRelations", relation)
 		}
+	}
+}
+
+func TestLLMInvocationUsesResourceMeteringConfiguration(t *testing.T) {
+	model := tableFromConfig(t, &CmsConfig{Tables: StandardTables}, "llm_model")
+	config := MeteringConfigForAction(model.Metering, "invoke")
+	if config == nil || !config.Enabled || config.MeterType != "requests" || config.CostExpr != "1" {
+		t.Fatalf("llm_model invoke metering is not configured through TableInfo: %#v", config)
+	}
+	jsonSchema := tableFromConfig(t, &CmsConfig{Tables: StandardTables}, "json_schema")
+	if jsonSchema.Metering != nil {
+		t.Fatalf("unrelated json_schema resource acquired LLM metering: %#v", jsonSchema.Metering)
 	}
 }
 
@@ -77,6 +96,23 @@ func TestLLMGatewayRelationsUseDaptinOwnershipAndRequiredForeignKeys(t *testing.
 		if !owner.IsForeignKey || owner.ForeignKeyData.Namespace != "user_account" {
 			t.Fatalf("%s ownership was not supplied by CheckRelations: %#v", tableName, owner)
 		}
+	}
+
+	file := tableFromConfig(t, &config, "llm_file")
+	document := columnFromTable(t, file, "document_id")
+	if !document.IsForeignKey || document.IsNullable || document.ForeignKeyData.Namespace != "document" {
+		t.Fatalf("llm_file must use the required canonical document relation: %#v", document)
+	}
+	batch := tableFromConfig(t, &config, "llm_batch")
+	for columnName, nullable := range map[string]bool{"input_file_id": false, "output_file_id": true} {
+		column := columnFromTable(t, batch, columnName)
+		if !column.IsForeignKey || column.IsNullable != nullable || column.ForeignKeyData.Namespace != "llm_file" {
+			t.Fatalf("batch file relation %s is invalid: %#v", columnName, column)
+		}
+	}
+	itemBatch := columnFromTable(t, tableFromConfig(t, &config, "llm_batch_item"), "llm_batch_id")
+	if !itemBatch.IsForeignKey || itemBatch.IsNullable || itemBatch.ForeignKeyData.Namespace != "llm_batch" {
+		t.Fatalf("batch item must use the required canonical batch relation: %#v", itemBatch)
 	}
 }
 

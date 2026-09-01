@@ -30,6 +30,7 @@ func TestLLMGatewayHasOneDaptinCompositionPath(t *testing.T) {
 	}
 	standaloneConstructors := 0
 	hostConstructors := 0
+	forbiddenMeteringWrites := map[string]bool{"Exec": true, "ExecContext": true, "NamedExec": true, "MustExec": true}
 	err := filepath.WalkDir(".", func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -74,7 +75,13 @@ func TestLLMGatewayHasOneDaptinCompositionPath(t *testing.T) {
 				}
 			case *ast.CallExpr:
 				selector, ok := typed.Fun.(*ast.SelectorExpr)
-				if !ok || selector.Sel.Name != "New" && selector.Sel.Name != "NewGateway" {
+				if !ok {
+					return true
+				}
+				if filepath.ToSlash(path) == "resource/metering.go" && forbiddenMeteringWrites[selector.Sel.Name] {
+					t.Errorf("%s bypasses canonical resource writes with %s", path, selector.Sel.Name)
+				}
+				if selector.Sel.Name != "New" && selector.Sel.Name != "NewGateway" {
 					return true
 				}
 				packageName, ok := selector.X.(*ast.Ident)

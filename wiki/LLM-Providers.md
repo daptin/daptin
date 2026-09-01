@@ -97,8 +97,10 @@ curl -X POST http://localhost:6336/api/llm_provider \
 
 ### 2. Create a public model
 
-Operations are `chat`, `responses`, `embeddings`, and `image_generation`.
-Capabilities are explicit and may include `tools`, `vision`, `audio`,
+Operations are `chat`, `text_completion`, `responses`, `response_compaction`,
+`embeddings`, `image_generation`, `image_edit`, `image_variation`, `moderation`, `rerank`, `audio_speech`,
+`audio_transcription`, `audio_translation`, `search`, and `ocr`. Capabilities
+are explicit and may include `tools`, `vision`, `audio`, `files`, `streaming`,
 `json_schema`, `logprobs`, `penalties`, `parallel_tools`, `reasoning`,
 `dimensions`, `token_ids`, `exact_cache`, and `public_cache`.
 
@@ -155,7 +157,7 @@ curl -X POST http://localhost:6336/api/llm_deployment \
         "max_concurrency": 100,
         "rpm": -1,
         "tpm": -1,
-        "pricing": "{\"input_micros_per_million\":150000,\"output_micros_per_million\":600000}",
+        "pricing": "{\"input_tokens\":150000,\"output_tokens\":600000}",
         "parameters": "{}",
         "health_check": "{\"enabled\":true,\"interval_ms\":30000,\"timeout_ms\":5000,\"failure_threshold\":3}",
         "enable": true
@@ -179,27 +181,54 @@ deadlines. Disabled, unhealthy, saturated, rate-protected, or
 capability-incompatible deployments are excluded. A streaming request may
 switch only before its first client-visible event.
 
-Pricing uses fixed-point micros per one million tokens. Available keys are
-`input_micros_per_million`, `output_micros_per_million`,
-`cache_read_micros_per_million`, `cache_write_micros_per_million`, and
-`reasoning_micros_per_million`.
+Pricing is a single map from a usage measure to its fixed-point cost in micros
+per one million units. Canonical token keys are `input_tokens`,
+`output_tokens`, `cache_read_tokens`, `cache_write_tokens`, and
+`reasoning_tokens`. Providers may also report named measures such as
+`search_units`, `ocr_pages`, or `document_bytes`; those use the same map and
+cost calculator.
 
 ## HTTP API
 
 The implemented OpenAI-compatible routes are:
 
 - `POST /v1/chat/completions`
+- `POST /v1/completions`
+- `POST /v1/messages`
 - `POST /v1/responses` (stateless; `store` and `previous_response_id` are
   rejected)
+- `POST /v1/responses/compact` (explicit input only;
+  `previous_response_id` is rejected)
 - `POST /v1/embeddings`
 - `POST /v1/images/generations`
+- `POST /v1/images/edits`
+- `POST /v1/images/variations`
+- `POST /v1/moderations`
+- `POST /rerank`, `POST /v1/rerank`, and `POST /v2/rerank`
+- `POST /v1/audio/speech`
+- `POST /v1/audio/transcriptions`
+- `POST /v1/audio/translations`
+- `POST /v1/search` and `POST /v1/search/{tool}`
+- `POST /v1/ocr` and `POST /ocr`
+- file create/list/read/content/delete under `/v1/files`
+- batch create/list/read/cancel under `/v1/batches`
 - `GET /v1/models`
 - `GET /v1/models/{id}`
 
-`POST /v1/completions` is not implemented because converting a completion
-prompt into chat would be lossy compatibility. Stateful Responses, audio,
-moderation, rerank, batch, file, assistant, fine-tuning, and vector-store APIs
-are not advertised.
+Streaming chat, completion, Messages, and Responses requests emit SSE
+keepalives while setup or upstream generation is idle. Responses events are
+translated through typed contracts; unknown event names, conflicting event
+types, missing coordinates, and non-increasing sequence numbers are rejected.
+Provider-reported cached and reasoning token details are retained in compatible
+chat/completion and Responses usage objects and in Daptin's generic metering
+facts.
+
+Text completions have a native canonical operation and are never converted to
+chat. Files and batches are durable Daptin resources; their persistence,
+permissions, relationships, and assets use the ordinary resource lifecycle.
+The existing `document.document_content` asset column must be bound to a
+configured Daptin cloud store. File creation fails with `service_unavailable`
+before writing either resource when that canonical asset binding is absent.
 
 All routes use Daptin authentication and model resource permissions. Model
 listing hides models the authenticated principal cannot read.
@@ -251,17 +280,17 @@ LLM-owned quota system. Admission reserves named measures before provider I/O,
 and completion/cancellation terminalizes the same `api_usage` record afterward.
 No database transaction remains open during provider inference or streaming.
 
-The emitted measures are `input_tokens`, `output_tokens`,
+The emitted measures include `input_tokens`, `output_tokens`,
 `cache_read_tokens`, `cache_write_tokens`, `reasoning_tokens`, `total_tokens`,
-and `cost_micros`. The same `api_plan` limits can be applied to any other
-metered Daptin resource using its own named measures.
+and `cost_micros`, plus operation-specific named measures. The same `api_plan`
+limits can be applied to any other metered Daptin resource using its own named
+measures.
 
-Backend configuration keys are:
-
-- `metering.llm.enabled` (default `true`)
-- `metering.llm.cost_expr` (default `1`)
-- `metering.llm.meter_type` (default `requests`)
-- `metering.llm.post_metering_action` (optional `type.action`)
+LLM invocation uses the `llm_model` resource's ordinary `TableInfo.Metering`
+configuration under the `invoke` action. The standard table enables request
+metering there. Custom cost expressions, meter types, and post-metering actions
+are configured through that same resource metering definition; there is no
+separate LLM metering configuration path.
 
 Hard limits use the database-backed generic quota state and fail closed when
 that authority is unavailable. Olric counters protect deployments
