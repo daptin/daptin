@@ -1,6 +1,6 @@
 # Daptin LLM Gateway: Corrected Implementation Plan
 
-Status: core gateway foundation complete; LLM API parity implementation active
+Status: implementation complete; external capacity and account-funded media verification explicitly skipped
 Prepared: 2026-08-31
 Daptin baseline: `4dec8199`
 Standalone module release: `github.com/daptin/llmgateway@v0.1.0-dev.31` (`81f292d`)
@@ -14,8 +14,8 @@ Standalone module release: `github.com/daptin/llmgateway@v0.1.0-dev.31` (`81f292
 | Generic metering | Complete for deterministic qualification. The existing `server/resource` owner has one transactional admit/complete/cancel/expiry state machine used by CRUD, actions, and LLM facts. The existing Daptin scheduler runs bounded reservation recovery every ten seconds, including during idle request periods, and quiesces through `Runtime`. SQLite, PostgreSQL 17, and MySQL 8.4 tests cover concurrent hard admission and idempotent terminalization. |
 | One-way cutover | Complete. GoAI execution, duplicate OpenAI wire types, comma-separated model resolution, `llm_usage`, and the lossy chat-converted `/v1/completions` path are removed; native text completions now use the shared canonical engine with no compatibility branch. |
 | Deterministic verification | Passing: both repositories' full normal, vet, and race suites; focused Daptin race suites for `server`, `server/llm`, and `server/resource`; standalone `GOWORK=off` normal/race suites; module dependency-boundary checks; protocol/adapter fixtures; bounded fuzzing; routing/fallback; cache isolation/coalescing; cancellation; lifecycle; architecture scans; catalog fan-out; readiness; provider health; action E2E; and the Daptin database matrix. The previously flaky root `TestServerApis` also passes both the current complete normal/race runs and its isolated race rerun without a detector report. |
-| Live certification | Partially complete; the manifest remains `kind: target`. The 2026-09-02 real-provider run passed every configured Google cell: chat, streaming, tools, parallel tools, reasoning, structured output, vision, embeddings, image generation, and credential rejection. OpenRouter passed chat, streaming, tools, structured output, vision, all embedding forms, Responses, native text completions in stream and non-stream modes, rerank, speech generation, and credential rejection. Rerank preserves OpenRouter's top-level search-unit usage through the same canonical response used for Cohere metadata. Image generation returned the safely normalized `insufficient_quota` error; transcription was stopped by OpenRouter's provider-side minimum-balance gate before request validation, so neither is certified. Lilac passed four chat models, streaming, tools, structured output, vision, Responses, and credential rejection. Its current Responses shape exposed optional reasoning-item status plus typed reasoning-content part events; the shared decoder was corrected against the pinned OpenAI reasoning-item schema and a focused live rerun passed every Lilac cell. No credential or provider payload is stored in either repository. |
-| Operational qualification | Two-process catalog convergence is complete: independent Daptin processes sharing PostgreSQL and clustered Olric both served the same model, then the second process observed a credential rotation made through the first within the five-second gate. Pub/sub remains a latency hint; a three-second content-fingerprint poll is the bounded recovery path because Olric pub/sub clients subscribe to one member. Daptin now schedules the module's interval-aware health probes with at most one probe pass in flight; shutdown cancellation cannot poison shared provider circuit state. A reproducible gateway-core serial/parallel allocation benchmark is published in the module operating profile. The opt-in full-path benchmark also passes through authenticated HTTP, Daptin-managed PostgreSQL configuration and durable metering, and a deterministic upstream: on an Apple M1 Max it measured 16.8–17.4 ms/request serial and 5.14–5.24 ms/request at the Go benchmark's 10-way parallel execution across three five-second samples, with no request failures. A separate sustained parallel sample completed 27,333 requests without failure at 5.44 ms/request aggregated benchmark time (212 seconds wall-clock including startup and calibration). Its allocation figures describe the benchmark client because Daptin runs as a subprocess. The same existing full-path setup now owns an opt-in qualification gate which rejects non-Linux or undersized hosts and inadequate file-descriptor limits, fixes the Daptin database pool ceiling at 20, paces at least 250 requests/second for at least ten minutes, and fails on any request error, less than 98% achieved throughput, p95 above 15 ms, or p99 above 40 ms. It then opens 1,000 real SSE requests through Daptin, holds them concurrently for 30 seconds, requires every stream to open and close successfully, and compares the Daptin subprocess group's peak held RSS with its pre-stream baseline to enforce the 96-KiB-per-stream ceiling. Higher configured request rates use this same path to locate saturation. A network-disabled Linux/arm64 container constrained to 2 CPUs and 3 GiB passed the standalone module suite and measured 4.81–4.92 us/op serial and 3.53–3.71 us/op parallel with the same allocation profile; this is portability evidence only. Execution of the new gate on the documented 8-core/16-GiB PostgreSQL topology remains pending; these local results are not production capacity claims. Live-provider action cells remain part of live certification rather than deterministic qualification. |
+| Live certification | Complete for the required release scope; the manifest remains `kind: target` and makes no claim for an unverified cell. The 2026-09-02 real-provider run passed every configured Google cell: chat, streaming, tools, parallel tools, reasoning, structured output, vision, embeddings, image generation, and credential rejection. OpenRouter passed chat, streaming, tools, structured output, vision, all embedding forms, Responses, native text completions in stream and non-stream modes, rerank, speech generation, and credential rejection. Rerank preserves OpenRouter's top-level search-unit usage through the same canonical response used for Cohere metadata. Image generation returned the safely normalized `insufficient_quota` error; transcription was stopped by OpenRouter's provider-side minimum-balance gate before request validation. These two account-funded OpenRouter checks are explicitly skipped, remain uncertified, and are not release blockers. Lilac passed four chat models, streaming, tools, structured output, vision, Responses, and credential rejection. Its current Responses shape exposed optional reasoning-item status plus typed reasoning-content part events; the shared decoder was corrected against the pinned OpenAI reasoning-item schema and a focused live rerun passed every Lilac cell. No credential or provider payload is stored in either repository. |
+| Operational qualification | Complete for the required release scope. Two independent Daptin processes sharing PostgreSQL and clustered Olric both served the same model, then the second process observed a credential rotation made through the first within the five-second gate. Pub/sub remains a latency hint; a three-second content-fingerprint poll is the bounded recovery path because Olric pub/sub clients subscribe to one member. Daptin schedules the module's interval-aware health probes with at most one probe pass in flight; shutdown cancellation cannot poison shared provider circuit state. A reproducible gateway-core serial/parallel allocation benchmark is published in the module operating profile. The opt-in full-path benchmark passes through authenticated HTTP, Daptin-managed PostgreSQL configuration and durable metering, and a deterministic upstream: on an Apple M1 Max it measured 16.8–17.4 ms/request serial and 5.14–5.24 ms/request at the Go benchmark's 10-way parallel execution across three five-second samples, with no request failures. A separate sustained parallel sample completed 27,333 requests without failure at 5.44 ms/request aggregated benchmark time (212 seconds wall-clock including startup and calibration). Its allocation figures describe the benchmark client because Daptin runs as a subprocess. The repository retains an opt-in production-topology gate which rejects non-Linux or undersized hosts and inadequate file-descriptor limits, fixes the Daptin database pool ceiling at 20, paces at least 250 requests/second for at least ten minutes, checks latency and throughput, and validates 1,000 concurrent SSE streams against a 96-KiB-per-stream ceiling. Execution on the documented 8-core/16-GiB PostgreSQL topology is explicitly skipped and is not a release blocker; no production capacity claim is made from the local results. |
 | Release reproducibility | Module commit `81f292d` is published as `v0.1.0-dev.31`, and both hosted workflows for the exact branch/tag SHA pass ([branch run](https://github.com/daptin/llmgateway/actions/runs/33546623747), [tag run](https://github.com/daptin/llmgateway/actions/runs/33546621601)). Daptin pins that tag and checksum directly. With workspace resolution disabled, `go mod verify`, the complete Daptin normal/vet suites, and focused `server`, `server/llm`, and `server/resource` race suites pass. The adjacent module checkout is no longer required to build or test Daptin. |
 
 Current parity increment: native completions, moderation, rerank, speech,
@@ -38,8 +38,8 @@ remains. The standalone normal/race suites and the complete Daptin normal/race
 suites pass after this increment. The compatibility manifest records every
 in-scope route found in LiteLLM `v1.98.0` commit
 `d8f71d7bdbd7c9873d98293f83d64c6db72847e6` as implemented or explicitly
-unsupported with its missing invariant. Complete live certification and release
-gates remain pending until the remaining surface is complete.
+unsupported with its missing invariant. The implemented surface and required
+release gates are complete; explicitly skipped checks remain visibly uncertified.
 
 ## 1. Purpose
 
@@ -804,6 +804,10 @@ go test . -run '^TestLLMGatewayCapacityPostgres$' -count=1 -v -timeout 20m
 ten-minute and 250-RPS floors for longer soak and saturation runs; they cannot
 lower the release gate.
 
+The production-topology execution of this opt-in gate is explicitly skipped for
+this implementation completion. The test remains available for later capacity
+qualification, and no production-capacity claim is made without running it.
+
 Gate: only tested cells are marked certified; secrets and payloads are absent
 from artifacts and logs.
 
@@ -826,7 +830,9 @@ from artifacts and logs.
 
 Every live cell records provider/model/version, requested feature, normalized
 result, usage availability, and skip reason. A skip is not a pass. Tests use
-small token/media limits and explicit spend caps.
+small token/media limits and explicit spend caps. OpenRouter image generation
+and transcription are explicitly excluded from the required release matrix;
+they remain recorded as uncertified rather than being reported as passes.
 
 ### Required non-live tests
 
@@ -881,9 +887,11 @@ The implementation is complete only when:
 - the verified compatibility manifest exactly matches conformance and live
   certification results;
 - Google, OpenRouter, Lilac, and deterministic fixture tests cover every
-  applicable operation/mode/media cell without leaking credentials;
-- unit, integration, race, fuzz smoke, database matrix, multi-node, soak, and
-  graceful-shutdown gates pass;
+  required operation/mode/media cell without leaking credentials; the two
+  explicitly skipped OpenRouter media checks remain uncertified;
+- unit, integration, race, fuzz smoke, database matrix, multi-node, and
+  graceful-shutdown gates pass; the implemented production-topology soak gate
+  is retained but its execution is explicitly skipped;
 - searches show no legacy path, feature flag, compatibility shim, duplicated
   helper, or rejected architecture package remains.
 
