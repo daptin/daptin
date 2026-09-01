@@ -26,8 +26,8 @@ import (
 type Gateway struct {
 	engine             *gateway.Engine
 	handler            http.Handler
-	reloadCancel       context.CancelFunc
-	reloadDone         chan struct{}
+	maintenanceCancel  context.CancelFunc
+	maintenanceDone    chan struct{}
 	reloadSubscription *redis.PubSub
 	drainOnce          sync.Once
 	drainErr           error
@@ -84,7 +84,7 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 		return nil, fmt.Errorf("load LLM gateway catalog: %w", err)
 	}
 	gatewayHost := &Gateway{engine: engine, handler: handler}
-	gatewayHost.startReloadWatcher(ctx, cruds["world"].PubSub)
+	gatewayHost.startMaintenance(ctx, cruds["world"].PubSub)
 	return gatewayHost, nil
 }
 
@@ -110,17 +110,17 @@ func (gatewayHost *Gateway) Status() gateway.Status {
 
 func (gatewayHost *Gateway) Drain(ctx context.Context) error {
 	gatewayHost.drainOnce.Do(func() {
-		if gatewayHost.reloadCancel != nil {
-			gatewayHost.reloadCancel()
+		if gatewayHost.maintenanceCancel != nil {
+			gatewayHost.maintenanceCancel()
 		}
 		if gatewayHost.reloadSubscription != nil {
 			gatewayHost.drainErr = gatewayHost.reloadSubscription.Close()
 		}
 	})
 	err := gatewayHost.drainErr
-	if gatewayHost.reloadDone != nil {
+	if gatewayHost.maintenanceDone != nil {
 		select {
-		case <-gatewayHost.reloadDone:
+		case <-gatewayHost.maintenanceDone:
 		case <-ctx.Done():
 			err = errors.Join(err, ctx.Err())
 		}
@@ -128,19 +128,23 @@ func (gatewayHost *Gateway) Drain(ctx context.Context) error {
 	return errors.Join(err, gatewayHost.engine.Drain(ctx))
 }
 
-func (gatewayHost *Gateway) startReloadWatcher(parent context.Context, pubsub *olric.PubSub) {
+func (gatewayHost *Gateway) startMaintenance(parent context.Context, pubsub *olric.PubSub) {
 	ctx, cancel := context.WithCancel(parent)
-	gatewayHost.reloadCancel = cancel
-	gatewayHost.reloadDone = make(chan struct{})
+	gatewayHost.maintenanceCancel = cancel
+	gatewayHost.maintenanceDone = make(chan struct{})
 	var events <-chan *redis.Message
 	if pubsub != nil {
 		gatewayHost.reloadSubscription = pubsub.Subscribe(ctx, "credential", "llm_provider", "llm_model", "llm_deployment")
 		events = gatewayHost.reloadSubscription.Channel()
 	}
 	go func() {
-		defer close(gatewayHost.reloadDone)
+		defer close(gatewayHost.maintenanceDone)
 		poll := time.NewTicker(3 * time.Second)
 		defer poll.Stop()
+		health := time.NewTicker(time.Second)
+		defer health.Stop()
+		probeFinished := make(chan struct{}, 1)
+		probeActive := false
 		debounce := time.NewTimer(time.Hour)
 		if !debounce.Stop() {
 			<-debounce.C
@@ -177,6 +181,17 @@ func (gatewayHost *Gateway) startReloadWatcher(parent context.Context, pubsub *o
 				reload()
 			case <-poll.C:
 				reload()
+			case <-health.C:
+				if probeActive {
+					continue
+				}
+				probeActive = true
+				go func() {
+					_, _ = gatewayHost.engine.Probe(ctx)
+					probeFinished <- struct{}{}
+				}()
+			case <-probeFinished:
+				probeActive = false
 			}
 		}
 	}()

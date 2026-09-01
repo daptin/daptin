@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -143,8 +144,10 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	if initialStatus.Revision != 1 || !initialStatus.Ready || initialStatus.Degraded {
 		t.Fatalf("initial gateway status = %#v", initialStatus)
 	}
-	if secondStatus := hostB.Status(); secondStatus != initialStatus {
-		t.Fatalf("gateway hosts started with different snapshots: first %#v, second %#v", initialStatus, secondStatus)
+	if secondStatus := hostB.Status(); secondStatus.Revision != initialStatus.Revision || secondStatus.Ready != initialStatus.Ready ||
+		secondStatus.Draining != initialStatus.Draining || secondStatus.Degraded != initialStatus.Degraded ||
+		secondStatus.RejectedRevision != initialStatus.RejectedRevision || secondStatus.ReloadStage != initialStatus.ReloadStage {
+		t.Fatalf("gateway hosts started with different snapshot state: first %#v, second %#v", initialStatus, secondStatus)
 	}
 
 	updateCatalogField(t, database, "llm_deployment", "weight", 0)
@@ -307,6 +310,31 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}
 	if inUse := database.Stats().InUse; inUse != 0 {
 		t.Fatalf("database connections still in use after stream cancellation: %d", inUse)
+	}
+	var healthProbes atomic.Int64
+	healthUpstream := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v1/models" {
+			http.NotFound(response, request)
+			return
+		}
+		healthProbes.Add(1)
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{"object":"list","data":[]}`))
+	}))
+	defer healthUpstream.Close()
+	healthRevision := hostB.Status().Revision
+	updateCatalogField(t, database, "llm_provider", "base_url", healthUpstream.URL+"/v1")
+	updateCatalogField(t, database, "llm_provider", "allow_insecure", true)
+	updateCatalogField(t, database, "llm_provider", "allow_private_network", true)
+	updateCatalogField(t, database, "llm_deployment", "health_check", `{"enabled":true,"interval_ms":1000,"timeout_ms":500,"failure_threshold":1}`)
+	publishCatalogEvent(t, cruds["world"].PubSub, "llm_deployment")
+	waitForGatewayStatus(t, hostB, func(status gateway.Status) bool { return status.Revision > healthRevision && status.Ready })
+	healthDeadline := time.Now().Add(3 * time.Second)
+	for healthProbes.Load() == 0 && time.Now().Before(healthDeadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if healthProbes.Load() == 0 {
+		t.Fatal("Daptin gateway did not schedule the configured provider health check")
 	}
 	drainContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
