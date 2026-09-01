@@ -2,19 +2,13 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
-	"sync"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -119,10 +113,11 @@ func TestAccessGroupsRealAuthorizationScenariosE2E(t *testing.T) {
 		t.Skip("set DAPTIN_REAL_E2E=1 to run real access-group authorization e2e")
 	}
 
-	port := freeAccessGroupsE2EPort(t)
-	httpsPort := freeAccessGroupsE2EPort(t)
+	usedPorts := make(map[int]bool, 2)
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	stop := startAccessGroupsE2EDaptin(t, port, httpsPort, baseURL, accessGroupsE2ESchema)
+	stop := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: accessGroupsE2ESchema})
 	defer stop()
 
 	client := &http.Client{Timeout: 20 * time.Second}
@@ -187,79 +182,6 @@ func TestAccessGroupsRealAuthorizationScenariosE2E(t *testing.T) {
 		accessGroupsE2EAssertStatus(t, client, http.MethodPost, baseURL+"/action/action_doc/denied_action", userToken, map[string]interface{}{"attributes": map[string]interface{}{}}, http.StatusForbidden)
 		accessGroupsE2EAssertStatus(t, client, http.MethodPost, baseURL+"/action/action_doc/allowed_action", "", map[string]interface{}{"attributes": map[string]interface{}{}}, http.StatusForbidden)
 	})
-}
-
-func startAccessGroupsE2EDaptin(t *testing.T, port int, httpsPort int, baseURL string, schema string) func() {
-	t.Helper()
-
-	tmpDir := t.TempDir()
-	storageDir := filepath.Join(tmpDir, "storage")
-	if err := os.MkdirAll(storageDir, 0o755); err != nil {
-		t.Fatalf("create storage dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(tmpDir, "schema_access_groups_e2e.yaml"), []byte(schema), 0o600); err != nil {
-		t.Fatalf("write schema: %v", err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	logs := &lockedAccessGroupsE2EBuffer{}
-	cmd := exec.CommandContext(ctx, "go", "run", ".",
-		"-port", fmt.Sprintf(":%d", port),
-		"-https_port", fmt.Sprintf(":%d", httpsPort),
-		"-db_type", "sqlite3",
-		"-db_connection_string", filepath.Join(tmpDir, "daptin.db"),
-		"-local_storage_path", storageDir,
-		"-runtime", "test",
-		"-log_level", "error",
-	)
-	cmd.Env = append(os.Environ(), "DAPTIN_SCHEMA_FOLDER="+tmpDir)
-	cmd.Stdout = logs
-	cmd.Stderr = logs
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	if err := cmd.Start(); err != nil {
-		cancel()
-		t.Fatalf("start daptin: %v", err)
-	}
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Wait()
-	}()
-
-	deadline := time.Now().Add(2 * time.Minute)
-	for time.Now().Before(deadline) {
-		select {
-		case err := <-done:
-			cancel()
-			t.Fatalf("daptin exited before readiness: %v\n%s", err, logs.String())
-		default:
-		}
-		resp, err := http.Get(baseURL + "/api/world")
-		if err == nil {
-			_, _ = io.Copy(io.Discard, resp.Body)
-			_ = resp.Body.Close()
-			if resp.StatusCode < 500 {
-				return func() {
-					if cmd.Process != nil {
-						_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
-					}
-					select {
-					case <-done:
-					case <-time.After(10 * time.Second):
-						if cmd.Process != nil {
-							_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-						}
-						<-done
-					}
-					cancel()
-				}
-			}
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-	cancel()
-	t.Fatalf("daptin did not become ready\n%s", logs.String())
-	return func() {}
 }
 
 func accessGroupsE2ESignupSigninAdmin(t *testing.T, client *http.Client, baseURL string) string {
@@ -472,31 +394,4 @@ func accessGroupsE2EFindString(value interface{}, key string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-func freeAccessGroupsE2EPort(t *testing.T) int {
-	t.Helper()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("allocate port: %v", err)
-	}
-	defer listener.Close()
-	return listener.Addr().(*net.TCPAddr).Port
-}
-
-type lockedAccessGroupsE2EBuffer struct {
-	mu  sync.Mutex
-	buf bytes.Buffer
-}
-
-func (b *lockedAccessGroupsE2EBuffer) Write(p []byte) (int, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.buf.Write(p)
-}
-
-func (b *lockedAccessGroupsE2EBuffer) String() string {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.buf.String()
 }

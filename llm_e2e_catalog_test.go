@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,6 +17,47 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 )
+
+const llmE2EActionsSchema = `Actions:
+  - Name: llm_e2e_chat
+    Label: LLM chat E2E
+    OnType: world
+    InstanceOptional: true
+    InFields:
+      - Name: model
+        ColumnType: label
+        DataType: varchar(200)
+      - Name: prompt
+        ColumnType: content
+        DataType: text
+    OutFields:
+      - Method: EXECUTE
+        Type: $llm.chat
+        Reference: llm_result
+        Attributes:
+          model: ~model
+          messages:
+            - role: user
+              content: ~prompt
+          max_completion_tokens: 64
+  - Name: llm_e2e_embedding
+    Label: LLM embedding E2E
+    OnType: world
+    InstanceOptional: true
+    InFields:
+      - Name: model
+        ColumnType: label
+        DataType: varchar(200)
+      - Name: input
+        ColumnType: content
+        DataType: text
+    OutFields:
+      - Method: EXECUTE
+        Type: $llm.embedding
+        Reference: llm_result
+        Attributes:
+          model: ~model
+          input: ~input`
 
 type llmE2ECatalog struct {
 	name             string
@@ -89,6 +131,49 @@ func createLLME2ECatalog(t testing.TB, client *http.Client, baseURL string, toke
 		}},
 	})
 	return credentialReference
+}
+
+func startLLME2EUpstream(t testing.TB, apiKey string, upstreamModel string, chatContent string, permitRequest func() bool) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("Authorization") != "Bearer "+apiKey {
+			http.Error(response, "unexpected authorization", http.StatusUnauthorized)
+			return
+		}
+		if permitRequest != nil && !permitRequest() {
+			http.Error(response, "provider request was not permitted", http.StatusInternalServerError)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil || body["model"] != upstreamModel {
+			http.Error(response, "invalid upstream request", http.StatusBadRequest)
+			return
+		}
+		if strings.Contains(fmt.Sprint(body["messages"]), "trigger-provider-failure") {
+			http.Error(response, "provider-secret-marker", http.StatusServiceUnavailable)
+			return
+		}
+		response.Header().Set("Content-Type", "application/json")
+		switch request.URL.Path {
+		case "/v1/chat/completions":
+			transportE2EWriteJSON(response, map[string]interface{}{
+				"id": "llm-e2e-chat", "object": "chat.completion", "created": 1, "model": upstreamModel,
+				"choices": []interface{}{map[string]interface{}{
+					"index": 0, "message": map[string]interface{}{"role": "assistant", "content": chatContent}, "finish_reason": "stop",
+				}},
+				"usage": map[string]interface{}{"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+			})
+		case "/v1/embeddings":
+			transportE2EWriteJSON(response, map[string]interface{}{
+				"object": "list", "data": []interface{}{map[string]interface{}{
+					"object": "embedding", "index": 0, "embedding": []float64{0.25, 0.5},
+				}},
+				"model": upstreamModel, "usage": map[string]interface{}{"prompt_tokens": 2, "total_tokens": 2},
+			})
+		default:
+			http.NotFound(response, request)
+		}
+	}))
 }
 
 func llmE2EActionUser(t testing.TB, email string) *auth.SessionUser {

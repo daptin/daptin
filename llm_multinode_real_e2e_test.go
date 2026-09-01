@@ -50,12 +50,12 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	defer upstream.Close()
 
 	usedPorts := make(map[int]bool, 8)
-	portA := freeLLMMultinodePort(t, usedPorts)
-	httpsPortA := freeLLMMultinodePort(t, usedPorts)
-	portB := freeLLMMultinodePort(t, usedPorts)
-	httpsPortB := freeLLMMultinodePort(t, usedPorts)
-	olricPortA := freeLLMMultinodePortPair(t, usedPorts)
-	olricPortB := freeLLMMultinodePortPair(t, usedPorts)
+	portA := freeTransportE2EPort(t, usedPorts)
+	httpsPortA := freeTransportE2EPort(t, usedPorts)
+	portB := freeTransportE2EPort(t, usedPorts)
+	httpsPortB := freeTransportE2EPort(t, usedPorts)
+	olricPortA := freeTransportE2EPortPair(t, usedPorts)
+	olricPortB := freeTransportE2EPortPair(t, usedPorts)
 	baseA := fmt.Sprintf("http://127.0.0.1:%d", portA)
 	baseB := fmt.Sprintf("http://127.0.0.1:%d", portB)
 
@@ -70,7 +70,7 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	defer stopB()
 
 	client := &http.Client{Timeout: 20 * time.Second}
-	token, _ := transportE2ESignupSigninAdmin(t, client, baseA)
+	token := transportE2ESignupSigninAdmin(t, client, baseA)
 	credentialReference := createLLME2ECatalog(t, client, baseA, token, llmE2ECatalog{
 		name: "llm-multinode-e2e", upstreamURL: upstream.URL, apiKey: "multinode-initial-key",
 		upstreamModel: "multinode-upstream", operations: []string{"chat"}, maxConcurrency: 4,
@@ -163,48 +163,4 @@ func tryLLMMultinodeChat(client *http.Client, baseURL string, token string) (int
 		decoded = map[string]interface{}{"body": string(payload)}
 	}
 	return decoded, response.StatusCode
-}
-
-func freeLLMMultinodePort(t testing.TB, used map[int]bool) int {
-	t.Helper()
-	for attempt := 0; attempt < 100; attempt++ {
-		listener, err := net.Listen("tcp", "0.0.0.0:0")
-		if err != nil {
-			t.Fatal(err)
-		}
-		port := listener.Addr().(*net.TCPAddr).Port
-		_ = listener.Close()
-		if !used[port] {
-			used[port] = true
-			return port
-		}
-	}
-	t.Fatal("allocate distinct Daptin E2E port")
-	return 0
-}
-
-func freeLLMMultinodePortPair(t testing.TB, used map[int]bool) int {
-	t.Helper()
-	for attempt := 0; attempt < 100; attempt++ {
-		first, err := net.Listen("tcp", "0.0.0.0:0")
-		if err != nil {
-			t.Fatal(err)
-		}
-		port := first.Addr().(*net.TCPAddr).Port
-		if port == 65535 || used[port] || used[port+1] {
-			_ = first.Close()
-			continue
-		}
-		second, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", fmt.Sprint(port+1)))
-		_ = first.Close()
-		if err != nil {
-			continue
-		}
-		_ = second.Close()
-		used[port] = true
-		used[port+1] = true
-		return port
-	}
-	t.Fatal("allocate adjacent Olric ports")
-	return 0
 }

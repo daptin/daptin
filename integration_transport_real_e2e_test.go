@@ -36,14 +36,15 @@ func TestRealIntegrationTransportE2E(t *testing.T) {
 	grpcAddress, stopGRPC := startTransportE2EGRPCUpstream(t)
 	defer stopGRPC()
 
-	port := freeTransportE2EPort(t)
-	httpsPort := freeTransportE2EPort(t)
+	usedPorts := make(map[int]bool, 2)
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
 	daptinBaseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	stopDaptin := startTransportE2EDaptin(t, port, httpsPort, daptinBaseURL)
 	defer stopDaptin()
 
 	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken, _ := transportE2ESignupSigninAdmin(t, client, daptinBaseURL)
+	adminToken := transportE2ESignupSigninAdmin(t, client, daptinBaseURL)
 	credentialRef := transportE2ECreateCredential(t, client, daptinBaseURL, adminToken)
 
 	httpIntegrationRef := transportE2ECreateIntegration(t, client, daptinBaseURL, adminToken, "e2e-http-protocols", httpTransportE2ESpec(t, httpUpstream.URL))
@@ -222,6 +223,7 @@ type transportE2EDaptinOptions struct {
 	connectionString string
 	olricPort        int
 	olricPeers       string
+	schema           string
 }
 
 func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL string, requested ...transportE2EDaptinOptions) func() {
@@ -238,10 +240,24 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 		databaseType: "sqlite3", connectionString: filepath.Join(tmpDir, "daptin.db"),
 	}
 	if len(requested) == 1 {
-		options = requested[0]
+		provided := requested[0]
+		if provided.databaseType != "" {
+			options.databaseType = provided.databaseType
+		}
+		if provided.connectionString != "" {
+			options.connectionString = provided.connectionString
+		}
+		options.olricPort = provided.olricPort
+		options.olricPeers = provided.olricPeers
+		options.schema = provided.schema
 	}
 	if options.databaseType == "" || options.connectionString == "" {
 		t.Fatal("Daptin E2E database type and connection string are required")
+	}
+	if options.schema != "" {
+		if err := os.WriteFile(filepath.Join(tmpDir, "schema_transport_e2e.yaml"), []byte(options.schema), 0o600); err != nil {
+			t.Fatalf("write Daptin E2E schema: %v", err)
+		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -262,6 +278,9 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 		arguments = append(arguments, "-olric_peers", options.olricPeers)
 	}
 	cmd := exec.CommandContext(ctx, "go", arguments...)
+	if options.schema != "" {
+		cmd.Env = transportE2EEnvironment("DAPTIN_SCHEMA_FOLDER", tmpDir)
+	}
 	cmd.Stdout = logs
 	cmd.Stderr = logs
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -311,7 +330,19 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 	return func() {}
 }
 
-func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL string) (string, string) {
+func transportE2EEnvironment(name, value string) []string {
+	prefix := name + "="
+	environment := os.Environ()
+	result := make([]string, 0, len(environment)+1)
+	for _, entry := range environment {
+		if !strings.HasPrefix(entry, prefix) {
+			result = append(result, entry)
+		}
+	}
+	return append(result, prefix+value)
+}
+
+func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL string) string {
 	t.Helper()
 
 	email := fmt.Sprintf("admin-%d@test.local", time.Now().UnixNano())
@@ -337,7 +368,7 @@ func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL st
 	}
 
 	transportE2EPostJSON(t, client, baseURL+"/action/world/become_an_administrator", token, map[string]interface{}{})
-	return token, email
+	return token
 }
 
 func transportE2ECreateCredential(t *testing.T, client *http.Client, baseURL string, token string) string {
@@ -620,14 +651,48 @@ func transportE2EWriteJSON(w http.ResponseWriter, value interface{}) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 
-func freeTransportE2EPort(t *testing.T) int {
+func freeTransportE2EPort(t testing.TB, used map[int]bool) int {
 	t.Helper()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("allocate free port: %v", err)
+	for attempt := 0; attempt < 100; attempt++ {
+		listener, err := net.Listen("tcp", "0.0.0.0:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		port := listener.Addr().(*net.TCPAddr).Port
+		_ = listener.Close()
+		if !used[port] {
+			used[port] = true
+			return port
+		}
 	}
-	defer listener.Close()
-	return listener.Addr().(*net.TCPAddr).Port
+	t.Fatal("allocate distinct Daptin E2E port")
+	return 0
+}
+
+func freeTransportE2EPortPair(t testing.TB, used map[int]bool) int {
+	t.Helper()
+	for attempt := 0; attempt < 100; attempt++ {
+		first, err := net.Listen("tcp", "0.0.0.0:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		port := first.Addr().(*net.TCPAddr).Port
+		if port == 65535 || used[port] || used[port+1] {
+			_ = first.Close()
+			continue
+		}
+		second, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", fmt.Sprint(port+1)))
+		_ = first.Close()
+		if err != nil {
+			continue
+		}
+		_ = second.Close()
+		used[port] = true
+		used[port+1] = true
+		return port
+	}
+	t.Fatal("allocate adjacent Daptin E2E ports")
+	return 0
 }
 
 type lockedTransportE2EBuffer struct {

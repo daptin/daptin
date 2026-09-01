@@ -38,9 +38,9 @@ func BenchmarkLLMGatewayHTTPPostgres(b *testing.B) {
 	defer upstream.Close()
 
 	usedPorts := make(map[int]bool, 4)
-	port := freeLLMMultinodePort(b, usedPorts)
-	httpsPort := freeLLMMultinodePort(b, usedPorts)
-	olricPort := freeLLMMultinodePortPair(b, usedPorts)
+	port := freeTransportE2EPort(b, usedPorts)
+	httpsPort := freeTransportE2EPort(b, usedPorts)
+	olricPort := freeTransportE2EPortPair(b, usedPorts)
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	stopDaptin := startTransportE2EDaptin(b, port, httpsPort, baseURL, transportE2EDaptinOptions{
 		databaseType: "postgres", connectionString: dsn, olricPort: olricPort,
@@ -48,7 +48,7 @@ func BenchmarkLLMGatewayHTTPPostgres(b *testing.B) {
 	defer stopDaptin()
 
 	client := &http.Client{Timeout: 20 * time.Second}
-	token, _ := transportE2ESignupSigninAdmin(b, client, baseURL)
+	token := transportE2ESignupSigninAdmin(b, client, baseURL)
 	modelName := fmt.Sprintf("llm-benchmark-%d", time.Now().UnixNano())
 	createLLME2ECatalog(b, client, baseURL, token, llmE2ECatalog{
 		name: modelName, upstreamURL: upstream.URL, apiKey: "benchmark-provider-key",

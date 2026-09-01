@@ -16,7 +16,6 @@ import (
 	"github.com/jlaffaye/ftp"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
@@ -893,38 +892,9 @@ func runLLMGatewayActionE2E(t *testing.T, baseAddress string, token string) {
 	t.Helper()
 
 	var transactionClosed func() bool
-	upstream := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		if request.Header.Get("Authorization") != "Bearer action-e2e-key" {
-			http.Error(response, "unexpected authorization", http.StatusUnauthorized)
-			return
-		}
-		if transactionClosed == nil || !transactionClosed() {
-			http.Error(response, "action transaction remained open during provider I/O", http.StatusInternalServerError)
-			return
-		}
-		var body map[string]interface{}
-		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
-			http.Error(response, "invalid request body", http.StatusBadRequest)
-			return
-		}
-		if body["model"] != "upstream-action-e2e" {
-			http.Error(response, "unexpected upstream model", http.StatusBadRequest)
-			return
-		}
-		if strings.Contains(fmt.Sprint(body["messages"]), "trigger-provider-failure") {
-			http.Error(response, "provider-secret-marker", http.StatusServiceUnavailable)
-			return
-		}
-		response.Header().Set("Content-Type", "application/json")
-		switch request.URL.Path {
-		case "/v1/chat/completions":
-			_, _ = response.Write([]byte(`{"id":"chat-action-e2e","object":"chat.completion","created":1,"model":"upstream-action-e2e","choices":[{"index":0,"message":{"role":"assistant","content":"action-chat-ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":2,"total_tokens":5}}`))
-		case "/v1/embeddings":
-			_, _ = response.Write([]byte(`{"object":"list","data":[{"object":"embedding","index":0,"embedding":[0.25,0.5]}],"model":"upstream-action-e2e","usage":{"prompt_tokens":2,"total_tokens":2}}`))
-		default:
-			http.NotFound(response, request)
-		}
-	}))
+	upstream := startLLME2EUpstream(t, "action-e2e-key", "upstream-action-e2e", "action-chat-ok", func() bool {
+		return transactionClosed != nil && transactionClosed()
+	})
 	defer upstream.Close()
 
 	client := &http.Client{Timeout: 10 * time.Second}
