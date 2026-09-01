@@ -27,6 +27,18 @@ func TestDaptinOlricPortsImplementGatewayContract(t *testing.T) {
 
 	ctx := context.Background()
 	counters := olricCounterStore{values: values, leases: leases}
+	if value, err := counters.Add(ctx, "rpm", 1, time.Second); err != nil || value != 1 {
+		t.Fatalf("first fixed-window add = %d, %v", value, err)
+	}
+	time.Sleep(600 * time.Millisecond)
+	if value, err := counters.Add(ctx, "rpm", 1, time.Second); err != nil || value != 2 {
+		t.Fatalf("second fixed-window add = %d, %v", value, err)
+	}
+	time.Sleep(600 * time.Millisecond)
+	if value, found, err := counters.Get(ctx, "rpm"); err != nil || found || value != 0 {
+		t.Fatalf("fixed-window expiry was extended: value=%d found=%v err=%v", value, found, err)
+	}
+
 	lease, err := counters.Acquire(ctx, "deployment", 1, time.Minute)
 	if err != nil {
 		t.Fatal(err)
@@ -77,5 +89,46 @@ func TestDaptinOlricPortsImplementGatewayContract(t *testing.T) {
 	}
 	if _, found, err := cache.Get(ctx, "response"); err != nil || found {
 		t.Fatalf("cache delete left entry: found=%v err=%v", found, err)
+	}
+}
+
+func TestLLMMeteringConfigDefaultsAndRejectsInvalidValues(t *testing.T) {
+	database, cruds, _, _ := newCatalogTestResources(t)
+	transaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer transaction.Rollback()
+
+	config, err := llmMeteringConfig(cruds["world"].ConfigStore, transaction)
+	if err != nil {
+		t.Fatalf("missing optional configuration: %v", err)
+	}
+	if !config.Enabled || config.CostExpr != "1" || config.MeterType != "requests" || config.PostMeteringAction != "" {
+		t.Fatalf("unexpected defaults: %+v", config)
+	}
+
+	if err := cruds["world"].ConfigStore.SetConfigValueFor("metering.llm.enabled", "not-a-boolean", "backend", transaction); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := llmMeteringConfig(cruds["world"].ConfigStore, transaction); err == nil {
+		t.Fatal("invalid enabled value was accepted")
+	}
+}
+
+func TestLLMMeteringConfigRejectsUnavailableDependencies(t *testing.T) {
+	if _, err := llmMeteringConfig(nil, nil); err == nil {
+		t.Fatal("missing config store and transaction were accepted")
+	}
+	database, cruds, _, _ := newCatalogTestResources(t)
+	transaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := transaction.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := llmMeteringConfig(cruds["world"].ConfigStore, transaction); err == nil {
+		t.Fatal("unavailable configuration transaction was accepted")
 	}
 }

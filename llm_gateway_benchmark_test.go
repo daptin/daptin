@@ -48,7 +48,7 @@ func BenchmarkLLMGatewayHTTPPostgres(b *testing.B) {
 	defer stopDaptin()
 
 	client := &http.Client{Timeout: 20 * time.Second}
-	token := transportE2ESignupSigninAdmin(b, client, baseURL)
+	token, _ := transportE2ESignupSigninAdmin(b, client, baseURL)
 	modelName := fmt.Sprintf("llm-benchmark-%d", time.Now().UnixNano())
 	createLLME2ECatalog(b, client, baseURL, token, llmE2ECatalog{
 		name: modelName, upstreamURL: upstream.URL, apiKey: "benchmark-provider-key",

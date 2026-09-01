@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -26,9 +25,6 @@ import (
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/daptin/daptin/server"
-	"github.com/daptin/daptin/server/actionresponse"
-	"github.com/daptin/daptin/server/auth"
-	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
@@ -36,6 +32,7 @@ import (
 	"github.com/gocraft/health"
 	"github.com/imroc/req"
 	"github.com/jamiealquiza/envy"
+	"github.com/jmoiron/sqlx"
 )
 
 const testData = `{
@@ -914,6 +911,10 @@ func runLLMGatewayActionE2E(t *testing.T, baseAddress string, token string) {
 			http.Error(response, "unexpected upstream model", http.StatusBadRequest)
 			return
 		}
+		if strings.Contains(fmt.Sprint(body["messages"]), "trigger-provider-failure") {
+			http.Error(response, "provider-secret-marker", http.StatusServiceUnavailable)
+			return
+		}
 		response.Header().Set("Content-Type", "application/json")
 		switch request.URL.Path {
 		case "/v1/chat/completions":
@@ -932,88 +933,33 @@ func runLLMGatewayActionE2E(t *testing.T, baseAddress string, token string) {
 		upstreamModel: "upstream-action-e2e", operations: []string{"chat", "embeddings"}, maxConcurrency: 2,
 	})
 
-	deadline := time.Now().Add(5 * time.Second)
-	for {
-		models := transportE2EGetJSON(t, client, baseAddress+"/v1/models", token)
-		if id, ok := transportE2EFindString(models, "id"); ok && id == "llm-action-e2e" {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("LLM gateway did not reload the action E2E model: %#v", models)
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
+	waitForLLME2EModel(t, client, baseAddress, token, "llm-action-e2e")
 
-	world := resource.CRUD_MAP["world"]
-	userResource := resource.CRUD_MAP[resource.USER_ACCOUNT_TABLE_NAME]
-	if world == nil || userResource == nil {
-		t.Fatal("runtime canonical resources are unavailable")
-	}
-	lookupTransaction, err := world.Connection().Beginx()
-	if err != nil {
-		t.Fatal(err)
-	}
-	users, _, err := userResource.GetRowsByWhereClauseWithTransaction(
-		resource.USER_ACCOUNT_TABLE_NAME, nil, lookupTransaction, goqu.Ex{"email": "test@gmail.com"},
-	)
-	_ = lookupTransaction.Rollback()
-	if err != nil || len(users) != 1 {
-		t.Fatalf("load action E2E session user: rows=%d err=%v", len(users), err)
-	}
-	userID, err := resource.ResourceRowInt64(users[0]["id"])
-	if err != nil {
-		t.Fatal(err)
-	}
-	sessionUser := &auth.SessionUser{UserId: userID, UserReferenceId: daptinid.InterfaceToDIR(users[0]["reference_id"])}
-
-	chatPerformer := world.GetActionHandler("$llm.chat")
-	if chatPerformer == nil {
-		t.Fatal("runtime did not register $llm.chat")
-	}
-	chatTransaction, err := world.Connection().Beginx()
-	if err != nil {
-		t.Fatal(err)
-	}
-	transactionClosed = func() bool { return errors.Is(chatTransaction.Rollback(), sql.ErrTxDone) }
-	_, chatResponses, chatErrors := chatPerformer.DoAction(actionresponse.Outcome{Type: "llm.action.e2e.chat"}, map[string]interface{}{
+	sessionUser := llmE2EActionUser(t, "test@gmail.com")
+	chatAttributes := invokeLLME2EAction(t, sessionUser, "$llm.chat", map[string]interface{}{
 		"model": "llm-action-e2e", "messages": []interface{}{map[string]interface{}{"role": "user", "content": "hello"}},
-		"requestSessionUser": sessionUser, "httpRequest": httptest.NewRequest(http.MethodPost, "/action/world/llm-action-e2e", nil),
-	}, chatTransaction)
-	_ = chatTransaction.Rollback()
-	if len(chatErrors) != 0 {
-		t.Fatalf("$llm.chat failed: %v", chatErrors)
+	}, func(transaction *sqlx.Tx) {
+		transactionClosed = func() bool { return llmE2ETransactionClosed(transaction) }
+	})
+	if chatAttributes["content"] != "action-chat-ok" || chatAttributes["model"] != "llm-action-e2e" {
+		t.Fatalf("$llm.chat response = %#v", chatAttributes)
 	}
-	if len(chatResponses) != 1 {
-		t.Fatalf("$llm.chat responses = %#v", chatResponses)
-	}
-	chatAttributes, ok := chatResponses[0].Attributes.(map[string]interface{})
-	if !ok || chatAttributes["content"] != "action-chat-ok" || chatAttributes["model"] != "llm-action-e2e" {
-		t.Fatalf("$llm.chat response = %#v", chatResponses[0].Attributes)
+	_, failedChatErrors := performLLME2EAction(t, sessionUser, "$llm.chat", map[string]interface{}{
+		"model": "llm-action-e2e", "messages": []interface{}{map[string]interface{}{"role": "user", "content": "trigger-provider-failure"}},
+	}, func(transaction *sqlx.Tx) {
+		transactionClosed = func() bool { return llmE2ETransactionClosed(transaction) }
+	})
+	if len(failedChatErrors) != 1 || !strings.Contains(failedChatErrors[0].Error(), "provider_error") || strings.Contains(failedChatErrors[0].Error(), "provider-secret-marker") {
+		t.Fatalf("$llm.chat provider failure was not safely normalized: %v", failedChatErrors)
 	}
 
-	embeddingPerformer := world.GetActionHandler("$llm.embedding")
-	if embeddingPerformer == nil {
-		t.Fatal("runtime did not register $llm.embedding")
-	}
-	embeddingTransaction, err := world.Connection().Beginx()
-	if err != nil {
-		t.Fatal(err)
-	}
-	transactionClosed = func() bool { return errors.Is(embeddingTransaction.Rollback(), sql.ErrTxDone) }
-	_, embeddingResponses, embeddingErrors := embeddingPerformer.DoAction(actionresponse.Outcome{Type: "llm.action.e2e.embedding"}, map[string]interface{}{
-		"model": "llm-action-e2e", "input": "hello", "requestSessionUser": sessionUser,
-		"httpRequest": httptest.NewRequest(http.MethodPost, "/action/world/llm-action-e2e", nil),
-	}, embeddingTransaction)
-	_ = embeddingTransaction.Rollback()
-	if len(embeddingErrors) != 0 {
-		t.Fatalf("$llm.embedding failed: %v", embeddingErrors)
-	}
-	if len(embeddingResponses) != 1 {
-		t.Fatalf("$llm.embedding responses = %#v", embeddingResponses)
-	}
-	embeddingAttributes, ok := embeddingResponses[0].Attributes.(map[string]interface{})
-	if !ok || embeddingAttributes["model"] != "llm-action-e2e" {
-		t.Fatalf("$llm.embedding response = %#v", embeddingResponses[0].Attributes)
+	embeddingAttributes := invokeLLME2EAction(t, sessionUser, "$llm.embedding", map[string]interface{}{
+		"model": "llm-action-e2e", "input": "hello",
+	}, func(transaction *sqlx.Tx) {
+		transactionClosed = func() bool { return llmE2ETransactionClosed(transaction) }
+	})
+	if embeddingAttributes["model"] != "llm-action-e2e" {
+		t.Fatalf("$llm.embedding response = %#v", embeddingAttributes)
 	}
 	embeddings, ok := embeddingAttributes["embeddings"].([]interface{})
 	if !ok || len(embeddings) != 1 {
@@ -1025,22 +971,32 @@ func runLLMGatewayActionE2E(t *testing.T, baseAddress string, token string) {
 	}
 
 	usageResource := resource.CRUD_MAP["api_usage"]
+	world := resource.CRUD_MAP["world"]
 	usageTransaction, err := world.Connection().Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}
 	usageRows, _, err := usageResource.GetRowsByWhereClauseWithTransaction(
-		"api_usage", nil, usageTransaction, goqu.Ex{"entity_type": "llm_model", "state": "completed"},
+		"api_usage", nil, usageTransaction, goqu.Ex{"entity_type": "llm_model"},
 	)
 	_ = usageTransaction.Rollback()
 	if err != nil {
 		t.Fatal(err)
 	}
-	requestTypes := make(map[string]bool, len(usageRows))
+	terminalRequestTypes := make(map[string]bool, len(usageRows))
+	failedChat := 0
 	for _, usage := range usageRows {
-		requestTypes[resource.StringOrEmpty(usage["request_type"])] = true
+		requestType := resource.StringOrEmpty(usage["request_type"])
+		if resource.StringOrEmpty(usage["state"]) != "completed" {
+			continue
+		}
+		terminalRequestTypes[requestType] = true
+		statusCode, statusErr := resource.ResourceRowInt64(usage["status_code"])
+		if statusErr == nil && requestType == "llm_chat" && statusCode == http.StatusServiceUnavailable {
+			failedChat++
+		}
 	}
-	if len(usageRows) != 2 || !requestTypes["llm_chat"] || !requestTypes["llm_embeddings"] {
+	if len(usageRows) != 3 || !terminalRequestTypes["llm_chat"] || !terminalRequestTypes["llm_embeddings"] || failedChat != 1 {
 		t.Fatalf("LLM actions did not terminalize through generic api_usage: %#v", usageRows)
 	}
 }

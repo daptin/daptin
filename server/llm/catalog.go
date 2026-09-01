@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -57,7 +58,7 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 		Models:      make([]catalog.Model, 0, len(modelRows)),
 		Deployments: make([]catalog.Deployment, 0, len(deploymentRows)),
 	}
-	credentialReferences := make([]string, 0, len(providers))
+	credentialReferences := make(map[string]bool, len(providers))
 	for _, provider := range providers {
 		parameters, marshalErr := json.Marshal(provider.ProviderParameters)
 		if marshalErr != nil {
@@ -66,7 +67,7 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 		secretReference := ""
 		if provider.CredentialId != daptinid.NullReferenceId {
 			secretReference = provider.CredentialId.String()
-			credentialReferences = append(credentialReferences, secretReference)
+			credentialReferences[secretReference] = true
 		}
 		document.Providers = append(document.Providers, catalog.Provider{
 			ID: contract.ID(provider.ReferenceId.String()), Name: provider.Name, Type: provider.ProviderType,
@@ -193,26 +194,39 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 	sort.Slice(document.Providers, func(i, j int) bool { return document.Providers[i].ID < document.Providers[j].ID })
 	sort.Slice(document.Models, func(i, j int) bool { return document.Models[i].ID < document.Models[j].ID })
 	sort.Slice(document.Deployments, func(i, j int) bool { return document.Deployments[i].ID < document.Deployments[j].ID })
-	credentialVersions := make([]int64, 0, len(credentialReferences))
+	type credentialVersion struct {
+		Reference string `json:"reference"`
+		Version   int64  `json:"version"`
+	}
+	credentialVersions := make([]credentialVersion, 0, len(credentialReferences))
 	if len(credentialReferences) > 0 {
-		values, lookupErr := resource.GetSingleColumnValueByReferenceIdWithTransaction(
-			"credential", []interface{}{"version"}, "reference_id", credentialReferences, transaction,
+		storedReferences := make([]interface{}, 0, len(credentialReferences))
+		for reference := range credentialReferences {
+			referenceID := daptinid.InterfaceToDIR(reference)
+			storedReferences = append(storedReferences, referenceID[:])
+		}
+		credentialRows, _, lookupErr := source.cruds["credential"].GetRowsByWhereClauseWithTransaction(
+			"credential", nil, transaction, goqu.Ex{"reference_id": storedReferences},
 		)
 		if lookupErr != nil {
 			return catalog.Document{}, fmt.Errorf("load LLM credential versions: %w", lookupErr)
 		}
-		for _, value := range values {
-			version, conversionErr := resource.ResourceRowInt64(value)
-			if conversionErr != nil {
-				return catalog.Document{}, fmt.Errorf("decode LLM credential version: %w", conversionErr)
-			}
-			credentialVersions = append(credentialVersions, version)
+		if len(credentialRows) != len(credentialReferences) {
+			return catalog.Document{}, errors.New("one or more LLM credential versions are unresolved")
 		}
-		sort.Slice(credentialVersions, func(i, j int) bool { return credentialVersions[i] < credentialVersions[j] })
+		for _, row := range credentialRows {
+			reference := daptinid.InterfaceToDIR(row["reference_id"]).String()
+			version, conversionErr := resource.ResourceRowInt64(row["version"])
+			if conversionErr != nil {
+				return catalog.Document{}, fmt.Errorf("decode LLM credential %s version: %w", reference, conversionErr)
+			}
+			credentialVersions = append(credentialVersions, credentialVersion{Reference: reference, Version: version})
+		}
+		sort.Slice(credentialVersions, func(i, j int) bool { return credentialVersions[i].Reference < credentialVersions[j].Reference })
 	}
 	payload, err := json.Marshal(struct {
-		Catalog            catalog.Document `json:"catalog"`
-		CredentialVersions []int64          `json:"credential_versions"`
+		Catalog            catalog.Document    `json:"catalog"`
+		CredentialVersions []credentialVersion `json:"credential_versions"`
 	}{Catalog: document, CredentialVersions: credentialVersions})
 	if err != nil {
 		return catalog.Document{}, fmt.Errorf("fingerprint LLM catalog: %w", err)

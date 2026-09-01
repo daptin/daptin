@@ -70,7 +70,7 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	defer stopB()
 
 	client := &http.Client{Timeout: 20 * time.Second}
-	token := transportE2ESignupSigninAdmin(t, client, baseA)
+	token, _ := transportE2ESignupSigninAdmin(t, client, baseA)
 	credentialReference := createLLME2ECatalog(t, client, baseA, token, llmE2ECatalog{
 		name: "llm-multinode-e2e", upstreamURL: upstream.URL, apiKey: "multinode-initial-key",
 		upstreamModel: "multinode-upstream", operations: []string{"chat"}, maxConcurrency: 4,
@@ -119,8 +119,14 @@ func waitForLLME2EModel(t testing.TB, client *http.Client, baseURL string, token
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		models := transportE2EGetJSON(t, client, baseURL+"/v1/models", token)
-		if id, ok := transportE2EFindString(models, "id"); ok && id == modelName {
-			return
+		if data, ok := transportE2EPath(models, "data"); ok {
+			if entries, valid := data.([]interface{}); valid {
+				for _, entry := range entries {
+					if id, present := transportE2EPath(entry, "id"); present && id == modelName {
+						return
+					}
+				}
+			}
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("Daptin process at %s did not converge on the LLM model: %#v", baseURL, models)

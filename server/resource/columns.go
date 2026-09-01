@@ -3140,7 +3140,7 @@ var StandardTables = []table_info.TableInfo{
 		DefaultGroups: adminsGroup,
 		IsHidden:      false,
 		Columns: []api2go.ColumnInfo{
-			{Name: "request_id", ColumnName: "request_id", ColumnType: "label", DataType: "varchar(100)", IsUnique: true, IsIndexed: true},
+			{Name: "request_id", ColumnName: "request_id", ColumnType: "label", DataType: "varchar(128)", IsUnique: true, IsIndexed: true},
 			{Name: "reservation_token", ColumnName: "reservation_token", ColumnType: "label", DataType: "varchar(100)", IsUnique: true, IsIndexed: true},
 			{Name: "api_key_id", ColumnName: "api_key_id", ColumnType: "label", DataType: "varchar(100)", IsNullable: true, IsIndexed: true},
 			{Name: "endpoint", ColumnName: "endpoint", ColumnType: "label", DataType: "varchar(500)", IsIndexed: true},

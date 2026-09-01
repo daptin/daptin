@@ -116,16 +116,16 @@ func (gatewayHost *Gateway) Drain(ctx context.Context) error {
 		if gatewayHost.reloadSubscription != nil {
 			gatewayHost.drainErr = gatewayHost.reloadSubscription.Close()
 		}
-		if gatewayHost.reloadDone != nil {
-			select {
-			case <-gatewayHost.reloadDone:
-			case <-ctx.Done():
-				gatewayHost.drainErr = errors.Join(gatewayHost.drainErr, ctx.Err())
-			}
-		}
-		gatewayHost.drainErr = errors.Join(gatewayHost.drainErr, gatewayHost.engine.Drain(ctx))
 	})
-	return gatewayHost.drainErr
+	err := gatewayHost.drainErr
+	if gatewayHost.reloadDone != nil {
+		select {
+		case <-gatewayHost.reloadDone:
+		case <-ctx.Done():
+			err = errors.Join(err, ctx.Err())
+		}
+	}
+	return errors.Join(err, gatewayHost.engine.Drain(ctx))
 }
 
 func (gatewayHost *Gateway) startReloadWatcher(parent context.Context, pubsub *olric.PubSub) {

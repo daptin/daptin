@@ -54,3 +54,6 @@ jobs:
         run: |
           make
           make quicktest
+
+      - name: Compile live provider certification
+        run: go test -tags 'cmount live' -run '^$' ./...

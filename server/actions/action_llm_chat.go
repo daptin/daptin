@@ -66,6 +66,9 @@ func (performer *llmChatActionPerformer) DoAction(outcome actionresponse.Outcome
 	if err != nil {
 		return nil, nil, []error{err}
 	}
+	if canonical.Chat.N > 1 {
+		return nil, nil, []error{errors.New("$llm.chat supports exactly one choice")}
+	}
 	response, err := invokeLLMAction(performer.gateway, performer.cruds, input, transaction, canonical)
 	if err != nil {
 		return nil, nil, []error{err}

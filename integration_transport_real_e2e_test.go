@@ -43,7 +43,7 @@ func TestRealIntegrationTransportE2E(t *testing.T) {
 	defer stopDaptin()
 
 	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken := transportE2ESignupSigninAdmin(t, client, daptinBaseURL)
+	adminToken, _ := transportE2ESignupSigninAdmin(t, client, daptinBaseURL)
 	credentialRef := transportE2ECreateCredential(t, client, daptinBaseURL, adminToken)
 
 	httpIntegrationRef := transportE2ECreateIntegration(t, client, daptinBaseURL, adminToken, "e2e-http-protocols", httpTransportE2ESpec(t, httpUpstream.URL))
@@ -311,7 +311,7 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 	return func() {}
 }
 
-func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL string) string {
+func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL string) (string, string) {
 	t.Helper()
 
 	email := fmt.Sprintf("admin-%d@test.local", time.Now().UnixNano())
@@ -337,7 +337,7 @@ func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL st
 	}
 
 	transportE2EPostJSON(t, client, baseURL+"/action/world/become_an_administrator", token, map[string]interface{}{})
-	return token
+	return token, email
 }
 
 func transportE2ECreateCredential(t *testing.T, client *http.Client, baseURL string, token string) string {

@@ -127,9 +127,6 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	}
 	decision.Enabled = true
 	decision.config = config
-	if _, err := m.ExpireReservations(m.now(), 100, tx); err != nil {
-		return nil, fmt.Errorf("recover expired metering reservations: %w", err)
-	}
 
 	member, memberErr := m.findActiveMember(ctx.User.UserId, tx)
 	if memberErr == nil {
@@ -175,8 +172,8 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	if requestID == "" {
 		requestID = uuid.Must(uuid.NewV7()).String()
 	}
-	if len(requestID) > 100 {
-		return nil, errors.New("metering request_id exceeds 100 characters")
+	if len(requestID) > 128 {
+		return nil, errors.New("metering request_id exceeds 128 characters")
 	}
 	decision.RequestID = requestID
 	decision.ReservationToken = uuid.Must(uuid.NewV7()).String()
@@ -353,6 +350,10 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if ctx.User != nil && usageUserID != ctx.User.UserId {
 		return errors.New("metering reservation belongs to another user")
 	}
+	usageRequestID := StringOrEmpty(usage["request_id"])
+	if decision.RequestID != "" && decision.RequestID != usageRequestID {
+		return errors.New("metering reservation request_id does not match its usage record")
+	}
 	state := StringOrEmpty(usage["state"])
 	if state == terminalState {
 		return nil
@@ -383,8 +384,12 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 			return fmt.Errorf("decode metering reservation buckets: %w", err)
 		}
 	}
+	config := decision.config
+	if config == nil {
+		config = normalizeMeteringConfig(ctx.Metering)
+	}
 	if measures == nil {
-		measures, err = completionMeasures(ctx, decision.config)
+		measures, err = completionMeasures(ctx, config)
 		if err != nil {
 			return err
 		}
@@ -443,10 +448,6 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	updated, err := result.RowsAffected()
 	if err != nil || updated != 1 {
 		return errors.New("metering terminal state update failed")
-	}
-	config := decision.config
-	if config == nil {
-		config = normalizeMeteringConfig(ctx.Metering)
 	}
 	if config != nil && config.PostMeteringAction != "" {
 		m.invokePostMeteringAction(config.PostMeteringAction, ctx, decision, usageID, measures, tx)

@@ -56,6 +56,11 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 	}, decision, tx); err == nil {
 		t.Fatal("another user terminalized a metering reservation")
 	}
+	mismatched := *decision
+	mismatched.RequestID = "another-request"
+	if err := service.Complete(MeteringContext{User: user, Metering: config}, &mismatched, tx); err == nil {
+		t.Fatal("mismatched request_id terminalized a metering reservation")
+	}
 	assertMeteringBucket(t, tx, "requests", "", 1, 0)
 	if err := service.Complete(MeteringContext{
 		User: user, Endpoint: "/items", Method: "GET", RequestType: "crud", StatusCode: 200, Metering: config,
@@ -171,6 +176,50 @@ func TestMeteringSettlesActualMeasuresAndReleasesUnusedReservation(t *testing.T)
 	}
 	assertMeteringBucket(t, cancelTx, "total_tokens", "", 0, 25)
 	if err := cancelTx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMeteringReconstructedDecisionUsesCompletionConfig(t *testing.T) {
+	database := newCanonicalMeteringDatabase(t)
+	now := time.Date(2026, time.September, 1, 11, 30, 0, 0, time.UTC)
+	insertMeteringPlanAndMember(t, database, now, `[{"metric":"compute_units","window":"month","maximum":100,"mode":"hard"}]`)
+	service := NewMeteringService(nil)
+	service.now = func() time.Time { return now }
+	user := &auth.SessionUser{UserId: 7}
+	config := &table_info.MeteringConfig{Enabled: true, MeterType: "compute_units", CostExpr: "response.units"}
+
+	admitTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	admitted, err := service.Admit(MeteringContext{
+		RequestID: "reconstructed-decision", User: user, Metering: config,
+		EstimatedMeasures: map[string]int64{"compute_units": 10},
+	}, admitTransaction)
+	if err != nil {
+		_ = admitTransaction.Rollback()
+		t.Fatal(err)
+	}
+	if err := admitTransaction.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	terminalTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reconstructed := &MeteringDecision{
+		Enabled: true, RequestID: admitted.RequestID, ReservationToken: admitted.ReservationToken,
+	}
+	if err := service.Complete(MeteringContext{
+		User: user, Metering: config, Response: map[string]interface{}{"units": 3},
+	}, reconstructed, terminalTransaction); err != nil {
+		_ = terminalTransaction.Rollback()
+		t.Fatal(err)
+	}
+	assertMeteringBucket(t, terminalTransaction, "compute_units", "", 0, 3)
+	if err := terminalTransaction.Commit(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -351,6 +400,27 @@ func TestMeteringFailsClosedWhenPersistenceIsUnavailable(t *testing.T) {
 	}, tx)
 	if err == nil {
 		t.Fatal("metering admission succeeded with an unusable transaction")
+	}
+}
+
+func TestMeteringRequestIDBoundMatchesGatewayProtocol(t *testing.T) {
+	database := newCanonicalMeteringDatabase(t)
+	transaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer transaction.Rollback()
+	service := NewMeteringService(nil)
+	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
+	if _, err := service.Admit(MeteringContext{
+		RequestID: strings.Repeat("a", 128), User: &auth.SessionUser{UserId: 7}, Metering: config,
+	}, transaction); err != nil {
+		t.Fatalf("128-character request_id: %v", err)
+	}
+	if _, err := service.Admit(MeteringContext{
+		RequestID: strings.Repeat("b", 129), User: &auth.SessionUser{UserId: 7}, Metering: config,
+	}, transaction); err == nil {
+		t.Fatal("129-character request_id was accepted")
 	}
 }
 

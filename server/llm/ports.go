@@ -2,9 +2,11 @@ package llm
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +22,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
+
+const olricCoordinationTimeout = 5 * time.Second
 
 type daptinSecrets struct {
 	cruds map[string]*resource.DbResource
@@ -95,10 +99,14 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 		return contract.ReservationToken{}, fmt.Errorf("begin metering admission: %w", err)
 	}
 	defer transaction.Rollback()
+	config, err := llmMeteringConfig(metering.cruds["world"].ConfigStore, transaction)
+	if err != nil {
+		return contract.ReservationToken{}, err
+	}
 	decision, err := metering.service.Admit(resource.MeteringContext{
 		RequestID: string(admission.RequestID), User: user, Endpoint: "/v1/" + string(admission.Operation), Method: "POST",
 		EntityType: "llm_model", RequestType: "llm_" + string(admission.Operation),
-		EstimatedMeasures: gatewayUsageMeasures(admission.EstimatedUsage), Metering: llmMeteringConfig(metering.cruds["world"].ConfigStore, transaction),
+		EstimatedMeasures: gatewayUsageMeasures(admission.EstimatedUsage), Metering: config,
 		Metadata: map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation},
 	}, transaction)
 	if err != nil {
@@ -140,10 +148,14 @@ func (metering daptinMetering) terminalize(ctx context.Context, token contract.R
 		return fmt.Errorf("begin metering terminalization: %w", err)
 	}
 	defer transaction.Rollback()
+	config, err := llmMeteringConfig(metering.cruds["world"].ConfigStore, transaction)
+	if err != nil {
+		return err
+	}
 	decision := &resource.MeteringDecision{Enabled: true, RequestID: string(token.RequestID), ReservationToken: token.Opaque}
 	meteringContext := resource.MeteringContext{
 		RequestID: string(token.RequestID), User: user, StatusCode: status, Measures: gatewayUsageMeasures(usage),
-		Metering: llmMeteringConfig(metering.cruds["world"].ConfigStore, transaction), ErrorMessage: reason,
+		Metering: config, ErrorMessage: reason,
 		Metadata: metadata,
 	}
 	if complete {
@@ -176,24 +188,36 @@ func daptinSessionUser(ctx context.Context) (*auth.SessionUser, error) {
 	return user, nil
 }
 
-func llmMeteringConfig(configStore *resource.ConfigStore, transaction *sqlx.Tx) *table_info.MeteringConfig {
+func llmMeteringConfig(configStore *resource.ConfigStore, transaction *sqlx.Tx) (*table_info.MeteringConfig, error) {
 	config := &table_info.MeteringConfig{Enabled: true, CostExpr: "1", MeterType: "requests"}
 	if configStore == nil || transaction == nil {
-		return config
+		return nil, errors.New("LLM metering requires Daptin's config store and transaction")
 	}
-	if enabled, err := configStore.GetConfigValueFor("metering.llm.enabled", "backend", transaction); err == nil && strings.EqualFold(enabled, "false") {
-		config.Enabled = false
+	enabled, err := configStore.GetConfigValueFor("metering.llm.enabled", "backend", transaction)
+	if err == nil {
+		config.Enabled, err = strconv.ParseBool(strings.TrimSpace(enabled))
+		if err != nil {
+			return nil, fmt.Errorf("invalid metering.llm.enabled: %w", err)
+		}
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("read metering.llm.enabled: %w", err)
 	}
-	if costExpression, err := configStore.GetConfigValueFor("metering.llm.cost_expr", "backend", transaction); err == nil && costExpression != "" {
+	if costExpression, err := configStore.GetConfigValueFor("metering.llm.cost_expr", "backend", transaction); err == nil && strings.TrimSpace(costExpression) != "" {
 		config.CostExpr = costExpression
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("read metering.llm.cost_expr: %w", err)
 	}
-	if meterType, err := configStore.GetConfigValueFor("metering.llm.meter_type", "backend", transaction); err == nil && meterType != "" {
+	if meterType, err := configStore.GetConfigValueFor("metering.llm.meter_type", "backend", transaction); err == nil && strings.TrimSpace(meterType) != "" {
 		config.MeterType = meterType
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("read metering.llm.meter_type: %w", err)
 	}
-	if postAction, err := configStore.GetConfigValueFor("metering.llm.post_metering_action", "backend", transaction); err == nil && postAction != "" {
+	if postAction, err := configStore.GetConfigValueFor("metering.llm.post_metering_action", "backend", transaction); err == nil && strings.TrimSpace(postAction) != "" {
 		config.PostMeteringAction = postAction
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("read metering.llm.post_metering_action: %w", err)
 	}
-	return config
+	return config, nil
 }
 
 type olricCounterStore struct {
@@ -205,14 +229,20 @@ func (store olricCounterStore) Add(ctx context.Context, key string, amount int64
 	if amount > int64(math.MaxInt) || amount < int64(math.MinInt) {
 		return 0, errors.New("counter amount exceeds platform integer range")
 	}
+	lock, err := store.values.LockWithTimeout(ctx, "lock:"+key, olricCoordinationTimeout, olricCoordinationTimeout)
+	if err != nil {
+		return 0, err
+	}
+	defer releaseOlricLock(ctx, lock)
+	return store.addLocked(ctx, key, amount, ttl)
+}
+
+func (store olricCounterStore) addLocked(ctx context.Context, key string, amount int64, ttl time.Duration) (int64, error) {
 	if err := store.values.Put(ctx, key, 0, olric.EX(ttl), olric.NX()); err != nil && !errors.Is(err, olric.ErrKeyFound) {
 		return 0, err
 	}
 	value, err := store.values.Incr(ctx, key, int(amount))
-	if err != nil {
-		return 0, err
-	}
-	return int64(value), nil
+	return int64(value), err
 }
 
 func (store olricCounterStore) Get(ctx context.Context, key string) (int64, bool, error) {
@@ -231,11 +261,11 @@ func (store olricCounterStore) Acquire(ctx context.Context, key string, maximum 
 	if maximum <= 0 {
 		return "", gateway.ErrCounterLimit
 	}
-	lock, err := store.values.LockWithTimeout(ctx, "lock:"+key, 5*time.Second, 5*time.Second)
+	lock, err := store.values.LockWithTimeout(ctx, "lock:"+key, olricCoordinationTimeout, olricCoordinationTimeout)
 	if err != nil {
 		return "", err
 	}
-	defer lock.Unlock(context.WithoutCancel(ctx))
+	defer releaseOlricLock(ctx, lock)
 	value, _, err := store.Get(ctx, key)
 	if err != nil {
 		return "", err
@@ -243,25 +273,17 @@ func (store olricCounterStore) Acquire(ctx context.Context, key string, maximum 
 	if value >= maximum {
 		return "", gateway.ErrCounterLimit
 	}
-	value, err = store.Add(ctx, key, 1, ttl)
+	value, err = store.addLocked(ctx, key, 1, ttl)
 	if err != nil {
 		return "", err
 	}
 	if err := store.values.Expire(ctx, key, ttl); err != nil {
-		if value <= 1 {
-			_, _ = store.values.Delete(context.WithoutCancel(ctx), key)
-		} else {
-			_, _ = store.values.Decr(context.WithoutCancel(ctx), key, 1)
-		}
+		store.rollbackIncrement(ctx, key, value)
 		return "", err
 	}
 	token := uuid.NewString()
 	if err := store.leases.Put(ctx, token, key, olric.EX(ttl), olric.NX()); err != nil {
-		if value <= 1 {
-			_, _ = store.values.Delete(context.WithoutCancel(ctx), key)
-		} else {
-			_, _ = store.values.Decr(context.WithoutCancel(ctx), key, 1)
-		}
+		store.rollbackIncrement(ctx, key, value)
 		return "", err
 	}
 	return token, nil
@@ -279,11 +301,11 @@ func (store olricCounterStore) Release(ctx context.Context, token string) error 
 	if err != nil {
 		return err
 	}
-	lock, err := store.values.LockWithTimeout(ctx, "lock:"+key, 5*time.Second, 5*time.Second)
+	lock, err := store.values.LockWithTimeout(ctx, "lock:"+key, olricCoordinationTimeout, olricCoordinationTimeout)
 	if err != nil {
 		return err
 	}
-	defer lock.Unlock(context.WithoutCancel(ctx))
+	defer releaseOlricLock(ctx, lock)
 	if _, err := store.leases.Get(ctx, token); errors.Is(err, olric.ErrKeyNotFound) {
 		return nil
 	} else if err != nil {
@@ -302,6 +324,22 @@ func (store olricCounterStore) Release(ctx context.Context, token string) error 
 	}
 	_, err = store.values.Decr(ctx, key, 1)
 	return err
+}
+
+func (store olricCounterStore) rollbackIncrement(parent context.Context, key string, value int64) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), olricCoordinationTimeout)
+	defer cancel()
+	if value <= 1 {
+		_, _ = store.values.Delete(ctx, key)
+		return
+	}
+	_, _ = store.values.Decr(ctx, key, 1)
+}
+
+func releaseOlricLock(parent context.Context, lock olric.LockContext) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), olricCoordinationTimeout)
+	defer cancel()
+	_ = lock.Unlock(ctx)
 }
 
 func (store olricCounterStore) Delete(ctx context.Context, key string) error {

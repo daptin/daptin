@@ -267,6 +267,12 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		_ = streamResponse.Body.Close()
 		t.Fatalf("stream status = %d, body = %s", streamResponse.StatusCode, body)
 	}
+	firstDrainContext, cancelFirstDrain := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	if err := hostA.Drain(firstDrainContext); !errors.Is(err, context.DeadlineExceeded) {
+		cancelFirstDrain()
+		t.Fatalf("drain with active stream = %v", err)
+	}
+	cancelFirstDrain()
 	cancelStream()
 	_ = streamResponse.Body.Close()
 	select {

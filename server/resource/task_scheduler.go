@@ -34,14 +34,16 @@ func NewTaskScheduler(cruds map[string]*DbResource) (*DefaultTaskScheduler, erro
 		return nil, fmt.Errorf("task scheduler requires canonical api_usage resource")
 	}
 	metering := NewMeteringService(&cruds)
-	if _, err := scheduler.cronService.AddFunc(meteringReservationRecoverySchedule, func() {
+	recovery := cron.FuncJob(func() {
 		expired, recoveryErr := metering.recoverExpiredReservations(metering.now(), 100)
 		if recoveryErr != nil {
 			log.WithError(recoveryErr).Error("failed to recover expired metering reservations")
 		} else if expired > 0 {
 			log.WithField("expired", expired).Debug("recovered expired metering reservations")
 		}
-	}); err != nil {
+	})
+	if _, err := scheduler.cronService.AddJob(meteringReservationRecoverySchedule,
+		cron.SkipIfStillRunning(cron.DefaultLogger)(recovery)); err != nil {
 		return nil, fmt.Errorf("register metering reservation recovery: %w", err)
 	}
 	return scheduler, nil
