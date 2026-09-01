@@ -250,8 +250,8 @@ func createServer() {
 	}
 
 	go func() {
-		err = emb.Start()
-		resource.CheckErr(err, "failed to start cache server")
+		startErr := emb.Start()
+		resource.CheckErr(startErr, "failed to start cache server")
 	}()
 	olricDb = emb.NewEmbeddedClient()
 
@@ -1531,63 +1531,53 @@ func FtpTest(t *testing.T) {
 		ftp.DialWithDebugOutput(os.Stdout))
 
 	if err != nil {
-		t.FailNow()
-		log.Fatal(err)
+		t.Fatalf("dial FTP server: %v", err)
 	}
 
 	err = ftpClient.Login("anonymous", "anonymous")
 	if err == nil {
-		t.FailNow()
-		t.Errorf("Able to login FTP as anon")
+		t.Fatal("anonymous FTP login unexpectedly succeeded")
 	}
 
 	// Do something with the FTP conn
 
 	if err := ftpClient.Quit(); err != nil {
-		t.FailNow()
-		log.Fatal(err)
+		t.Fatalf("quit anonymous FTP session: %v", err)
 	}
 
 	ftpClient, err = ftp.Dial("0.0.0.0:2121", ftp.DialWithTimeout(5*time.Second))
 	if err != nil {
-		t.FailNow()
-		log.Fatal(err)
+		t.Fatalf("dial authenticated FTP session: %v", err)
 	}
 
 	err = ftpClient.Login("test@gmail.com", "tester123")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Not able to login FTP as test@gmail.com")
+		t.Fatalf("login FTP as test@gmail.com: %v", err)
 	}
 
 	err = ftpClient.ChangeDir("/")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+		t.Fatalf("change FTP directory to root: %v", err)
 	}
 
 	err = ftpClient.ChangeDir("/site.daptin.com/")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+		t.Fatalf("change FTP directory to /site.daptin.com/: %v", err)
 	}
 
 	err = ftpClient.ChangeDir("/site.daptin.com")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+		t.Fatalf("change FTP directory to /site.daptin.com: %v", err)
 	}
 
 	files, err := ftpClient.List("/")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Not able to change dir to site.daptin.com: %v", err)
+		t.Fatalf("list FTP root: %v", err)
 	}
 
 	files, err = ftpClient.List("/site.daptin.com/")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
+		t.Fatalf("list FTP /site.daptin.com/: %v", err)
 	}
 	for _, file := range files {
 		log.Printf("FTP File [%v]", file.Name)
@@ -1595,8 +1585,7 @@ func FtpTest(t *testing.T) {
 
 	files, err = ftpClient.List(".")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Not able to list files in folder on /site.daptin.com/: %v", err)
+		t.Fatalf("list current FTP directory: %v", err)
 	}
 
 	curDir, _ := ftpClient.CurrentDir()
@@ -1604,59 +1593,49 @@ func FtpTest(t *testing.T) {
 
 	err = ftpClient.Append("image.png", ImageReader)
 	if err != nil {
-		t.FailNow()
-		t.Errorf("failed to upload file from FTP: %v", err)
+		t.Fatalf("upload file through FTP: %v", err)
 	}
 	size, err := ftpClient.FileSize("image.png")
 	if size == 0 || err != nil {
-		t.FailNow()
-		t.Errorf("size is 0 %v %v", size, err)
+		t.Fatalf("uploaded FTP file size=%d: %v", size, err)
 	}
 
 	err = ftpClient.MakeDir("temp")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Failed to make temp %v", err)
+		t.Fatalf("create FTP temp directory: %v", err)
 	}
 
 	err = ftpClient.MakeDir("/test")
 	if err == nil {
-		t.FailNow()
-		t.Errorf("Was able to make /test in root dir %v", err)
+		t.Fatal("creating /test in FTP root unexpectedly succeeded")
 	}
 
 	err = ftpClient.Rename("image.png", "image_new.png")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("Failed to make rename %v", err)
+		t.Fatalf("rename FTP file: %v", err)
 	}
 	size, err = ftpClient.FileSize("image_new.png")
 	if size == 0 || err != nil {
-		t.FailNow()
-		t.Errorf("%v %v", size, err)
+		t.Fatalf("renamed FTP file size=%d: %v", size, err)
 	}
 	err = ftpClient.RemoveDir("temp")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("failed to remove dir %v", err)
+		t.Fatalf("remove FTP temp directory: %v", err)
 	}
 
 	res, err := ftpClient.Retr("image_new.png")
 	if err != nil {
-		t.FailNow()
-		t.Errorf("failed to remove dir %v", err)
+		t.Fatalf("retrieve renamed FTP file: %v", err)
 	} else {
 		b := make([]byte, 100)
 		l, err := res.Read(b)
 		if l == 0 || err != nil {
-			t.FailNow()
-			t.Errorf("failed to read file %v", err)
+			t.Fatalf("read retrieved FTP file bytes=%d: %v", l, err)
 		}
 	}
 
 	if err := ftpClient.Quit(); err != nil {
-		t.FailNow()
-		t.Error(err)
+		t.Fatalf("quit authenticated FTP session: %v", err)
 	}
 
 }

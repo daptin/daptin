@@ -474,8 +474,8 @@ github.com/cronokirby/saferith v0.33.0 h1:TgoQlfsD4LIwx71+ChfRcIpjkw+RPOapDEVxa+
 github.com/cronokirby/saferith v0.33.0/go.mod h1:QKJhjoqUtBsXCAVEjw38mFqoi7DebT7kthcD7UzbnoA=
 github.com/daaku/go.zipexe v1.0.2 h1:Zg55YLYTr7M9wjKn8SY/WcpuuEi+kR2u4E8RhvpyXmk=
 github.com/daaku/go.zipexe v1.0.2/go.mod h1:5xWogtqlYnfBXkSB1o9xysukNP9GTvaNkqzUZbt3Bw8=
-github.com/daptin/llmgateway v0.1.0-dev.29 h1:v6UXUr/IzEy4542k00WCyvshfi0xew+wkMAtJ1X+HDQ=
-github.com/daptin/llmgateway v0.1.0-dev.29/go.mod h1:6ZzDyGrqvA5TLHQnDVvr/WI8UBha8+4qeWGbUbbp1T8=
+github.com/daptin/llmgateway v0.1.0-dev.30 h1:xjOTm1d9L2j9lKDn9eECxEqYNrqrF3RIxbUjYgmJ7oA=
+github.com/daptin/llmgateway v0.1.0-dev.30/go.mod h1:6ZzDyGrqvA5TLHQnDVvr/WI8UBha8+4qeWGbUbbp1T8=
 github.com/daptin/olric v0.5.7-daptin.1 h1:9x8uoZt6313CkcQHL4f2mLD3LMGhIekaF7OuBkzhqpc=
 github.com/daptin/olric v0.5.7-daptin.1/go.mod h1:S1R+9Zt7P9TCbvQZvY/RYuRehLLRPDfbJNkukQsLJ4k=
 github.com/davecgh/go-spew v0.0.0-20161028175848-04cdfd42973b/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
