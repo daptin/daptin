@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: daptin
 spec:
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 600
+  minReadySeconds: 5
   replicas: 1
   strategy:
     type: Recreate

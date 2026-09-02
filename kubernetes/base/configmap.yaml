@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: daptin
 data:
+  DAPTIN_OLRIC_PORT: "5336"
+  DAPTIN_OLRIC_SEED: daptin-headless
   DAPTIN_PORT: ":8080"
   DAPTIN_RUNTIME: release
   DAPTIN_DB_TYPE: postgres

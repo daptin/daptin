@@ -5,8 +5,8 @@ resources:
   - ../../base
   - postgres-service.yaml
   - postgres-statefulset.yaml
-patchesStrategicMerge:
-  - daptin-init-patch.yaml
+patches:
+  - path: daptin-init-patch.yaml
 secretGenerator:
   - name: daptin-database
     literals:

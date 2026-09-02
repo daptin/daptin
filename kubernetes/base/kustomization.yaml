@@ -6,6 +6,9 @@ resources:
   - configmap.yaml
   - pvc.yaml
   - service.yaml
+  - service-headless.yaml
   - deployment.yaml
-commonLabels:
-  app.kubernetes.io/part-of: daptin
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: daptin
+    includeSelectors: false

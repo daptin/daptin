@@ -19,9 +19,11 @@ kubectl apply -k kubernetes/base
 kubectl -n daptin rollout status deployment/daptin --timeout=5m
 ```
 
-The base tracks `daptin/daptin:latest` and uses `imagePullPolicy: Always`. New
-pods therefore pull the current image. Restart the deployment after publishing
-a new image when you want already-running pods to adopt it:
+The base tracks `daptin/daptin:latest` so continuous validation exercises the
+current source and container together. For production, override the image in a
+site-specific overlay and pin a tested version tag or digest. Restart the
+deployment after publishing a new image when you want already-running pods to
+adopt it:
 
 ```sh
 kubectl -n daptin rollout restart deployment/daptin
@@ -64,10 +66,11 @@ kubectl apply -k kubernetes/overlays/ingress
 
 The base deliberately uses one replica and `Recreate`: the default asset store
 is a ReadWriteOnce volume and Daptin initializes database schema at startup.
-Before scaling beyond one replica, configure shared cloud/RWX asset storage,
-validate concurrent schema startup, expose Olric ports 5336 and 5337 through a
-headless Service, and configure `DAPTIN_OLRIC_SEED`. Do not add an HPA to the
-base deployment.
+The base includes a headless Service and configures `DAPTIN_OLRIC_SEED` for
+Olric peer discovery. Before scaling beyond one replica, configure shared
+cloud/RWX asset storage, validate concurrent schema startup and migrations, and
+change the replica count and rollout strategy in a site-specific overlay. Do
+not add an HPA until that topology has been load- and failure-tested.
 
 The process marks `/ready` unavailable before draining on SIGTERM. Keep
 `terminationGracePeriodSeconds` greater than `DAPTIN_SHUTDOWN_TIMEOUT` plus
@@ -83,3 +86,6 @@ kubectl kustomize kubernetes/base >/dev/null
 kubectl kustomize kubernetes/overlays/demo-postgres >/dev/null
 kubectl kustomize kubernetes/overlays/ingress >/dev/null
 ```
+
+CI renders all three variants, validates them strictly against Kubernetes 1.30
+schemas, builds the current Daptin image, and smoke-tests the `/ready` endpoint.
