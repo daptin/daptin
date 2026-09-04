@@ -140,6 +140,7 @@ jobs:
           sbom: true
           tags: |
             daptin/daptin:${{ env.RELEASE_TAG }}
+            daptin/daptin:master
             daptin/daptin:latest
           build-args: |
             VERSION=${{ env.RELEASE_TAG }}
