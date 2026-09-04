@@ -1,6 +1,6 @@
 # LLM gateway deployment example
 
-This example starts a clean Daptin `v0.13.0` deployment with PostgreSQL and
+This example starts a clean Daptin `v0.13.1` deployment with PostgreSQL and
 idempotently creates the complete gateway catalog:
 
 ```text

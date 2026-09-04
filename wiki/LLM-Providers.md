@@ -252,6 +252,34 @@ curl http://localhost:6336/v1/chat/completions \
 OpenAI SDKs can use `http://localhost:6336/v1` as their base URL and a Daptin
 bearer token as their API key.
 
+### Codex CLI
+
+Daptin `v0.13.1` and newer accepts the current Codex Responses request shape,
+including stateless reasoning includes, input-item IDs, function tool
+namespaces, web search tools, and Codex client metadata. `include` and item IDs
+are preserved upstream; `client_metadata` is client transport metadata and is
+intentionally not forwarded to the model provider.
+
+Configure Codex with a Daptin bearer token in `DAPTIN_API_KEY`:
+
+```toml
+model = "assistant"
+model_provider = "daptin"
+
+[model_providers.daptin]
+name = "Daptin"
+base_url = "http://localhost:6336/v1"
+env_key = "DAPTIN_API_KEY"
+wire_api = "responses"
+requires_openai_auth = false
+```
+
+Codex sends tool definitions, reasoning controls, and
+`parallel_tool_calls` when those features are enabled. Declare `tools`,
+`parallel_tools`, and `reasoning` in the `llm_model.capabilities` JSON only when
+the selected upstream deployment supports them. A strict model rejects a
+requested capability that it does not declare.
+
 ## Daptin actions
 
 `$llm.chat` and `$llm.embedding` use the same engine as HTTP. They apply the
