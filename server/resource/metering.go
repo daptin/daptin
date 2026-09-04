@@ -334,6 +334,7 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if ctx.User != nil && usageUserID != ctx.User.UserId {
 		return errors.New("metering reservation belongs to another user")
 	}
+	ctx = hydrateMeteringContext(ctx, usage)
 	usageRequestID := StringOrEmpty(usage["request_id"])
 	if decision.RequestID != "" && decision.RequestID != usageRequestID {
 		return errors.New("metering reservation request_id does not match its usage record")
@@ -423,6 +424,33 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 		m.invokePostMeteringAction(config.PostMeteringAction, ctx, decision, usageID, measures, tx)
 	}
 	return nil
+}
+
+func hydrateMeteringContext(ctx MeteringContext, usage map[string]interface{}) MeteringContext {
+	if ctx.Endpoint == "" {
+		ctx.Endpoint = StringOrEmpty(usage["endpoint"])
+	}
+	if ctx.Method == "" {
+		ctx.Method = StringOrEmpty(usage["method"])
+	}
+	if ctx.EntityType == "" {
+		ctx.EntityType = StringOrEmpty(usage["entity_type"])
+	}
+	if ctx.ActionName == "" {
+		ctx.ActionName = StringOrEmpty(usage["action_name"])
+	}
+	if ctx.RequestType == "" {
+		ctx.RequestType = StringOrEmpty(usage["request_type"])
+	}
+	if ctx.Request == nil {
+		method := ctx.Method
+		if method == "" {
+			method = http.MethodPost
+		}
+		requestContext := context.WithValue(context.Background(), "user", ctx.User)
+		ctx.Request = (&http.Request{Method: method, URL: &url.URL{Path: ctx.Endpoint}}).WithContext(requestContext)
+	}
+	return ctx
 }
 
 func (m *MeteringService) insertAdmission(ctx MeteringContext, decision *MeteringDecision, reservationJSON string, tx *sqlx.Tx) (map[string]interface{}, error) {

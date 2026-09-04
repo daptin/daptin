@@ -19,8 +19,9 @@ kubectl apply -k kubernetes/base
 kubectl -n daptin rollout status deployment/daptin --timeout=5m
 ```
 
-The base tracks `daptin/daptin:latest` so continuous validation exercises the
-current source and container together. For production, override the image in a
+The repository base tracks `daptin/daptin:latest` so continuous validation
+exercises the current source and container together. The normalized LLM gateway
+requires Daptin `v0.13.0` or newer. For production, override the image in a
 site-specific overlay and pin a tested version tag or digest. Restart the
 deployment after publishing a new image when you want already-running pods to
 adopt it:
@@ -48,6 +49,11 @@ kubectl -n daptin rollout status deployment/daptin --timeout=5m
 kubectl -n daptin port-forward service/daptin 6336:80
 curl --fail http://127.0.0.1:6336/ready
 ```
+
+After configuring `llm_provider`, `llm_model`, and `llm_deployment`, use
+`/llm/readyz` as a gateway-specific operational check. Do not replace the main
+pod readiness probe with `/llm/readyz`: an intentionally empty catalog must not
+prevent administrators from reaching a new deployment to configure it.
 
 Do not reuse the generated demo password outside an isolated development
 cluster.

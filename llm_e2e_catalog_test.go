@@ -39,7 +39,7 @@ const llmE2EActionsSchema = `Actions:
           messages:
             - role: user
               content: ~prompt
-          max_completion_tokens: 64
+          max_completion_tokens: 256
   - Name: llm_e2e_embedding
     Label: LLM embedding E2E
     OnType: world

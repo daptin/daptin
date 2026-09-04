@@ -21,7 +21,7 @@ type liveActionProvider struct {
 }
 
 var liveActionProviders = []liveActionProvider{
-	{name: "google", apiVersion: "v1beta-openai", providerType: "google", apiKeyEnv: "GOOGLE_API_KEY", chatModel: "gemini-3.7-flash", embeddingModel: "gemini-embedding-001"},
+	{name: "google", apiVersion: "v1beta-openai", providerType: "google", apiKeyEnv: "GOOGLE_API_KEY", chatModel: "gemini-2.5-flash", embeddingModel: "gemini-embedding-001"},
 	{name: "openrouter", apiVersion: "v1", providerType: "openrouter", apiKeyEnv: "OPENROUTER_API_KEY", chatModel: "openai/gpt-4o-mini", embeddingModel: "openai/text-embedding-3-small"},
 	{name: "lilac", apiVersion: "v1", providerType: "lilac", apiKeyEnv: "LILAC_API_KEY", chatModel: "moonshotai/kimi-k2.6"},
 }
@@ -146,7 +146,7 @@ func runLiveChatActionCell(t *testing.T, client *http.Client, baseURL, token str
 	totalTokens, usageFound := transportE2EPath(chat, "0.Attributes.usage.total_tokens")
 	totalTokenCount, validUsage := totalTokens.(float64)
 	if !contentFound || !validContent || contentText == "" || !usageFound || !validUsage || totalTokenCount <= 0 {
-		t.Fatal("live chat action returned an invalid normalized response")
+		t.Fatalf("live chat action returned an invalid normalized response: %#v", chat)
 	}
 	t.Logf("certification entrypoint=$llm.chat provider=%s api_version=%s model=%s normalized_result=success usage_available=true skip_reason=none",
 		provider.name, provider.apiVersion, provider.chatModel)

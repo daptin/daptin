@@ -85,6 +85,7 @@ stack as a sidecar for the backend features you are missing.
 
 ### LLM, Integrations, And Product Runtime
 
+- The normalized LLM gateway described here is available from Daptin `v0.13.0`.
 - OpenAI-compatible `/v1` endpoints for chat, stateless Responses, embeddings,
   image generation, and model discovery.
 - Priority/weighted and fallback routing through `llm_provider`, `llm_model`,

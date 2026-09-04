@@ -3,6 +3,8 @@ package resource
 import (
 	"testing"
 	"time"
+
+	"github.com/daptin/daptin/server/auth"
 )
 
 func TestEvaluateMeteringCost(t *testing.T) {
@@ -49,6 +51,22 @@ func TestMeteringLimitsAreGenericValidatedAndDeterministic(t *testing.T) {
 		"limits": `[{"metric":"requests","window":"minute","maximum":1},{"metric":"requests","window":"minute","maximum":2}]`,
 	}); err == nil {
 		t.Fatal("expected duplicate metric limits to be rejected")
+	}
+}
+
+func TestHydrateMeteringContextRestoresPersistedRequest(t *testing.T) {
+	user := &auth.SessionUser{UserId: 42}
+	ctx := hydrateMeteringContext(MeteringContext{User: user, StatusCode: 200}, map[string]interface{}{
+		"endpoint": "/v1/chat", "method": "POST", "entity_type": "llm_model",
+		"action_name": "invoke", "request_type": "llm_chat",
+	})
+	if ctx.Endpoint != "/v1/chat" || ctx.Method != "POST" || ctx.EntityType != "llm_model" ||
+		ctx.ActionName != "invoke" || ctx.RequestType != "llm_chat" {
+		t.Fatalf("hydrated context = %#v", ctx)
+	}
+	if ctx.Request == nil || ctx.Request.Method != "POST" || ctx.Request.URL.Path != "/v1/chat" ||
+		ctx.Request.Context().Value("user") != user {
+		t.Fatalf("hydrated request = %#v", ctx.Request)
 	}
 }
 

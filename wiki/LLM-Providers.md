@@ -1,5 +1,10 @@
 # LLM Gateway
 
+> **Availability:** This guide describes the normalized LLM gateway introduced
+> in Daptin `v0.13.0`. Use that release or a newer pinned image. The gateway is
+> configured with `llm_provider`, `llm_model`, and `llm_deployment` resources;
+> provider rows alone do not expose models.
+
 Daptin exposes one OpenAI-compatible gateway backed by the reusable
 `github.com/daptin/llmgateway` engine. HTTP requests and the built-in LLM
 actions share the same catalog, authorization, routing, provider adapters,
@@ -19,7 +24,7 @@ fingerprint polling as recovery; a server restart is not required.
 
 ## Supported provider adapters
 
-The first release uses the strict OpenAI-compatible adapter.
+The initial `v0.13.0` release uses the strict OpenAI-compatible adapter.
 
 | `provider_type` | Default base URL |
 |---|---|

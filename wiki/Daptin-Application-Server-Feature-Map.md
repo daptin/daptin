@@ -244,12 +244,14 @@ LLM capabilities:
 
 Metering capabilities:
 
-- `api_plan` defines request, compute, rate, price, overage, and quota settings.
+- `api_plan.limits` defines named metric/window limits for requests, tokens,
+  bytes, cost, or application-specific measures.
 - `api_member` assigns users to active plans.
-- `api_usage` records metered usage.
-- `api_quota` stores period counters.
+- `api_usage` records held and terminal metering reservations and final measures.
+- `api_quota` stores durable reserved and consumed totals.
 - CRUD, actions, and LLM endpoints can be metered.
-- Olric backs clustered rate limit counters.
+- Olric protects LLM deployment concurrency/RPM/TPM; durable plan limits remain
+  database-backed.
 - `post_metering_action` enables credit/billing hooks after usage is recorded.
 - Hard quota failures can deny requests before usage is recorded.
 

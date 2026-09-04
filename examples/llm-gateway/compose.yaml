@@ -1,0 +1,65 @@
+name: daptin-llm-gateway
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: daptin
+      POSTGRES_USER: daptin
+      POSTGRES_PASSWORD: daptin-development-password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daptin -d daptin"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  daptin:
+    image: ${DAPTIN_IMAGE:-daptin/daptin:v0.13.0}
+    restart: unless-stopped
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DAPTIN_PORT: ":8080"
+      DAPTIN_RUNTIME: release
+      DAPTIN_DB_TYPE: postgres
+      DAPTIN_DB_CONNECTION_STRING: host=postgres port=5432 user=daptin password=daptin-development-password dbname=daptin sslmode=disable
+      DAPTIN_DISABLE_SMTP: "true"
+    ports:
+      - "127.0.0.1:6336:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+  bootstrap:
+    image: node:20-alpine
+    depends_on:
+      daptin:
+        condition: service_healthy
+    working_dir: /bootstrap
+    volumes:
+      - ./bootstrap.js:/bootstrap/bootstrap.js:ro
+    environment:
+      DAPTIN_API_URL: http://daptin:8080
+      DAPTIN_ADMIN_EMAIL: ${DAPTIN_ADMIN_EMAIL:?Set DAPTIN_ADMIN_EMAIL in .env}
+      DAPTIN_ADMIN_PASSWORD: ${DAPTIN_ADMIN_PASSWORD:?Set DAPTIN_ADMIN_PASSWORD in .env}
+      LLM_PROVIDER_TYPE: ${LLM_PROVIDER_TYPE:-google}
+      LLM_PROVIDER_NAME: ${LLM_PROVIDER_NAME:-google-primary}
+      LLM_PUBLIC_MODEL: ${LLM_PUBLIC_MODEL:-assistant}
+      LLM_UPSTREAM_MODEL: ${LLM_UPSTREAM_MODEL:-gemini-2.5-flash}
+      LLM_API_KEY: ${LLM_API_KEY:?Set LLM_API_KEY in .env}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_OPERATIONS: ${LLM_OPERATIONS:-["chat"]}
+      LLM_CAPABILITIES: ${LLM_CAPABILITIES:-{}}
+    command: ["node", "/bootstrap/bootstrap.js"]
+    restart: "no"
+
+volumes:
+  postgres-data:
