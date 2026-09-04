@@ -74,9 +74,9 @@ jobs:
 
       - name: Cross-compile daptin
         run: |
-          "$(go env GOPATH)/bin/xgo" -go go-1.25.x -targets=linux/amd64,linux/arm64 \
+          "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets=linux/amd64,linux/arm64 \
             --tags netgo -ldflags '-linkmode external' -dest build .
-          "$(go env GOPATH)/bin/xgo" -go go-1.25.x -targets='darwin/amd64,darwin/arm64,windows/*' \
+          "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets='darwin/amd64,darwin/arm64,windows/*' \
             --tags netgo -ldflags '-linkmode external' -dest build .
 
       - name: List built artifacts
