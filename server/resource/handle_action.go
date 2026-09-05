@@ -157,7 +157,18 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 				return
 			}
 			if response.ResponseType == "client.header.set" {
-				attrs := response.Attributes.(map[string]string)
+				attrs := make(map[string]string)
+				switch responseAttrs := response.Attributes.(type) {
+				case map[string]string:
+					attrs = responseAttrs
+				case map[string]interface{}:
+					for key, value := range responseAttrs {
+						attrs[key] = fmt.Sprint(value)
+					}
+				default:
+					log.Errorf("invalid attributes for client.header.set response: %T", response.Attributes)
+					continue
+				}
 
 				for key, value := range attrs {
 					if strings.ToLower(key) == "status" {
