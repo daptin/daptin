@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -23,6 +24,33 @@ import (
 	"google.golang.org/grpc/reflection"
 	grpc_testing "google.golang.org/grpc/reflection/grpc_testing"
 )
+
+func integrationResponderAttributes(t *testing.T, responder api2go.Responder, responseType string) map[string]interface{} {
+	t.Helper()
+	model, ok := responder.Result().(api2go.Api2GoModel)
+	if !ok {
+		t.Fatalf("integration responder result is %T, want api2go.Api2GoModel", responder.Result())
+	}
+	if model.GetName() != responseType {
+		t.Fatalf("integration response model type = %q, want %q", model.GetName(), responseType)
+	}
+	return model.GetAttributes()
+}
+
+func assertRawIntegrationActionResponse(t *testing.T, responses []actionresponse.ActionResponse, responseType string) map[string]interface{} {
+	t.Helper()
+	if len(responses) < 1 || responses[0].ResponseType != responseType {
+		t.Fatalf("unexpected integration action responses: %#v", responses)
+	}
+	attributes, ok := responses[0].Attributes.(map[string]interface{})
+	if !ok {
+		t.Fatalf("integration action response attributes are %T, want map[string]interface{}", responses[0].Attributes)
+	}
+	if _, exists := attributes["__type"]; exists {
+		t.Fatalf("internal model type leaked into raw action response: %#v", attributes)
+	}
+	return attributes
+}
 
 func TestCreateIntegrationRequestBodyUsesDiscoveryInputShape(t *testing.T) {
 	requestSchema := asanaTaskRequestSchema()
@@ -301,7 +329,7 @@ func TestGraphQLIntegrationExecutionPostsToUpstreamPath(t *testing.T) {
 		encryptionSecret: []byte(secret),
 	}
 
-	responder, _, errs := performer.DoAction(actionresponse.Outcome{
+	responder, responses, errs := performer.DoAction(actionresponse.Outcome{
 		Type:   "linear.app",
 		Method: "listIssues",
 	}, map[string]interface{}{
@@ -315,6 +343,11 @@ func TestGraphQLIntegrationExecutionPostsToUpstreamPath(t *testing.T) {
 	if responder == nil || responder.StatusCode() != http.StatusOK {
 		t.Fatalf("unexpected responder: %#v", responder)
 	}
+	attributes := integrationResponderAttributes(t, responder, "linear.app.listIssues.response")
+	if _, ok := attributes["data"]; !ok {
+		t.Fatalf("GraphQL response data missing from model: %#v", attributes)
+	}
+	assertRawIntegrationActionResponse(t, responses, "linear.app.listIssues.response")
 	if capturedMethod != http.MethodPost {
 		t.Fatalf("unexpected method: %s", capturedMethod)
 	}
@@ -498,7 +531,7 @@ func TestRESTIntegrationExecutionStillUsesOperationMethodPathAndQuery(t *testing
 		encryptionSecret: []byte(secret),
 	}
 
-	responder, _, errs := performer.DoAction(actionresponse.Outcome{
+	responder, responses, errs := performer.DoAction(actionresponse.Outcome{
 		Type:   "asana.com",
 		Method: "getTask",
 	}, map[string]interface{}{
@@ -513,6 +546,12 @@ func TestRESTIntegrationExecutionStillUsesOperationMethodPathAndQuery(t *testing
 	if responder == nil || responder.StatusCode() != http.StatusOK {
 		t.Fatalf("unexpected responder: %#v", responder)
 	}
+	attributes := integrationResponderAttributes(t, responder, "asana.com.getTask.response")
+	data, ok := attributes["data"].(map[string]interface{})
+	if !ok || data["gid"] != "123" {
+		t.Fatalf("REST response data missing from model: %#v", attributes)
+	}
+	assertRawIntegrationActionResponse(t, responses, "asana.com.getTask.response")
 	if capturedMethod != http.MethodGet || capturedPath != "/tasks/123" || capturedQuery != "gid,name" {
 		t.Fatalf("REST operation changed: method=%s path=%s query=%s", capturedMethod, capturedPath, capturedQuery)
 	}
@@ -559,7 +598,7 @@ func TestWebSocketIntegrationExecutionUsesShortLivedRequestResponse(t *testing.T
 		t.Fatalf("encrypt auth spec: %v", err)
 	}
 	performer := integrationTestPerformer(upstream.URL, operation, "search", "/socket", authSpec, secret, adminGroupRef)
-	responder, _, errs := performer.DoAction(actionresponse.Outcome{
+	responder, responses, errs := performer.DoAction(actionresponse.Outcome{
 		Type:   "realtime.example",
 		Method: "search",
 	}, map[string]interface{}{
@@ -573,6 +612,11 @@ func TestWebSocketIntegrationExecutionUsesShortLivedRequestResponse(t *testing.T
 	if responder == nil || responder.StatusCode() != http.StatusOK {
 		t.Fatalf("unexpected responder: %#v", responder)
 	}
+	attributes := integrationResponderAttributes(t, responder, "integration.example.search.response")
+	if attributes["ok"] != true || attributes["echo"] != "tickets" {
+		t.Fatalf("websocket response data missing from model: %#v", attributes)
+	}
+	assertRawIntegrationActionResponse(t, responses, "integration.example.search.response")
 	if capturedAuth != "Bearer owner-token" {
 		t.Fatalf("auth header was not forwarded: %s", capturedAuth)
 	}
@@ -612,7 +656,7 @@ func TestGRPCIntegrationExecutionUsesReflectionUnaryCall(t *testing.T) {
 		t.Fatalf("encrypt auth spec: %v", err)
 	}
 	performer := integrationTestPerformer("http://"+listener.Addr().String(), operation, "Search", "/grpc", authSpec, secret, adminGroupRef)
-	responder, _, errs := performer.DoAction(actionresponse.Outcome{
+	responder, responses, errs := performer.DoAction(actionresponse.Outcome{
 		Type:   "grpc.example",
 		Method: "Search",
 	}, map[string]interface{}{
@@ -626,7 +670,8 @@ func TestGRPCIntegrationExecutionUsesReflectionUnaryCall(t *testing.T) {
 	if responder == nil || responder.StatusCode() != http.StatusOK {
 		t.Fatalf("unexpected responder: %#v", responder)
 	}
-	result := responder.Result().(map[string]interface{})
+	result := integrationResponderAttributes(t, responder, "integration.example.Search.response")
+	assertRawIntegrationActionResponse(t, responses, "integration.example.Search.response")
 	results, ok := result["results"].([]interface{})
 	if !ok || len(results) != 1 {
 		t.Fatalf("unexpected grpc response: %#v", result)

@@ -126,12 +126,19 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 			statusCode = http.StatusOK
 		}
 		log.Infof("Integration operation completed provider=[%s] operation=[%s] status=[%d]", providerName, operationName, statusCode)
-		if response, ok := responder.(api2go.Response); ok {
-			c.JSON(statusCode, response.Result())
-			return
-		}
-		c.JSON(statusCode, responder.Result())
+		c.JSON(statusCode, integrationOperationResult(responder))
 	}
+}
+
+func integrationOperationResult(responder api2go.Responder) interface{} {
+	result := responder.Result()
+	model, ok := result.(api2go.Api2GoModel)
+	if !ok {
+		return result
+	}
+	attributes := model.GetAttributes()
+	delete(attributes, "__type")
+	return attributes
 }
 
 func integrationOperationNameParam(c *gin.Context) string {

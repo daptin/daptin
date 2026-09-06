@@ -396,9 +396,10 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		if err != nil {
 			return nil, nil, []error{err}
 		}
-		responder := resource.NewResponse(nil, res, statusCode, nil)
+		responseType := d.integration.Name + "." + request.Method + ".response"
+		responder := resource.NewResponse(nil, integrationResponseModel(responseType, res), statusCode, nil)
 		return responder, []actionresponse.ActionResponse{
-			resource.NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
+			resource.NewActionResponse(responseType, res),
 			resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", statusCode),
 		}, nil
 	case integrationTransportGRPC:
@@ -413,9 +414,10 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		if err != nil {
 			return nil, nil, []error{err}
 		}
-		responder := resource.NewResponse(nil, res, statusCode, nil)
+		responseType := d.integration.Name + "." + request.Method + ".response"
+		responder := resource.NewResponse(nil, integrationResponseModel(responseType, res), statusCode, nil)
 		return responder, []actionresponse.ActionResponse{
-			resource.NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
+			resource.NewActionResponse(responseType, res),
 			resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", statusCode),
 		}, nil
 	case integrationTransportREST:
@@ -460,11 +462,45 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		log.Printf("API Response [%s][%s]: %v %v", method, url, resp.Response().Status, resp.String())
 		return nil, nil, []error{err}
 	}
-	responder := resource.NewResponse(nil, res, resp.Response().StatusCode, nil)
+	responseType := d.integration.Name + "." + request.Method + ".response"
+	responder := resource.NewResponse(nil, integrationResponseModel(responseType, res), resp.Response().StatusCode, nil)
 	return responder, []actionresponse.ActionResponse{
-		resource.NewActionResponse(d.integration.Name+"."+request.Method+".response", res),
+		resource.NewActionResponse(responseType, res),
 		resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", resp.Response().StatusCode),
 	}, nil
+}
+
+func integrationResponseModel(responseType string, result map[string]interface{}) api2go.Api2GoModel {
+	return api2go.NewApi2GoModelWithData(responseType, nil, 0, nil, cloneIntegrationResultMap(result))
+}
+
+// cloneIntegrationResultMap keeps Api2GoModel's normalization and internal
+// __type attribute from mutating the raw upstream payload returned through the
+// ActionResponse channel.
+func cloneIntegrationResultMap(result map[string]interface{}) map[string]interface{} {
+	if result == nil {
+		return nil
+	}
+	cloned := make(map[string]interface{}, len(result))
+	for key, value := range result {
+		cloned[key] = cloneIntegrationResultValue(value)
+	}
+	return cloned
+}
+
+func cloneIntegrationResultValue(value interface{}) interface{} {
+	switch typedValue := value.(type) {
+	case map[string]interface{}:
+		return cloneIntegrationResultMap(typedValue)
+	case []interface{}:
+		cloned := make([]interface{}, len(typedValue))
+		for index, item := range typedValue {
+			cloned[index] = cloneIntegrationResultValue(item)
+		}
+		return cloned
+	default:
+		return value
+	}
 }
 
 func integrationTransportConfigFromOperation(operation *openapi3.Operation, operationID string) (integrationTransportConfig, error) {
