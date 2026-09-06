@@ -16,7 +16,6 @@ import (
 
 type IntegrationOperationsDocument struct {
 	Provider   string                        `json:"provider"`
-	Auth       IntegrationOperationAuth      `json:"auth"`
 	Operations []IntegrationOperationSummary `json:"operations"`
 }
 
@@ -89,8 +88,11 @@ func ListIntegrationOperations(integration resource.Integration) (*IntegrationOp
 
 	records := sortedIntegrationOperationRecords(integration, router)
 	operations := make([]IntegrationOperationSummary, 0, len(records))
-	auth := integrationOperationAuth(integration)
 	for _, record := range records {
+		auth, err := integrationOperationAuth(integration, router, record.Operation)
+		if err != nil {
+			return nil, fmt.Errorf("integration operation [%s] has invalid security requirements: %w", record.Operation.OperationID, err)
+		}
 		operations = append(operations, IntegrationOperationSummary{
 			OperationID: record.Operation.OperationID,
 			Method:      strings.ToUpper(record.Method),
@@ -103,7 +105,6 @@ func ListIntegrationOperations(integration resource.Integration) (*IntegrationOp
 	log.Debugf("Built integration operation list provider=[%s] count=%d", integration.Name, len(operations))
 	return &IntegrationOperationsDocument{
 		Provider:   integration.Name,
-		Auth:       auth,
 		Operations: operations,
 	}, nil
 }
@@ -122,6 +123,10 @@ func DescribeIntegrationOperation(integration resource.Integration, operationID 
 		if record.Operation.OperationID != operationID {
 			continue
 		}
+		auth, err := integrationOperationAuth(integration, router, record.Operation)
+		if err != nil {
+			return nil, fmt.Errorf("integration operation [%s] has invalid security requirements: %w", operationID, err)
+		}
 		detail := &IntegrationOperationDetail{
 			Provider:       integration.Name,
 			OperationID:    record.Operation.OperationID,
@@ -129,7 +134,7 @@ func DescribeIntegrationOperation(integration resource.Integration, operationID 
 			Path:           record.Path,
 			Summary:        record.Operation.Summary,
 			Description:    record.Operation.Description,
-			Auth:           integrationOperationAuth(integration),
+			Auth:           auth,
 			Inputs:         integrationOperationInputs(router, record.Operation),
 			RequestBody:    integrationOperationRequestBody(record.Operation),
 			Responses:      integrationOperationResponses(record.Operation),
@@ -224,20 +229,23 @@ func sortedIntegrationOperationRecords(integration resource.Integration, router 
 	return records
 }
 
-func integrationOperationAuth(integration resource.Integration) IntegrationOperationAuth {
+func integrationOperationAuth(integration resource.Integration, router *openapi3.T, operation *openapi3.Operation) (IntegrationOperationAuth, error) {
+	usage, err := resource.IntegrationOperationAuthenticationUsage(router, operation, integration.AuthenticationType)
+	if err != nil {
+		return IntegrationOperationAuth{}, err
+	}
+	if !usage.UsesAuthentication {
+		return IntegrationOperationAuth{}, nil
+	}
 	authType := integration.AuthenticationType
-	auth := IntegrationOperationAuth{Type: authType}
+	auth := IntegrationOperationAuth{Type: authType, Required: usage.RequiresAuthentication}
 	switch strings.ToLower(authType) {
 	case "oauth2":
 		auth.ExecutionField = "oauth_token_id"
-		auth.Required = true
 	case "custom_credentials":
 		auth.ExecutionField = "credential_id"
-		auth.Required = true
-	default:
-		auth.Required = authType != ""
 	}
-	return auth
+	return auth, nil
 }
 
 func integrationOperationInputs(router *openapi3.T, operation *openapi3.Operation) []IntegrationOperationInput {

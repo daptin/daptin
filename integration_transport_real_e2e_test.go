@@ -274,8 +274,11 @@ func TestRealIntegrationTransportE2E(t *testing.T) {
 	port := freeTransportE2EPort(t, usedPorts)
 	httpsPort := freeTransportE2EPort(t, usedPorts)
 	daptinBaseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, daptinBaseURL)
-	defer daptinProcess.stopProcess()
+	options := transportE2EDaptinOptions{
+		databaseType: "sqlite3", connectionString: filepath.Join(t.TempDir(), "integration-transports.db"), schema: "EnableGraphQL: true\n",
+	}
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, daptinBaseURL, options)
+	defer func() { daptinProcess.stopProcess() }()
 
 	client := &http.Client{Timeout: 20 * time.Second}
 	adminToken := transportE2ESignupSigninAdmin(t, client, daptinBaseURL)
@@ -286,6 +289,9 @@ func TestRealIntegrationTransportE2E(t *testing.T) {
 
 	grpcIntegrationRef := transportE2ECreateIntegration(t, client, daptinBaseURL, adminToken, "e2e-grpc-protocols", grpcTransportE2ESpec(t, grpcAddress))
 	transportE2EInstallIntegration(t, client, daptinBaseURL, adminToken, grpcIntegrationRef)
+
+	daptinProcess.stopProcess()
+	daptinProcess = startTransportE2EDaptin(t, port, httpsPort, daptinBaseURL, options)
 
 	rest := transportE2EPostJSON(t, client, daptinBaseURL+"/integration/e2e-http-protocols/getTask", adminToken, map[string]interface{}{
 		"credential_id": credentialRef,
@@ -327,6 +333,26 @@ func TestRealIntegrationTransportE2E(t *testing.T) {
 	})
 	assertTransportE2EString(t, grpcResult, "results.0.title", "daptin")
 	assertTransportE2EString(t, grpcResult, "results.0.snippets.0", "authorization:ok")
+
+	publicDirect := transportE2EPostJSON(t, client, daptinBaseURL+"/integration/e2e-http-protocols/publicStatus", adminToken, map[string]interface{}{
+		"input": map[string]interface{}{},
+	})
+	assertTransportE2EString(t, publicDirect, "transport", "public")
+	assertTransportE2EString(t, publicDirect, "authorization", "")
+
+	publicAction := transportE2EPostJSON(t, client, daptinBaseURL+"/action/integration/e2e-http-protocols/publicStatus", adminToken, map[string]interface{}{
+		"attributes": map[string]interface{}{},
+	})
+	if publicAction == nil {
+		t.Fatal("anonymous generated integration action returned no response")
+	}
+
+	publicGraphQL := transportE2EPostJSON(t, client, daptinBaseURL+"/graphql", adminToken, map[string]interface{}{
+		"query": `mutation { executePublicStatusOnE2EHttpProtocols { ResponseType } }`,
+	})
+	if transportE2EGraphQLHasErrors(publicGraphQL) {
+		t.Fatalf("anonymous GraphQL integration operation failed: %#v", publicGraphQL)
+	}
 
 	graphQLDetails := transportE2EGetJSON(t, client, daptinBaseURL+"/integration/e2e-http-protocols/operations/listIssues", adminToken)
 	assertTransportE2EString(t, graphQLDetails, "extensions.daptin_transport.type", "graphql")
@@ -397,6 +423,12 @@ func startTransportE2EHTTPUpstream(t *testing.T) *httptest.Server {
 			"transport":     "websocket",
 			"authorization": r.Header.Get("Authorization"),
 			"query":         message["query"],
+		})
+	})
+	mux.HandleFunc("/public", func(w http.ResponseWriter, r *http.Request) {
+		transportE2EWriteJSON(w, map[string]interface{}{
+			"transport":     "public",
+			"authorization": r.Header.Get("Authorization"),
 		})
 	})
 
@@ -696,6 +728,13 @@ func httpTransportE2ESpec(t *testing.T, serverURL string) map[string]interface{}
 				"x-daptin-upstream-path": "/ws",
 				"requestBody":            transportE2EObjectRequestBody(map[string]interface{}{"query": map[string]interface{}{"type": "string"}}),
 				"responses":              transportE2EJSONResponses(),
+			},
+		},
+		"/public": map[string]interface{}{
+			"get": map[string]interface{}{
+				"operationId": "publicStatus",
+				"security":    []interface{}{},
+				"responses":   transportE2EJSONResponses(),
 			},
 		},
 	})

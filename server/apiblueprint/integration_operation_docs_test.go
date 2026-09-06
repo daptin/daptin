@@ -100,15 +100,69 @@ func TestListIntegrationOperationsUsesProviderSpec(t *testing.T) {
 	if document.Provider != "asana.com" {
 		t.Fatalf("unexpected provider: %s", document.Provider)
 	}
-	if document.Auth.ExecutionField != "oauth_token_id" || !document.Auth.Required {
-		t.Fatalf("oauth selector was not exposed: %+v", document.Auth)
-	}
 	if len(document.Operations) != 1 {
 		t.Fatalf("expected one operation, got %d", len(document.Operations))
 	}
 	operation := document.Operations[0]
 	if operation.OperationID != "getTask" || operation.Method != "GET" || operation.Path != "/tasks/{task_gid}" {
 		t.Fatalf("unexpected operation summary: %+v", operation)
+	}
+	if operation.Auth.ExecutionField != "oauth_token_id" || !operation.Auth.Required {
+		t.Fatalf("oauth selector was not exposed: %+v", operation.Auth)
+	}
+}
+
+func TestIntegrationOperationDiscoveryUsesOperationSecurity(t *testing.T) {
+	document, err := ListIntegrationOperations(testMixedSecurityIntegration())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(document.Operations) != 3 {
+		t.Fatalf("operations = %d, want 3", len(document.Operations))
+	}
+	byID := make(map[string]IntegrationOperationAuth, len(document.Operations))
+	for _, operation := range document.Operations {
+		byID[operation.OperationID] = operation.Auth
+	}
+	if auth := byID["inherited"]; auth.ExecutionField != "credential_id" || !auth.Required {
+		t.Fatalf("inherited auth = %+v", auth)
+	}
+	if auth := byID["anonymous"]; auth.ExecutionField != "" || auth.Required {
+		t.Fatalf("anonymous auth = %+v", auth)
+	}
+	if auth := byID["optional"]; auth.ExecutionField != "credential_id" || auth.Required {
+		t.Fatalf("optional auth = %+v", auth)
+	}
+}
+
+func TestIntegrationScopedOpenAPIUsesOperationSecurityForCredentialInput(t *testing.T) {
+	document, err := BuildIntegrationOpenAPI(testMixedSecurityIntegration())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed struct {
+		Components struct {
+			Schemas map[string]struct {
+				Properties map[string]interface{} `json:"properties"`
+				Required   []string               `json:"required"`
+			} `json:"schemas"`
+		} `json:"components"`
+	}
+	if err := ghodssyaml.Unmarshal([]byte(document), &parsed); err != nil {
+		t.Fatal(err)
+	}
+	provider := "MixedExample"
+	inherited := parsed.Components.Schemas["Integration"+provider+"InheritedRequestObject"]
+	if _, ok := inherited.Properties["credential_id"]; !ok || !containsString(inherited.Required, "credential_id") {
+		t.Fatalf("protected request schema = %+v", inherited)
+	}
+	anonymous := parsed.Components.Schemas["Integration"+provider+"AnonymousRequestObject"]
+	if _, ok := anonymous.Properties["credential_id"]; ok {
+		t.Fatalf("anonymous request schema exposed credential selector: %+v", anonymous)
+	}
+	optional := parsed.Components.Schemas["Integration"+provider+"OptionalRequestObject"]
+	if _, ok := optional.Properties["credential_id"]; !ok || containsString(optional.Required, "credential_id") {
+		t.Fatalf("optional request schema = %+v", optional)
 	}
 }
 
@@ -344,6 +398,28 @@ func testProtocolTransportIntegration() resource.Integration {
 	}
 }
 
+func testMixedSecurityIntegration() resource.Integration {
+	return resource.Integration{
+		Name:                  "mixed.example",
+		SpecificationLanguage: "openapiv3",
+		SpecificationFormat:   "json",
+		AuthenticationType:    "custom_credentials",
+		Enable:                true,
+		Specification: `{
+  "openapi": "3.0.0",
+  "info": {"title": "Mixed security", "version": "1.0.0"},
+  "servers": [{"url": "https://example.com"}],
+  "security": [{"apiKey": []}],
+  "components": {"securitySchemes": {"apiKey": {"type": "apiKey", "in": "header", "name": "X-API-Key"}}},
+  "paths": {
+    "/inherited": {"get": {"operationId": "inherited", "responses": {"200": {"description": "OK"}}}},
+    "/anonymous": {"get": {"operationId": "anonymous", "security": [], "responses": {"200": {"description": "OK"}}}},
+    "/optional": {"get": {"operationId": "optional", "security": [{"apiKey": []}, {}], "responses": {"200": {"description": "OK"}}}}
+  }
+}`,
+	}
+}
+
 func containsString(values []string, expected string) bool {
 	for _, value := range values {
 		if value == expected {
@@ -372,6 +448,21 @@ func testAsanaIntegration() resource.Integration {
 		Specification: `{
   "openapi": "3.0.0",
   "info": {"title": "Asana", "version": "1.0.0"},
+  "security": [{"oauth": []}],
+  "components": {
+    "securitySchemes": {
+      "oauth": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://example.com/authorize",
+            "tokenUrl": "https://example.com/token",
+            "scopes": {}
+          }
+        }
+      }
+    }
+  },
   "paths": {
     "/tasks/{task_gid}": {
       "get": {

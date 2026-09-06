@@ -284,8 +284,9 @@ operation.
 ```
 
 For custom credential integrations, send `credential_id` instead of
-`oauth_token_id`. Operation path, query, header, and body parameters go inside
-`input`.
+`oauth_token_id` when operation discovery exposes that selector. OpenAPI
+security may make the selector required, optional, or absent for a particular
+operation. Operation path, query, header, and body parameters go inside `input`.
 
 The selected credential must be owned by the authenticated request user and
 grant owner read permission. The API ignores caller-provided runtime identity;

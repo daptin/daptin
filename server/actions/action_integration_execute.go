@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/dbresourceinterface"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/getkin/kin-openapi/openapi2"
@@ -34,7 +35,9 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -87,7 +90,6 @@ type integrationTransportConfig struct {
 }
 
 type integrationTransportAuth struct {
-	Arguments            []interface{}
 	ProtectedHeaders     map[string]bool
 	ProtectedQueryParams map[string]bool
 	Headers              map[string]string
@@ -117,10 +119,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	path, ok := d.pathMap[request.Method]
 	pathItem := d.router.Paths.Find(path)
 
-	securitySchemaMap := d.router.Components.SecuritySchemes
-	//selectedSecuritySchema := &openapi3.SecuritySchemeRef{}
-
-	if !ok || pathItem == nil {
+	if !ok || operation == nil || pathItem == nil {
 		return nil, nil, []error{errors.New("no such method")}
 	}
 
@@ -130,15 +129,6 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	r := req.New()
-
-	decryptedSpec, err := resource.Decrypt(d.encryptionSecret, d.integration.AuthenticationSpecification)
-
-	if err != nil {
-		log.Errorf("Failed to decrypted auth spec: %v", err)
-	}
-	authKeys := make(map[string]interface{})
-	err = json.Unmarshal([]byte(decryptedSpec), &authKeys)
-	resource.CheckErr(err, "Failed to unmarshal authentication specification")
 
 	if d.router.Servers == nil || len(d.router.Servers) == 0 {
 		log.Errorf("No servers found in integration spec of [%s]", d.integration.Name)
@@ -174,7 +164,6 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	var resp *req.Resp
 	arguments := make([]interface{}, 0)
-	authArguments := make([]interface{}, 0)
 	protectedHeaders := make(map[string]bool)
 	protectedQueryParams := make(map[string]bool)
 
@@ -220,101 +209,12 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		//hasRequestBody = true
 	}
 
-	authDone := false
-	authType := strings.ToLower(d.integration.AuthenticationType)
-
-	if operation.Security != nil {
-		secMethods := make(openapi3.SecurityRequirements, 0, len(*operation.Security)+len(d.router.Security))
-		secMethods = append(secMethods, *operation.Security...)
-
-		secMethods = append(secMethods, d.router.Security...)
-
-		for _, security := range secMethods {
-
-			for secName := range security {
-				spec := securitySchemaMap[secName]
-
-				done := false
-				switch spec.Value.Type {
-
-				case "oauth2":
-					if authType == "oauth2" {
-						var oauthAuthorizationHeader req.Header
-						oauthAuthorizationHeader, done, err = d.oauth2AuthorizationHeader(request, inFieldMap, authKeys, transaction, false)
-						if err != nil {
-							return nil, nil, []error{err}
-						}
-						if done {
-							authArguments = append(authArguments, oauthAuthorizationHeader)
-							protectedHeaders["authorization"] = true
-						}
-					}
-
-				case "http":
-					if authType == "custom_credentials" {
-						var headers map[string]bool
-						var queries map[string]bool
-						authArguments, headers, queries, done, err = d.customCredentialAuthArguments(inFieldMap, authKeys, spec.Value, transaction, false)
-						if err != nil {
-							return nil, nil, []error{err}
-						}
-						mergeStringBoolMaps(protectedHeaders, headers)
-						mergeStringBoolMaps(protectedQueryParams, queries)
-					}
-
-				case "apiKey":
-					if authType == "custom_credentials" {
-						var headers map[string]bool
-						var queries map[string]bool
-						authArguments, headers, queries, done, err = d.customCredentialAuthArguments(inFieldMap, authKeys, spec.Value, transaction, false)
-						if err != nil {
-							return nil, nil, []error{err}
-						}
-						mergeStringBoolMaps(protectedHeaders, headers)
-						mergeStringBoolMaps(protectedQueryParams, queries)
-					}
-				}
-
-				if done {
-					authDone = true
-					break
-				}
-			}
-
-			if authDone {
-				break
-			}
-		}
+	transportAuth, err := d.resolveIntegrationTransportAuth(operation, inFieldMap, transaction)
+	if err != nil {
+		return nil, nil, []error{err}
 	}
-
-	if !authDone {
-		switch authType {
-
-		case "oauth2":
-			var oauthAuthorizationHeader req.Header
-			oauthAuthorizationHeader, authDone, err = d.oauth2AuthorizationHeader(request, inFieldMap, authKeys, transaction, true)
-			if err != nil {
-				return nil, nil, []error{err}
-			}
-			if authDone {
-				authArguments = append(authArguments, oauthAuthorizationHeader)
-				protectedHeaders["authorization"] = true
-			}
-
-		case "custom_credentials":
-			var headers map[string]bool
-			var queries map[string]bool
-			authArguments, headers, queries, authDone, err = d.customCredentialAuthArguments(inFieldMap, authKeys, nil, transaction, true)
-			if err != nil {
-				return nil, nil, []error{err}
-			}
-			mergeStringBoolMaps(protectedHeaders, headers)
-			mergeStringBoolMaps(protectedQueryParams, queries)
-
-		default:
-			return nil, nil, []error{fmt.Errorf("integration authentication_type [%s] is not supported; use oauth2 or custom_credentials", d.integration.AuthenticationType)}
-		}
-	}
+	protectedHeaders = transportAuth.ProtectedHeaders
+	protectedQueryParams = transportAuth.ProtectedQueryParams
 
 	parameters := operation.Parameters
 	for _, param := range parameters {
@@ -327,7 +227,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			continue
 		}
 		if transportConfig.Transport == integrationTransportREST && param.Value.In == "header" {
-			if protectedHeaders[strings.ToLower(param.Value.Name)] {
+			if isIntegrationRuntimeParameter(d.router, param.Value, protectedHeaders, protectedQueryParams) {
 				continue
 			}
 			parameterValues := make(map[string]string)
@@ -345,7 +245,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		}
 
 		if transportConfig.Transport == integrationTransportREST && param.Value.In == "query" {
-			if protectedQueryParams[param.Value.Name] {
+			if isIntegrationRuntimeParameter(d.router, param.Value, protectedHeaders, protectedQueryParams) {
 				continue
 			}
 			parameterValues := make(map[string]interface{})
@@ -363,9 +263,8 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	}
 
-	arguments = append(arguments, authArguments...)
+	arguments = append(arguments, integrationTransportAuthArguments(transportAuth)...)
 
-	transportAuth := integrationTransportAuthFromArguments(authArguments, protectedHeaders, protectedQueryParams)
 	var graphqlBody map[string]interface{}
 	if transportConfig.Transport == integrationTransportGraphQL {
 		graphqlBody, err = createGraphQLIntegrationRequestBody(d.router, operation, transportConfig, inFieldMap, protectedHeaders, protectedQueryParams)
@@ -852,27 +751,206 @@ func isIntegrationRuntimeInputKey(key string) bool {
 	}
 }
 
-func integrationTransportAuthFromArguments(arguments []interface{}, protectedHeaders map[string]bool, protectedQueryParams map[string]bool) integrationTransportAuth {
-	auth := integrationTransportAuth{
-		Arguments:            arguments,
-		ProtectedHeaders:     protectedHeaders,
-		ProtectedQueryParams: protectedQueryParams,
+func newIntegrationTransportAuth() integrationTransportAuth {
+	return integrationTransportAuth{
+		ProtectedHeaders:     make(map[string]bool),
+		ProtectedQueryParams: make(map[string]bool),
 		Headers:              make(map[string]string),
 		QueryParams:          make(map[string]interface{}),
 	}
-	for _, argument := range arguments {
-		switch typedArgument := argument.(type) {
-		case req.Header:
-			for key, value := range typedArgument {
-				auth.Headers[key] = value
-			}
-		case req.QueryParam:
-			for key, value := range typedArgument {
-				auth.QueryParams[key] = value
-			}
+}
+
+func (d *integrationActionPerformer) resolveIntegrationTransportAuth(
+	operation *openapi3.Operation,
+	inFieldMap map[string]interface{},
+	transaction *sqlx.Tx,
+) (integrationTransportAuth, error) {
+	empty := newIntegrationTransportAuth()
+	usage, err := resource.IntegrationOperationAuthenticationUsage(d.router, operation, d.integration.AuthenticationType)
+	if err != nil {
+		return empty, err
+	}
+	if !usage.UsesAuthentication {
+		return empty, nil
+	}
+
+	authType := strings.ToLower(d.integration.AuthenticationType)
+	requirements := resource.EffectiveIntegrationSecurityRequirements(d.router, operation)
+	var credential *dbresourceinterface.Credential
+	var oauthHeader req.Header
+	var selectorPresent bool
+
+	switch authType {
+	case "oauth2":
+		selectorPresent = daptinid.InterfaceToDIR(inFieldMap["oauth_token_id"]) != daptinid.NullReferenceId
+	case "custom_credentials":
+		credentialID := daptinid.InterfaceToDIR(inFieldMap["credential_id"])
+		selectorPresent = credentialID != daptinid.NullReferenceId
+	default:
+		return empty, fmt.Errorf("integration authentication_type [%s] is not supported; use oauth2 or custom_credentials", d.integration.AuthenticationType)
+	}
+	if !selectorPresent {
+		if !usage.RequiresAuthentication {
+			return empty, nil
+		}
+		if authType == "oauth2" {
+			return empty, errors.New("oauth_token_id is required for oauth2 integration execution")
+		}
+		return empty, errors.New("credential_id is required for custom credential integration execution")
+	}
+
+	decryptedSpec, err := resource.Decrypt(d.encryptionSecret, d.integration.AuthenticationSpecification)
+	if err != nil {
+		return empty, fmt.Errorf("failed to decrypt integration authentication specification: %w", err)
+	}
+	authKeys := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(decryptedSpec), &authKeys); err != nil {
+		return empty, fmt.Errorf("failed to parse integration authentication specification: %w", err)
+	}
+
+	switch authType {
+	case "oauth2":
+		oauthHeader, err = d.oauth2AuthorizationHeader(inFieldMap, authKeys, transaction)
+		if err != nil {
+			return empty, err
+		}
+	case "custom_credentials":
+		sessionUser := integrationExecutionSessionUser(inFieldMap)
+		if sessionUser == nil {
+			return empty, errors.New("custom credential integration execution requires an authenticated user")
+		}
+		credentialID := daptinid.InterfaceToDIR(inFieldMap["credential_id"])
+		credential, err = d.cruds["credential"].GetCredentialByReferenceIdForIntegrationExecution(credentialID, sessionUser, transaction)
+		if err != nil {
+			return empty, err
 		}
 	}
-	return auth
+
+	var lastErr error
+	for _, requirement := range requirements {
+		if len(requirement) == 0 {
+			continue
+		}
+		supported, requirementErr := resource.IntegrationSecurityRequirementSupported(authType, requirement, d.router.Components.SecuritySchemes)
+		if requirementErr != nil {
+			return empty, requirementErr
+		}
+		if !supported {
+			continue
+		}
+
+		candidate := newIntegrationTransportAuth()
+		schemeNames := make([]string, 0, len(requirement))
+		for schemeName := range requirement {
+			schemeNames = append(schemeNames, schemeName)
+		}
+		sort.Strings(schemeNames)
+		complete := true
+		for _, schemeName := range schemeNames {
+			scheme := d.router.Components.SecuritySchemes[schemeName].Value
+			var part integrationTransportAuth
+			switch authType {
+			case "oauth2":
+				part = newIntegrationTransportAuth()
+				for key, value := range oauthHeader {
+					part.Headers[key] = value
+				}
+				part.ProtectedHeaders["authorization"] = true
+			case "custom_credentials":
+				part, requirementErr = customCredentialTransportAuth(credential, authKeys, scheme)
+			}
+			if requirementErr != nil {
+				lastErr = requirementErr
+				complete = false
+				break
+			}
+			if requirementErr = mergeIntegrationTransportAuth(&candidate, part); requirementErr != nil {
+				lastErr = requirementErr
+				complete = false
+				break
+			}
+		}
+		if complete {
+			return candidate, nil
+		}
+	}
+	if lastErr != nil {
+		return empty, lastErr
+	}
+	return empty, fmt.Errorf("no OpenAPI security requirement can be satisfied by integration authentication_type [%s]", d.integration.AuthenticationType)
+}
+
+func mergeIntegrationTransportAuth(target *integrationTransportAuth, source integrationTransportAuth) error {
+	for key, value := range source.Headers {
+		existingKey := ""
+		for candidate := range target.Headers {
+			if strings.EqualFold(candidate, key) {
+				existingKey = candidate
+				break
+			}
+		}
+		if existingKey == "" {
+			target.Headers[key] = value
+			continue
+		}
+		if strings.EqualFold(key, "cookie") {
+			merged, err := mergeIntegrationCookieHeaders(target.Headers[existingKey], value)
+			if err != nil {
+				return err
+			}
+			target.Headers[existingKey] = merged
+			continue
+		}
+		if target.Headers[existingKey] == value {
+			continue
+		}
+		return fmt.Errorf("OpenAPI security schemes produce conflicting header [%s]", key)
+	}
+	for key, value := range source.QueryParams {
+		if existing, ok := target.QueryParams[key]; ok {
+			if !reflect.DeepEqual(existing, value) {
+				return fmt.Errorf("OpenAPI security schemes produce conflicting query parameter [%s]", key)
+			}
+			continue
+		}
+		target.QueryParams[key] = value
+	}
+	mergeStringBoolMaps(target.ProtectedHeaders, source.ProtectedHeaders)
+	mergeStringBoolMaps(target.ProtectedQueryParams, source.ProtectedQueryParams)
+	return nil
+}
+
+func mergeIntegrationCookieHeaders(first string, second string) (string, error) {
+	values := make(map[string]string)
+	ordered := make([]string, 0)
+	for _, header := range []string{first, second} {
+		for _, part := range strings.Split(header, ";") {
+			name, value, ok := strings.Cut(strings.TrimSpace(part), "=")
+			if !ok || name == "" {
+				return "", errors.New("OpenAPI security scheme produced an invalid cookie")
+			}
+			if existing, exists := values[name]; exists {
+				if existing != value {
+					return "", fmt.Errorf("OpenAPI security schemes produce conflicting cookie [%s]", name)
+				}
+				continue
+			}
+			values[name] = value
+			ordered = append(ordered, name+"="+value)
+		}
+	}
+	return strings.Join(ordered, "; "), nil
+}
+
+func integrationTransportAuthArguments(auth integrationTransportAuth) []interface{} {
+	arguments := make([]interface{}, 0, 2)
+	if len(auth.Headers) > 0 {
+		arguments = append(arguments, req.Header(auth.Headers))
+	}
+	if len(auth.QueryParams) > 0 {
+		arguments = append(arguments, req.QueryParam(auth.QueryParams))
+	}
+	return arguments
 }
 
 func executeWebSocketIntegrationTransport(
@@ -1163,75 +1241,53 @@ func grpcDescriptorSetFromReflection(ctx context.Context, conn *grpc.ClientConn,
 }
 
 func (d *integrationActionPerformer) oauth2AuthorizationHeader(
-	request actionresponse.Outcome,
 	inFieldMap map[string]interface{},
 	authKeys map[string]interface{},
 	transaction *sqlx.Tx,
-	requireToken bool,
-) (req.Header, bool, error) {
+) (req.Header, error) {
 	oauthTokenId := daptinid.InterfaceToDIR(inFieldMap["oauth_token_id"])
-	if oauthTokenId != daptinid.NullReferenceId {
-		oauthConnectId := daptinid.InterfaceToDIR(authKeys["oauth_connect_id"])
-		sessionUser := integrationExecutionSessionUser(inFieldMap)
-		if sessionUser == nil {
-			return nil, false, errors.New("oauth2 integration execution requires an authenticated user")
-		}
-		err := d.cruds["oauth_token"].ValidateOAuthTokenForIntegrationExecution(oauthTokenId, sessionUser.UserId, oauthConnectId, transaction)
-		if err != nil {
-			return nil, false, err
-		}
-		return d.oauth2HeaderForTokenReference(oauthTokenId, transaction)
+	if oauthTokenId == daptinid.NullReferenceId {
+		return nil, errors.New("oauth_token_id is required for oauth2 integration execution")
 	}
-
-	if requireToken {
-		return nil, false, errors.New("oauth_token_id is required for oauth2 integration execution")
+	oauthConnectId := daptinid.InterfaceToDIR(authKeys["oauth_connect_id"])
+	sessionUser := integrationExecutionSessionUser(inFieldMap)
+	if sessionUser == nil {
+		return nil, errors.New("oauth2 integration execution requires an authenticated user")
 	}
-
-	return nil, false, nil
+	if err := d.cruds["oauth_token"].ValidateOAuthTokenForIntegrationExecution(oauthTokenId, sessionUser.UserId, oauthConnectId, transaction); err != nil {
+		return nil, err
+	}
+	return d.oauth2HeaderForTokenReference(oauthTokenId, transaction)
 }
 
-func (d *integrationActionPerformer) oauth2HeaderForTokenReference(oauthTokenId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (req.Header, bool, error) {
+func (d *integrationActionPerformer) oauth2HeaderForTokenReference(oauthTokenId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (req.Header, error) {
 	oauthToken, _, err := d.cruds["oauth_token"].GetTokenByTokenReferenceId(oauthTokenId, transaction)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	return req.Header{
 		"Authorization": "Bearer " + oauthToken.AccessToken,
-	}, true, nil
+	}, nil
 }
 
-func (d *integrationActionPerformer) customCredentialAuthArguments(
-	inFieldMap map[string]interface{},
+func customCredentialTransportAuth(
+	credential *dbresourceinterface.Credential,
 	authKeys map[string]interface{},
 	securityScheme *openapi3.SecurityScheme,
-	transaction *sqlx.Tx,
-	requireCredential bool,
-) ([]interface{}, map[string]bool, map[string]bool, bool, error) {
-	credentialId := daptinid.InterfaceToDIR(inFieldMap["credential_id"])
-	if credentialId == daptinid.NullReferenceId {
-		if requireCredential {
-			return nil, nil, nil, false, errors.New("credential_id is required for custom credential integration execution")
+) (integrationTransportAuth, error) {
+	auth := newIntegrationTransportAuth()
+	if credential == nil {
+		return auth, errors.New("credential is not available")
+	}
+
+	scheme := ""
+	if securityScheme != nil {
+		if securityScheme.Type == "http" {
+			scheme = strings.ToLower(securityScheme.Scheme)
 		}
-		return nil, nil, nil, false, nil
-	}
-
-	sessionUser := integrationExecutionSessionUser(inFieldMap)
-	if sessionUser == nil {
-		return nil, nil, nil, false, errors.New("custom credential integration execution requires an authenticated user")
-	}
-
-	credential, err := d.cruds["credential"].GetCredentialByReferenceIdForIntegrationExecution(credentialId, sessionUser, transaction)
-	if err != nil {
-		return nil, nil, nil, false, err
-	}
-
-	protectedHeaders := make(map[string]bool)
-	protectedQueryParams := make(map[string]bool)
-
-	scheme := strings.ToLower(stringValue(authKeys["scheme"]))
-	if scheme == "" && securityScheme != nil && securityScheme.Type == "http" {
-		scheme = strings.ToLower(securityScheme.Scheme)
+	} else {
+		scheme = strings.ToLower(stringValue(authKeys["scheme"]))
 	}
 
 	switch scheme {
@@ -1246,15 +1302,16 @@ func (d *integrationActionPerformer) customCredentialAuthArguments(
 		}
 		username, ok := credential.DataMap[usernameField].(string)
 		if !ok || username == "" {
-			return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", usernameField)
+			return auth, fmt.Errorf("credential is missing [%s]", usernameField)
 		}
 		password, ok := credential.DataMap[passwordField].(string)
 		if !ok || password == "" {
-			return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", passwordField)
+			return auth, fmt.Errorf("credential is missing [%s]", passwordField)
 		}
 		header := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
-		protectedHeaders["authorization"] = true
-		return []interface{}{req.Header{"Authorization": "Basic " + header}}, protectedHeaders, protectedQueryParams, true, nil
+		auth.Headers["Authorization"] = "Basic " + header
+		auth.ProtectedHeaders["authorization"] = true
+		return auth, nil
 
 	case "bearer":
 		tokenField := stringValue(authKeys["token_field"])
@@ -1263,48 +1320,51 @@ func (d *integrationActionPerformer) customCredentialAuthArguments(
 		}
 		token, ok := credential.DataMap[tokenField].(string)
 		if !ok || token == "" {
-			return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", tokenField)
+			return auth, fmt.Errorf("credential is missing [%s]", tokenField)
 		}
-		protectedHeaders["authorization"] = true
-		return []interface{}{req.Header{"Authorization": "Bearer " + token}}, protectedHeaders, protectedQueryParams, true, nil
+		auth.Headers["Authorization"] = "Bearer " + token
+		auth.ProtectedHeaders["authorization"] = true
+		return auth, nil
 	}
 
-	keyLocation := strings.ToLower(stringValue(authKeys["in"]))
-	keyName := stringValue(authKeys["name"])
+	keyLocation := ""
+	keyName := ""
 	if securityScheme != nil && securityScheme.Type == "apiKey" {
-		if keyLocation == "" {
-			keyLocation = strings.ToLower(securityScheme.In)
-		}
-		if keyName == "" {
-			keyName = securityScheme.Name
-		}
+		keyLocation = strings.ToLower(securityScheme.In)
+		keyName = securityScheme.Name
+	} else {
+		keyLocation = strings.ToLower(stringValue(authKeys["in"]))
+		keyName = stringValue(authKeys["name"])
 	}
 	valueField := stringValue(authKeys["value_field"])
 	if valueField == "" {
 		valueField = keyName
 	}
 	if keyLocation == "" || keyName == "" || valueField == "" {
-		return nil, nil, nil, false, errors.New("custom credential authentication_specification must define either scheme or api key placement")
+		return auth, errors.New("custom credential authentication_specification must define either scheme or api key placement")
 	}
 
 	value, ok := credential.DataMap[valueField].(string)
 	if !ok || value == "" {
-		return nil, nil, nil, false, fmt.Errorf("credential is missing [%s]", valueField)
+		return auth, fmt.Errorf("credential is missing [%s]", valueField)
 	}
 
 	switch keyLocation {
 	case "header":
-		protectedHeaders[strings.ToLower(keyName)] = true
-		return []interface{}{req.Header{keyName: value}}, protectedHeaders, protectedQueryParams, true, nil
+		auth.Headers[keyName] = value
+		auth.ProtectedHeaders[strings.ToLower(keyName)] = true
+		return auth, nil
 	case "query":
-		protectedQueryParams[keyName] = true
-		return []interface{}{req.QueryParam{keyName: value}}, protectedHeaders, protectedQueryParams, true, nil
+		auth.QueryParams[keyName] = value
+		auth.ProtectedQueryParams[keyName] = true
+		return auth, nil
 	case "cookie":
-		protectedHeaders["cookie"] = true
-		return []interface{}{req.Header{"Cookie": fmt.Sprintf("%s=%s", keyName, value)}}, protectedHeaders, protectedQueryParams, true, nil
+		auth.Headers["Cookie"] = fmt.Sprintf("%s=%s", keyName, value)
+		auth.ProtectedHeaders["cookie"] = true
+		return auth, nil
 	}
 
-	return nil, nil, nil, false, fmt.Errorf("unsupported custom credential location [%s]", keyLocation)
+	return auth, fmt.Errorf("unsupported custom credential location [%s]", keyLocation)
 }
 
 func stringValue(val interface{}) string {

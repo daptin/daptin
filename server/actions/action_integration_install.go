@@ -37,15 +37,14 @@ type IntegrationRuntimeInstallMessage struct {
 	Become administrator of daptin action implementation
 */
 type integrationInstallationPerformer struct {
-	cruds            map[string]*resource.DbResource
-	integration      resource.Integration
-	router           *openapi3.T
-	commandMap       map[string]*openapi3.Operation
-	pathMap          map[string]string
-	methodMap        map[string]string
-	encryptionSecret []byte
-	configStore      *resource.ConfigStore
-	instanceID       string
+	cruds       map[string]*resource.DbResource
+	integration resource.Integration
+	router      *openapi3.T
+	commandMap  map[string]*openapi3.Operation
+	pathMap     map[string]string
+	methodMap   map[string]string
+	configStore *resource.ConfigStore
+	instanceID  string
 }
 
 // Name of the action
@@ -81,21 +80,6 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 		return nil, nil, []error{fmt.Errorf("specification must be a string, got %T", spec)}
 	}
 	specBytes := []byte(specString)
-
-	authSpec, ok := integration["authentication_specification"].(string)
-	if !ok {
-		log.Warnf("install_integration failed: authentication_specification has invalid type [%T] reference_id=[%s]", integration["authentication_specification"], referenceId.String())
-		return nil, nil, []error{fmt.Errorf("authentication_specification must be a string, got %T", integration["authentication_specification"])}
-	}
-
-	decryptedSpec, err := resource.Decrypt(d.encryptionSecret, authSpec)
-
-	authDataMap := make(map[string]interface{})
-
-	err = json.Unmarshal([]byte(decryptedSpec), &authDataMap)
-	if err != nil {
-		return nil, nil, []error{errors.New(fmt.Sprintf("failed to parse auth specification: %v", err))}
-	}
 
 	if integration["specification_format"] == "yaml" {
 
@@ -171,32 +155,7 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 
 	host := router.Servers[0].URL
 
-	globalAttrs := make(map[string]string)
 	authType := strings.ToLower(fmt.Sprintf("%v", integration["authentication_type"]))
-	authInputNames := make(map[string]bool)
-
-	for name, securityRef := range router.Components.SecuritySchemes {
-		if integrationAuthUsesSecurityScheme(authType, securityRef.Value) {
-			authInputNames[name] = true
-			if securityRef.Value.Name != "" {
-				authInputNames[securityRef.Value.Name] = true
-			}
-			continue
-		}
-
-		if authDataMap[name] != nil {
-			continue
-		}
-
-		switch securityRef.Value.In {
-		case "header":
-			globalAttrs[name] = "~" + name
-		case "query":
-			globalAttrs[name] = "~" + name
-		case "path":
-			globalAttrs[name] = "~" + name
-		}
-	}
 
 	for commandId, command := range commandMap {
 
@@ -211,38 +170,34 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 
 		attrs := map[string]interface{}{}
 
-		for key, val := range globalAttrs {
-			attrs[key] = val
+		authUsage, err := resource.IntegrationOperationAuthenticationUsage(router, command, authType)
+		if err != nil {
+			return nil, nil, []error{fmt.Errorf("integration operation [%s] has invalid security requirements: %w", commandId, err)}
 		}
 
-		switch authType {
-		case "oauth2":
+		if authUsage.UsesAuthentication && authType == "oauth2" {
 			cols = append(cols, api2go.ColumnInfo{
 				Name:              "oauth_token_id",
 				ColumnName:        "oauth_token_id",
 				ColumnType:        "hidden",
 				DataType:          "varchar(100)",
-				IsNullable:        false,
+				IsNullable:        !authUsage.RequiresAuthentication,
 				ColumnDescription: "OAuth token reference id to use for this integration execution.",
 			})
 			attrs["oauth_token_id"] = "~oauth_token_id"
-		case "custom_credentials":
+		} else if authUsage.UsesAuthentication && authType == "custom_credentials" {
 			cols = append(cols, api2go.ColumnInfo{
 				Name:              "credential_id",
 				ColumnName:        "credential_id",
 				ColumnType:        "hidden",
 				DataType:          "varchar(100)",
-				IsNullable:        false,
+				IsNullable:        !authUsage.RequiresAuthentication,
 				ColumnDescription: "Credential reference id to use for this integration execution.",
 			})
 			attrs["credential_id"] = "~credential_id"
 		}
 
 		for _, param := range params {
-			if authDataMap[param] != nil {
-				continue
-			}
-
 			cols = append(cols, api2go.ColumnInfo{
 				Name:       param,
 				ColumnName: param,
@@ -257,10 +212,7 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 			if param == nil || param.Value == nil {
 				return nil, nil, []error{fmt.Errorf("integration operation [%s] contains an unresolved parameter", commandId)}
 			}
-			if authInputNames[param.Value.Name] && (param.Value.In == "header" || param.Value.In == "query" || param.Value.In == "cookie") {
-				continue
-			}
-			if authDataMap[param.Value.Name] != nil {
+			if isIntegrationRuntimeParameter(router, param.Value, nil, nil) {
 				continue
 			}
 			cols = append(cols, api2go.ColumnInfo{
@@ -291,9 +243,6 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 
 				requiredBodyParameters := requiredIntegrationBodyParameters(command.RequestBody.Value.Required, jsonMedia.Schema)
 				for _, param := range bodyParameterNames {
-					if authDataMap[param] != nil {
-						continue
-					}
 					cols = append(cols, api2go.ColumnInfo{
 						Name:       param,
 						ColumnName: param,
@@ -536,32 +485,12 @@ func stringField(row map[string]interface{}, key string) (string, bool) {
 	return strValue, ok
 }
 
-func integrationAuthUsesSecurityScheme(authType string, securityScheme *openapi3.SecurityScheme) bool {
-	if securityScheme == nil {
-		return false
-	}
-	switch authType {
-	case "oauth2":
-		return securityScheme.Type == "oauth2"
-	case "custom_credentials":
-		return securityScheme.Type == "http" || securityScheme.Type == "apiKey"
-	default:
-		return false
-	}
-}
-
 // Create a new action performer for becoming administrator action
 func NewIntegrationInstallationPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, configStore *resource.ConfigStore, transaction *sqlx.Tx, instanceID string) (actionresponse.ActionPerformerInterface, error) {
-
-	encryptionSecret, err := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
-	if err != nil {
-		log.Errorf("Failed to get encryption secret from config store: %v", err)
-	}
 	handler := integrationInstallationPerformer{
-		cruds:            cruds,
-		encryptionSecret: []byte(encryptionSecret),
-		configStore:      configStore,
-		instanceID:       instanceID,
+		cruds:       cruds,
+		configStore: configStore,
+		instanceID:  instanceID,
 	}
 
 	return &handler, nil

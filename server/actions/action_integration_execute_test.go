@@ -310,6 +310,7 @@ func TestGraphQLIntegrationExecutionPostsToUpstreamPath(t *testing.T) {
 			"/issues/list": &openapi3.PathItem{Post: operation},
 		},
 	}
+	addIntegrationTestBearerSecurity(router)
 	performer := &integrationActionPerformer{
 		cruds: map[string]*resource.DbResource{
 			"credential": {
@@ -510,6 +511,13 @@ func TestRESTIntegrationExecutionStillUsesOperationMethodPathAndQuery(t *testing
 		},
 		Responses: openapi3.Responses{"200": &openapi3.ResponseRef{Value: &openapi3.Response{Description: stringPointer("OK")}}},
 	}
+	router := &openapi3.T{
+		Servers: openapi3.Servers{&openapi3.Server{URL: upstream.URL}},
+		Paths: openapi3.Paths{
+			"/tasks/{task_gid}": &openapi3.PathItem{Get: operation},
+		},
+	}
+	addIntegrationTestBearerSecurity(router)
 	performer := &integrationActionPerformer{
 		cruds: map[string]*resource.DbResource{
 			"credential": {
@@ -522,12 +530,7 @@ func TestRESTIntegrationExecutionStillUsesOperationMethodPathAndQuery(t *testing
 			AuthenticationType:          "custom_credentials",
 			AuthenticationSpecification: authSpec,
 		},
-		router: &openapi3.T{
-			Servers: openapi3.Servers{&openapi3.Server{URL: upstream.URL}},
-			Paths: openapi3.Paths{
-				"/tasks/{task_gid}": &openapi3.PathItem{Get: operation},
-			},
-		},
+		router:           router,
 		commandMap:       map[string]*openapi3.Operation{"getTask": operation},
 		pathMap:          map[string]string{"getTask": "/tasks/{task_gid}"},
 		methodMap:        map[string]string{"getTask": "get"},
@@ -563,6 +566,166 @@ func TestRESTIntegrationExecutionStillUsesOperationMethodPathAndQuery(t *testing
 	}
 	if capturedAuth != "Bearer owner-token" {
 		t.Fatalf("auth header was not forwarded: %s", capturedAuth)
+	}
+}
+
+func TestIntegrationOperationSecurityEmptyOverrideAndOptionalAnonymous(t *testing.T) {
+	tests := []struct {
+		name     string
+		security openapi3.SecurityRequirements
+	}{
+		{name: "empty operation override", security: openapi3.SecurityRequirements{}},
+		{name: "anonymous alternative", security: openapi3.SecurityRequirements{{"bearerAuth": {}}, {}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var authorization string
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				authorization = r.Header.Get("Authorization")
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"ok":true}`))
+			}))
+			defer upstream.Close()
+
+			operation := &openapi3.Operation{
+				OperationID: "publicOperation",
+				Security:    &test.security,
+				Parameters: openapi3.Parameters{{Value: &openapi3.Parameter{
+					Name: "Authorization", In: "header", Schema: openapi3.NewStringSchema().NewRef(),
+				}}},
+				Responses: openapi3.Responses{"200": {Value: &openapi3.Response{Description: stringPointer("OK")}}},
+			}
+			router := &openapi3.T{
+				Servers: openapi3.Servers{{URL: upstream.URL}},
+				Paths:   openapi3.Paths{"/public": {Get: operation}},
+			}
+			addIntegrationTestBearerSecurity(router)
+			performer := &integrationActionPerformer{
+				integration: resource.Integration{Name: "public.example", AuthenticationType: "custom_credentials"},
+				router:      router,
+				commandMap:  map[string]*openapi3.Operation{"publicOperation": operation},
+				pathMap:     map[string]string{"publicOperation": "/public"},
+				methodMap:   map[string]string{"publicOperation": "get"},
+				runtimeState: func(*sqlx.Tx) (string, bool, error) {
+					return "public.example", true, nil
+				},
+			}
+			responder, _, errs := performer.DoAction(actionresponse.Outcome{Method: "publicOperation"}, map[string]interface{}{
+				"Authorization": "Bearer caller-controlled",
+			}, nil)
+			if len(errs) > 0 {
+				t.Fatalf("anonymous operation failed: %v", errs)
+			}
+			if responder == nil || responder.StatusCode() != http.StatusOK {
+				t.Fatalf("unexpected responder: %#v", responder)
+			}
+			if authorization != "" {
+				t.Fatalf("anonymous operation sent authentication: %q", authorization)
+			}
+		})
+	}
+}
+
+func TestIntegrationOperationSecurityRequiresEveryScheme(t *testing.T) {
+	var capturedHeader string
+	var capturedQuery string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHeader = r.Header.Get("X-First")
+		capturedQuery = r.URL.Query().Get("second_key")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer upstream.Close()
+
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	credentialRef, userRef, _, adminGroupRef, secret := setupIntegrationCredentialTestDB(t, db)
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+
+	authSpec, err := resource.Encrypt([]byte(secret), `{}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operation := &openapi3.Operation{
+		OperationID: "compound",
+		Responses:   openapi3.Responses{"200": {Value: &openapi3.Response{Description: stringPointer("OK")}}},
+	}
+	router := &openapi3.T{
+		Servers:  openapi3.Servers{{URL: upstream.URL}},
+		Security: openapi3.SecurityRequirements{{"oauth": {}}, {"first": {}, "second": {}}},
+		Components: openapi3.Components{SecuritySchemes: openapi3.SecuritySchemes{
+			"first":  {Value: &openapi3.SecurityScheme{Type: "apiKey", In: "header", Name: "X-First"}},
+			"second": {Value: &openapi3.SecurityScheme{Type: "apiKey", In: "query", Name: "second_key"}},
+			"oauth":  {Value: &openapi3.SecurityScheme{Type: "oauth2"}},
+		}},
+		Paths: openapi3.Paths{"/compound": {Get: operation}},
+	}
+	performer := &integrationActionPerformer{
+		cruds: map[string]*resource.DbResource{"credential": {
+			ConfigStore: &resource.ConfigStore{}, AdministratorGroupId: adminGroupRef,
+		}},
+		integration: resource.Integration{
+			Name: "compound.example", AuthenticationType: "custom_credentials", AuthenticationSpecification: authSpec,
+		},
+		router: router, commandMap: map[string]*openapi3.Operation{"compound": operation},
+		pathMap: map[string]string{"compound": "/compound"}, methodMap: map[string]string{"compound": "get"},
+		encryptionSecret: []byte(secret),
+		runtimeState:     func(*sqlx.Tx) (string, bool, error) { return "compound.example", true, nil },
+	}
+	_, _, errs := performer.DoAction(actionresponse.Outcome{Method: "compound"}, map[string]interface{}{
+		"credential_id": credentialRef,
+		"sessionUser":   &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
+	}, tx)
+	if len(errs) > 0 {
+		t.Fatalf("compound authentication failed: %v", errs)
+	}
+	if capturedHeader != "first-value" || capturedQuery != "second-value" {
+		t.Fatalf("compound authentication = header %q query %q", capturedHeader, capturedQuery)
+	}
+}
+
+func TestIntegrationSecurityCookieMergeIsExact(t *testing.T) {
+	merged, err := mergeIntegrationCookieHeaders("first=one", "second=two")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if merged != "first=one; second=two" {
+		t.Fatalf("merged cookies = %q", merged)
+	}
+	if _, err := mergeIntegrationCookieHeaders("token=one", "token=two"); err == nil {
+		t.Fatal("expected conflicting cookie values to fail")
+	}
+}
+
+func TestProtectedIntegrationRejectsMalformedAuthenticationSpecification(t *testing.T) {
+	secret := "0123456789abcdef0123456789abcdef"
+	authSpec, err := resource.Encrypt([]byte(secret), `not-json`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operation := &openapi3.Operation{}
+	router := &openapi3.T{}
+	addIntegrationTestBearerSecurity(router)
+	performer := &integrationActionPerformer{
+		integration: resource.Integration{
+			AuthenticationType:          "custom_credentials",
+			AuthenticationSpecification: authSpec,
+		},
+		router:           router,
+		encryptionSecret: []byte(secret),
+	}
+	_, err = performer.resolveIntegrationTransportAuth(operation, map[string]interface{}{
+		"credential_id": daptinid.DaptinReferenceId(uuid.New()),
+	}, nil)
+	if err == nil || !strings.Contains(err.Error(), "failed to parse integration authentication specification") {
+		t.Fatalf("malformed authentication specification error = %v", err)
 	}
 }
 
@@ -753,6 +916,13 @@ func grpcSearchOperation() *openapi3.Operation {
 }
 
 func integrationTestPerformer(baseURL string, operation *openapi3.Operation, operationID string, path string, authSpec string, secret string, adminGroupRef daptinid.DaptinReferenceId) *integrationActionPerformer {
+	router := &openapi3.T{
+		Servers: openapi3.Servers{&openapi3.Server{URL: baseURL}},
+		Paths: openapi3.Paths{
+			path: &openapi3.PathItem{Post: operation},
+		},
+	}
+	addIntegrationTestBearerSecurity(router)
 	return &integrationActionPerformer{
 		cruds: map[string]*resource.DbResource{
 			"credential": {
@@ -765,12 +935,7 @@ func integrationTestPerformer(baseURL string, operation *openapi3.Operation, ope
 			AuthenticationType:          "custom_credentials",
 			AuthenticationSpecification: authSpec,
 		},
-		router: &openapi3.T{
-			Servers: openapi3.Servers{&openapi3.Server{URL: baseURL}},
-			Paths: openapi3.Paths{
-				path: &openapi3.PathItem{Post: operation},
-			},
-		},
+		router:           router,
 		commandMap:       map[string]*openapi3.Operation{operationID: operation},
 		pathMap:          map[string]string{operationID: path},
 		methodMap:        map[string]string{operationID: "post"},
@@ -778,6 +943,13 @@ func integrationTestPerformer(baseURL string, operation *openapi3.Operation, ope
 		runtimeState: func(*sqlx.Tx) (string, bool, error) {
 			return "integration.example", true, nil
 		},
+	}
+}
+
+func addIntegrationTestBearerSecurity(router *openapi3.T) {
+	router.Security = openapi3.SecurityRequirements{{"bearerAuth": {}}}
+	router.Components.SecuritySchemes = openapi3.SecuritySchemes{
+		"bearerAuth": {Value: &openapi3.SecurityScheme{Type: "http", Scheme: "bearer"}},
 	}
 }
 
@@ -838,7 +1010,7 @@ func setupIntegrationCredentialTestDB(t *testing.T, db *sqlx.DB) (daptinid.Dapti
 	userRef := daptinid.DaptinReferenceId(uuid.New())
 	otherUserRef := daptinid.DaptinReferenceId(uuid.New())
 	adminGroupRef := daptinid.DaptinReferenceId(uuid.New())
-	encryptedContent, err := resource.Encrypt([]byte(secret), `{"token":"owner-token"}`)
+	encryptedContent, err := resource.Encrypt([]byte(secret), `{"token":"owner-token","X-First":"first-value","second_key":"second-value"}`)
 	if err != nil {
 		t.Fatalf("encrypt credential: %v", err)
 	}

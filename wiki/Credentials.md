@@ -106,8 +106,8 @@ See [[Cloud-Storage|Cloud Storage]] for complete setup.
 
 ## Use Credentials with OpenAPI Integrations
 
-For an integration whose `authentication_type` is `custom_credentials`, pass a
-credential reference when executing the operation:
+For a protected integration operation whose `authentication_type` is
+`custom_credentials`, pass a credential reference when executing the operation:
 
 ```bash
 curl -X POST "http://localhost:6336/integration/provider.example/listItems" \

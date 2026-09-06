@@ -935,8 +935,10 @@ Execution body shape:
 }
 ```
 
-For OAuth2 integrations, pass `oauth_token_id`. For custom credential
-integrations, pass `credential_id`. Other operation parameters go under `input`.
+For OAuth2 integrations, pass `oauth_token_id` when discovery exposes it. For
+custom credential integrations, pass `credential_id` when discovery exposes
+it. OpenAPI operation security determines whether that selector is required,
+optional, or absent. Other operation parameters go under `input`.
 Provider-scoped execution ignores runtime auth selector fields inside `input`;
 `oauth_token_id` and `credential_id` must be top-level request fields.
 

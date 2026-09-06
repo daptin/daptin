@@ -1084,4 +1084,10 @@ to a service user before it can use that user's token.
 
 If an OpenAPI operation exposes an auth-looking header or query parameter, Daptin protects the resolved OAuth auth fields. A user-supplied action attribute such as `Authorization` cannot override the bearer token Daptin resolved from `oauth_token_id`.
 
+The operation's OpenAPI `security` declaration determines whether an OAuth
+token is required, optional, or unused. Operation `security: []` disables
+inherited provider authentication; Daptin still enforces its own action
+permissions and metering for that call. See [[Integrations|Integrations]] for
+the complete security-requirement rules.
+
 For questions or issues, see [[Common-Errors|Common Errors]] or file an issue on GitHub.

@@ -6,6 +6,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -91,11 +92,27 @@ func TestCustomCredentialAuthUsesActiveSessionUser(t *testing.T) {
 		ConfigStore:          &resource.ConfigStore{},
 		AdministratorGroupId: adminGroupRef,
 	}
+	authSpec, err := resource.Encrypt([]byte(secret), `{"token_field":"token"}`)
+	if err != nil {
+		t.Fatalf("encrypt authentication specification: %v", err)
+	}
+	operation := &openapi3.Operation{}
 
 	performer := &integrationActionPerformer{
 		cruds: map[string]*resource.DbResource{
 			"credential": credentialCrud,
 		},
+		integration: resource.Integration{
+			AuthenticationType:          "custom_credentials",
+			AuthenticationSpecification: authSpec,
+		},
+		router: &openapi3.T{
+			Security: openapi3.SecurityRequirements{{"bearer": {}}},
+			Components: openapi3.Components{SecuritySchemes: openapi3.SecuritySchemes{
+				"bearer": {Value: &openapi3.SecurityScheme{Type: "http", Scheme: "bearer"}},
+			}},
+		},
+		encryptionSecret: []byte(secret),
 	}
 
 	elevatedSession := &auth.SessionUser{
@@ -105,18 +122,13 @@ func TestCustomCredentialAuthUsesActiveSessionUser(t *testing.T) {
 			{GroupReferenceId: adminGroupRef},
 		},
 	}
-	_, _, _, _, err = performer.customCredentialAuthArguments(
+	_, err = performer.resolveIntegrationTransportAuth(
+		operation,
 		map[string]interface{}{
 			"credential_id": credentialRef,
 			"sessionUser":   elevatedSession,
 		},
-		map[string]interface{}{
-			"scheme":      "bearer",
-			"token_field": "token",
-		},
-		nil,
 		tx,
-		true,
 	)
 	if err == nil {
 		t.Fatalf("active user should not inherit action-engine admin elevation for credential access")
@@ -129,18 +141,13 @@ func TestCustomCredentialAuthUsesActiveSessionUser(t *testing.T) {
 			{GroupReferenceId: adminGroupRef},
 		},
 	}
-	_, _, _, _, err = performer.customCredentialAuthArguments(
+	_, err = performer.resolveIntegrationTransportAuth(
+		operation,
 		map[string]interface{}{
 			"credential_id": credentialRef,
 			"sessionUser":   switchedSession,
 		},
-		map[string]interface{}{
-			"scheme":      "bearer",
-			"token_field": "token",
-		},
-		nil,
 		tx,
-		true,
 	)
 	if err != nil {
 		t.Fatalf("credential owned by the active switched user should pass: %v", err)

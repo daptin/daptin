@@ -3826,7 +3826,11 @@ func addIntegrationOperationPathsForRouter(integration resource.Integration, rou
 			seen[operationID] = true
 
 			requestComponentName := IntegrationOperationRequestComponentName(integration.Name, operationID)
-			typeMap[requestComponentName] = integrationOperationRequestSchema(router, operation)
+			requestSchema, schemaErr := integrationOperationRequestSchema(integration, router, operation)
+			if schemaErr != nil {
+				return 0, fmt.Errorf("integration operation [%s] has invalid security requirements: %w", operationID, schemaErr)
+			}
+			typeMap[requestComponentName] = requestSchema
 			log.Tracef("Generated OpenAPI request schema provider=[%s] operation=[%s] component=[%s]", integration.Name, operationID, requestComponentName)
 
 			resourcesMap[fmt.Sprintf("/integration/%s/%s", url.PathEscape(integration.Name), url.PathEscape(operationID))] = integrationOperationPathItem(integration, operationID, providerMethod, providerPath, operation, requestComponentName)
@@ -3881,23 +3885,41 @@ func integrationOperationPathItem(integration resource.Integration, operationID 
 	}
 }
 
-func integrationOperationRequestSchema(router *openapi3.T, operation *openapi3.Operation) map[string]interface{} {
+func integrationOperationRequestSchema(integration resource.Integration, router *openapi3.T, operation *openapi3.Operation) (map[string]interface{}, error) {
+	usage, err := resource.IntegrationOperationAuthenticationUsage(router, operation, integration.AuthenticationType)
+	if err != nil {
+		return nil, err
+	}
+	properties := map[string]interface{}{
+		"input": operationInputSchema(router, operation),
+	}
+	required := []string{"input"}
+	if usage.UsesAuthentication {
+		switch strings.ToLower(integration.AuthenticationType) {
+		case "oauth2":
+			properties["oauth_token_id"] = map[string]interface{}{
+				"type":        "string",
+				"description": "OAuth token reference id to use for this provider operation.",
+			}
+			if usage.RequiresAuthentication {
+				required = append(required, "oauth_token_id")
+			}
+		case "custom_credentials":
+			properties["credential_id"] = map[string]interface{}{
+				"type":        "string",
+				"description": "Credential reference id to use for this provider operation.",
+			}
+			if usage.RequiresAuthentication {
+				required = append(required, "credential_id")
+			}
+		}
+	}
 	return map[string]interface{}{
 		"type":        "object",
 		"description": "Request body for provider-scoped integration operation execution.",
-		"properties": map[string]interface{}{
-			"oauth_token_id": map[string]interface{}{
-				"type":        "string",
-				"description": "OAuth token reference id to use for OAuth2-backed integrations.",
-			},
-			"credential_id": map[string]interface{}{
-				"type":        "string",
-				"description": "Credential reference id to use for custom credential-backed integrations.",
-			},
-			"input": operationInputSchema(router, operation),
-		},
-		"required": []string{"input"},
-	}
+		"properties":  properties,
+		"required":    required,
+	}, nil
 }
 
 func operationInputSchema(router *openapi3.T, operation *openapi3.Operation) map[string]interface{} {

@@ -319,6 +319,33 @@ The integration record stores the provider-level auth wiring only. It must not s
 | `oauth2` | `oauth_connect_id` | `oauth_token_id` | `oauth_token` |
 | `custom_credentials` | Credential usage metadata (`scheme`, `token_field`, `name`, `in`, etc.) | `credential_id` | `credential.content` |
 
+The OpenAPI security declaration on each operation decides whether this
+resolver is used. `authentication_type` does not make every operation
+authenticated by itself.
+
+### OpenAPI Security Requirements
+
+Daptin follows the OpenAPI security structure directly:
+
+- An operation without its own `security` inherits the document-level value.
+- Operation `security: []` disables inherited provider authentication.
+- Entries in the `security` array are alternatives (OR).
+- Scheme names within one entry are all required (AND).
+- An empty entry (`{}`) permits execution without provider authentication.
+- With no operation-level or document-level security, the provider operation is anonymous.
+
+For an anonymous provider operation, Daptin does not load a credential or send
+provider authentication. This does not bypass Daptin: the request still enters
+the installed action and remains subject to Daptin identity, execute
+permissions, and metering.
+
+Daptin can satisfy OAuth2 requirements with the `oauth2` resolver and HTTP or
+API-key requirements with `custom_credentials`. A compound requirement is
+accepted only when every scheme can be supplied by the configured resolver. A
+custom credential can hold multiple API-key values; unless `value_field` is
+configured, each API-key scheme reads the credential field named by that
+scheme's OpenAPI `name`.
+
 ### OAuth2
 
 OAuth integrations configure the provider/app connection with `oauth_connect_id`. The executing user supplies their own `oauth_token_id` when the integration action runs.
@@ -346,10 +373,11 @@ trusted action can change it for later outcomes with `SWITCH_USER`.
 ### Custom Credentials
 
 Custom credential integrations describe how to use a `credential.content`
-field. The executing user supplies `credential_id` when the integration action
-runs. The credential must be owned by the active user and its owner permission
-must include read access. Group membership or action-engine administrator
-privileges do not make another user's credential usable by an integration.
+field. For an operation that uses provider authentication, the executing user
+supplies `credential_id` when the integration action runs. The credential must
+be owned by the active user and its owner permission must include read access.
+Group membership or action-engine administrator privileges do not make another
+user's credential usable by an integration.
 
 **Bearer token**:
 
@@ -499,7 +527,7 @@ curl -X POST "http://localhost:6336/action/integration/install_integration" \
 **What happens**:
 1. Parses the OpenAPI specification
 2. Creates an action for each operation (identified by `operationId`)
-3. Adds the auth selector input for the integration type (`oauth_token_id` or `credential_id`)
+3. Adds a required, optional, or absent auth selector according to each operation's effective OpenAPI `security`
 4. Maps path/query/body parameters to action input fields
 5. Registers the integration name as a performer
 6. Refreshes provider-scoped operation mappings in memory without requiring a server restart
@@ -577,6 +605,10 @@ Auth selectors are reported separately from provider operation inputs:
 | `oauth2` | `oauth_token_id` | `oauth_token_id` |
 | `custom_credentials` | `credential_id` | `credential_id` |
 
+For an anonymous-only operation, discovery returns an empty `auth` object and
+the scoped request schema omits the selector. For optional authentication, the
+execution field is present with `required: false`.
+
 ---
 
 ## Execute Integration Operations
@@ -608,8 +640,9 @@ Request body shape:
 }
 ```
 
-Use either `oauth_token_id` or `credential_id` depending on the integration auth
-type. Do not put these auth selector fields inside `input`.
+Use `oauth_token_id` or `credential_id` only when operation discovery exposes
+that field. It is required or optional according to the operation's effective
+OpenAPI security declaration. Do not put auth selector fields inside `input`.
 
 ```bash
 # Call the getPetById operation from petstore integration
@@ -936,6 +969,7 @@ paths:
 ## Security Notes
 
 - Integration `authentication_specification` stores auth metadata only
+- OpenAPI operation security determines whether provider authentication is required, optional, or disabled
 - OAuth2 integrations store the provider `oauth_connect_id`; users pass their own `oauth_token_id` during execution
 - Custom credential integrations describe how to use a credential; users pass their own `credential_id` during execution
 - Daptin validates OAuth token ownership and provider match before using an `oauth_token`
@@ -978,11 +1012,12 @@ The operation ID doesn't exist in the specification. Check:
 
 ### Authentication Errors
 
-1. For OAuth2: Verify execution attributes include `oauth_token_id`, the token belongs to the active user, and its `oauth_connect_id` matches the integration
-2. For custom credentials: Verify execution attributes include `credential_id`, the credential is owned by the active user, owner read permission is enabled, and `credential.content` contains the fields named by `authentication_specification`
-3. In a service-account action: Verify `SWITCH_USER` comes before the integration outcome and the credential is owned by the selected service user
-4. For header/query auth: Verify the OpenAPI security scheme matches `authentication_type`; Daptin intentionally ignores action attributes that try to overwrite protected auth fields
-5. For provider-scoped execution: Verify `oauth_token_id` or `credential_id` is top-level in the JSON body, not inside `input`
+1. Verify the operation's effective OpenAPI `security` requires the configured integration authentication type
+2. For OAuth2: When required, verify execution attributes include `oauth_token_id`, the token belongs to the active user, and its `oauth_connect_id` matches the integration
+3. For custom credentials: When required, verify execution attributes include `credential_id`, the credential is owned by the active user, owner read permission is enabled, and `credential.content` contains the fields required by the security schemes and `authentication_specification`
+4. In a service-account action: Verify `SWITCH_USER` comes before the integration outcome and the credential is owned by the selected service user
+5. For header/query auth: Verify the OpenAPI security scheme matches `authentication_type`; Daptin intentionally ignores action attributes that try to overwrite protected auth fields
+6. For provider-scoped execution: Verify `oauth_token_id` or `credential_id` is top-level in the JSON body, not inside `input`
 
 ### GraphQL Transport Errors
 
