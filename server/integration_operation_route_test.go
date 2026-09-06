@@ -74,7 +74,6 @@ func TestSanitizeProviderScopedIntegrationInputRemovesRuntimeFields(t *testing.T
 		"oauth_token_id":      "input-oauth",
 		"credential_id":       "input-credential",
 		"sessionUser":         "input-session",
-		"requestSessionUser":  "input-request-session",
 		"httpRequest":         "input-request",
 		"httpRequestHeaders":  "input-headers",
 		"provider_field":      "kept",
@@ -83,7 +82,7 @@ func TestSanitizeProviderScopedIntegrationInputRemovesRuntimeFields(t *testing.T
 
 	sanitizeProviderScopedIntegrationInput(input)
 
-	for _, key := range []string{"oauth_token_id", "credential_id", "sessionUser", "requestSessionUser", "httpRequest", "httpRequestHeaders"} {
+	for _, key := range []string{"oauth_token_id", "credential_id", "sessionUser", "httpRequest", "httpRequestHeaders"} {
 		if _, ok := input[key]; ok {
 			t.Fatalf("runtime key %q was not removed: %#v", key, input)
 		}

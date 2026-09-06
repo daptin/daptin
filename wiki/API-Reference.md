@@ -287,6 +287,13 @@ For custom credential integrations, send `credential_id` instead of
 `oauth_token_id`. Operation path, query, header, and body parameters go inside
 `input`.
 
+The selected credential must be owned by the authenticated request user and
+grant owner read permission. The API ignores caller-provided runtime identity;
+it cannot be used to select another user's credential. For a shared backend
+connection, call a trusted custom action that performs `SWITCH_USER` to a
+dedicated service account before its integration outcome. See
+[[Integrations|Integrations]] for the complete pattern.
+
 **Example:**
 
 ```bash

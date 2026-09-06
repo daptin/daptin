@@ -72,9 +72,27 @@ curl "http://localhost:6336/integration/airtable.com/operations/airtableUpdateRe
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Older clients can still call generated action routes such as
-`POST /action/integration/{operation_id}`, but the provider-scoped endpoint is
-clearer because it keeps the provider name in the URL.
+Installed operations are also available as generated actions at
+`POST /action/integration/{operation_id}`. The provider-scoped endpoint is
+usually clearer because it keeps the provider name in the URL.
+
+## Which User Supplies the Credential?
+
+Daptin uses one rule for every integration operation: the credential or OAuth
+token must belong to the **active user at the point where the operation runs**.
+
+| How the operation runs | Active user |
+|------------------------|-------------|
+| Provider-scoped REST API | Authenticated request user |
+| Generated integration action | Authenticated request user |
+| Provider-scoped GraphQL mutation | Authenticated request user |
+| Custom action before `SWITCH_USER` | Authenticated request user |
+| Custom action after `SWITCH_USER` | User selected by the trusted action outcome |
+
+There is no credential mode and a fixed `credential_id` does not bypass this
+rule. For a personal connection, pass a credential owned by the caller. For a
+backend workflow, switch to a dedicated service account and then invoke the
+integration with a credential owned by that service account.
 
 ---
 
@@ -308,13 +326,22 @@ OAuth integrations configure the provider/app connection with `oauth_connect_id`
 
 **Prerequisites**: Configure the OAuth provider via `oauth_connect`, then have each user complete the existing OAuth flow to create their own `oauth_token`. See [OAuth Authentication](OAuth-Authentication.md).
 
-Integrations must not store `oauth_token_id` directly in `authentication_specification`; token selection happens per execution so Daptin can validate token ownership against the current user.
+Integrations must not store `oauth_token_id` directly in
+`authentication_specification`; token selection happens per execution so Daptin
+can validate token ownership against the active user.
 
-At execution time Daptin verifies that the supplied token belongs to the authenticated request user and was created from the same `oauth_connect_id` configured on the integration.
+At execution time Daptin verifies that the supplied token belongs to the active
+user and was created from the same `oauth_connect_id` configured on the
+integration. The active user is normally the authenticated request user; a
+trusted action can change it for later outcomes with `SWITCH_USER`.
 
 ### Custom Credentials
 
-Custom credential integrations describe how to use a `credential.content` field. The executing user supplies `credential_id` when the integration action runs. The credential must be owned by the user, usable through group permission, or usable by an administrator.
+Custom credential integrations describe how to use a `credential.content`
+field. The executing user supplies `credential_id` when the integration action
+runs. The credential must be owned by the active user and its owner permission
+must include read access. Group membership or action-engine administrator
+privileges do not make another user's credential usable by an integration.
 
 **Bearer token**:
 
@@ -608,11 +635,13 @@ curl -X POST "http://localhost:6336/integration/example.com/listUsers" \
   }'
 ```
 
-Daptin rejects the call if `oauth_token_id` belongs to another user or was issued for a different `oauth_connect` than the integration expects. Daptin rejects custom credential calls if `credential_id` is not readable by the current user, or if the decrypted credential content does not contain the fields named by `authentication_specification`.
+Daptin rejects the call if `oauth_token_id` belongs to another user or was issued
+for a different `oauth_connect` than the integration expects. Daptin rejects a
+custom credential call unless `credential_id` is owned by the authenticated
+request user and grants owner read access. Credential contents are decrypted
+only after that check succeeds.
 
 ### Generated Action Route
-
-The generated action route is retained for existing clients.
 
 **Action names**: Use the `operationId` from the OpenAPI spec
 **OnType**: `integration`
@@ -659,7 +688,59 @@ curl -X POST "http://localhost:6336/action/integration/listUsers" \
   }'
 ```
 
-Daptin rejects the call if `credential_id` is not readable by the current user, or if the decrypted credential content does not contain the fields named by `authentication_specification`.
+Daptin rejects the call unless `credential_id` is owned by the authenticated
+request user and grants owner read access.
+
+### Run an Integration as a Service Account
+
+Use this pattern for scheduled jobs, payment processors, shared backend
+connections, and other workflows that should not use the caller's personal
+credential.
+
+1. Create a dedicated Daptin user for the external service.
+2. Create the `credential` or complete the OAuth connection while that service
+   user is active. Daptin assigns ownership from the active user. If credential
+   creation is administrator-only, use an administrator-only provisioning
+   action that switches to the service user before creating the row, or grant
+   temporary create access for provisioning.
+3. Put the service user's reference ID and credential reference ID only in the
+   backend-controlled action definition.
+4. Gate execution of the wrapper action with the normal action permissions.
+5. Execute `SWITCH_USER` before the integration outcome.
+
+```yaml
+Actions:
+  - Name: sync_orders_with_provider
+    Label: Sync orders with provider
+    OnType: order
+    InstanceOptional: true
+    InFields: []
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: "SERVICE_USER_REFERENCE_ID"
+
+      - Type: provider.example
+        Method: syncOrders
+        Attributes:
+          credential_id: "SERVICE_CREDENTIAL_REFERENCE_ID"
+```
+
+Outcomes execute in order. `SWITCH_USER` replaces the active identity, so
+`syncOrders` authorizes the credential as the service user. The original caller
+cannot use that credential through the provider-scoped or generated integration
+API, and caller input cannot replace `sessionUser`.
+
+For an OAuth integration, use the same pattern with a service-user-owned
+`oauth_token_id`. Daptin also verifies that the token belongs to the
+`oauth_connect_id` configured on the integration.
+
+Do not expose `SERVICE_USER_REFERENCE_ID`, `SERVICE_CREDENTIAL_REFERENCE_ID`, or
+`oauth_token_id` as wrapper-action input fields. They should remain fixed values
+in the trusted action definition. Only expose the provider operation fields that
+callers are intended to control.
 
 **Response**:
 ```json
@@ -838,7 +919,9 @@ paths:
 - OAuth2 integrations store the provider `oauth_connect_id`; users pass their own `oauth_token_id` during execution
 - Custom credential integrations describe how to use a credential; users pass their own `credential_id` during execution
 - Daptin validates OAuth token ownership and provider match before using an `oauth_token`
-- Daptin validates credential ownership/permission before decrypting `credential.content`
+- Daptin requires a custom integration credential to be owned by the active user and to grant owner read permission before decrypting `credential.content`
+- Group sharing and temporary action-engine administrator privileges do not authorize another user's integration credential
+- A trusted action can deliberately change the active identity with `SWITCH_USER`; all later integration outcomes use that identity
 - Generated auth headers/query parameters are protected from user-supplied action attributes. For example, an action input named `Authorization` cannot override the OAuth or credential auth header Daptin resolved for the outbound request.
 - Provider-scoped execution ignores runtime auth selector fields inside `input`; `oauth_token_id` and `credential_id` must be top-level request fields
 - GraphQL variables, WebSocket messages, and gRPC request messages exclude runtime fields such as `credential_id`, `oauth_token_id`, `sessionUser`, and request metadata
@@ -875,10 +958,11 @@ The operation ID doesn't exist in the specification. Check:
 
 ### Authentication Errors
 
-1. For OAuth2: Verify execution attributes include `oauth_token_id`, the token belongs to the current user, and its `oauth_connect_id` matches the integration
-2. For custom credentials: Verify execution attributes include `credential_id`, the credential is usable by the current user, and `credential.content` contains the fields named by `authentication_specification`
-3. For header/query auth: Verify the OpenAPI security scheme matches `authentication_type`; Daptin intentionally ignores action attributes that try to overwrite protected auth fields
-4. For provider-scoped execution: Verify `oauth_token_id` or `credential_id` is top-level in the JSON body, not inside `input`
+1. For OAuth2: Verify execution attributes include `oauth_token_id`, the token belongs to the active user, and its `oauth_connect_id` matches the integration
+2. For custom credentials: Verify execution attributes include `credential_id`, the credential is owned by the active user, owner read permission is enabled, and `credential.content` contains the fields named by `authentication_specification`
+3. In a service-account action: Verify `SWITCH_USER` comes before the integration outcome and the credential is owned by the selected service user
+4. For header/query auth: Verify the OpenAPI security scheme matches `authentication_type`; Daptin intentionally ignores action attributes that try to overwrite protected auth fields
+5. For provider-scoped execution: Verify `oauth_token_id` or `credential_id` is top-level in the JSON body, not inside `input`
 
 ### GraphQL Transport Errors
 

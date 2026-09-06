@@ -25,7 +25,7 @@ stack as a sidecar for the backend features you are missing.
 - **[[Daptin-Application-Server-Feature-Map]]** - source-grounded architecture and capability map
 - **[[LLM-Providers]]** - OpenAI-compatible provider routing
 - **[[API-Metering]]** - plans, quotas, credits, and usage logs
-- **[[Integrations]]** - external APIs without hardcoded app secrets
+- **[[Integrations]]** - personal external API connections and trusted service-account workflows
 
 ### Understanding The Backend
 

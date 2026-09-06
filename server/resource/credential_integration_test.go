@@ -148,6 +148,17 @@ func TestGetCredentialByReferenceIdForIntegrationExecution(t *testing.T) {
 		t.Fatalf("execute-only credential should not expose credential content")
 	}
 
+	syntheticAdminSession := &auth.SessionUser{
+		UserId:          77,
+		UserReferenceId: otherUserRef,
+		Groups: auth.GroupPermissionList{
+			{GroupReferenceId: adminGroupRef},
+		},
+	}
+	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(credentialRef, syntheticAdminSession, tx); err == nil {
+		t.Fatalf("synthetic admin group should not grant credential access")
+	}
+
 	groupSession := &auth.SessionUser{
 		UserId:          77,
 		UserReferenceId: otherUserRef,
@@ -155,19 +166,8 @@ func TestGetCredentialByReferenceIdForIntegrationExecution(t *testing.T) {
 			{GroupReferenceId: sharedGroupRef},
 		},
 	}
-	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(groupSharedCredentialRef, groupSession, tx); err != nil {
-		t.Fatalf("group shared credential should pass: %v", err)
-	}
-
-	adminSession := &auth.SessionUser{
-		UserId:          77,
-		UserReferenceId: otherUserRef,
-		Groups: auth.GroupPermissionList{
-			{GroupReferenceId: adminGroupRef},
-		},
-	}
-	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(credentialRef, adminSession, tx); err != nil {
-		t.Fatalf("admin credential access should pass: %v", err)
+	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(groupSharedCredentialRef, groupSession, tx); err == nil {
+		t.Fatalf("group sharing should not grant access to another user's integration credential")
 	}
 
 	if _, err := credentialCrud.GetCredentialByReferenceIdForIntegrationExecution(daptinid.NullReferenceId, ownerSession, tx); err == nil {

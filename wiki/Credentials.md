@@ -18,6 +18,10 @@ The `credential` table provides encrypted storage for sensitive data like:
 
 Credentials are linked to other entities (like `cloud_store`) to provide authentication without exposing secrets in those records.
 
+OpenAPI integrations select a credential at execution time. They always
+authorize that credential against the current active Daptin user; there is no
+separate configured or privileged integration credential mode.
+
 ---
 
 ## Credential Table
@@ -95,6 +99,122 @@ curl -X POST http://localhost:6336/api/cloud_store \
 ```
 
 See [[Cloud-Storage|Cloud Storage]] for complete setup.
+
+## Use Credentials with OpenAPI Integrations
+
+For an integration whose `authentication_type` is `custom_credentials`, pass a
+credential reference when executing the operation:
+
+```bash
+curl -X POST "http://localhost:6336/integration/provider.example/listItems" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "credential_id": "CURRENT_USER_CREDENTIAL_REFERENCE_ID",
+    "input": {}
+  }'
+```
+
+The credential must:
+
+- be owned by the active user; and
+- grant owner read permission.
+
+Daptin checks these conditions before decrypting `credential.content`.
+Administrator or group access to a credential does not make it usable as
+another user's integration credential.
+
+### Shared Backend or Service Credential
+
+Create a dedicated service user and ensure the credential row is created while
+that user is active, because Daptin assigns row ownership from the active user.
+If the credential table is restricted to administrators, provision it through
+an administrator-only backend action that switches to the service user before
+creating the credential, or temporarily grant the service user create access
+during provisioning.
+
+This schema action is a complete provisioning example. Replace the service user
+reference and keep the action restricted to the `administrators` group:
+
+```yaml
+Actions:
+  - Name: provision_provider_service_credential
+    Label: Provision provider service credential
+    OnType: credential
+    InstanceOptional: true
+    Permission: 0
+    AccessGroups:
+      - Name: administrators
+        Permission: 524288 # GroupExecute
+    InFields:
+      - Name: credential_name
+        ColumnName: credential_name
+        ColumnType: label
+        IsNullable: false
+      - Name: credential_content
+        ColumnName: credential_content
+        ColumnType: password
+        IsNullable: false
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: "SERVICE_USER_REFERENCE_ID"
+
+      - Type: credential
+        Method: POST
+        Attributes:
+          name: "~credential_name"
+          content: "~credential_content"
+```
+
+Call it as an administrator and send the provider-specific credential JSON as a
+string:
+
+```bash
+curl -X POST "http://localhost:6336/action/credential/provision_provider_service_credential" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attributes": {
+      "credential_name": "provider-service",
+      "credential_content": "{\"token\":\"PROVIDER_TOKEN\"}"
+    }
+  }'
+```
+
+The administrator is checked before the action starts. The first outcome then
+changes the active user, so the `POST` creates a credential owned by the service
+account. Record the returned credential reference ID for the backend workflow.
+Remove the provisioning action after setup if credentials will not be created
+again. See [[Authorization-Scenario-Action-Access-Gates]] for action permission
+details.
+
+In the trusted backend workflow, switch to the service user before invoking the
+integration:
+
+```yaml
+OutFields:
+  - Type: __as_user
+    Method: SWITCH_USER
+    SkipInResponse: true
+    Attributes:
+      user_reference_id: "SERVICE_USER_REFERENCE_ID"
+
+  - Type: provider.example
+    Method: listItems
+    Attributes:
+      credential_id: "SERVICE_CREDENTIAL_REFERENCE_ID"
+```
+
+The action's normal execution permissions decide who may start the workflow.
+The integration credential check then uses the service user selected by
+`SWITCH_USER`. Keep both reference IDs fixed in the backend-controlled action
+definition rather than accepting them as action inputs.
+
+See [[Integrations|Integrations]] for the complete integration and service-user
+workflow.
 
 ---
 
@@ -239,10 +359,15 @@ This is by design. The encrypted content is never returned in API responses for 
 
 Only administrators can access the credential table. Ensure your user is in the `administrators` group.
 
+For integration execution, table administration is not sufficient: the active
+user must own the selected credential and have owner read permission. If the
+operation is part of a backend service workflow, verify that `SWITCH_USER`
+selects the credential owner before the integration outcome runs.
+
 ---
 
 ## See Also
 
 - [[Cloud-Storage|Cloud Storage]] - Using credentials with storage
-- [[Integrations|Integrations]] - OAuth authentication for APIs
+- [[Integrations|Integrations]] - OpenAPI authentication and service-account workflows
 - [[Encryption|Encryption]] - Encryption configuration

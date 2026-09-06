@@ -237,6 +237,7 @@ OutFields define what the action does. Each OutField executes an operation.
 | `GET` | Retrieve records | Table name |
 | `DELETE` | Delete a record | Table name |
 | `GET_BY_ID` | Get specific record | Table name |
+| `SWITCH_USER` | Continue later outcomes as a backend-selected user | `__as_user` |
 
 ---
 
@@ -488,6 +489,49 @@ Actions:
   {"ResponseType": "client.redirect", "Attributes": {...}}
 ]
 ```
+
+## Service-Account Integration Workflow
+
+Integration operations always authorize credentials against the active action
+user. A trusted action can intentionally change that identity with a
+`SWITCH_USER` outcome. Use this for scheduled jobs, payment operations, and
+shared external-service connections.
+
+```yaml
+Actions:
+  - Name: charge_order
+    Label: Charge order
+    OnType: order
+    InstanceOptional: false
+    InFields: []
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: "PAYMENTS_SERVICE_USER_REFERENCE_ID"
+
+      - Type: payments.example
+        Method: createCharge
+        Attributes:
+          credential_id: "PAYMENTS_SERVICE_CREDENTIAL_REFERENCE_ID"
+          order_id: "$.reference_id"
+          amount: "$.amount"
+```
+
+The outcomes run sequentially. The integration performer sees the service user
+as `sessionUser` and accepts only a credential owned by that user with owner read
+permission.
+
+The wrapper action's normal action and row permissions still control who may
+start the workflow. `user_reference_id` and `credential_id` should be fixed in
+the backend schema; do not declare them as `InFields` or map them from caller
+attributes.
+
+Without `SWITCH_USER`, the integration uses the authenticated caller. A fixed
+credential reference does not make the call privileged. See
+[[Integrations|Integrations]] for direct, generated-action, OAuth, and custom
+credential examples.
 
 ---
 

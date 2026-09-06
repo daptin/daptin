@@ -244,7 +244,11 @@ See [[Data-Exchange|Data-Exchange]] for details.
 | `integration_install` | integration | Install OpenAPI integration |
 | `integration_execute` | integration | Execute integration action |
 
-See [[Integrations|Integrations]] for setup.
+Integration operations use the active action user for credential and OAuth token
+ownership. A generated action uses the authenticated caller. A trusted custom
+action can run `Type: __as_user`, `Method: SWITCH_USER` before an integration
+outcome to use a dedicated service account and that account's credential. See
+[[Integrations|Integrations]] for setup and the complete service-account recipe.
 
 ---
 

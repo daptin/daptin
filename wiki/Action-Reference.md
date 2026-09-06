@@ -850,6 +850,32 @@ Sync all mail server configurations.
 
 ## Integration Actions
 
+### Active user and `SWITCH_USER`
+
+Every integration credential or OAuth token is checked against the active user
+when the integration outcome runs. Direct and generated integration calls use
+the authenticated caller. A trusted backend action can change the active user
+for its remaining outcomes:
+
+```yaml
+OutFields:
+  - Type: __as_user
+    Method: SWITCH_USER
+    SkipInResponse: true
+    Attributes:
+      user_reference_id: "SERVICE_USER_REFERENCE_ID"
+
+  - Type: provider.example
+    Method: operationId
+    Attributes:
+      credential_id: "SERVICE_USER_CREDENTIAL_REFERENCE_ID"
+```
+
+The credential must be owned by the selected service user and grant owner read
+permission. Keep the user and credential references fixed in the backend action
+definition. A caller cannot supply `sessionUser`, and a fixed credential ID
+without `SWITCH_USER` is still authorized as the caller.
+
 ### install_integration
 
 Install an API integration.

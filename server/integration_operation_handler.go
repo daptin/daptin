@@ -59,9 +59,7 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 
 		user := c.Request.Context().Value("user")
 		sessionUser := sessionUserFromContextValue(user)
-		requestSessionUser := *sessionUser
 		body.Input["sessionUser"] = sessionUser
-		body.Input["requestSessionUser"] = &requestSessionUser
 		body.Input["httpRequest"] = c.Request
 		body.Input["httpRequestHeaders"] = map[string][]string(c.Request.Header)
 
@@ -146,7 +144,7 @@ func integrationOperationNameParam(c *gin.Context) string {
 }
 
 func sanitizeProviderScopedIntegrationInput(input map[string]interface{}) {
-	for _, key := range []string{"oauth_token_id", "credential_id", "sessionUser", "requestSessionUser", "httpRequest", "httpRequestHeaders"} {
+	for _, key := range []string{"oauth_token_id", "credential_id", "sessionUser", "httpRequest", "httpRequestHeaders"} {
 		delete(input, key)
 	}
 }

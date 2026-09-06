@@ -95,9 +95,7 @@ func addIntegrationOperationGraphQLMutations(mutationFields graphql.Fields, acti
 
 							user := params.Context.Value("user")
 							sessionUser := graphQLSessionUserFromContextValue(user)
-							requestSessionUser := *sessionUser
 							input["sessionUser"] = sessionUser
-							input["requestSessionUser"] = &requestSessionUser
 
 							log.Tracef("GraphQL integration operation execution started provider=[%s] operation=[%s]", integration.Name, operationID)
 							transaction, err := resources["world"].Connection().Beginx()
@@ -105,7 +103,7 @@ func addIntegrationOperationGraphQLMutations(mutationFields graphql.Fields, acti
 								log.Errorf("GraphQL integration operation transaction begin failed provider=[%s] operation=[%s]: %v", integration.Name, operationID, err)
 								return nil, err
 							}
-							performer, ok := resource.GetActionHandler(resources["world"], integration.Name)
+							performer, ok := resource.GetIntegrationActionHandler(resources["world"], integration.Name)
 							if !ok || performer == nil {
 								_ = transaction.Rollback()
 								log.Warnf("GraphQL integration provider not found provider=[%s] operation=[%s]", integration.Name, operationID)

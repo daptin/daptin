@@ -242,10 +242,10 @@ func TestGraphQLIntegrationRequestBodyUsesOperationExtensions(t *testing.T) {
 		t.Fatalf("integrationTransportConfigFromOperation returned error: %v", err)
 	}
 	body, err := createGraphQLIntegrationRequestBody(&openapi3.T{}, operation, transportConfig, map[string]interface{}{
-		"first":              float64(10),
-		"after":              "cursor-1",
-		"oauth_token_id":     "token-ref",
-		"requestSessionUser": &auth.SessionUser{UserId: 1},
+		"first":          float64(10),
+		"after":          "cursor-1",
+		"oauth_token_id": "token-ref",
+		"sessionUser":    &auth.SessionUser{UserId: 1},
 	}, nil, nil)
 	if err != nil {
 		t.Fatalf("createGraphQLIntegrationRequestBody returned error: %v", err)
@@ -266,7 +266,7 @@ func TestGraphQLIntegrationRequestBodyUsesOperationExtensions(t *testing.T) {
 	if _, ok := variables["oauth_token_id"]; ok {
 		t.Fatalf("oauth selector leaked into GraphQL variables: %#v", variables)
 	}
-	if _, ok := variables["requestSessionUser"]; ok {
+	if _, ok := variables["sessionUser"]; ok {
 		t.Fatalf("runtime session leaked into GraphQL variables: %#v", variables)
 	}
 }
@@ -333,9 +333,9 @@ func TestGraphQLIntegrationExecutionPostsToUpstreamPath(t *testing.T) {
 		Type:   "linear.app",
 		Method: "listIssues",
 	}, map[string]interface{}{
-		"credential_id":      credentialRef,
-		"requestSessionUser": &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
-		"first":              float64(5),
+		"credential_id": credentialRef,
+		"sessionUser":   &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
+		"first":         float64(5),
 	}, tx)
 	if len(errs) > 0 {
 		t.Fatalf("DoAction returned errors: %v", errs)
@@ -360,7 +360,7 @@ func TestGraphQLIntegrationExecutionPostsToUpstreamPath(t *testing.T) {
 	if !strings.Contains(capturedBody, `"query"`) || !strings.Contains(capturedBody, `"operationName":"ListIssues"`) || !strings.Contains(capturedBody, `"first":5`) {
 		t.Fatalf("unexpected GraphQL body: %s", capturedBody)
 	}
-	if strings.Contains(capturedBody, "credential_id") || strings.Contains(capturedBody, "requestSessionUser") {
+	if strings.Contains(capturedBody, "credential_id") || strings.Contains(capturedBody, "sessionUser") {
 		t.Fatalf("runtime fields leaked into GraphQL body: %s", capturedBody)
 	}
 }
@@ -424,8 +424,8 @@ func TestNonRESTIntegrationTransportsRejectOtherUserCredentialBeforeUpstreamCall
 			}
 			performer := integrationTestPerformer(upstream.URL, tt.operation, tt.operationID, tt.path, authSpec, secret, adminGroupRef)
 			input := map[string]interface{}{
-				"credential_id":      credentialRef,
-				"requestSessionUser": &auth.SessionUser{UserId: 77, UserReferenceId: otherUserRef},
+				"credential_id": credentialRef,
+				"sessionUser":   &auth.SessionUser{UserId: 77, UserReferenceId: otherUserRef},
 			}
 			for key, value := range tt.input {
 				input[key] = value
@@ -535,10 +535,10 @@ func TestRESTIntegrationExecutionStillUsesOperationMethodPathAndQuery(t *testing
 		Type:   "asana.com",
 		Method: "getTask",
 	}, map[string]interface{}{
-		"credential_id":      credentialRef,
-		"requestSessionUser": &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
-		"task_gid":           "123",
-		"opt_fields":         "gid,name",
+		"credential_id": credentialRef,
+		"sessionUser":   &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
+		"task_gid":      "123",
+		"opt_fields":    "gid,name",
 	}, tx)
 	if len(errs) > 0 {
 		t.Fatalf("DoAction returned errors: %v", errs)
@@ -602,9 +602,9 @@ func TestWebSocketIntegrationExecutionUsesShortLivedRequestResponse(t *testing.T
 		Type:   "realtime.example",
 		Method: "search",
 	}, map[string]interface{}{
-		"credential_id":      credentialRef,
-		"requestSessionUser": &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
-		"query":              "tickets",
+		"credential_id": credentialRef,
+		"sessionUser":   &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
+		"query":         "tickets",
 	}, tx)
 	if len(errs) > 0 {
 		t.Fatalf("DoAction returned errors: %v", errs)
@@ -660,9 +660,9 @@ func TestGRPCIntegrationExecutionUsesReflectionUnaryCall(t *testing.T) {
 		Type:   "grpc.example",
 		Method: "Search",
 	}, map[string]interface{}{
-		"credential_id":      credentialRef,
-		"requestSessionUser": &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
-		"query":              "daptin",
+		"credential_id": credentialRef,
+		"sessionUser":   &auth.SessionUser{UserId: 42, UserReferenceId: userRef},
+		"query":         "daptin",
 	}, tx)
 	if len(errs) > 0 {
 		t.Fatalf("DoAction returned errors: %v", errs)

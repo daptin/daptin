@@ -11,7 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestCustomCredentialAuthUsesRequestSessionUser(t *testing.T) {
+func TestCustomCredentialAuthUsesActiveSessionUser(t *testing.T) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
@@ -105,16 +105,10 @@ func TestCustomCredentialAuthUsesRequestSessionUser(t *testing.T) {
 			{GroupReferenceId: adminGroupRef},
 		},
 	}
-	requestSession := &auth.SessionUser{
-		UserId:          77,
-		UserReferenceId: otherUserRef,
-	}
-
 	_, _, _, _, err = performer.customCredentialAuthArguments(
 		map[string]interface{}{
-			"credential_id":      credentialRef,
-			"sessionUser":        elevatedSession,
-			"requestSessionUser": requestSession,
+			"credential_id": credentialRef,
+			"sessionUser":   elevatedSession,
 		},
 		map[string]interface{}{
 			"scheme":      "bearer",
@@ -125,6 +119,30 @@ func TestCustomCredentialAuthUsesRequestSessionUser(t *testing.T) {
 		true,
 	)
 	if err == nil {
-		t.Fatalf("request user should not inherit action-engine admin elevation for credential access")
+		t.Fatalf("active user should not inherit action-engine admin elevation for credential access")
+	}
+
+	switchedSession := &auth.SessionUser{
+		UserId:          42,
+		UserReferenceId: ownerRef,
+		Groups: auth.GroupPermissionList{
+			{GroupReferenceId: adminGroupRef},
+		},
+	}
+	_, _, _, _, err = performer.customCredentialAuthArguments(
+		map[string]interface{}{
+			"credential_id": credentialRef,
+			"sessionUser":   switchedSession,
+		},
+		map[string]interface{}{
+			"scheme":      "bearer",
+			"token_field": "token",
+		},
+		nil,
+		tx,
+		true,
+	)
+	if err != nil {
+		t.Fatalf("credential owned by the active switched user should pass: %v", err)
 	}
 }

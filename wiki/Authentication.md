@@ -309,7 +309,12 @@ curl -X POST http://localhost:6336/api/oauth_connect \
   }'
 ```
 
-Tokens are stored in `oauth_token`. For OpenAPI integrations, the integration stores provider-level auth wiring in `authentication_specification.oauth_connect_id`; the executing user passes their own `oauth_token_id` when calling an operation. See [[Integrations|Integrations]].
+Tokens are stored in `oauth_token`. For OpenAPI integrations, the integration
+stores provider-level auth wiring in
+`authentication_specification.oauth_connect_id`; each operation supplies an
+`oauth_token_id` owned by the active user. Direct calls use the authenticated
+request user. Trusted backend workflows can select a service account with
+`SWITCH_USER` before the integration outcome. See [[Integrations|Integrations]].
 
 ---
 

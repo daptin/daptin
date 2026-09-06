@@ -230,7 +230,7 @@ func performLLME2EAction(t testing.TB, user *auth.SessionUser, actionName string
 	if len(observers) == 1 {
 		observers[0](transaction)
 	}
-	input["requestSessionUser"] = user
+	input["sessionUser"] = user
 	input["httpRequest"] = httptest.NewRequest(http.MethodPost, "/action/world/llm-e2e", nil)
 	_, responses, actionErrors := performer.DoAction(actionresponse.Outcome{Type: "llm.e2e"}, input, transaction)
 	_ = transaction.Rollback()

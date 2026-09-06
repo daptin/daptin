@@ -836,7 +836,7 @@ func isIntegrationRuntimeParameter(
 
 func isIntegrationRuntimeInputKey(key string) bool {
 	switch key {
-	case "oauth_token_id", "credential_id", "sessionUser", "requestSessionUser", "httpRequest", "httpRequestHeaders":
+	case "oauth_token_id", "credential_id", "sessionUser", "httpRequest", "httpRequestHeaders":
 		return true
 	default:
 		return false
@@ -1304,9 +1304,6 @@ func stringValue(val interface{}) string {
 }
 
 func integrationExecutionSessionUser(inFieldMap map[string]interface{}) *auth.SessionUser {
-	if sessionUser, ok := inFieldMap["requestSessionUser"].(*auth.SessionUser); ok && sessionUser != nil {
-		return sessionUser
-	}
 	sessionUser, _ := inFieldMap["sessionUser"].(*auth.SessionUser)
 	return sessionUser
 }

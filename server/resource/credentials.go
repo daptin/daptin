@@ -38,7 +38,6 @@ func (d *DbResource) GetCredentialByReferenceIdForIntegrationExecution(reference
 	if sessionUser == nil || sessionUser.UserId == 0 || sessionUser.UserReferenceId == daptinid.NullReferenceId {
 		return nil, fmt.Errorf("custom credential integration execution requires an authenticated user")
 	}
-
 	credentialRow, err := d.getCredentialRowByReferenceId(referenceId, transaction)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -47,8 +46,7 @@ func (d *DbResource) GetCredentialByReferenceIdForIntegrationExecution(reference
 		return nil, err
 	}
 
-	permission := d.GetObjectPermissionByIdWithTransaction("credential", credentialRow.id, transaction)
-	if !permission.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, d.AdministratorGroupId) {
+	if !credentialRow.userAccountId.Valid || credentialRow.userAccountId.Int64 != sessionUser.UserId || credentialRow.permission&auth.UserRead != auth.UserRead {
 		return nil, fmt.Errorf("credential is not available for this user")
 	}
 
@@ -56,9 +54,11 @@ func (d *DbResource) GetCredentialByReferenceIdForIntegrationExecution(reference
 }
 
 type credentialRow struct {
-	id      int64
-	name    string
-	content string
+	id            int64
+	name          string
+	content       string
+	userAccountId sql.NullInt64
+	permission    auth.AuthPermission
 }
 
 func (d *DbResource) credentialFromRow(credentialRow credentialRow, transaction *sqlx.Tx) (*dbresourceinterface.Credential, error) {
@@ -88,7 +88,7 @@ func (d *DbResource) getCredentialRowByReferenceId(referenceId daptinid.DaptinRe
 }
 
 func (d *DbResource) getCredentialRowByWhere(column string, value interface{}, transaction *sqlx.Tx) (credentialRow, error) {
-	s, v, err := statementbuilder.Squirrel.Select("id", "name", "content").Prepared(true).
+	s, v, err := statementbuilder.Squirrel.Select("id", "name", "content", USER_ACCOUNT_ID_COLUMN, "permission").Prepared(true).
 		From("credential").Where(goqu.Ex{column: value}).ToSQL()
 	if err != nil {
 		return credentialRow{}, err
@@ -101,7 +101,7 @@ func (d *DbResource) getCredentialRowByWhere(column string, value interface{}, t
 	defer stmt.Close()
 
 	var row credentialRow
-	if err := stmt.QueryRowx(v...).Scan(&row.id, &row.name, &row.content); err != nil {
+	if err := stmt.QueryRowx(v...).Scan(&row.id, &row.name, &row.content, &row.userAccountId, &row.permission); err != nil {
 		return credentialRow{}, err
 	}
 	return row, nil

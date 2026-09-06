@@ -640,7 +640,11 @@ curl -X POST "http://localhost:6336/integration/asana.com/getWorkspaces" \
   }'
 ```
 
-Daptin validates that the token belongs to the current user and was issued for the same `oauth_connect_id` configured on the integration.
+Daptin validates that the token belongs to the active user and was issued for
+the same `oauth_connect_id` configured on the integration. Direct and generated
+integration calls use the authenticated request user. A trusted backend action
+can use a service account's token by running `SWITCH_USER` before its integration
+outcome; see [[Integrations|Integrations]].
 
 ---
 
@@ -1038,7 +1042,12 @@ Integrations reuse the same OAuth connection flow documented above. There is no 
 2. The user completes `oauth_login_begin` and `oauth.login.response`.
 3. Daptin stores that user's encrypted token in `oauth_token`.
 4. The integration stores the provider/app reference in `authentication_specification.oauth_connect_id`.
-5. The installed integration action call supplies the current user's `oauth_token_id` in `attributes`.
+5. The installed integration action call supplies the active user's `oauth_token_id` in `attributes`.
+
+For a backend service workflow, complete the OAuth flow as the service account,
+then use a trusted action whose `SWITCH_USER` outcome selects that account before
+the integration outcome. The token reference remains fixed in the backend
+action definition. See [[Integrations|Integrations]].
 
 Example OAuth integration auth configuration:
 
@@ -1064,9 +1073,14 @@ curl -X POST "http://localhost:6336/action/integration/listRepos" \
   }'
 ```
 
-Daptin validates that the supplied token belongs to the current user and matches the integration's configured `oauth_connect_id` before using it for the outbound request.
+Daptin validates that the supplied token belongs to the active user and matches
+the integration's configured `oauth_connect_id` before using it for the outbound
+request.
 
-The integration must not store `oauth_token_id`. A token is user-specific and is selected per execution, which prevents one user's installed integration from accidentally or maliciously using another user's OAuth token.
+The integration record must not store `oauth_token_id`. A token is user-specific
+and is selected per execution, preventing a direct or generated integration call
+from using another user's OAuth token. A trusted action must explicitly switch
+to a service user before it can use that user's token.
 
 If an OpenAPI operation exposes an auth-looking header or query parameter, Daptin protects the resolved OAuth auth fields. A user-supplied action attribute such as `Authorization` cannot override the bearer token Daptin resolved from `oauth_token_id`.
 

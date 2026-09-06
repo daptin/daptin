@@ -239,7 +239,6 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
 	}
-	requestSessionUser := cloneSessionUser(sessionUser)
 
 	var err error
 	//adminUserGroupIds, err := dbResource.GetIdByWhereClause("usergroup", transaction, goqu.Ex{
@@ -355,7 +354,6 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	inFieldMap["rawBodyBytes"] = actionRequest.RawBodyBytes
 	inFieldMap["encryptionSecret"] = dbResource.EncryptionSecret
 	inFieldMap["sessionUser"] = sessionUser
-	inFieldMap["requestSessionUser"] = requestSessionUser
 
 	if sessionUser.UserReferenceId != daptinid.NullReferenceId {
 		user, err := dbResource.GetReferenceIdToObjectWithTransaction(USER_ACCOUNT_TABLE_NAME, sessionUser.UserReferenceId, transaction)
@@ -614,7 +612,6 @@ OutFields:
 				var responder api2go.Responder
 				performerFields := model.GetAttributes()
 				performerFields["sessionUser"] = sessionUser
-				performerFields["requestSessionUser"] = requestSessionUser
 				performerFields["httpRequest"] = req.PlainRequest
 				performerFields["httpRequestHeaders"] = map[string][]string(req.PlainRequest.Header)
 				responder, responses1, errors1 = performer.DoAction(outcome, performerFields, transaction)
@@ -657,7 +654,6 @@ OutFields:
 			}
 			performerFields := model.GetAttributes()
 			performerFields["sessionUser"] = sessionUser
-			performerFields["requestSessionUser"] = requestSessionUser
 			performerFields["httpRequest"] = req.PlainRequest
 			performerFields["httpRequestHeaders"] = map[string][]string(req.PlainRequest.Header)
 			responder, responses1, err1 := handler.DoAction(outcome, performerFields, transaction)
@@ -892,19 +888,6 @@ func NewActionResponse(responseType string, attrs interface{}) actionresponse.Ac
 
 	return ar
 
-}
-
-func cloneSessionUser(sessionUser *auth.SessionUser) *auth.SessionUser {
-	if sessionUser == nil {
-		return &auth.SessionUser{}
-	}
-	clonedGroups := make(auth.GroupPermissionList, len(sessionUser.Groups))
-	copy(clonedGroups, sessionUser.Groups)
-	return &auth.SessionUser{
-		UserId:          sessionUser.UserId,
-		UserReferenceId: sessionUser.UserReferenceId,
-		Groups:          clonedGroups,
-	}
 }
 
 func BuildOutcome(inFieldMap map[string]interface{},
