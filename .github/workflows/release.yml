@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # main
         with:
           tool-cache: false
           android: true
@@ -73,56 +73,88 @@ jobs:
           "$(go env GOPATH)/bin/rice" embed-go
 
       - name: Cross-compile daptin
+        shell: bash
         run: |
-          "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets=linux/amd64,linux/arm64 \
-            --tags netgo -ldflags '-linkmode external' -dest build .
-          "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets='darwin/amd64,darwin/arm64,windows/*' \
-            --tags netgo -ldflags '-linkmode external' -dest build .
+          release_ldflags="-linkmode external -s -w $("$(go env GOPATH)/bin/govvv" -flags -version "${RELEASE_TAG}")"
+          "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets=linux/amd64,linux/arm64,linux/arm-7 \
+            --tags netgo -ldflags "${release_ldflags}" -dest build .
+          "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets=darwin/amd64,darwin/arm64,windows/amd64 \
+            --tags netgo -ldflags "${release_ldflags}" -dest build .
 
-      - name: List built artifacts
+      - name: Verify binaries
         run: |
           find build -maxdepth 1 -type f -print -exec file {} \;
+          test "$(find build -maxdepth 1 -type f -name 'daptin-*' | wc -l)" -eq 6
+          file build/daptin-linux-amd64 | grep -q 'x86-64'
+          file build/daptin-linux-arm64 | grep -q 'ARM aarch64'
+          file build/daptin-linux-arm-7 | grep -q 'ARM'
+          file build/daptin-darwin-amd64 | grep -q 'Mach-O 64-bit x86_64'
+          file build/daptin-darwin-arm64 | grep -q 'Mach-O 64-bit arm64'
+          file build/daptin-windows-amd64.exe | grep -q 'PE32+.*x86-64'
+          build/daptin-linux-amd64 -help >/dev/null
 
-      - name: Upload linux amd64 artifact
+      - name: Package release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist package
+
+          package_tarball() {
+            local platform="$1"
+            local architecture="$2"
+            rm -rf package/*
+            install -m 0755 "build/daptin-${platform}-${architecture}" package/daptin
+            cp README.md LICENSE package/
+            tar -C package -czf "dist/daptin-${RELEASE_TAG}-${platform}-${architecture}.tar.gz" .
+          }
+
+          package_tarball linux amd64
+          package_tarball linux arm64
+          package_tarball linux arm-7
+          package_tarball darwin amd64
+          package_tarball darwin arm64
+
+          rm -rf package/*
+          install -m 0755 build/daptin-windows-amd64.exe package/daptin.exe
+          cp README.md LICENSE package/
+          (cd package && zip -q -9 -r "../dist/daptin-${RELEASE_TAG}-windows-amd64.zip" .)
+
+          (cd dist && sha256sum daptin-* > daptin-${RELEASE_TAG}-checksums.txt)
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 7
+
+      - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: daptin-linux-amd64
-          path: build/daptin-linux-amd64
+          name: daptin-${{ env.RELEASE_TAG }}
+          path: dist/
+          if-no-files-found: error
 
-      - name: Upload linux arm64 artifact
-        uses: actions/upload-artifact@v4
+      - name: Attest release assets
+        uses: actions/attest-build-provenance@v4
         with:
-          name: daptin-linux-arm64
-          path: build/daptin-linux-arm64
+          subject-path: dist/*
 
-      - name: Upload darwin amd64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: daptin-darwin-amd64
-          path: build/daptin-darwin-amd64
-
-      - name: Upload darwin arm64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: daptin-darwin-arm64
-          path: build/daptin-darwin-arm64
-
-      - name: Upload windows amd64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: daptin-windows-amd64.exe
-          path: build/daptin-windows-amd64.exe
-
-      - name: Create draft GitHub release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          draft: true
-          files: |
-            ./build/daptin-linux-amd64
-            ./build/daptin-darwin-amd64
-            ./build/daptin-linux-arm64
-            ./build/daptin-windows-amd64.exe
+          draft: ${{ github.event_name == 'workflow_dispatch' }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*
+
+      - name: Prepare Docker tags
+        shell: bash
+        run: |
+          {
+            echo 'DOCKER_TAGS<<EOF'
+            echo "daptin/daptin:${RELEASE_TAG}"
+            if [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo 'daptin/daptin:master'
+              echo 'daptin/daptin:latest'
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -138,10 +170,7 @@ jobs:
           push: true
           provenance: mode=max
           sbom: true
-          tags: |
-            daptin/daptin:${{ env.RELEASE_TAG }}
-            daptin/daptin:master
-            daptin/daptin:latest
+          tags: ${{ env.DOCKER_TAGS }}
           build-args: |
             VERSION=${{ env.RELEASE_TAG }}
             VCS_REF=${{ github.sha }}
