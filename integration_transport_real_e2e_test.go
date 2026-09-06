@@ -14,16 +14,127 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
 
+	"github.com/daptin/daptin/server/auth"
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	grpc_testing "google.golang.org/grpc/reflection/grpc_testing"
 )
+
+func TestIntegrationOperationActionAuthorizationRealE2E(t *testing.T) {
+	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
+		t.Skip("set DAPTIN_REAL_E2E=1 to run the integration authorization e2e")
+	}
+
+	var upstreamCalls atomic.Int64
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		upstreamCalls.Add(1)
+		transportE2EWriteJSON(w, map[string]interface{}{"ok": true})
+	}))
+	defer upstream.Close()
+
+	usedPorts := make(map[int]bool, 2)
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	databasePath := filepath.Join(t.TempDir(), "integration-authorization.db")
+	options := transportE2EDaptinOptions{
+		databaseType: "sqlite3", connectionString: databasePath, schema: "EnableGraphQL: true\n",
+	}
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
+	defer func() { daptinProcess.stopProcess() }()
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	userToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "integration-caller")
+	userReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "integration-caller@test.local")
+	credentialReference := transportE2ECreateCredential(t, client, baseURL, adminToken)
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/credential/"+credentialReference, adminToken,
+		accessGroupsE2ERecordPayload("credential", credentialReference, map[string]interface{}{"user_account_id": userReference}), http.StatusOK)
+	providerName := "authorization.example"
+	integrationReference := transportE2ECreateIntegration(t, client, baseURL, adminToken, providerName, transportE2EBaseSpec(
+		"Authorization integration", upstream.URL, map[string]interface{}{
+			"/allowed": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "invoke",
+					"responses":   transportE2EJSONResponses(),
+				},
+			},
+		},
+	))
+	transportE2EInstallIntegration(t, client, baseURL, adminToken, integrationReference)
+
+	worldReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "world", "table_name", "integration")
+	actionReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "action", "action_name", providerName+"/invoke")
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/world/"+worldReference, adminToken,
+		accessGroupsE2ERecordPayload("world", worldReference, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/action/"+actionReference, adminToken,
+		accessGroupsE2ERecordPayload("action", actionReference, map[string]interface{}{"permission": int64(auth.None)}), http.StatusOK)
+
+	directPayload := map[string]interface{}{"credential_id": credentialReference, "input": map[string]interface{}{}}
+	directStatus, _ := postLLMActionForStatus(t, client, baseURL+"/integration/"+providerName+"/invoke", userToken, directPayload)
+	actionStatus, _ := postLLMActionForStatus(t, client, baseURL+"/action/integration/"+providerName+"/invoke", userToken, map[string]interface{}{
+		"attributes": map[string]interface{}{"credential_id": credentialReference},
+	})
+	if directStatus != http.StatusForbidden || actionStatus != http.StatusForbidden || upstreamCalls.Load() != 0 {
+		t.Fatalf("denied integration execution: direct=%d action=%d upstream=%d", directStatus, actionStatus, upstreamCalls.Load())
+	}
+
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/action/"+actionReference, adminToken,
+		accessGroupsE2ERecordPayload("action", actionReference, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
+	allowedStatus, _ := postLLMActionForStatus(t, client, baseURL+"/integration/"+providerName+"/invoke", userToken, directPayload)
+	if allowedStatus != http.StatusOK || upstreamCalls.Load() != 1 {
+		t.Fatalf("allowed integration execution: status=%d upstream=%d", allowedStatus, upstreamCalls.Load())
+	}
+
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/action/"+actionReference, adminToken,
+		accessGroupsE2ERecordPayload("action", actionReference, map[string]interface{}{"permission": int64(auth.None)}), http.StatusOK)
+	daptinProcess.stopProcess()
+	daptinProcess = startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
+
+	graphQLPayload := map[string]interface{}{
+		"query": fmt.Sprintf(`mutation { executeInvokeOnAuthorizationexample(credential_id: %q) { ResponseType } }`, credentialReference),
+	}
+	deniedGraphQL := transportE2EPostJSON(t, client, baseURL+"/graphql", userToken, graphQLPayload)
+	if !transportE2EGraphQLHasErrors(deniedGraphQL) || upstreamCalls.Load() != 1 {
+		t.Fatalf("denied GraphQL integration execution: response=%#v upstream=%d", deniedGraphQL, upstreamCalls.Load())
+	}
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/action/"+actionReference, adminToken,
+		accessGroupsE2ERecordPayload("action", actionReference, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
+	allowedGraphQL := transportE2EPostJSON(t, client, baseURL+"/graphql", userToken, graphQLPayload)
+	if transportE2EGraphQLHasErrors(allowedGraphQL) || upstreamCalls.Load() != 2 {
+		t.Fatalf("allowed GraphQL integration execution: response=%#v upstream=%d", allowedGraphQL, upstreamCalls.Load())
+	}
+
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/integration/"+integrationReference, adminToken,
+		accessGroupsE2ERecordPayload("integration", integrationReference, map[string]interface{}{"enable": false}), http.StatusOK)
+	disabledDirectStatus, _ := postLLMActionForStatus(t, client, baseURL+"/integration/"+providerName+"/invoke", userToken, directPayload)
+	disabledActionStatus, _ := postLLMActionForStatus(t, client, baseURL+"/action/integration/"+providerName+"/invoke", userToken, map[string]interface{}{
+		"attributes": map[string]interface{}{"credential_id": credentialReference},
+	})
+	if disabledDirectStatus < http.StatusBadRequest || disabledActionStatus < http.StatusBadRequest || upstreamCalls.Load() != 2 {
+		t.Fatalf("disabled integration execution: direct=%d action=%d upstream=%d", disabledDirectStatus, disabledActionStatus, upstreamCalls.Load())
+	}
+}
+
+func transportE2EGraphQLHasErrors(response interface{}) bool {
+	object, ok := response.(map[string]interface{})
+	if !ok {
+		return true
+	}
+	errors, exists := object["errors"]
+	if !exists {
+		return false
+	}
+	list, ok := errors.([]interface{})
+	return !ok || len(list) > 0
+}
 
 func TestRealIntegrationTransportE2E(t *testing.T) {
 	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
@@ -229,10 +340,11 @@ type transportE2EDaptinOptions struct {
 type transportE2EDaptinProcess struct {
 	processGroupID int
 	stop           func()
+	stopOnce       sync.Once
 }
 
 func (process *transportE2EDaptinProcess) stopProcess() {
-	process.stop()
+	process.stopOnce.Do(process.stop)
 }
 
 func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL string, requested ...transportE2EDaptinOptions) *transportE2EDaptinProcess {

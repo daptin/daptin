@@ -46,7 +46,7 @@ func TestIntegrationOperationRoutesAllowSlashesInOperationID(t *testing.T) {
 			want:   "repos/get",
 		},
 		{
-			name:   "execute keeps legacy one segment operation id",
+			name:   "execute accepts one segment operation id",
 			method: http.MethodPost,
 			path:   "/integration/asana.com/getWorkspaces",
 			want:   "getWorkspaces",

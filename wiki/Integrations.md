@@ -73,8 +73,13 @@ curl "http://localhost:6336/integration/airtable.com/operations/airtableUpdateRe
 ```
 
 Installed operations are also available as generated actions at
-`POST /action/integration/{operation_id}`. The provider-scoped endpoint is
+`POST /action/integration/{provider_name}/{operation_id}`. The provider-scoped endpoint is
 usually clearer because it keeps the provider name in the URL.
+
+Both endpoints execute the same generated Daptin action. A call is admitted
+only when the active user can execute the `integration` entity and the
+`{provider_name}/{operation_id}` action, and can read the selected credential or
+OAuth token. REST and GraphQL do not have separate integration permissions.
 
 ## Which User Supplies the Credential?
 
@@ -576,9 +581,15 @@ Auth selectors are reported separately from provider operation inputs:
 After installation, each OpenAPI operation can be executed in two ways:
 
 - Provider-scoped route: `POST /integration/{provider_name}/{operation_id}`
-- Generated action route: `POST /action/integration/{operation_id}`
+- Generated action route: `POST /action/integration/{provider_name}/{operation_id}`
 
-The provider-scoped route is preferred for new clients because the OpenAPI `operationId` stays inside the provider namespace. This avoids artificial provider prefixes in operation names and makes logs/audits read as `provider=asana.com operation=getWorkspaces`.
+The provider-scoped route is preferred for clients that want the provider's raw
+response contract. Both routes enter the same generated action before any
+credential is loaded or provider request is sent.
+
+When GraphQL is enabled, the provider mutation exposes the same input fields
+and required fields as that installed action. The REST and GraphQL adapters do
+not construct a separate operation input contract.
 
 ### Provider-scoped Route
 
@@ -643,13 +654,13 @@ only after that check succeeds.
 
 ### Generated Action Route
 
-**Action names**: Use the `operationId` from the OpenAPI spec
+**Action names**: `{provider_name}/{operationId}`
 **OnType**: `integration`
 **InstanceOptional**: true (no instance ID required)
 
 ```bash
 # Call the getPetById operation from petstore integration
-curl -X POST "http://localhost:6336/action/integration/getPetById" \
+curl -X POST "http://localhost:6336/action/integration/petstore/getPetById" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -662,7 +673,7 @@ curl -X POST "http://localhost:6336/action/integration/getPetById" \
 For OAuth2 integrations, pass the current user's token reference at execution time:
 
 ```bash
-curl -X POST "http://localhost:6336/action/integration/listRepos" \
+curl -X POST "http://localhost:6336/action/integration/github.com/listRepos" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -678,7 +689,7 @@ Daptin rejects the call if `oauth_token_id` belongs to another user or was issue
 For custom credential integrations, pass the credential reference at execution time:
 
 ```bash
-curl -X POST "http://localhost:6336/action/integration/listUsers" \
+curl -X POST "http://localhost:6336/action/integration/example.com/listUsers" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -690,6 +701,12 @@ curl -X POST "http://localhost:6336/action/integration/listUsers" \
 
 Daptin rejects the call unless `credential_id` is owned by the authenticated
 request user and grants owner read access.
+
+To restrict an operation, update the matching `action` record and its
+`action`-to-`usergroup` relationships using the normal Daptin resource APIs.
+Grant `GroupExecute` to the groups that may call it and remove broader execute
+bits from the action record. The same decision then governs generated-action
+REST, provider-scoped REST, and provider GraphQL execution.
 
 ### Run an Integration as a Service Account
 

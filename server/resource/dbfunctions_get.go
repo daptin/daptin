@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/buraksezer/olric"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -140,6 +141,7 @@ func GetAdminUserIdAndUserGroupId(db *sqlx.Tx) (int64, int64) {
 }
 
 type Integration struct {
+	ReferenceId                 daptinid.DaptinReferenceId
 	Name                        string
 	SpecificationLanguage       string
 	SpecificationFormat         string
@@ -147,6 +149,26 @@ type Integration struct {
 	AuthenticationType          string
 	AuthenticationSpecification string
 	Enable                      bool
+}
+
+const integrationActionNameLimit = 100
+
+// IntegrationOperationActionName returns the persisted action identity for one
+// provider operation. Provider scoping is part of the name because action names
+// are unique within their world, while OpenAPI operation ids are only unique
+// within one provider document.
+func IntegrationOperationActionName(providerName string, operationName string) (string, error) {
+	if providerName == "" || operationName == "" {
+		return "", errors.New("integration provider and operation are required")
+	}
+	if strings.Contains(providerName, "/") {
+		return "", fmt.Errorf("integration provider name [%s] cannot contain '/'", providerName)
+	}
+	actionName := providerName + "/" + operationName
+	if len(actionName) > integrationActionNameLimit {
+		return "", fmt.Errorf("integration action name [%s] exceeds %d bytes", actionName, integrationActionNameLimit)
+	}
+	return actionName, nil
 }
 
 func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Integration, error) {
@@ -162,6 +184,7 @@ func (dbResource *DbResource) GetActiveIntegrations(transaction *sqlx.Tx) ([]Int
 			}
 
 			integration := Integration{
+				ReferenceId:                 daptinid.InterfaceToDIR(row["reference_id"]),
 				Name:                        row["name"].(string),
 				SpecificationLanguage:       row["specification_language"].(string),
 				SpecificationFormat:         row["specification_format"].(string),

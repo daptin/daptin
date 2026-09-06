@@ -3842,7 +3842,8 @@ func integrationOperationPathItem(integration resource.Integration, operationID 
 			"tags":        []string{"integration", integration.Name},
 			"operationId": "Execute" + strcase.ToCamel(operationID) + "On" + integrationProviderIdentifier(integration.Name),
 			"summary":     firstNonEmpty(operation.Summary, operationID),
-			"description": firstNonEmpty(operation.Description, operation.Summary, fmt.Sprintf("Execute [%s] from integration [%s].", operationID, integration.Name)),
+			"description": firstNonEmpty(operation.Description, operation.Summary, fmt.Sprintf("Execute [%s] from integration [%s].", operationID, integration.Name)) +
+				" Requires execute permission on the integration entity and its generated provider operation action.",
 			"x-provider-operation": map[string]interface{}{
 				"provider":    integration.Name,
 				"operationId": operationID,

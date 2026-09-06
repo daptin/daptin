@@ -63,6 +63,7 @@ type integrationActionPerformer struct {
 	pathMap          map[string]string
 	methodMap        map[string]string
 	encryptionSecret []byte
+	runtimeState     func(*sqlx.Tx) (string, bool, error)
 }
 
 const (
@@ -98,10 +99,18 @@ func (d *integrationActionPerformer) Name() string {
 	return d.integration.Name
 }
 
-func (d *integrationActionPerformer) IsIntegrationPerformer() {}
-
 // Perform integration api
 func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, inFieldMap map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
+	if d.runtimeState == nil {
+		return nil, nil, []error{errors.New("integration runtime state is not available")}
+	}
+	currentName, enabled, err := d.runtimeState(transaction)
+	if err != nil {
+		return nil, nil, []error{fmt.Errorf("integration [%s] is not available: %w", d.integration.Name, err)}
+	}
+	if !enabled || currentName != d.integration.Name {
+		return nil, nil, []error{fmt.Errorf("integration [%s] is not enabled", d.integration.Name)}
+	}
 
 	operation, ok := d.commandMap[request.Method]
 	method := d.methodMap[request.Method]
@@ -1714,6 +1723,9 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 			err = fmt.Errorf("failed to create integration action performer for [%s]: %v", integration.Name, recovered)
 		}
 	}()
+	if cruds["integration"] == nil {
+		return nil, errors.New("integration resource is not available")
+	}
 
 	yamlBytes := []byte(integration.Specification)
 	var router *openapi3.T
@@ -1825,6 +1837,9 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 		pathMap:          pathMap,
 		methodMap:        methodMap,
 		encryptionSecret: []byte(encryptionSecret),
+		runtimeState: func(transaction *sqlx.Tx) (string, bool, error) {
+			return cruds["integration"].IntegrationRuntimeState(integration.ReferenceId, transaction)
+		},
 	}
 
 	return &handler, nil

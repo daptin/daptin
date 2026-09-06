@@ -809,24 +809,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		func(action actionresponse.Action) {
 
-			inputFields := make(graphql.FieldConfigArgument)
-
-			for _, col := range action.InFields {
-
-				var finalGraphqlType graphql.Type
-				finalGraphqlType = resource.ColumnManager.GetGraphqlType(col.ColumnType)
-
-				if !col.IsNullable {
-					finalGraphqlType = graphql.NewNonNull(finalGraphqlType)
-				}
-
-				inputFields[col.ColumnName] = &graphql.ArgumentConfig{
-					Type:         finalGraphqlType,
-					Description:  col.ColumnDescription,
-					DefaultValue: col.DefaultValue,
-				}
-
-			}
+			inputFields, inputArgs := actionGraphQLArguments(action)
 
 			//if !action.InstanceOptional {
 			//	inputFields[action.OnType+"_id"] = &graphql.ArgumentConfig{
@@ -840,6 +823,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Description: "Execute " + strings.ReplaceAll(action.Name, "_", " ") + " on " + action.OnType,
 				Args:        inputFields,
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+					attributes := actionGraphQLInput(params.Args, inputArgs)
 
 					ur, _ := url.Parse("/action/" + action.OnType + "/" + action.Name)
 					pr := &http.Request{
@@ -856,7 +840,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					actionRequest := actionresponse.ActionRequest{
 						Type:       action.OnType,
 						Action:     action.Name,
-						Attributes: params.Args,
+						Attributes: attributes,
 					}
 
 					transaction, err := resources[action.OnType].Connection().Beginx()
@@ -1092,4 +1076,48 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	//
 	//return &schema
 
+}
+
+type graphqlActionArg struct {
+	OriginalName string
+	GraphQLName  string
+}
+
+func actionGraphQLArguments(action actionresponse.Action) (graphql.FieldConfigArgument, []graphqlActionArg) {
+	args := make(graphql.FieldConfigArgument, len(action.InFields))
+	inputArgs := make([]graphqlActionArg, 0, len(action.InFields))
+	for _, field := range action.InFields {
+		originalName := field.ColumnName
+		if originalName == "" {
+			originalName = field.Name
+		}
+		if originalName == "" {
+			continue
+		}
+		graphQLName := safeGraphQLName(originalName)
+		if _, exists := args[graphQLName]; exists {
+			graphQLName = fmt.Sprintf("%s_%d", graphQLName, len(args))
+		}
+		fieldType := resource.ColumnManager.GetGraphqlType(field.ColumnType)
+		if !field.IsNullable {
+			fieldType = graphql.NewNonNull(fieldType)
+		}
+		args[graphQLName] = &graphql.ArgumentConfig{
+			Type:         fieldType,
+			Description:  field.ColumnDescription,
+			DefaultValue: field.DefaultValue,
+		}
+		inputArgs = append(inputArgs, graphqlActionArg{OriginalName: originalName, GraphQLName: graphQLName})
+	}
+	return args, inputArgs
+}
+
+func actionGraphQLInput(args map[string]interface{}, inputArgs []graphqlActionArg) map[string]interface{} {
+	input := make(map[string]interface{}, len(inputArgs))
+	for _, arg := range inputArgs {
+		if value, ok := args[arg.GraphQLName]; ok {
+			input[arg.OriginalName] = value
+		}
+	}
+	return input
 }

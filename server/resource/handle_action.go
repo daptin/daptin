@@ -90,7 +90,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 
 	return func(ginContext *gin.Context) {
 
-		actionName := ginContext.Param("actionName")
+		actionName := strings.TrimPrefix(ginContext.Param("actionName"), "/")
 		actionType := ginContext.Param("typename")
 
 		actionRequest, err := BuildActionRequest(ginContext.Request.Body, actionType, actionName,
@@ -254,7 +254,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	if err != nil {
 		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
 		//CheckErr(rollbackErr, "failed to rollback")
-		return nil, api2go.NewHTTPError(err, "no such action", 400)
+		return nil, api2go.NewHTTPError(err, "no such action", http.StatusNotFound)
 	}
 
 	isAdmin := IsAdminWithTransaction(sessionUser, transaction)
@@ -293,7 +293,10 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 		}
 	}
 
-	if !isAdmin && !dbResource.IsUserActionAllowedWithTransaction(sessionUser.UserReferenceId, sessionUser.Groups, actionRequest.Type, actionRequest.Action, transaction) {
+	typePermission := dbResource.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", actionRequest.Type, transaction)
+	actionPermission := dbResource.GetObjectPermissionByReferenceId("action", action.ReferenceId, transaction)
+	if !isAdmin && (!typePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) ||
+		!actionPermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId)) {
 		log.Warnf("user[%v] not allowed action: %v - %v", sessionUser, actionRequest.Action, subjectInstanceReferenceString)
 		return nil, api2go.NewHTTPError(errors.New("forbidden"), "forbidden", 403)
 	}
@@ -608,6 +611,8 @@ OutFields:
 			performer, ok := GetActionHandler(dbResource, actionName)
 			if !ok {
 				log.Errorf("Invalid outcome method: [%v]%v", outcome.Method, actionName)
+				err = api2go.NewHTTPError(fmt.Errorf("action performer [%s] is not available", actionName), "action performer unavailable", http.StatusServiceUnavailable)
+				break OutFields
 			} else {
 				var responder api2go.Responder
 				performerFields := model.GetAttributes()
@@ -650,7 +655,8 @@ OutFields:
 			if !ok {
 				log.Errorf("Unknown method invoked on [%v]: [%v] by session user [%v]",
 					outcome.Type, outcome.Method, sessionUser.UserReferenceId)
-				continue
+				err = api2go.NewHTTPError(fmt.Errorf("action performer [%s] is not available", outcome.Type), "action performer unavailable", http.StatusServiceUnavailable)
+				break OutFields
 			}
 			performerFields := model.GetAttributes()
 			performerFields["sessionUser"] = sessionUser

@@ -106,6 +106,20 @@ func TestGetBodyParameterNamesFromSchemaRefRejectsUnresolvedRef(t *testing.T) {
 	}
 }
 
+func TestRequiredIntegrationBodyParametersUsesOpenAPIRequiredFields(t *testing.T) {
+	schema := openapi3.NewObjectSchema().
+		WithProperty("required_value", openapi3.NewStringSchema()).
+		WithProperty("optional_value", openapi3.NewStringSchema())
+	schema.Required = []string{"required_value"}
+	required := requiredIntegrationBodyParameters(true, schema.NewRef())
+	if !required["required_value"] || required["optional_value"] || required["body"] {
+		t.Fatalf("unexpected required body fields: %#v", required)
+	}
+	if optional := requiredIntegrationBodyParameters(false, schema.NewRef()); len(optional) != 0 {
+		t.Fatalf("optional request body produced required fields: %#v", optional)
+	}
+}
+
 func TestGetBodyParameterNamesRejectsInvalidCompositionBranch(t *testing.T) {
 	schema := &openapi3.Schema{
 		OneOf: openapi3.SchemaRefs{nil},

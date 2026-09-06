@@ -327,6 +327,9 @@ func TestGraphQLIntegrationExecutionPostsToUpstreamPath(t *testing.T) {
 		pathMap:          map[string]string{"listIssues": "/issues/list"},
 		methodMap:        map[string]string{"listIssues": "post"},
 		encryptionSecret: []byte(secret),
+		runtimeState: func(*sqlx.Tx) (string, bool, error) {
+			return "linear.app", true, nil
+		},
 	}
 
 	responder, responses, errs := performer.DoAction(actionresponse.Outcome{
@@ -529,6 +532,9 @@ func TestRESTIntegrationExecutionStillUsesOperationMethodPathAndQuery(t *testing
 		pathMap:          map[string]string{"getTask": "/tasks/{task_gid}"},
 		methodMap:        map[string]string{"getTask": "get"},
 		encryptionSecret: []byte(secret),
+		runtimeState: func(*sqlx.Tx) (string, bool, error) {
+			return "asana.com", true, nil
+		},
 	}
 
 	responder, responses, errs := performer.DoAction(actionresponse.Outcome{
@@ -769,6 +775,9 @@ func integrationTestPerformer(baseURL string, operation *openapi3.Operation, ope
 		pathMap:          map[string]string{operationID: path},
 		methodMap:        map[string]string{operationID: "post"},
 		encryptionSecret: []byte(secret),
+		runtimeState: func(*sqlx.Tx) (string, bool, error) {
+			return "integration.example", true, nil
+		},
 	}
 }
 

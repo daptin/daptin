@@ -294,6 +294,11 @@ connection, call a trusted custom action that performs `SWITCH_USER` to a
 dedicated service account before its integration outcome. See
 [[Integrations|Integrations]] for the complete pattern.
 
+Provider-scoped REST and provider GraphQL execute the installed
+`{provider_name}/{operation_id}` action. Execute permission on both the
+`integration` entity and that action is required before credential lookup or
+provider I/O.
+
 **Example:**
 
 ```bash

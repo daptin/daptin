@@ -248,11 +248,15 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 				ColumnName: param,
 				ColumnType: "label",
 				DataType:   "varchar(100)",
+				IsNullable: false,
 			})
 			attrs[param] = "~" + param
 		}
 
 		for _, param := range command.Parameters {
+			if param == nil || param.Value == nil {
+				return nil, nil, []error{fmt.Errorf("integration operation [%s] contains an unresolved parameter", commandId)}
+			}
 			if authInputNames[param.Value.Name] && (param.Value.In == "header" || param.Value.In == "query" || param.Value.In == "cookie") {
 				continue
 			}
@@ -264,6 +268,7 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 				ColumnName: param.Value.Name,
 				ColumnType: "label",
 				DataType:   "varchar(100)",
+				IsNullable: !param.Value.Required,
 			})
 			attrs[param.Value.Name] = "~" + param.Value.Name
 
@@ -284,6 +289,7 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 					return nil, nil, []error{err}
 				}
 
+				requiredBodyParameters := requiredIntegrationBodyParameters(command.RequestBody.Value.Required, jsonMedia.Schema)
 				for _, param := range bodyParameterNames {
 					if authDataMap[param] != nil {
 						continue
@@ -293,6 +299,7 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 						ColumnName: param,
 						ColumnType: "label",
 						DataType:   "varchar(100)",
+						IsNullable: !requiredBodyParameters[param],
 					})
 					attrs[param] = "~" + param
 				}
@@ -304,9 +311,13 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 			log.Warnf("install_integration failed: name is missing or invalid reference_id=[%s]", referenceId.String())
 			return nil, nil, []error{errors.New("integration name must be a string")}
 		}
+		actionName, err := resource.IntegrationOperationActionName(integrationName, commandId)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
 		action := actionresponse.Action{}
-		action.Name = commandId
-		action.Label = flect.Humanize(commandId)
+		action.Name = actionName
+		action.Label = flect.Humanize(integrationName + " " + commandId)
 		action.OnType = "integration"
 		action.InFields = cols
 		action.InstanceOptional = true
@@ -505,6 +516,7 @@ func integrationFromRow(row map[string]interface{}, enable bool) (resource.Integ
 		return resource.Integration{}, errors.New("integration authentication_specification must be a string")
 	}
 	return resource.Integration{
+		ReferenceId:                 daptinid.InterfaceToDIR(row["reference_id"]),
 		Name:                        name,
 		SpecificationLanguage:       specLanguage,
 		SpecificationFormat:         specFormat,
@@ -573,6 +585,25 @@ func GetBodyParameterNamesFromSchemaRef(mode Mode, required bool, schemaRef *ope
 		return []string{}, nil
 	}
 	return GetBodyParameterNames(mode, "", schemaRef.Value)
+}
+
+func requiredIntegrationBodyParameters(required bool, schemaRef *openapi3.SchemaRef) map[string]bool {
+	requiredNames := make(map[string]bool)
+	if !required || schemaRef == nil || schemaRef.Value == nil {
+		if required && (schemaRef == nil || schemaRef.Value == nil) {
+			requiredNames["body"] = true
+		}
+		return requiredNames
+	}
+	schema := schemaRef.Value
+	if schema.Type != "object" || len(schema.Properties) == 0 {
+		requiredNames["body"] = true
+		return requiredNames
+	}
+	for _, name := range schema.Required {
+		requiredNames[name] = true
+	}
+	return requiredNames
 }
 
 func GetBodyParameterNames(mode Mode, name string, schema *openapi3.Schema) ([]string, error) {

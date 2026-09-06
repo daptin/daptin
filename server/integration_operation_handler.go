@@ -2,13 +2,13 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
-	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -57,86 +57,83 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 		log.Debugf("Integration operation input prepared provider=[%s] operation=[%s] input_keys=%d oauth_token=%t credential=%t",
 			providerName, operationName, len(body.Input), body.OAuthTokenID != nil, body.CredentialID != nil)
 
-		user := c.Request.Context().Value("user")
-		sessionUser := sessionUserFromContextValue(user)
-		body.Input["sessionUser"] = sessionUser
-		body.Input["httpRequest"] = c.Request
-		body.Input["httpRequestHeaders"] = map[string][]string(c.Request.Header)
-
-		worldCrud := cruds["world"]
-		if worldCrud == nil {
-			log.Errorf("Integration operation cannot execute provider=[%s] operation=[%s]: world resource is not available", providerName, operationName)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": "world resource is not available",
-			})
-			return
-		}
-		performer, ok := resource.GetIntegrationActionHandler(worldCrud, providerName)
-		if !ok || performer == nil {
-			log.Warnf("Integration operation provider not found provider=[%s] operation=[%s]", providerName, operationName)
-			c.AbortWithStatusJSON(http.StatusNotFound, map[string]interface{}{
-				"error": "integration provider [" + providerName + "] is not installed or enabled",
-			})
-			return
-		}
-
-		transaction, err := worldCrud.Connection().Beginx()
+		actionResponses, err := executeIntegrationOperationAction(cruds, providerName, operationName, body.Input, c.Request)
 		if err != nil {
-			log.Errorf("Integration operation transaction begin failed provider=[%s] operation=[%s]: %v", providerName, operationName, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": err.Error(),
-			})
+			status := integrationOperationErrorStatus(err)
+			log.Warnf("Integration operation execution failed provider=[%s] operation=[%s] status=[%d]: %v", providerName, operationName, status, err)
+			c.AbortWithStatusJSON(status, map[string]interface{}{"error": err.Error()})
 			return
 		}
-
-		outcome := actionresponse.Outcome{
-			Type:   providerName,
-			Method: operationName,
-		}
-		responder, actionResponses, errs := performer.DoAction(outcome, body.Input, transaction)
-		if len(errs) > 0 {
-			_ = transaction.Rollback()
-			status := http.StatusBadRequest
-			if strings.Contains(strings.ToLower(errs[0].Error()), "no such method") {
-				status = http.StatusNotFound
-			}
-			log.Warnf("Integration operation execution failed provider=[%s] operation=[%s] status=[%d]: %v", providerName, operationName, status, errs[0])
-			c.AbortWithStatusJSON(status, map[string]interface{}{
-				"error": errs[0].Error(),
-			})
+		result, statusCode, err := integrationOperationActionResult(providerName, operationName, actionResponses)
+		if err != nil {
+			log.Errorf("Integration operation response failed provider=[%s] operation=[%s]: %v", providerName, operationName, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
 			return
-		}
-		if err = transaction.Commit(); err != nil {
-			log.Errorf("Integration operation transaction commit failed provider=[%s] operation=[%s]: %v", providerName, operationName, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		if responder == nil {
-			log.Infof("Integration operation completed provider=[%s] operation=[%s] responses=%d", providerName, operationName, len(actionResponses))
-			c.JSON(http.StatusOK, actionResponses)
-			return
-		}
-		statusCode := responder.StatusCode()
-		if statusCode == 0 {
-			statusCode = http.StatusOK
 		}
 		log.Infof("Integration operation completed provider=[%s] operation=[%s] status=[%d]", providerName, operationName, statusCode)
-		c.JSON(statusCode, integrationOperationResult(responder))
+		c.JSON(statusCode, result)
 	}
 }
 
-func integrationOperationResult(responder api2go.Responder) interface{} {
-	result := responder.Result()
-	model, ok := result.(api2go.Api2GoModel)
-	if !ok {
-		return result
+func executeIntegrationOperationAction(cruds map[string]*resource.DbResource, providerName string, operationName string, input map[string]interface{}, request *http.Request) ([]actionresponse.ActionResponse, error) {
+	integrationCrud := cruds["integration"]
+	if integrationCrud == nil {
+		return nil, errors.New("integration resource is not available")
 	}
-	attributes := model.GetAttributes()
-	delete(attributes, "__type")
-	return attributes
+	actionName, err := resource.IntegrationOperationActionName(providerName, operationName)
+	if err != nil {
+		return nil, err
+	}
+	transaction, err := integrationCrud.Connection().Beginx()
+	if err != nil {
+		return nil, err
+	}
+	responses, err := integrationCrud.HandleActionRequest(actionresponse.ActionRequest{
+		Type:       "integration",
+		Action:     actionName,
+		Attributes: input,
+	}, api2go.Request{PlainRequest: request}, transaction)
+	if err != nil {
+		_ = transaction.Rollback()
+		return nil, err
+	}
+	if err := transaction.Commit(); err != nil {
+		return nil, err
+	}
+	return responses, nil
+}
+
+func integrationOperationActionResult(providerName string, operationName string, responses []actionresponse.ActionResponse) (interface{}, int, error) {
+	responseType := providerName + "." + operationName + ".response"
+	statusType := providerName + "." + operationName + ".statusCode"
+	var result interface{}
+	status := 0
+	for _, response := range responses {
+		switch response.ResponseType {
+		case responseType:
+			result = response.Attributes
+		case statusType:
+			switch value := response.Attributes.(type) {
+			case int:
+				status = value
+			case int64:
+				status = int(value)
+			case float64:
+				status = int(value)
+			}
+		}
+	}
+	if result == nil || status == 0 {
+		return nil, 0, fmt.Errorf("integration action [%s/%s] returned no provider response", providerName, operationName)
+	}
+	return result, status, nil
+}
+
+func integrationOperationErrorStatus(err error) int {
+	if httpError, ok := err.(api2go.HTTPError); ok {
+		return httpError.Status()
+	}
+	return http.StatusBadRequest
 }
 
 func integrationOperationNameParam(c *gin.Context) string {
@@ -147,14 +144,4 @@ func sanitizeProviderScopedIntegrationInput(input map[string]interface{}) {
 	for _, key := range []string{"oauth_token_id", "credential_id", "sessionUser", "httpRequest", "httpRequestHeaders"} {
 		delete(input, key)
 	}
-}
-
-func sessionUserFromContextValue(user interface{}) *auth.SessionUser {
-	if sessionUser, ok := user.(*auth.SessionUser); ok && sessionUser != nil {
-		return sessionUser
-	}
-	if user != nil {
-		log.Warnf("Ignoring unexpected user context type [%T] for integration operation", user)
-	}
-	return &auth.SessionUser{}
 }

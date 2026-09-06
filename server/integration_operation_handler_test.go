@@ -4,32 +4,31 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/actionresponse"
 )
 
-func TestIntegrationOperationResultSerializesModelAttributes(t *testing.T) {
-	model := api2go.NewApi2GoModelWithData("example.create.response", nil, 0, nil, map[string]interface{}{
-		"id":     "example_123",
-		"status": "created",
+func TestIntegrationOperationActionResultUsesExactResponseContract(t *testing.T) {
+	result, status, err := integrationOperationActionResult("example", "create", []actionresponse.ActionResponse{
+		{ResponseType: "example.create.response", Attributes: map[string]interface{}{"id": "example_123"}},
+		{ResponseType: "example.create.statusCode", Attributes: 201},
 	})
-
-	result := integrationOperationResult(api2go.Response{Res: model})
-	want := map[string]interface{}{
-		"id":     "example_123",
-		"status": "created",
+	if err != nil {
+		t.Fatal(err)
 	}
+	want := map[string]interface{}{"id": "example_123"}
 	if !reflect.DeepEqual(result, want) {
 		t.Fatalf("integration operation result = %#v, want %#v", result, want)
 	}
-	if _, exists := model.GetAttributes()["__type"]; !exists {
-		t.Fatal("serializing the integration result mutated the response model")
+	if status != 201 {
+		t.Fatalf("integration operation status = %d, want 201", status)
 	}
 }
 
-func TestIntegrationOperationResultPreservesLegacyResponderPayload(t *testing.T) {
-	want := map[string]interface{}{"id": "legacy_123"}
-	result := integrationOperationResult(api2go.Response{Res: want})
-	if !reflect.DeepEqual(result, want) {
-		t.Fatalf("legacy integration operation result = %#v, want %#v", result, want)
+func TestIntegrationOperationActionResultRejectsIncompleteResponse(t *testing.T) {
+	_, _, err := integrationOperationActionResult("example", "create", []actionresponse.ActionResponse{
+		{ResponseType: "example.create.response", Attributes: map[string]interface{}{"id": "example_123"}},
+	})
+	if err == nil {
+		t.Fatal("expected missing provider status to fail")
 	}
 }

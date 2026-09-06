@@ -31,36 +31,19 @@ import (
 
 const DATE_LAYOUT = "2006-01-02 15:04:05"
 
-// IsUserActionAllowed Checks if a user identified by userReferenceId and belonging to userGroups is allowed to invoke an action `actionName` on type `typeName`
-// Called before invoking an action from the /action/** api
-// Checks EXECUTE on both the type and action for this user
-// The permissions can come from different groups
-func (dbResource *DbResource) IsUserActionAllowed(
-	userReferenceId daptinid.DaptinReferenceId, userGroups auth.GroupPermissionList, typeName string, actionName string, transaction *sqlx.Tx) bool {
-
-	permission := dbResource.GetObjectPermissionByWhereClause("world", "table_name", typeName, transaction)
-
-	actionPermission := dbResource.GetObjectPermissionByWhereClause("action", "action_name", actionName, transaction)
-
-	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
-	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
-
-	return canExecuteOnType && canExecuteAction
-
-}
-
-func (dbResource *DbResource) IsUserActionAllowedWithTransaction(userReferenceId daptinid.DaptinReferenceId,
-	userGroups auth.GroupPermissionList, typeName string, actionName string, transaction *sqlx.Tx) bool {
-
-	permission := dbResource.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", typeName, transaction)
-
-	actionPermission := dbResource.GetObjectPermissionByWhereClauseWithTransaction("action", "action_name", actionName, transaction)
-
-	canExecuteOnType := permission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
-	canExecuteAction := actionPermission.CanExecute(userReferenceId, userGroups, dbResource.AdministratorGroupId)
-
-	return canExecuteOnType && canExecuteAction
-
+func (dbResource *DbResource) IntegrationRuntimeState(referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (string, bool, error) {
+	query, args, err := statementbuilder.Squirrel.Select("name", "enable").Prepared(true).
+		From("integration").Where(goqu.Ex{"reference_id": referenceId[:]}).Limit(1).ToSQL()
+	if err != nil {
+		return "", false, err
+	}
+	var name string
+	var enable interface{}
+	if err := transaction.QueryRowx(query, args...).Scan(&name, &enable); err != nil {
+		return "", false, err
+	}
+	enabled, err := resourceRowBool(enable)
+	return name, enabled, err
 }
 
 // GetActionByName Gets an Action instance by `typeName` and `actionName`
@@ -212,25 +195,6 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 	}
 
 	return action, nil
-}
-
-// GetActionPermissionByName Gets permission of an action by typeId and actionName
-// Loads the owner, usergroup and guest permission of the action from the database
-// Return a PermissionInstance
-// Special utility function for actions, for other objects use GetObjectPermissionByReferenceId
-func (dbResource *DbResource) GetActionPermissionByName(worldId int64, actionName string, transaction *sqlx.Tx) (permission.PermissionInstance, error) {
-
-	refId, err := dbResource.GetReferenceIdByWhereClause("action", goqu.Ex{"action_name": actionName}, goqu.Ex{"world_id": worldId})
-	if err != nil {
-		return permission.PermissionInstance{}, err
-	}
-
-	if refId == nil || len(refId) < 1 {
-		return permission.PermissionInstance{}, errors.New(fmt.Sprintf("Failed to find action [%v] on [%v]", actionName, worldId))
-	}
-	permissions := dbResource.GetObjectPermissionByReferenceId("action", refId[0], transaction)
-
-	return permissions, nil
 }
 
 // GetObjectPermissionByReferenceId Gets permission of an Object by typeName and string referenceId

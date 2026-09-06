@@ -1063,7 +1063,7 @@ Example OAuth integration auth configuration:
 Example integration execution:
 
 ```bash
-curl -X POST "http://localhost:6336/action/integration/listRepos" \
+curl -X POST "http://localhost:6336/action/integration/github.com/listRepos" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

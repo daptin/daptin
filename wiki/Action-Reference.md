@@ -900,6 +900,13 @@ Installation also refreshes the in-memory integration operation mappings for the
 
 Execute an installed OpenAPI operation under its provider namespace.
 
+Installation creates the canonical `integration` action
+`{provider_name}/{operation_id}`. Provider-scoped REST and the generated
+provider GraphQL mutation both invoke that action through the normal action
+handler. The active user must have execute permission on the `integration`
+entity and the generated action before Daptin loads a credential or contacts
+the provider.
+
 | Property | Value |
 |----------|-------|
 | Endpoint | `/integration/{provider_name}/{operation_id}` |
