@@ -3070,7 +3070,7 @@ var StandardTables = []table_info.TableInfo{
 		}},
 		Columns: []api2go.ColumnInfo{
 			{Name: "name", ColumnName: "name", ColumnType: "label", DataType: "varchar(200)", IsUnique: true, IsIndexed: true,
-				ColumnDescription: "Public model name exposed by the gateway."},
+				ColumnDescription: "Public model name exposed to accounts with execute permission on this model row."},
 			{Name: "operations", ColumnName: "operations", ColumnType: "json", DataType: "text", IsNullable: false,
 				ColumnDescription: "Supported canonical operations."},
 			{Name: "capabilities", ColumnName: "capabilities", ColumnType: "json", DataType: "text", DefaultValue: "'{}'",

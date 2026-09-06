@@ -250,6 +250,13 @@ action can run `Type: __as_user`, `Method: SWITCH_USER` before an integration
 outcome to use a dedicated service account and that account's credential. See
 [[Integrations|Integrations]] for setup and the complete service-account recipe.
 
+LLM outcomes also use the active action user, but model entitlement is
+orthogonal to the wrapper action. Daptin reloads that account's persisted groups
+and requires execute permission on the selected `llm_model`; trusted action
+execution does not grant model access. After `SWITCH_USER`, the selected
+account's model groups and LLM metering plan apply. See [[LLM-Providers]] for the
+group relationship and `GroupExecute` setup.
+
 ---
 
 ## List Available Actions

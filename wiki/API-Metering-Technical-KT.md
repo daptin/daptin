@@ -86,6 +86,16 @@ operations are rejected or resolve idempotently through the request identity.
 `MeteringService`. It uses the `llm_model` resource's `invoke` configuration and
 records `entity_type=llm_model` with an operation-derived request type.
 
+Model entitlement and metering are independent checks. Immediately before an
+HTTP request, action invocation, or batch item is run, the gateway uses the
+active `user_account` identity and reloads its persisted `usergroup` relations.
+The model's normal Daptin permission record must grant execute permission to
+that account, one of those groups, or guests. Groups copied into request or
+action context are not authorization authority. A `SWITCH_USER` outcome changes
+the active account, so both this model check and the subsequent metering
+admission use the selected account. Provider routing and credential resolution
+remain backend-only catalog concerns.
+
 The gateway supplies estimated measures at admission and canonical final
 measures at completion or cancellation. This includes token categories,
 fixed-point `cost_micros`, attempts, cache status, provider status, and

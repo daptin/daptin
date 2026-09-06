@@ -130,6 +130,51 @@ curl -X POST http://localhost:6336/api/llm_model \
   }'
 ```
 
+### Grant a usergroup permission to invoke the model
+
+Model invocation uses the ordinary Daptin execute permission system. A user may
+invoke a model when the active user belongs to a group related to the
+`llm_model` row and that relation grants `GroupExecute`. The wrapper action that
+contains `$llm.chat` has its own independent execute permission.
+
+First make the model group-only and create the access group:
+
+```bash
+curl -X PATCH "http://localhost:6336/api/llm_model/$MODEL_REFERENCE_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"llm_model","id":"'$MODEL_REFERENCE_ID'","attributes":{"permission":0}}}'
+
+GROUP_REFERENCE_ID=$(curl -s -X POST http://localhost:6336/api/usergroup \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"usergroup","attributes":{"name":"llm-assistant-users"}}}' | jq -r '.data.id')
+```
+
+Relate the user and model to that group through their normal Daptin relationship
+resources:
+
+```bash
+curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"user_account_user_account_id_has_usergroup_usergroup_id","attributes":{"user_account_id":"'$USER_REFERENCE_ID'","usergroup_id":"'$GROUP_REFERENCE_ID'"}}}'
+
+MODEL_GROUP_RELATION_ID=$(curl -s -X POST http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"llm_model_llm_model_id_has_usergroup_usergroup_id","attributes":{"llm_model_id":"'$MODEL_REFERENCE_ID'","usergroup_id":"'$GROUP_REFERENCE_ID'"}}}' | jq -r '.data.id')
+
+curl -X PATCH "http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id/$MODEL_GROUP_RELATION_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"llm_model_llm_model_id_has_usergroup_usergroup_id","id":"'$MODEL_GROUP_RELATION_ID'","attributes":{"permission":524288}}}'
+```
+
+`524288` is `GroupExecute`. Setting permission on a relationship is a PATCH
+after creating it. Model discovery and invocation use the same execute check, so
+`GET /v1/models` lists exactly the models the active account can invoke.
+
 `fallback_models` is an ordered JSON array of other public model names. Cycles
 or missing models reject the candidate catalog. Supported parameter policies
 are:
@@ -235,8 +280,11 @@ The existing `document.document_content` asset column must be bound to a
 configured Daptin cloud store. File creation fails with `service_unavailable`
 before writing either resource when that canonical asset binding is absent.
 
-All routes use Daptin authentication and model resource permissions. Model
-listing hides models the authenticated principal cannot read.
+All routes use Daptin authentication and the model row's execute permissions.
+The gateway uses the active account and reloads its persisted usergroup
+relationships before authorization; transient privileges used internally by
+trusted action outcomes are not model permissions. Model listing hides models
+the active account cannot invoke.
 
 ```bash
 curl http://localhost:6336/v1/chat/completions \
@@ -285,6 +333,8 @@ requested capability that it does not declare.
 `$llm.chat` and `$llm.embedding` use the same engine as HTTP. They apply the
 same strict request decoder, model authorization, route plan, provider call,
 costing, and generic metering. `$llm.chat` is non-streaming in action chains.
+Permission to execute the containing action does not grant permission to execute
+its selected model.
 
 ```yaml
 OutFields:
@@ -329,6 +379,16 @@ Hard limits use the database-backed generic quota state and fail closed when
 that authority is unavailable. Olric counters protect deployments
 (`max_concurrency`, RPM, TPM) and do not replace durable customer quotas.
 
+The active account determines metering ownership. Without `SWITCH_USER`, this is
+the authenticated caller. After a trusted action performs `SWITCH_USER`, the
+selected account's model groups, `api_member`, plan, usage, and quota are used.
+If the wrapper action is itself metered, its admission occurred before the
+switch and remains charged to the original caller.
+
+An account without an active `api_member` still produces `api_usage`, but it has
+no plan-defined maximum. Assign an active membership whenever a hard or soft
+limit is required.
+
 ## Health, reload, and shutdown
 
 - `/llm/healthz` reports process liveness.
@@ -342,7 +402,8 @@ that authority is unavailable. Olric counters protect deployments
 ## Troubleshooting
 
 - **Model not found:** verify the public `llm_model.name`, its `enable` flag,
-  operation list, model permission, and at least one enabled related deployment.
+  operation list, the active user's group relation with `GroupExecute`, and at
+  least one enabled related deployment.
 - **No healthy deployment:** verify provider/deployment enable flags,
   capabilities, operation lists, timeouts, health state, and protection limits.
 - **Authentication error:** verify the provider's credential relationship and

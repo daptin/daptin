@@ -27,6 +27,7 @@ import (
 type Gateway struct {
 	engine             *gateway.Engine
 	handler            http.Handler
+	identityResolver   daptinIdentityResolver
 	batchProcessor     *daptinBatchProcessor
 	maintenanceCancel  context.CancelFunc
 	batchCancel        context.CancelFunc
@@ -65,6 +66,7 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 			return nil, err
 		}
 	}
+	identityResolver := daptinIdentityResolver{users: cruds[resource.USER_ACCOUNT_TABLE_NAME]}
 	engine, err := gateway.New(gateway.Dependencies{
 		Catalog: &daptinCatalog{cruds: cruds}, Secrets: daptinSecrets{cruds: cruds}, Adapters: adapters,
 		Authorizer: daptinAuthorizer{cruds: cruds}, Metering: daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)},
@@ -75,7 +77,7 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 		return nil, err
 	}
 	files := daptinFiles{cruds: cruds}
-	handler, err := engine.Handler(gateway.HTTPOptions{Authenticator: daptinAuthenticator{}, Protocol: openai.Options{
+	handler, err := engine.Handler(gateway.HTTPOptions{Authenticator: daptinAuthenticator{resolver: identityResolver}, Protocol: openai.Options{
 		Files: files, Batches: daptinBatches{cruds: cruds, files: files},
 	}})
 	if err != nil {
@@ -84,7 +86,7 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 	if err := engine.Reload(ctx); err != nil {
 		return nil, fmt.Errorf("load LLM gateway catalog: %w", err)
 	}
-	gatewayHost := &Gateway{engine: engine, handler: handler, batchProcessor: &daptinBatchProcessor{
+	gatewayHost := &Gateway{engine: engine, handler: handler, identityResolver: identityResolver, batchProcessor: &daptinBatchProcessor{
 		cruds: cruds, files: files, batches: daptinBatches{cruds: cruds, files: files}, handler: handler, coordination: coordination,
 	}}
 	gatewayHost.startMaintenance(ctx, cruds["world"].PubSub)
@@ -106,11 +108,12 @@ func (gatewayHost *Gateway) Handler() http.Handler {
 }
 
 func (gatewayHost *Gateway) Invoke(ctx context.Context, user *auth.SessionUser, request contract.Request) (contract.Response, error) {
-	if user == nil {
-		return contract.Response{}, errors.New("LLM invocation requires an authenticated user")
+	principal, err := gatewayHost.identityResolver.Resolve(user)
+	if err != nil {
+		return contract.Response{}, err
 	}
 	ctx = context.WithValue(ctx, "user", user)
-	return gatewayHost.engine.Invoke(ctx, gatewayPrincipal(user), request)
+	return gatewayHost.engine.Invoke(ctx, principal, request)
 }
 
 func (gatewayHost *Gateway) Reload(ctx context.Context) error {
@@ -220,14 +223,16 @@ func (gatewayHost *Gateway) startMaintenance(parent context.Context, pubsub *olr
 	}()
 }
 
-type daptinAuthenticator struct{}
+type daptinAuthenticator struct {
+	resolver daptinIdentityResolver
+}
 
-func (daptinAuthenticator) Authenticate(ctx context.Context, _ string) (contract.Principal, error) {
+func (authenticator daptinAuthenticator) Authenticate(ctx context.Context, _ string) (contract.Principal, error) {
 	user, err := daptinSessionUser(ctx)
 	if err != nil {
 		return contract.Principal{}, err
 	}
-	return gatewayPrincipal(user), nil
+	return authenticator.resolver.Resolve(user)
 }
 
 func gatewayPrincipal(user *auth.SessionUser) contract.Principal {

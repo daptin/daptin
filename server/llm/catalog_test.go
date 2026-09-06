@@ -270,8 +270,8 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}
 	modelPermission := cruds["llm_model"].GetObjectPermissionByReferenceId("llm_model", modelReference, authorizationTransaction)
 	_ = authorizationTransaction.Rollback()
-	if !modelPermission.CanRead(userReference, owner.Groups, cruds["llm_model"].AdministratorGroupId) {
-		t.Fatalf("canonical model owner cannot read model: permission=%#v user=%s", modelPermission, userReference.String())
+	if !modelPermission.CanExecute(userReference, owner.Groups, cruds["llm_model"].AdministratorGroupId) {
+		t.Fatalf("canonical model owner cannot execute model: permission=%#v user=%s", modelPermission, userReference.String())
 	}
 
 	httpGateway := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {

@@ -55,8 +55,8 @@ type daptinAuthorizer struct {
 	cruds map[string]*resource.DbResource
 }
 
-func (authorizer daptinAuthorizer) Authorize(ctx context.Context, _ contract.Principal, model catalog.Model) error {
-	user, err := daptinSessionUser(ctx)
+func (authorizer daptinAuthorizer) Authorize(_ context.Context, principal contract.Principal, model catalog.Model) error {
+	userReference, groups, err := daptinPrincipalIdentity(principal)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (authorizer daptinAuthorizer) Authorize(ctx context.Context, _ contract.Pri
 	}
 	defer transaction.Rollback()
 	permission := authorizer.cruds["llm_model"].GetObjectPermissionByReferenceId("llm_model", modelReference, transaction)
-	if !permission.CanRead(user.UserReferenceId, user.Groups, authorizer.cruds["llm_model"].AdministratorGroupId) {
+	if !permission.CanExecute(userReference, groups, authorizer.cruds["llm_model"].AdministratorGroupId) {
 		return errors.New("LLM model is not available to this user")
 	}
 	if err := transaction.Commit(); err != nil {
@@ -167,6 +167,22 @@ func daptinSessionUser(ctx context.Context) (*auth.SessionUser, error) {
 		return nil, errors.New("authenticated Daptin session is required")
 	}
 	return user, nil
+}
+
+func daptinPrincipalIdentity(principal contract.Principal) (daptinid.DaptinReferenceId, auth.GroupPermissionList, error) {
+	userReference := daptinid.InterfaceToDIR(string(principal.OwnerID))
+	if userReference == daptinid.NullReferenceId {
+		return daptinid.NullReferenceId, nil, errors.New("LLM principal has an invalid owner")
+	}
+	groups := make(auth.GroupPermissionList, 0, len(principal.GroupIDs))
+	for _, groupID := range principal.GroupIDs {
+		groupReference := daptinid.InterfaceToDIR(string(groupID))
+		if groupReference == daptinid.NullReferenceId {
+			return daptinid.NullReferenceId, nil, errors.New("LLM principal has an invalid group")
+		}
+		groups = append(groups, auth.GroupPermission{GroupReferenceId: groupReference})
+	}
+	return userReference, groups, nil
 }
 
 type olricCounterStore struct {

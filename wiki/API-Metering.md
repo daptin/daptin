@@ -53,30 +53,57 @@ curl -X POST http://localhost:6336/api/api_plan \
   }'
 ```
 
-Create the membership as the user who owns it, or use an administrator workflow
-that explicitly assigns the correct owner:
+An `api_member` is owned by the active user that creates it. An administrator
+cannot change row ownership by putting another `user_account_id` in a create
+request. Use a trusted provisioning action: restrict the action to
+administrators, switch to the selected account, and then create the membership.
+
+```yaml
+Actions:
+  - Name: assign_api_plan
+    Label: Assign API plan
+    OnType: world
+    InstanceOptional: true
+    Permission: 0
+    AccessGroups:
+      - Name: administrators
+        Permission: 524288
+    InFields:
+      - Name: user_reference_id
+        ColumnType: label
+      - Name: api_plan_id
+        ColumnType: label
+      - Name: period_start
+        ColumnType: datetime
+      - Name: period_end
+        ColumnType: datetime
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: ~user_reference_id
+      - Type: api_member
+        Method: POST
+        Attributes:
+          status: active
+          api_plan_id: ~api_plan_id
+          period_start: ~period_start
+          period_end: ~period_end
+```
+
+Invoke the administrator-only action through Daptin:
 
 ```bash
-curl -X POST http://localhost:6336/api/api_member \
-  -H "Authorization: Bearer $USER_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{
-    "data": {
-      "type": "api_member",
-      "attributes": {
-        "status": "active",
-        "period_start": "2026-09-01T00:00:00Z",
-        "period_end": "2026-10-01T00:00:00Z",
-        "metadata": "{}"
-      },
-      "relationships": {
-        "api_plan": {
-          "data": {"type": "api_plan", "id": "API_PLAN_REFERENCE_ID"}
-        }
-      }
-    }
-  }'
+curl -X POST http://localhost:6336/action/world/assign_api_plan \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data-binary '{"attributes":{"user_reference_id":"USER_REFERENCE_ID","api_plan_id":"API_PLAN_REFERENCE_ID","period_start":"2026-09-01T00:00:00Z","period_end":"2026-10-01T00:00:00Z"}}'
 ```
+
+Because `SWITCH_USER` precedes `POST`, the new membership belongs to the selected
+account. Accepting the account and plan as inputs is safe here only because the
+wrapper action is administrator-only.
 
 Only active memberships are considered. If more than one is active, the newest
 row is selected.
@@ -127,6 +154,12 @@ LLM actions use the same admit/complete/cancel lifecycle. Request types are
 operation-derived, for example `llm_chat`, `llm_embeddings`, and
 `llm_text_completion`.
 
+Model entitlement and quantity are independent gates. The active account must
+first pass the `llm_model` execute permission check through its usergroup
+relationships. Metering then uses that same account's active `api_member` and
+related `api_plan`. Permission to execute a wrapper action does not bypass either
+gate.
+
 Provider usage is normalized into named measures including:
 
 - `input_tokens`, `output_tokens`, and `total_tokens`;
@@ -137,6 +170,12 @@ Provider usage is normalized into named measures including:
 A provider that omits usage can still produce a completed request record, but
 token-based limits can only consume measures that are reported or safely
 estimated by the gateway.
+
+If no active `api_member` exists, Daptin still records the request but there are
+no plan limits to enforce. Create an active membership to define how much that
+account may consume. In a trusted workflow, `SWITCH_USER` makes the selected
+account the owner of the LLM reservation and usage; any separate wrapper-action
+metering remains attached to the original caller.
 
 ## Reservations and quota state
 

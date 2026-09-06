@@ -565,8 +565,9 @@ func (processor *daptinBatchProcessor) batchOwner(row map[string]interface{}, tr
 	if err != nil {
 		return nil, fmt.Errorf("decode batch owner: %w", err)
 	}
-	return &auth.SessionUser{UserId: id, UserReferenceId: reference,
-		Groups: processor.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", id)}, nil
+	// The HTTP gateway resolves persisted groups immediately before each batch
+	// item is authorized. Do not snapshot group membership when claiming a batch.
+	return &auth.SessionUser{UserId: id, UserReferenceId: reference}, nil
 }
 
 func (processor *daptinBatchProcessor) batchRow(reference daptinid.DaptinReferenceId, transaction *sqlx.Tx) (map[string]interface{}, error) {

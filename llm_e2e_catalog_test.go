@@ -57,7 +57,62 @@ const llmE2EActionsSchema = `Actions:
         Reference: llm_result
         Attributes:
           model: ~model
-          input: ~input`
+          input: ~input
+  - Name: llm_e2e_switched_chat
+    Label: LLM switched-user chat E2E
+    OnType: world
+    InstanceOptional: true
+    Permission: 2097152
+    InFields:
+      - Name: user_reference_id
+        ColumnType: label
+        DataType: varchar(200)
+      - Name: model
+        ColumnType: label
+        DataType: varchar(200)
+      - Name: prompt
+        ColumnType: content
+        DataType: text
+    OutFields:
+      - Method: SWITCH_USER
+        Type: __as_user
+        Attributes:
+          user_reference_id: ~user_reference_id
+      - Method: EXECUTE
+        Type: $llm.chat
+        Reference: llm_result
+        Attributes:
+          model: ~model
+          messages:
+            - role: user
+              content: ~prompt
+          max_completion_tokens: 256
+  - Name: llm_e2e_assign_plan
+    Label: Assign LLM plan E2E
+    OnType: world
+    InstanceOptional: true
+    Permission: 0
+    AccessGroups:
+      - Name: administrators
+        Permission: 524288
+    InFields:
+      - Name: user_reference_id
+        ColumnType: label
+        DataType: varchar(200)
+      - Name: api_plan_id
+        ColumnType: label
+        DataType: varchar(200)
+    OutFields:
+      - Method: SWITCH_USER
+        Type: __as_user
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: ~user_reference_id
+      - Method: POST
+        Type: api_member
+        Attributes:
+          status: active
+          api_plan_id: ~api_plan_id`
 
 type llmE2ECatalog struct {
 	name             string

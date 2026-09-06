@@ -8,8 +8,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/daptin/daptin/server/auth"
 )
 
 func TestLLMDeclarativeActionsRealE2E(t *testing.T) {
@@ -58,6 +61,135 @@ func TestLLMDeclarativeActionsRealE2E(t *testing.T) {
 	}
 
 	assertDeclarativeLLMUsage(t, client, baseURL, token)
+}
+
+func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
+	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
+		t.Skip("set DAPTIN_REAL_E2E=1 to run the LLM authorization e2e")
+	}
+
+	var upstreamRequests atomic.Int64
+	upstream := startLLME2EUpstream(t, "authorization-key", "authorization-upstream", "authorized", func() bool {
+		upstreamRequests.Add(1)
+		return true
+	})
+	defer upstream.Close()
+
+	usedPorts := make(map[int]bool, 2)
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
+	defer daptinProcess.stopProcess()
+	client := &http.Client{Timeout: 20 * time.Second}
+	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	callerToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "llm-caller")
+	serviceToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "llm-service")
+	serviceReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "llm-service@test.local")
+
+	modelName := "llm-authorization-e2e"
+	createLLME2ECatalog(t, client, baseURL, adminToken, llmE2ECatalog{
+		name: modelName, upstreamURL: upstream.URL, apiKey: "authorization-key",
+		upstreamModel: "authorization-upstream", operations: []string{"chat"}, maxConcurrency: 2,
+	})
+	modelReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "llm_model", "name", modelName)
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/llm_model/"+modelReference, adminToken,
+		accessGroupsE2ERecordPayload("llm_model", modelReference, map[string]interface{}{"permission": 0}), http.StatusOK)
+	groupReference := accessGroupsE2ECreateUsergroup(t, client, baseURL, adminToken, "llm-service-model-access")
+	accessGroupsE2ECreateJoin(t, client, baseURL, adminToken,
+		"user_account_user_account_id_has_usergroup_usergroup_id",
+		map[string]interface{}{"user_account_id": serviceReference, "usergroup_id": groupReference}, 0)
+	accessGroupsE2ECreateJoin(t, client, baseURL, adminToken,
+		"llm_model_llm_model_id_has_usergroup_usergroup_id",
+		map[string]interface{}{"llm_model_id": modelReference, "usergroup_id": groupReference}, int64(auth.GroupExecute))
+	plan := transportE2EPostJSON(t, client, baseURL+"/api/api_plan", adminToken, map[string]interface{}{
+		"data": map[string]interface{}{"type": "api_plan", "attributes": map[string]interface{}{
+			"name": "llm-service-two-requests", "limits": `[{"metric":"requests","window":"month","maximum":2,"mode":"hard"}]`,
+		}},
+	})
+	planReference := transportE2EReferenceID(t, plan)
+	transportE2EPostJSON(t, client, baseURL+"/action/world/llm_e2e_assign_plan", adminToken, map[string]interface{}{
+		"attributes": map[string]interface{}{"user_reference_id": serviceReference, "api_plan_id": planReference},
+	})
+	waitForLLME2EModel(t, client, baseURL, adminToken, modelName)
+
+	callerModels := transportE2EGetJSON(t, client, baseURL+"/v1/models", callerToken)
+	if llmE2EModelListed(callerModels, modelName) {
+		t.Fatal("model without a shared execute group was visible to the caller")
+	}
+	serviceModels := transportE2EGetJSON(t, client, baseURL+"/v1/models", serviceToken)
+	if !llmE2EModelListed(serviceModels, modelName) {
+		t.Fatal("model with a shared execute group was hidden from the service account")
+	}
+
+	directDenied, _ := postLLMActionForStatus(t, client, baseURL+"/v1/chat/completions", callerToken, map[string]interface{}{
+		"model": modelName, "messages": []interface{}{map[string]interface{}{"role": "user", "content": "denied"}},
+	})
+	if directDenied != http.StatusForbidden || upstreamRequests.Load() != 0 {
+		t.Fatalf("direct unauthorized request: status=%d upstream=%d", directDenied, upstreamRequests.Load())
+	}
+	actionDenied, _ := postLLMActionForStatus(t, client, baseURL+"/action/world/llm_e2e_chat", callerToken, map[string]interface{}{
+		"attributes": map[string]interface{}{"model": modelName, "prompt": "denied"},
+	})
+	if actionDenied < http.StatusBadRequest || upstreamRequests.Load() != 0 {
+		t.Fatalf("action synthetic administrator bypass: status=%d upstream=%d", actionDenied, upstreamRequests.Load())
+	}
+
+	for invocation := 0; invocation < 2; invocation++ {
+		response := transportE2EPostJSON(t, client, baseURL+"/action/world/llm_e2e_switched_chat", callerToken, map[string]interface{}{
+			"attributes": map[string]interface{}{"user_reference_id": serviceReference, "model": modelName, "prompt": "allowed"},
+		})
+		assertTransportE2EString(t, response, "0.Attributes.content", "authorized")
+	}
+	if upstreamRequests.Load() != 2 {
+		t.Fatalf("authorized switched-user requests = %d, want 2", upstreamRequests.Load())
+	}
+	quotaStatus, _ := postLLMActionForStatus(t, client, baseURL+"/action/world/llm_e2e_switched_chat", callerToken, map[string]interface{}{
+		"attributes": map[string]interface{}{"user_reference_id": serviceReference, "model": modelName, "prompt": "over quota"},
+	})
+	if quotaStatus < http.StatusBadRequest || upstreamRequests.Load() != 2 {
+		t.Fatalf("quota denial reached provider: status=%d upstream=%d", quotaStatus, upstreamRequests.Load())
+	}
+	assertLLMUsageOwnedBy(t, client, baseURL, adminToken, serviceReference, 2)
+}
+
+func llmE2EModelListed(response interface{}, modelName string) bool {
+	models, found := transportE2EPath(response, "data")
+	if !found {
+		return false
+	}
+	for _, item := range models.([]interface{}) {
+		if id, _ := transportE2EPath(item, "id"); id == modelName {
+			return true
+		}
+	}
+	return false
+}
+
+func assertLLMUsageOwnedBy(t testing.TB, client *http.Client, baseURL, token, userReference string, expected int) {
+	t.Helper()
+	response := transportE2EGetJSON(t, client, baseURL+"/api/api_usage?page%5Bsize%5D=100", token)
+	rows, _ := transportE2EPath(response, "data")
+	completed := 0
+	total := 0
+	for _, item := range rows.([]interface{}) {
+		entityType, _ := transportE2EPath(item, "attributes.entity_type")
+		if entityType != "llm_model" {
+			continue
+		}
+		total++
+		owner, _ := transportE2EPath(item, "attributes.user_account_id")
+		if owner != userReference {
+			t.Fatalf("LLM usage was charged to %v, want %s: %#v", owner, userReference, response)
+		}
+		state, _ := transportE2EPath(item, "attributes.state")
+		if state == "completed" {
+			completed++
+		}
+	}
+	if completed != expected || total != expected {
+		t.Fatalf("LLM usage owned by %s: completed=%d total=%d, want %d: %#v", userReference, completed, total, expected, response)
+	}
 }
 
 func assertLLMActionUsage(t testing.TB, response interface{}, path string, expected int64) {
