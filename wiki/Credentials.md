@@ -10,6 +10,10 @@ Secure storage for sensitive authentication data.
 
 ## Overview
 
+For end-to-end SaaS patterns that combine permissions, metering, actions, and
+credentials, start with [[Authorization-Scenarios]]. This page focuses on
+credential storage, ownership, and provider-specific formats.
+
 The `credential` table provides encrypted storage for sensitive data like:
 - API keys and secrets
 - Service account passwords

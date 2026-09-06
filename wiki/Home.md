@@ -22,6 +22,7 @@ stack as a sidecar for the backend features you are missing.
 
 ### Building Apps And Filling Backend Gaps
 
+- **[[Authorization-Scenarios]]** - choose a public, subscription, team, or service-account access pattern
 - **[[Daptin-Application-Server-Feature-Map]]** - source-grounded architecture and capability map
 - **[[LLM-Providers]]** - OpenAI-compatible provider routing
 - **[[API-Metering]]** - plans, quotas, credits, and usage logs
@@ -61,7 +62,7 @@ stack as a sidecar for the backend features you are missing.
 
 - Users, usergroups, group membership, and ownership-aware rows.
 - Entity-level and row-level permission checks.
-- Tested patterns for public, private, mixed, owner-row, shared group, and action-gated apps.
+- Tested patterns for public, private, subscription, mixed, owner-row, shared group, action-gated, and service-account apps.
 - Guest, owner, and group permission scopes.
 - JWT/session auth, signup/signin, password reset, OTP/2FA.
 - OAuth as a client and OAuth/OIDC-style provider endpoints.

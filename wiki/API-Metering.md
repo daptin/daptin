@@ -4,6 +4,10 @@ API metering lets Daptin record usage, reserve capacity before work begins,
 enforce durable named-metric limits, and optionally invoke a billing action
 after a request completes. The current model is available from Daptin `v0.13.0`.
 
+If you are choosing between public access, anonymous rate limiting, free plans,
+paid plans, team permissions, and service-account workflows, start with
+[[Authorization-Scenarios]]. This page is the detailed metering reference.
+
 For maintainer internals, see [[API-Metering-Technical-KT]].
 
 ## Resources

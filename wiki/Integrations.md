@@ -83,6 +83,9 @@ OAuth token. REST and GraphQL do not have separate integration permissions.
 
 ## Which User Supplies the Credential?
 
+For the wider product choice between personal connections, paid users, teams,
+and a shared backend account, see [[Authorization-Scenarios]].
+
 Daptin uses one rule for every integration operation: the credential or OAuth
 token must belong to the **active user at the point where the operation runs**.
 

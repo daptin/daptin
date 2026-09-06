@@ -123,6 +123,129 @@ func TestIntegrationOperationActionAuthorizationRealE2E(t *testing.T) {
 	}
 }
 
+func TestIntegrationSwitchedUserCredentialRealE2E(t *testing.T) {
+	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
+		t.Skip("set DAPTIN_REAL_E2E=1 to run the switched-user integration credential e2e")
+	}
+
+	var upstreamCalls atomic.Int64
+	var upstreamAuthorization atomic.Value
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		upstreamCalls.Add(1)
+		upstreamAuthorization.Store(request.Header.Get("Authorization"))
+		transportE2EWriteJSON(w, map[string]interface{}{"ok": true})
+	}))
+	defer upstream.Close()
+
+	usedPorts := make(map[int]bool, 2)
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	databasePath := filepath.Join(t.TempDir(), "integration-switched-user.db")
+	options := transportE2EDaptinOptions{
+		databaseType: "sqlite3", connectionString: databasePath, schema: "EnableGraphQL: true\n",
+	}
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
+	defer func() { daptinProcess.stopProcess() }()
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	callerToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "integration-workflow-caller")
+	callerReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "integration-workflow-caller@test.local")
+	_ = accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "integration-service-user")
+	serviceUserReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "integration-service-user@test.local")
+
+	serviceCredentialReference := transportE2ECreateCredential(t, client, baseURL, adminToken)
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/credential/"+serviceCredentialReference, adminToken,
+		accessGroupsE2ERecordPayload("credential", serviceCredentialReference, map[string]interface{}{"user_account_id": serviceUserReference}), http.StatusOK)
+
+	providerName := "authorization.example"
+	integrationReference := transportE2ECreateIntegration(t, client, baseURL, adminToken, providerName, transportE2EBaseSpec(
+		"Switched-user credential integration", upstream.URL, map[string]interface{}{
+			"/allowed": map[string]interface{}{
+				"get": map[string]interface{}{
+					"operationId": "invoke",
+					"responses":   transportE2EJSONResponses(),
+				},
+			},
+		},
+	))
+	transportE2EInstallIntegration(t, client, baseURL, adminToken, integrationReference)
+
+	worldReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "world", "table_name", "integration")
+	generatedActionReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "action", "action_name", providerName+"/invoke")
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/world/"+worldReference, adminToken,
+		accessGroupsE2ERecordPayload("world", worldReference, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/action/"+generatedActionReference, adminToken,
+		accessGroupsE2ERecordPayload("action", generatedActionReference, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
+
+	options.schema = integrationSwitchedUserActionSchema(providerName, serviceUserReference, serviceCredentialReference)
+	daptinProcess.stopProcess()
+	daptinProcess = startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
+
+	forgedRuntimeInput := map[string]interface{}{
+		"credential_id":      serviceCredentialReference,
+		"sessionUser":        map[string]interface{}{"UserReferenceId": serviceUserReference},
+		"httpRequest":        map[string]interface{}{"user": serviceUserReference},
+		"httpRequestHeaders": map[string]interface{}{"Authorization": "Bearer forged"},
+	}
+	directStatus, _ := postLLMActionForStatus(t, client, baseURL+"/integration/"+providerName+"/invoke", callerToken, map[string]interface{}{
+		"credential_id": serviceCredentialReference,
+		"input":         forgedRuntimeInput,
+	})
+	generatedActionStatus, _ := postLLMActionForStatus(t, client, baseURL+"/action/integration/"+providerName+"/invoke", callerToken, map[string]interface{}{
+		"attributes": forgedRuntimeInput,
+	})
+	graphQLResponse := transportE2EPostJSON(t, client, baseURL+"/graphql", callerToken, map[string]interface{}{
+		"query": fmt.Sprintf(`mutation { executeInvokeOnAuthorizationexample(credential_id: %q) { ResponseType } }`, serviceCredentialReference),
+	})
+	if directStatus < http.StatusBadRequest || generatedActionStatus < http.StatusBadRequest || !transportE2EGraphQLHasErrors(graphQLResponse) {
+		t.Fatalf("direct cross-user credential execution was not rejected: REST=%d action=%d GraphQL=%#v", directStatus, generatedActionStatus, graphQLResponse)
+	}
+	if upstreamCalls.Load() != 0 {
+		t.Fatalf("direct cross-user credential execution reached the provider: calls=%d", upstreamCalls.Load())
+	}
+
+	wrapperStatus, wrapperBody := postLLMActionForStatus(t, client, baseURL+"/action/integration/issue275_service_workflow", callerToken, map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"credential_id":     "00000000-0000-0000-0000-000000000000",
+			"user_reference_id": callerReference,
+			"sessionUser":       map[string]interface{}{"UserReferenceId": callerReference},
+		},
+	})
+	if wrapperStatus != http.StatusOK {
+		t.Fatalf("switched-user integration workflow returned %d: %s", wrapperStatus, string(wrapperBody))
+	}
+	if upstreamCalls.Load() != 1 {
+		t.Fatalf("switched-user integration workflow provider calls=%d, want 1", upstreamCalls.Load())
+	}
+	if authorization, _ := upstreamAuthorization.Load().(string); authorization != "Bearer owner-token" {
+		t.Fatalf("switched-user integration workflow authorization=%q, want service credential", authorization)
+	}
+}
+
+func integrationSwitchedUserActionSchema(providerName string, serviceUserReference string, serviceCredentialReference string) string {
+	return fmt.Sprintf(`EnableGraphQL: true
+Actions:
+  - Name: issue275_service_workflow
+    Label: Issue 275 service workflow
+    OnType: integration
+    InstanceOptional: true
+    Permission: %d
+    InFields: []
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: %q
+      - Type: %s
+        Method: invoke
+        Attributes:
+          credential_id: %q
+`, auth.AuthenticatedExecute, serviceUserReference, providerName, serviceCredentialReference)
+}
+
 func transportE2EGraphQLHasErrors(response interface{}) bool {
 	object, ok := response.(map[string]interface{})
 	if !ok {

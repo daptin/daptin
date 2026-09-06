@@ -5,6 +5,10 @@ Daptin v0.13.0 has two independent request-limiting mechanisms:
 1. A global in-process token bucket keyed by client IP and URL path.
 2. Plan limits enforced by the API metering service for authenticated users.
 
+See [[Authorization-Scenarios#public-does-not-mean-individually-metered]] when
+deciding whether a public SaaS endpoint needs anonymous abuse protection or an
+authenticated customer quota.
+
 The checks are cumulative. A request must pass the global limiter before it can reach authentication, routing, or metering.
 
 ## At a Glance

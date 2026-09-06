@@ -2,7 +2,7 @@
 
 Daptin uses a permission system to control who can access what data.
 
-**Related**: [[Getting-Started-Guide|Getting Started]] | [[Users-and-Groups|Users and Groups]]
+**Related**: [[Authorization-Scenarios|SaaS Access Scenarios]] | [[Getting-Started-Guide|Getting Started]] | [[Users-and-Groups|Users and Groups]]
 
 ---
 
@@ -479,7 +479,9 @@ sleep 10
 
 ## Schema Provisioning: Table and Action AccessGroups
 
-For complete application patterns, start with [[Authorization-Scenarios]]. It has tested examples for public sites, private apps, semi-private owner rows, mixed public/private rows, shared workspaces, and selected action access.
+For complete application patterns, start with [[Authorization-Scenarios]]. It
+shows how permissions compose with anonymous rate limiting, authenticated
+plans, team membership, integrations, and trusted service-account actions.
 
 **Reproduced on a fresh SQLite Daptin instance: 2026-07-02**
 
@@ -665,5 +667,5 @@ The records exist but you don't have Peek permission. Contact the owner or admin
 
 - [[Getting-Started-Guide|Getting Started Guide]] - First-time setup
 - [[Users-and-Groups|Users and Groups]] - Managing users
-- [[Authorization-Scenarios|Authorization Scenarios]] - Tested app-level permission patterns
+- [[Authorization-Scenarios|SaaS Access Scenarios]] - Choose and compose an application access model
 - [[Actions-Overview|Actions Overview]] - Running actions
