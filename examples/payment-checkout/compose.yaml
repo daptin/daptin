@@ -1,0 +1,46 @@
+name: daptin-payment-checkout
+
+services:
+  stripe-mock:
+    image: stripe/stripe-mock:latest
+    profiles: [mock]
+
+  postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: daptin
+      POSTGRES_USER: daptin
+      POSTGRES_PASSWORD: daptin-development-password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daptin -d daptin"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  daptin:
+    image: ${DAPTIN_IMAGE:-daptin/daptin:latest}
+    restart: unless-stopped
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DAPTIN_PORT: ":8080"
+      DAPTIN_RUNTIME: release
+      DAPTIN_DB_TYPE: postgres
+      DAPTIN_DB_CONNECTION_STRING: host=postgres port=5432 user=daptin password=daptin-development-password dbname=daptin sslmode=disable
+      DAPTIN_DISABLE_SMTP: "true"
+    ports:
+      - "127.0.0.1:${DAPTIN_HOST_PORT:-6336}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+volumes:
+  postgres-data:

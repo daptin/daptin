@@ -1,0 +1,72 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Stripe Checkout",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "https://api.stripe.com" }
+  ],
+  "security": [
+    { "bearerAuth": [] }
+  ],
+  "paths": {
+    "/v1/checkout/sessions": {
+      "post": {
+        "operationId": "createCheckoutSession",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["mode", "success_url", "cancel_url", "client_reference_id", "line_items[0][price]", "line_items[0][quantity]"],
+                "properties": {
+                  "mode": { "type": "string" },
+                  "success_url": { "type": "string" },
+                  "cancel_url": { "type": "string" },
+                  "client_reference_id": { "type": "string" },
+                  "line_items[0][price]": { "type": "string" },
+                  "line_items[0][quantity]": { "type": "integer" },
+                  "metadata[checkout_attempt_id]": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created Checkout Session" }
+        }
+      }
+    },
+    "/v1/checkout/sessions/{session_id}": {
+      "get": {
+        "operationId": "retrieveCheckoutSession",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Checkout Session" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    }
+  }
+}

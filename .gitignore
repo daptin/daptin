@@ -32,6 +32,7 @@ github.com
 daptin.exe
 daptin
 .env
+node_modules/
 *.prof
 *.dbdocs_markdown/site
 docs_markdown/site/*

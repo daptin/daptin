@@ -163,6 +163,7 @@ commands.
 | Store and deliver files | [[Cloud-Storage]] · [[Asset-Columns]] · [[Subsites]] |
 | Connect external APIs or LLMs | [[Integrations]] · [[Credentials]] · [[LLM-Providers]] |
 | Run an external API as a backend service account | [[Integrations#run-an-integration-as-a-service-account]] · [[Custom-Actions#service-account-integration-workflow]] |
+| Sell a paid plan through provider checkout | [[Payments-and-Checkout]] · [[API-Metering]] |
 | Add plans, quotas, or usage accounting | [[API-Metering]] · [[Rate-Limiting]] |
 | Deploy outside localhost | [[Production-Deployment]] · [[Database-Setup]] · [[TLS-Certificates]] |
 

@@ -1,0 +1,11 @@
+{
+  "name": "daptin-payment-checkout-example",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  }
+}

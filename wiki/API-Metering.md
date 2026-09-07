@@ -7,6 +7,8 @@ after a request completes. The current model is available from Daptin `v0.13.0`.
 If you are choosing between public access, anonymous rate limiting, free plans,
 paid plans, team permissions, and service-account workflows, start with
 [[Authorization-Scenarios]]. This page is the detailed metering reference.
+To sell a plan and create membership only after verified provider payment, see
+[[Payments-and-Checkout]].
 
 For maintainer internals, see [[API-Metering-Technical-KT]].
 

@@ -795,6 +795,11 @@ Do not expose `SERVICE_USER_REFERENCE_ID`, `SERVICE_CREDENTIAL_REFERENCE_ID`, or
 in the trusted action definition. Only expose the provider operation fields that
 callers are intended to control.
 
+Payment checkout adds durable attempt, provider verification, idempotency, and
+entitlement concerns around this credential pattern. Follow the canonical
+[[Payments-and-Checkout]] guide rather than calling a payment API directly from
+the browser or trusting a success redirect.
+
 **Response**:
 ```json
 [

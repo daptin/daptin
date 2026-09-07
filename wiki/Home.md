@@ -27,6 +27,7 @@ stack as a sidecar for the backend features you are missing.
 - **[[LLM-Providers]]** - OpenAI-compatible provider routing
 - **[[API-Metering]]** - plans, quotas, credits, and usage logs
 - **[[Integrations]]** - personal external API connections and trusted service-account workflows
+- **[[Payments-and-Checkout]]** - turn a verified provider checkout into Daptin plan membership
 
 ### Understanding The Backend
 

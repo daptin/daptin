@@ -249,6 +249,8 @@ ownership. A generated action uses the authenticated caller. A trusted custom
 action can run `Type: __as_user`, `Method: SWITCH_USER` before an integration
 outcome to use a dedicated service account and that account's credential. See
 [[Integrations|Integrations]] for setup and the complete service-account recipe.
+For the complete prepare, provider-call, verification, and membership lifecycle,
+see [[Payments-and-Checkout]].
 
 LLM outcomes also use the active action user, but model entitlement is
 orthogonal to the wrapper action. Daptin reloads that account's persisted groups

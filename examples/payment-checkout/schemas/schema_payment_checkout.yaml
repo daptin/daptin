@@ -1,0 +1,266 @@
+Tables:
+  - TableName: api_plan
+    AccessGroups:
+      - Name: users
+        Permission: 573440
+    DefaultGroups:
+      - Name: users
+        Permission: 573440
+    Columns:
+      - Name: currency
+        ColumnType: label
+        DataType: varchar(3)
+        DefaultValue: "'USD'"
+      - Name: stripe_price_id
+        ColumnType: label
+        DataType: varchar(255)
+        IsNullable: true
+
+  - TableName: checkout_attempt
+    Icon: fa-credit-card
+    IsTopLevel: true
+    DefaultPermission: 16256
+    AccessGroups:
+      - Name: users
+        Permission: 1556480
+    Columns:
+      - Name: status
+        ColumnType: label
+        DataType: varchar(40)
+        DefaultValue: "'prepared'"
+        IsIndexed: true
+      - Name: expected_amount_cents
+        ColumnType: measurement
+        DataType: int(11)
+      - Name: currency
+        ColumnType: label
+        DataType: varchar(3)
+      - Name: provider_price_id
+        ColumnType: label
+        DataType: varchar(255)
+      - Name: provider_session_id
+        ColumnType: label
+        DataType: varchar(255)
+        IsNullable: true
+        IsUnique: true
+        IsIndexed: true
+      - Name: checkout_url
+        ColumnType: url
+        DataType: text
+        IsNullable: true
+      - Name: provider_payment_status
+        ColumnType: label
+        DataType: varchar(40)
+        IsNullable: true
+      - Name: provider_subscription_id
+        ColumnType: label
+        DataType: varchar(255)
+        IsNullable: true
+
+  - TableName: checkout_entitlement
+    Icon: fa-id-card
+    IsTopLevel: false
+    DefaultPermission: 16256
+    Columns:
+      - Name: checkout_attempt_reference
+        ColumnType: label
+        DataType: varchar(50)
+        IsUnique: true
+        IsIndexed: true
+      - Name: provider_session_id
+        ColumnType: label
+        DataType: varchar(255)
+        IsUnique: true
+        IsIndexed: true
+
+Relations:
+  - Subject: checkout_attempt
+    Relation: has_one
+    Object: api_plan
+  - Subject: checkout_entitlement
+    Relation: has_one
+    Object: checkout_attempt
+  - Subject: checkout_entitlement
+    Relation: has_one
+    Object: api_member
+
+# setup.mjs installs the actions after replacing the backend-only values below.
+# They are intentionally not action InFields.
+Actions:
+  - Name: provision_stripe_checkout_credential
+    Label: Provision Stripe checkout credential
+    OnType: credential
+    InstanceOptional: true
+    Permission: 0
+    AccessGroups:
+      - Name: administrators
+        Permission: 524288
+    InFields:
+      - Name: credential_content
+        ColumnName: credential_content
+        ColumnType: password
+        IsNullable: false
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: __PAYMENTS_SERVICE_USER_REFERENCE_ID__
+      - Type: credential
+        Method: POST
+        Attributes:
+          name: stripe-checkout-service
+          content: ~credential_content
+
+  - Name: prepare_checkout
+    Label: Prepare checkout
+    OnType: api_plan
+    InstanceOptional: false
+    Permission: 2097152
+    InFields: []
+    OutFields:
+      - Type: checkout_attempt
+        Method: POST
+        Reference: checkout
+        Attributes:
+          status: prepared
+          expected_amount_cents: $.price_monthly_cents
+          currency: $.currency
+          provider_price_id: $.stripe_price_id
+          api_plan_id: $.reference_id
+      - Type: client.return
+        Method: ACTIONRESPONSE
+        Attributes:
+          checkout_attempt_id: $checkout.reference_id
+          status: $checkout.status
+
+  - Name: begin_checkout
+    Label: Begin checkout
+    OnType: checkout_attempt
+    InstanceOptional: false
+    Permission: 4096
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+    InFields: []
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: __PAYMENTS_SERVICE_USER_REFERENCE_ID__
+      - Type: credential
+        Method: GET
+        Reference: service_credential
+        SkipInResponse: true
+        Attributes:
+          query: '[{"column":"name","operator":"is","value":"stripe-checkout-service"}]'
+      - Type: stripe_checkout
+        Method: createCheckoutSession
+        Reference: stripe_session
+        SkipInResponse: true
+        Attributes:
+          credential_id: $service_credential[0].reference_id
+          Idempotency-Key: $.reference_id
+          mode: subscription
+          success_url: __CHECKOUT_SUCCESS_URL__
+          cancel_url: __CHECKOUT_CANCEL_URL__
+          client_reference_id: $.reference_id
+          line_items[0][price]: $.provider_price_id
+          line_items[0][quantity]: 1
+          metadata[checkout_attempt_id]: $.reference_id
+      - Type: checkout_attempt
+        Method: PATCH
+        SkipInResponse: true
+        Attributes:
+          reference_id: $.reference_id
+          status: provider_created
+          provider_session_id: $stripe_session.id
+          checkout_url: $stripe_session.url
+          provider_payment_status: $stripe_session.payment_status
+      - Type: client.return
+        Method: ACTIONRESPONSE
+        Attributes:
+          checkout_attempt_id: $.reference_id
+          provider_session_id: $stripe_session.id
+          checkout_url: $stripe_session.url
+          status: provider_created
+
+  - Name: refresh_checkout
+    Label: Refresh checkout from provider
+    OnType: checkout_attempt
+    InstanceOptional: false
+    Permission: 4096
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+    InFields: []
+    OutFields:
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Attributes:
+          user_reference_id: __PAYMENTS_SERVICE_USER_REFERENCE_ID__
+      - Type: credential
+        Method: GET
+        Reference: service_credential
+        SkipInResponse: true
+        Attributes:
+          query: '[{"column":"name","operator":"is","value":"stripe-checkout-service"}]'
+      - Type: stripe_checkout
+        Method: retrieveCheckoutSession
+        Reference: stripe_session
+        SkipInResponse: true
+        Attributes:
+          credential_id: $service_credential[0].reference_id
+          session_id: $.provider_session_id
+      - Type: checkout_attempt
+        Method: PATCH
+        SkipInResponse: true
+        Attributes:
+          reference_id: $.reference_id
+          provider_payment_status: $stripe_session.payment_status
+          provider_subscription_id: $stripe_session.subscription
+          status: $stripe_session.status
+      - Type: checkout_entitlement
+        Method: GET
+        Reference: existing_entitlement
+        SkipInResponse: true
+        Attributes:
+          query: '![{"column":"checkout_attempt_reference","operator":"is","value":subject.reference_id}]'
+      - Type: checkout_entitlement
+        Method: POST
+        Reference: entitlement
+        SkipInResponse: true
+        Condition: "!stripe_session.client_reference_id == subject.reference_id && stripe_session.payment_status == 'paid' && stripe_session.mode == 'subscription' && stripe_session.amount_total == subject.expected_amount_cents && stripe_session.currency.toUpperCase() == subject.currency.toUpperCase() && existing_entitlement.length == 0"
+        Attributes:
+          checkout_attempt_reference: $.reference_id
+          provider_session_id: $stripe_session.id
+          checkout_attempt_id: $.reference_id
+      - Type: __as_user
+        Method: SWITCH_USER
+        SkipInResponse: true
+        Condition: "!stripe_session.client_reference_id == subject.reference_id && stripe_session.payment_status == 'paid' && stripe_session.mode == 'subscription' && stripe_session.amount_total == subject.expected_amount_cents && stripe_session.currency.toUpperCase() == subject.currency.toUpperCase() && existing_entitlement.length == 0"
+        Attributes:
+          user_reference_id: $user.reference_id
+      - Type: api_member
+        Method: POST
+        Reference: membership
+        SkipInResponse: true
+        Condition: "!stripe_session.client_reference_id == subject.reference_id && stripe_session.payment_status == 'paid' && stripe_session.mode == 'subscription' && stripe_session.amount_total == subject.expected_amount_cents && stripe_session.currency.toUpperCase() == subject.currency.toUpperCase() && existing_entitlement.length == 0"
+        Attributes:
+          status: active
+          api_plan_id: $.api_plan_id
+      - Type: checkout_entitlement
+        Method: PATCH
+        SkipInResponse: true
+        Condition: "!stripe_session.client_reference_id == subject.reference_id && stripe_session.payment_status == 'paid' && stripe_session.mode == 'subscription' && stripe_session.amount_total == subject.expected_amount_cents && stripe_session.currency.toUpperCase() == subject.currency.toUpperCase() && existing_entitlement.length == 0"
+        Attributes:
+          reference_id: $entitlement.reference_id
+          api_member_id: $membership.reference_id
+      - Type: client.return
+        Method: ACTIONRESPONSE
+        Attributes:
+          checkout_attempt_id: $.reference_id
+          status: $stripe_session.status
+          payment_status: $stripe_session.payment_status

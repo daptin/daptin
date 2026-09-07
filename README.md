@@ -138,6 +138,7 @@ State tracking does **not** provide guards, entry/exit actions, parallel states,
 | Build reusable backend operations | [Actions](https://github.com/daptin/daptin/wiki/Actions-Overview) · [Custom actions](https://github.com/daptin/daptin/wiki/Custom-Actions) |
 | Schedule work or track record states | [Task scheduling](https://github.com/daptin/daptin/wiki/Task-Scheduling) · [State machines](https://github.com/daptin/daptin/wiki/State-Machines) |
 | Connect external services or LLMs | [Integrations](https://github.com/daptin/daptin/wiki/Integrations) · [LLM providers](https://github.com/daptin/daptin/wiki/LLM-Providers) |
+| Sell a paid plan through provider checkout | [Payments and checkout](https://github.com/daptin/daptin/wiki/Payments-and-Checkout) · [Runnable example](examples/payment-checkout/README.md) |
 | Store files or host a subsite | [Cloud storage](https://github.com/daptin/daptin/wiki/Cloud-Storage) · [Subsites](https://github.com/daptin/daptin/wiki/Subsites) |
 | Meter or run Daptin in production | [API metering](https://github.com/daptin/daptin/wiki/API-Metering) · [Production deployment](https://github.com/daptin/daptin/wiki/Production-Deployment) · [Database setup](https://github.com/daptin/daptin/wiki/Database-Setup) |
 

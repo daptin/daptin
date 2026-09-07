@@ -65,6 +65,7 @@
 - [[Integrations]]
 - [[LLM-Providers]]
 - [[API-Metering]]
+- [[Payments-and-Checkout]]
 
 ## Security
 - [[Authentication]]
