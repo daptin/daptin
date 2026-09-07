@@ -1018,7 +1018,7 @@ var SystemActions = []actionresponse.Action{
 		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "system_json_schema_update",
-				Method: "EXECUTE",
+				Method: "ACTIONRESPONSE",
 				Attributes: map[string]interface{}{
 					"json_schema": "~schema_file",
 				},
