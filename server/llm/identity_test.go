@@ -16,7 +16,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func TestLLMIdentityUsesPersistedGroupsAndModelExecutePermission(t *testing.T) {
+func TestLLMModelAuthorizationUsesActiveDaptinSession(t *testing.T) {
 	database, cruds, _, bootstrapReference := newCatalogTestResources(t)
 	administrator := &auth.SessionUser{UserId: 1, UserReferenceId: bootstrapReference,
 		Groups: auth.GroupPermissionList{{GroupReferenceId: cruds["user_account"].AdministratorGroupId}}}
@@ -51,7 +51,7 @@ func TestLLMIdentityUsesPersistedGroupsAndModelExecutePermission(t *testing.T) {
 	})
 	_ = updateLLMAuthorizationResource(t, cruds, administrator, transaction, "llm_model", allowedModel, map[string]interface{}{"permission": int64(0)})
 	_ = updateLLMAuthorizationResource(t, cruds, administrator, transaction, "llm_model", deniedModel, map[string]interface{}{"permission": int64(0)})
-	userGroup := createLLMAuthorizationResource(t, cruds, administrator, transaction,
+	createLLMAuthorizationResource(t, cruds, administrator, transaction,
 		"user_account_user_account_id_has_usergroup_usergroup_id", map[string]interface{}{
 			"user_account_id": userReference.String(), "usergroup_id": groupReference.String(),
 		})
@@ -70,56 +70,33 @@ func TestLLMIdentityUsesPersistedGroupsAndModelExecutePermission(t *testing.T) {
 	if err := transaction.Commit(); err != nil {
 		t.Fatal(err)
 	}
-	contaminated := &auth.SessionUser{UserId: userID, UserReferenceId: userReference,
-		Groups: auth.GroupPermissionList{{GroupReferenceId: cruds["user_account"].AdministratorGroupId}}}
-	principal, err := (daptinIdentityResolver{users: cruds["user_account"]}).Resolve(contaminated)
-	if err != nil {
-		t.Fatal(err)
-	}
-	foundExpectedGroup := false
-	for _, groupID := range principal.GroupIDs {
-		if groupID == contract.ID(groupReference.String()) {
-			foundExpectedGroup = true
-		}
-		if groupID == contract.ID(cruds["user_account"].AdministratorGroupId.String()) {
-			t.Fatal("synthetic administrator group survived LLM identity resolution")
-		}
-	}
-	if !foundExpectedGroup {
-		t.Fatalf("canonical groups = %#v, missing %s", principal.GroupIDs, groupReference)
-	}
 	authorizer := daptinAuthorizer{cruds: cruds}
-	if err := authorizer.Authorize(context.Background(), principal, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err != nil {
+	member := &auth.SessionUser{UserId: userID, UserReferenceId: userReference,
+		Groups: auth.GroupPermissionList{{GroupReferenceId: groupReference}}}
+	memberContext := context.WithValue(context.Background(), "user", member)
+	if err := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err != nil {
 		t.Fatalf("shared group with execute permission was denied: %v", err)
 	}
-	if err := authorizer.Authorize(context.Background(), principal, catalog.Model{ID: contract.ID(deniedModelReference.String())}); err == nil {
-		t.Fatal("synthetic administrator group authorized an unrelated model")
+	if err := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(deniedModelReference.String())}); err == nil {
+		t.Fatal("unrelated model was authorized")
 	}
 
-	deleteLLMAuthorizationResource(t, cruds, administrator,
-		"user_account_user_account_id_has_usergroup_usergroup_id", userGroup)
-	revokedPrincipal, err := (daptinIdentityResolver{users: cruds["user_account"]}).Resolve(contaminated)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := authorizer.Authorize(context.Background(), revokedPrincipal, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err == nil {
-		t.Fatal("revoked persisted group continued to authorize the model")
+	adminContext := context.WithValue(context.Background(), "user", administrator)
+	if err := authorizer.Authorize(adminContext, contract.Principal{}, catalog.Model{ID: contract.ID(deniedModelReference.String())}); err != nil {
+		t.Fatalf("administrator action context was denied: %v", err)
 	}
 
-	restoreTransaction, err := database.Beginx()
+	guestPermissionTransaction, err := database.Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}
-	createLLMAuthorizationResource(t, cruds, administrator, restoreTransaction,
-		"user_account_user_account_id_has_usergroup_usergroup_id", map[string]interface{}{
-			"user_account_id": userReference.String(), "usergroup_id": groupReference.String(),
-		})
-	if err := restoreTransaction.Commit(); err != nil {
+	deniedModel = updateLLMAuthorizationResource(t, cruds, administrator, guestPermissionTransaction,
+		"llm_model", deniedModel, map[string]interface{}{"permission": int64(auth.GuestExecute)})
+	if err := guestPermissionTransaction.Commit(); err != nil {
 		t.Fatal(err)
 	}
-	principal, err = (daptinIdentityResolver{users: cruds["user_account"]}).Resolve(contaminated)
-	if err != nil {
-		t.Fatal(err)
+	if err := authorizer.Authorize(context.Background(), contract.Principal{}, catalog.Model{ID: contract.ID(deniedModelReference.String())}); err != nil {
+		t.Fatalf("guest execute permission was denied: %v", err)
 	}
 
 	permissionTransaction, err := database.Beginx()
@@ -133,10 +110,9 @@ func TestLLMIdentityUsesPersistedGroupsAndModelExecutePermission(t *testing.T) {
 	if err := permissionTransaction.Commit(); err != nil {
 		t.Fatal(err)
 	}
-	if err := authorizer.Authorize(context.Background(), principal, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err == nil {
+	if err := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err == nil {
 		t.Fatal("model relation without group execute permission was accepted")
 	}
-
 }
 
 func createLLMAuthorizationResource(t *testing.T, cruds map[string]*resource.DbResource, administrator *auth.SessionUser,
@@ -175,16 +151,4 @@ func updateLLMAuthorizationResource(t *testing.T, cruds map[string]*resource.DbR
 		t.Fatalf("update %s through canonical resource path: %v", tableName, err)
 	}
 	return updated
-}
-
-func deleteLLMAuthorizationResource(t *testing.T, cruds map[string]*resource.DbResource, administrator *auth.SessionUser,
-	tableName string, row map[string]interface{}) {
-	t.Helper()
-	reference := daptinid.InterfaceToDIR(row["reference_id"])
-	requestURL, _ := url.Parse("/" + tableName + "/" + reference.String())
-	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodDelete, URL: requestURL}).
-		WithContext(context.WithValue(context.Background(), "user", administrator))}
-	if _, err := cruds[tableName].Delete(reference.String(), request); err != nil {
-		t.Fatalf("delete %s through canonical resource path: %v", tableName, err)
-	}
 }

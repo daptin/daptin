@@ -22,9 +22,6 @@ type daptinBatches struct {
 }
 
 func (store daptinBatches) Create(ctx context.Context, _ contract.Principal, request contract.CreateBatchRequest) (contract.Batch, error) {
-	if _, err := daptinSessionUser(ctx); err != nil {
-		return contract.Batch{}, err
-	}
 	transaction, err := store.cruds["llm_batch"].Connection().Beginx()
 	if err != nil {
 		return contract.Batch{}, fmt.Errorf("begin batch create: %w", err)
@@ -53,12 +50,17 @@ func (store daptinBatches) Create(ctx context.Context, _ contract.Principal, req
 	}
 	createURL, _ := url.Parse("/llm_batch")
 	apiRequest := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: createURL}).WithContext(ctx)}
-	row, err := store.cruds["llm_batch"].CreateWithoutFilter(
+	response, err := store.cruds["llm_batch"].CreateWithTransaction(
 		api2go.NewApi2GoModelWithData("llm_batch", nil, 0, nil, attributes), apiRequest, transaction,
 	)
 	if err != nil {
 		return contract.Batch{}, fmt.Errorf("create batch: %w", err)
 	}
+	model, ok := response.Result().(api2go.Api2GoModel)
+	if !ok {
+		return contract.Batch{}, fmt.Errorf("create batch returned [%T]", response.Result())
+	}
+	row := model.GetAllAsAttributes()
 	if err := transaction.Commit(); err != nil {
 		return contract.Batch{}, fmt.Errorf("commit batch create: %w", err)
 	}
@@ -68,9 +70,6 @@ func (store daptinBatches) Create(ctx context.Context, _ contract.Principal, req
 }
 
 func (store daptinBatches) List(ctx context.Context, _ contract.Principal, request contract.ListBatchesRequest) (contract.BatchPage, error) {
-	if _, err := daptinSessionUser(ctx); err != nil {
-		return contract.BatchPage{}, err
-	}
 	transaction, err := store.cruds["llm_batch"].Connection().Beginx()
 	if err != nil {
 		return contract.BatchPage{}, fmt.Errorf("begin batch list: %w", err)

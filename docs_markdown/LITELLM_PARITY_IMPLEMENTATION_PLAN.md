@@ -413,8 +413,8 @@ lifecycle.
 
 1. HTTP protocol handler or action adapter builds the same canonical module
    request.
-2. Daptin authenticates and constructs the principal using existing permission
-   and membership data.
+2. Daptin supplies the active `SessionUser`; an absent account is the ordinary
+   guest context. Existing permission and membership data remains authoritative.
 3. Module validates protocol/capabilities and builds the bounded route plan.
 4. Daptin opens a short transaction for generic metering admission.
 5. Existing `MeteringService` evaluates applicable generic policy and performs

@@ -109,9 +109,6 @@ func NewLLMChatPerformer(cruds map[string]*resource.DbResource, gateway *llm.Gat
 
 func invokeLLMAction(gateway *llm.Gateway, cruds map[string]*resource.DbResource, input map[string]interface{}, transaction *sqlx.Tx, request contract.Request) (contract.Response, error) {
 	user, _ := input["sessionUser"].(*auth.SessionUser)
-	if user == nil || user.UserId == 0 {
-		return contract.Response{}, errors.New("LLM action requires an authenticated user")
-	}
 	ctx := context.Background()
 	if httpRequest, _ := input["httpRequest"].(*http.Request); httpRequest != nil {
 		ctx = httpRequest.Context()

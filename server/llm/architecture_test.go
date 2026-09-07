@@ -10,14 +10,13 @@ import (
 	"testing"
 )
 
-func TestLLMHostUsesCanonicalResourceWrites(t *testing.T) {
+func TestLLMHostDoesNotBypassResourcePersistence(t *testing.T) {
 	entries, err := os.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}
 	forbiddenCalls := map[string]bool{
 		"Exec": true, "ExecContext": true, "NamedExec": true, "MustExec": true,
-		"CreateWithTransaction": true, "UpdateWithTransaction": true, "DeleteWithTransaction": true,
 	}
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".go" {

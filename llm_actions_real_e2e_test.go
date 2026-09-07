@@ -85,6 +85,7 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
 	callerToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "llm-caller")
 	serviceToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "llm-service")
+	callerReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "llm-caller@test.local")
 	serviceReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "llm-service@test.local")
 
 	modelName := "llm-authorization-e2e"
@@ -128,11 +129,12 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 	if directDenied != http.StatusForbidden || upstreamRequests.Load() != 0 {
 		t.Fatalf("direct unauthorized request: status=%d upstream=%d", directDenied, upstreamRequests.Load())
 	}
-	actionDenied, _ := postLLMActionForStatus(t, client, baseURL+"/action/world/llm_e2e_chat", callerToken, map[string]interface{}{
-		"attributes": map[string]interface{}{"model": modelName, "prompt": "denied"},
+	actionResponse := transportE2EPostJSON(t, client, baseURL+"/action/world/llm_e2e_chat", callerToken, map[string]interface{}{
+		"attributes": map[string]interface{}{"model": modelName, "prompt": "trusted action"},
 	})
-	if actionDenied < http.StatusBadRequest || upstreamRequests.Load() != 0 {
-		t.Fatalf("action synthetic administrator bypass: status=%d upstream=%d", actionDenied, upstreamRequests.Load())
+	assertTransportE2EString(t, actionResponse, "0.Attributes.content", "authorized")
+	if upstreamRequests.Load() != 1 {
+		t.Fatalf("trusted action requests = %d, want 1", upstreamRequests.Load())
 	}
 
 	for invocation := 0; invocation < 2; invocation++ {
@@ -141,15 +143,28 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 		})
 		assertTransportE2EString(t, response, "0.Attributes.content", "authorized")
 	}
-	if upstreamRequests.Load() != 2 {
-		t.Fatalf("authorized switched-user requests = %d, want 2", upstreamRequests.Load())
+	if upstreamRequests.Load() != 3 {
+		t.Fatalf("authorized requests = %d, want 3", upstreamRequests.Load())
 	}
 	quotaStatus, _ := postLLMActionForStatus(t, client, baseURL+"/action/world/llm_e2e_switched_chat", callerToken, map[string]interface{}{
 		"attributes": map[string]interface{}{"user_reference_id": serviceReference, "model": modelName, "prompt": "over quota"},
 	})
-	if quotaStatus < http.StatusBadRequest || upstreamRequests.Load() != 2 {
+	if quotaStatus < http.StatusBadRequest || upstreamRequests.Load() != 3 {
 		t.Fatalf("quota denial reached provider: status=%d upstream=%d", quotaStatus, upstreamRequests.Load())
 	}
+
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/llm_model/"+modelReference, adminToken,
+		accessGroupsE2ERecordPayload("llm_model", modelReference, map[string]interface{}{"permission": int64(auth.GuestExecute)}), http.StatusOK)
+	waitForLLME2EModel(t, client, baseURL, "", modelName)
+	guestResponse := transportE2EPostJSON(t, client, baseURL+"/v1/chat/completions", "", map[string]interface{}{
+		"model": modelName, "messages": []interface{}{map[string]interface{}{"role": "user", "content": "guest"}},
+	})
+	assertTransportE2EString(t, guestResponse, "choices.0.message.content", "authorized")
+	if upstreamRequests.Load() != 4 {
+		t.Fatalf("guest request did not reach provider: upstream=%d", upstreamRequests.Load())
+	}
+
+	assertLLMUsageOwnedBy(t, client, baseURL, adminToken, callerReference, 1)
 	assertLLMUsageOwnedBy(t, client, baseURL, adminToken, serviceReference, 2)
 }
 
@@ -177,11 +192,11 @@ func assertLLMUsageOwnedBy(t testing.TB, client *http.Client, baseURL, token, us
 		if entityType != "llm_model" {
 			continue
 		}
-		total++
 		owner, _ := transportE2EPath(item, "attributes.user_account_id")
 		if owner != userReference {
-			t.Fatalf("LLM usage was charged to %v, want %s: %#v", owner, userReference, response)
+			continue
 		}
+		total++
 		state, _ := transportE2EPath(item, "attributes.state")
 		if state == "completed" {
 			completed++

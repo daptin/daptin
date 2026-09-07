@@ -9,8 +9,8 @@ import (
 )
 
 // RegisterLLMEndpoints mounts the reusable gateway's sole HTTP implementation.
-// Daptin's authentication middleware has already attached the SessionUser to
-// the request context before the gateway authenticates and authorizes it.
+// Daptin's authentication middleware attaches an authenticated SessionUser
+// when present; the gateway authorizes an absent session as the ordinary guest.
 func RegisterLLMEndpoints(router *gin.Engine, gateway *llm.Gateway) {
 	handler := gin.WrapH(gateway.Handler())
 	router.Any("/v1/*path", handler)

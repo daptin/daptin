@@ -252,12 +252,10 @@ outcome to use a dedicated service account and that account's credential. See
 For the complete prepare, provider-call, verification, and membership lifecycle,
 see [[Payments-and-Checkout]].
 
-LLM outcomes also use the active action user, but model entitlement is
-orthogonal to the wrapper action. Daptin reloads that account's persisted groups
-and requires execute permission on the selected `llm_model`; trusted action
-execution does not grant model access. After `SWITCH_USER`, the selected
-account's model groups and LLM metering plan apply. See [[LLM-Providers]] for the
-group relationship and `GroupExecute` setup.
+LLM outcomes use the active action context in the same way as other outcomes.
+Once Daptin authorizes a server-defined action, its LLM outcomes retain that
+trusted context. After `SWITCH_USER`, the selected account becomes the active
+account for subsequent outcomes and LLM metering.
 
 ---
 

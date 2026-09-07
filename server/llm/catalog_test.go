@@ -60,7 +60,7 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		{"llm_model", map[string]interface{}{
 			"name": "public-model", "operations": `["chat"]`, "capabilities": `{}`, "routing_strategy": "priority_weighted",
 			"fallback_models": `[]`, "default_parameters": `{}`, "unsupported_parameter_policy": "reject", "enable": true,
-			"reference_id": modelReference.String(),
+			"permission": int64(auth.GuestExecute), "reference_id": modelReference.String(),
 		}},
 		{"llm_deployment", map[string]interface{}{
 			"name": "deployment", "llm_model_id": modelReference.String(), "llm_provider_id": providerReference.String(), "upstream_model": "upstream-model",
@@ -223,12 +223,13 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		}
 	}
 	request := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
-	request.Header.Set("Authorization", "Bearer daptin-session-token")
-	request = request.WithContext(context.WithValue(request.Context(), "user", owner))
 	response := httptest.NewRecorder()
 	hostA.Handler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("model listing status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), `"id":"public-model"`) {
+		t.Fatalf("guest-executable model missing from listing: %s", response.Body.String())
 	}
 	readyRequest := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	readyResponse := httptest.NewRecorder()
@@ -285,7 +286,6 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	streamRequest.Header.Set("Authorization", "Bearer daptin-session-token")
 	streamRequest.Header.Set("Content-Type", "application/json")
 	streamRequest.Header.Set("X-Request-ID", "host-stream-cancel")
 	streamResponse, err := http.DefaultClient.Do(streamRequest)

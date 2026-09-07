@@ -38,6 +38,13 @@ curl --fail http://localhost:6336/v1/chat/completions \
   --data-binary "{\"model\":\"$LLM_PUBLIC_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with pong\"}]}"
 ```
 
+To expose the model without sign-in, grant `GuestExecute` on its `llm_model`
+resource using Daptin's normal permission editor. The same request then works
+without the `Authorization` header. File and batch endpoints retain their own
+independent resource permissions. See the guide's
+[guest invocation section](../../wiki/LLM-Providers.md#allow-guest-invocation)
+for the JSON:API workflow.
+
 Provider presets with default base URLs are `openai`, `google`, `openrouter`,
 and `lilac`. Set `LLM_PROVIDER_TYPE=openai-compatible` and `LLM_BASE_URL` for a
 custom endpoint. Plain HTTP and private-network URLs are explicitly opted into

@@ -24,9 +24,6 @@ type daptinFiles struct {
 }
 
 func (store daptinFiles) Create(ctx context.Context, _ contract.Principal, request contract.CreateFileRequest) (contract.File, error) {
-	if _, err := daptinSessionUser(ctx); err != nil {
-		return contract.File{}, err
-	}
 	transaction, err := store.cruds["document"].Connection().Beginx()
 	if err != nil {
 		return contract.File{}, fmt.Errorf("begin file create: %w", err)
@@ -68,7 +65,7 @@ func (store daptinFiles) create(ctx context.Context, request contract.CreateFile
 
 	documentURL, _ := url.Parse("/document")
 	apiRequest := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: documentURL}).WithContext(ctx)}
-	document, err := store.cruds["document"].CreateWithoutFilter(api2go.NewApi2GoModelWithData("document", nil, 0, nil, map[string]interface{}{
+	documentResponse, err := store.cruds["document"].CreateWithTransaction(api2go.NewApi2GoModelWithData("document", nil, 0, nil, map[string]interface{}{
 		"document_name": request.Filename, "document_path": "", "document_extension": strings.TrimPrefix(filepath.Ext(request.Filename), "."),
 		"mime_type": contentType, "document_content": []interface{}{map[string]interface{}{
 			"name": request.Filename, "path": "", "type": contentType, "contents": base64.StdEncoding.EncodeToString(request.Data),
@@ -77,6 +74,11 @@ func (store daptinFiles) create(ctx context.Context, request contract.CreateFile
 	if err != nil {
 		return contract.File{}, fmt.Errorf("create file document: %w", err)
 	}
+	documentModel, ok := documentResponse.Result().(api2go.Api2GoModel)
+	if !ok {
+		return contract.File{}, fmt.Errorf("create file document returned [%T]", documentResponse.Result())
+	}
+	document := documentModel.GetAllAsAttributes()
 	documentReference := daptinid.InterfaceToDIR(document["reference_id"])
 	if documentReference == daptinid.NullReferenceId {
 		return contract.File{}, fmt.Errorf("created file document has no reference")
@@ -87,21 +89,23 @@ func (store daptinFiles) create(ctx context.Context, request contract.CreateFile
 	if expiresAt != nil {
 		attributes["expires_at"] = *expiresAt
 	}
-	created, err := store.cruds["llm_file"].CreateWithoutFilter(
+	createdResponse, err := store.cruds["llm_file"].CreateWithTransaction(
 		api2go.NewApi2GoModelWithData("llm_file", nil, 0, nil, attributes), apiRequest, transaction,
 	)
 	if err != nil {
 		return contract.File{}, fmt.Errorf("create LLM file metadata: %w", err)
 	}
+	createdModel, ok := createdResponse.Result().(api2go.Api2GoModel)
+	if !ok {
+		return contract.File{}, fmt.Errorf("create LLM file metadata returned [%T]", createdResponse.Result())
+	}
+	created := createdModel.GetAllAsAttributes()
 	return contract.File{ID: contract.ID(daptinid.InterfaceToDIR(created["reference_id"]).String()), Bytes: int64(len(request.Data)),
 		CreatedAt: createdAt, Filename: request.Filename, ContentType: contentType, Purpose: request.Purpose,
 		Status: "processed", ExpiresAt: expiresAt}, nil
 }
 
 func (store daptinFiles) List(ctx context.Context, _ contract.Principal, request contract.ListFilesRequest) (contract.FilePage, error) {
-	if _, err := daptinSessionUser(ctx); err != nil {
-		return contract.FilePage{}, err
-	}
 	transaction, err := store.cruds["llm_file"].Connection().Beginx()
 	if err != nil {
 		return contract.FilePage{}, fmt.Errorf("begin file list: %w", err)

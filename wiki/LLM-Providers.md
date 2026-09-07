@@ -175,6 +175,27 @@ curl -X PATCH "http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_us
 after creating it. Model discovery and invocation use the same execute check, so
 `GET /v1/models` lists exactly the models the active account can invoke.
 
+### Allow guest invocation
+
+Guest access uses the same model permission field. Grant `GuestExecute` on the
+model; no OAuth client or service account is involved:
+
+```bash
+curl -X PATCH "http://localhost:6336/api/llm_model/$MODEL_REFERENCE_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"llm_model","id":"'$MODEL_REFERENCE_ID'","attributes":{"permission":32}}}'
+
+curl http://localhost:6336/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  --data-binary '{"model":"assistant","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+`32` is `GuestExecute`. Daptin permissions are bitsets; use the normal
+permission editor or the combined bit value when the model must retain other
+permission bits. Removing `GuestExecute` immediately removes the model from
+guest discovery and denies guest invocation.
+
 `fallback_models` is an ordered JSON array of other public model names. Cycles
 or missing models reject the candidate catalog. Supported parameter policies
 are:
@@ -276,15 +297,16 @@ facts.
 Text completions have a native canonical operation and are never converted to
 chat. Files and batches are durable Daptin resources; their persistence,
 permissions, relationships, and assets use the ordinary resource lifecycle.
+Their CRUD permissions are independent of `llm_model` execute permission.
 The existing `document.document_content` asset column must be bound to a
 configured Daptin cloud store. File creation fails with `service_unavailable`
 before writing either resource when that canonical asset binding is absent.
 
-All routes use Daptin authentication and the model row's execute permissions.
-The gateway uses the active account and reloads its persisted usergroup
-relationships before authorization; transient privileges used internally by
-trusted action outcomes are not model permissions. Model listing hides models
-the active account cannot invoke.
+Model discovery and invocation use the `llm_model` row's ordinary execute
+permissions. A request without a signed-in account is evaluated as a guest, so
+`GuestExecute` makes that model available without an access token. Signed-in,
+owner, group, and administrator access use the same Daptin permission rules as
+other resources. Model listing hides models the active context cannot invoke.
 
 ```bash
 curl http://localhost:6336/v1/chat/completions \
@@ -333,8 +355,9 @@ requested capability that it does not declare.
 `$llm.chat` and `$llm.embedding` use the same engine as HTTP. They apply the
 same strict request decoder, model authorization, route plan, provider call,
 costing, and generic metering. `$llm.chat` is non-streaming in action chains.
-Permission to execute the containing action does not grant permission to execute
-its selected model.
+After Daptin authorizes the containing action, its server-defined outcomes use
+the normal trusted action context. `SWITCH_USER` changes the active account for
+subsequent outcomes and their metering.
 
 ```yaml
 OutFields:
@@ -379,9 +402,10 @@ Hard limits use the database-backed generic quota state and fail closed when
 that authority is unavailable. Olric counters protect deployments
 (`max_concurrency`, RPM, TPM) and do not replace durable customer quotas.
 
-The active account determines metering ownership. Without `SWITCH_USER`, this is
-the authenticated caller. After a trusted action performs `SWITCH_USER`, the
-selected account's model groups, `api_member`, plan, usage, and quota are used.
+The active account determines metering ownership. Guest invocation has no
+account usage or quota record. Without `SWITCH_USER`, a signed-in caller is the
+metered account. After a trusted action performs `SWITCH_USER`, the selected
+account's `api_member`, plan, usage, and quota are used.
 If the wrapper action is itself metered, its admission occurred before the
 switch and remains charged to the original caller.
 
@@ -402,11 +426,11 @@ limit is required.
 ## Troubleshooting
 
 - **Model not found:** verify the public `llm_model.name`, its `enable` flag,
-  operation list, the active user's group relation with `GroupExecute`, and at
-  least one enabled related deployment.
+  operation list, the active account's execute permission (or `GuestExecute`
+  for a request without an account), and at least one enabled deployment.
 - **No healthy deployment:** verify provider/deployment enable flags,
   capabilities, operation lists, timeouts, health state, and protection limits.
-- **Authentication error:** verify the provider's credential relationship and
+- **Provider authentication error:** verify the provider's credential relationship and
   that decrypted credential content contains a non-empty `api_key`.
 - **Catalog reload rejected:** inspect `/llm/readyz` and logs for the stable
   failure stage; the previous valid catalog remains active.

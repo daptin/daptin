@@ -55,11 +55,8 @@ type daptinAuthorizer struct {
 	cruds map[string]*resource.DbResource
 }
 
-func (authorizer daptinAuthorizer) Authorize(_ context.Context, principal contract.Principal, model catalog.Model) error {
-	userReference, groups, err := daptinPrincipalIdentity(principal)
-	if err != nil {
-		return err
-	}
+func (authorizer daptinAuthorizer) Authorize(ctx context.Context, _ contract.Principal, model catalog.Model) error {
+	user := daptinSessionUser(ctx)
 	modelReference := daptinid.InterfaceToDIR(string(model.ID))
 	if modelReference == daptinid.NullReferenceId {
 		return errors.New("LLM model has an invalid reference")
@@ -70,7 +67,7 @@ func (authorizer daptinAuthorizer) Authorize(_ context.Context, principal contra
 	}
 	defer transaction.Rollback()
 	permission := authorizer.cruds["llm_model"].GetObjectPermissionByReferenceId("llm_model", modelReference, transaction)
-	if !permission.CanExecute(userReference, groups, authorizer.cruds["llm_model"].AdministratorGroupId) {
+	if !permission.CanExecute(user.UserReferenceId, user.Groups, authorizer.cruds["llm_model"].AdministratorGroupId) {
 		return errors.New("LLM model is not available to this user")
 	}
 	if err := transaction.Commit(); err != nil {
@@ -85,10 +82,7 @@ type daptinMetering struct {
 }
 
 func (metering daptinMetering) Admit(ctx context.Context, admission contract.Admission) (contract.ReservationToken, error) {
-	user, err := daptinSessionUser(ctx)
-	if err != nil {
-		return contract.ReservationToken{}, err
-	}
+	user := daptinSessionUser(ctx)
 	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
 	if err != nil {
 		return contract.ReservationToken{}, fmt.Errorf("begin metering admission: %w", err)
@@ -131,10 +125,7 @@ func (metering daptinMetering) terminalize(ctx context.Context, token contract.R
 	if token.Opaque == "" {
 		return nil
 	}
-	user, err := daptinSessionUser(ctx)
-	if err != nil {
-		return err
-	}
+	user := daptinSessionUser(ctx)
 	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
 	if err != nil {
 		return fmt.Errorf("begin metering terminalization: %w", err)
@@ -161,28 +152,12 @@ func (metering daptinMetering) terminalize(ctx context.Context, token contract.R
 	return nil
 }
 
-func daptinSessionUser(ctx context.Context) (*auth.SessionUser, error) {
+func daptinSessionUser(ctx context.Context) *auth.SessionUser {
 	user, _ := ctx.Value("user").(*auth.SessionUser)
-	if user == nil || user.UserId == 0 || user.UserReferenceId == daptinid.NullReferenceId {
-		return nil, errors.New("authenticated Daptin session is required")
+	if user == nil {
+		return &auth.SessionUser{}
 	}
-	return user, nil
-}
-
-func daptinPrincipalIdentity(principal contract.Principal) (daptinid.DaptinReferenceId, auth.GroupPermissionList, error) {
-	userReference := daptinid.InterfaceToDIR(string(principal.OwnerID))
-	if userReference == daptinid.NullReferenceId {
-		return daptinid.NullReferenceId, nil, errors.New("LLM principal has an invalid owner")
-	}
-	groups := make(auth.GroupPermissionList, 0, len(principal.GroupIDs))
-	for _, groupID := range principal.GroupIDs {
-		groupReference := daptinid.InterfaceToDIR(string(groupID))
-		if groupReference == daptinid.NullReferenceId {
-			return daptinid.NullReferenceId, nil, errors.New("LLM principal has an invalid group")
-		}
-		groups = append(groups, auth.GroupPermission{GroupReferenceId: groupReference})
-	}
-	return userReference, groups, nil
+	return user
 }
 
 type olricCounterStore struct {

@@ -236,7 +236,7 @@ marker so it does not recursively meter itself.
 
 | Problem | Check |
 |---|---|
-| No usage row | Metering configuration, authenticated user, and request logs |
+| No usage row | Metering configuration, active signed-in account, and request logs; guest requests have no account usage row |
 | No quota bucket | Active membership, plan relationship, and matching metric |
 | Limit never denies | Metric spelling, window, `maximum`, and `mode: hard` |
 | LLM token count is absent | Provider response and normalized gateway usage |

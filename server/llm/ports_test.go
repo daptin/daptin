@@ -6,9 +6,37 @@ import (
 	"testing"
 	"time"
 
+	"github.com/daptin/daptin/server/resource"
 	gateway "github.com/daptin/llmgateway"
+	"github.com/daptin/llmgateway/contract"
 	"github.com/google/uuid"
 )
+
+func TestDaptinMeteringLeavesGuestInvocationUnmetered(t *testing.T) {
+	database, cruds, _, _ := newCatalogTestResources(t)
+	metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}
+	token, err := metering.Admit(context.Background(), contract.Admission{
+		RequestID: "guest-request", Operation: contract.OperationChat,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token.Opaque != "" {
+		t.Fatalf("guest reservation token = %q, want empty", token.Opaque)
+	}
+	transaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer transaction.Rollback()
+	rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, transaction)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 0 {
+		t.Fatalf("guest invocation created %d usage rows", len(rows))
+	}
+}
 
 func TestDaptinOlricPortsImplementGatewayContract(t *testing.T) {
 	_, _, client, _ := newCatalogTestResources(t)

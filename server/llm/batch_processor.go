@@ -396,7 +396,6 @@ func (processor *daptinBatchProcessor) executeItem(ctx context.Context, batchID 
 	if err != nil {
 		return err
 	}
-	request.Header.Set("Authorization", "Bearer daptin-batch")
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Request-ID", "batch."+string(batchID)+"."+strconv.FormatInt(line, 10))
 	recorder := httptest.NewRecorder()
@@ -557,6 +556,9 @@ func (processor *daptinBatchProcessor) fail(ctx context.Context, row map[string]
 
 func (processor *daptinBatchProcessor) batchOwner(row map[string]interface{}, transaction *sqlx.Tx) (*auth.SessionUser, error) {
 	reference := daptinid.InterfaceToDIR(row["user_account_id"])
+	if reference == daptinid.NullReferenceId {
+		return &auth.SessionUser{}, nil
+	}
 	userRow, err := processor.cruds["user_account"].GetReferenceIdToObjectWithTransaction("user_account", reference, transaction)
 	if err != nil {
 		return nil, fmt.Errorf("load batch owner: %w", err)
@@ -565,9 +567,10 @@ func (processor *daptinBatchProcessor) batchOwner(row map[string]interface{}, tr
 	if err != nil {
 		return nil, fmt.Errorf("decode batch owner: %w", err)
 	}
-	// The HTTP gateway resolves persisted groups immediately before each batch
-	// item is authorized. Do not snapshot group membership when claiming a batch.
-	return &auth.SessionUser{UserId: id, UserReferenceId: reference}, nil
+	groups := processor.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction(
+		resource.USER_ACCOUNT_TABLE_NAME, transaction, "id", id,
+	)
+	return &auth.SessionUser{UserId: id, UserReferenceId: reference, Groups: groups}, nil
 }
 
 func (processor *daptinBatchProcessor) batchRow(reference daptinid.DaptinReferenceId, transaction *sqlx.Tx) (map[string]interface{}, error) {
