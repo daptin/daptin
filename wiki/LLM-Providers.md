@@ -306,6 +306,84 @@ HTTP(S) `file_url`, or a Daptin `/v1/files` `file_id`. A Daptin file ID is read
 through the same permissioned file resource and normalized to inline content
 before model authorization, routing, metering, and provider invocation.
 
+### Responses files and web search
+
+Declare `files` on the public model before accepting any `input_file`. The
+capability check is shared by direct HTTP, actions, and other callers of the
+gateway engine. A request that uses files against a model without that
+capability is denied before provider invocation.
+
+This example sends inline content:
+
+```bash
+curl http://localhost:6336/v1/responses \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data-binary '{
+    "model": "assistant",
+    "input": [{
+      "type": "message",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_file",
+          "file_data": "data:text/plain;base64,SGVsbG8gZnJvbSBEYXB0aW4=",
+          "filename": "note.txt"
+        },
+        {"type": "input_text", "text": "Summarize the attached note."}
+      ]
+    }]
+  }'
+```
+
+Replace `file_data` with exactly one of these forms when appropriate:
+
+```json
+{"type":"input_file","file_url":"https://example.com/report.pdf","filename":"report.pdf"}
+```
+
+```json
+{"type":"input_file","file_id":"DAPTIN_FILE_REFERENCE_ID"}
+```
+
+`file_url` must be an HTTP(S) URL without embedded credentials and is forwarded
+to the selected provider. Provider support for fetching that URL remains a
+provider capability. `file_id` is a Daptin reference ID returned by
+`POST /v1/files`; Daptin reads it as the active account through the existing
+file resource permission path. An inaccessible or missing file fails before
+the model provider is called. The resolved content and the original request
+must fit within the gateway request-size limit.
+
+Web search uses the existing `tools` capability; it does not have a separate
+model capability:
+
+```bash
+curl http://localhost:6336/v1/responses \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data-binary '{
+    "model": "assistant",
+    "input": "Find the Daptin documentation and cite one source.",
+    "tools": [{"type": "web_search"}]
+  }'
+```
+
+For non-streaming calls, conforming providers return `web_search_call` output
+items. Streaming providers may emit
+`response.web_search_call.in_progress`,
+`response.web_search_call.searching`, and
+`response.web_search_call.completed`. The adapter is deliberately strict:
+vendor-namespaced output item types such as `openrouter:web_search` are rejected
+as provider errors rather than silently reinterpreted. Enable `tools` only for
+deployments verified to accept the request and return the canonical Responses
+shape.
+
+File access, model execution, and metering remain independent decisions.
+Permission to execute the model does not grant access to a referenced Daptin
+file, and permission to read a file does not grant model execution. Successful
+and provider-failed admitted calls terminalize through the same `api_usage`
+lifecycle.
+
 Model discovery and invocation use the `llm_model` row's ordinary execute
 permissions. A request without a signed-in account is evaluated as a guest, so
 `GuestExecute` makes that model available without an access token. Signed-in,
@@ -437,6 +515,13 @@ limit is required.
   capabilities, operation lists, timeouts, health state, and protection limits.
 - **Provider authentication error:** verify the provider's credential relationship and
   that decrypted credential content contains a non-empty `api_key`.
+- **Responses file rejected:** verify that the model declares `files`, that
+  exactly one of `file_data`, `file_url`, or `file_id` is present, and that the
+  active account can read a referenced Daptin file. An upstream error after
+  admission means the selected provider/model rejected the file form.
+- **Web search provider error:** verify that the model declares `tools` and that
+  the selected provider returns canonical `web_search_call` items rather than a
+  vendor-namespaced output type.
 - **Catalog reload rejected:** inspect `/llm/readyz` and logs for the stable
   failure stage; the previous valid catalog remains active.
 - **Quota denied:** inspect the user's active `api_member`, related `api_plan`,

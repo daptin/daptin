@@ -38,6 +38,13 @@ curl --fail http://localhost:6336/v1/chat/completions \
   --data-binary "{\"model\":\"$LLM_PUBLIC_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with pong\"}]}"
 ```
 
+To verify Responses file input or web search, add `responses` to
+`LLM_OPERATIONS` and declare `files` or `tools` respectively in
+`LLM_CAPABILITIES`. Both use the same public model, routing, permission, and
+metering path as the chat request above. See
+[Responses files and web search](../../wiki/LLM-Providers.md#responses-files-and-web-search)
+for request examples and the strict upstream contract.
+
 To expose the model without sign-in, grant `GuestExecute` on its `llm_model`
 resource using Daptin's normal permission editor. The same request then works
 without the `Authorization` header. File and batch endpoints retain their own

@@ -241,6 +241,10 @@ LLM capabilities:
 - Model names resolve through enabled, healthy, capability-compatible
   deployments with bounded priority/weighted retry and fallback routing.
 - Streaming chat and Responses use their OpenAI-compatible SSE contracts.
+- Responses file inputs accept inline data, HTTP(S) URLs, or permissioned
+  Daptin file reference IDs under the `files` capability.
+- Function tools, namespaces, and Responses web search share the `tools`
+  capability; provider output must conform to the canonical Responses shape.
 
 Metering capabilities:
 
