@@ -4,6 +4,8 @@
 > in Daptin `v0.13.0`. Use that release or a newer pinned image. The gateway is
 > configured with `llm_provider`, `llm_model`, and `llm_deployment` resources;
 > provider rows alone do not expose models.
+> Responses file inputs can be enabled with the `files` model capability in
+> Daptin `v0.13.7` and newer.
 
 Daptin exposes one OpenAI-compatible gateway backed by the reusable
 `github.com/daptin/llmgateway` engine. HTTP requests and the built-in LLM
