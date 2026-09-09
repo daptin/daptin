@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	stdjson "encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -58,13 +59,13 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 			"credential_id": credentialReference.String(), "reference_id": providerReference.String(),
 		}},
 		{"llm_model", map[string]interface{}{
-			"name": "public-model", "operations": `["chat"]`, "capabilities": `{}`, "routing_strategy": "priority_weighted",
+			"name": "public-model", "operations": `["chat","responses"]`, "capabilities": `{"files":true,"tools":true}`, "routing_strategy": "priority_weighted",
 			"fallback_models": `[]`, "default_parameters": `{}`, "unsupported_parameter_policy": "reject", "enable": true,
 			"permission": int64(auth.GuestExecute), "reference_id": modelReference.String(),
 		}},
 		{"llm_deployment", map[string]interface{}{
 			"name": "deployment", "llm_model_id": modelReference.String(), "llm_provider_id": providerReference.String(), "upstream_model": "upstream-model",
-			"operations": `["chat"]`, "priority": 1, "weight": 2, "request_timeout_ms": 90000,
+			"operations": `["chat","responses"]`, "priority": 1, "weight": 2, "request_timeout_ms": 90000,
 			"connect_timeout_ms": 10000, "max_concurrency": 8, "rpm": 60, "tpm": 10000,
 			"pricing": `{}`, "parameters": `{}`, "health_check": `{}`, "enable": true,
 			"reference_id": deploymentReference.String(),
@@ -231,6 +232,9 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	if !strings.Contains(response.Body.String(), `"id":"public-model"`) {
 		t.Fatalf("guest-executable model missing from listing: %s", response.Body.String())
 	}
+	if !strings.Contains(response.Body.String(), `"files":true`) || !strings.Contains(response.Body.String(), `"tools":true`) {
+		t.Fatalf("model capabilities missing from listing: %s", response.Body.String())
+	}
 	readyRequest := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	readyResponse := httptest.NewRecorder()
 	hostA.Handler().ServeHTTP(readyResponse, readyRequest)
@@ -239,7 +243,35 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}
 	upstreamCancelled := make(chan struct{}, 1)
 	upstreamStarted := make(chan struct{}, 1)
+	var responsesCalls atomic.Int64
 	upstream := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/v1/responses" {
+			responsesCalls.Add(1)
+			var body map[string]interface{}
+			if err := stdjson.NewDecoder(request.Body).Decode(&body); err != nil {
+				t.Errorf("decode upstream Responses request: %v", err)
+				http.Error(response, "invalid request", http.StatusBadRequest)
+				return
+			}
+			input, _ := body["input"].([]interface{})
+			tools, _ := body["tools"].([]interface{})
+			if len(input) != 1 || len(tools) != 1 {
+				t.Errorf("upstream Responses request lost input or tools: %#v", body)
+				http.Error(response, "invalid request", http.StatusBadRequest)
+				return
+			}
+			content := input[0].(map[string]interface{})["content"].([]interface{})
+			file := content[0].(map[string]interface{})
+			tool := tools[0].(map[string]interface{})
+			if file["file_data"] != "data:application/pdf;base64,cGRm" || tool["type"] != "web_search" || body["store"] != false {
+				t.Errorf("upstream Responses request was not canonical: %#v", body)
+				http.Error(response, "invalid request", http.StatusBadRequest)
+				return
+			}
+			response.Header().Set("Content-Type", "application/json")
+			_, _ = response.Write([]byte(`{"id":"resp-host","model":"upstream-model","status":"completed","output":[{"type":"web_search_call","id":"ws-host","status":"completed","action":{"type":"search","query":"weather","sources":[{"url":"https://example.test"}]}}],"usage":{"input_tokens":2,"output_tokens":1,"total_tokens":3}}`))
+			return
+		}
 		upstreamStarted <- struct{}{}
 		response.Header().Set("Content-Type", "text/event-stream")
 		response.WriteHeader(http.StatusOK)
@@ -280,6 +312,63 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		hostA.Handler().ServeHTTP(response, request)
 	}))
 	defer httpGateway.Close()
+	responsesRequest, err := http.NewRequest(http.MethodPost, httpGateway.URL+"/v1/responses", strings.NewReader(
+		`{"model":"public-model","input":[{"type":"message","role":"user","content":[{"type":"input_file","file_data":"data:application/pdf;base64,cGRm","filename":"brief.pdf"}]}],"tools":[{"type":"web_search"}]}`,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	responsesRequest.Header.Set("Content-Type", "application/json")
+	responsesRequest.Header.Set("X-Request-ID", "host-responses-files-web-search")
+	responsesResponse, err := http.DefaultClient.Do(responsesRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	responsesBody, err := io.ReadAll(responsesResponse.Body)
+	_ = responsesResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if responsesResponse.StatusCode != http.StatusOK || !strings.Contains(string(responsesBody), `"type":"web_search_call"`) ||
+		!strings.Contains(string(responsesBody), `"sources":[{"url":"https://example.test"}]`) {
+		t.Fatalf("Responses files/web-search status=%d body=%s", responsesResponse.StatusCode, responsesBody)
+	}
+	if responsesCalls.Load() != 1 {
+		t.Fatalf("Responses provider calls = %d, want 1", responsesCalls.Load())
+	}
+	usageTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	usageRows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction(
+		"api_usage", nil, usageTransaction, goqu.Ex{"request_id": "host-responses-files-web-search"},
+	)
+	_ = usageTransaction.Rollback()
+	usageOwner := daptinid.NullReferenceId
+	if len(usageRows) == 1 {
+		usageOwner = daptinid.InterfaceToDIR(usageRows[0]["user_account_id"])
+	}
+	if err != nil || len(usageRows) != 1 || resource.StringOrEmpty(usageRows[0]["state"]) != "completed" || usageOwner != owner.UserReferenceId {
+		t.Fatalf("Responses metering rows=%#v err=%v", usageRows, err)
+	}
+	responsesRevision := hostA.Status().Revision
+	update("llm_model", "capabilities", `{"tools":true}`)
+	publishCatalogEvent(t, cruds["world"].PubSub, "llm_model")
+	waitForGatewayStatus(t, hostA, func(status gateway.Status) bool { return status.Revision > responsesRevision && status.Ready })
+	deniedRequest := responsesRequest.Clone(context.Background())
+	deniedRequest.Body, err = responsesRequest.GetBody()
+	if err != nil {
+		t.Fatal(err)
+	}
+	deniedResponse, err := http.DefaultClient.Do(deniedRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = io.Copy(io.Discard, deniedResponse.Body)
+	_ = deniedResponse.Body.Close()
+	if deniedResponse.StatusCode != http.StatusBadRequest || responsesCalls.Load() != 1 {
+		t.Fatalf("disabled files status=%d provider calls=%d", deniedResponse.StatusCode, responsesCalls.Load())
+	}
 	streamContext, cancelStream := context.WithCancel(context.Background())
 	streamRequest, err := http.NewRequestWithContext(streamContext, http.MethodPost, httpGateway.URL+"/v1/chat/completions",
 		strings.NewReader(`{"model":"public-model","messages":[{"role":"user","content":"hello"}],"stream":true}`))

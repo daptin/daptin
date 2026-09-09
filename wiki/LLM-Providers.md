@@ -105,7 +105,7 @@ curl -X POST http://localhost:6336/api/llm_provider \
 Operations are `chat`, `text_completion`, `responses`, `response_compaction`,
 `embeddings`, `image_generation`, `image_edit`, `image_variation`, `moderation`, `rerank`, `audio_speech`,
 `audio_transcription`, `audio_translation`, `search`, and `ocr`. Capabilities
-are explicit and may include `tools`, `vision`, `audio`, `files`, `streaming`,
+are explicit and may include `tools`, `vision`, `audio`, `files`,
 `json_schema`, `logprobs`, `penalties`, `parallel_tools`, `reasoning`,
 `dimensions`, `token_ids`, `exact_cache`, and `public_cache`.
 
@@ -301,6 +301,10 @@ Their CRUD permissions are independent of `llm_model` execute permission.
 The existing `document.document_content` asset column must be bound to a
 configured Daptin cloud store. File creation fails with `service_unavailable`
 before writing either resource when that canonical asset binding is absent.
+Responses `input_file` content accepts exactly one of inline `file_data`, an
+HTTP(S) `file_url`, or a Daptin `/v1/files` `file_id`. A Daptin file ID is read
+through the same permissioned file resource and normalized to inline content
+before model authorization, routing, metering, and provider invocation.
 
 Model discovery and invocation use the `llm_model` row's ordinary execute
 permissions. A request without a signed-in account is evaluated as a guest, so
@@ -324,11 +328,10 @@ bearer token as their API key.
 
 ### Codex CLI
 
-Daptin `v0.13.1` and newer accepts the current Codex Responses request shape,
-including stateless reasoning includes, input-item IDs, function tool
-namespaces, web search tools, and Codex client metadata. `include` and item IDs
-are preserved upstream; `client_metadata` is client transport metadata and is
-intentionally not forwarded to the model provider.
+Daptin accepts the documented stateless Codex Responses subset, including
+reasoning includes, input-item IDs, function tool namespaces, and web search
+tools. `include` and item IDs are preserved upstream. Unsupported fields,
+including `client_metadata`, are rejected instead of being silently ignored.
 
 Configure Codex with a Daptin bearer token in `DAPTIN_API_KEY`:
 
@@ -349,6 +352,8 @@ Codex sends tool definitions, reasoning controls, and
 `parallel_tools`, and `reasoning` in the `llm_model.capabilities` JSON only when
 the selected upstream deployment supports them. A strict model rejects a
 requested capability that it does not declare.
+The `tools` capability covers function tools, namespaces, and web search; there
+is no second web-search policy flag.
 
 ## Daptin actions
 
