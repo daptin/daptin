@@ -69,6 +69,13 @@ It signs in as the buyer, invokes `prepare_checkout`, invokes `begin_checkout`
 on the resulting attempt, prints the hosted Checkout URL, and proves that the
 buyer cannot call the generated Stripe operation with the service credential.
 
+Build a sales catalog with the ordinary resource query
+`[{"column":"archived_at","operator":"is empty","value":null}]`. To retire a
+plan, PATCH its `archived_at` field to a timestamp. The checkout actions reject
+that plan before creating a new attempt or contacting Stripe. PATCH the field
+to `null` to restore it. Already-created provider sessions remain eligible for
+verified reconciliation so their membership and billing history stay intact.
+
 The same calls from a frontend are:
 
 ```http

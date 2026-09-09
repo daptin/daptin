@@ -3124,6 +3124,8 @@ var StandardTables = []table_info.TableInfo{
 				ColumnDescription: "Unique metering plan name.",
 			},
 			{Name: "price_monthly_cents", ColumnName: "price_monthly_cents", ColumnType: "measurement", DataType: "int(11)", IsNullable: true},
+			{Name: "archived_at", ColumnName: "archived_at", ColumnType: "datetime", DataType: "timestamp", IsNullable: true, IsIndexed: true,
+				ColumnDescription: "Time this plan was retired from new purchases. Existing memberships continue to use the plan."},
 			{Name: "limits", ColumnName: "limits", ColumnType: "json", DataType: "text", DefaultValue: "'[]'", IsNullable: false,
 				ColumnDescription: "Generic named metric limits. Each entry declares metric, window, maximum, and enforcement mode."},
 			{Name: "metadata", ColumnName: "metadata", ColumnType: "json", DataType: "text", IsNullable: true},

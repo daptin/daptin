@@ -16,10 +16,31 @@ For maintainer internals, see [[API-Metering-Technical-KT]].
 
 | Resource | Purpose |
 |---|---|
-| `api_plan` | A named plan and its JSON `limits` array |
+| `api_plan` | A named plan, its JSON `limits`, and its retirement timestamp |
 | `api_member` | A user's active membership and optional billing period |
 | `api_usage` | One held, completed, cancelled, or expired request reservation |
 | `api_quota` | Durable reserved and consumed totals for one metric/window bucket |
+
+`api_plan.archived_at` is the canonical retirement state for sales workflows.
+Set it to a timestamp to retire a plan and to `null` to restore it. Archival does
+not delete or disable the plan: existing `api_member`, `api_usage`, and
+`api_quota` rows continue to resolve it, and metering continues to enforce its
+limits. Purchase catalogs select available plans with the ordinary
+`archived_at is empty` resource query, and purchase actions must check the same
+persisted field before starting provider work. Relationships continue to
+protect billing history from hard deletion.
+
+Retire a plan through a normal resource update with ordinary permissions:
+
+```bash
+curl -X PATCH http://localhost:6336/api/api_plan/API_PLAN_REFERENCE_ID \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"api_plan","id":"API_PLAN_REFERENCE_ID","attributes":{"archived_at":"2026-09-09T00:00:00Z"}}}'
+```
+
+Restore it through the same path by PATCHing `archived_at` to `null`. No
+membership, usage, or quota row needs to be rewritten.
 
 Every limit has this shape:
 

@@ -119,9 +119,17 @@ Actions:
     Permission: 2097152
     InFields: []
     OutFields:
+      - Type: client.notify
+        Method: ACTIONRESPONSE
+        Condition: "!subject.archived_at !== null"
+        Attributes:
+          type: error
+          title: Plan unavailable
+          message: This plan is no longer available for new purchases.
       - Type: checkout_attempt
         Method: POST
         Reference: checkout
+        Condition: "!subject.archived_at === null"
         Attributes:
           status: prepared
           expected_amount_cents: $.price_monthly_cents
@@ -130,6 +138,7 @@ Actions:
           api_plan_id: $.reference_id
       - Type: client.return
         Method: ACTIONRESPONSE
+        Condition: "!subject.archived_at === null"
         Attributes:
           checkout_attempt_id: $checkout.reference_id
           status: $checkout.status
@@ -144,21 +153,37 @@ Actions:
         Permission: 524288
     InFields: []
     OutFields:
+      - Type: api_plan
+        Method: GET_BY_ID
+        Reference: current_plan
+        SkipInResponse: true
+        Attributes:
+          reference_id: $.api_plan_id
+      - Type: client.notify
+        Method: ACTIONRESPONSE
+        Condition: "!current_plan.archived_at !== null"
+        Attributes:
+          type: error
+          title: Plan unavailable
+          message: This plan is no longer available for new purchases.
       - Type: __as_user
         Method: SWITCH_USER
         SkipInResponse: true
+        Condition: "!current_plan.archived_at === null"
         Attributes:
           user_reference_id: __PAYMENTS_SERVICE_USER_REFERENCE_ID__
       - Type: credential
         Method: GET
         Reference: service_credential
         SkipInResponse: true
+        Condition: "!current_plan.archived_at === null"
         Attributes:
           query: '[{"column":"name","operator":"is","value":"stripe-checkout-service"}]'
       - Type: stripe_checkout
         Method: createCheckoutSession
         Reference: stripe_session
         SkipInResponse: true
+        Condition: "!current_plan.archived_at === null"
         Attributes:
           credential_id: $service_credential[0].reference_id
           Idempotency-Key: $.reference_id
@@ -172,6 +197,7 @@ Actions:
       - Type: checkout_attempt
         Method: PATCH
         SkipInResponse: true
+        Condition: "!current_plan.archived_at === null"
         Attributes:
           reference_id: $.reference_id
           status: provider_created
@@ -180,6 +206,7 @@ Actions:
           provider_payment_status: $stripe_session.payment_status
       - Type: client.return
         Method: ACTIONRESPONSE
+        Condition: "!current_plan.archived_at === null"
         Attributes:
           checkout_attempt_id: $.reference_id
           provider_session_id: $stripe_session.id

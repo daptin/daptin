@@ -112,6 +112,131 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 	}
 }
 
+func TestArchivedPlanContinuesToEnforceExistingMembership(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	now := time.Date(2026, time.September, 1, 10, 0, 0, 0, time.UTC)
+	planReference := insertMeteringPlanAndMember(t, cruds, user, now,
+		`[{"metric":"requests","window":"minute","maximum":1,"mode":"hard"}]`)
+
+	administrator := *user
+	administrator.Groups = auth.GroupPermissionList{{GroupReferenceId: cruds["api_plan"].AdministratorGroupId}}
+	archiveTx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	archiveRequest := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch, URL: &url.URL{Path: "/api_plan/" + planReference.String()}}).
+		WithContext(context.WithValue(context.Background(), "user", &administrator))}
+	planUpdate := api2go.NewApi2GoModelWithData("api_plan", nil, 0, nil,
+		map[string]interface{}{"archived_at": now})
+	planUpdate.SetID(planReference.String())
+	if _, err := cruds["api_plan"].UpdateWithTransaction(planUpdate, archiveRequest, archiveTx); err != nil {
+		_ = archiveTx.Rollback()
+		t.Fatalf("archive plan through resource update: %v", err)
+	}
+	if err := archiveTx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	service := NewMeteringService(&cruds)
+	service.now = func() time.Time { return now }
+	admitTx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer admitTx.Rollback()
+	decision, err := service.Admit(MeteringContext{
+		RequestID: "archived-plan-request", User: user, Endpoint: "/items", Method: "GET", RequestType: "crud",
+		Metering: &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"},
+	}, admitTx)
+	if err != nil {
+		t.Fatalf("archived plan stopped existing membership metering: %v", err)
+	}
+	if decision.Plan == nil || decision.Plan["archived_at"] == nil {
+		t.Fatalf("metering did not resolve the archived plan: %#v", decision.Plan)
+	}
+}
+
+func TestAPIPlanDefinesCanonicalArchiveState(t *testing.T) {
+	plan := tableFromConfig(t, &CmsConfig{Tables: StandardTables}, "api_plan")
+	archivedAt := columnFromTable(t, plan, "archived_at")
+	if archivedAt.ColumnType != "datetime" || archivedAt.DataType != "timestamp" || !archivedAt.IsNullable || !archivedAt.IsIndexed {
+		t.Fatalf("api_plan.archived_at must be an optional indexed timestamp: %#v", archivedAt)
+	}
+}
+
+func TestAPIPlanArchiveStateSyncsIntoExistingSchema(t *testing.T) {
+	database, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	statementbuilder.InitialiseStatementBuilder("sqlite3")
+
+	current := tableFromConfig(t, &CmsConfig{Tables: standardTablesForTest(nil)}, "api_plan")
+	beforeArchiveState := *current
+	beforeArchiveState.Columns = make([]api2go.ColumnInfo, 0, len(current.Columns)-1)
+	for _, column := range current.Columns {
+		if column.ColumnName != "archived_at" {
+			beforeArchiveState.Columns = append(beforeArchiveState.Columns, column)
+		}
+	}
+	if err := CheckTable(&beforeArchiveState, database); err != nil {
+		t.Fatalf("create existing api_plan schema: %v", err)
+	}
+	if err := CheckTable(current, database); err != nil {
+		t.Fatalf("sync api_plan archive state: %v", err)
+	}
+	statement, err := database.Preparex("select archived_at from api_plan limit 1")
+	if err != nil {
+		t.Fatalf("archived_at was not added to existing api_plan: %v", err)
+	}
+	_ = statement.Close()
+}
+
+func TestAPIPlanCatalogUsesExplicitArchiveFilter(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	administrator := *user
+	administrator.Groups = auth.GroupPermissionList{{GroupReferenceId: cruds["api_plan"].AdministratorGroupId}}
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api_plan"}}).
+		WithContext(context.WithValue(context.Background(), "user", &administrator))}
+	for _, attributes := range []map[string]interface{}{
+		{"name": "available-plan", "limits": "[]"},
+		{"name": "retired-plan", "limits": "[]", "archived_at": time.Date(2026, time.September, 1, 10, 0, 0, 0, time.UTC)},
+	} {
+		if _, err := cruds["api_plan"].CreateWithoutFilter(
+			api2go.NewApi2GoModelWithData("api_plan", nil, 0, nil, attributes), request, tx,
+		); err != nil {
+			t.Fatalf("create api plan through resource path: %v", err)
+		}
+	}
+
+	request.PlainRequest.Method = http.MethodGet
+	request.QueryParams = map[string][]string{
+		"query": {`[{"column":"archived_at","operator":"is empty","value":null}]`},
+	}
+	available, _, _, _, err := cruds["api_plan"].PaginatedFindAllWithoutFilters(request, tx)
+	if err != nil {
+		t.Fatalf("list available plans through resource query: %v", err)
+	}
+	if len(available) != 1 || StringOrEmpty(available[0]["name"]) != "available-plan" {
+		t.Fatalf("available plan query returned %#v", available)
+	}
+
+	request.QueryParams = nil
+	all, _, _, _, err := cruds["api_plan"].PaginatedFindAllWithoutFilters(request, tx)
+	if err != nil {
+		t.Fatalf("list all permitted plans: %v", err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("ordinary plan listing hid retirement state without an explicit query: %#v", all)
+	}
+}
+
 func TestMeteringSettlesActualMeasuresAndReleasesUnusedReservation(t *testing.T) {
 	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 11, 0, 0, 0, time.UTC)
@@ -632,7 +757,7 @@ func newMeteringTestResources(t *testing.T, database *sqlx.DB, config *CmsConfig
 	return cruds, &auth.SessionUser{UserId: userID, UserReferenceId: userReference}
 }
 
-func insertMeteringPlanAndMember(t *testing.T, cruds map[string]*DbResource, user *auth.SessionUser, now time.Time, limits string) {
+func insertMeteringPlanAndMember(t *testing.T, cruds map[string]*DbResource, user *auth.SessionUser, now time.Time, limits string) daptinid.DaptinReferenceId {
 	t.Helper()
 	tx, err := cruds["api_plan"].Connection().Beginx()
 	if err != nil {
@@ -658,6 +783,7 @@ func insertMeteringPlanAndMember(t *testing.T, cruds map[string]*DbResource, use
 	if err := tx.Commit(); err != nil {
 		t.Fatal(err)
 	}
+	return daptinid.InterfaceToDIR(plan["reference_id"])
 }
 
 func assertMeteringBucket(t *testing.T, service *MeteringService, tx *sqlx.Tx, metric, bucketKey string, reserved, consumed int64) {

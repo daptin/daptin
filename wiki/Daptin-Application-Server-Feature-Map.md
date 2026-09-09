@@ -250,6 +250,9 @@ Metering capabilities:
 
 - `api_plan.limits` defines named metric/window limits for requests, tokens,
   bytes, cost, or application-specific measures.
+- `api_plan.archived_at` retires a plan from new sales while existing
+  memberships continue to use it; see [[API-Metering]] and
+  [[Payments-and-Checkout]].
 - `api_member` assigns users to active plans.
 - `api_usage` records held and terminal metering reservations and final measures.
 - `api_quota` stores durable reserved and consumed totals.

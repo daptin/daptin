@@ -93,7 +93,20 @@ the SQL database directly.
 
 ## Frontend Calls
 
-After sign-in, prepare an attempt using the plan reference:
+List plans available for new purchases with the ordinary resource query:
+
+```bash
+curl -G http://localhost:6336/api/api_plan \
+  -H "Authorization: Bearer $BUYER_TOKEN" \
+  --data-urlencode 'query=[{"column":"archived_at","operator":"is empty","value":null}]'
+```
+
+An operator retires a plan by PATCHing `archived_at` to a timestamp and restores
+it by PATCHing the field to `null`. Ordinary `api_plan` reads remain available,
+subject to permissions, so administrators and historical relationships can
+still resolve retired plans.
+
+After sign-in, prepare an attempt using an available plan reference:
 
 ```bash
 curl -X POST http://localhost:6336/action/api_plan/prepare_checkout \
@@ -125,11 +138,20 @@ The frontend may poll its owned `checkout_attempt` row or subscribe to resource
 events. It must never receive or submit the service user, provider secret,
 credential reference, price, currency, provider Price ID, or membership owner.
 
+Both `prepare_checkout` and `begin_checkout` read the persisted plan state.
+Archival therefore blocks a new attempt and also blocks provider initiation for
+an attempt prepared before retirement. A provider session already created may
+still be reconciled by `refresh_checkout`; verified payment history and its
+resulting membership retain their relationship to the retired plan.
+Retirement prevents work whose initiation check observes the archived state;
+provider work already admitted by an action may finish.
+
 ## Permissions
 
 Grant customers only the gates required to:
 
-- read and execute enabled `api_plan` rows;
+- read permitted `api_plan` rows and execute `prepare_checkout`; the action
+  separately requires `archived_at` to be `null`;
 - create/read/update/execute their own `checkout_attempt` rows;
 - execute the three wrapper actions.
 

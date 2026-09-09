@@ -25,7 +25,7 @@ customer quota enforcement.
 
 | Resource | Important fields |
 |---|---|
-| `api_plan` | `name`, `limits`, `price_monthly_cents`, `metadata` |
+| `api_plan` | `name`, `limits`, `price_monthly_cents`, `archived_at`, `metadata` |
 | `api_member` | `status`, `period_start`, `period_end`, `metadata`, `api_plan_id` |
 | `api_usage` | request identity, lifecycle state, reservation data, final `measures`, metadata, terminal status |
 | `api_quota` | `bucket_key`, metric/window bounds, `maximum`, `reserved`, `consumed` |
@@ -33,6 +33,11 @@ customer quota enforcement.
 `api_plan.limits` is a JSON array of `{metric, window, maximum, mode}` values.
 Supported windows are minute, hour, day, month, and member period. Supported
 modes are hard and soft.
+
+`archived_at` belongs to the plan sales lifecycle. Metering intentionally does
+not filter on it, because existing memberships continue to use their persisted
+plan. See [[API-Metering]] and [[Payments-and-Checkout]] for the operator and
+purchase action contract.
 
 ## Configuration resolution
 
