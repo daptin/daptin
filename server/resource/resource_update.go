@@ -164,8 +164,6 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						continue
 					}
 
-					uploadPath := ""
-
 					for i := range files {
 						file := files[i].(map[string]interface{})
 
@@ -191,10 +189,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 						filemd5 := GetMD5Hash(fileBytes)
 						file["md5"] = filemd5
 						file["size"] = len(fileBytes)
-						path, ok := file["path"]
-						if ok {
-							uploadPath = path.(string)
-						} else {
+						if file["path"] == nil {
 							file["path"] = ""
 						}
 						files[i] = file
@@ -202,39 +197,29 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 					actionRequestParameters := make(map[string]interface{})
 					actionRequestParameters["file"] = val
-					actionRequestParameters["path"] = uploadPath
+					actionRequestParameters["path"] = ""
 
 					cloudStore, err := dbResource.GetCloudStoreByNameWithTransaction(col.ForeignKeyData.Namespace, updateTransaction)
 					CheckErr(err, "Failed to get cloud storage details")
 					if err != nil {
-						continue
+						return nil, err
 					}
 
-					log.Infof("[208] uploading [%s] to cloud storage [%v]", uploadPath, col.ForeignKeyData.Namespace)
+					log.Infof("[208] uploading files to cloud storage [%v]", col.ForeignKeyData.Namespace)
 
 					actionRequestParameters["credential_name"] = cloudStore.CredentialName
 					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
 					actionRequestParameters["store_type"] = cloudStore.StoreType
 					actionRequestParameters["name"] = cloudStore.Name
-					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
-
-					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, updateTransaction)
-					if errs != nil && len(errs) > 0 {
-						log.Errorf("Failed to upload attachments: %v", errs)
+					actionRequestParameters["root_path"], err = cloudStore.ResolvePath(col.ForeignKeyData.KeyName)
+					if err != nil {
+						return nil, err
 					}
 
-					columnAssetCache, ok := dbResource.AssetFolderCache[dbResource.tableInfo.TableName][col.ColumnName]
-					if ok {
-						valInterface, ok1 := val.([]interface{})
-						if ok1 {
-							err = columnAssetCache.UploadFiles(valInterface)
-							CheckErr(err, "Failed to store uploaded file in column [%v]", col.ColumnName)
-							if err != nil {
-								return nil, err
-							}
-						} else {
-							log.Warnf("Failed to store uploaded file in column [%v]", col.ColumnName)
-						}
+					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, updateTransaction)
+					if len(errs) > 0 {
+						log.Errorf("Failed to upload attachments: %v", errs)
+						return nil, errs[0]
 					}
 
 					files, ok = val.([]interface{})

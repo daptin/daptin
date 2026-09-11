@@ -11,6 +11,7 @@ import (
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	hugoCommand "github.com/gohugoio/hugo/commands"
@@ -34,7 +35,6 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 
 	cloudStoreId := daptinid.InterfaceToDIR(inFields["cloud_store_id"])
 	siteId := daptinid.InterfaceToDIR(inFields["site_id"])
-	path := inFields["path"].(string)
 	cloudStore, err := d.cruds["cloud_store"].GetCloudStoreByReferenceId(cloudStoreId, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
@@ -60,9 +60,9 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 		}
 	}
 
-	tempDirectoryPath := path
-	if tempDirectoryPath == "" {
-		tempDirectoryPath = siteCacheFolder.LocalSyncPath
+	tempDirectoryPath, err := storagefs.ResolveLocalPath(siteCacheFolder.LocalSyncPath, "")
+	if err != nil {
+		return nil, nil, []error{err}
 	}
 
 	daptinSite, _, err := d.cruds["site"].GetSingleRowByReferenceIdWithTransaction("site", siteId, nil, transaction)
@@ -71,9 +71,12 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 	}
 	is_hugo_site := daptinSite["site_type"] == "hugo"
 
-	path = strings.Trim(siteCacheFolder.Keyname, "/")
+	storagePath, err := cloudStore.ResolvePath(siteCacheFolder.Keyname)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 	args := []string{
-		cloudStore.RootPath + "/" + path,
+		storagePath,
 		tempDirectoryPath,
 	}
 
@@ -91,7 +94,7 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 
 		ctx := context.Background()
 		if fsrc == nil || fdst == nil {
-			log.Errorf("Source[%s] or destination[%s] is null", cloudStore.RootPath+path, tempDirectoryPath)
+			log.Errorf("Source[%s] or destination[%s] is null", storagePath, tempDirectoryPath)
 			return nil
 		}
 		log.Infof("[97] Starting to copy drive for site base from [%v] to [%v]", fsrc.String(), fdst.String())

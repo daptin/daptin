@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/daptin/daptin/server/auth"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	daptinid "github.com/daptin/daptin/server/id"
 	log "github.com/sirupsen/logrus"
 
@@ -244,42 +245,7 @@ func (driver *ClientDriver) sitePath(ftpPath string) (string, SubSiteAssetCache,
 }
 
 func containedPath(rootPath string, relativePath string) (string, error) {
-	rootPath, err := filepath.Abs(rootPath)
-	if err != nil {
-		return "", err
-	}
-	rootPath = filepath.Clean(rootPath)
-	fullPath := filepath.Join(rootPath, relativePath)
-	pathFromRoot, err := filepath.Rel(rootPath, fullPath)
-	if err != nil || pathFromRoot == ".." || strings.HasPrefix(pathFromRoot, ".."+string(filepath.Separator)) {
-		return "", errors.New("path escapes site root")
-	}
-
-	resolvedRoot, err := filepath.EvalSymlinks(rootPath)
-	if err != nil {
-		return "", err
-	}
-	resolvedAncestor := fullPath
-	for {
-		resolvedPath, resolveErr := filepath.EvalSymlinks(resolvedAncestor)
-		if resolveErr == nil {
-			resolvedFromRoot, relErr := filepath.Rel(resolvedRoot, resolvedPath)
-			if relErr != nil || resolvedFromRoot == ".." || strings.HasPrefix(resolvedFromRoot, ".."+string(filepath.Separator)) {
-				return "", errors.New("path escapes site root through symlink")
-			}
-			break
-		}
-		if !errors.Is(resolveErr, os.ErrNotExist) {
-			return "", resolveErr
-		}
-		parent := filepath.Dir(resolvedAncestor)
-		if parent == resolvedAncestor {
-			return "", resolveErr
-		}
-		resolvedAncestor = parent
-	}
-
-	return fullPath, nil
+	return storagefs.ResolveLocalPath(rootPath, relativePath)
 }
 
 func (driver *ClientDriver) resolveSitePath(ftpPath string) (string, SubSiteAssetCache, string, error) {

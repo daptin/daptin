@@ -8,8 +8,8 @@ import (
 	"github.com/artpar/rclone/fs/filter"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/daptin/daptin/server/actionresponse"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -18,6 +18,7 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/fs/config"
 	"os"
+	"path"
 )
 
 type cloudStoreFolderCreateActionPerformer struct {
@@ -32,23 +33,27 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request actionresponse.
 
 	responses := make([]actionresponse.ActionResponse, 0)
 
-	u, _ := uuid.NewV7()
-	sourceDirectoryName := "upload-" + u.String()[0:8]
-	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
-	log.Printf("Temp directory for this upload cloudStoreFolderCreateActionPerformer: %v", tempDirectoryPath)
-
-	//defer os.RemoveAll(tempDirectoryPath) // clean up
-
-	resource.CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
 	atPath, _ := inFields["path"].(string)
 	folderName, _ := inFields["name"].(string)
 	rootPath := inFields["root_path"].(string)
-
-	if len(atPath) > 0 && atPath[len(atPath)-1] != '/' {
-		atPath = atPath + "/"
+	folderPath, err := storagefs.ValidatePath(path.Join(atPath, folderName))
+	if err != nil {
+		return nil, nil, []error{err}
 	}
-
-	folderPath := atPath + folderName
+	if folderPath == "" {
+		return nil, nil, []error{fmt.Errorf("folder path must be below the storage root")}
+	}
+	isLocal, err := isLocalCloudStore(inFields)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	var localFolderPath string
+	if isLocal {
+		localFolderPath, err = storagefs.ResolveLocalPath(rootPath, folderPath)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
 	args := []string{
 		rootPath,
 	}
@@ -68,7 +73,7 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request actionresponse.
 
 	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{
-		Use: fmt.Sprintf("File upload action from [%v]", tempDirectoryPath),
+		Use: fmt.Sprintf("Create folder action at [%v]", folderPath),
 	}
 	ctx := context.Background()
 	newFilter, _ := filter.NewFilter(nil)
@@ -83,14 +88,15 @@ func (d *cloudStoreFolderCreateActionPerformer) DoAction(request actionresponse.
 			return nil
 		}
 
-		err := operations.Mkdir(ctx, fsrc, folderPath)
+		var err error
+		if localFolderPath != "" {
+			err = os.MkdirAll(localFolderPath, 0777)
+		} else {
+			err = operations.Mkdir(ctx, fsrc, folderPath)
+		}
 		if err != nil {
 			resource.InfoErr(err, "Failed to sync files for upload to cloud")
 			return err
-		}
-		err = os.RemoveAll(tempDirectoryPath)
-		if err != nil {
-			resource.InfoErr(err, "Failed to remove temp directory after folder create")
 		}
 		return err
 	})

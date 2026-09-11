@@ -37,7 +37,10 @@ func (d *cloudStoreFileListActionPerformer) DoAction(request actionresponse.Outc
 		return nil, responses, []error{errors.New("site not found")}
 	}
 
-	contents, _ := siteCacheFolder.GetPathContents(path)
+	contents, err := siteCacheFolder.GetPathContents(path)
+	if err != nil {
+		return nil, responses, []error{err}
+	}
 
 	fileListResponse := resource.NewResponse(nil, api2go.NewApi2GoModelWithData("file", nil, 0, nil, map[string]interface{}{
 		"files": contents,

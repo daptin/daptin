@@ -6,10 +6,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 
 	_ "github.com/artpar/rclone/backend/local"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/daptin/daptin/server/rootpojo"
 )
 
@@ -32,6 +34,7 @@ func TestConcurrentColdCacheRequestsShareDownload(t *testing.T) {
 		Keyname:       keyName,
 		CloudStore: rootpojo.CloudStore{
 			RootPath:      remoteRoot,
+			StoreType:     "cloud",
 			StoreProvider: "remote-for-test",
 		},
 	}
@@ -86,6 +89,7 @@ func TestCloudObjectNotFoundIsClassified(t *testing.T) {
 		Keyname:       "assets",
 		CloudStore: rootpojo.CloudStore{
 			RootPath:      t.TempDir(),
+			StoreType:     "cloud",
 			StoreProvider: "remote-for-test",
 		},
 	}
@@ -96,5 +100,59 @@ func TestCloudObjectNotFoundIsClassified(t *testing.T) {
 	}
 	if !IsAssetNotFound(err) {
 		t.Fatalf("IsAssetNotFound(%v) = false", err)
+	}
+}
+
+func TestLocalAssetOperationsCannotEscapeStoreRoot(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation requires additional privileges on Windows")
+	}
+
+	root := t.TempDir()
+	outside := t.TempDir()
+	keyName := "assets"
+	assetRoot := filepath.Join(root, keyName)
+	if err := os.MkdirAll(assetRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outsideFile := filepath.Join(outside, "canary.txt")
+	if err := os.WriteFile(outsideFile, []byte("outside"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(assetRoot, "escape")); err != nil {
+		t.Fatal(err)
+	}
+
+	assetCache := &AssetFolderCache{
+		LocalSyncPath: assetRoot,
+		Keyname:       keyName,
+		CloudStore: rootpojo.CloudStore{
+			RootPath:      root,
+			StoreType:     "local",
+			StoreProvider: "localstore",
+		},
+	}
+
+	if _, err := assetCache.GetFileByName("../canary.txt"); !errors.Is(err, storagefs.ErrPathEscapesRoot) {
+		t.Fatalf("lexical read escape error = %v", err)
+	}
+	if _, err := assetCache.GetFileByName("escape/canary.txt"); !errors.Is(err, storagefs.ErrPathEscapesRoot) {
+		t.Fatalf("symlink read escape error = %v", err)
+	}
+	if _, err := assetCache.GetPathContents("escape"); !errors.Is(err, storagefs.ErrPathEscapesRoot) {
+		t.Fatalf("symlink list escape error = %v", err)
+	}
+	if err := assetCache.DeleteFileByName("escape/canary.txt"); !errors.Is(err, storagefs.ErrPathEscapesRoot) {
+		t.Fatalf("symlink delete escape error = %v", err)
+	}
+	got, err := os.ReadFile(outsideFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "outside" {
+		t.Fatalf("outside file changed to %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(outside, "created.txt")); !os.IsNotExist(err) {
+		t.Fatalf("outside upload exists or stat failed unexpectedly: %v", err)
 	}
 }

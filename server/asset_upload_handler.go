@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/jmoiron/sqlx"
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -67,11 +69,13 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 			c.AbortWithError(400, errors.New("filename query parameter is required"))
 			return
 		}
-		// Strip path traversal from filename
+		// Asset names are virtual paths rooted in the configured store.
 		if fileName != "" {
-			fileName = filepath.Clean(fileName)
-			for strings.HasPrefix(fileName, "..") {
-				fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+			var err error
+			fileName, err = storagefs.ValidatePath(fileName)
+			if err != nil || fileName == "" {
+				c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+				return
 			}
 		}
 		// Validate table and column
@@ -289,8 +293,16 @@ func handleStreamUpload(c *gin.Context, fileName string, assetCache *assetcachep
 
 	// For local storage or when Rcat is not suitable, use traditional approach
 	if isLocalStorage(assetCache) {
-		// Write to local file — sanitize to prevent path traversal
-		localPath := filepath.Join(assetCache.LocalSyncPath, fileName)
+		fileName, err := storagefs.ValidatePath(fileName)
+		if err != nil || fileName == "" {
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+			return
+		}
+		localPath, err := assetCache.CloudStore.ResolvePath(path.Join(assetCache.Keyname, fileName))
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+			return
+		}
 
 		// Ensure directory exists
 		os.MkdirAll(filepath.Dir(localPath), 0755)
@@ -327,7 +339,12 @@ func handleStreamUpload(c *gin.Context, fileName string, assetCache *assetcachep
 	ctx := context.Background()
 
 	// Parse destination filesystem
-	fdst, err := fs.NewFs(ctx, assetCache.CloudStore.RootPath+"/"+assetCache.Keyname)
+	destination, err := assetCache.CloudStore.ResolvePath(assetCache.Keyname)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid storage path"))
+		return
+	}
+	fdst, err := fs.NewFs(ctx, destination)
 	if err != nil {
 		log.Errorf("Failed to create destination filesystem: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -402,11 +419,12 @@ func handleUploadComplete(c *gin.Context, cruds map[string]*resource.DbResource,
 		// Get filename from metadata if not in query param
 		if fileName == "" {
 			if fn, ok := metadata["fileName"].(string); ok {
-				fn = filepath.Clean(fn)
-				for strings.HasPrefix(fn, "..") {
-					fn = strings.TrimPrefix(strings.TrimPrefix(fn, ".."), string(filepath.Separator))
+				var err error
+				fileName, err = storagefs.ValidatePath(fn)
+				if err != nil || fileName == "" {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fileName"})
+					return
 				}
-				fileName = fn
 			}
 		}
 
@@ -513,11 +531,12 @@ func handleUploadComplete(c *gin.Context, cruds map[string]*resource.DbResource,
 		fileType = fType
 	}
 	if fName, ok := metadata["fileName"].(string); ok && fileName == "" {
-		fName = filepath.Clean(fName)
-		for strings.HasPrefix(fName, "..") {
-			fName = strings.TrimPrefix(strings.TrimPrefix(fName, ".."), string(filepath.Separator))
+		var err error
+		fileName, err = storagefs.ValidatePath(fName)
+		if err != nil || fileName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fileName"})
+			return
 		}
-		fileName = fName
 	}
 
 	// Verify file exists in cloud storage (optional based on provider)
@@ -601,13 +620,16 @@ func setupCloudStorageCredentials(assetCache *assetcachepojo.AssetFolderCache) s
 
 func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName string) bool {
 	// For local storage, check file existence
-	if assetCache.CloudStore.StoreProvider == "local" {
-		fileName = filepath.Clean(fileName)
-		for strings.HasPrefix(fileName, "..") {
-			fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
+	if assetCache.CloudStore.StoreType == "local" {
+		fileName, err := storagefs.ValidatePath(fileName)
+		if err != nil || fileName == "" {
+			return false
 		}
-		localPath := filepath.Join(assetCache.LocalSyncPath, fileName)
-		_, err := os.Stat(localPath)
+		localPath, err := assetCache.CloudStore.ResolvePath(path.Join(assetCache.Keyname, fileName))
+		if err != nil {
+			return false
+		}
+		_, err = os.Stat(localPath)
 		return err == nil
 	}
 
@@ -618,7 +640,15 @@ func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName str
 	setupCloudStorageCredentials(assetCache)
 
 	// Check if file exists
-	fsrc, err := fs.NewFs(ctx, assetCache.CloudStore.RootPath+"/"+assetCache.Keyname)
+	source, err := assetCache.CloudStore.ResolvePath(assetCache.Keyname)
+	if err != nil {
+		return false
+	}
+	fileName, err = storagefs.ValidatePath(fileName)
+	if err != nil || fileName == "" {
+		return false
+	}
+	fsrc, err := fs.NewFs(ctx, source)
 	if err != nil {
 		return false
 	}
@@ -627,14 +657,9 @@ func verifyFileInCloud(assetCache *assetcachepojo.AssetFolderCache, fileName str
 	return err == nil
 }
 
-// getUploadPath constructs the full path for upload destination
-func getUploadPath(assetCache *assetcachepojo.AssetFolderCache, fileName string) string {
-	return assetCache.CloudStore.RootPath + "/" + assetCache.Keyname + "/" + fileName
-}
-
 // isLocalStorage checks if the storage provider is local filesystem
 func isLocalStorage(assetCache *assetcachepojo.AssetFolderCache) bool {
-	return assetCache.CloudStore.StoreProvider == "local"
+	return assetCache.CloudStore.StoreType == "local"
 }
 
 // handleGetPartPresignedURL generates a presigned URL for a specific part in multipart upload
@@ -670,6 +695,11 @@ func handleGetPartPresignedURL(c *gin.Context, assetCache *assetcachepojo.AssetF
 	fileName := c.Query("filename")
 	if fileName == "" {
 		c.AbortWithError(400, fmt.Errorf("filename is required"))
+		return
+	}
+	fileName, err = storagefs.ValidatePath(fileName)
+	if err != nil || fileName == "" {
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
 		return
 	}
 
@@ -745,6 +775,11 @@ func handleAbortMultipartUpload(c *gin.Context, assetCache *assetcachepojo.Asset
 		c.AbortWithError(400, fmt.Errorf("filename is required"))
 		return
 	}
+	fileName, err := storagefs.ValidatePath(fileName)
+	if err != nil || fileName == "" {
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
+		return
+	}
 
 	keyPath := assetCache.Keyname + "/" + fileName
 
@@ -770,7 +805,7 @@ func handleAbortMultipartUpload(c *gin.Context, assetCache *assetcachepojo.Asset
 	}
 
 	// Abort the multipart upload
-	err := AbortS3MultipartUpload(assetCache.Credentials, bucketName, keyPath, uploadId)
+	err = AbortS3MultipartUpload(assetCache.Credentials, bucketName, keyPath, uploadId)
 	if err != nil {
 		log.Errorf("Failed to abort multipart upload: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)

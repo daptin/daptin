@@ -201,7 +201,8 @@ func TestServeResolvedMediaAssetFromLocalCloudStoreKey(t *testing.T) {
 		Keyname:       keyName,
 		CloudStore: rootpojo.CloudStore{
 			RootPath:      rootDir,
-			StoreProvider: "local",
+			StoreType:     "local",
+			StoreProvider: "localstore",
 		},
 	}
 

@@ -2,16 +2,15 @@ package assetcachepojo
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -45,21 +44,26 @@ func (afc *AssetFolderCache) GetFileByName(fileName string) (*os.File, error) {
 // requests miss the same cloud-backed object. Every caller receives its own file
 // descriptor; only the cache fill is shared.
 func (afc *AssetFolderCache) GetFileByNameContext(ctx context.Context, fileName string) (*os.File, error) {
-	baseDir := afc.storageBaseDir()
-	fileName = cleanAssetRelativePath(fileName)
+	fileName, err := storagefs.ValidatePath(fileName)
+	if err != nil {
+		return nil, err
+	}
 	if fileName == "" {
 		return nil, fmt.Errorf("file name cannot be empty")
 	}
-	localFilePath := filepath.Join(baseDir, fileName)
+	localFilePath, err := afc.resolveLocalPath(fileName)
+	if err != nil {
+		return nil, err
+	}
 
 	// Try to open the file from local cache first
-	file, err := os.Open(path.Clean(localFilePath))
+	file, err := os.Open(localFilePath)
 	if err == nil {
 		return file, nil
 	}
 
 	// If file not found in local cache and cloud store is not local, try to download it
-	if os.IsNotExist(err) && afc.CloudStore.StoreProvider != "local" {
+	if os.IsNotExist(err) && afc.CloudStore.StoreType != "local" {
 		// Download the file from cloud storage
 		key, keyErr := filepath.Abs(localFilePath)
 		if keyErr != nil {
@@ -115,23 +119,28 @@ func IsAssetNotFound(err error) bool {
 // downloadFileFromCloudStore downloads a specific file from cloud storage to local cache
 func (afc *AssetFolderCache) downloadFileFromCloudStore(ctx context.Context, fileName string) error {
 	// Setup credentials if available
-	fileName = strings.Trim(fileName, "/")
-	fileName = path.Clean(fileName)
+	fileName, err := storagefs.ValidatePath(fileName)
+	if err != nil {
+		return err
+	}
 	configSetName := afc.CloudStore.Name
 	if strings.Index(afc.CloudStore.RootPath, ":") > -1 {
 		configSetName = strings.Split(afc.CloudStore.RootPath, ":")[0]
 	}
 	// Prepare source and destination paths
-	keyname := afc.Keyname
-	keyname = strings.Trim(keyname, "/")
-	sourcePath := path.Clean(afc.CloudStore.RootPath + string(os.PathSeparator) + keyname)
-	destPathFolder := afc.LocalSyncPath + string(os.PathSeparator)
-	destFilePath := path.Clean(destPathFolder + string(os.PathSeparator) + fileName)
+	sourcePath, err := afc.CloudStore.ResolvePath(afc.Keyname)
+	if err != nil {
+		return err
+	}
+	destFilePath, err := storagefs.ResolveLocalPath(afc.LocalSyncPath, fileName)
+	if err != nil {
+		return err
+	}
 
 	// Ensure the final file and its temporary sibling share a directory so the
 	// rename is atomic.
 	destDir := filepath.Dir(destFilePath)
-	err := os.MkdirAll(destDir, 0755)
+	err = os.MkdirAll(destDir, 0755)
 	if err != nil {
 		return errors.Wrap(err, "failed to create destination directory")
 	}
@@ -220,16 +229,26 @@ func (afc *AssetFolderCache) newCloudFilesystem(ctx context.Context, sourcePath,
 	return fs.NewFs(ctx, sourcePath)
 }
 func (afc *AssetFolderCache) DeleteFileByName(fileName string) error {
-	fileName = cleanAssetRelativePath(fileName)
+	fileName, err := storagefs.ValidatePath(fileName)
+	if err != nil {
+		return err
+	}
 	if fileName == "" {
 		return nil
 	}
-	return os.Remove(filepath.Join(afc.storageBaseDir(), fileName))
+	localPath, err := afc.resolveLocalPath(fileName)
+	if err != nil {
+		return err
+	}
+	return os.Remove(localPath)
 }
 
 func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interface{}, error) {
-	path = cleanAssetRelativePath(path)
-	fileInfo, err := os.ReadDir(filepath.Join(afc.storageBaseDir(), path))
+	localPath, err := afc.resolveLocalPath(path)
+	if err != nil {
+		return nil, err
+	}
+	fileInfo, err := os.ReadDir(localPath)
 	if err != nil {
 		return nil, err
 	}
@@ -255,87 +274,17 @@ func (afc *AssetFolderCache) GetPathContents(path string) ([]map[string]interfac
 
 }
 
-func (afc *AssetFolderCache) UploadFiles(files []interface{}) error {
-
-	for i := range files {
-		file := files[i].(map[string]interface{})
-		contents, ok := file["file"]
-		if !ok {
-			contents = file["contents"]
-		}
-		if contents != nil {
-
-			contentString, ok := contents.(string)
-			if ok && len(contentString) > 4 {
-
-				if strings.Index(contentString, ",") > -1 {
-					contentParts := strings.Split(contentString, ",")
-					contentString = contentParts[len(contentParts)-1]
-				}
-				fileBytes, e := base64.StdEncoding.DecodeString(contentString)
-				if e != nil {
-					continue
-				}
-				if file["name"] == nil {
-					return errors.WithMessage(errors.New("file name cannot be null"), "File name is null")
-				}
-				safeName := cleanAssetRelativePath(file["name"].(string))
-				if safeName == "" || safeName == "." {
-					continue
-				}
-				subDir := ""
-				if file["path"] != nil {
-					subDir = cleanAssetRelativePath(file["path"].(string))
-				}
-				var localFilePath string
-				if subDir != "" {
-					localFilePath = filepath.Join(afc.storageBaseDir(), subDir, safeName)
-				} else {
-					localFilePath = filepath.Join(afc.storageBaseDir(), safeName)
-				}
-				dirPath := filepath.Dir(localFilePath)
-				createDirIfNotExist(dirPath)
-				err := os.WriteFile(localFilePath, fileBytes, os.ModePerm)
-				if err != nil {
-					log.Error("[206] Failed to write data to local file store asset cache folder")
-					return errors.WithMessage(err, "Failed to write data to local file store ")
-				}
-			}
-		}
+func (afc *AssetFolderCache) storageBaseDir() (string, error) {
+	if afc.CloudStore.StoreType == "local" {
+		return afc.CloudStore.ResolvePath(afc.Keyname)
 	}
-
-	return nil
-
+	return storagefs.ResolveLocalPath(afc.LocalSyncPath, "")
 }
 
-func (afc *AssetFolderCache) storageBaseDir() string {
-	if afc.CloudStore.StoreProvider == "local" || afc.CloudStore.StoreType == "local" {
-		return filepath.Join(afc.CloudStore.RootPath, afc.Keyname)
+func (afc *AssetFolderCache) resolveLocalPath(fileName string) (string, error) {
+	baseDir, err := afc.storageBaseDir()
+	if err != nil {
+		return "", err
 	}
-	return afc.LocalSyncPath
-}
-
-func cleanAssetRelativePath(fileName string) string {
-	fileName = filepath.Clean(fileName)
-	for filepath.IsAbs(fileName) {
-		fileName = strings.TrimPrefix(fileName, string(filepath.Separator))
-		fileName = filepath.Clean(fileName)
-	}
-	for strings.HasPrefix(fileName, "..") {
-		fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
-		fileName = filepath.Clean(fileName)
-	}
-	if fileName == "." {
-		return ""
-	}
-	return fileName
-}
-
-func createDirIfNotExist(dir string) {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.MkdirAll(dir, 0755)
-		if err != nil {
-			panic(err)
-		}
-	}
+	return storagefs.ResolveLocalPath(baseDir, fileName)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"net/url"
-	"os"
+	"path"
 	"strings"
 
 	"fmt"
@@ -112,6 +112,10 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 			}
 
 			deleteFileActionPerformer, _ := GetGlobalActionHandler("site.file.delete")
+			storagePath, err := cloudStoreData.ResolvePath(column.ForeignKeyData.KeyName)
+			if err != nil {
+				return err
+			}
 
 			fileListJson, ok := data[column.ColumnName].([]map[string]interface{})
 			if !ok {
@@ -120,6 +124,7 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 			}
 			log.Infof("[95] Delete attached file on column [%s] from disk: %v", column.Name, fileListJson)
 			for _, fileItem := range fileListJson {
+				filePath := path.Join(fileItem["path"].(string), fileItem["name"].(string))
 
 				outcome := actionresponse.Outcome{}
 				actionParameters := map[string]interface{}{
@@ -127,17 +132,18 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 					"store_provider":  cloudStoreData.StoreProvider,
 					"store_type":      cloudStoreData.StoreType,
 					"name":            cloudStoreData.Name,
-					"path":            fileItem["path"].(string) + "/" + fileItem["name"].(string),
-					"root_path":       cloudStoreData.RootPath + "/" + column.ForeignKeyData.KeyName,
+					"path":            filePath,
+					"root_path":       storagePath,
 				}
 				_, _, errList := deleteFileActionPerformer.DoAction(outcome, actionParameters, transaction)
 				if len(errList) > 0 {
 					log.Errorf("[108] Failed to delete file: %v", errList)
+					return errList[0]
 				}
 
 				columnAssetCache, ok := dbResource.AssetFolderCache[dbResource.tableInfo.TableName][column.ColumnName]
-				if ok {
-					err = columnAssetCache.DeleteFileByName(fileItem["path"].(string) + string(os.PathSeparator) + fileItem["name"].(string))
+				if ok && cloudStoreData.StoreType != "local" {
+					err = columnAssetCache.DeleteFileByName(filePath)
 					CheckErr(err, "[114] Failed to delete file from local asset cache: %v", column.ColumnName)
 				}
 

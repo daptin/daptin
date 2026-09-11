@@ -39,6 +39,14 @@ func BeginsWithCheck(str string, beginsWith string) bool {
 
 }
 
+func isLocalCloudStore(inFields map[string]interface{}) (bool, error) {
+	storeType, ok := inFields["store_type"].(string)
+	if !ok || storeType == "" {
+		return false, errors.New("cloud store type is missing")
+	}
+	return storeType == "local", nil
+}
+
 func SmallSnakeCaseText(str string) string {
 	transformed := conform.TransformString(str, "lower,snake")
 	return transformed

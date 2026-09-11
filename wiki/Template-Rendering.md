@@ -113,6 +113,8 @@ Daptin resolves the site reference id to the site's local synced folder and load
 ```
 
 `site://` uses the same site/subsite file cache lookup path as `subsite://`.
+In both forms, the file path is relative to that site's configured storage path;
+paths that resolve outside it are rejected.
 
 ## Template Syntax
 

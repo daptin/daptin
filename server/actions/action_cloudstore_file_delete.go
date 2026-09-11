@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/daptin/daptin/server/actionresponse"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
@@ -42,6 +43,8 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 
 	// Get root_path either directly or via site_id lookup
 	rootPath, ok := inFields["root_path"].(string)
+	basePath := ""
+	storeType, _ := inFields["store_type"].(string)
 	var siteCredentials map[string]interface{}
 	if !ok || rootPath == "" {
 		// Try to get root_path from site_id via SubsiteFolderCache
@@ -56,22 +59,39 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 		}
 
 		rootPath = siteCacheFolder.CloudStore.RootPath
-		if siteCacheFolder.Keyname != "" {
-			if !EndsWithCheck(rootPath, "/") {
-				rootPath = rootPath + "/"
-			}
-			rootPath = rootPath + siteCacheFolder.Keyname
-		}
+		basePath = siteCacheFolder.Keyname
+		storeType = siteCacheFolder.CloudStore.StoreType
 		siteCredentials = siteCacheFolder.Credentials
 	}
 
-	if atPath != "" {
-		if !EndsWithCheck(rootPath, "/") && !resource.BeginsWith(atPath, "/") {
-			rootPath = rootPath + "/"
-		}
-		rootPath = rootPath + atPath
+	basePath, err := storagefs.ValidatePath(basePath)
+	if err != nil {
+		return nil, nil, []error{err}
 	}
-	rootPath = path.Clean(rootPath)
+	atPath, err = storagefs.ValidatePath(atPath)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	if atPath == "" {
+		return nil, nil, []error{errors.New("delete path cannot be the storage root")}
+	}
+	targetPath, err := storagefs.ValidatePath(path.Join(basePath, atPath))
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	storageRoot := rootPath
+	if storeType == "" {
+		return nil, nil, []error{errors.New("cloud store type is missing")}
+	}
+	isLocal := storeType == "local"
+	if isLocal {
+		rootPath, err = storagefs.ResolveLocalPath(storageRoot, targetPath)
+	} else {
+		rootPath, err = storagefs.ResolvePath(storageRoot, targetPath)
+	}
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 	args := []string{
 		rootPath,
 	}
@@ -79,7 +99,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 
 	// Set credentials from inFields or from site cache
 	credentialName, ok := inFields["credential_name"]
-	storeName := strings.Split(rootPath, ":")[0]
+	storeName := strings.Split(storageRoot, ":")[0]
 	if ok && credentialName != nil && credentialName != "" {
 		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
 		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
@@ -113,7 +133,7 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 		}
 
 		var err error
-		if strings.Contains(rootPath, ":") {
+		if !isLocal {
 			// Remote storage (S3, MinIO, etc.)
 			// Detect if path is a directory (ends with / or has no extension)
 			isDirectory := strings.HasSuffix(atPath, "/") ||

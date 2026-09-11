@@ -22,8 +22,10 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -47,14 +49,17 @@ func unzip(archive, target string) error {
 	}
 
 	for _, file := range reader.File {
-		entryName := filepath.Clean(file.Name)
-		for strings.HasPrefix(entryName, "..") {
-			entryName = strings.TrimPrefix(strings.TrimPrefix(entryName, ".."), string(filepath.Separator))
+		entryName, err := storagefs.ValidatePath(file.Name)
+		if err != nil {
+			return err
 		}
 		if entryName == "" || entryName == "." {
 			continue
 		}
-		safePath := filepath.Join(target, entryName)
+		safePath, err := storagefs.ResolveLocalPath(target, entryName)
+		if err != nil {
+			return err
+		}
 		if file.FileInfo().IsDir() {
 			os.MkdirAll(safePath, file.Mode())
 			continue
@@ -88,83 +93,127 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 
 	responses := make([]actionresponse.ActionResponse, 0)
 
+	atPath, ok := inFields["path"].(string)
+	files, ok := inFields["file"].([]interface{})
+	if !ok {
+		return nil, nil, []error{fmt.Errorf("improper file attachment, expected []interface{} got %v", inFields["file"])}
+	}
+	atPath, err := storagefs.ValidatePath(atPath)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	for _, fileInterface := range files {
+		file := fileInterface.(map[string]interface{})
+		fileName, ok := file["name"].(string)
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("file name is missing")}
+		}
+		fileName, err = storagefs.ValidatePath(fileName)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		if fileName == "" {
+			return nil, nil, []error{fmt.Errorf("file name cannot be empty")}
+		}
+		file["name"] = fileName
+		filePath := ""
+		if file["path"] != nil {
+			filePath, ok = file["path"].(string)
+			if !ok {
+				return nil, nil, []error{fmt.Errorf("file path must be a string")}
+			}
+			filePath, err = storagefs.ValidatePath(filePath)
+			if err != nil {
+				return nil, nil, []error{err}
+			}
+		}
+		file["path"] = filePath
+	}
+
+	storageRoot := inFields["root_path"].(string)
+	localStorageRoot := ""
+	rootPath := storageRoot
+	isLocal, err := isLocalCloudStore(inFields)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	if isLocal {
+		localStorageRoot = storageRoot
+		rootPath, err = storagefs.ResolveLocalPath(storageRoot, atPath)
+	} else {
+		rootPath, err = storagefs.ResolvePath(storageRoot, atPath)
+	}
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	if localStorageRoot != "" {
+		for _, fileInterface := range files {
+			file := fileInterface.(map[string]interface{})
+			if _, err := storagefs.ResolveLocalPath(localStorageRoot, path.Join(atPath, file["path"].(string), file["name"].(string))); err != nil {
+				return nil, nil, []error{err}
+			}
+		}
+	}
+
 	u, _ := uuid.NewV7()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Debugf("Temp directory for this upload fileUploadActionPerformer: %v", tempDirectoryPath)
-
-	//defer os.RemoveAll(tempDirectoryPath) // clean up
-
-	resource.CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
-	atPath, ok := inFields["path"].(string)
-	files, ok := inFields["file"].([]interface{})
-	if ok {
-
-		for _, fileInterface := range files {
-			file := fileInterface.(map[string]interface{})
-			fileName, ok := file["name"].(string)
-			if !ok {
-				log.Errorf("Name is missing for file")
-				continue
-			}
-			fileName = filepath.Clean(fileName)
-			for strings.HasPrefix(fileName, "..") {
-				fileName = strings.TrimPrefix(strings.TrimPrefix(fileName, ".."), string(filepath.Separator))
-			}
-			if fileName == "" || fileName == "." {
-				continue
-			}
-			temproryFilePath := filepath.Join(tempDirectoryPath, fileName)
-
-			fileContentsBase64, ok := file["file"].(string)
-			if !ok {
-				fileContentsBase64, ok = file["contents"].(string)
-				if !ok {
-					continue
-				}
-			}
-			splitParts := strings.Split(fileContentsBase64, ",")
-			encodedPart := splitParts[0]
-			if len(splitParts) > 1 {
-				encodedPart = splitParts[len(splitParts)-1]
-			}
-			fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
-			log.Infof("[116] Write file [%v] for upload", temproryFilePath)
-			resource.CheckErr(err, "Failed to convert base64 to []bytes")
-
-			fileDir := filepath.Dir(temproryFilePath)
-			os.MkdirAll(fileDir, 0755)
-
-			err = os.WriteFile(temproryFilePath, fileBytes, 0666)
-			resource.CheckErr(err, "[122] Failed to write file bytes to temp file for rclone upload")
-
-			if EndsWithCheck(fileName, ".zip") {
-				err = unzip(temproryFilePath, tempDirectoryPath)
-				resource.CheckErr(err, "Failed to unzip file")
-				go func() {
-					time.Sleep(5 * time.Minute)
-					err = os.Remove(temproryFilePath)
-					resource.CheckErr(err, "Failed to remove zip file after extraction")
-				}()
-
-			}
-
-		}
-		resource.CheckErr(err, "Failed to remove cache folder: %s", tempDirectoryPath)
-	} else {
-		return nil, nil, []error{fmt.Errorf("improper file attachment, expected []interface{} got %v", inFields["file"])}
+	if err != nil {
+		return nil, nil, []error{err}
 	}
 
-	rootPath := inFields["root_path"].(string)
-	if atPath != "" {
-		atPath = filepath.Clean(atPath)
-		for strings.HasPrefix(atPath, "..") {
-			atPath = strings.TrimPrefix(strings.TrimPrefix(atPath, ".."), string(filepath.Separator))
+	for _, fileInterface := range files {
+		file := fileInterface.(map[string]interface{})
+		fileName := file["name"].(string)
+		filePath := file["path"].(string)
+		temproryFilePath, err := storagefs.ResolveLocalPath(tempDirectoryPath, path.Join(filePath, fileName))
+		if err != nil {
+			return nil, nil, []error{err}
 		}
-		if !EndsWithCheck(rootPath, "/") && len(atPath) > 0 && atPath[0] != '/' {
-			rootPath = rootPath + "/"
+
+		fileContentsBase64, ok := file["file"].(string)
+		if !ok {
+			fileContentsBase64, ok = file["contents"].(string)
+			if !ok {
+				continue
+			}
 		}
-		rootPath = rootPath + atPath
+		splitParts := strings.Split(fileContentsBase64, ",")
+		encodedPart := splitParts[0]
+		if len(splitParts) > 1 {
+			encodedPart = splitParts[len(splitParts)-1]
+		}
+		fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
+		log.Infof("[116] Write file [%v] for upload", temproryFilePath)
+		resource.CheckErr(err, "Failed to convert base64 to []bytes")
+
+		fileDir := filepath.Dir(temproryFilePath)
+		os.MkdirAll(fileDir, 0755)
+
+		err = os.WriteFile(temproryFilePath, fileBytes, 0666)
+		resource.CheckErr(err, "[122] Failed to write file bytes to temp file for rclone upload")
+
+		if EndsWithCheck(fileName, ".zip") {
+			err = unzip(temproryFilePath, filepath.Dir(temproryFilePath))
+			resource.CheckErr(err, "Failed to unzip file")
+			if err != nil {
+				return nil, nil, []error{err}
+			}
+			go func() {
+				time.Sleep(5 * time.Minute)
+				err = os.Remove(temproryFilePath)
+				resource.CheckErr(err, "Failed to remove zip file after extraction")
+			}()
+
+		}
+
+	}
+	if localStorageRoot != "" {
+		if err := storagefs.ValidateLocalTreeDestination(localStorageRoot, atPath, tempDirectoryPath); err != nil {
+			_ = os.RemoveAll(tempDirectoryPath)
+			return nil, nil, []error{err}
+		}
 	}
 	args := []string{
 		tempDirectoryPath,

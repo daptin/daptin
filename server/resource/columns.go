@@ -488,13 +488,7 @@ var SystemActions = []actionresponse.Action{
 		Label:            "Sync site storage",
 		OnType:           "site",
 		InstanceOptional: false,
-		InFields: []api2go.ColumnInfo{
-			{
-				Name:       "Path",
-				ColumnName: "path",
-				ColumnType: "label",
-			},
-		},
+		InFields:         []api2go.ColumnInfo{},
 		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "site.storage.sync",
@@ -502,7 +496,6 @@ var SystemActions = []actionresponse.Action{
 				Attributes: map[string]interface{}{
 					"cloud_store_id": "$.cloud_store_id",
 					"site_id":        "$.reference_id",
-					"path":           "~path",
 				},
 			},
 		},
@@ -783,6 +776,7 @@ var SystemActions = []actionresponse.Action{
 				Attributes: map[string]interface{}{
 					"file":            "~file",
 					"credential_name": "$.credential_name",
+					"store_type":      "$.store_type",
 					"store_provider":  "$.store_provider",
 					"path":            "~path",
 					"root_path":       "$.root_path",
@@ -822,6 +816,7 @@ var SystemActions = []actionresponse.Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"credential_name": "$.credential_name",
+					"store_type":      "$.store_type",
 					"store_provider":  "$.store_provider",
 					"cloud_store_id":  "$.reference_id",
 					"path":            "~path",
@@ -841,11 +836,10 @@ var SystemActions = []actionresponse.Action{
 		InstanceOptional: false,
 		InFields: []api2go.ColumnInfo{
 			{
-				Name:         "Path",
-				ColumnName:   "path",
-				ColumnType:   "label",
-				IsNullable:   true,
-				DefaultValue: "",
+				Name:       "Path",
+				ColumnName: "path",
+				ColumnType: "label",
+				IsNullable: false,
 			},
 		},
 		OutFields: []actionresponse.Outcome{
@@ -854,6 +848,7 @@ var SystemActions = []actionresponse.Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"credential_name": "$.credential_name",
+					"store_type":      "$.store_type",
 					"store_provider":  "$.store_provider",
 					"path":            "~path",
 					"root_path":       "$.root_path",
@@ -888,6 +883,7 @@ var SystemActions = []actionresponse.Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"credential_name": "$.credential_name",
+					"store_type":      "$.store_type",
 					"store_provider":  "$.store_provider",
 					"path":            "~path",
 					"name":            "~name",
@@ -921,6 +917,7 @@ var SystemActions = []actionresponse.Action{
 				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"credential_name": "$.credential_name",
+					"store_type":      "$.store_type",
 					"store_provider":  "$.store_provider",
 					"source":          "~source",
 					"destination":     "~destination",

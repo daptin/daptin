@@ -12,8 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"html/template"
-	"io/ioutil"
-	"os"
+	"io"
 	"strings"
 )
 
@@ -162,22 +161,21 @@ func (actionPerformer *renderTemplateActionPerformer) DoAction(
 
 // loadFileFromSubsite loads a file from a subsite's local sync path
 func loadFileFromSubsite(assetFolderCache *assetcachepojo.AssetFolderCache, filePath string) (string, error) {
-	// Construct the full path to the file
-	fullPath := assetFolderCache.LocalSyncPath + string(os.PathSeparator) + filePath
-
-	// Check if the file exists
-	fileInfo, err := os.Stat(fullPath)
+	file, err := assetFolderCache.GetFileByName(filePath)
 	if err != nil {
 		return "", err
 	}
+	defer file.Close()
 
-	// Check if it's a regular file
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return "", err
+	}
 	if fileInfo.IsDir() {
 		return "", errors.New("path is a directory, not a file")
 	}
 
-	// Read the file content
-	fileBytes, err := ioutil.ReadFile(fullPath)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		return "", err
 	}

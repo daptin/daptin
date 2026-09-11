@@ -125,7 +125,6 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 			ActionName: "sync_site_storage",
 			Attributes: map[string]interface{}{
 				"site_id": site.ReferenceId.String(),
-				"path":    tempDirectoryPath,
 			},
 			AsUserEmail: adminEmailId,
 			Schedule:    "@every 1h",

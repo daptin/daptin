@@ -8,8 +8,8 @@ import (
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,33 +33,49 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 
 	responses := make([]actionresponse.ActionResponse, 0)
 
-	u, _ := uuid.NewV7()
-	sourceDirectoryName := "upload-" + u.String()[0:8]
-	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
-	log.Debugf("Temp directory for upload cloudStorePathMoveActionPerformer: %v", tempDirectoryPath)
-
-	//defer os.RemoveAll(tempDirectoryPath) // clean up
-
-	resource.CheckErr(err, "Failed to create temp tempDirectoryPath for rclone upload")
 	sourcePath, _ := inFields["source"].(string)
 	destinationPath, _ := inFields["destination"].(string)
 	rootPath := inFields["root_path"].(string)
-
-	if len(sourcePath) > 0 && sourcePath[0] != '/' {
-		sourcePath = "/" + sourcePath
+	var err error
+	sourcePath, err = storagefs.ValidatePath(sourcePath)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	destinationPath, err = storagefs.ValidatePath(destinationPath)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	if sourcePath == "" || destinationPath == "" {
+		return nil, nil, []error{fmt.Errorf("move source and destination must be below the storage root")}
 	}
 
-	if len(destinationPath) > 0 && destinationPath[0] != '/' {
-		destinationPath = "/" + destinationPath
+	var srcFullPath, dstFullPath string
+	isLocal, err := isLocalCloudStore(inFields)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	if isLocal {
+		srcFullPath, err = storagefs.ResolveLocalPath(rootPath, sourcePath)
+		if err == nil {
+			dstFullPath, err = storagefs.ResolveLocalPath(rootPath, destinationPath)
+		}
+	} else {
+		srcFullPath, err = storagefs.ResolvePath(rootPath, sourcePath)
+		if err == nil {
+			dstFullPath, err = storagefs.ResolvePath(rootPath, destinationPath)
+		}
+	}
+	if err != nil {
+		return nil, nil, []error{err}
 	}
 
 	// For MoveFile, args[1] must be the destination DIRECTORY (parent of destination file),
 	// NOT the full destination file path. We'll pass the filename separately as destFileName.
-	destParentDir := filepath.Dir(rootPath + destinationPath)
+	destParentDir := filepath.Dir(dstFullPath)
 
 	args := []string{
-		rootPath + sourcePath, // Source file full path
-		destParentDir,         // Destination parent directory
+		srcFullPath,   // Source file full path
+		destParentDir, // Destination parent directory
 	}
 	log.Printf("Create move %v to %v (destParent: %v)", sourcePath, destinationPath, destParentDir)
 
@@ -94,11 +110,8 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 			destFileName = srcFileName
 		}
 
-		srcFullPath := rootPath + sourcePath
-		dstFullPath := rootPath + destinationPath
-
 		// For local filesystem, use OS operations directly (rclone has issues with MoveFile)
-		if !strings.Contains(rootPath, ":") {
+		if isLocal {
 			log.Infof("Using OS rename for local filesystem: %v -> %v", srcFullPath, dstFullPath)
 			err := os.Rename(srcFullPath, dstFullPath)
 			if err != nil {
@@ -127,8 +140,6 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 		if err != nil {
 			log.Errorf("Move operation failed: %v", err)
 			resource.InfoErr(err, "Failed to move file in cloud storage")
-			err = os.RemoveAll(tempDirectoryPath)
-			resource.InfoErr(err, "Failed to remove temp directory after path move")
 			return nil
 		}
 		log.Infof("Move operation completed successfully (rclone)")

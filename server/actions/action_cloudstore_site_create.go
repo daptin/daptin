@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	hugoCommand "github.com/gohugoio/hugo/commands"
@@ -35,17 +36,42 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 
 	responses := make([]actionresponse.ActionResponse, 0)
 
+	site_type, _ := inFields["site_type"].(string)
+	cloud_store_idStr, err := uuid.Parse(inFields["cloud_store_id"].(string))
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	cloud_store_id := cloud_store_idStr
+	storageRoot := inFields["root_path"].(string)
+	rootPath := storageRoot
+	hostname, ok := inFields["hostname"].(string)
+	if !ok {
+		return nil, nil, []error{errors.New("hostname is missing")}
+	}
+	sitePath, err := storagefs.ValidatePath(inFields["path"].(string))
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	isLocal, err := isLocalCloudStore(inFields)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	if isLocal {
+		rootPath, err = storagefs.ResolveLocalPath(rootPath, sitePath)
+	} else {
+		rootPath, err = storagefs.ResolvePath(rootPath, sitePath)
+	}
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+
 	u, _ := uuid.NewV7()
 	sourceDirectoryName := "upload-" + u.String()[0:8]
 	tempDirectoryPath, err := os.MkdirTemp(os.Getenv("DAPTIN_CACHE_FOLDER"), sourceDirectoryName)
 	log.Printf("Temp directory for this upload cloudStoreSiteCreateActionPerformer: %v", tempDirectoryPath)
-
-	//defer os.RemoveAll(tempDirectoryPath) // clean up
-
-	resource.CheckErr(err, "Failed to create temp tempDirectoryPath for site create")
-	site_type, _ := inFields["site_type"].(string)
-	cloud_store_idStr, err := uuid.Parse(inFields["cloud_store_id"].(string))
-	cloud_store_id := cloud_store_idStr
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 
 	switch site_type {
 	case "hugo":
@@ -55,19 +81,11 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 	default:
 
 	}
-
-	rootPath := inFields["root_path"].(string)
-	hostname, ok := inFields["hostname"].(string)
-	if !ok {
-		return nil, nil, []error{errors.New("hostname is missing")}
-	}
-	path := inFields["path"].(string)
-
-	if path != "" {
-		if !EndsWithCheck(rootPath, "/") && !resource.BeginsWith(path, "/") {
-			path = "/" + path
+	if isLocal {
+		if err := storagefs.ValidateLocalTreeDestination(storageRoot, sitePath, tempDirectoryPath); err != nil {
+			_ = os.RemoveAll(tempDirectoryPath)
+			return nil, nil, []error{err}
 		}
-		rootPath = rootPath + path
 	}
 
 	args := []string{
@@ -82,9 +100,19 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 	}
 	ctx := context.Background()
 	userDir := daptinid.InterfaceToDIR(inFields["user_account_id"])
+	if userDir == daptinid.NullReferenceId {
+		_ = os.RemoveAll(tempDirectoryPath)
+		return nil, nil, []error{errors.New("invalid user account reference id")}
+	}
+	userId, err := d.cruds["user_account"].GetReferenceIdToId("user_account", userDir, transaction)
+	if err != nil {
+		_ = os.RemoveAll(tempDirectoryPath)
+		return nil, nil, []error{err}
+	}
 	ctx = context.WithValue(ctx, "user", &auth.SessionUser{
+		UserId:          userId,
 		UserReferenceId: userDir,
-		Groups:          d.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "reference_id", userDir),
+		Groups:          d.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId),
 	})
 	plainRequest = plainRequest.WithContext(ctx)
 	createRequest := api2go.Request{
@@ -93,7 +121,7 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 
 	newSiteData := map[string]interface{}{
 		"hostname":       hostname,
-		"path":           path,
+		"path":           sitePath,
 		"cloud_store_id": cloud_store_id,
 		"site_type":      site_type,
 		"name":           hostname,

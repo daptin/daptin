@@ -649,6 +649,9 @@ Create a new site from cloud store.
 
 ## Site Actions
 
+Site action paths are relative to the site's configured storage path. Paths
+that resolve outside it are rejected.
+
 ### list_files
 
 List files in site path.
@@ -706,10 +709,8 @@ Sync site with cloud storage.
 | Entity | `site` |
 | Instance Required | Yes |
 
-**Input Fields:**
-| Field | Type | Required |
-|-------|------|----------|
-| path | label | No |
+This action has no input fields. It synchronizes the site's configured cloud
+store path into Daptin's server-managed local site cache.
 
 **Action Performer:** `site.storage.sync`
 

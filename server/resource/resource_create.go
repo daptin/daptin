@@ -145,14 +145,8 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 			case "cloud_store":
 
 				files, ok := columnValue.([]interface{})
-				uploadPath := ""
 				if ok {
 					var err error
-
-					columnAssetCache, ok := dbResource.AssetFolderCache[dbResource.tableInfo.TableName][col.ColumnName]
-					if ok {
-						err = columnAssetCache.UploadFiles(files)
-					}
 
 					for i := range files {
 						file := files[i].(map[string]interface{})
@@ -175,10 +169,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						filemd5 := GetMD5Hash(fileBytes)
 						file["md5"] = filemd5
 						file["size"] = len(fileBytes)
-						path, ok := file["path"]
-						if ok && path != nil {
-							uploadPath = path.(string)
-						} else {
+						if file["path"] == nil {
 							file["path"] = ""
 						}
 						files[i] = file
@@ -188,13 +179,13 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 					actionRequestParameters := make(map[string]interface{})
 					actionRequestParameters["file"] = columnValue
-					actionRequestParameters["path"] = uploadPath
+					actionRequestParameters["path"] = ""
 
 					log.Printf("Get cloud store details: %v", col.ForeignKeyData.Namespace)
 					cloudStore, err := dbResource.GetCloudStoreByNameWithTransaction(col.ForeignKeyData.Namespace, createTransaction)
 					CheckErr(err, "Failed to get cloud storage details")
 					if err != nil {
-						continue
+						return nil, err
 					}
 
 					log.Printf("[195] Cloud storage: %v", cloudStore)
@@ -203,12 +194,16 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 					actionRequestParameters["store_provider"] = cloudStore.StoreProvider
 					actionRequestParameters["store_type"] = cloudStore.StoreType
 					actionRequestParameters["name"] = cloudStore.Name
-					actionRequestParameters["root_path"] = cloudStore.RootPath + "/" + col.ForeignKeyData.KeyName
+					actionRequestParameters["root_path"], err = cloudStore.ResolvePath(col.ForeignKeyData.KeyName)
+					if err != nil {
+						return nil, err
+					}
 
 					log.Printf("Initiate file upload action from resource create")
 					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, createTransaction)
-					if errs != nil && len(errs) > 0 {
+					if len(errs) > 0 {
 						log.Errorf("Failed to upload attachments: %v", errs)
+						return nil, errs[0]
 					}
 					for i := range files {
 						file := files[i].(map[string]interface{})

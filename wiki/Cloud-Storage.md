@@ -1,12 +1,12 @@
 # Cloud Storage
 
-**Tested ✓** - Cloud store creation, listing, and file operations verified on 2026-01-27.
+**Tested ✓** - Cloud store creation, listing, and file operations verified on 2026-09-11.
 
 **Actions Status:**
 - ✅ **create_folder** - Working (correct URL format documented below)
 - ✅ **upload_file** - Working (correct URL format documented below)
-- ⚠️ **move_path** - Partially working (has bug: creates directory instead of renaming)
-- ❌ **delete_path** - Returns success but doesn't actually delete
+- ✅ **move_path** - Working
+- ✅ **delete_path** - Working
 
 **Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The correct path format is `/action/{type}/{action_name}`, NOT `/action/{type}/{id}/{action_name}`. Pass `{type}_id` in request attributes; query parameters are accepted for backwards compatibility because Daptin merges them into action attributes.
 
@@ -282,6 +282,11 @@ curl -X DELETE http://localhost:6336/api/cloud_store/$STORE_ID \
 
 **Status**: Most operations working with correct URL format (2026-01-27 testing).
 
+File and folder paths are relative to the cloud store's configured `root_path`.
+A leading `/` means that virtual root. Paths that resolve above the root,
+volume-qualified paths, and local symbolic links that escape the root are
+rejected. `delete_path` and `move_path` cannot target the storage root itself.
+
 **CRITICAL**: All cloud store actions require the `cloud_store_id` in action attributes. Prefer the request body form below; URL query parameters are accepted but are legacy. Do not put the ID in the URL path:
 
 ```bash
@@ -379,12 +384,10 @@ curl -X POST "http://localhost:6336/action/cloud_store/upload_file" \
 
 ### Delete Path
 
-**Not Working** - Returns success but doesn't actually delete files/folders.
-
 Deletes a file or folder from the cloud store.
 
 ```bash
-# Correct URL format (but doesn't actually delete)
+# Correct URL format
 curl -X POST "http://localhost:6336/action/cloud_store/delete_path" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -396,11 +399,7 @@ curl -X POST "http://localhost:6336/action/cloud_store/delete_path" \
   }'
 ```
 
-**Known Issue**: Action returns success message but files/folders remain in storage. This is a bug in the delete performer.
-
 ### Move/Rename Path
-
-**Partially Working** - Returns success but has incorrect behavior.
 
 Move or rename a file or folder.
 
@@ -418,8 +417,6 @@ curl -X POST "http://localhost:6336/action/cloud_store/move_path" \
   }'
 ```
 
-**Known Issue**: Instead of renaming the file, this action creates a directory with the destination name and moves the source file inside it. For example, moving `test.txt` to `renamed.txt` creates `renamed.txt/` directory containing `test.txt`.
-
 ---
 
 ## Sites (Static Website Hosting)
@@ -433,10 +430,11 @@ binary formats are served without GZIP. Restart Daptin after changing the settin
 
 ### Create Site
 
-**Status Unknown** - Not tested yet, but likely requires the same attribute format as other cloud store actions.
+**Working** - Creates the site beneath the selected cloud store root and records
+the authenticated account as its owner.
 
 ```bash
-# Expected correct format (not yet verified)
+# Correct URL format
 curl -X POST "http://localhost:6336/action/cloud_store/create_site" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \

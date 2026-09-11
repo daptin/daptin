@@ -40,7 +40,10 @@ func (d *cloudStoreFileGetActionPerformer) DoAction(request actionresponse.Outco
 		return nil, responses, []error{errors.New("site not found")}
 	}
 
-	contents, _ := siteCacheFolder.GetFileByName(path)
+	contents, err := siteCacheFolder.GetFileByName(path)
+	if err != nil {
+		return nil, responses, []error{err}
+	}
 	defer contents.Close()
 
 	// Read with size limit protection (max 10MB for API responses)
