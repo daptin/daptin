@@ -217,6 +217,7 @@ See [[Cloud-Storage|Cloud Storage]] for full examples.
 | Action | Entity | Description |
 |--------|--------|-------------|
 | `mail.send` | mail_server | Send email via SMTP |
+| `mail.unpack` | mail | Decode an authorized mail action subject for later outcomes |
 | `aws.mail.send` | mail_server | Send via AWS SES |
 
 See [[Email-Actions|Email-Actions]] for setup.

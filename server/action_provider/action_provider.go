@@ -160,6 +160,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create mailbox status performer")
 	performers = append(performers, mailboxStatusAction)
 
+	mailUnpackAction, err := actions.NewMailUnpackActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create mail unpack performer")
+	performers = append(performers, mailUnpackAction)
+
 	outboxProcessPerformer, err := actions.NewOutboxProcessActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create outbox process performer")
 	performers = append(performers, outboxProcessPerformer)

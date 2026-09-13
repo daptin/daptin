@@ -357,6 +357,7 @@ OutFields:
 | `otp.generate` | Generate OTP for 2FA |
 | `otp.login.verify` | Verify OTP code |
 | `mail.send` | Send email via SMTP |
+| `mail.unpack` | Decode an authorized stored RFC822 message; see [[Email-Actions|Email Actions]] |
 | `aws.mail.send` | Send email via AWS SES |
 | `cloudstore.file.upload` | Upload to cloud storage |
 | `cloudstore.folder.create` | Create folder in cloud storage |

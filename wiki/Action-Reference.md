@@ -797,6 +797,12 @@ Returns: Public key PEM file download
 
 ## Email Actions
 
+### mail.unpack
+
+Decode an authorized `mail` action subject into bounded normalized MIME parts
+for later outcomes. See [[Email-Actions#mailunpack-performer|Email Actions]] for
+the input, output, permission, and limit contract.
+
 ### mail.send
 
 Send email via SMTP.
@@ -1021,6 +1027,7 @@ These are the internal action executors:
 | `__csv_data_export` | Export CSV data |
 | `site.file.delete` | Delete site file |
 | `aws.mail.send` | Send via AWS SES |
+| `mail.unpack` | Decode a stored RFC822 message |
 | `world.column.delete` | Delete column |
 | `random.generate` | Generate random values |
 | `mail.send` | Send email |

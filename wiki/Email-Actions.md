@@ -8,7 +8,7 @@ Send emails programmatically using custom actions with email performers.
 
 ## Important: Performers, Not Direct Actions
 
-`mail.send` and `aws.mail.send` are **performers**, not direct REST endpoints. You cannot call them directly like `/action/world/mail.send`. Instead, use them in custom actions' `OutFields`.
+`mail.send`, `mail.unpack`, and `aws.mail.send` are **performers**, not direct REST endpoints. You cannot call them directly like `/action/world/mail.send`. Instead, use them in custom actions' `OutFields`.
 
 **See Also:** [[Custom-Actions|Custom Actions Guide]] for creating custom actions.
 
@@ -67,6 +67,43 @@ curl -X POST http://localhost:6336/action/world/send_notification \
     }
   }'
 ```
+
+---
+
+## mail.unpack Performer
+
+Decode the RFC822 value from an authorized `mail` action subject for later
+outcomes without creating application records or assets itself. Define this as
+an instance action on `mail`; Daptin loads and authorizes the subject before the
+performer runs. `RequestSubjectRelations` hydrates the existing file column for
+both database-backed and cloud-store-backed mail.
+
+```yaml
+Name: unpack
+OnType: mail
+InstanceOptional: false
+RequestSubjectRelations:
+  - mail
+OutFields:
+  - Type: mail.unpack
+    Method: EXECUTE
+    Reference: unpacked
+    Attributes:
+      mail: "~subject.mail"
+```
+
+`unpacked` contains `preferred_text_body`, `optional_html_body`, and `parts` in
+deterministic MIME order. Each part has `index`, `kind`, `media_type`,
+`filename`, `content_id`, `content_disposition`, `decoded_size`, `sha256`, and
+`content`. `content` is a normal Daptin file value with Base64 `contents`, so a
+later resource outcome can assign it to a file column.
+
+The optional integer limits are `max_raw_size`, `max_decoded_size`,
+`max_part_size`, `max_header_size`, `max_parts`, and `max_nesting_depth`. They
+may only reduce the server bounds. Omitted values use the defaults; zero,
+negative, fractional, malformed, or above-bound values are rejected. Defaults are
+25 MiB raw, 32 MiB decoded total, 16 MiB per part, 1 MiB of headers, 256 parts,
+and 20 nesting levels.
 
 ---
 
