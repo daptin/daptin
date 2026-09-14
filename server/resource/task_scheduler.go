@@ -12,6 +12,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/task"
+	"github.com/jmoiron/sqlx"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -91,31 +92,27 @@ type ActiveTaskInstance struct {
 }
 
 func (ati *ActiveTaskInstance) Run() {
-	log.Printf("[82] Execute task [%v][%v] as user [%v]", ati.Task.ReferenceId, ati.Task.ActionName, ati.Task.AsUserEmail)
+	if err := ati.execute(); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"task_reference_id": ati.Task.ReferenceId.String(),
+			"task_name":         ati.Task.Name,
+			"entity_name":       ati.Task.EntityName,
+			"action_name":       ati.Task.ActionName,
+			"user_reference_id": ati.Task.AsUserReferenceId.String(),
+		}).Error("scheduled task failed")
+	}
+}
 
-	sessionUser := &auth.SessionUser{}
+func (ati *ActiveTaskInstance) execute() error {
 	transaction, err := ati.DbResource.Connection().Beginx()
 	if err != nil {
-		CheckErr(err, "Failed to begin transaction for ATI.run [88]")
+		return fmt.Errorf("begin scheduled task transaction: %w", err)
 	}
-	if transaction == nil {
-		return
-	}
-	defer transaction.Commit()
+	defer transaction.Rollback()
 
-	if ati.Task.AsUserEmail != "" {
-
-		permission, err := ati.DbResource.GetObjectByWhereClause(USER_ACCOUNT_TABLE_NAME, "email", ati.Task.AsUserEmail, transaction)
-		CheckErr(err, "Failed to load user by email [%v]", ati.Task.AsUserEmail)
-		//log.Printf("Loaded user permission: %v", permission)
-		refId := permission["reference_id"]
-		if refId != nil {
-			dir := daptinid.InterfaceToDIR(refId)
-			usergroups := ati.DbResource.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "reference_id", dir[:])
-			sessionUser.UserReferenceId = daptinid.InterfaceToDIR(permission["reference_id"])
-			sessionUser.UserId = permission["id"].(int64)
-			sessionUser.Groups = usergroups
-		}
+	sessionUser, err := ati.resolveSessionUser(transaction)
+	if err != nil {
+		return fmt.Errorf("resolve scheduled task user: %w", err)
 	}
 
 	ur, _ := url.Parse("/action/" + ati.ActionRequest.Type)
@@ -131,15 +128,53 @@ func (ati *ActiveTaskInstance) Run() {
 	res, err := ati.DbResource.Cruds[ati.ActionRequest.Type].HandleActionRequest(ati.ActionRequest, req, transaction)
 
 	if err != nil {
-		transaction.Rollback()
-		log.Errorf("Errors while executing action 109: %v", err)
-	} else {
-		log.Debugf("Response from action: %v", res)
+		return fmt.Errorf("execute scheduled action: %w", err)
 	}
+	log.Debugf("Response from action: %v", res)
+	if err := transaction.Commit(); err != nil {
+		return fmt.Errorf("commit scheduled action: %w", err)
+	}
+	return nil
+}
 
+func (ati *ActiveTaskInstance) resolveSessionUser(transaction *sqlx.Tx) (*auth.SessionUser, error) {
+	userReferenceId := ati.Task.AsUserReferenceId
+	if userReferenceId == daptinid.NullReferenceId {
+		return nil, fmt.Errorf("task has no as_user_id relationship")
+	}
+	user, _, err := ati.DbResource.Cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowByReferenceIdWithTransaction(
+		USER_ACCOUNT_TABLE_NAME, userReferenceId, nil, transaction)
+	if err != nil {
+		return nil, fmt.Errorf("load user_account [%s]: %w", userReferenceId.String(), err)
+	}
+	userId, err := ResourceRowInt64(user["id"])
+	if err != nil || userId <= 0 {
+		return nil, fmt.Errorf("invalid user_account id for [%s]", userReferenceId.String())
+	}
+	groups := ati.DbResource.GetObjectUserGroupsByWhereWithTransaction(
+		USER_ACCOUNT_TABLE_NAME, transaction, "id", userId)
+	authVersion := int64(1)
+	if user[auth.AuthVersionColumn] != nil {
+		authVersion, err = ResourceRowInt64(user[auth.AuthVersionColumn])
+		if err != nil {
+			return nil, fmt.Errorf("invalid user_account auth_version for [%s]: %w", userReferenceId.String(), err)
+		}
+	}
+	return &auth.SessionUser{
+		UserId:          userId,
+		UserReferenceId: userReferenceId,
+		Groups:          groups,
+		AuthVersion:     auth.AuthVersionOrDefault(authVersion),
+	}, nil
 }
 
 func (dts *DefaultTaskScheduler) AddTask(task task.Task) error {
+	if task.AsUserReferenceId == daptinid.NullReferenceId {
+		return fmt.Errorf("task [%s] has no as_user_id relationship", task.Name)
+	}
+	if dts.cruds[task.EntityName] == nil {
+		return fmt.Errorf("task [%s] targets unknown resource [%s]", task.Name, task.EntityName)
+	}
 	log.Printf("Register task [%v] at %v", task.ActionName, task.Schedule)
 	at := dts.cruds["task"].NewActiveTaskInstance(task)
 	_, err := dts.cronService.AddJob(task.Schedule, at)

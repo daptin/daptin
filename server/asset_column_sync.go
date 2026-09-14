@@ -4,6 +4,7 @@ import (
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/cloud_store"
 	"github.com/daptin/daptin/server/dbresourceinterface"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/task"
@@ -14,7 +15,8 @@ import (
 )
 
 func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterface, transaction *sqlx.Tx,
-	scheduler *resource.DefaultTaskScheduler) map[string]map[string]*assetcachepojo.AssetFolderCache {
+	scheduler *resource.DefaultTaskScheduler,
+	adminTaskUserReferenceId daptinid.DaptinReferenceId) map[string]map[string]*assetcachepojo.AssetFolderCache {
 	log.Tracef("CreateAssetColumnSync")
 
 	stores, err := cloud_store.GetAllCloudStores(cruds["cloud_store"], transaction)
@@ -80,9 +82,10 @@ func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterf
 							"credential_name": cloudStore.CredentialName,
 							"column_name":     columnName,
 						},
-						AsUserEmail: cruds["user_account"].GetAdminEmailId(transaction),
-						Schedule:    "@every 30m",
+						AsUserReferenceId: adminTaskUserReferenceId,
+						Schedule:          "@every 30m",
 					})
+					CheckErr(err, "Failed to register column storage sync task [%s][%s]", tableName, columnName)
 				}
 
 			}

@@ -342,10 +342,14 @@ func (dbResource *DbResource) GetAllTasks() ([]task.Task, error) {
 
 	var tasks []task.Task
 
-	s, v, err := statementbuilder.Squirrel.Select(goqu.I("t.name"),
+	s, v, err := statementbuilder.Squirrel.Select(goqu.I("t.reference_id"), goqu.I("t.name"),
 		goqu.I("t.action_name"), goqu.I("t.entity_name"), goqu.I("t.schedule"),
-		goqu.I("t.active"), goqu.I("t.attributes"), goqu.I("t.as_user_id")).Prepared(true).
-		From(goqu.T("task").As("t")).ToSQL()
+		goqu.I("t.active"), goqu.I("t.attributes"), goqu.I("u.reference_id")).Prepared(true).
+		From(goqu.T("task").As("t")).
+		LeftJoin(goqu.T(USER_ACCOUNT_TABLE_NAME).As("u"), goqu.On(goqu.Ex{
+			"u.id": goqu.I("t.as_user_id"),
+		})).
+		Where(goqu.Ex{"t.active": true}).ToSQL()
 	if err != nil {
 		return tasks, err
 	}
@@ -375,16 +379,24 @@ func (dbResource *DbResource) GetAllTasks() ([]task.Task, error) {
 
 	for rows.Next() {
 		var task task.Task
-		err = rows.Scan(&task.Name, &task.ActionName, &task.EntityName, &task.Schedule, &task.Active, &task.AttributesJson, &task.AsUserEmail)
+		var asUserReferenceId []byte
+		err = rows.Scan(&task.ReferenceId, &task.Name, &task.ActionName, &task.EntityName, &task.Schedule,
+			&task.Active, &task.AttributesJson, &asUserReferenceId)
 		if err != nil {
 			log.Errorf("failed to scan task from db to struct: %v", err)
 			continue
+		}
+		if len(asUserReferenceId) > 0 {
+			task.AsUserReferenceId = daptinid.InterfaceToDIR(asUserReferenceId)
 		}
 		err = json.Unmarshal([]byte(task.AttributesJson), &task.Attributes)
 		if CheckErr(err, "failed to unmarshal attributes for task") {
 			continue
 		}
 		tasks = append(tasks, task)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return tasks, nil

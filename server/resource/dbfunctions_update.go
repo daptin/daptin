@@ -108,9 +108,19 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	}
 
 	newTasks := initConfig.Tasks
+	adminUserId, _ := GetAdminUserIdAndUserGroupId(transaction)
+	configuredTaskUserIds := make([]*int64, len(newTasks))
+	for index, newTask := range newTasks {
+		asUserId, err := resolveConfiguredTaskUserId(newTask, transaction)
+		if err != nil {
+			return fmt.Errorf("resolve execution user for task [%s]: %w", newTask.Name, err)
+		}
+		configuredTaskUserIds[index] = asUserId
+	}
 
-	for _, newTask := range newTasks {
+	for index, newTask := range newTasks {
 		log.Tracef("Update TaskData: [%v]", newTask)
+		asUserId := configuredTaskUserIds[index]
 
 		_, ok := taskMap[newTask.Name]
 		taskMap[newTask.Name] = newTask
@@ -127,7 +137,9 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 					"attributes":  ToJson(newTask.Attributes),
 					"action_name": newTask.ActionName,
 					"entity_name": newTask.EntityName,
-				}).ToSQL()
+					"job_type":    newTask.JobType,
+					"as_user_id":  asUserId,
+				}).Where(goqu.Ex{"name": newTask.Name}).ToSQL()
 
 		} else {
 
@@ -137,9 +149,11 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			refId, _ := uuid.NewV7()
 			s, v, err = statementbuilder.Squirrel.Insert("task").Prepared(true).
 				Cols("name", "schedule", "active",
-					"action_name", "entity_name", "reference_id", "attributes", "created_at").
+					"action_name", "entity_name", "job_type", "as_user_id", "reference_id", "attributes", "created_at",
+					USER_ACCOUNT_ID_COLUMN, "permission").
 				Vals([]interface{}{newTask.Name, newTask.Schedule, newTask.Active,
-					newTask.ActionName, newTask.EntityName, refId[:], ToJson(newTask.Attributes), time.Now()}).ToSQL()
+					newTask.ActionName, newTask.EntityName, newTask.JobType, asUserId, refId[:], ToJson(newTask.Attributes), time.Now(),
+					adminUserId, auth.DEFAULT_PERMISSION}).ToSQL()
 
 		}
 
@@ -171,13 +185,8 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 func GetTasks(connection *sqlx.Tx) ([]task.Task, error) {
 
 	s, v, err := statementbuilder.Squirrel.Select(
-		"name",
-		goqu.C("job_type").As("jobtype"),
-		"schedule",
-		"active",
-		goqu.C("attributes").As("attributes"),
-		goqu.C("as_user_id").As("AsUserEmail"),
-	).Prepared(true).From("task").Where(goqu.Ex{"active": true}).ToSQL()
+		"name", "job_type", "schedule", "active", "attributes",
+	).Prepared(true).From("task").ToSQL()
 
 	if err != nil {
 		return nil, err
@@ -198,8 +207,7 @@ func GetTasks(connection *sqlx.Tx) ([]task.Task, error) {
 
 	for rows.Next() {
 		var job task.Task
-
-		err = rows.StructScan(&job)
+		err = rows.Scan(&job.Name, &job.JobType, &job.Schedule, &job.Active, &job.AttributesJson)
 		if err != nil {
 			return nil, err
 		}
@@ -211,10 +219,31 @@ func GetTasks(connection *sqlx.Tx) ([]task.Task, error) {
 
 		jobs = append(jobs, job)
 	}
-	rows.Close()
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return jobs, nil
 
+}
+
+func resolveConfiguredTaskUserId(configuredTask task.Task, transaction *sqlx.Tx) (*int64, error) {
+	if configuredTask.AsUserEmail != "" {
+		sql, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).
+			From(USER_ACCOUNT_TABLE_NAME).Where(goqu.Ex{"email": configuredTask.AsUserEmail}).ToSQL()
+		if err != nil {
+			return nil, err
+		}
+		var userId int64
+		if err := transaction.QueryRowx(sql, args...).Scan(&userId); err != nil {
+			return nil, err
+		}
+		return &userId, nil
+	}
+	if configuredTask.Active {
+		return nil, fmt.Errorf("active task has no AsUserEmail")
+	}
+	return nil, nil
 }
 
 func UpdateStreams(initConfig *CmsConfig, db *sqlx.Tx) {

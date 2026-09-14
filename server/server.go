@@ -9,6 +9,7 @@ import (
 	"github.com/daptin/daptin/server/actions"
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	"github.com/daptin/daptin/server/fsm"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/daptin/daptin/server/table_info"
@@ -32,6 +33,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -151,9 +153,9 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
-			beginning, recorder := Stats.Begin(c.Writer)
+			startedAt, recorder := Stats.Begin(c.Writer) // NOSONAR -- This call starts request timing and does not open a transaction.
 			c.Next()
-			Stats.End(beginning, stats.WithRecorder(recorder))
+			Stats.End(startedAt, stats.WithRecorder(recorder))
 		}
 	}())
 
@@ -434,7 +436,12 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		resource.CheckErr(err, "Failed to begin transaction [559]")
 	}
 
-	hostSwitch, subsiteCacheFolders := CreateSubSites(ctx, &initConfig, transaction, cruds, authMiddleware, rateConfig, maxConnections, olricDb, taskScheduler, enableGzip == "true")
+	adminTaskUserReferenceId, taskUserErr := resolveTaskUserReference(transaction)
+	if taskUserErr != nil {
+		log.WithError(taskUserErr).Warn("scheduled system tasks have no administrator identity")
+	}
+	hostSwitch, subsiteCacheFolders := CreateSubSites(ctx, &initConfig, transaction, cruds, authMiddleware, rateConfig,
+		maxConnections, olricDb, taskScheduler, adminTaskUserReferenceId, enableGzip == "true")
 	transaction.Commit()
 
 	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)
@@ -500,26 +507,28 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}
 
 	err = taskScheduler.AddTask(task.Task{
-		EntityName:  "mail_server",
-		ActionName:  "sync_mail_servers",
-		Attributes:  map[string]interface{}{},
-		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction),
-		Schedule:    "@every 1h",
+		EntityName:        "mail_server",
+		ActionName:        "sync_mail_servers",
+		Attributes:        map[string]interface{}{},
+		AsUserReferenceId: adminTaskUserReferenceId,
+		Schedule:          "@every 1h",
 	})
+	resource.CheckErr(err, "Failed to register mail server sync task")
 
 	err = taskScheduler.AddTask(task.Task{
-		EntityName:  "outbox",
-		ActionName:  "process_outbox",
-		Attributes:  map[string]interface{}{},
-		AsUserEmail: cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction),
-		Schedule:    "@every 5m",
+		EntityName:        "outbox",
+		ActionName:        "process_outbox",
+		Attributes:        map[string]interface{}{},
+		AsUserReferenceId: adminTaskUserReferenceId,
+		Schedule:          "@every 5m",
 	})
+	resource.CheckErr(err, "Failed to register outbox processing task")
 	transaction.Rollback()
 
 	taskScheduler.LoadPersistedTasks()
 
 	transaction = db.MustBegin()
-	assetColumnFolders := CreateAssetColumnSync(crudsInterface, transaction, taskScheduler)
+	assetColumnFolders := CreateAssetColumnSync(crudsInterface, transaction, taskScheduler, adminTaskUserReferenceId)
 	transaction.Commit()
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
@@ -655,4 +664,12 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		errors:                  runtimeErrors,
 	}, nil
 
+}
+
+func resolveTaskUserReference(transaction *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
+	administratorReferences := resource.GetUserMembersByGroupNameWithTransaction("administrators", transaction)
+	if len(administratorReferences) == 0 {
+		return daptinid.NullReferenceId, fmt.Errorf("administrators group has no members")
+	}
+	return administratorReferences[0], nil
 }

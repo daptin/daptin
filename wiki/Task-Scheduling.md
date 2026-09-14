@@ -25,9 +25,9 @@ Daptin's task scheduling system:
 
 **Quick Check:**
 ```bash
-# Verify task will execute
-sqlite3 daptin.db "SELECT name, as_user_id, active FROM task WHERE name='your-task';"
-# as_user_id should NOT be NULL, active should be 1
+curl -s "http://localhost:6336/api/task?include=as_user_id" \
+  -H "Authorization: Bearer $TOKEN" | \
+  jq '.data[] | {name: .attributes.name, active: .attributes.active, execution_user: .relationships.as_user_id.data.id}'
 ```
 
 ## The `task` Table
@@ -162,8 +162,8 @@ curl -X DELETE "http://localhost:6336/api/task/$TASK_ID" \
 When a task triggers:
 
 1. **Transaction Start** - Database transaction begins
-2. **User Context** - Load user from `as_user_id` relationship
-3. **Permission Setup** - Apply user's groups and permissions
+2. **User Context** - Resolve the `user_account` referenced by `as_user_id`
+3. **Permission Setup** - Load that user's current usergroup memberships
 4. **Action Request** - Build request to `/action/{entity_name}/{action_name}`
 5. **Execute** - Call `HandleActionRequest()` on the target resource
 6. **Commit/Rollback** - Transaction completes based on result
@@ -175,6 +175,10 @@ Tasks execute with:
 - Full action capabilities
 - Background execution (no HTTP response)
 - Database transaction wrapping
+
+The relationship is the only execution-identity authority. If it is absent or
+no longer resolves to a user, Daptin does not register or execute the task. It
+does not fall back to a guest, owner, email lookup, or administrator identity.
 
 ## Built-in System Tasks
 
@@ -324,6 +328,10 @@ Task execution errors:
 
 No automatic retry mechanism exists between scheduled runs.
 
+Identity resolution and permission checks happen before action outcomes. A
+missing execution user or denied action therefore produces no downstream action
+side effect.
+
 ## Task Lifecycle
 
 ### Startup
@@ -370,6 +378,11 @@ Tasks:
       format: pdf
 ```
 
+`AsUserEmail` is schema-import input only. During schema synchronization Daptin
+resolves it to the task's persisted `as_user_id` relationship. An unknown email
+causes that task synchronization to fail; runtime execution never looks up a
+user by email.
+
 ## Best Practices
 
 1. **Use appropriate intervals** - Don't schedule tasks more frequently than needed
@@ -390,15 +403,14 @@ Tasks:
 
 1. **Check `active` is `true`**
    ```bash
-   sqlite3 daptin.db "SELECT name, active FROM task WHERE name='your-task';"
-   # Should show active=1, if not:
-   # PATCH /api/task/{id} with {"attributes": {"active": true}}
+   curl -s "http://localhost:6336/api/task/$TASK_ID" \
+     -H "Authorization: Bearer $TOKEN" | jq '.data.attributes.active'
    ```
 
 2. **Verify `as_user_id` is set** ⚠️ **CRITICAL**
    ```bash
-   sqlite3 daptin.db "SELECT name, as_user_id FROM task WHERE name='your-task';"
-   # If NULL, task will NOT execute! Assign user via API relationship
+   curl -s "http://localhost:6336/api/task/$TASK_ID?include=as_user_id" \
+     -H "Authorization: Bearer $TOKEN" | jq '.data.relationships.as_user_id.data.id'
    ```
 
 3. **Restart server to load task**
@@ -418,7 +430,7 @@ Tasks:
 
 ### Task Fails
 
-**Symptoms:** Task executes but logs show "Errors while executing action 109"
+**Symptoms:** Task is registered but logs show `scheduled task failed`
 
 **Solutions:**
 
@@ -450,14 +462,13 @@ Tasks:
 
 ```bash
 # Real-time task monitoring
-tail -f /tmp/daptin.log | grep -E "Register task|Execute task"
+tail -f /tmp/daptin.log | grep -E "Register task|scheduled task"
 
 # Expected logs:
 # INFO[...] Register task [action_name] at schedule
-# INFO[...] [82] Execute task [ref_id][action_name] as user [user_id]
 
 # Check for errors
-tail -f /tmp/daptin.log | grep -i "error.*task"
+tail -f /tmp/daptin.log | grep -i "scheduled task failed"
 ```
 
 ### View Task Configuration
@@ -470,9 +481,6 @@ curl "http://localhost:6336/api/task?include=as_user_id" \
 # Get specific task
 curl "http://localhost:6336/api/task/{task_id}" \
   -H "Authorization: Bearer $TOKEN"
-
-# Database verification
-sqlite3 daptin.db "SELECT reference_id, name, action_name, schedule, active, as_user_id FROM task;"
 ```
 
 ## Related
