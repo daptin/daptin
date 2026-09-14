@@ -153,7 +153,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
-			startedAt, recorder := Stats.Begin(c.Writer)
+			startedAt, recorder := Stats.Begin(c.Writer) // NOSONAR -- This call starts request timing and does not open a transaction.
 			c.Next()
 			Stats.End(startedAt, stats.WithRecorder(recorder))
 		}
