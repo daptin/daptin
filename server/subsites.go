@@ -26,7 +26,8 @@ import (
 func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
 	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient,
-	scheduler *resource.DefaultTaskScheduler, gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
+	scheduler *resource.DefaultTaskScheduler, adminTaskUserReferenceId daptinid.DaptinReferenceId,
+	gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
 	enableGzip := len(gzipEnabled) == 0 || gzipEnabled[0]
 
 	hs := hostswitch.HostSwitch{
@@ -59,9 +60,6 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 		log.Printf("Failed to get all cloudstores 121: %v", err)
 	}
 	cloudStoreMap := make(map[int64]rootpojo.CloudStore)
-
-	adminEmailId := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetAdminEmailId(transaction)
-	log.Printf("Admin email id: %s", adminEmailId)
 
 	for _, store := range stores {
 		cloudStoreMap[store.Id] = store
@@ -126,8 +124,8 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 			Attributes: map[string]interface{}{
 				"site_id": site.ReferenceId.String(),
 			},
-			AsUserEmail: adminEmailId,
-			Schedule:    "@every 1h",
+			AsUserReferenceId: adminTaskUserReferenceId,
+			Schedule:          "@every 1h",
 		}
 
 		activeTask := cruds["site"].NewActiveTaskInstance(syncTask)
@@ -141,6 +139,7 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 		}(activeTask)
 
 		err = scheduler.AddTask(syncTask)
+		resource.CheckErr(err, "Failed to register site storage sync task [%s]", site.Name)
 		var credentials map[string]interface{}
 		if cloudStore.CredentialName != "" {
 			cred, err := cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)
