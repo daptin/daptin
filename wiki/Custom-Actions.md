@@ -226,6 +226,9 @@ OutFields define what the action does. Each OutField executes an operation.
 }
 ```
 
+`ForEach` and `MaxItems` are optional and omitted for ordinary outcomes. When
+`ForEach` is set, `MaxItems` must be between 1 and 1,000.
+
 ### Methods
 
 | Method | Description | Type Value |
@@ -238,6 +241,49 @@ OutFields define what the action does. Each OutField executes an operation.
 | `DELETE` | Delete a record | Table name |
 | `GET_BY_ID` | Get specific record | Table name |
 | `SWITCH_USER` | Continue later outcomes as a backend-selected user | `__as_user` |
+
+### Transactional `ForEach` CRUD outcomes
+
+Add `ForEach` to repeat one maintainer-defined CRUD outcome for a runtime-sized
+array. `MaxItems` is required and cannot exceed the server safety ceiling of
+1,000 items.
+
+```yaml
+OutFields:
+  - Type: asset
+    Method: PATCH
+    ForEach: ~asset_updates
+    MaxItems: 100
+    Reference: updated_assets
+    Attributes:
+      reference_id: ~item.reference_id
+      visibility: ~item.visibility
+```
+
+The current value is available as `item`, and its zero-based position is
+available as `item_index`. Items may be Daptin `reference_id` strings or JSON
+objects. Duplicate references, duplicate objects, malformed items, and arrays
+larger than `MaxItems` are rejected before that outcome starts. A transport
+whose `json` input type is textual, such as GraphQL, may supply a strict
+JSON-encoded array.
+
+`ForEach` supports `POST`, `PATCH`, and `DELETE`. Every iteration uses the
+action's existing database transaction. The first build, validation, lookup, or
+database error stops execution and causes the action transaction to roll back.
+`ContinueOnError` cannot be combined with `ForEach`. A false `Condition` skips
+that item without making the action fail. `Reference` contains successful item
+results in input order, so later outcomes can use expressions such as
+`$updated_assets[0].reference_id`.
+
+Permission to execute an action authorizes its maintainer-defined outcomes.
+`ForEach` validates and bounds dynamic input, but it does not reapply the
+caller's direct row ownership permissions to every item. Keep the resource
+type, method, limit, and attribute mapping in the backend action definition;
+use action validations and outcome conditions to constrain caller input.
+
+The transaction covers Daptin database mutations. Do not use transactional
+`ForEach` for performers or external effects such as network requests, mail, or
+storage operations, which cannot be undone by a database rollback.
 
 ---
 

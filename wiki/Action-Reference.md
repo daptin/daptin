@@ -997,6 +997,24 @@ Add a data exchange for Google Sheets sync.
 | sheet_id | alias | Yes |
 | app_key | alias | Yes |
 
+## Transactional `ForEach` CRUD
+
+An outcome can repeat one trusted `POST`, `PATCH`, or `DELETE` operation over a
+bounded array.
+
+| Property | Meaning |
+|----------|---------|
+| `ForEach` | Expression resolving to an array of reference IDs or objects |
+| `MaxItems` | Required positive limit; server maximum is 1,000 |
+| `item` | Current item available to `Condition` and `Attributes` |
+| `item_index` | Zero-based current index |
+| `Reference` | Ordered collection of successful item results |
+
+Duplicate, malformed, and over-limit inputs are rejected. The first item error
+rolls back the action transaction. `ContinueOnError` is not supported. See
+[Transactional ForEach CRUD outcomes](Custom-Actions.md#transactional-foreach-crud-outcomes)
+for configuration, permission semantics, and examples.
+
 ## Action Performers (Internal)
 
 These are the internal action executors:

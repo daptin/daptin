@@ -412,32 +412,20 @@ OutFields:
 
 		log.Debugf("Action [%v][%v] => Outcome [%v][%v] ", actionRequest.Action, subjectInstanceReferenceString, outcome.Type, outcome.Method)
 
-		if len(outcome.Condition) > 0 {
-			var outcomeResult interface{}
-			outcomeResult, err = EvaluateString(outcome.Condition, inFieldMap)
-			CheckErr(err, "[%s][%s]Failed to evaluate condition, assuming false by default", action.OnType, action.Name)
-			if err != nil {
-				continue
+		if outcome.ForEach != "" {
+			actionResponses, foreachErr := dbResource.executeActionForeachOutcome(
+				action, outcome, inFieldMap, sessionUser, transaction)
+			if foreachErr != nil {
+				return nil, foreachErr
 			}
+			responses = finalizeActionOutcome(
+				actionRequest, outcome, sessionUser, responses, actionResponses, nil, inFieldMap)
+			continue
+		}
 
-			log.Tracef("Evaluated condition [%v] result: %v", outcome.Condition, outcomeResult)
-			boolValue, ok := outcomeResult.(bool)
-			if !ok {
-
-				strVal := fmt.Sprintf("%v", outcomeResult)
-				if strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true" {
-					log.Tracef("Condition is true [%s]", outcome.Condition)
-					// condition is true
-				} else {
-					// condition isn't true
-					log.Tracef("Condition is false, skipping outcome [%s]", outcome.Condition)
-					continue
-				}
-
-			} else if !boolValue {
-				log.Debugf("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
-				continue
-			}
+		shouldExecute, conditionErr := shouldExecuteActionOutcome(action, outcome, inFieldMap)
+		if conditionErr != nil || !shouldExecute {
+			continue
 		}
 
 		var model api2go.Api2GoModel
@@ -507,18 +495,10 @@ OutFields:
 			request.PlainRequest = request.PlainRequest.WithContext(updatedCtx)
 
 		case "POST":
-			responseObjects, err = dbResource.Cruds[outcome.Type].CreateWithTransaction(model, request, transaction)
-			CheckErr(err, "Failed to post from action")
+			responseObjects, actionResponses, err = dbResource.executeActionCRUDOutcome(outcome, model, request, transaction)
 			if err != nil {
-
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to create "+model.GetName()+". "+err.Error(), "Failed"))
-				responses = append(responses, actionResponse)
 				break OutFields
-			} else {
-				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).GetAttributes()
-				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
-			actionResponses = append(actionResponses, actionResponse)
 		case "GET":
 
 			request.QueryParams = make(map[string][]string)
@@ -580,30 +560,15 @@ OutFields:
 			}
 			actionResponses = append(actionResponses, actionResponse)
 		case "PATCH":
-			responseObjects, err = dbResource.Cruds[outcome.Type].UpdateWithTransaction(model, request, transaction)
-			CheckErr(err, "[532] Failed to update inside action")
+			responseObjects, actionResponses, err = dbResource.executeActionCRUDOutcome(outcome, model, request, transaction)
 			if err != nil {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to update "+model.GetName()+". "+err.Error(), "Failed"))
-				responses = append(responses, actionResponse)
 				break OutFields
-			} else {
-				createdRow := responseObjects.(api2go.Response).Result().(api2go.Api2GoModel).GetAttributes()
-				actionResponse = NewActionResponse(createdRow["__type"].(string), createdRow)
 			}
-			actionResponses = append(actionResponses, actionResponse)
 		case "DELETE":
-			idString := model.GetID()
-			idUUid := uuid.MustParse(idString)
-			err = dbResource.Cruds[outcome.Type].DeleteWithoutFilters(daptinid.DaptinReferenceId(idUUid), request, transaction)
-			CheckErr(err, "Failed to delete inside action")
+			responseObjects, actionResponses, err = dbResource.executeActionCRUDOutcome(outcome, model, request, transaction)
 			if err != nil {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("error", "Failed to delete "+model.GetName(), "Failed"))
-				responses = append(responses, actionResponse)
 				break OutFields
-			} else {
-				actionResponse = NewActionResponse("client.notify", NewClientNotification("success", "Deleted "+model.GetName(), "Success"))
 			}
-			actionResponses = append(actionResponses, actionResponse)
 		case "EXECUTE":
 			//res, err = Cruds[outcome.Type].Create(model, actionRequest)
 
@@ -672,88 +637,16 @@ OutFields:
 
 		}
 
-		if outcome.LogToConsole {
-			for i, response := range actionResponses {
-
-				attrsAsJson, _ := json.Marshal(response.Attributes)
-
-				log.Infof("[%s][%s] by user [%s] OutcomeResponse[%d]: [%s] => %s",
-					actionRequest.Type,
-					actionRequest.Action,
-					sessionUser.UserReferenceId,
-					i,
-					response.ResponseType,
-					attrsAsJson)
-			}
-
-		}
-
 		if err != nil {
+			if outcome.LogToConsole {
+				logActionOutcomeResponses(actionRequest, sessionUser, actionResponses)
+			}
 			log.Errorf("failed to execute outcome [%v] => %v", outcome.Type, err)
 			return nil, err
 		}
 
-		if !outcome.SkipInResponse {
-			for _, ar := range actionResponses {
-				attrs, yes := ar.Attributes.(map[string]interface{})
-				if yes {
-					for key, val := range attrs {
-						refId, isRef := val.(daptinid.DaptinReferenceId)
-						if isRef {
-							attrs[key] = refId.String()
-						}
-					}
-				} else {
-					attrsArray, yes := ar.Attributes.([]map[string]interface{})
-					if yes {
-						for _, atr := range attrsArray {
-							for key, val := range atr {
-								refId, isRef := val.(daptinid.DaptinReferenceId)
-								if isRef {
-									atr[key] = refId.String()
-								}
-							}
-						}
-					}
-				}
-			}
-			responses = append(responses, actionResponses...)
-		}
-
-		if len(actionResponses) > 0 && outcome.Reference != "" {
-			lst := make([]interface{}, 0)
-			for i, res := range actionResponses {
-				inFieldMap[fmt.Sprintf("response.%v[%v]", outcome.Reference, i)] = res.Attributes
-				lst = append(lst, res.Attributes)
-			}
-			inFieldMap[fmt.Sprintf("%v", outcome.Reference)] = lst
-		}
-
-		if responseObjects != nil && outcome.Reference != "" {
-
-			api2goModel, ok := responseObjects.(api2go.Response)
-			if ok {
-				responseObjects = api2goModel.Result().(api2go.Api2GoModel).GetAttributes()
-			}
-
-			singleResult, isSingleResult := responseObjects.(map[string]interface{})
-
-			if isSingleResult {
-				inFieldMap[outcome.Reference] = singleResult
-			} else {
-				resultArray, ok := responseObjects.([]map[string]interface{})
-
-				finalArray := make([]map[string]interface{}, 0)
-				if ok {
-					for i, item := range resultArray {
-						finalArray = append(finalArray, item)
-						inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = item
-					}
-				}
-				inFieldMap[outcome.Reference] = finalArray
-
-			}
-		}
+		responses = finalizeActionOutcome(
+			actionRequest, outcome, sessionUser, responses, actionResponses, responseObjects, inFieldMap)
 
 	}
 	if err != nil {
@@ -794,6 +687,317 @@ OutFields:
 	}
 
 	return responses, nil
+}
+
+const maxActionForeachItems = 1000
+
+func shouldExecuteActionOutcome(action actionresponse.Action, outcome actionresponse.Outcome, inFieldMap map[string]interface{}) (bool, error) {
+	if outcome.Condition == "" {
+		return true, nil
+	}
+
+	outcomeResult, err := EvaluateString(outcome.Condition, inFieldMap)
+	CheckErr(err, "[%s][%s]Failed to evaluate condition, assuming false by default", action.OnType, action.Name)
+	if err != nil {
+		return false, err
+	}
+
+	log.Tracef("Evaluated condition [%v] result: %v", outcome.Condition, outcomeResult)
+	if boolValue, ok := outcomeResult.(bool); ok {
+		if !boolValue {
+			log.Debugf("Outcome [%v][%v] skipped because condition failed [%v]", outcome.Method, outcome.Type, outcome.Condition)
+		}
+		return boolValue, nil
+	}
+	strVal := fmt.Sprintf("%v", outcomeResult)
+	isTrue := strVal == "1" || strings.ToLower(strings.TrimSpace(strVal)) == "true"
+	if isTrue {
+		log.Tracef("Condition is true [%s]", outcome.Condition)
+	} else {
+		log.Tracef("Condition is false, skipping outcome [%s]", outcome.Condition)
+	}
+	return isTrue, nil
+}
+
+func validateActionForeachOutcome(outcome actionresponse.Outcome) error {
+	if outcome.ForEach == "" {
+		return nil
+	}
+	if outcome.MaxItems <= 0 || outcome.MaxItems > maxActionForeachItems {
+		return api2go.NewHTTPError(
+			fmt.Errorf("MaxItems must be between 1 and %d", maxActionForeachItems),
+			"invalid action foreach configuration", http.StatusInternalServerError)
+	}
+	if outcome.ContinueOnError {
+		return api2go.NewHTTPError(
+			errors.New("ContinueOnError cannot be used with ForEach"),
+			"invalid action foreach configuration", http.StatusInternalServerError)
+	}
+	switch outcome.Method {
+	case "POST", "PATCH", "DELETE":
+		return nil
+	default:
+		return api2go.NewHTTPError(
+			fmt.Errorf("ForEach does not support outcome method %s", outcome.Method),
+			"invalid action foreach configuration", http.StatusInternalServerError)
+	}
+}
+
+func normalizeActionForeachItems(value interface{}, configuredLimit int) ([]interface{}, error) {
+	if textValue, ok := value.(string); ok {
+		var decoded interface{}
+		if err := json.Unmarshal([]byte(textValue), &decoded); err != nil {
+			return nil, api2go.NewHTTPError(err, "ForEach value must be an array", http.StatusBadRequest)
+		}
+		value = decoded
+	}
+
+	valueOf := reflect.ValueOf(value)
+	if !valueOf.IsValid() || (valueOf.Kind() != reflect.Slice && valueOf.Kind() != reflect.Array) {
+		return nil, api2go.NewHTTPError(errors.New("ForEach value is not an array"), "ForEach value must be an array", http.StatusBadRequest)
+	}
+	if valueOf.Len() > configuredLimit {
+		return nil, api2go.NewHTTPError(
+			fmt.Errorf("ForEach contains %d items, limit is %d", valueOf.Len(), configuredLimit),
+			"ForEach item limit exceeded", http.StatusRequestEntityTooLarge)
+	}
+
+	items := make([]interface{}, 0, valueOf.Len())
+	seen := make(map[string]bool, valueOf.Len())
+	for i := 0; i < valueOf.Len(); i++ {
+		item := valueOf.Index(i).Interface()
+		key, err := actionForeachItemKey(item)
+		if err != nil {
+			return nil, api2go.NewHTTPError(err, fmt.Sprintf("invalid ForEach item at index %d", i), http.StatusBadRequest)
+		}
+		if seen[key] {
+			return nil, api2go.NewHTTPError(
+				fmt.Errorf("duplicate ForEach item at index %d", i),
+				fmt.Sprintf("duplicate ForEach item at index %d", i), http.StatusBadRequest)
+		}
+		seen[key] = true
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func actionForeachItemKey(item interface{}) (string, error) {
+	if item == nil {
+		return "", errors.New("ForEach item cannot be null")
+	}
+	switch typed := item.(type) {
+	case string:
+		referenceID := daptinid.InterfaceToDIR(typed)
+		if referenceID == daptinid.NullReferenceId {
+			return "", errors.New("ForEach string item must be a valid reference_id")
+		}
+		return "reference:" + referenceID.String(), nil
+	case daptinid.DaptinReferenceId:
+		if typed == daptinid.NullReferenceId {
+			return "", errors.New("ForEach reference_id cannot be null")
+		}
+		return "reference:" + typed.String(), nil
+	case uuid.UUID:
+		referenceID := daptinid.DaptinReferenceId(typed)
+		if referenceID == daptinid.NullReferenceId {
+			return "", errors.New("ForEach reference_id cannot be null")
+		}
+		return "reference:" + referenceID.String(), nil
+	case map[string]interface{}:
+		if referenceValue, ok := typed["reference_id"]; ok {
+			referenceID := daptinid.InterfaceToDIR(referenceValue)
+			if referenceID == daptinid.NullReferenceId {
+				return "", errors.New("ForEach object reference_id must be valid")
+			}
+			return "reference:" + referenceID.String(), nil
+		}
+		canonical, err := json.Marshal(typed)
+		if err != nil {
+			return "", fmt.Errorf("ForEach object cannot be encoded: %w", err)
+		}
+		return "object:" + string(canonical), nil
+	default:
+		return "", fmt.Errorf("ForEach item must be a reference_id or object, got %T", item)
+	}
+}
+
+func copyActionContext(inFieldMap map[string]interface{}) map[string]interface{} {
+	copyOfContext := make(map[string]interface{}, len(inFieldMap)+2)
+	for key, value := range inFieldMap {
+		copyOfContext[key] = value
+	}
+	return copyOfContext
+}
+
+func (dbResource *DbResource) executeActionForeachOutcome(
+	action actionresponse.Action,
+	outcome actionresponse.Outcome,
+	inFieldMap map[string]interface{},
+	sessionUser *auth.SessionUser,
+	transaction *sqlx.Tx,
+) ([]actionresponse.ActionResponse, error) {
+	if err := validateActionForeachOutcome(outcome); err != nil {
+		return nil, err
+	}
+	foreachValue, err := EvaluateString(outcome.ForEach, inFieldMap)
+	if err != nil {
+		return nil, api2go.NewHTTPError(err, "failed to evaluate ForEach", http.StatusBadRequest)
+	}
+	items, err := normalizeActionForeachItems(foreachValue, outcome.MaxItems)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]actionresponse.ActionResponse, 0, len(items))
+	for index, item := range items {
+		itemContext := copyActionContext(inFieldMap)
+		itemContext["item"] = item
+		itemContext["item_index"] = index
+
+		shouldExecute, conditionErr := shouldExecuteActionOutcome(action, outcome, itemContext)
+		if conditionErr != nil || !shouldExecute {
+			continue
+		}
+		model, request, err := BuildOutcome(itemContext, outcome, sessionUser)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build ForEach item %d for %s: %w", index, outcome.Type, err)
+		}
+		// HandleActionRequest has already authorized the action and augmented its
+		// execution identity. Keep every iteration in that trusted action context.
+		_, itemResponses, err := dbResource.executeActionCRUDOutcome(outcome, *model, request, transaction)
+		if err != nil {
+			log.Errorf("Action [%s][%s] ForEach item [%d] failed: %v", action.OnType, action.Name, index, err)
+			return nil, err
+		}
+		responses = append(responses, itemResponses...)
+	}
+	return responses, nil
+}
+
+func (dbResource *DbResource) executeActionCRUDOutcome(
+	outcome actionresponse.Outcome,
+	model api2go.Api2GoModel,
+	request api2go.Request,
+	transaction *sqlx.Tx,
+) (interface{}, []actionresponse.ActionResponse, error) {
+	crud, ok := dbResource.Cruds[outcome.Type]
+	if !ok || crud == nil {
+		return nil, nil, fmt.Errorf("resource %s is not available", outcome.Type)
+	}
+
+	switch outcome.Method {
+	case "POST":
+		responseObject, err := crud.CreateWithTransaction(model, request, transaction)
+		CheckErr(err, "Failed to post from action")
+		if err != nil {
+			return nil, nil, err
+		}
+		createdRow := responseObject.(api2go.Response).Result().(api2go.Api2GoModel).GetAttributes()
+		return responseObject, []actionresponse.ActionResponse{NewActionResponse(createdRow["__type"].(string), createdRow)}, nil
+	case "PATCH":
+		responseObject, err := crud.UpdateWithTransaction(model, request, transaction)
+		CheckErr(err, "[532] Failed to update inside action")
+		if err != nil {
+			return nil, nil, err
+		}
+		updatedRow := responseObject.(api2go.Response).Result().(api2go.Api2GoModel).GetAttributes()
+		return responseObject, []actionresponse.ActionResponse{NewActionResponse(updatedRow["__type"].(string), updatedRow)}, nil
+	case "DELETE":
+		referenceID := daptinid.InterfaceToDIR(model.GetID())
+		if referenceID == daptinid.NullReferenceId {
+			return nil, nil, errors.New("DELETE outcome requires a valid reference_id")
+		}
+		err := crud.DeleteWithoutFilters(referenceID, request, transaction)
+		CheckErr(err, "Failed to delete inside action")
+		if err != nil {
+			return nil, nil, err
+		}
+		response := NewActionResponse("client.notify", NewClientNotification("success", "Deleted "+model.GetName(), "Success"))
+		return nil, []actionresponse.ActionResponse{response}, nil
+	default:
+		return nil, nil, fmt.Errorf("unsupported CRUD outcome method %s", outcome.Method)
+	}
+}
+
+func finalizeActionOutcome(
+	actionRequest actionresponse.ActionRequest,
+	outcome actionresponse.Outcome,
+	sessionUser *auth.SessionUser,
+	responses []actionresponse.ActionResponse,
+	actionResponses []actionresponse.ActionResponse,
+	responseObjects interface{},
+	inFieldMap map[string]interface{},
+) []actionresponse.ActionResponse {
+	if outcome.LogToConsole {
+		logActionOutcomeResponses(actionRequest, sessionUser, actionResponses)
+	}
+
+	if !outcome.SkipInResponse {
+		stringifyActionResponseReferenceIDs(actionResponses)
+		responses = append(responses, actionResponses...)
+	}
+
+	if len(actionResponses) > 0 && outcome.Reference != "" {
+		resultList := make([]interface{}, 0, len(actionResponses))
+		for i, response := range actionResponses {
+			inFieldMap[fmt.Sprintf("response.%v[%v]", outcome.Reference, i)] = response.Attributes
+			resultList = append(resultList, response.Attributes)
+		}
+		inFieldMap[outcome.Reference] = resultList
+	}
+
+	if responseObjects == nil || outcome.Reference == "" {
+		return responses
+	}
+
+	if api2goResponse, ok := responseObjects.(api2go.Response); ok {
+		responseObjects = api2goResponse.Result().(api2go.Api2GoModel).GetAttributes()
+	}
+
+	if singleResult, ok := responseObjects.(map[string]interface{}); ok {
+		inFieldMap[outcome.Reference] = singleResult
+		return responses
+	}
+
+	resultArray, ok := responseObjects.([]map[string]interface{})
+	finalArray := make([]map[string]interface{}, 0, len(resultArray))
+	if ok {
+		for i, item := range resultArray {
+			finalArray = append(finalArray, item)
+			inFieldMap[fmt.Sprintf("%v[%v]", outcome.Reference, i)] = item
+		}
+	}
+	inFieldMap[outcome.Reference] = finalArray
+	return responses
+}
+
+func logActionOutcomeResponses(actionRequest actionresponse.ActionRequest, sessionUser *auth.SessionUser, responses []actionresponse.ActionResponse) {
+	for i, response := range responses {
+		attrsAsJSON, _ := json.Marshal(response.Attributes)
+		log.Infof("[%s][%s] by user [%s] OutcomeResponse[%d]: [%s] => %s",
+			actionRequest.Type, actionRequest.Action, sessionUser.UserReferenceId, i, response.ResponseType, attrsAsJSON)
+	}
+}
+
+func stringifyActionResponseReferenceIDs(responses []actionresponse.ActionResponse) {
+	for _, response := range responses {
+		switch attrs := response.Attributes.(type) {
+		case map[string]interface{}:
+			stringifyReferenceIDsInMap(attrs)
+		case []map[string]interface{}:
+			for _, item := range attrs {
+				stringifyReferenceIDsInMap(item)
+			}
+		}
+	}
+}
+
+func stringifyReferenceIDsInMap(attrs map[string]interface{}) {
+	for key, value := range attrs {
+		if referenceID, ok := value.(daptinid.DaptinReferenceId); ok {
+			attrs[key] = referenceID.String()
+		}
+	}
 }
 
 func BuildActionRequest(closer io.ReadCloser, actionType, actionName string,

@@ -45,6 +45,8 @@ type Outcome struct {
 	Condition       string
 	Attributes      map[string]interface{}
 	ContinueOnError bool
+	ForEach         string `json:"ForEach,omitempty" yaml:"ForEach,omitempty"`
+	MaxItems        int    `json:"MaxItems,omitempty" yaml:"MaxItems,omitempty"`
 }
 
 // Action is a set of `Outcome` based on set of Input values on a particular data type
