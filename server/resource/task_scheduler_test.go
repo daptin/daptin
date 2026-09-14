@@ -12,8 +12,8 @@ import (
 	"github.com/daptin/daptin/server/task"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"           // Register the PostgreSQL driver for the database contract matrix.
+	_ "github.com/mattn/go-sqlite3" // Register the SQLite driver for the database contract matrix.
 	"github.com/robfig/cron/v3"
 )
 

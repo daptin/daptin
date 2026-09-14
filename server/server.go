@@ -153,9 +153,9 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	defaultRouter.Use(func() gin.HandlerFunc {
 		return func(c *gin.Context) {
-			beginning, recorder := Stats.Begin(c.Writer)
+			startedAt, recorder := Stats.Begin(c.Writer)
 			c.Next()
-			Stats.End(beginning, stats.WithRecorder(recorder))
+			Stats.End(startedAt, stats.WithRecorder(recorder))
 		}
 	}())
 
