@@ -275,50 +275,14 @@ Configure OAuth providers for:
 
 ## 5. Data Exchange System
 
-The `data_exchange` table enables data synchronization and ETL operations.
+The `data_exchange` resource attaches action, REST, or Google Sheets targets to
+resource lifecycle hooks. Existing definitions continue after target failure
+by default. An exchange can explicitly choose `continue`, `retry`, or `error`
+with `options.on_error`; durable retries are represented by the permissioned
+`data_exchange_execution` resource and processed through a standard action.
 
-### Exchange Types
-
-1. **REST API Exchange**
-   - Import/export via REST APIs
-   - Scheduled sync
-   - Field mapping
-   - Data transformation
-
-2. **File-based Exchange**
-   - CSV/JSON/XML import/export
-   - Cloud storage integration
-   - Scheduled transfers
-
-3. **Database Exchange**
-   - Direct database connections
-   - Cross-database sync
-   - Schema mapping
-
-### Exchange Configuration
-
-```json
-{
-  "source": {
-    "type": "rest",
-    "endpoint": "https://api.example.com/data",
-    "auth": {
-      "type": "bearer",
-      "token": "{{oauth_token}}"
-    }
-  },
-  "destination": {
-    "type": "entity",
-    "name": "products"
-  },
-  "mapping": {
-    "id": "external_id",
-    "title": "name",
-    "price": "cost"
-  },
-  "schedule": "0 */6 * * *"
-}
-```
+See [Data Exchange](wiki/Data-Exchange.md) for the supported target
+configuration, transaction boundary, retry behavior, and cluster semantics.
 
 ## 6. Workflow Patterns
 
@@ -494,7 +458,7 @@ Daptin's workflow system provides:
 - State machine workflows
 - Scheduled task execution
 - OAuth integrations
-- Data exchange/ETL
+- Resource lifecycle data exchange
 - Transaction support
 - Comprehensive audit logging
 

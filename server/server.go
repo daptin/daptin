@@ -523,6 +523,15 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		Schedule:          "@every 5m",
 	})
 	resource.CheckErr(err, "Failed to register outbox processing task")
+
+	err = taskScheduler.AddTask(task.Task{
+		EntityName:        "data_exchange_execution",
+		ActionName:        "process_data_exchange_executions",
+		Attributes:        map[string]interface{}{},
+		AsUserReferenceId: adminTaskUserReferenceId,
+		Schedule:          "@every 1s",
+	})
+	resource.CheckErr(err, "Failed to register data exchange execution processing task")
 	transaction.Rollback()
 
 	taskScheduler.LoadPersistedTasks()

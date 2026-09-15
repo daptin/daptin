@@ -10,16 +10,35 @@ Data Exchange enables:
 - Triggering actions based on data changes
 - Integration with OAuth-protected services
 
-An exchange attached to a Daptin resource runs in that resource operation's
-transaction. A `before` exchange runs before the row mutation. An `after`
-exchange runs after the row mutation, but before the transaction commits. If
-the exchange fails, the resource operation fails and its database changes are
-rolled back.
+An exchange attached to a Daptin resource runs from the resource lifecycle. A
+`before` exchange runs synchronously before the row mutation. Its failure is
+logged without rejecting the resource operation by default. An `after`
+exchange is attempted after the row mutation and has the same default.
+This preserves the resource API behavior of existing exchange definitions.
 
-This transaction boundary applies to database work performed by action
-outcomes. External effects such as HTTP requests, email delivery, object
-storage writes, and live publications cannot be rolled back by SQL. Keep such
-targets idempotent and bounded.
+Set `options.on_error` on an exchange to choose another failure policy:
+
+| Value | Behavior |
+|-------|----------|
+| `continue` | Log the failure and continue the resource operation. This is the default. |
+| `retry` | Continue the resource operation and durably retry the failed exchange. Mutation methods only. |
+| `error` | Return the exchange failure to the resource lifecycle. |
+
+These are exact values. An invalid policy is a configuration error.
+
+`error` rolls back the owning resource transaction when the exchange reports
+failure. It cannot undo an external effect that completed before the failure
+was observed, so it is not distributed atomicity.
+
+The source mutation and a failed exchange's retry record use the same database
+transaction. If the retry record cannot be stored, the resource operation
+fails instead of acknowledging work that cannot be retried. Every Daptin node
+may run the processor task, while a conditional database claim ensures that
+only one node owns an attempt. External effects
+such as HTTP requests, email delivery, object storage writes, and live
+publications cannot be rolled back by SQL and may be delivered more than once
+after a process or network failure. Targets must therefore be safe to retry,
+normally by using stable domain identifiers from the event.
 
 ## Data Exchange Table
 
@@ -42,7 +61,18 @@ The `data_exchange` table stores exchange configurations:
 | `action` | Execute Daptin action |
 | `rest` | HTTP REST API call |
 | `gsheet-append` | Append to Google Sheet |
-| `self` | Internal Daptin entity |
+
+For a lifecycle exchange, use `source_type: "self"` and set `attributes.name`
+to the source resource. `attributes.hook` is `before` or `after`, and
+`attributes.methods` is the list of lowercase mutation methods to observe.
+
+Target configuration is exact:
+
+| Target | Required `target_attributes` | Optional `target_attributes` |
+|--------|------------------------------|------------------------------|
+| `action` | `type`, `action` | `attributes` object |
+| `rest` | `url`, `method` | `headers`, `body`, `query_params` objects |
+| `gsheet-append` | `sheetUrl`, `appKey` | None |
 
 ## Create Data Exchange
 
@@ -61,11 +91,15 @@ curl -X POST http://localhost:6336/api/data_exchange \
         "source_attributes": "{\"name\": \"order\"}",
         "target_type": "rest",
         "target_attributes": "{\"url\": \"https://api.example.com/webhook\", \"method\": \"POST\"}",
-        "attributes": "{\"name\": \"order\", \"hook\": \"after\", \"methods\": [\"post\"]}"
+        "attributes": "{\"name\": \"order\", \"hook\": \"after\", \"methods\": [\"post\"]}",
+        "options": "{\"on_error\": \"retry\"}"
       }
     }
   }'
 ```
+
+Restart Daptin after creating or changing a data exchange so the runtime can
+reload the exchange definitions.
 
 ### Google Sheets Integration
 
@@ -190,6 +224,9 @@ For REST target type:
       "Content-Type": "application/json",
       "X-API-Key": "your-key"
     },
+    "query_params": {
+      "source": "daptin"
+    },
     "body": {
       "data": "{{.}}"
     }
@@ -207,18 +244,15 @@ For REST target type:
 
 ## Reliable Background Processing
 
-For work that must survive process restarts or be retried, keep durable state
-in Daptin resources and invoke the same action from a persisted task. A common
-workflow is:
+Failed mutation exchanges configured with `"on_error": "retry"` are stored as permissioned
+`data_exchange_execution` resources. Each execution contains the immutable
+event envelope, retry state, attempt count, and next-attempt time. The
+standard `process_data_exchange_executions` action invokes the same exchange
+executor used by the initial attempt.
 
-1. Set a pending status on the source resource.
-2. Have a persisted task invoke the action that processes pending resources.
-3. Let that action update the result and terminal status in one transaction.
-
-Use a stable resource reference as the idempotency key. Make each action run
-bounded so another scheduled invocation can resume remaining work. Daptin's
-database remains the durable authority; live coordination and publication are
-not a durable work queue.
+Retries use exponential backoff capped at one hour. In a cluster, every node
+may invoke the processor; the configured SQL database owns claims and retry
+state. Olric is not the durable queue or claim authority.
 
 ## List Data Exchanges
 

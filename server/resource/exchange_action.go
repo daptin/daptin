@@ -2,17 +2,14 @@ package resource
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/artpar/api2go/v2"
-	"github.com/daptin/daptin/server/actionresponse"
-	"github.com/daptin/daptin/server/auth"
-	daptinid "github.com/daptin/daptin/server/id"
-	"github.com/doug-martin/goqu/v9"
-	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
+
+	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 )
 
 type ActionExchangeHandler struct {
@@ -25,19 +22,33 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 	rowType := row["__type"]
 	log.Printf("Execute action exchange on: %v - %v", rowType, row["reference_id"])
 
-	targetType, ok := exchangeHandler.exchangeContract.TargetAttributes["type"]
-	if !ok {
-		log.Warnf("target type value not present in action exchange: %v", exchangeHandler.exchangeContract.Name)
+	tableName, ok := exchangeHandler.exchangeContract.TargetAttributes["type"].(string)
+	if !ok || tableName == "" {
+		return nil, fmt.Errorf("action exchange [%s] requires target_attributes.type", exchangeHandler.exchangeContract.Name)
 	}
-	tableName := targetType.(string)
+	actionName, ok := exchangeHandler.exchangeContract.TargetAttributes["action"].(string)
+	if !ok || actionName == "" {
+		return nil, fmt.Errorf("action exchange [%s] requires target_attributes.action", exchangeHandler.exchangeContract.Name)
+	}
+	if exchangeHandler.cruds[tableName] == nil {
+		return nil, fmt.Errorf("action exchange [%s] targets unknown resource [%s]", exchangeHandler.exchangeContract.Name, tableName)
+	}
 	targetAttributes := exchangeHandler.exchangeContract.TargetAttributes["attributes"]
 	if targetAttributes == nil {
 		targetAttributes = make(map[string]interface{})
 	}
+	configuredAttributes, ok := targetAttributes.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("action exchange [%s] target_attributes.attributes must be an object", exchangeHandler.exchangeContract.Name)
+	}
+	actionAttributes := make(map[string]interface{}, len(configuredAttributes)+2)
+	for key, value := range configuredAttributes {
+		actionAttributes[key] = value
+	}
 	request := actionresponse.ActionRequest{
 		Type:       tableName,
-		Action:     exchangeHandler.exchangeContract.TargetAttributes["action"].(string),
-		Attributes: targetAttributes.(map[string]interface{}),
+		Action:     actionName,
+		Attributes: actionAttributes,
 	}
 	//
 	//if exchangeHandler.exchangeContract.SourceType == row["__type"] {
@@ -53,60 +64,15 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 		},
 	}
 
-	userRow, _, err := exchangeHandler.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowById(USER_ACCOUNT_TABLE_NAME, exchangeHandler.exchangeContract.AsUserId, nil, transaction)
+	sessionUser, err := exchangeSessionUser(exchangeHandler.cruds, exchangeHandler.exchangeContract.AsUserId, transaction)
 	if err != nil {
-		return nil, errors.New("user account not found to execute data exchange with action")
-	}
-	userReferenceId := daptinid.InterfaceToDIR(userRow["reference_id"])
-
-	query, args1, err := auth.UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": exchangeHandler.exchangeContract.AsUserId}).ToSQL()
-
-	stmt1, err := transaction.Preparex(query)
-	if err != nil {
-		return nil, fmt.Errorf("[59] failed to prepare statment: %v", err)
+		return nil, fmt.Errorf("resolve data exchange user: %w", err)
 	}
 
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
-	rows, err := stmt1.Queryx(args1...)
-	userGroups := make(auth.GroupPermissionList, 0)
-
-	if err != nil {
-		log.Errorf("Failed to get user group permissions: %v", err)
-	} else {
-		defer rows.Close()
-		//cols, _ := rows.Columns()
-		//log.Printf("Columns: %v", cols)
-		for rows.Next() {
-			var p auth.GroupPermission
-			err = rows.StructScan(&p)
-			p.ObjectReferenceId = userReferenceId
-			if err != nil {
-				log.Errorf("failed to scan group permission struct: %v", err)
-				continue
-			}
-			userGroups = append(userGroups, p)
-		}
-		rows.Close()
-
-	}
-	stmt1.Close()
-
-	sessionUser := auth.SessionUser{
-		UserId:          exchangeHandler.exchangeContract.AsUserId,
-		UserReferenceId: userReferenceId,
-		Groups:          userGroups,
-	}
-
-	req.PlainRequest = req.PlainRequest.WithContext(context.WithValue(context.Background(), "user", &sessionUser))
+	req.PlainRequest = req.PlainRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
 	request.Attributes["subject"] = row
-	request.Attributes[tableName+"_id"] = row["reference_id"]
+	request.Attributes[tableName+"_id"] = exchangeSourceReference(row["reference_id"])
 	response, err := exchangeHandler.cruds[tableName].HandleActionRequest(request, req, transaction)
 
 	log.Printf("Response from action exchange execution: %v", response)

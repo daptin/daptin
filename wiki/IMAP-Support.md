@@ -160,6 +160,12 @@ Default mailboxes created automatically:
 
 Additional folders can be created via IMAP or REST API.
 
+IMAP `APPEND` creates a `mail` row through Daptin's resource lifecycle, so a
+data exchange attached to `mail` applies its configured failure policy. Mailbox
+flag updates, `COPY`, and `EXPUNGE` are mailbox protocol operations and do not
+all enter that create lifecycle. See [[Data-Exchange|Data Exchange]] for the
+exact `continue`, `retry`, and `error` behavior.
+
 ### Mail Deletion Lifecycle
 
 IMAP uses a two-phase deletion model:

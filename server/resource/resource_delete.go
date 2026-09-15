@@ -551,6 +551,7 @@ func (dbResource *DbResource) Delete(idString string, req api2go.Request) (api2g
 		_, err = bf.InterceptAfter(dbResource, &req, []map[string]interface{}{
 			{
 				"reference_id": id,
+				"__type":       dbResource.model.GetName(),
 			},
 		}, transaction)
 		if err != nil {
@@ -597,6 +598,7 @@ func (dbResource *DbResource) DeleteWithTransaction(id daptinid.DaptinReferenceI
 		_, err = bf.InterceptAfter(dbResource, &req, []map[string]interface{}{
 			{
 				"reference_id": id,
+				"__type":       dbResource.model.GetName(),
 			},
 		}, transaction)
 		if err != nil {

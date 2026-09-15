@@ -709,7 +709,7 @@ func newMeteringTestResources(t *testing.T, database *sqlx.DB, config *CmsConfig
 	for index := range config.Tables {
 		table := config.Tables[index]
 		if table.TableName != USER_ACCOUNT_TABLE_NAME && table.TableName != "api_plan" && table.TableName != "api_member" &&
-			table.TableName != "api_usage" && table.TableName != "api_quota" {
+			table.TableName != "api_usage" && table.TableName != "api_quota" && table.TableName != "data_exchange_execution" {
 			continue
 		}
 		previous[table.TableName] = CRUD_MAP[table.TableName]

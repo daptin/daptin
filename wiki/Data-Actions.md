@@ -402,6 +402,6 @@ Ensure `dump_file` is an array of file objects with `name` and `file` keys:
 
 ## See Also
 
-- [[Data-Exchange|Data Exchange]] - External API syncing
+- [[Data-Exchange|Data Exchange]] - Resource lifecycle action and HTTP targets
 - [[Cloud-Storage|Cloud Storage]] - File storage setup
 - [[Actions-Overview|Actions Overview]] - Action system details

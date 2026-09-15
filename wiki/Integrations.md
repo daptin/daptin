@@ -1062,4 +1062,4 @@ curl -X POST "http://localhost:6336/action/integration/install_integration" \
 
 - [[Authentication|Authentication]] - OAuth for integration auth
 - [[Actions-Overview|Actions Overview]] - How actions work
-- [[Data-Exchange|Data Exchange]] - Import/export via integrations
+- [[Data-Exchange|Data Exchange]] - Resource lifecycle action and HTTP targets

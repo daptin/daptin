@@ -124,7 +124,7 @@ These are related building blocks, not one workflow engine:
 | **Action** | Inputs, validation/conformation rules, conditions, permissions, and ordered output fields attached to a `world` entity. | A call to `/action/{type}/{name}` or a GraphQL action can run CRUD outcomes, registered Go performers, and client-response outcomes. |
 | **Task** | A schedule, entity name, action name, attributes, active flag, job type, and an `as_user` relation. | At server startup it is loaded into the cron scheduler. When due, Daptin loads that user’s identity and groups, then calls the same action handler inside a database transaction. |
 | **State machine definition (`smd`)** | An initial state and named events with allowed source and destination states. | `/track/start` creates an `{entity}_state` record. `/track/event` verifies the current source state, records the transition, increments its version, writes audit data, and publishes an event. |
-| **Data exchange** | A mapping for synchronizing resource data with another source or destination. | Exchange middleware runs before and after configured resource operations. |
+| **Data exchange** | A mapping for synchronizing resource data with an action or HTTP destination. | Exchange middleware runs before and after configured resource operations. Failures continue by default; each exchange can instead request transactional error propagation or durable retry. See [Data Exchange](https://github.com/daptin/daptin/wiki/Data-Exchange). |
 
 State tracking does **not** provide guards, entry/exit actions, parallel states, or hierarchical states. If a transition should perform work, invoke an action separately. See [State Machines](https://github.com/daptin/daptin/wiki/State-Machines) for the exact supported model.
 

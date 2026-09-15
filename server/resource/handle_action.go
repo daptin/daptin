@@ -907,7 +907,7 @@ func (dbResource *DbResource) executeActionCRUDOutcome(
 		if referenceID == daptinid.NullReferenceId {
 			return nil, nil, errors.New("DELETE outcome requires a valid reference_id")
 		}
-		err := crud.DeleteWithoutFilters(referenceID, request, transaction)
+		_, err := crud.DeleteWithTransaction(referenceID, request, transaction)
 		CheckErr(err, "Failed to delete inside action")
 		if err != nil {
 			return nil, nil, err

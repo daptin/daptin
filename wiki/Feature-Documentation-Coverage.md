@@ -61,7 +61,7 @@ From `StandardColumns` array (lines 23-87):
 
 ## Standard Tables (System-Provided)
 
-From `StandardTables` array (lines 1542-3076):
+From the `StandardTables` array in `server/resource/columns.go`:
 
 ### ✅ Fully Documented Tables
 
@@ -83,7 +83,8 @@ From `StandardTables` array (lines 1542-3076):
 | `api_usage` | API usage events | fa-chart-line | ✅ API-Metering.md, API-Metering-Technical-KT.md | Per-request metering log |
 | `api_quota` | API quota counters | fa-gauge-high | ✅ API-Metering.md, API-Metering-Technical-KT.md | Per-member period counters |
 | `integration` | OpenAPI integrations | fa-exchange-alt | ✅ Integrations.md | API specification imports |
-| `data_exchange` | Data sync configurations | fa-sync | ✅ Data-Actions.md | Import/export workflows |
+| `data_exchange` | Data sync configurations | fa-sync | ✅ Data-Exchange.md | Resource lifecycle exchanges |
+| `data_exchange_execution` | Durable exchange retries | fa-sync-alt | ✅ Data-Exchange.md | Permissioned retry state |
 | `feed` | RSS/Atom/JSON feeds | fa-rss | ✅ Documented in FTP-Server.md context | Feed generation |
 | `stream` | Data streams | fa-stream | ✅ WebSocket-API.md | Pub/sub system |
 | `timeline` | Event audit trail | fa-history | ✅ Monitoring.md (audit context) | Event tracking |

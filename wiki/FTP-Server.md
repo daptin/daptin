@@ -14,6 +14,11 @@ Daptin includes an FTP/FTPS server that provides file access to subsites. Featur
 - **Full file operations**: Upload, download, delete, create directories
 - **Default port**: 2121
 
+FTP file operations act on the site's configured storage; they are not
+JSON:API resource mutations and do not trigger `data_exchange` lifecycle hooks.
+Changes to the `site` resource through Daptin's resource APIs remain ordinary
+resource mutations. See [[Data-Exchange|Data Exchange]].
+
 ## Prerequisites
 
 Before using FTP, you must have:

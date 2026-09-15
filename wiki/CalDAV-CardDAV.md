@@ -12,6 +12,10 @@ CalDAV (Calendaring Extensions to WebDAV) and CardDAV (vCard Extensions to WebDA
 
 **Important**: Daptin implements **basic WebDAV file storage** for .ics and .vcf files. It does NOT implement the full CalDAV/CardDAV specifications (no REPORT method, calendar-query, etc.). This is suitable for simple calendar/contact storage and sync but may not work with clients that require advanced CalDAV features.
 
+CalDAV/CardDAV file operations use the WebDAV storage backend rather than the
+JSON:API resource lifecycle, so they do not trigger `data_exchange` hooks. See
+[[Data-Exchange|Data Exchange]] for the operations covered by exchanges.
+
 ### What Works
 
 ✅ **WebDAV Core Methods**:

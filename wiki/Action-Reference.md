@@ -997,6 +997,20 @@ Add a data exchange for Google Sheets sync.
 | sheet_id | alias | Yes |
 | app_key | alias | Yes |
 
+### process_data_exchange_executions
+
+Process one due durable data-exchange retry. The standard scheduler invokes
+this action automatically; administrators may also invoke it manually.
+
+| Property | Value |
+|----------|-------|
+| Entity | `data_exchange_execution` |
+| Instance Required | No |
+| Permission | Administrator only |
+
+See [[Data-Exchange|Data Exchange]] for failure policies, retry state, and
+cluster behavior.
+
 ## Transactional `ForEach` CRUD
 
 An outcome can repeat one trusted `POST`, `PATCH`, or `DELETE` operation over a

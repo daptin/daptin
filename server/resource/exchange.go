@@ -1,10 +1,12 @@
 package resource
 
 import (
+	"fmt"
+
 	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	//"bytes"
 	"bytes"
 )
@@ -67,16 +69,11 @@ func (exchangeExecution *ExchangeExecution) Execute(data []map[string]interface{
 	switch exchangeExecution.ExchangeContract.TargetType {
 	case "action":
 		handler = NewActionExchangeHandler(exchangeExecution.ExchangeContract, *exchangeExecution.cruds)
-		break
-	case "rest":
+	default:
 		handler, err = NewRestExchangeHandler(exchangeExecution.ExchangeContract)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unknown data exchange target [%s]: %w", exchangeExecution.ExchangeContract.TargetType, err)
 		}
-		break
-	default:
-		log.Errorf("exchange contract: target: 'self' is not yet implemented")
-		return nil, errors.New("unknown target in exchange, not yet implemented")
 	}
 
 	//targetAttrs := exchangeExecution.ExchangeContract.TargetAttributes
@@ -101,4 +98,33 @@ func NewExchangeExecution(exchange ExchangeContract, cruds *map[string]*DbResour
 		ExchangeContract: exchange,
 		cruds:            cruds,
 	}
+}
+
+func exchangeSessionUser(cruds map[string]*DbResource, userID int64, transaction *sqlx.Tx) (*auth.SessionUser, error) {
+	userResource := cruds[USER_ACCOUNT_TABLE_NAME]
+	if userResource == nil {
+		return nil, fmt.Errorf("user_account resource is unavailable")
+	}
+	user, _, err := userResource.GetSingleRowById(USER_ACCOUNT_TABLE_NAME, userID, nil, transaction)
+	if err != nil {
+		return nil, fmt.Errorf("load user_account [%d]: %w", userID, err)
+	}
+	userReferenceID := daptinid.InterfaceToDIR(user["reference_id"])
+	if userReferenceID == daptinid.NullReferenceId {
+		return nil, fmt.Errorf("user_account [%d] has no reference_id", userID)
+	}
+	groups := userResource.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "id", userID)
+	authVersion := int64(1)
+	if user[auth.AuthVersionColumn] != nil {
+		authVersion, err = ResourceRowInt64(user[auth.AuthVersionColumn])
+		if err != nil {
+			return nil, fmt.Errorf("invalid auth_version for user_account [%d]: %w", userID, err)
+		}
+	}
+	return &auth.SessionUser{
+		UserId:          userID,
+		UserReferenceId: userReferenceID,
+		Groups:          groups,
+		AuthVersion:     auth.AuthVersionOrDefault(authVersion),
+	}, nil
 }

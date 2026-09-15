@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/artpar/resty"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
+
+const restExchangeTimeout = 30 * time.Second
 
 type RestExchange struct {
 	Name        string
@@ -68,7 +70,11 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 		if v == nil {
 			continue
 		}
-		headersMap[k] = v.(string)
+		headerValue, ok := v.(string)
+		if !ok {
+			return nil, fmt.Errorf("REST exchange header [%s] must be a string", k)
+		}
+		headersMap[k] = headerValue
 	}
 
 	queryParamsMap := make(map[string]string)
@@ -84,7 +90,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 			continue
 		}
 
-		queryParamsMap[k] = v.(string)
+		queryParamsMap[k] = fmt.Sprint(v)
 	}
 
 	attrs := make(map[string]interface{})
@@ -109,13 +115,18 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 	}
 
 	buildAttrsInterface, err := BuildActionContext(attrs, inFieldMap)
+	if err != nil {
+		return nil, err
+	}
 	buildAttrs := buildAttrsInterface.(map[string]interface{})
 
-	url := buildAttrs["url"].(string)
-	method := buildAttrs["method"].(string)
+	url, urlOK := buildAttrs["url"].(string)
+	method, methodOK := buildAttrs["method"].(string)
+	if !urlOK || url == "" || !methodOK || method == "" {
+		return nil, fmt.Errorf("REST exchange requires string url and method")
+	}
 
-	requestFactory := resty.New()
-	requestFactory.Debug = true
+	requestFactory := resty.New().SetTimeout(restExchangeTimeout)
 	client := requestFactory.R()
 	client.SetBody(bodyMap)
 
@@ -137,24 +148,36 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 		break
 	case "put":
 		response, err = client.Put(url)
-		break
+	case "patch":
+		response, err = client.Patch(url)
 	case "delete":
 		response, err = client.Delete(url)
-		break
-
+	default:
+		return nil, fmt.Errorf("unsupported REST exchange method [%s]", method)
 	}
-	log.Printf("Response from exchange execution: %v", response.String())
+	if response == nil {
+		if err == nil {
+			err = fmt.Errorf("REST exchange returned no response")
+		}
+		return nil, err
+	}
+	log.Printf("Response status from exchange execution: %d", response.StatusCode())
 	log.Printf("Error from exchange execution: %v", err)
 
 	res := make(map[string]interface{})
 	res["headers"] = response.Header()
-	if err != nil {
-		bodyBytes, err := io.ReadAll(response.RawBody())
-		if err == nil {
-			res["bodyString"] = string(bodyBytes)
-			bodyAttrs := make(map[string]interface{})
-			json.Unmarshal(bodyBytes, &bodyAttrs)
-			res["body"] = bodyAttrs
+	if err != nil || response.IsError() {
+		if responseBody := response.RawBody(); responseBody != nil {
+			bodyBytes, readErr := io.ReadAll(responseBody)
+			if readErr == nil {
+				res["bodyString"] = string(bodyBytes)
+				bodyAttrs := make(map[string]interface{})
+				json.Unmarshal(bodyBytes, &bodyAttrs)
+				res["body"] = bodyAttrs
+			}
+		}
+		if response.IsError() {
+			return res, fmt.Errorf("REST exchange returned HTTP status %d", response.StatusCode())
 		}
 	}
 
@@ -163,18 +186,46 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 
 func NewRestExchangeHandler(exchangeContext ExchangeContract) (ExternalExchange, error) {
 
-	found := false
 	var selected *RestExchange
-
-	for _, ra := range restExchanges {
-		if ra.Name == exchangeContext.TargetType {
-			found = true
-			selected = &ra
+	if exchangeContext.TargetType == "rest" {
+		url, urlOK := exchangeContext.TargetAttributes["url"].(string)
+		method, methodOK := exchangeContext.TargetAttributes["method"].(string)
+		if !urlOK || url == "" || !methodOK || method == "" {
+			return nil, fmt.Errorf("REST exchange requires target_attributes.url and target_attributes.method")
+		}
+		selected = &RestExchange{Name: "rest", Url: url, Method: method}
+		if value, exists := exchangeContext.TargetAttributes["headers"]; exists {
+			headers, ok := value.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("REST exchange target_attributes.headers must be an object")
+			}
+			selected.Headers = headers
+		}
+		if value, exists := exchangeContext.TargetAttributes["body"]; exists {
+			body, ok := value.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("REST exchange target_attributes.body must be an object")
+			}
+			selected.Body = body
+		}
+		if value, exists := exchangeContext.TargetAttributes["query_params"]; exists {
+			query, ok := value.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("REST exchange target_attributes.query_params must be an object")
+			}
+			selected.QueryParams = query
 		}
 	}
 
-	if !found {
-		return nil, errors.New(fmt.Sprintf("Unknown target type [%v]", exchangeContext.TargetType))
+	for _, ra := range restExchanges {
+		if ra.Name == exchangeContext.TargetType {
+			selected = &ra
+			break
+		}
+	}
+
+	if selected == nil {
+		return nil, fmt.Errorf("unknown REST target type [%s]", exchangeContext.TargetType)
 	}
 
 	return &RestExternalExchange{

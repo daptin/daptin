@@ -198,44 +198,17 @@ cloud_store.files.import
 
 ---
 
-#### 4. Data Exchange Complete Reference ⚠️ PARTIAL
+#### 4. Data Exchange Complete Reference ✅ DOCUMENTED
 
 **What**: All options for configuring data exchanges
 
 **Code Location**: `server/resource/exchange.go`
 
-**Currently Documented**: Basic structure in Data-Exchange.md
+**Documented In**: `wiki/Data-Exchange.md`
 
-**Missing from Docs**:
-```yaml
-# Target types found in code:
-target_type: "action"       # Execute action
-target_type: "rest"         # REST API call
-target_type: "gsheet-append" # Google Sheets append
-target_type: "self"         # Internal Daptin table
-
-# Attributes for each type:
-# action type:
-target_attributes:
-  action_name: "action_to_execute"
-  entity_name: "table_name"
-
-# gsheet-append type:
-target_attributes:
-  sheetUrl: "https://content-sheets.googleapis.com/v4/spreadsheets/{id}/values/A1:append"
-  appKey: "api_key"
-options:
-  hasHeader: true
-```
-
-**Should Document**:
-- All source_type options
-- All target_type options with required attributes
-- Complete attribute structure per type
-- Column mapping syntax
-- Options available for each exchange type
-
-**Suggested File**: Expand `wiki/Data-Exchange.md` or create `wiki/Data-Exchange-Reference.md`
+The canonical guide now covers the supported `action`, `rest`, and
+`gsheet-append` targets, lifecycle hooks, column mapping, exact
+`options.on_error` policies, durable processing, and cluster semantics.
 
 ---
 
@@ -302,12 +275,7 @@ OutFields:
 
 ### Short-term Actions (Week 2-3)
 
-4. **Expand `wiki/Data-Exchange.md`**
-   - Add complete attribute reference per target_type
-   - Document all available source/target types
-   - Provide examples for each exchange type
-
-5. **Add to `wiki/Custom-Actions.md`**
+4. **Add to `wiki/Custom-Actions.md`**
    - Condition syntax section with examples
    - RequestSubjectRelations usage guide
 
