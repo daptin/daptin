@@ -1288,6 +1288,7 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 
 		if err != nil {
 			log.Errorf("Error from AfterUpdate middleware: %v", err)
+			return nil, err
 		}
 	}
 	delete(updatedResource, "id")

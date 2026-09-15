@@ -115,7 +115,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow}, transaction)
 			if err != nil {
 				log.Errorf("Failed to execute exchange: %v", err)
-				//errors = append(errors, err)
+				return nil, err
 			} else {
 
 				if exchange.Attributes != nil && len(exchange.Attributes) > 0 {
@@ -189,7 +189,7 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 			exchangeResult, err := exchangeExecution.Execute([]map[string]interface{}{resultRow}, transaction)
 			if err != nil {
 				log.Errorf("Failed to execute exchange: %v", err)
-				//errors = append(errors, err)
+				return nil, err
 			} else {
 
 				if exchange.Attributes != nil && len(exchange.Attributes) > 0 {

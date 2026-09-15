@@ -88,7 +88,7 @@ func (exchangeExecution *ExchangeExecution) Execute(data []map[string]interface{
 	for _, row := range data {
 		result, err = handler.ExecuteTarget(row, transaction)
 		if err != nil {
-			log.Errorf("Failed to execute target for [%v]: %v", row["__type"], err)
+			return nil, errors.Wrapf(err, "failed to execute target for [%v]", row["__type"])
 		}
 	}
 

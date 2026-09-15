@@ -10,6 +10,17 @@ Data Exchange enables:
 - Triggering actions based on data changes
 - Integration with OAuth-protected services
 
+An exchange attached to a Daptin resource runs in that resource operation's
+transaction. A `before` exchange runs before the row mutation. An `after`
+exchange runs after the row mutation, but before the transaction commits. If
+the exchange fails, the resource operation fails and its database changes are
+rolled back.
+
+This transaction boundary applies to database work performed by action
+outcomes. External effects such as HTTP requests, email delivery, object
+storage writes, and live publications cannot be rolled back by SQL. Keep such
+targets idempotent and bounded.
+
 ## Data Exchange Table
 
 The `data_exchange` table stores exchange configurations:
@@ -21,7 +32,7 @@ The `data_exchange` table stores exchange configurations:
 | `source_attributes` | json | Source connection config |
 | `target_type` | label | Target system type |
 | `target_attributes` | json | Target connection config |
-| `attributes` | json | Column mapping |
+| `attributes` | json | Source resource name, hook, methods, and result mapping |
 | `options` | json | Exchange options |
 
 ## Target Types
@@ -50,7 +61,7 @@ curl -X POST http://localhost:6336/api/data_exchange \
         "source_attributes": "{\"name\": \"order\"}",
         "target_type": "rest",
         "target_attributes": "{\"url\": \"https://api.example.com/webhook\", \"method\": \"POST\"}",
-        "attributes": "{}"
+        "attributes": "{\"name\": \"order\", \"hook\": \"after\", \"methods\": [\"post\"]}"
       }
     }
   }'
@@ -92,7 +103,8 @@ curl -X POST http://localhost:6336/api/data_exchange \
         "source_type": "self",
         "source_attributes": "{\"name\": \"order\"}",
         "target_type": "action",
-        "target_attributes": "{\"action_name\": \"send_notification\", \"entity_name\": \"order\"}"
+        "target_attributes": "{\"type\": \"order\", \"action\": \"send_notification\", \"attributes\": {}}",
+        "attributes": "{\"name\": \"order\", \"hook\": \"after\", \"methods\": [\"post\", \"patch\"]}"
       }
     }
   }'
@@ -192,6 +204,21 @@ For REST target type:
 - PUT
 - PATCH
 - DELETE
+
+## Reliable Background Processing
+
+For work that must survive process restarts or be retried, keep durable state
+in Daptin resources and invoke the same action from a persisted task. A common
+workflow is:
+
+1. Set a pending status on the source resource.
+2. Have a persisted task invoke the action that processes pending resources.
+3. Let that action update the result and terminal status in one transaction.
+
+Use a stable resource reference as the idempotency key. Make each action run
+bounded so another scheduled invocation can resume remaining work. Daptin's
+database remains the durable authority; live coordination and publication are
+not a durable work queue.
 
 ## List Data Exchanges
 

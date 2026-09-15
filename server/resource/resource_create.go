@@ -1019,6 +1019,7 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{createdResource}, transaction)
 		if err != nil {
 			log.Errorf("Error from AfterCreate[%v] middleware: %v", bf.String(), err)
+			return nil, err
 		}
 		if len(results) < 1 {
 			createdResource = nil

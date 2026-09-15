@@ -647,13 +647,14 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					if err != nil {
 						return nil, err
 					}
-					defer transaction.Commit()
+					defer transaction.Rollback()
 
 					created, err := resources[table.TableName].CreateWithTransaction(obj, req, transaction)
 
 					if err != nil {
 						return nil, err
 					}
+					err = transaction.Commit()
 
 					return created.Result().(api2go.Api2GoModel).GetAttributes(), err
 				},
@@ -784,10 +785,14 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					if err != nil {
 						return nil, err
 					}
-					defer transaction.Commit()
+					defer transaction.Rollback()
 
 					_, err = resources[table.TableName].DeleteWithTransaction(daptinid.DaptinReferenceId(uuid.MustParse(params.Args["reference_id"].(string))), req, transaction)
 
+					if err != nil {
+						return nil, err
+					}
+					err = transaction.Commit()
 					if err != nil {
 						return nil, err
 					}
