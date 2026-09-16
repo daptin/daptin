@@ -1,8 +1,8 @@
 # Rate Limiting
 
-Daptin v0.13.0 has two independent request-limiting mechanisms:
+Daptin v0.13.14 has two independent request-limiting mechanisms:
 
-1. A global in-process token bucket keyed by client IP and URL path.
+1. A global fixed-window limiter keyed by client IP and route.
 2. Plan limits enforced by the API metering service for authenticated users.
 
 See [[Authorization-Scenarios#public-does-not-mean-individually-metered]] when
@@ -15,22 +15,44 @@ The checks are cumulative. A request must pass the global limiter before it can 
 
 | Property | Global limiter | Metering plan limit |
 |---|---|---|
-| Scope | Every route on one Daptin process | Metering-enabled CRUD, actions, and LLM invokes |
+| Scope | Routes registered after the middleware; `/ping` is excluded | Metering-enabled CRUD, actions, and LLM invokes |
 | Identity | Client IP plus path | Authenticated user, plan, metric, and window |
-| Configuration | Internal `limit.rate` configuration | `api_plan.limits` JSON array |
-| Window | Token bucket | UTC minute, hour, day, month, or membership period |
-| Storage | Process memory | Transactional `api_quota` rows |
-| Rejection | HTTP 429 | HTTP 402 for a hard limit |
+| Configuration | Versioned `limit.rate` JSON | `api_plan.limits` JSON array |
+| Window | One-second UTC window | UTC minute, hour, day, month, or membership period |
+| Storage | Olric DMap, with process-local fallback | Transactional `api_quota` rows |
+| Rejection | JSON HTTP 429 with rate headers | HTTP 402 for a hard limit |
 
 ## Global Request Limiter
 
-The global limiter runs before authentication. Its key is the resolved client IP plus request path; query parameters and the HTTP method are not part of the key. Different item paths therefore normally have different buckets, while `GET` and `POST` to the same path share one.
+The global limiter runs before authentication. Its key is the resolved client
+IP plus request path; query parameters and the HTTP method are not part of the
+key. Different item paths therefore have different buckets, while `GET` and
+`POST` to the same path share one. Subsite routing uses host plus path.
 
-The default is 500 requests per second with a burst of 500. Buckets are local to one Daptin process and expire from memory after one minute. This expiration is not a one-minute quota window.
+The default is 500 requests in each one-second UTC window. When Olric is
+available, nodes share counters through the `http-rate-limit` DMap and entries
+have a two-second TTL. If Olric initialization or increment fails, the request
+uses a process-local counter for that node.
 
-An exhausted bucket returns an empty HTTP 429 response. It does not include `Retry-After` or `X-RateLimit-*` headers.
+Successful limited responses include `X-RateLimit-Limit`,
+`X-RateLimit-Remaining`, and `X-RateLimit-Reset`. An exhausted bucket returns a
+JSON:API-style HTTP 429 body plus those headers and `Retry-After: 1`.
 
-Custom path limits are not currently a supported deployment interface. Use an ingress, reverse proxy, or API gateway when a deployment needs configurable anonymous or IP-based throttling.
+Configure route limits with the administrator-only config API. The value must
+be a raw versioned JSON object; a scalar such as `100` is invalid and causes the
+server to log an error and use defaults without overwriting the stored value.
+
+```bash
+curl -X POST http://localhost:6336/_config/backend/limit.rate \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"version":"1","limits":{"/statistics":2}}'
+```
+
+Restart Daptin with its process supervisor because the limiter is composed at
+startup. Verify with a burst against the exact configured path. `/ping` is
+handled by the outer lifecycle gate before this middleware, so it does not
+receive limiter headers and cannot be limited here.
 
 ## Metering Plan Limits
 
@@ -150,7 +172,10 @@ Inspect `api_usage` for reservation state and final measures, and `api_quota` fo
 
 ## Client Handling
 
-The global 429 response and metering 402 response do not advertise a reset time. If a client knows the governing plan window, it can wait for that boundary. Otherwise use bounded backoff and surface exhausted credits to the user. Do not automatically retry non-idempotent writes.
+The global 429 response advertises the next Unix-second boundary in
+`X-RateLimit-Reset` and sends `Retry-After: 1`. Metering 402 responses do not
+advertise a reset time. Use the governing plan window or bounded backoff and do
+not automatically retry non-idempotent writes.
 
 ## Authentication and OTP Protection
 

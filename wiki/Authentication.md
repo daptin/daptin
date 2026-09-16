@@ -25,7 +25,12 @@ curl -X POST http://localhost:6336/action/user_account/signup \
   }'
 ```
 
-**Note**: After the first admin user is created, signup may be restricted based on `user_account` table permissions. Subsequent users may need to be created by an admin or through OAuth.
+> **Production requirement:** do not assume that claiming the first
+> administrator has closed public signup. A v0.13.14 audit observed a second
+> unauthenticated signup succeeding after bootstrap. Explicitly set the
+> `signup` action permission to `2085120`, wait for the authorization cache
+> window, and run the rejection check in [[First-Admin-Setup]]. Create later
+> users through an administrator-controlled resource/action or OAuth flow.
 
 ### Sign In
 

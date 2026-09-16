@@ -1,304 +1,145 @@
 # Cloud Actions
 
-Actions for cloud storage operations using rclone-compatible backends.
+Daptin exposes cloud operations as actions on `cloud_store` and `site`
+resources. These routes enter the same action permission and resource context
+as other Daptin operations.
 
-## Supported Providers
+## v0.13.14 boundaries
 
-- Amazon S3
-- Google Cloud Storage
-- Microsoft Azure Blob
-- Dropbox
-- Box.com
-- Backblaze B2
-- OpenStack Swift
-- FTP/SFTP
-- Local filesystem
-- 30+ more via rclone
+- Set `cloud_store.credential_name` to the credential row's exact `name` **and**
+  link the row through the `credential_id` relationship. Runtime provider
+  lookup uses the name; the relationship is the persisted Daptin association
+  and permission boundary. Omitting the name can cause HTTP 500 instead of a
+  configuration validation error.
+- An HTTP 200 action response may mean that asynchronous rclone work was
+  accepted, not that it completed. In particular, `move_path` and
+  `delete_path` can report success when the provider later reports a missing
+  object. Verify the resulting object state with `list_files` or the provider
+  API.
+- The log line `rclone session exitcode - 1` is not sufficient by itself to
+  classify an operation. Inspect the surrounding provider error and the actual
+  object state.
 
-## cloudstore_file_upload
+The public action names below come from the action definitions. Names such as
+`cloudstore.file.upload` are internal performers, not public routes.
 
-Upload file to cloud storage.
+## Cloud-store actions
+
+All cloud-store actions are instance actions. Pass the store's public
+`reference_id` as `cloud_store_id`; do not use an internal numeric ID.
+
+### upload_file
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/cloudstore_file_upload \
+curl -X POST http://localhost:6336/action/cloud_store/upload_file \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
+  -H 'Content-Type: application/json' \
+  --data-binary '{
     "attributes": {
-      "cloud_store_id": "CLOUDSTORE_ID",
-      "path": "/uploads/document.pdf",
-      "file": [{
-        "name": "document.pdf",
-        "file": "data:application/pdf;base64,..."
-      }]
+      "cloud_store_id": "CLOUD_STORE_REFERENCE_ID",
+      "path": "/uploads",
+      "file": [{"name":"document.pdf","file":"data:application/pdf;base64,..."}]
     }
   }'
 ```
 
-**Parameters:**
-
-| Parameter | Description |
-|-----------|-------------|
-| cloud_store_id | Reference ID of cloud_store |
-| path | Destination path |
-| file | File data (base64) |
-
-## cloudstore_file_delete
-
-Delete file from cloud storage.
+### delete_path
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/cloudstore_file_delete \
+curl -X POST http://localhost:6336/action/cloud_store/delete_path \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "cloud_store_id": "CLOUDSTORE_ID",
-      "path": "/uploads/old-file.pdf"
-    }
-  }'
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"cloud_store_id":"CLOUD_STORE_REFERENCE_ID","path":"/uploads/old-file.pdf"}}'
 ```
 
-## cloudstore_folder_create
+The response is a queue/dispatch acknowledgement in v0.13.14. Verify that the
+object is absent.
 
-Create folder in cloud storage.
+### create_folder
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/cloudstore_folder_create \
+curl -X POST http://localhost:6336/action/cloud_store/create_folder \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "cloud_store_id": "CLOUDSTORE_ID",
-      "path": "/uploads/2024/january"
-    }
-  }'
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"cloud_store_id":"CLOUD_STORE_REFERENCE_ID","path":"/uploads/2024","name":"january"}}'
 ```
 
-## cloudstore_path_move
-
-Move or rename file/folder.
+### move_path
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/cloudstore_path_move \
+curl -X POST http://localhost:6336/action/cloud_store/move_path \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "cloud_store_id": "CLOUDSTORE_ID",
-      "source_path": "/uploads/old-name.pdf",
-      "destination_path": "/archive/new-name.pdf"
-    }
-  }'
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"cloud_store_id":"CLOUD_STORE_REFERENCE_ID","source":"/uploads/old-name.pdf","destination":"/archive/new-name.pdf"}}'
 ```
 
-## cloudstore_site_create
+Verify both that the destination exists and that the source no longer exists.
 
-Create a subsite backed by cloud storage.
+### create_site
 
 ```bash
-curl -X POST http://localhost:6336/action/cloud_store/cloudstore_site_create \
+curl -X POST http://localhost:6336/action/cloud_store/create_site \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "cloud_store_id": "CLOUDSTORE_ID",
-      "site_name": "static-website",
-      "hostname": "static.example.com"
-    }
-  }'
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"cloud_store_id":"CLOUD_STORE_REFERENCE_ID","site_type":"static","path":"static-website","hostname":"static.example.com"}}'
 ```
 
-## column_sync_storage
+## Site actions
 
-Sync asset column files to cloud storage.
+`get_file`, `list_files`, and `sync_site_storage` are instance actions on
+`site`; pass `site_id` as a public reference ID.
 
 ```bash
-curl -X POST http://localhost:6336/action/product/__column_sync_storage \
+curl -X POST http://localhost:6336/action/site/list_files \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "column_name": "image",
-      "cloud_store_id": "CLOUDSTORE_ID"
-    }
-  }'
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"site_id":"SITE_REFERENCE_ID","path":"/assets"}}'
+
+curl -X POST http://localhost:6336/action/site/get_file \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"site_id":"SITE_REFERENCE_ID","path":"/index.html"}}'
+
+curl -X POST http://localhost:6336/action/site/sync_site_storage \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"site_id":"SITE_REFERENCE_ID"}}'
 ```
 
-Syncs all files in the specified asset column to cloud storage.
+In v0.13.14 site sync copies the backing store to the site's temporary local
+directory. It does not persist FTP edits back to the store; see [[FTP-Server]].
 
-## site_file_get
+## Credential configuration
 
-Get file from subsite storage.
+Credential content is an encrypted JSON string containing rclone-compatible
+fields:
 
 ```bash
-curl -X POST http://localhost:6336/action/site/site_file_get \
+CRED_ID=$(curl -sS -X POST http://localhost:6336/api/credential \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "site_id": "SITE_ID",
-      "path": "/index.html"
-    }
-  }'
+  -H 'Content-Type: application/vnd.api+json' \
+  --data-binary '{"data":{"type":"credential","attributes":{"name":"minio-creds","content":"{\"type\":\"s3\",\"provider\":\"Minio\",\"env_auth\":\"false\",\"access_key_id\":\"ACCESS_KEY\",\"secret_access_key\":\"SECRET_KEY\",\"endpoint\":\"http://minio:9000\",\"region\":\"us-east-1\"}"}}}' | jq -r '.data.id')
+
+STORE_ID=$(curl -sS -X POST http://localhost:6336/api/cloud_store \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/vnd.api+json' \
+  --data-binary '{"data":{"type":"cloud_store","attributes":{"name":"minio-store","store_type":"s3","store_provider":"s3","credential_name":"minio-creds","root_path":"minio-store:bucket-name","store_parameters":"{}"}}}' | jq -r '.data.id')
+
+curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/vnd.api+json' \
+  --data-binary '{"data":{"type":"cloud_store","id":"'"$STORE_ID"'","relationships":{"credential_id":{"data":{"type":"credential","id":"'"$CRED_ID"'"}}}}}'
 ```
 
-## site_file_list
+Create the bucket before invoking an action. For self-hosted HTTPS endpoints,
+install the endpoint CA in Daptin's trust store; do not disable certificate
+verification for production. Restart Daptin after adding or changing a cloud
+store because runtime storage composition occurs at startup.
 
-List files in subsite storage.
+## Asset columns
 
-```bash
-curl -X POST http://localhost:6336/action/site/site_file_list \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "site_id": "SITE_ID",
-      "path": "/assets"
-    }
-  }'
-```
-
-## site_sync_storage
-
-Sync subsite files with cloud storage.
-
-```bash
-curl -X POST http://localhost:6336/action/site/site_sync_storage \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "site_id": "SITE_ID"
-    }
-  }'
-```
-
-## Creating Cloud Store
-
-### S3 Configuration
-
-```bash
-curl -X POST http://localhost:6336/api/cloud_store \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "cloud_store",
-      "attributes": {
-        "name": "my-s3-bucket",
-        "store_type": "s3",
-        "store_provider": "AWS",
-        "root_path": "/daptin-files",
-        "store_parameters": {
-          "access_key_id": "AKIAXXXXXXXX",
-          "secret_access_key": "secret",
-          "region": "us-east-1",
-          "bucket": "my-bucket"
-        }
-      }
-    }
-  }'
-```
-
-### Google Cloud Storage
-
-```bash
-curl -X POST http://localhost:6336/api/cloud_store \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "cloud_store",
-      "attributes": {
-        "name": "gcs-storage",
-        "store_type": "gcs",
-        "store_provider": "Google",
-        "root_path": "/",
-        "store_parameters": {
-          "bucket": "my-gcs-bucket",
-          "service_account_json": "{...}"
-        }
-      }
-    }
-  }'
-```
-
-### Dropbox
-
-```bash
-curl -X POST http://localhost:6336/api/cloud_store \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "cloud_store",
-      "attributes": {
-        "name": "dropbox-storage",
-        "store_type": "dropbox",
-        "root_path": "/Apps/Daptin",
-        "store_parameters": {
-          "token": "dropbox-oauth-token"
-        }
-      }
-    }
-  }'
-```
-
-### Local Storage
-
-```bash
-curl -X POST http://localhost:6336/api/cloud_store \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "cloud_store",
-      "attributes": {
-        "name": "local-storage",
-        "store_type": "local",
-        "root_path": "/var/daptin/files"
-      }
-    }
-  }'
-```
-
-## Credentials Management
-
-Store credentials securely:
-
-```bash
-curl -X POST http://localhost:6336/api/credential \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "credential",
-      "attributes": {
-        "name": "aws-credentials",
-        "credential_type": "aws",
-        "credential_value": {
-          "access_key_id": "AKIAXXXXXXXX",
-          "secret_access_key": "secret"
-        }
-      }
-    }
-  }'
-```
-
-Link credential to cloud store:
-
-```bash
-curl -X PATCH http://localhost:6336/api/cloud_store/STORE_ID \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "cloud_store",
-      "id": "STORE_ID",
-      "relationships": {
-        "credential": {"data": {"type": "credential", "id": "CRED_ID"}}
-      }
-    }
-  }'
-```
+`column.storage.sync` is an internal performer used by the resource lifecycle,
+not a second public cloud API. Configure an asset column's
+`ForeignKeyData.Namespace` and create/update rows through the resource API so
+validation, ownership, permissions, audit, events, cache invalidation, and
+metering stay on the canonical resource path.

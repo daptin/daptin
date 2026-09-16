@@ -142,19 +142,15 @@ curl -X POST http://localhost:6336/action/world/delete_column \
 
 **Warning:** Data in the column is permanently lost.
 
-## generate_self_tls_certificate
+## generate_self_certificate
 
-Generate self-signed TLS certificate.
+Generate a self-signed TLS certificate for an existing `certificate` row.
 
 ```bash
-curl -X POST http://localhost:6336/action/world/generate_self_tls_certificate \
+curl -X POST http://localhost:6336/action/certificate/generate_self_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "hostname": "api.example.com"
-    }
-  }'
+  --data-binary '{"attributes":{},"certificate_id":"CERTIFICATE_REFERENCE_ID"}'
 ```
 
 **Certificate properties:**
@@ -162,19 +158,20 @@ curl -X POST http://localhost:6336/action/world/generate_self_tls_certificate \
 - 365-day validity
 - Self-signed
 
-## generate_acme_tls_certificate
+## generate_acme_certificate
 
-Get Let's Encrypt certificate via ACME.
+Get a Let's Encrypt production certificate via the instance action on an
+existing `certificate` resource.
 
 ```bash
-curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
+curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "hostname": "api.example.com",
       "email": "admin@example.com"
-    }
+    },
+    "certificate_id": "CERTIFICATE_REFERENCE_ID"
   }'
 ```
 
@@ -182,6 +179,8 @@ curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
 - Port 80 accessible from internet
 - Valid DNS pointing to server
 - Email for Let's Encrypt notifications
+- Existing `certificate` row whose hostname is the requested DNS name
+- Awareness that v0.13.14 has no staging/custom ACME directory
 
 ## download_certificate
 

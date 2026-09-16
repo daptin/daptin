@@ -4,11 +4,14 @@ Supported databases and configuration.
 
 ## Supported Databases
 
-| Database | Driver | Production Ready |
+| Database | Driver | v0.13.14 status |
 |----------|--------|------------------|
-| SQLite | sqlite3 | Development only |
-| MySQL | mysql | Yes |
-| PostgreSQL | postgres | Yes |
+| SQLite | sqlite3 | Verified for development and single-node use |
+| MySQL/MariaDB | mysql | Known-broken fresh initialization; do not use for production |
+| PostgreSQL 15 | postgres | Verified for persistence and two-node shared-database use |
+
+The status above is release-specific. See [[Release-v0.13.14-Feature-Status]]
+before choosing a production dependency.
 
 ## SQLite (Default)
 
@@ -24,7 +27,18 @@ Or specify path:
 DAPTIN_DB_TYPE=sqlite3 DAPTIN_DB_CONNECTION_STRING=./data/daptin.db ./daptin
 ```
 
-## MySQL
+## MySQL/MariaDB
+
+> **v0.13.14 limitation:** a fresh MariaDB 10.11 initialization can omit
+> required built-in tables while the process continues to listen and `/ready`
+> returns 200. Known failures include the `document` table's
+> `varchar(99999)` columns and relationship identifiers longer than MariaDB's
+> 64-character limit. There is no MySQL/MariaDB version currently validated for
+> a complete v0.13.14 schema. Treat this backend as known broken until the
+> schema defects and startup/readiness behavior are fixed.
+
+The following connection shape is retained for development diagnosis; it is
+not a production recommendation.
 
 ### Connection String
 
@@ -77,6 +91,10 @@ innodb_buffer_pool_size=1G
 
 ## PostgreSQL
 
+PostgreSQL 15 is the production database path validated for v0.13.14. The
+audit covered restart persistence, database stop/recovery, two Daptin nodes
+sharing one database, and a 50-concurrent-create smoke test.
+
 ### Connection String
 
 ```bash
@@ -121,6 +139,34 @@ volumes:
 | require | SSL without verification |
 | verify-ca | Verify server certificate |
 | verify-full | Full verification |
+
+### Verify initialization
+
+`/ready` proves that the runtime is accepting traffic and that the database is
+reachable. In v0.13.14 it does not prove that every required table or
+relationship was created. After first start, inspect startup logs for schema
+errors and perform authenticated reads of the built-in resources your
+deployment needs. At minimum, verify `world`, `user_account`, `usergroup`,
+`action`, `task`, `document`, and any enabled audit/resource relationship
+endpoints. Do not put the instance into service if any returns an unexpected
+404 or 500.
+
+For a PostgreSQL operator-level schema check (read-only, not an application
+workflow), confirm the minimum built-in set is present:
+
+```sql
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = current_schema()
+  AND table_name IN
+      ('world','user_account','usergroup','action','task','document')
+ORDER BY table_name;
+```
+
+Expect six rows, then extend the list with every enabled feature/audit/join
+table from the deployed schema. A table-name check alone is not enough; follow
+it with authenticated resource and relationship reads because v0.13.14 can
+miss generated relationship tables.
 
 ## Connection Pool
 

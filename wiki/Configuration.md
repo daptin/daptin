@@ -11,8 +11,23 @@ The `/_config` API allows runtime configuration changes stored in the database.
 ```bash
 curl -X POST http://localhost:6336/_config/backend/graphql.enable \
   -H "Authorization: Bearer $TOKEN" \
-  -d 'true'
+  -H 'Content-Type: text/plain' \
+  --data-binary 'true'
 ```
+
+The config handler stores the raw request body. Do not JSON-quote scalar
+strings: posting `"127.0.0.1:22121"` stores the quote characters and can later
+produce an invalid-port startup failure.
+
+| Value kind | Request body | Content-Type | Stored text |
+|---|---|---|---|
+| String | `127.0.0.1:22121` | `text/plain` | `127.0.0.1:22121` |
+| Integer | `100` | `text/plain` | `100` |
+| Boolean | `true` | `text/plain` | `true` |
+| JSON object | `{"version":"1","limits":{"/statistics":2}}` | `application/json` | The JSON object text |
+
+`GET /_config/backend/{key}` returns the stored text, not a typed JSON
+envelope. Read it back and compare exact bytes before restarting a listener.
 
 ### Get Configuration
 
@@ -27,12 +42,12 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 |-----|------|---------|-------------|
 | `graphql.enable` | bool | false | Enable GraphQL endpoint |
 | `gzip.enable` | bool | true | Enable negotiated GZIP compression for API, dashboard, and hosted-site responses; restart after changing |
-| `limit.rate` | int | 500 | Rate limit (requests/second) |
+| `limit.rate` | JSON object | `{"version":"1","limits":{}}` | Per-path requests in a one-second UTC window; see [[Rate-Limiting]] |
 | `yjs.enabled` | bool | true | Enable YJS collaborative editing |
 | `yjs.storage.path` | string | ./yjs | YJS document storage path |
 | `caldav.enable` | bool | false | Enable CalDAV server |
 | `ftp.enable` | bool | false | Enable FTP server |
-| `ftp.listen_interface` | string | 0.0.0.0:21 | FTP bind address |
+| `ftp.listen_interface` | string | 0.0.0.0:2121 | FTP bind address |
 | `imap.enabled` | bool | false | Enable IMAP server |
 | `imap.listen_interface` | string | 0.0.0.0:993 | IMAP bind address |
 | `imap.hostname` | string | imap.{hostname} | IMAP/IMAPS TLS hostname |
@@ -47,15 +62,25 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 
 ## Schema Configuration Files
 
-Define your data model using JSON, YAML, or TOML files in the schema folder.
+Define your data model using JSON or YAML files whose basename starts with
+`schema_`. A neighboring `schema.yaml` is ignored.
 
 ### File Naming
 
 ```
 schema_*.json
 schema_*.yaml
-schema_*.toml
+schema_*.yml
 ```
+
+Daptin always scans `schema_*.*` in the process working directory. If
+`DAPTIN_SCHEMA_FOLDER` is set, it also scans that directory and appends those
+matches. Unsupported extensions are logged and skipped; TOML is not loaded by
+the current implementation. File-system definitions are loaded before stored
+`world` rows are merged. Use `DAPTIN_SKIP_CONFIG_FROM_DATABASE=true` only when
+you intentionally do not want stored world definitions merged, and
+`DAPTIN_SKIP_INITIALISE_RESOURCES=true` only for controlled diagnostics because
+it skips normal resource initialization.
 
 ### JSON Schema Example
 
@@ -143,12 +168,17 @@ Configuration values are environment-aware:
 
 ## Restart Requirements
 
-Most configuration changes take effect immediately. These require a restart:
+Do not assume a stored value hot-reloads its owning component. The following
+are composed at startup and require a process-supervisor restart:
 
 - GraphQL enable/disable
+- Global `limit.rate` middleware
+- FTP, IMAP, SMTP, CalDAV/CardDAV, and HTTPS listeners/settings
+- Feed and stream maps
+- Cloud stores and site routes
 - Schema changes (new tables/columns)
 - State machine definitions
-- New actions
+- New actions and scheduled tasks
 
 ```bash
 # Restart through your process supervisor

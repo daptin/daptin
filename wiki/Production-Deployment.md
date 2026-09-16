@@ -27,22 +27,13 @@ export DAPTIN_DB_CONNECTION_STRING="host=localhost port=5432 user=daptin passwor
 ./daptin
 ```
 
-#### Option B: MySQL
+#### MySQL/MariaDB in v0.13.14
 
-```bash
-# 1. Create MySQL database
-mysql -u root -p
-CREATE DATABASE daptin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'daptin'@'localhost' IDENTIFIED BY 'STRONG_PASSWORD';
-GRANT ALL PRIVILEGES ON daptin.* TO 'daptin'@'localhost';
-
-# 2. Configure Daptin
-export DAPTIN_DB_TYPE=mysql
-export DAPTIN_DB_CONNECTION_STRING="daptin:STRONG_PASSWORD@tcp(localhost:3306)/daptin?charset=utf8mb4&parseTime=True"
-
-# 3. Start Daptin
-./daptin
-```
+Do not select MySQL/MariaDB for a v0.13.14 production deployment. MariaDB
+10.11 was observed accepting startup while required tables were absent because
+of over-sized `document` columns and relationship identifiers. `/ready` still
+returned 200. PostgreSQL 15 is the validated production path; see
+[[Database-Setup]] and [[Release-v0.13.14-Feature-Status]].
 
 **Why?** SQLite is single-file, not suitable for high-traffic or multi-server deployments.
 
@@ -63,15 +54,15 @@ See: [[Database-Setup]] for Docker Compose examples
 
 TOKEN=$(cat /tmp/daptin-token.txt)
 
-curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
+CERT_ID=$(curl -sS -X POST http://localhost:6336/api/certificate \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "hostname": "api.example.com",
-      "email": "admin@example.com"
-    }
-  }'
+  -H 'Content-Type: application/vnd.api+json' \
+  --data-binary '{"data":{"type":"certificate","attributes":{"hostname":"api.example.com"}}}' | jq -r '.data.id')
+
+curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"email":"admin@example.com"},"certificate_id":"'"$CERT_ID"'"}'
 
 # Restart Daptin through your process supervisor to use the certificate
 docker restart daptin
@@ -165,8 +156,13 @@ curl -X POST http://localhost:6336/_config/backend/encryption.secret \
 # Limit to 100 requests/second per IP
 curl -X POST http://localhost:6336/_config/backend/limit.rate \
   -H "Authorization: Bearer $TOKEN" \
-  -d '100'
+  -H 'Content-Type: application/json' \
+  --data-binary '{"version":"1","limits":{"/statistics":2}}'
 ```
+
+A scalar is invalid and silently falls back to the default limiter after a log
+error. Restart the process after changing this startup-composed middleware and
+verify an actual burst. `/ping` is outside this limiter.
 
 #### Configure Firewall
 
@@ -230,6 +226,10 @@ curl http://api.example.com/ping
 Use `/ready` for load-balancer and Kubernetes readiness checks. It returns HTTP 503 before Daptin begins draining requests. Configure the shutdown budget with `DAPTIN_SHUTDOWN_TIMEOUT` (default `30s`) and readiness propagation delay with `DAPTIN_SHUTDOWN_READINESS_DELAY` (default `2s`).
 
 #### Statistics Monitoring
+
+`/statistics` is unauthenticated in the v0.13.14 default and exposes host,
+process, disk, CPU, web, and database-pool details. Put it on a private
+monitoring route or require authentication at the ingress before using it.
 
 ```bash
 # Monitor system metrics
@@ -513,7 +513,7 @@ See: [[Installation]] for Kubernetes manifests
 
 After deployment, verify:
 
-- [ ] Database is PostgreSQL or MySQL (not SQLite)
+- [ ] Database is PostgreSQL 15 (MySQL/MariaDB v0.13.14 initialization is not production-safe)
 - [ ] HTTPS is enabled and working
 - [ ] Health check (`/ping`) returns "pong"
 - [ ] Monitoring is configured
@@ -552,10 +552,11 @@ openssl s_client -connect api.example.com:443 -servername api.example.com
 # Check certificate expiry
 curl -vI https://api.example.com 2>&1 | grep "expire"
 
-# Renew Let's Encrypt
-curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
+# Renew the existing certificate record
+curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes":{"hostname":"api.example.com","email":"admin@example.com"}}'
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"email":"admin@example.com"},"certificate_id":"CERTIFICATE_REFERENCE_ID"}'
 ```
 
 ### Performance Issues

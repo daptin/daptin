@@ -4,6 +4,12 @@
 
 Secure your Daptin instance with TLS/SSL certificates. Supports both self-signed certificates (development) and ACME/Let's Encrypt certificates (production).
 
+> **v0.13.14 ACME limitation:** Daptin hardcodes Let's Encrypt's production
+> directory. There is no supported staging or custom ACME directory for Pebble,
+> step-ca, or another CA. Each attempt can therefore consume production rate
+> limits. Use the self-signed flow for local verification, and invoke ACME only
+> when public DNS and the HTTP-01 path are ready.
+
 ## Quick Start (5 minutes)
 
 Generate a self-signed certificate for development:
@@ -20,7 +26,7 @@ curl -X POST http://localhost:6336/api/certificate \
     "data": {
       "type": "certificate",
       "attributes": {
-        "hostname": "localhost"
+        "hostname": "daptin.test"
       }
     }
   }'
@@ -40,7 +46,7 @@ curl -X POST http://localhost:6336/action/certificate/generate_self_certificate 
 [{
   "ResponseType": "client.notify",
   "Attributes": {
-    "message": "Certificate generated for localhost",
+      "message": "Certificate generated for daptin.test",
     "title": "Success",
     "type": "message"
   }
@@ -48,6 +54,18 @@ curl -X POST http://localhost:6336/action/certificate/generate_self_certificate 
 ```
 
 **Note:** Self-signed certificates will show browser warnings in production. Use ACME for production deployments.
+
+Map the certificate hostname for a local SNI test and request that hostname,
+not `localhost`:
+
+```bash
+curl --resolve daptin.test:6443:127.0.0.1 -vk https://daptin.test:6443/ping
+openssl s_client -connect 127.0.0.1:6443 -servername daptin.test </dev/null
+```
+
+The HTTPS listener selects a certificate by SNI. A request for `localhost`
+fails with `certificate not found for hostname [localhost]` when only
+`daptin.test` (or another site hostname) has a certificate.
 
 ---
 
@@ -388,7 +406,7 @@ Once certificates are generated, Daptin automatically serves HTTPS on the config
 **Test HTTPS:**
 ```bash
 # Self-signed (will show warning)
-curl -k https://localhost:6443/api/world
+curl --resolve daptin.test:6443:127.0.0.1 -k https://daptin.test:6443/api/world
 
 # ACME (trusted)
 curl https://api.example.com:6443/api/world
@@ -476,7 +494,9 @@ curl http://your-domain.com/.well-known/acme-challenge/test
 
 **Check Certificate Status:**
 ```bash
-sqlite3 daptin.db "SELECT hostname, issuer, length(certificate_pem), generated_at FROM certificate;"
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:6336/api/certificate?page[size]=100' | \
+  jq '.data[] | {hostname:.attributes.hostname, issuer:.attributes.issuer, generated_at:.attributes.generated_at}'
 ```
 
 **View Certificate Details:**
@@ -490,10 +510,8 @@ curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:6336/api/certificate
 openssl x509 -in cert.pem -text -noout
 ```
 
-**Check ACME Private Key:**
-```bash
-sqlite3 daptin.db "SELECT name FROM _config WHERE name LIKE 'letsencrypt%';"
-```
+Do not query or print the ACME private key. Verify successful renewal through
+the certificate resource's issuer/date and an external TLS handshake.
 
 **Monitor Server Logs:**
 ```bash
@@ -605,9 +623,11 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
 **Symptom:** Generated certificate but HTTPS not working
 
 **Solution:**
-1. Verify certificate in database:
+1. Verify the certificate resource without exposing its private key:
 ```bash
-sqlite3 daptin.db "SELECT hostname, length(certificate_pem) FROM certificate;"
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:6336/api/certificate?page[size]=100' | \
+  jq '.data[] | {hostname:.attributes.hostname, issuer:.attributes.issuer, generated_at:.attributes.generated_at}'
 ```
 
 2. Restart Daptin to load certificates:
@@ -617,7 +637,7 @@ sqlite3 daptin.db "SELECT hostname, length(certificate_pem) FROM certificate;"
 
 3. Check HTTPS port is accessible:
 ```bash
-curl -k https://localhost:6443/api/world
+curl --resolve daptin.test:6443:127.0.0.1 -k https://daptin.test:6443/api/world
 ```
 
 ### ACME Challenge Fails

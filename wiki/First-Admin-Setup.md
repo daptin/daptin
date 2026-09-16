@@ -11,12 +11,14 @@ This guide covers the critical first 5 minutes with a fresh Daptin installation.
 
 **On a fresh install, Daptin is WIDE OPEN** - anyone can do anything.
 
-The first person to claim admin "locks the door" and becomes the system administrator. After that:
-- Public signup is disabled
-- Guest permissions are restricted
-- Only admins can create new users
+The first person to claim admin becomes the system administrator and transitions
+bootstrap permissions. Do not treat that transition alone as proof that public
+signup is closed: a v0.13.14 audit observed another unauthenticated signup
+succeeding after bootstrap. Production setup must explicitly lock and test the
+`signup` action as described below.
 
-**You must do this immediately** or anyone else can claim admin first.
+**You must do this immediately** or anyone else can claim admin first. Keep the
+service behind a private ingress until the final signup-rejection test passes.
 
 ---
 
@@ -247,16 +249,9 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "http://localhost:6336/api/usergroup?page%5Bsize%5D=100" | \
   jq '.data[] | select(.attributes.name == "administrators")'
 
-# Method 2: Check database directly
-sqlite3 daptin.db "
-  SELECT ua.name, ua.email, ug.name as group_name
-  FROM user_account ua
-  JOIN user_account_user_account_id_has_usergroup_usergroup_id j
-    ON ua.id = j.user_account_id
-  JOIN usergroup ug
-    ON j.usergroup_id = ug.id
-  WHERE ug.name = 'administrators';
-"
+# Confirm your account is related to that group through the relationship API
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:6336/api/user_account?page[size]=100&include=usergroup_id' | jq .
 ```
 
 **Expected**: Your user shown in administrators group.
@@ -308,12 +303,46 @@ echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .
 | Regular users | Only their own data + shared group data |
 | Administrator | Everything |
 
-**Key changes**:
-- ✅ Signup action is disabled (permission changed to guest=0)
+**Expected key changes**:
+- Signup should lose guest execute permission, but must be verified explicitly
 - ✅ New administrator usergroup created
 - ✅ Your user added to administrators group
 - ✅ System tables locked down
 - ✅ Default permissions enforced
+
+### Explicitly close and test public signup
+
+Find the `signup` action and set the post-bootstrap permission profile, which
+does not contain `GuestExecute`:
+
+```bash
+SIGNUP_ACTION_ID=$(curl -sS --get \
+  --data-urlencode 'query=[{"column":"action_name","operator":"is","value":"signup"}]' \
+  -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/api/action | jq -r '.data[0].id')
+
+curl -sS -X PATCH "http://localhost:6336/api/action/$SIGNUP_ACTION_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data-binary '{"data":{"type":"action","id":"'"$SIGNUP_ACTION_ID"'","attributes":{"permission":2085120}}}'
+```
+
+Authorization decisions may remain cached for up to 10 seconds. After that
+window, this unauthenticated probe must be rejected (HTTP 403 is expected) and
+must not create a user:
+
+```bash
+sleep 11
+curl -sS -o /tmp/signup-probe.json -w '%{http_code}\n' \
+  -X POST http://localhost:6336/action/user_account/signup \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"attributes":{"name":"signup probe","email":"signup-probe@example.invalid","password":"NotAReal1!","passwordConfirm":"NotAReal1!"}}'
+```
+
+If it returns 2xx, keep the instance private and block
+`POST /action/user_account/signup` at the ingress. Do not consider the
+deployment hardened until the action is denied and the synthetic account is
+confirmed absent through the normal `user_account` API.
 
 ---
 
@@ -334,25 +363,13 @@ Now that you're admin, you can:
 
 ### If You Forgot Admin Password
 
-**Option 1: Reset via database** (requires database access)
+Use the configured password-reset/verified-OTP action flow in
+[[Authentication]] and [[Two-Factor-Auth]]. Daptin intentionally has no
+database-password-edit recovery workflow; direct SQL would bypass hashing,
+audit, ownership, events, and permission authorities. If no recovery channel
+was provisioned, restore a verified backup or rebuild the disposable instance.
 
-```bash
-# Generate new bcrypt hash for password "password123"
-HASH=$(htpasswd -bnBC 10 "" password123 | tr -d ':\n')
-
-# Update admin password in database
-sqlite3 daptin.db "
-  UPDATE user_account
-  SET password = '$HASH'
-  WHERE email = 'admin@admin.com';
-"
-
-# Now signin with new password
-curl -X POST http://localhost:6336/action/user_account/signin \
-  -d '{"attributes":{"email":"admin@admin.com","password":"password123"}}'
-```
-
-**Option 2: Start fresh** (wipes all data)
+**Disposable development only: start fresh** (wipes all data)
 
 ```bash
 # Stop server

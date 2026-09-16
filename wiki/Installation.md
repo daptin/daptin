@@ -7,7 +7,7 @@
 Before installing Daptin:
 - **Go 1.19+** (for building from source)
 - **SQLite3** (built-in, no external setup needed)
-- **MySQL/PostgreSQL** (optional, for production databases)
+- **PostgreSQL 15** (recommended production database for v0.13.14)
 - **Docker** (optional, for containerized deployment)
 
 ## Native Binary
@@ -43,7 +43,7 @@ docker run --pull=always -p 6336:8080 -p 6443:6443 \
   -v /path/to/data:/data \
   daptin/daptin:latest
 
-# With MySQL/MariaDB - TESTED ✓
+# With MariaDB - diagnostic only; v0.13.14 fresh initialization is incomplete
 # First start MariaDB
 docker run -d --name mysql \
   -e MARIADB_ROOT_PASSWORD=rootpass \
@@ -79,7 +79,8 @@ docker run --pull=always -p 6336:8080 -p 6443:6443 \
 - Use `daptin/daptin:latest` with `--pull=always` to fetch the newest image
 - Port mapping is `6336:8080` (host:container), not `6336:6336`
 - For persistent storage, mount to `/data` and set `DAPTIN_DB_CONNECTION_STRING=/data/daptin.db`
-- MySQL 8.0 may fail with OOM errors; use MariaDB 10.11 instead
+- Do not use MySQL/MariaDB for a v0.13.14 production deployment. MariaDB 10.11
+  can start with required built-in tables missing; see [[Database-Setup]].
 
 ## Docker Compose
 
@@ -232,17 +233,16 @@ Run `./daptin -h` to see all available flags.
 
 **Note**: Database file is created automatically if it doesn't exist.
 
-### MySQL/MariaDB - TESTED ✅
+### MySQL/MariaDB - known broken for v0.13.14 production initialization
 
 ```bash
 ./daptin -db_type=mysql \
   -db_connection_string="user:password@tcp(localhost:3306)/daptin?charset=utf8mb4&parseTime=True"
 ```
 
-**Important**:
-- MySQL 8.0 may fail with OOM errors during container initialization
-- **Recommended**: Use MariaDB 10.11 instead (fully compatible, more stable)
-- See [[Server-Configuration|Server-Configuration.md]] for Docker setup
+**Important**: the connection syntax works, but MariaDB 10.11 is not fully
+compatible with the v0.13.14 built-in schema. Use PostgreSQL for production and
+see [[Database-Setup]] for the known identifier and column-size failures.
 
 ### PostgreSQL - TESTED ✅
 

@@ -113,11 +113,18 @@ AES256:iv:ciphertext:tag
 
 ## Key Rotation
 
-To rotate encryption keys:
+v0.13.14 does not provide a verified online bulk re-encryption action. Do not
+change the encryption secret in place: existing encrypted credentials, private
+keys, OTP secrets, and encrypted columns may become unreadable.
 
-1. Export data with old key
-2. Update `DAPTIN_ENCRYPTION_KEY`
-3. Re-import data
+Treat rotation as a controlled migration: fence writes, back up the SQL
+database and old secret together, inventory every encrypted resource through
+the normal Daptin APIs, migrate each value while the old key is available,
+verify decryption/provider access in an isolated restore, then cut over. Keep a
+rollback copy of both database and old secret until verification completes.
+Never log plaintext during the migration. A wrong or missing key must be
+treated as a failed restore/readiness condition, not as permission to generate
+a replacement secret.
 
 ## TLS in Transit
 

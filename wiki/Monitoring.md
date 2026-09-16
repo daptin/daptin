@@ -25,7 +25,12 @@ pong
 curl http://localhost:6336/ready
 ```
 
-`/ready` checks database availability and returns HTTP 503 while starting or draining. Load balancers and Kubernetes readiness probes should use this endpoint.
+`/ready` checks the runtime gate and database connectivity and returns HTTP 503
+while starting, draining, or unable to ping the database. Load balancers and
+Kubernetes readiness probes should use it, but v0.13.14 does **not** include
+required-schema/migration success in this check. It returned 200 on an observed
+MariaDB instance that lacked required built-in tables. Gate first rollout on a
+separate schema/resource preflight; `/ready` alone is insufficient.
 
 ### /health - Admin Dashboard
 
@@ -43,6 +48,12 @@ curl http://localhost:6336/health
 **Note:** This is the full admin web application, not a health check. Use `/ping` for liveness and `/ready` for traffic routing.
 
 ## Statistics
+
+> **Sensitive default:** `/statistics` was unauthenticated in the v0.13.14
+> audit and exposes host, CPU, disk, process, database-pool, and web metrics.
+> Restrict it at the ingress or private network. Daptin does not currently
+> expose a native Prometheus or OpenTelemetry endpoint; adapt this JSON only
+> behind the same access boundary.
 
 ```bash
 curl http://localhost:6336/statistics

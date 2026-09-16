@@ -323,7 +323,7 @@ curl -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_
 
 ## Cloud Storage Credential Linking
 
-### credential_name field does NOT auto-link
+### credential_name does not auto-link, and v0.13.14 needs both values
 
 **Tested wrong approach**:
 ```bash
@@ -335,6 +335,10 @@ curl -X POST http://localhost:6336/api/cloud_store \
 sqlite3 daptin.db "SELECT credential_id FROM cloud_store WHERE name='my-store';"
 # Shows: (empty)
 ```
+
+The runtime reads `credential_name`, while Daptin persists the association and
+permission boundary through `credential_id`. Create the store with the exact
+credential name and then link the same row through the resource relationship.
 
 **Correct approach**:
 ```bash

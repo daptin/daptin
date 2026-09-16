@@ -81,9 +81,12 @@ curl --fail-with-body -sS \
   --data '{}'
 ```
 
-This action is intentionally available only for the first administrator. It
-locks down public signup and may restart the runtime. Wait for the server to
-answer `/ping`, then run the sign-in command again to obtain a fresh token.
+This action is intentionally available only for the first administrator. Its
+response contains a historical `Restart` response item, but the process does
+not restart itself. Use the process supervisor when a restart is actually
+required. Explicitly lock and test public signup with the procedure in
+[[First-Admin-Setup]]; do not infer the security result from the action's HTTP
+status.
 
 For recovery cases and the exact security transition, use
 [[First-Admin-Setup]]. Avoid deleting databases or killing unrelated processes
@@ -175,6 +178,12 @@ TLS, backups, monitoring, and only the protocols the application needs. The
 [[Production-Deployment]] checklist covers the transition.
 
 ## If something fails
+
+v0.13.14 can log a recovered duplicate route registration involving the
+`llm_file` relationship and `llm_batch_id` during restart. A recovered panic is
+not a successful route check. Inspect the routes/resources needed by your
+application and fail deployment if one is absent; the duplicate registration
+is a product defect, not a normal startup message.
 
 Start with the response body and the Daptin process log, then consult
 [[Common-Errors]]. Include the Daptin release, database type, command or request,

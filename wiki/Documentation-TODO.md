@@ -1,5 +1,9 @@
 # Documentation Status
 
+> Historical testing notes below are not current release claims. MariaDB,
+> clustering, health/readiness, and protocol conclusions from January 2026 are
+> superseded by [[Release-v0.13.14-Feature-Status]].
+
 Track what's documented and what users still need.
 
 **Rule**: Only mark complete after testing the documented workflow yourself.

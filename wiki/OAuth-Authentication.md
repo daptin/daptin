@@ -736,18 +736,10 @@ The access and refresh tokens are stored encrypted in the database and decrypted
 
 Always use HTTPS in production for OAuth:
 
-```bash
-# Generate TLS certificates (see TLS-Certificates.md)
-curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "domain": "yourdomain.com",
-      "email": "admin@yourdomain.com"
-    }
-  }'
-```
+Create a `certificate` row for the public OAuth hostname and invoke the
+certificate instance action `generate_acme_certificate`. See
+[[Certificate-Actions]] for the exact request and the v0.13.14 production-only
+ACME limitation.
 
 Update oauth_connect `redirect_uri` to use HTTPS on the browser-facing client origin:
 ```

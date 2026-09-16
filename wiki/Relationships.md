@@ -25,6 +25,12 @@ Define connections between tables to create linked data structures.
 
 Creates a foreign key column on the **Subject** table pointing to the **Object** table.
 
+For `belongs_to`, set only `ObjectName` when you need a custom foreign-key
+column and omit `SubjectName`. Supplying names for both sides can be interpreted
+as a second required column in v0.13.14. For example, the definition below
+creates exactly `post.author_id`; it must not create a `reviews` or other
+reverse-name column.
+
 ```
 Subject Table                Object Table
 ┌─────────────────┐         ┌─────────────────┐
@@ -99,6 +105,10 @@ Relations:
 | `Relation` | Relationship type | Required |
 | `SubjectName` | Name used in join table for subject FK | `{subject}_id` |
 | `ObjectName` | Name for the FK column (belongs_to/has_one) or join table object FK | `{object}_id` |
+
+`SubjectName` and `ObjectName` both participate in join-table naming for
+`has_many` and many-to-many relations. They are not symmetric aliases for a
+`belongs_to` foreign key.
 
 ---
 

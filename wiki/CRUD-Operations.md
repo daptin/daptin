@@ -4,6 +4,13 @@ Create, Read, Update, and Delete records via the REST API.
 
 Daptin uses [JSON:API](https://jsonapi.org/) format for all requests and responses.
 
+> **v0.13.14 constraint-error limitation:** a unique-key violation can return
+> HTTP 500 containing the raw SQLite/backend error. This is a known information
+> disclosure and status-mapping defect, not a stable API contract. Clients
+> should not parse database messages. Avoid reflecting the body to end users;
+> log a request correlation value and treat the response as an unexpected
+> server error until Daptin maps uniqueness to a backend-neutral 409/422 error.
+
 ---
 
 ## Create (POST)

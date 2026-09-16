@@ -228,8 +228,8 @@ See [[Email-Actions|Email-Actions]] for setup.
 
 | Action | Entity | Description |
 |--------|--------|-------------|
-| `generate_self_tls_certificate` | world | Generate self-signed certificate |
-| `generate_acme_tls_certificate` | world | Get Let's Encrypt certificate |
+| `generate_self_certificate` | certificate | Generate self-signed certificate |
+| `generate_acme_certificate` | certificate | Get a Let's Encrypt production certificate |
 | `download_certificate` | certificate | Download certificate files |
 
 ### Data Exchange

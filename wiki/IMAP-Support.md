@@ -1,5 +1,10 @@
 # IMAP Support
 
+When setting `imap.listen_interface` or `imap.hostname` through `/_config`, send
+the value as raw `text/plain`. A JSON string stores literal quote characters
+in v0.13.14 and can cause `lookup tcp/... unknown port` on restart. See
+[[Configuration]] for the type/encoding table.
+
 Built-in IMAP server for email retrieval.
 
 ## Overview
@@ -324,16 +329,10 @@ e STORE 1 FLAGS (\Seen \Flagged)
 
 IMAP requires a valid TLS certificate for the hostname:
 
-```bash
-curl -X POST http://localhost:6336/action/world/generate_acme_tls_certificate \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "attributes": {
-      "hostname": "imap.example.com",
-      "email": "admin@example.com"
-    }
-  }'
-```
+Create a `certificate` row for `imap.example.com`, then invoke
+`POST /action/certificate/generate_acme_certificate` with that row's public
+reference ID as `certificate_id`. See [[Certificate-Actions]] for the complete
+request and the v0.13.14 production-only ACME limitation.
 
 ## Troubleshooting
 

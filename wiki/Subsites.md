@@ -14,6 +14,12 @@ Daptin subsites allow you to:
 - Compress eligible responses with GZIP by default
 - Enable FTP access for file management (optional)
 
+> **FTP durability limitation (v0.13.14):** site sync is one-way from the
+> configured cloud store to a temporary local directory. FTP/FTPS edits are
+> made only in that directory and can be overwritten by a sync or lost on
+> restart. Upload durable site content through the backing store, then sync it
+> into Daptin. See [[FTP-Server]].
+
 ## Quick Start
 
 ### 1. Create a Site
@@ -132,10 +138,14 @@ curl -H "Host: www.example.com" http://localhost:6336/style.css
 
 ### Storage Path Resolution
 
-Files are served from:
+The configured source is:
 ```
 {cloud_store.root_path}/{site.path}/{requested_file}
 ```
+
+Daptin copies that source into a temporary local sync directory and serves the
+cached copy. The copy direction is backing store to local cache; the cache is
+not a second durable store.
 
 **Example**:
 - `cloud_store.root_path`: `./storage`

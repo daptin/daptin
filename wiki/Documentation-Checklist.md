@@ -6,6 +6,12 @@ Use this checklist when creating or updating documentation to ensure accuracy an
 
 ## Before Publishing: Test Everything
 
+The release-wide environment and negative cases are defined in
+[[Release-v0.13.14-Feature-Status#conformance-suite-backlog]]. A green markdown
+link check is not conformance: CI must run literal commands against PostgreSQL,
+MariaDB, MinIO, Mailpit/DNS, Ollama, and two Daptin nodes and assert durable
+resource/provider results.
+
 ### ✅ All Code Examples Must Be Tested
 
 **Rule**: NEVER publish a code example without testing it against a running Daptin instance.

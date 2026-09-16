@@ -5,6 +5,12 @@ Complete mapping of Daptin's standard tables, columns, and features to documenta
 **Generated**: 2026-01-27
 **Source**: `server/resource/columns.go` and `server/table_info/tableinfo.go`
 
+> A page or action name is not proof that its published sequence works. Runtime
+> status for v0.13.14 is tracked in [[Release-v0.13.14-Feature-Status]]. In
+> particular, document, mail, audit, cloud actions, FTP, CalDAV, feeds, LLM,
+> metering, and clustering must be labeled by exercised outcome rather than by
+> documentation presence alone.
+
 ---
 
 ## TableInfo Struct Fields (Schema Capabilities)

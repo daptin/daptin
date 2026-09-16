@@ -63,7 +63,13 @@ curl -X POST http://localhost:6336/action/user_account/register_otp \
 
 Daptin rejects the operation if the authenticated session does not own the target account. If no profile exists, this operation creates one with `verified=false` and a new encrypted 20-byte TOTP secret.
 
-The generated code must be delivered through a trusted channel configured by the application. Do not expose the OTP performer response directly to an untrusted client.
+The generated code must be delivered through a trusted channel configured by
+the application (for example, a permissioned action that sends through the
+configured mail subsystem or an SMS integration). v0.13.14 does not provide a
+safe anonymous development endpoint for retrieving the secret/code. Do not
+expose the OTP performer response or read encrypted OTP rows directly. If no
+trusted delivery channel is configured, enrollment is incomplete and must not
+be presented as successful 2FA.
 
 ## Verify Enrollment
 
@@ -83,6 +89,13 @@ curl -X POST http://localhost:6336/action/user_otp_account/verify_mobile_number 
 ```
 
 Successful owner verification changes the profile to `verified=true`. It does not need to mint a replacement session token.
+
+Confirm the owner-visible profile reports `verified=true` through the normal
+`user_otp_account` resource API before enabling OTP-dependent recovery. There
+is no documented `disable_otp` action in v0.13.14; implement disable/recovery as
+an administrator-controlled, permissioned resource/action workflow and revoke
+old enrollment rather than treating registration as reversible by a public
+route.
 
 ## Send a Code for an Enrolled Account
 

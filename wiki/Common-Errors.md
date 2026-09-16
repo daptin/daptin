@@ -5,6 +5,15 @@
 
 This page documents actual errors encountered during testing with verified solutions.
 
+## Unique constraint returns a raw HTTP 500
+
+In v0.13.14 a duplicate value for an `IsUnique` column can produce HTTP 500
+with a SQLite, PostgreSQL, or MariaDB error string. Do not depend on that text:
+it varies by backend and may reveal schema details. The intended future
+contract is a backend-neutral client error such as 409 or 422. Until fixed,
+validate known uniqueness requirements before submission where practical,
+handle 500 generically, and do not expose its body to untrusted clients.
+
 ---
 
 ## Navigation
@@ -552,7 +561,7 @@ CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
 STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "http://localhost:6336/api/cloud_store" | jq -r '.data[0].id')
 
-# Link via relationship (credential_name field does NOT auto-link!)
+# Also link via relationship; credential_name does not create this relation
 curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \

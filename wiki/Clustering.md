@@ -32,7 +32,7 @@ Daptin supports clustering for:
 
 ## Requirements
 
-1. **Shared Database** — All nodes connect to the same PostgreSQL (or MySQL) instance
+1. **Shared Database** — All nodes connect to the same PostgreSQL database; MySQL/MariaDB is not production-safe in v0.13.14
 2. **Load Balancer** — Distribute HTTP traffic across nodes
 3. **Shared Storage** — For file assets (use cloud storage)
 4. **Network** — Olric ports (olric_port and olric_port+1 for membership) must be reachable between all nodes
@@ -118,6 +118,17 @@ The membership port is always `olric_port + 1` and is derived automatically. You
 
 ### Outbox Deduplication
 When multiple nodes run `process_outbox`, each mail is claimed via Olric NX (Not-if-eXists) with a 10-minute TTL. Only the node that successfully claims a mail ID processes it.
+
+### Background-job ownership
+
+Every node registers `sync_site_storage`, `sync_mail_servers`, `process_outbox`,
+and `process_data_exchange_executions`. Only `process_outbox` has a documented
+and verified per-item Olric NX claim in v0.13.14. Cluster-wide singleton or
+idempotency behavior has not been established for the other jobs. Treat
+multi-node scheduling as a production risk: disable or externally fence
+unverified jobs on all but one node, and do not infer durable ownership from an
+Olric cache entry. A database-backed lease/idempotency test is required before
+enabling those jobs on every node.
 
 ## DNS-Based Peer Discovery
 

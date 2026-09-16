@@ -1,16 +1,25 @@
 # Cloud Storage
 
-**Tested ✓** - Cloud store creation, listing, and file operations verified on 2026-09-11.
+**v0.13.14 status:** local operations and MinIO upload/delete were exercised,
+subject to the credential and completion-semantics warnings below.
 
 **Actions Status:**
 - ✅ **create_folder** - Working (correct URL format documented below)
 - ✅ **upload_file** - Working (correct URL format documented below)
-- ✅ **move_path** - Working
-- ✅ **delete_path** - Working
+- ⚠️ **move_path** - Dispatch works, but provider failure may still return HTTP 200
+- ⚠️ **delete_path** - Dispatch works, but provider failure may still return HTTP 200
 
 **Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The correct path format is `/action/{type}/{action_name}`, NOT `/action/{type}/{id}/{action_name}`. Pass `{type}_id` in request attributes; query parameters are accepted for backwards compatibility because Daptin merges them into action attributes.
 
 Integrate with cloud storage providers via rclone.
+
+> **Do not use HTTP 200 as object-level confirmation in v0.13.14.** Several
+> performers run rclone work asynchronously, and `move_path`/`delete_path` can
+> return a success notification before a missing-object or provider error is
+> known. Verify the expected source and destination objects through `list_files`
+> or the provider API. Logs are diagnostic, but the isolated line
+> `rclone session exitcode - 1` is not sufficient on its own to determine the
+> operation result; inspect surrounding errors and object state.
 
 ## Supported Providers
 
@@ -107,6 +116,7 @@ curl -X POST http://localhost:6336/api/cloud_store \
         "name": "aws-storage",
         "store_type": "s3",
         "store_provider": "s3",
+        "credential_name": "aws-creds",
         "root_path": "aws-storage:your-bucket-name",
         "store_parameters": "{}"
       }
@@ -146,7 +156,8 @@ sleep 10
 
 **Important Notes**:
 - The `content` field is passed directly to rclone - it must include `type`, `provider`, and provider-specific fields
-- The `credential_name` attribute does NOT automatically link - you must use a relationship PATCH
+- v0.13.14 requires both `credential_name` for runtime lookup and the
+  `credential_id` relationship for the Daptin association/permission boundary
 - Server restart is REQUIRED after creating/linking cloud storage
 
 ### S3 Compatible (MinIO, DigitalOcean, etc.)
@@ -177,6 +188,7 @@ curl -X POST http://localhost:6336/api/cloud_store \
         "name": "minio-storage",
         "store_type": "s3",
         "store_provider": "s3",
+        "credential_name": "minio-creds",
         "root_path": "minio-storage:bucket-name",
         "store_parameters": "{}"
       }
@@ -669,7 +681,9 @@ The `content` field must include:
 
 ### Link Credential to Cloud Store
 
-**CRITICAL**: The `credential_name` field does NOT automatically link the credential. You must use a relationship PATCH:
+**CRITICAL**: v0.13.14 needs both references. `credential_name` drives runtime
+lookup but does not create the `credential_id` relationship. Set the exact name
+on the store and link the same credential with this relationship PATCH:
 
 ```bash
 # Get credential ID

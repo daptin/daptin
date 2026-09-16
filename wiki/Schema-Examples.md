@@ -71,7 +71,7 @@ Tables:
       - Subject: post
         Object: category
         Relation: belongs_to
-        SubjectName: category_id
+        ObjectName: category_id
 
   - TableName: comment
     DefaultPermission: 704385
@@ -93,7 +93,7 @@ Tables:
       - Subject: comment
         Object: post
         Relation: belongs_to
-        SubjectName: post_id
+        ObjectName: post_id
 ```
 
 ### Setup
@@ -311,7 +311,7 @@ Tables:
       - Subject: task
         Object: project
         Relation: belongs_to
-        SubjectName: project_id
+        ObjectName: project_id
 
       - Subject: task
         Object: task  # Self-referential
@@ -407,12 +407,12 @@ Tables:
       - Subject: enroll
         Object: student
         Relation: belongs_to
-        SubjectName: student_id
+        ObjectName: student_id
 
       - Subject: enroll
         Object: course
         Relation: belongs_to
-        SubjectName: course_id
+        ObjectName: course_id
 ```
 
 **Key Feature:** Composite key prevents same student enrolling in same course twice.
@@ -489,12 +489,12 @@ Tables:
       - Subject: transaction
         Object: account
         Relation: belongs_to
-        SubjectName: from_account_id
+        ObjectName: from_account_id
 
       - Subject: transaction
         Object: account
         Relation: belongs_to
-        SubjectName: to_account_id
+        ObjectName: to_account_id
 ```
 
 ### Test Audit Trail

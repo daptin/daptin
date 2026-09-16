@@ -105,9 +105,20 @@ curl -X POST http://localhost:6336/action/world/export_csv_data \
 
 Import data from files into a table.
 
+> **Known broken/contradictory in v0.13.14:** the documented instance route was
+> observed returning `no reference id`, while the world-scoped route returned
+> HTTP 200 with the same table in both successful and failed lists and imported
+> zero rows when a required standard `version` value was absent. The response
+> envelope does not currently provide reliable transaction or partial-success
+> semantics. Do not use `import_data` for production restore/migration. Verify
+> row counts and required standard columns through the normal resource API and
+> keep the source file until independently reconciled.
+
 **Action**: `import_data`
 **OnType**: `world`
-**InstanceOptional**: false (requires table's world reference_id)
+**Declared shape**: instance action requiring the table's `world` reference ID.
+The route below reflects the definition, but is affected by the limitation
+above.
 
 ```bash
 # First get the table's reference_id from the world table
@@ -158,7 +169,7 @@ curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
 - HTML (`.html`) - table extraction
 - Word (`.docx`) - table extraction
 
-**Response**:
+**Intended response (not a reliable v0.13.14 completion signal)**:
 ```json
 [
   {

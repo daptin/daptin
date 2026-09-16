@@ -15,14 +15,19 @@ On a fresh install, the system is **wide open** - anyone can do anything. This l
 1. Sign up your first user
 2. Sign in
 3. Become administrator
-4. System locks down automatically
+4. Explicitly lock and test public signup
 
 ### After Admin Setup
 
 Once an admin exists:
-- Public signup is disabled
+- Bootstrap permissions are transitioned, but v0.13.14 operators must
+  explicitly remove guest execute from `signup` and verify rejection
 - Guests can only view public data
 - Only admins can create new users
+
+See [[First-Admin-Setup]] for the required deny-and-test procedure. A successful
+`become_an_administrator` response is not sufficient evidence that anonymous
+signup is closed.
 
 ---
 

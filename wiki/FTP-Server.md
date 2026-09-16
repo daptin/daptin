@@ -1,6 +1,8 @@
 # FTP Server
 
-**Tested ✓ 2026-07-12** - Authorization, file operations, malformed commands, and path containment verified end-to-end. FTPS/TLS was previously verified on 2026-01-26.
+**Protocol interoperability verified for v0.13.14. Durability is not.** Login,
+listing, upload, download, and explicit FTPS work, but FTP writes affect only a
+site's temporary local sync directory.
 
 Host site files via FTP/FTPS with site-based access control and automatic TLS encryption.
 
@@ -11,13 +13,18 @@ Daptin includes an FTP/FTPS server that provides file access to subsites. Featur
 - **Permission-aware site access**: Users see only FTP-enabled sites allowed by the site's Daptin permissions
 - **Daptin authentication**: Login with your Daptin username (email) and password
 - **Automatic FTPS/TLS**: Encryption enabled automatically using site certificates
-- **Full file operations**: Upload, download, delete, create directories
+- **Temporary file operations**: Upload, download, delete, create directories in the local site cache
 - **Default port**: 2121
 
-FTP file operations act on the site's configured storage; they are not
-JSON:API resource mutations and do not trigger `data_exchange` lifecycle hooks.
-Changes to the `site` resource through Daptin's resource APIs remain ordinary
-resource mutations. See [[Data-Exchange|Data Exchange]].
+> **Data-loss warning (v0.13.14):** FTP/FTPS does not write changes back to the
+> configured cloud store. Site sync copies the backing store into the temporary
+> local directory, so an FTP upload can disappear on restart or a later sync.
+> Use FTP only for disposable/development edits and verify the backing object
+> independently. Do not use it as a durable publishing path until reverse or
+> bidirectional synchronization is implemented.
+
+FTP operations are not JSON:API resource mutations and do not trigger
+`data_exchange` lifecycle hooks. See [[Data-Exchange|Data Exchange]].
 
 ## Prerequisites
 
@@ -38,11 +45,12 @@ FTP is disabled by default. Enable it via the configuration:
 ```bash
 TOKEN=$(cat /tmp/daptin-token.txt)
 
-# Enable FTP (stored as value in _config table)
-sqlite3 daptin.db "INSERT OR REPLACE INTO _config (name, value, configtype, configstate, configenv, created_at) VALUES ('ftp.enable', 'true', 'backend', 'enabled', 'release', datetime('now'));"
+# Configuration string values are sent as raw text, not JSON strings.
+curl -X POST http://localhost:6336/_config/backend/ftp.enable \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: text/plain' \
+  --data-binary 'true'
 ```
-
-**⚠️ Note**: Config API currently returns HTML instead of JSON. Use direct database update as shown above.
 
 ### Step 2: Configure the CLI and Create a Cloud Store
 
@@ -160,10 +168,17 @@ ftps.quit()
 | `ftp.enable` | Enable/disable FTP server | `false` |
 | `ftp.listen_interface` | Interface and port to listen on | `0.0.0.0:2121` |
 
-**Set via database**:
+**Set through the configuration authority**:
 ```bash
-sqlite3 daptin.db "INSERT OR REPLACE INTO _config (name, value, configtype, configstate, configenv, created_at) VALUES ('ftp.listen_interface', '0.0.0.0:2121', 'backend', 'enabled', 'release', datetime('now'));"
+curl -X POST http://localhost:6336/_config/backend/ftp.listen_interface \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: text/plain' \
+  --data-binary '0.0.0.0:2121'
 ```
+
+Posting `"0.0.0.0:2121"` as a JSON string stores the quote characters in
+v0.13.14 and can make startup fail with an invalid-port lookup. Restart Daptin
+with its process supervisor after changing listener configuration.
 
 ### Site Configuration
 
@@ -433,13 +448,15 @@ deploy_site('./build', 'localhost', 'my-site.com', 'admin@admin.com', 'adminadmi
 **Solutions**:
 
 ```bash
-# Check ftp.enable
-sqlite3 daptin.db "SELECT name, value FROM _config WHERE name='ftp.enable';"
-# Should show: ftp.enable|true
+# Check ftp.enable through the configuration authority
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/_config/backend/ftp.enable
+# Expected stored text: true
 
-# Check for FTP-enabled sites
-sqlite3 daptin.db "SELECT name, hostname, ftp_enabled FROM site WHERE ftp_enabled=1;"
-# Should show at least one site
+# Check for FTP-enabled sites through the resource API
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:6336/api/site?page[size]=100' | \
+  jq '.data[] | select(.attributes.ftp_enabled == true or .attributes.ftp_enabled == "1") | {name:.attributes.name, hostname:.attributes.hostname}'
 
 # Create site directory
 mkdir -p /path/to/cloud_store/site_path/
@@ -466,7 +483,8 @@ telnet your-server-ip 2121
 
 **Check FTP interface**:
 ```bash
-sqlite3 daptin.db "SELECT value FROM _config WHERE name='ftp.listen_interface';"
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  http://localhost:6336/_config/backend/ftp.listen_interface
 # Default: 0.0.0.0:2121 (all interfaces)
 # Change to specific IP if needed
 ```
@@ -477,10 +495,7 @@ sqlite3 daptin.db "SELECT value FROM _config WHERE name='ftp.listen_interface';"
 
 **Verify credentials**:
 ```bash
-# Check user exists
-sqlite3 daptin.db "SELECT email FROM user_account WHERE email='admin@admin.com';"
-
-# Test via HTTP first
+# Test the same credentials through Daptin's authentication action
 curl -X POST http://localhost:6336/action/user_account/signin \
   -H "Content-Type: application/json" \
   -d '{"attributes":{"email":"admin@admin.com","password":"adminadmin"}}'

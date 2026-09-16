@@ -4,6 +4,13 @@
 
 Complete GraphQL API for querying and mutating your Daptin data with full introspection support.
 
+> **v0.13.14 numeric limitation:** a schema field declared with Daptin
+> `ColumnType: float` was observed as GraphQL `Int`, and `55.5` was rejected.
+> Although the column registry declares `float` as `Float`, do not assume the
+> generated schema preserves fractions. Inspect the live schema and round-trip
+> a decimal before choosing GraphQL for numeric writes; use REST for fractional
+> values until this mapping defect is fixed.
+
 ## Overview
 
 Daptin auto-generates a complete GraphQL schema from your table definitions:
@@ -598,7 +605,8 @@ mutation { executeAction { ResponseType Attributes { message value } } }  # ✅
 
 **Check Data Exists:**
 ```bash
-sqlite3 daptin.db "SELECT reference_id, name FROM task LIMIT 5;"
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:6336/api/task?page[size]=5' | jq '.data[] | {id, name:.attributes.name}'
 ```
 
 **Verify Filter Logic:**

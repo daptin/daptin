@@ -12,7 +12,12 @@ Daptin provides a state machine system that:
 - ⚠️ `/track/start/` endpoint - Requires proper permissions on `smd` table
 - ✅ Uses the [looplab/fsm](https://github.com/looplab/fsm) Go library
 
-**Last Tested:** 2026-01-26 | **Status:** ✅ Fully functional
+**Last Tested:** 2026-09-16 | **Status:** transition execution verified with response-semantics caveat
+
+The HTTP transport status is not necessarily the state-transition outcome.
+Clients must inspect the returned action response envelope and then read the
+state resource to confirm the durable state. Do not treat HTTP 200 alone as an
+authoritative successful transition.
 
 ## Architecture
 
@@ -520,7 +525,8 @@ curl "http://localhost:6336/api/smd" \
 # close: resolved -> closed
 ```
 
-**Tested:** 2026-01-26 | **Status:** ✅ Fully functional (avg 2ms response time)
+**Tested:** 2026-09-16 | **Status:** transition executed; confirm the embedded
+outcome and durable state because the HTTP status is not authoritative
 
 ## Technical Details: Bug Fix (2026-01-26)
 

@@ -75,6 +75,10 @@ curl -X POST http://localhost:6336/action/certificate/generate_self_certificate 
 
 Obtain a Let's Encrypt certificate for production use.
 
+Daptin v0.13.14 always uses the Let's Encrypt **production** directory. The
+action has no staging/custom-directory input, so it cannot be safely tested
+against Let's Encrypt staging, Pebble, step-ca, or another private ACME server.
+
 **Action:** `generate_acme_certificate`
 **Entity:** `certificate`
 **Performer:** `acme.tls.generate`

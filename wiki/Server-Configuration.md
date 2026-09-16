@@ -1,5 +1,10 @@
 # Server Configuration
 
+Configuration API bodies are stored verbatim. Use raw `text/plain` for scalar
+strings, integers, and booleans; use `application/json` only when the value
+itself is a JSON object. Do not wrap a listener address in JSON quotes. See the
+canonical encoding table in [[Configuration]].
+
 **Tested ✓** - All examples on this page were verified against a running Daptin instance (updated 2026-01-26).
 
 ---

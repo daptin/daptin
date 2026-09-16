@@ -22,6 +22,11 @@ The `credential` table provides encrypted storage for sensitive data like:
 
 Credentials are linked to other entities (like `cloud_store`) to provide authentication without exposing secrets in those records.
 
+Credential ciphertext is coupled to Daptin's stable encryption secret. Back up
+the database and encryption secret as one recovery set. Starting with a missing
+or different secret can make existing credential content undecryptable; do not
+"recover" by replacing credential rows or logging decrypted values.
+
 OpenAPI integrations select a credential at execution time. They always
 authorize that credential against the current active Daptin user; there is no
 separate configured or privileged integration credential mode.
@@ -73,6 +78,20 @@ curl -X POST http://localhost:6336/api/credential \
 ```
 
 **Important**: The `content` field is NOT returned in responses for security.
+
+For an at-rest check on PostgreSQL, compare against a known marker without
+selecting the stored ciphertext itself:
+
+```sql
+SELECT name,
+       content IS NOT NULL AS has_ciphertext,
+       position('AKIAIOSFODNN7EXAMPLE' in content) = 0 AS marker_not_plaintext
+FROM credential;
+```
+
+Run database inspection only as an operator diagnostic. Credential creation,
+updates, ownership, and relationships must continue through Daptin resources.
+There is no verified online bulk key-rotation workflow in v0.13.14.
 
 ---
 

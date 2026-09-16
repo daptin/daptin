@@ -70,7 +70,8 @@ Returns file metadata (md5, size, path)
 │  name: "my-store"                                    │
 │  store_type: "s3"                                    │
 │  root_path: "my-store:bucket-name/prefix"           │
-│  credential_id: → (linked via relationship)         │
+│  credential_name: "my-creds" (runtime lookup)          │
+│  credential_id: → (permissioned relationship)       │
 └────────────────────────────────────┬────────────────┘
                                      │
 ┌────────────────────────────────────▼────────────────┐
@@ -81,9 +82,14 @@ Returns file metadata (md5, size, path)
 └─────────────────────────────────────────────────────┘
 ```
 
-### Important: The Relationship Link
+### Important: v0.13.14 Requires Both Credential References
 
-The `cloud_store.credential_id` field must be linked via a **relationship PATCH request**. Setting `credential_name` alone is NOT sufficient - you must explicitly link the credential using the JSON:API relationships endpoint.
+Set `cloud_store.credential_name` to the credential row's exact `name` and link
+`credential_id` with a relationship PATCH. In v0.13.14 the cloud action runtime
+loads rclone configuration by `credential_name`; omitting it can cause an HTTP
+500 instead of a validation error. The relationship remains the persisted
+Daptin association and permission boundary. This duplication is a known
+product defect; neither value should be treated as optional in this release.
 
 ---
 
@@ -131,6 +137,7 @@ curl -X POST http://localhost:6336/api/cloud_store \
         "name": "my-store",
         "store_type": "s3",
         "store_provider": "s3",
+        "credential_name": "my-s3-creds",
         "root_path": "my-store:my-bucket-name",
         "store_parameters": "{}"
       }
@@ -153,7 +160,7 @@ STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
   http://localhost:6336/api/cloud_store | \
   jq -r '.data[] | select(.attributes.name == "my-store") | .id')
 
-# Link them via relationship PATCH
+# Link the same credential named in credential_name
 curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -594,6 +601,7 @@ curl -X POST http://localhost:6336/api/cloud_store \
         "name": "minio-store",
         "store_type": "s3",
         "store_provider": "s3",
+        "credential_name": "minio-creds",
         "root_path": "minio-store:my-bucket",
         "store_parameters": "{}"
       }

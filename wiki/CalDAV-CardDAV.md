@@ -1,6 +1,6 @@
 # CalDAV and CardDAV Support
 
-**Tested ✓** - 2026-01-26 with Daptin (commit cf0fb204)
+**v0.13.14 status: experimental reads/discovery; documented writes are known broken.**
 
 Daptin provides basic CalDAV and CardDAV server functionality using WebDAV protocol for storing calendar events (.ics files) and contacts (.vcf files).
 
@@ -10,7 +10,12 @@ Daptin provides basic CalDAV and CardDAV server functionality using WebDAV proto
 
 CalDAV (Calendaring Extensions to WebDAV) and CardDAV (vCard Extensions to WebDAV) enable calendar and contact synchronization with standard clients.
 
-**Important**: Daptin implements **basic WebDAV file storage** for .ics and .vcf files. It does NOT implement the full CalDAV/CardDAV specifications (no REPORT method, calendar-query, etc.). This is suitable for simple calendar/contact storage and sync but may not work with clients that require advanced CalDAV features.
+**Important**: Daptin implements only basic WebDAV-shaped storage and does not
+implement the full CalDAV/CardDAV specifications. Authentication and PROPFIND
+were observed working, but the published MKCOL/PUT sequence returned HTTP 500
+through an empty-collection parser path and the following GET returned 404.
+Until a standard-client write conformance test passes, do not use this surface
+for production calendar/contact writes.
 
 CalDAV/CardDAV file operations use the WebDAV storage backend rather than the
 JSON:API resource lifecycle, so they do not trigger `data_exchange` hooks. See
@@ -18,12 +23,12 @@ JSON:API resource lifecycle, so they do not trigger `data_exchange` hooks. See
 
 ### What Works
 
-✅ **WebDAV Core Methods**:
+⚠️ **Registered methods (not all operational in v0.13.14)**:
 - PROPFIND - List collections and resources
 - GET - Retrieve calendar events/contacts
-- PUT - Create/update events/contacts
+- PUT - registered; known failing in the documented collection flow
 - DELETE - Remove events/contacts
-- MKCOL - Create collections (calendars/address books)
+- MKCOL - registered; known empty-collection failure
 - COPY - Duplicate resources
 - MOVE - Rename/move resources
 - PROPPATCH - Modify properties
@@ -146,12 +151,18 @@ curl -X PROPFIND "http://localhost:6336/caldav/" \
 
 ### Create a Calendar
 
+> **Known failure:** the following is the historical sequence that returned
+> HTTP 500 in v0.13.14; it is retained only for reproducing the defect. Do not
+> expect the stated 201/PUT behavior and do not use it as a production
+> quickstart. Use PROPFIND for read/discovery testing until a standard-client
+> conformance test replaces this section.
+
 ```bash
 curl -X MKCOL "http://localhost:6336/caldav/personal/" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-**Response**: HTTP 201 Created
+**Intended response**: HTTP 201 Created. **Observed v0.13.14 response:** HTTP 500.
 
 **Creates**: `./storage/caldav/personal/` directory
 

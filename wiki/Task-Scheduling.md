@@ -13,6 +13,12 @@ Daptin's task scheduling system:
 - Supports any action defined in the system
 - Runs within database transactions for safety
 
+In a cluster, every node loads scheduled tasks. v0.13.14 does not document or
+verify singleton ownership for general tasks, site sync, mail-server sync, or
+data-exchange processing; only outbox processing has a tested Olric NX claim.
+Fence non-idempotent schedules to one node until a durable lease/idempotency
+contract is available. See [[Clustering]].
+
 ## Critical Requirements
 
 ⚠️ **Tasks will NOT execute unless these requirements are met:**
@@ -108,10 +114,22 @@ curl -X POST http://localhost:6336/api/task \
         "active": true,
         "job_type": "maintenance",
         "attributes": "{\"days_old\": 30}"
+      },
+      "relationships": {
+        "as_user_id": {
+          "data": {"type":"user_account","id":"EXECUTION_USER_REFERENCE_ID"}
+        }
       }
     }
   }'
 ```
+
+Use the execution user's public `reference_id` from an authorized
+`GET /api/user_account` response. The scheduler reloads that account and its
+persisted usergroup relationships for each run. If the relationship is absent,
+the task is rejected during registration. If the account is deleted or can no
+longer authorize the action/resource, execution fails; task ownership does not
+grant extra access.
 
 ### Update a Task
 

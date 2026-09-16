@@ -58,6 +58,43 @@ The OpenAI-compatible `provider_parameters` object accepts only:
 
 `image_generation_path` may be `/images/generations` or `/images`.
 
+### Local Ollama through the OpenAI-compatible adapter
+
+Ollama's OpenAI-compatible API was exercised with non-streaming chat, SSE
+streaming, and model listing. Configure it as `openai-compatible`; it is not a
+separate provider type:
+
+```json
+{
+  "name": "local-ollama",
+  "provider_type": "openai-compatible",
+  "base_url": "http://127.0.0.1:11434/v1",
+  "provider_parameters": "{}",
+  "allow_insecure": true,
+  "allow_private_network": true,
+  "enable": true
+}
+```
+
+Link a credential containing a non-empty placeholder API key, for example
+`{"api_key":"ollama"}`, then create the normal `llm_model` and
+`llm_deployment` relationships described below. Set the deployment's upstream
+model name to one already pulled by Ollama.
+
+> **Compatibility caveat:** OpenAI-compatible does not mean every request
+> field has identical semantics. In the v0.13.14 audit, `max_tokens: 32` was
+> accepted but Ollama reported 124 output tokens. Treat adapter fields not
+> explicitly verified by the upstream as unsupported/ignored, and test limits
+> using the returned usage before relying on them for cost or safety. Durable
+> Daptin metering remains separate from provider-side generation controls.
+
+```bash
+curl http://localhost:6336/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"model":"assistant","messages":[{"role":"user","content":"Reply briefly"}],"max_tokens":32,"stream":false}' | jq '.usage'
+```
+
 ## Configure the gateway
 
 The examples use JSON:API resource reference IDs. Keep provider secrets out of

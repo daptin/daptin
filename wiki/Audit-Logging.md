@@ -2,7 +2,14 @@
 
 Automatic history tracking for record changes using audit tables.
 
-**Last Tested:** 2026-01-25 | **Status:** ✅ Fully functional | **Test Report:** `test-results/03-audit-logging.md`
+**v0.13.14 status:** audit snapshots are written, but end-to-end reads are
+known broken for some generated audit resources.
+
+> `GET /api/product_audit` was observed returning HTTP 500 because the
+> generated `product_audit_product_audit_id_has_usergroup_usergroup_id` join
+> table was absent. Do not rely on the audit API as an operational control
+> until a create/update/read test passes for every audited table after schema
+> initialization. `/ready` does not detect this missing schema in v0.13.14.
 
 ## Overview
 
@@ -11,7 +18,8 @@ When `IsAuditEnabled: true` is set on a table, Daptin automatically:
 - Records a snapshot of each record **before** every UPDATE operation
 - Tracks who made changes via `user_account_id`
 - Links audit records to originals via `source_reference_id`
-- Provides complete chronological history via API and SQL
+- Is intended to expose chronological history through the resource API, subject
+  to the generated-relationship limitation above
 
 ## Enabling Audit Logging
 

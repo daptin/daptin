@@ -19,6 +19,7 @@ stack as a sidecar for the backend features you are missing.
 - **[[Getting-Started-Guide]]** — one localhost-to-authenticated-API path
 - **[[Installation]]** — containers, binaries, databases, and storage
 - **[[Production-Deployment]]** — move the local setup onto durable infrastructure
+- **[[Release-v0.13.14-Feature-Status]]** — verified, experimental, known-broken, and unexercised release behavior
 
 ### Building Apps And Filling Backend Gaps
 
@@ -108,7 +109,8 @@ stack as a sidecar for the backend features you are missing.
 
 Before deploying production apps:
 
-- Use PostgreSQL or MySQL/MariaDB instead of development SQLite.
+- Use PostgreSQL 15 for v0.13.14 production deployments. MySQL/MariaDB fresh
+  initialization is known broken in this release.
 - Set stable JWT and encryption secrets.
 - Enable HTTPS/TLS.
 - Configure backups and restore tests.
@@ -117,7 +119,8 @@ Before deploying production apps:
 - Configure monitoring, metering, rate limits, and audit behavior.
 
 See **[[Production-Deployment]]**, **[[Database-Setup]]**, and
-**[[TLS-Certificates]]**. For outbound email, see
+**[[TLS-Certificates]]**. Read **[[Release-v0.13.14-Feature-Status]]** before
+making a production claim. For outbound email, see
 **[[Production-Mail-Delivery]]**.
 
 ## Documentation Sections

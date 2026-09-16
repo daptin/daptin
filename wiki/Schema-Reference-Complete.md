@@ -150,10 +150,13 @@ Relations:
   - Subject: comment        # Table containing foreign key
     Object: post           # Table being referenced
     Relation: belongs_to   # Relationship type
-    SubjectName: post_id   # FK column name (optional)
-    ObjectName: comment    # Reverse relation name (optional)
+    ObjectName: post_id    # FK column on comment (optional)
     OnDelete: cascade      # Cascade behavior
 ```
+
+For `belongs_to`, omit `SubjectName`; defining both naming sides can create an
+unwanted required column in v0.13.14. Both names are meaningful for join-table
+relations. See [[Relationships]].
 
 See [[Relationships|Relationships]] for complete relationship documentation.
 
