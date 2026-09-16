@@ -524,15 +524,40 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	})
 	resource.CheckErr(err, "Failed to register outbox processing task")
 
-	err = taskScheduler.AddTask(task.Task{
-		EntityName:        "data_exchange_execution",
-		ActionName:        "process_data_exchange_executions",
-		Attributes:        map[string]interface{}{},
-		AsUserReferenceId: adminTaskUserReferenceId,
-		Schedule:          "@every 1s",
-	})
-	resource.CheckErr(err, "Failed to register data exchange execution processing task")
-	transaction.Rollback()
+	if adminTaskUserReferenceId == daptinid.NullReferenceId {
+		_ = transaction.Rollback()
+		log.Warn("data exchange processor task was not persisted because no administrator identity exists")
+	} else {
+		adminTaskUser, _, err := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetSingleRowByReferenceIdWithTransaction(
+			resource.USER_ACCOUNT_TABLE_NAME, adminTaskUserReferenceId, nil, transaction)
+		if err != nil {
+			_ = transaction.Rollback()
+			return nil, fmt.Errorf("load data exchange task administrator: %w", err)
+		}
+		adminTaskUserEmail := resource.StringOrEmpty(adminTaskUser["email"])
+		if adminTaskUserEmail == "" {
+			_ = transaction.Rollback()
+			return nil, fmt.Errorf("data exchange task administrator has no email")
+		}
+		exchangeTaskConfig := resource.CmsConfig{Tasks: []task.Task{{
+			Name:        "process-data-exchange-executions",
+			EntityName:  "data_exchange_execution",
+			ActionName:  "process_data_exchange_executions",
+			Attributes:  map[string]interface{}{},
+			AsUserEmail: adminTaskUserEmail,
+			Schedule:    "@every 1s",
+			Active:      true,
+			JobType:     "action",
+		}}}
+		err = resource.UpdateTasksData(&exchangeTaskConfig, transaction)
+		if err != nil {
+			_ = transaction.Rollback()
+			return nil, fmt.Errorf("persist data exchange execution processing task: %w", err)
+		}
+		if err := transaction.Commit(); err != nil {
+			return nil, fmt.Errorf("commit data exchange execution processing task: %w", err)
+		}
+	}
 
 	taskScheduler.LoadPersistedTasks()
 

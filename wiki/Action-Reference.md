@@ -999,7 +999,7 @@ Add a data exchange for Google Sheets sync.
 
 ### process_data_exchange_executions
 
-Process one due durable data-exchange retry. The standard scheduler invokes
+Process one due durable data-exchange execution. The standard persisted task invokes
 this action automatically; administrators may also invoke it manually.
 
 | Property | Value |
@@ -1008,8 +1008,28 @@ this action automatically; administrators may also invoke it manually.
 | Instance Required | No |
 | Permission | Administrator only |
 
-See [[Data-Exchange|Data Exchange]] for failure policies, retry state, and
-cluster behavior.
+### retry_data_exchange_execution
+
+Return one terminal execution to the scheduled processor with a fresh bounded
+attempt budget. This action never calls the target directly.
+
+| Property | Value |
+|----------|-------|
+| Entity | `data_exchange_execution` |
+| Instance Required | Yes |
+| Permission | Administrator only |
+
+Pass the execution reference as the normal instance-action attribute:
+
+```bash
+curl -X POST http://localhost:6336/action/data_exchange_execution/retry_data_exchange_execution \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"data_exchange_execution_id":"EXECUTION_REFERENCE_ID"}}'
+```
+
+See [[Data-Exchange|Data Exchange]] for transaction, retry, and cluster
+behavior.
 
 ## Transactional `ForEach` CRUD
 

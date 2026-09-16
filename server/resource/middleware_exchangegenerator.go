@@ -10,12 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	exchangeOnErrorContinue = "continue"
-	exchangeOnErrorRetry    = "retry"
-	exchangeOnErrorError    = "error"
-)
-
 type exchangeMiddleware struct {
 	cmsConfig     *CmsConfig
 	exchangeMap   map[string][]ExchangeContract
@@ -100,7 +94,6 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 		} else {
 			continue
 		}
-
 		for _, exchange := range exchanges {
 
 			hook, ok := exchange.Attributes["hook"]
@@ -120,7 +113,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 			//client := oauthDesc.Client(ctx, token)
 
 			log.Printf("executing before exchange: %v -> %v", exchange.SourceType, exchange.TargetType)
-			exchangeResult, succeeded, err := em.execute(exchange, reqmethod, resultRow, *req, transaction)
+			exchangeResult, succeeded, err := em.execute(exchange, resultRow, transaction)
 			if err != nil {
 				return nil, err
 			}
@@ -143,7 +136,7 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 	return results, nil
 }
 
-// Called after the data changes are complete, resposible for calling the external api.
+// InterceptAfter records target work in the source mutation transaction.
 func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
 	results []map[string]interface{}, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
 
@@ -169,6 +162,10 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 		} else {
 			continue
 		}
+		enqueueRow, err := exchangeEnqueueRow(resultRow, reqmethod)
+		if err != nil {
+			return nil, err
+		}
 
 		for _, exchange := range exchanges {
 
@@ -190,22 +187,12 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 
 			//client := oauthDesc.Client(ctx, token)
 
-			log.Printf("executing after exchange: %v -> %v", exchange.SourceType, exchange.TargetType)
-			exchangeResult, succeeded, err := em.execute(exchange, reqmethod, resultRow, *req, transaction)
-			if err != nil {
-				return nil, err
+			if transaction == nil || !isMutationMethod(reqmethod) {
+				return nil, fmt.Errorf("after exchange [%s] requires an active mutation transaction", exchange.Name)
 			}
-			if succeeded {
-				if exchange.Attributes != nil && len(exchange.Attributes) > 0 {
-					resultValue, err := BuildActionContext(exchange.Attributes, exchangeResult)
-					if err != nil {
-						resultMap := resultValue.(map[string]interface{})
-						for key, val := range resultMap {
-							exchangeResult[key] = val
-						}
-					}
-				}
-
+			log.Printf("enqueueing after exchange: %v -> %v", exchange.SourceType, exchange.TargetType)
+			if err := em.executions.Enqueue(exchange, reqmethod, enqueueRow, *req, transaction); err != nil {
+				return nil, fmt.Errorf("enqueue data exchange [%s]: %w", exchange.Name, err)
 			}
 		}
 	}
@@ -214,88 +201,30 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 	return results, nil
 }
 
-func (em *exchangeMiddleware) execute(exchange ExchangeContract, method string, row map[string]interface{},
-	request api2go.Request, transaction *sqlx.Tx) (map[string]interface{}, bool, error) {
-	policy, err := exchangeErrorPolicy(exchange)
+func exchangeEnqueueRow(resultRow map[string]interface{}, method string) (map[string]interface{}, error) {
+	if method != "patch" && method != "put" {
+		return resultRow, nil
+	}
+	version, err := exchangeSourceVersion(resultRow["version"])
 	if err != nil {
-		return nil, false, err
+		return nil, fmt.Errorf("enqueue updated data exchange source: %w", err)
 	}
-	if policy == exchangeOnErrorRetry && transaction != nil {
-		if _, err := transaction.Exec("SAVEPOINT data_exchange_attempt"); err != nil {
-			return nil, false, err
-		}
+	enqueueRow := make(map[string]interface{}, len(resultRow))
+	for key, value := range resultRow {
+		enqueueRow[key] = value
 	}
+	enqueueRow["version"] = version + 1
+	return enqueueRow, nil
+}
 
+func (em *exchangeMiddleware) execute(exchange ExchangeContract, row map[string]interface{},
+	transaction *sqlx.Tx) (map[string]interface{}, bool, error) {
 	result, executionErr := NewExchangeExecution(exchange, em.cruds).Execute([]map[string]interface{}{row}, transaction)
 	if executionErr == nil {
-		if policy == exchangeOnErrorRetry && transaction != nil {
-			if _, err := transaction.Exec("RELEASE SAVEPOINT data_exchange_attempt"); err != nil {
-				return nil, false, err
-			}
-		}
 		return result, true, nil
 	}
-
 	log.Errorf("Failed to execute exchange: %v", executionErr)
-	switch policy {
-	case exchangeOnErrorContinue:
-		return nil, false, nil
-	case exchangeOnErrorError:
-		return nil, false, executionErr
-	case exchangeOnErrorRetry:
-		if transaction == nil {
-			return nil, false, fmt.Errorf("retry exchange [%s] requires an active transaction", exchange.Name)
-		}
-		if _, err := transaction.Exec("ROLLBACK TO SAVEPOINT data_exchange_attempt"); err != nil {
-			return nil, false, err
-		}
-		if _, err := transaction.Exec("RELEASE SAVEPOINT data_exchange_attempt"); err != nil {
-			return nil, false, err
-		}
-		if !isMutationMethod(method) {
-			return nil, false, fmt.Errorf("retry exchange [%s] requires a mutation method", exchange.Name)
-		}
-		if err := em.enqueue(exchange, method, row, request, transaction); err != nil {
-			return nil, false, fmt.Errorf("enqueue data exchange retry [%s]: %w", exchange.Name, err)
-		}
-		return nil, false, nil
-	default:
-		panic("unreachable exchange error policy")
-	}
-}
-
-func (em *exchangeMiddleware) enqueue(exchange ExchangeContract, method string, row map[string]interface{},
-	request api2go.Request, transaction *sqlx.Tx) error {
-	if _, err := transaction.Exec("SAVEPOINT data_exchange_enqueue"); err != nil {
-		return err
-	}
-	if err := em.executions.Enqueue(exchange, method, row, request, transaction); err != nil {
-		if _, rollbackErr := transaction.Exec("ROLLBACK TO SAVEPOINT data_exchange_enqueue"); rollbackErr != nil {
-			return rollbackErr
-		}
-		if _, releaseErr := transaction.Exec("RELEASE SAVEPOINT data_exchange_enqueue"); releaseErr != nil {
-			return releaseErr
-		}
-		return err
-	}
-	_, err := transaction.Exec("RELEASE SAVEPOINT data_exchange_enqueue")
-	return err
-}
-
-func exchangeErrorPolicy(exchange ExchangeContract) (string, error) {
-	if exchange.Options == nil || exchange.Options["on_error"] == nil {
-		return exchangeOnErrorContinue, nil
-	}
-	policy, ok := exchange.Options["on_error"].(string)
-	if !ok {
-		return "", fmt.Errorf("data exchange [%s] option on_error must be a string", exchange.Name)
-	}
-	switch policy {
-	case exchangeOnErrorContinue, exchangeOnErrorRetry, exchangeOnErrorError:
-		return policy, nil
-	default:
-		return "", fmt.Errorf("data exchange [%s] has invalid on_error policy [%s]", exchange.Name, policy)
-	}
+	return nil, false, nil
 }
 
 func isMutationMethod(method string) bool {

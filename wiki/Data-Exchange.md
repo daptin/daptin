@@ -11,34 +11,22 @@ Data Exchange enables:
 - Integration with OAuth-protected services
 
 An exchange attached to a Daptin resource runs from the resource lifecycle. A
-`before` exchange runs synchronously before the row mutation. Its failure is
-logged without rejecting the resource operation by default. An `after`
-exchange is attempted after the row mutation and has the same default.
-This preserves the resource API behavior of existing exchange definitions.
+`before` exchange runs synchronously before the row mutation. Its failure
+is logged and the resource operation continues. An `after` exchange is always
+recorded for background execution and is never attempted inside the source
+request.
 
-Set `options.on_error` on an exchange to choose another failure policy:
+The source mutation and every matching `data_exchange_execution` row use the
+same database transaction. If an execution cannot be stored, the mutation is
+rolled back. Once committed, the standard persisted task invokes the same
+exchange executor for action and HTTP targets.
 
-| Value | Behavior |
-|-------|----------|
-| `continue` | Log the failure and continue the resource operation. This is the default. |
-| `retry` | Continue the resource operation and durably retry the failed exchange. Mutation methods only. |
-| `error` | Return the exchange failure to the resource lifecycle. |
-
-These are exact values. An invalid policy is a configuration error.
-
-`error` rolls back the owning resource transaction when the exchange reports
-failure. It cannot undo an external effect that completed before the failure
-was observed, so it is not distributed atomicity.
-
-The source mutation and a failed exchange's retry record use the same database
-transaction. If the retry record cannot be stored, the resource operation
-fails instead of acknowledging work that cannot be retried. Every Daptin node
-may run the processor task, while a conditional database claim ensures that
-only one node owns an attempt. External effects
-such as HTTP requests, email delivery, object storage writes, and live
-publications cannot be rolled back by SQL and may be delivered more than once
-after a process or network failure. Targets must therefore be safe to retry,
-normally by using stable domain identifiers from the event.
+Every Daptin node may run the processor task. The configured SQL database owns
+bounded attempts and expiring leases, and a conditional update ensures that
+only one node owns an attempt. Olric is not queue authority. External effects
+cannot be rolled back by SQL and may be delivered more than once after a
+process or network failure. Targets should use stable domain identifiers for
+idempotency.
 
 ## Data Exchange Table
 
@@ -91,8 +79,7 @@ curl -X POST http://localhost:6336/api/data_exchange \
         "source_attributes": "{\"name\": \"order\"}",
         "target_type": "rest",
         "target_attributes": "{\"url\": \"https://api.example.com/webhook\", \"method\": \"POST\"}",
-        "attributes": "{\"name\": \"order\", \"hook\": \"after\", \"methods\": [\"post\"]}",
-        "options": "{\"on_error\": \"retry\"}"
+        "attributes": "{\"name\": \"order\", \"hook\": \"after\", \"methods\": [\"post\"]}"
       }
     }
   }'
@@ -244,15 +231,24 @@ For REST target type:
 
 ## Reliable Background Processing
 
-Failed mutation exchanges configured with `"on_error": "retry"` are stored as permissioned
-`data_exchange_execution` resources. Each execution contains the immutable
-event envelope, retry state, attempt count, and next-attempt time. The
-standard `process_data_exchange_executions` action invokes the same exchange
-executor used by the initial attempt.
+Every mutation `after` exchange is stored as an administrator-only
+`data_exchange_execution` resource. The execution stores the related exchange,
+configured execution account, source reference and version, method, bounded
+attempt state, and lease. It does not copy the source payload or credentials.
+The source is reloaded through Daptin resources for each attempt and the
+configured account's current groups and read permission are checked before a
+target is called.
 
-Retries use exponential backoff capped at one hour. In a cluster, every node
-may invoke the processor; the configured SQL database owns claims and retry
-state. Olric is not the durable queue or claim authority.
+Target failures use exponential backoff capped at one hour and stop after the
+stored attempt limit. A missing exchange, execution identity, source row,
+source permission, or a changed source version is terminal. Expired leases can
+be reclaimed, and lease tokens prevent an older worker from completing a
+reclaimed execution.
+
+Administrators can invoke `retry_data_exchange_execution` on one terminal
+execution. This grants a fresh bounded attempt budget and returns it to the
+same scheduled claim path; it does not run the target inline. Completed rows
+are removed in bounded batches after the retention period.
 
 ## List Data Exchanges
 

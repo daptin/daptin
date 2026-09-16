@@ -30,6 +30,12 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 	if err != nil {
 		return err
 	}
+	return dbResource.deleteWithoutFiltersWithData(id, req, transaction, data)
+}
+
+func (dbResource *DbResource) deleteWithoutFiltersWithData(id daptinid.DaptinReferenceId, req api2go.Request,
+	transaction *sqlx.Tx, data map[string]interface{}) error {
+	var err error
 	apiModel := api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(), nil, 0, nil, data)
 
 	m := dbResource.model
@@ -539,7 +545,17 @@ func (dbResource *DbResource) Delete(idString string, req api2go.Request) (api2g
 		}
 	}
 
-	err = dbResource.DeleteWithoutFilters(daptinid.DaptinReferenceId(id), req, transaction)
+	deletedRow, err := dbResource.GetReferenceIdToObjectWithTransaction(
+		dbResource.model.GetTableName(), daptinid.DaptinReferenceId(id), transaction)
+	if err != nil {
+		rollbackErr := transaction.Rollback()
+		CheckErr(rollbackErr, "Failed to rollback")
+		return nil, err
+	}
+	deletedRow["__type"] = dbResource.model.GetName()
+	deletedRow["__permission"] = dbResource.GetRowPermissionWithTransaction(deletedRow, transaction)
+
+	err = dbResource.deleteWithoutFiltersWithData(daptinid.DaptinReferenceId(id), req, transaction, deletedRow)
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "Failed to rollback")
@@ -548,12 +564,7 @@ func (dbResource *DbResource) Delete(idString string, req api2go.Request) (api2g
 
 	for _, bf := range dbResource.ms.AfterDelete {
 		//log.Printf("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
-		_, err = bf.InterceptAfter(dbResource, &req, []map[string]interface{}{
-			{
-				"reference_id": id,
-				"__type":       dbResource.model.GetName(),
-			},
-		}, transaction)
+		_, err = bf.InterceptAfter(dbResource, &req, []map[string]interface{}{deletedRow}, transaction)
 		if err != nil {
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "Failed to rollback")
@@ -588,19 +599,22 @@ func (dbResource *DbResource) DeleteWithTransaction(id daptinid.DaptinReferenceI
 		}
 	}
 
-	err := dbResource.DeleteWithoutFilters(id, req, transaction)
+	deletedRow, err := dbResource.GetReferenceIdToObjectWithTransaction(
+		dbResource.model.GetTableName(), id, transaction)
+	if err != nil {
+		return nil, err
+	}
+	deletedRow["__type"] = dbResource.model.GetName()
+	deletedRow["__permission"] = dbResource.GetRowPermissionWithTransaction(deletedRow, transaction)
+
+	err = dbResource.deleteWithoutFiltersWithData(id, req, transaction, deletedRow)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, bf := range dbResource.ms.AfterDelete {
 		//log.Printf("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
-		_, err = bf.InterceptAfter(dbResource, &req, []map[string]interface{}{
-			{
-				"reference_id": id,
-				"__type":       dbResource.model.GetName(),
-			},
-		}, transaction)
+		_, err = bf.InterceptAfter(dbResource, &req, []map[string]interface{}{deletedRow}, transaction)
 		if err != nil {
 			log.Errorf("Error from AfterDelete middleware: %v", err)
 			return nil, err

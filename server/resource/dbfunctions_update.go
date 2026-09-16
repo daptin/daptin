@@ -463,7 +463,7 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 	allExchanges := make([]ExchangeContract, 0)
 
 	s, v, err := statementbuilder.Squirrel.Select(
-		"name", "source_attributes",
+		"reference_id", "name", "source_attributes",
 		"source_type", "target_attributes", "attributes",
 		"target_type", "options", "as_user_id").
 		From("data_exchange").ToSQL()
@@ -491,12 +491,13 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 	if err == nil {
 		for rows.Next() {
 
+			var referenceID []byte
 			var name, source_type, target_type string
 			var source_attributes, target_attributes, options, attrsJson []byte
 			var user_account_id *int64
 
 			var ec ExchangeContract
-			err = rows.Scan(&name, &source_attributes, &source_type, &target_attributes, &attrsJson, &target_type, &options, &user_account_id)
+			err = rows.Scan(&referenceID, &name, &source_attributes, &source_type, &target_attributes, &attrsJson, &target_type, &options, &user_account_id)
 			CheckErr(err, "[433] Failed to Scan existing exchange contract")
 			if user_account_id == nil {
 				log.Errorf("as_user_id is not set for data exchange setup [%v], skipping", name)
@@ -519,6 +520,7 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 			CheckErr(err, "Failed to unmarshal attributes")
 
 			ec.Name = name
+			ec.ReferenceId = daptinid.InterfaceToDIR(referenceID).String()
 			ec.SourceType = source_type
 			ec.TargetType = target_type
 

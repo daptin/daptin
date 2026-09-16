@@ -1,264 +1,246 @@
 package resource
 
 import (
-	"context"
-	"net/http"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/artpar/api2go/v2"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-func TestAfterExchangeFailureQueuesRetryWithoutFailingMutation(t *testing.T) {
-	database, cruds, _ := newCanonicalMeteringDatabase(t)
-	queue := cruds["data_exchange_execution"]
-	if queue == nil {
-		t.Fatal("canonical data_exchange_execution resource is unavailable")
-	}
-	configStore, err := NewConfigStore(database)
-	if err != nil {
-		t.Fatal(err)
-	}
-	secret := "0123456789abcdef0123456789abcdef"
-	configTransaction := database.MustBegin()
-	if err := configStore.SetConfigValueFor("encryption.secret", secret, "backend", configTransaction); err != nil {
-		_ = configTransaction.Rollback()
-		t.Fatal(err)
-	}
-	if err := configTransaction.Commit(); err != nil {
-		t.Fatal(err)
-	}
-	queue.ConfigStore = configStore
-	queue.EncryptionSecret = []byte(secret)
-
-	config := &CmsConfig{ExchangeContracts: []ExchangeContract{{
-		Name: "orders", SourceType: "self", TargetType: "invalid", AsUserId: 1,
-		Options: map[string]interface{}{"on_error": exchangeOnErrorRetry},
-		Attributes: map[string]interface{}{
-			"name": "order", "hook": "after", "methods": []interface{}{"patch"},
-		},
-	}}}
-	middleware := NewExchangeMiddleware(config, &cruds)
-	transaction := database.MustBegin()
-	request := apiRequestWithContext(context.Background(), http.MethodPatch)
-	if _, err := middleware.InterceptAfter(nil, &request, []map[string]interface{}{{
-		"__type": "order", "reference_id": "01994173-d4d0-7cc5-b168-a433df5f6944", "total": 42,
-	}}, transaction); err != nil {
-		_ = transaction.Rollback()
-		t.Fatal(err)
-	}
-	var encryptedEnvelope string
-	var asUserID int64
-	var state, exchangeName string
-	if err := transaction.QueryRow(`select envelope, user_account_id, state, exchange_name from data_exchange_execution`).
-		Scan(&encryptedEnvelope, &asUserID, &state, &exchangeName); err != nil {
-		_ = transaction.Rollback()
-		t.Fatal(err)
-	}
-	if encryptedEnvelope == "" || encryptedEnvelope[0] == '{' {
-		_ = transaction.Rollback()
-		t.Fatal("exchange envelope was not encrypted by the resource lifecycle")
-	}
-	if asUserID != 1 {
-		_ = transaction.Rollback()
-		t.Fatalf("execution owner = %d, want configured exchange user 1", asUserID)
-	}
-	if state != exchangeExecutionPending || exchangeName != "orders" {
-		_ = transaction.Rollback()
-		t.Fatalf("queued execution = %s/%s, want orders/%s", exchangeName, state, exchangeExecutionPending)
-	}
-	if err := transaction.Rollback(); err != nil {
-		t.Fatal(err)
-	}
-
-	var count int
-	if err := database.QueryRow(`select count(*) from data_exchange_execution`).Scan(&count); err != nil {
-		t.Fatal(err)
-	}
-	if count != 0 {
-		t.Fatalf("rolled back source transaction retained %d exchange executions", count)
-	}
-}
-
-func TestRetryQueueFailureAbortsSourceTransaction(t *testing.T) {
-	database, cruds, _ := newCanonicalMeteringDatabase(t)
-	queue := cruds["data_exchange_execution"]
-	configStore, err := NewConfigStore(database)
-	if err != nil {
-		t.Fatal(err)
-	}
-	secret := "0123456789abcdef0123456789abcdef"
-	configTransaction := database.MustBegin()
-	if err := configStore.SetConfigValueFor("encryption.secret", secret, "backend", configTransaction); err != nil {
-		_ = configTransaction.Rollback()
-		t.Fatal(err)
-	}
-	if err := configTransaction.Commit(); err != nil {
-		t.Fatal(err)
-	}
-	queue.ConfigStore = configStore
-	queue.EncryptionSecret = []byte(secret)
-	database.MustExec(`create table exchange_source_marker (value text not null)`)
-	database.MustExec(`create trigger reject_exchange_execution before insert on data_exchange_execution
-		begin select raise(abort, 'queue unavailable'); end`)
-
-	config := &CmsConfig{ExchangeContracts: []ExchangeContract{{
-		Name: "orders", SourceType: "self", TargetType: "invalid", AsUserId: 1,
-		Options: map[string]interface{}{"on_error": exchangeOnErrorRetry},
-		Attributes: map[string]interface{}{
-			"name": "order", "hook": "after", "methods": []interface{}{"post"},
-		},
-	}}}
-	middleware := NewExchangeMiddleware(config, &cruds)
-	transaction := database.MustBegin()
-	if _, err := transaction.Exec(`insert into exchange_source_marker (value) values ('accepted')`); err != nil {
-		t.Fatal(err)
-	}
-	request := apiRequestWithContext(context.Background(), http.MethodPost)
-	if _, err := middleware.InterceptAfter(nil, &request, []map[string]interface{}{{
-		"__type": "order", "reference_id": "01994173-d4d0-7cc5-b168-a433df5f6944",
-	}}, transaction); err == nil {
-		_ = transaction.Rollback()
-		t.Fatal("retry policy must fail when the durable execution cannot be created")
-	}
-	if err := transaction.Rollback(); err != nil {
-		t.Fatal(err)
-	}
-
-	var markerCount, executionCount int
-	if err := database.QueryRow(`select count(*) from exchange_source_marker`).Scan(&markerCount); err != nil {
-		t.Fatal(err)
-	}
-	if err := database.QueryRow(`select count(*) from data_exchange_execution`).Scan(&executionCount); err != nil {
-		t.Fatal(err)
-	}
-	if markerCount != 0 || executionCount != 0 {
-		t.Fatalf("source markers = %d, executions = %d; want 0, 0", markerCount, executionCount)
-	}
-}
-
-func apiRequestWithContext(ctx context.Context, method string) api2go.Request {
-	return api2go.Request{PlainRequest: (&http.Request{Method: method}).WithContext(ctx)}
-}
 
 func TestExchangeExecutionClaimIsDatabaseAuthoritative(t *testing.T) {
 	statementbuilder.InitialiseStatementBuilder("sqlite3")
 	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-claim?mode=memory&cache=shared")
 	database.SetMaxOpenConns(1)
-	t.Cleanup(func() { database.Close() })
-	createExchangeExecutionClaimTable(t, database, `integer primary key autoincrement`, `timestamp`)
-	assertExchangeExecutionClaim(t, database)
-}
-
-func TestExchangeExecutionClaimIsDatabaseAuthoritativePostgres(t *testing.T) {
-	dsn := os.Getenv("DAPTIN_TEST_POSTGRES_DSN")
-	if dsn == "" {
-		t.Skip("set DAPTIN_TEST_POSTGRES_DSN to an empty disposable database")
-	}
-	statementbuilder.InitialiseStatementBuilder("postgres")
-	database, err := sqlx.Open("postgres", dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { database.Close() })
-	if err := database.Ping(); err != nil {
-		t.Fatal(err)
-	}
-	database.MustExec(`drop table if exists data_exchange_execution`)
-	createExchangeExecutionClaimTable(t, database, `bigserial primary key`, `timestamp with time zone`)
-	assertExchangeExecutionClaim(t, database)
-}
-
-func createExchangeExecutionClaimTable(t *testing.T, database *sqlx.DB, idType, timestampType string) {
-	t.Helper()
+	t.Cleanup(func() { _ = database.Close() })
 	database.MustExec(`create table data_exchange_execution (
-		id ` + idType + `,
-		exchange_name text not null,
-		envelope text not null,
+		id integer primary key autoincrement,
 		state text not null,
 		attempt_count integer not null,
-		user_account_id integer not null,
-		next_attempt_at ` + timestampType + `,
-		last_error text,
-		completed_at ` + timestampType + `,
-		created_at ` + timestampType + `,
-		updated_at ` + timestampType + `
+		max_attempts integer not null,
+		next_attempt_at timestamp,
+		lease_token text,
+		lease_expires_at timestamp,
+		created_at timestamp,
+		updated_at timestamp
 	)`)
-}
 
-func assertExchangeExecutionClaim(t *testing.T, database *sqlx.DB) {
-	t.Helper()
 	fixedNow := time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC)
-	encryptionSecret := []byte("0123456789abcdef0123456789abcdef")
-	encryptedEnvelope, err := Encrypt(encryptionSecret, `{"__type":"order","reference_id":"order-1"}`)
+	database.MustExec(`insert into data_exchange_execution
+		(state, attempt_count, max_attempts, next_attempt_at, created_at)
+		values (?, ?, ?, ?, ?)`, exchangeExecutionPending, 0, exchangeExecutionMaxAttempts,
+		fixedNow.Add(-time.Minute), fixedNow)
+	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
+		"data_exchange_execution": {connection: database},
+	})
+
+	first := database.MustBegin()
+	claim, err := service.claimNext(first, fixedNow)
 	if err != nil {
 		t.Fatal(err)
 	}
-	insertSQL := database.Rebind(`insert into data_exchange_execution
-		(exchange_name, envelope, state, attempt_count, user_account_id, next_attempt_at, created_at)
-		values (?, ?, ?, ?, ?, ?, ?)`)
-	database.MustExec(insertSQL, "broken", encryptedEnvelope,
-		exchangeExecutionPending, 0, 7, fixedNow.Add(-time.Minute), fixedNow)
-
-	cruds := map[string]*DbResource{"data_exchange_execution": {connection: database, EncryptionSecret: encryptionSecret}}
-	service := NewExchangeExecutionService(&CmsConfig{ExchangeContracts: []ExchangeContract{{
-		Name: "broken", TargetType: "invalid",
-	}}}, &cruds)
-	service.now = func() time.Time { return fixedNow }
-
-	transaction := database.MustBegin()
-	pendingSnapshot := map[string]interface{}{
-		"id": int64(1), "exchange_name": "broken",
-		"envelope": encryptedEnvelope, "attempt_count": int64(0), USER_ACCOUNT_ID_COLUMN: int64(7),
+	if claim == nil || claim.attempts != 1 || claim.leaseToken == "" {
+		t.Fatalf("invalid first claim: %#v", claim)
 	}
-	if err := service.ProcessPending(transaction); err != nil {
-		t.Fatal(err)
-	}
-	if err := transaction.Commit(); err != nil {
-		t.Fatal(err)
-	}
-	// A second cluster worker can hold the same stale candidate snapshot, but
-	// its conditional update must not claim the execution again.
-	staleTransaction := database.MustBegin()
-	if err := service.processOne(pendingSnapshot, staleTransaction, fixedNow); err != nil {
-		t.Fatal(err)
-	}
-	if err := staleTransaction.Commit(); err != nil {
+	if err := first.Commit(); err != nil {
 		t.Fatal(err)
 	}
 
-	var state string
-	var attempts int64
-	var lastError string
-	if err := database.QueryRow(`select state, attempt_count, last_error from data_exchange_execution where id = 1`).
-		Scan(&state, &attempts, &lastError); err != nil {
+	second := database.MustBegin()
+	staleClaim, err := service.claimNext(second, fixedNow)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if state != exchangeExecutionRetrying {
-		t.Fatalf("state = %q, want %q", state, exchangeExecutionRetrying)
+	if staleClaim != nil {
+		t.Fatalf("unexpired running execution was claimed twice: %#v", staleClaim)
 	}
-	if attempts != 1 {
-		t.Fatalf("attempt_count = %d, want exactly one claimed attempt", attempts)
+	_ = second.Rollback()
+}
+
+func TestExchangeExecutionExpiredLeaseCanBeReclaimed(t *testing.T) {
+	statementbuilder.InitialiseStatementBuilder("sqlite3")
+	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-reclaim?mode=memory&cache=shared")
+	database.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = database.Close() })
+	database.MustExec(`create table data_exchange_execution (
+		id integer primary key autoincrement,
+		state text not null,
+		attempt_count integer not null,
+		max_attempts integer not null,
+		next_attempt_at timestamp,
+		lease_token text,
+		lease_expires_at timestamp,
+		created_at timestamp,
+		updated_at timestamp
+	)`)
+	now := time.Now().UTC()
+	database.MustExec(`insert into data_exchange_execution
+		(state, attempt_count, max_attempts, lease_token, lease_expires_at, created_at)
+		values (?, ?, ?, ?, ?, ?)`, exchangeExecutionRunning, 1, exchangeExecutionMaxAttempts,
+		"expired", now.Add(-time.Minute), now.Add(-time.Hour))
+	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
+		"data_exchange_execution": {connection: database},
+	})
+	tx := database.MustBegin()
+	claim, err := service.claimNext(tx, now)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if lastError == "" {
-		t.Fatal("retry must retain a redacted diagnostic")
+	if claim == nil || claim.attempts != 2 || claim.leaseToken == "expired" {
+		t.Fatalf("expired execution was not reclaimed: %#v", claim)
 	}
+	_ = tx.Rollback()
 }
 
 func TestExchangeRetryBackoffIsBounded(t *testing.T) {
-	for _, test := range []struct {
-		attempts int64
-		want     time.Duration
-	}{
-		{attempts: 1, want: 2 * time.Second},
-		{attempts: 20, want: time.Hour},
-	} {
-		if delay := exchangeRetryDelay(test.attempts); delay != test.want {
-			t.Fatalf("attempt %d delay = %s, want %s", test.attempts, delay, test.want)
+	if delay := exchangeRetryDelay(1); delay != 2*time.Second {
+		t.Fatalf("first retry delay = %s", delay)
+	}
+	if delay := exchangeRetryDelay(20); delay != time.Hour {
+		t.Fatalf("maximum retry delay = %s", delay)
+	}
+}
+
+func TestExchangeSourceVersionAcceptsResourceRepresentations(t *testing.T) {
+	for _, value := range []interface{}{int64(2), 2, float64(2), float32(2), "2", []byte("2")} {
+		version, err := exchangeSourceVersion(value)
+		if err != nil || version != 2 {
+			t.Fatalf("version %T(%v) = %d, %v; want 2", value, value, version, err)
 		}
 	}
+	if _, err := exchangeSourceVersion(2.5); err == nil {
+		t.Fatal("fractional source version must be rejected")
+	}
+}
+
+func TestDataExchangeExecutionSchemaStoresIdentityNotPayload(t *testing.T) {
+	var columns map[string]bool
+	for _, table := range StandardTables {
+		if table.TableName != "data_exchange_execution" {
+			continue
+		}
+		columns = make(map[string]bool, len(table.Columns))
+		for _, column := range table.Columns {
+			columns[column.ColumnName] = true
+		}
+		if table.DefaultPermission != 0 {
+			t.Fatalf("execution resource permission = %d, want no implicit row access", table.DefaultPermission)
+		}
+	}
+	if columns == nil || !columns["source_reference_id"] || !columns["source_version"] {
+		t.Fatalf("execution identity columns are missing: %#v", columns)
+	}
+	for _, forbidden := range []string{"envelope", "payload", "exchange_name"} {
+		if columns[forbidden] {
+			t.Fatalf("execution resource stores forbidden duplicate data column %q", forbidden)
+		}
+	}
+
+	relations := map[string]bool{}
+	for _, relation := range StandardRelations {
+		if relation.GetSubject() == "data_exchange_execution" {
+			relations[relation.GetObjectName()] = true
+		}
+	}
+	if !relations["data_exchange_id"] || !relations["as_user_id"] {
+		t.Fatalf("execution authority relations are missing: %#v", relations)
+	}
+}
+
+func TestRetryDataExchangeExecutionUsesTheActionSubject(t *testing.T) {
+	for _, action := range SystemActions {
+		if action.Name != "retry_data_exchange_execution" || action.OnType != "data_exchange_execution" {
+			continue
+		}
+		if len(action.OutFields) != 1 || action.OutFields[0].Attributes["subject"] != "~subject" {
+			t.Fatalf("retry outcome does not reuse the action subject: %#v", action.OutFields)
+		}
+		return
+	}
+	t.Fatal("retry_data_exchange_execution action is missing")
+}
+
+func TestManualRetryReturnsTerminalExecutionToScheduledPath(t *testing.T) {
+	statementbuilder.InitialiseStatementBuilder("sqlite3")
+	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-retry?mode=memory&cache=shared")
+	database.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = database.Close() })
+	database.MustExec(`create table data_exchange_execution (
+		id integer primary key autoincrement,
+		reference_id blob not null unique,
+		state text not null,
+		attempt_count integer not null,
+		max_attempts integer not null,
+		next_attempt_at timestamp,
+		lease_token text,
+		lease_expires_at timestamp,
+		last_error_code text,
+		last_error_summary text,
+		completed_at timestamp,
+		updated_at timestamp
+	)`)
+	referenceID := daptinid.DaptinReferenceId(uuid.New())
+	database.MustExec(`insert into data_exchange_execution
+		(reference_id, state, attempt_count, max_attempts, completed_at)
+		values (?, ?, ?, ?, ?)`, referenceID[:], exchangeExecutionTerminalFailed, 5, 5, time.Now())
+	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
+		"data_exchange_execution": {connection: database},
+	})
+	tx := database.MustBegin()
+	if err := service.Retry(referenceID, tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	var state string
+	var attempts, maxAttempts int64
+	if err := database.QueryRow(`select state, attempt_count, max_attempts from data_exchange_execution`).
+		Scan(&state, &attempts, &maxAttempts); err != nil {
+		t.Fatal(err)
+	}
+	if state != exchangeExecutionPending || attempts != 5 || maxAttempts != 10 {
+		t.Fatalf("retry state = %s/%d/%d, want pending/5/10", state, attempts, maxAttempts)
+	}
+}
+
+func TestExpiredFinalLeaseBecomesTerminal(t *testing.T) {
+	statementbuilder.InitialiseStatementBuilder("sqlite3")
+	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-terminal?mode=memory&cache=shared")
+	database.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = database.Close() })
+	database.MustExec(`create table data_exchange_execution (
+		id integer primary key autoincrement,
+		state text not null,
+		attempt_count integer not null,
+		max_attempts integer not null,
+		lease_token text,
+		lease_expires_at timestamp,
+		last_error_code text,
+		last_error_summary text,
+		completed_at timestamp,
+		updated_at timestamp
+	)`)
+	now := time.Now().UTC()
+	database.MustExec(`insert into data_exchange_execution
+		(state, attempt_count, max_attempts, lease_token, lease_expires_at)
+		values (?, ?, ?, ?, ?)`, exchangeExecutionRunning, 5, 5, "abandoned", now.Add(-time.Minute))
+	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
+		"data_exchange_execution": {connection: database},
+	})
+	tx := database.MustBegin()
+	if err := service.terminalizeExhaustedLeases(tx, now); err != nil {
+		t.Fatal(err)
+	}
+	var state, code string
+	if err := tx.QueryRow(`select state, last_error_code from data_exchange_execution`).Scan(&state, &code); err != nil {
+		t.Fatal(err)
+	}
+	if state != exchangeExecutionTerminalFailed || code != "lease_expired" {
+		t.Fatalf("exhausted lease = %s/%s, want terminal_failed/lease_expired", state, code)
+	}
+	_ = tx.Rollback()
 }

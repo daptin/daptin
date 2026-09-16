@@ -13,6 +13,7 @@ import (
 var authenticatedOTPActionPermission = auth.AuthenticatedExecute
 var adminOnlyActionPermission = auth.None
 var adminGroupExecutePermission = auth.GroupExecute
+var adminQueuePermission = auth.GroupCRUD | auth.GroupExecute
 var adminOnlyActionAccessGroups = table_info.DefaultGroupList{
 	{Name: "administrators", Permission: &adminGroupExecutePermission},
 }
@@ -106,6 +107,8 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("oauth_grant", "belongs_to", "oauth_app"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
 	api2go.NewTableRelationWithNames("data_exchange", "user_data_exchange", "has_one", "user_account", "as_user_id"),
+	api2go.NewTableRelationWithNames("data_exchange_execution", "execution_exchange", "has_one", "data_exchange", "data_exchange_id"),
+	api2go.NewTableRelationWithNames("data_exchange_execution", "execution_user", "has_one", "user_account", "as_user_id"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "credential"),
 	api2go.NewTableRelation("llm_provider", "has_one", "credential"),
@@ -621,6 +624,24 @@ var SystemActions = []actionresponse.Action{
 				Type:       "data_exchange.execution.process",
 				Method:     "EXECUTE",
 				Attributes: map[string]interface{}{},
+			},
+		},
+	},
+	{
+		Name:             "retry_data_exchange_execution",
+		Label:            "Retry Data Exchange Execution",
+		OnType:           "data_exchange_execution",
+		InstanceOptional: false,
+		Permission:       &adminOnlyActionPermission,
+		AccessGroups:     adminOnlyActionAccessGroups,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []actionresponse.Outcome{
+			{
+				Type:   "data_exchange.execution.retry",
+				Method: "EXECUTE",
+				Attributes: map[string]interface{}{
+					"subject": "~subject",
+				},
 			},
 		},
 	},
@@ -1786,6 +1807,9 @@ var SystemActions = []actionresponse.Action{
 }
 
 var adminsGroup = table_info.DefaultGroups("administrators")
+var adminQueueGroup = table_info.DefaultGroupList{
+	{Name: "administrators", Permission: &adminQueuePermission},
+}
 
 var StandardTasks []task.Task
 
@@ -2873,25 +2897,29 @@ var StandardTables = []table_info.TableInfo{
 				ColumnName:        "options",
 				ColumnType:        "json",
 				DataType:          "text",
-				ColumnDescription: "JSON exchange policy. on_error accepts continue (default), retry, or error.",
+				ColumnDescription: "Reserved JSON configuration for the exchange target.",
 			},
 		},
 	},
 	{
-		TableName:     "data_exchange_execution",
-		IsHidden:      true,
-		Icon:          "fa-sync-alt",
-		DefaultGroups: adminsGroup,
+		TableName:         "data_exchange_execution",
+		IsHidden:          true,
+		Icon:              "fa-sync-alt",
+		DefaultGroups:     adminQueueGroup,
+		DefaultPermission: auth.None,
 		Columns: []api2go.ColumnInfo{
-			{Name: "exchange_name", ColumnName: "exchange_name", ColumnType: "label", DataType: "varchar(200)", IsNullable: false, IsIndexed: true},
 			{Name: "source_type", ColumnName: "source_type", ColumnType: "label", DataType: "varchar(200)", IsNullable: false, IsIndexed: true},
-			{Name: "source_reference_id", ColumnName: "source_reference_id", ColumnType: "label", DataType: "varchar(64)", IsNullable: true, IsIndexed: true},
+			{Name: "source_reference_id", ColumnName: "source_reference_id", ColumnType: "alias", DataType: "blob", IsNullable: false, IsIndexed: true},
 			{Name: "source_method", ColumnName: "source_method", ColumnType: "label", DataType: "varchar(20)", IsNullable: false},
-			{Name: "envelope", ColumnName: "envelope", ColumnType: "encrypted", DataType: "text", IsNullable: false},
+			{Name: "source_version", ColumnName: "source_version", ColumnType: "measurement", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
 			{Name: "state", ColumnName: "state", ColumnType: "label", DataType: "varchar(20)", IsNullable: false, IsIndexed: true, DefaultValue: "'pending'"},
 			{Name: "attempt_count", ColumnName: "attempt_count", ColumnType: "measurement", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
+			{Name: "max_attempts", ColumnName: "max_attempts", ColumnType: "measurement", DataType: "int(11)", IsNullable: false, DefaultValue: "5"},
 			{Name: "next_attempt_at", ColumnName: "next_attempt_at", ColumnType: "datetime", DataType: "timestamp", IsNullable: true, IsIndexed: true},
-			{Name: "last_error", ColumnName: "last_error", ColumnType: "content", DataType: "text", IsNullable: true},
+			{Name: "lease_token", ColumnName: "lease_token", ColumnType: "label", DataType: "varchar(64)", IsNullable: true, IsIndexed: true},
+			{Name: "lease_expires_at", ColumnName: "lease_expires_at", ColumnType: "datetime", DataType: "timestamp", IsNullable: true, IsIndexed: true},
+			{Name: "last_error_code", ColumnName: "last_error_code", ColumnType: "label", DataType: "varchar(100)", IsNullable: true},
+			{Name: "last_error_summary", ColumnName: "last_error_summary", ColumnType: "content", DataType: "varchar(255)", IsNullable: true},
 			{Name: "completed_at", ColumnName: "completed_at", ColumnType: "datetime", DataType: "timestamp", IsNullable: true},
 		},
 	},

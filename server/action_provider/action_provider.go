@@ -172,6 +172,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create data exchange execution processor")
 	performers = append(performers, dataExchangeExecutionProcessPerformer)
 
+	dataExchangeExecutionRetryPerformer, err := actions.NewDataExchangeExecutionRetryPerformer(initConfig, cruds)
+	resource.CheckErr(err, "Failed to create data exchange execution retry performer")
+	performers = append(performers, dataExchangeExecutionRetryPerformer)
+
 	awsMailSendActionPerformer, err := actions.NewAwsMailSendActionPerformer(cruds, mailDaemon, configStore, transaction)
 	resource.CheckErr(err, "Failed to create mail send performer")
 	performers = append(performers, awsMailSendActionPerformer)

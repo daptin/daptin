@@ -499,11 +499,9 @@ Mailbox metadata such as subject, sender, recipient, spam score, flags, UID,
 and mailbox relation remains in the SQL tables.
 
 Incoming SMTP storage creates the `mail` row through Daptin's resource
-lifecycle. A data exchange attached to `mail` therefore follows its configured
-failure policy before SMTP acknowledges storage. With `continue` (the default),
-the message is stored even if the target fails; with `retry`, it is stored only
-after a durable retry record is created; with `error`, the mail transaction is
-rolled back. See [[Data-Exchange|Data Exchange]].
+lifecycle. A matching `after` exchange is stored in the same transaction before
+SMTP acknowledges the message and is executed later by the standard processor.
+See [[Data-Exchange|Data Exchange]].
 
 For outbound queue storage, configure `outbox.mail` the same way:
 

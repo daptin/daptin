@@ -208,7 +208,7 @@ cloud_store.files.import
 
 The canonical guide now covers the supported `action`, `rest`, and
 `gsheet-append` targets, lifecycle hooks, column mapping, exact
-`options.on_error` policies, durable processing, and cluster semantics.
+durable after-exchange processing, bounded retries, and cluster semantics.
 
 ---
 
