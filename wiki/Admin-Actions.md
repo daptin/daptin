@@ -26,7 +26,10 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 ]
 ```
 
-Process restarts are managed by Kubernetes, Docker, systemd, or another process supervisor rather than an administrative HTTP action.
+## Restarting Daptin
+
+Process restarts are managed by Kubernetes, Docker, systemd, or another process
+supervisor rather than an administrative HTTP action.
 
 **Use cases:**
 - Apply schema changes
@@ -34,45 +37,30 @@ Process restarts are managed by Kubernetes, Docker, systemd, or another process 
 - Load new configuration
 - Clear caches
 
-**Response:**
-```json
-[
-  {"ResponseType": "client.notify", "Attributes": {"message": "Server restarting...", "type": "info"}}
-]
-```
+Use that supervisor's normal restart command so Daptin receives its standard
+shutdown signal and drains through the runtime lifecycle.
 
-Server restarts gracefully, maintaining in-flight requests.
+## Enable GraphQL
 
-## enable_graphql
-
-Enable the GraphQL API endpoint.
-
-```bash
-curl -X POST http://localhost:6336/action/world/__enable_graphql \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"attributes": {}}'
-```
-
-Alternative via config:
+Set the administrator-only backend configuration value:
 
 ```bash
 curl -X POST http://localhost:6336/_config/backend/graphql.enable \
   -H "Authorization: Bearer $TOKEN" \
-  -d 'true'
-
-# Restart required; use your process supervisor
-docker restart daptin
+  --data 'true'
 ```
+
+Restart Daptin with its process supervisor because GraphQL routes are composed
+at startup. There is no public `__enable_graphql` action.
 
 GraphQL endpoint: `http://localhost:6336/graphql`
 
-## download_cms_config
+## download_system_schema
 
 Export complete system configuration.
 
 ```bash
-curl -X POST http://localhost:6336/action/world/download_cms_config \
+curl -X POST http://localhost:6336/action/world/download_system_schema \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"attributes": {}}'

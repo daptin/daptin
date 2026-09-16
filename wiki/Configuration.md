@@ -159,6 +159,6 @@ docker restart daptin
 
 ```bash
 # Export full system configuration
-curl -X POST http://localhost:6336/action/world/download_cms_config \
+curl -X POST http://localhost:6336/action/world/download_system_schema \
   -H "Authorization: Bearer $TOKEN"
 ```

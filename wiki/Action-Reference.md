@@ -1094,7 +1094,7 @@ These are the internal action executors:
 | `__upload_csv_file_to_entity` | Upload CSV to entity |
 | `oauth.profile.exchange` | Exchange OAuth profile |
 | `site.file.get` | Get site file |
-| `__enable_graphql` | Enable GraphQL API |
+| `__enable_graphql` | Internal performer without a public action definition; use `/_config/backend/graphql.enable` |
 
 ## Action Request Format
 

@@ -87,9 +87,11 @@ Cache automatically invalidates on:
 Restart server to clear all caches:
 
 ```bash
-curl -X POST http://localhost:6336/action/world/restart \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+docker restart daptin
 ```
+
+Use the equivalent restart command for your process supervisor. Daptin does
+not expose a public restart action.
 
 ## TTL (Time-To-Live)
 

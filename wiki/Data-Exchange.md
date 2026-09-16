@@ -8,7 +8,6 @@ Data Exchange enables:
 - Syncing data with external APIs
 - Pushing data to Google Sheets
 - Triggering actions based on data changes
-- Integration with OAuth-protected services
 
 An exchange attached to a Daptin resource runs from the resource lifecycle. A
 `before` exchange runs synchronously before the row mutation. Its failure
@@ -102,7 +101,8 @@ curl -X POST http://localhost:6336/api/data_exchange \
         "source_type": "self",
         "source_attributes": "{\"name\": \"order\"}",
         "target_type": "gsheet-append",
-        "target_attributes": "{\"sheetUrl\": \"https://sheets.googleapis.com/v4/spreadsheets/SHEET_ID/values/Sheet1:append\", \"appKey\": \"YOUR_API_KEY\"}"
+        "target_attributes": "{\"sheetUrl\": \"https://sheets.googleapis.com/v4/spreadsheets/SHEET_ID/values/Sheet1:append\", \"appKey\": \"YOUR_API_KEY\"}",
+        "attributes": "{\"name\": \"order\", \"hook\": \"after\", \"methods\": [\"post\"]}"
       }
     }
   }'
@@ -131,28 +131,13 @@ curl -X POST http://localhost:6336/api/data_exchange \
   }'
 ```
 
-## OAuth Integration
+## OAuth-Protected Targets
 
-Data exchanges can use OAuth tokens for authenticated APIs.
-
-### Link OAuth Token
-
-```bash
-curl -X PATCH http://localhost:6336/api/data_exchange/EXCHANGE_ID \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "data_exchange",
-      "id": "EXCHANGE_ID",
-      "relationships": {
-        "oauth_token_id": {
-          "data": {"type": "oauth_token", "id": "TOKEN_ID"}
-        }
-      }
-    }
-  }'
-```
+The `rest` exchange target does not apply the `oauth_token_id` relationship to
+outbound requests. For an OAuth-protected API, define the operation as a Daptin
+integration and use an `action` exchange target to invoke that operation. This
+keeps token ownership, provider matching, permissions, and execution identity
+in the existing integration action path. See [[Integrations|Integrations]].
 
 ### Execute As User
 
@@ -268,6 +253,5 @@ curl http://localhost:6336/api/data_exchange \
 
 ### Authentication Errors
 
-1. Verify OAuth token exists and is valid
-2. Check token has required scopes
-3. Refresh expired tokens
+For OAuth-protected APIs, troubleshoot the integration action and its selected
+token. A direct `rest` exchange does not select or refresh OAuth tokens.

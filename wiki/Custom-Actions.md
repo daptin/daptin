@@ -434,7 +434,7 @@ OutFields:
 | `world.column.delete` | Delete a column |
 | `world.column.rename` | Rename a column |
 | `__become_admin` | Become administrator |
-| `__enable_graphql` | Enable GraphQL |
+| `__enable_graphql` | Internal performer without a public action definition; use `/_config/backend/graphql.enable` |
 | `__data_export` | Export table data |
 | `__data_import` | Import table data |
 | `__csv_data_export` | Export as CSV |

@@ -23,20 +23,18 @@ GraphiQL playground included for interactive exploration.
 
 GraphQL must be enabled before use:
 
-**Option 1: Direct Database (Requires Restart)**
+The runtime configuration API is the authority for this setting and requires
+an administrator token:
+
 ```bash
-sqlite3 daptin.db "UPDATE _config SET value='true' WHERE name='graphql.enable';"
-./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
+curl -X POST http://localhost:6336/_config/backend/graphql.enable \
+  -H "Authorization: Bearer $TOKEN" \
+  --data 'true'
 ```
 
-**Option 2: Via Action (If Permissions Allow)**
-```bash
-TOKEN=$(cat /tmp/daptin-token.txt)
-curl -X POST http://localhost:6336/action/world/__enable_graphql \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{}}'
-```
+Restart Daptin with its process supervisor after changing the setting. The
+GraphQL routes are composed at startup. There is no public
+`__enable_graphql` action.
 
 **Verification:**
 ```bash

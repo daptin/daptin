@@ -169,8 +169,10 @@ See [[Authentication|Authentication]] for OAuth setup.
 | `become_an_administrator` | world | First user claims admin role |
 | `download_system_schema` | world | Export full schema as JSON |
 | `upload_csv_to_system_schema` | world | Create/update tables from CSV |
-| `restart` | world | Restart Daptin server |
-| `enable_graphql` | world | Enable GraphQL endpoint |
+
+Runtime configuration uses the administrator-only `/_config` API. Process
+restarts are owned by the process supervisor; neither operation is exposed as
+a world action.
 
 **Example: Export Schema**
 ```bash

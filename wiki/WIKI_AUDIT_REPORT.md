@@ -256,7 +256,7 @@ Execute external processes (action_execute_process.go) - security-sensitive, not
 | action_mail_send_ses.go | `aws.mail.send` | N/A (internal) | ✅ Documented as internal performer |
 | action_mail_servers_sync.go | `mail.servers.sync` | `sync_mail_servers` | ✅ Fixed |
 | action_network_request.go | `$network.request` | N/A (performer only) | ✅ Documented in Custom-Actions.md |
-| action_enable_graphql.go | `__enable_graphql` | `enable_graphql` | ✅ Documented |
+| action_enable_graphql.go | `__enable_graphql` | N/A (internal; configure `graphql.enable` through `/_config`) | ✅ Corrected |
 | action_generate_acme_tls_certificate.go | `acme.tls.generate` | `generate_acme_certificate` | ✅ Fixed |
 | action_generate_self_tls_certificate.go | `self.tls.generate` | `generate_self_certificate` | ✅ Fixed |
 | action_site_sync_storage.go | `site.storage.sync` | `site_sync_storage` | ✅ Documented |

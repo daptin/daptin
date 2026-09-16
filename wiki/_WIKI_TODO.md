@@ -26,7 +26,7 @@
 ## Actions (Business Logic)
 - [x] Actions-Overview.md - Action system (FIXED: query syntax)
 - [x] User-Actions.md - signup, signin, password reset, OTP
-- [x] Admin-Actions.md - become_admin, restart, enable_graphql (FIXED: query syntax)
+- [x] Admin-Actions.md - become_admin and administrator configuration (corrected: restart and GraphQL enablement are not actions)
 - [x] Data-Actions.md - import, export, csv_to_entity
 - [x] Cloud-Actions.md - upload, delete, move, sync
 - [x] Email-Actions.md - mail.send, aws.mail.send (FIXED: query syntax)

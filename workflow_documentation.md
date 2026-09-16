@@ -51,12 +51,13 @@ Actions are the core automation primitives in Daptin. They allow you to trigger 
 - `import_cloudstore_files` - Import files from cloud storage
 
 #### System Actions
-- `world/restart_system` - Restart Daptin server
-- `world/enable_graphql` - Enable GraphQL endpoint
-- `world/download_cms_config` - Download CMS configuration
+- `world/download_system_schema` - Download CMS configuration
 - `world/delete_table` - Delete entity table
 - `world/delete_column` - Delete entity column
 - `world/rename_column` - Rename entity column
+
+Runtime settings use the administrator-only `/_config` API. Restarts are
+managed by the process supervisor, not by world actions.
 
 #### Integration Actions
 - `integration_execute` - Execute integration
