@@ -54,6 +54,12 @@ volumes. Change the development password in `.env` before using the stack
 beyond local evaluation. Kubernetes users should start with the
 [Kustomize deployment guide](kubernetes/README.md).
 
+### Easypanel
+
+[Easypanel](https://easypanel.io) is a self-hosted Docker deployment platform. It has a one-click Easypanel template for Daptin, which runs the image above.
+
+[![Deploy on Easypanel](https://easypanel.io/img/deploy-on-easypanel-40.svg)](https://easypanel.io/templates/daptin)
+
 ### Linux binary
 
 ```bash
