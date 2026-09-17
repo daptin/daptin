@@ -16,7 +16,7 @@ func TestExchangeExecutionClaimIsDatabaseAuthoritative(t *testing.T) {
 	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-claim?mode=memory&cache=shared")
 	database.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = database.Close() })
-	database.MustExec(`create table data_exchange_execution (
+	database.MustExec(`create table exchange_run (
 		id integer primary key autoincrement,
 		state text not null,
 		attempt_count integer not null,
@@ -29,12 +29,12 @@ func TestExchangeExecutionClaimIsDatabaseAuthoritative(t *testing.T) {
 	)`)
 
 	fixedNow := time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC)
-	database.MustExec(`insert into data_exchange_execution
+	database.MustExec(`insert into exchange_run
 		(state, attempt_count, max_attempts, next_attempt_at, created_at)
 		values (?, ?, ?, ?, ?)`, exchangeExecutionPending, 0, exchangeExecutionMaxAttempts,
 		fixedNow.Add(-time.Minute), fixedNow)
 	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
-		"data_exchange_execution": {connection: database},
+		EXCHANGE_RUN_TABLE_NAME: {connection: database},
 	})
 
 	first := database.MustBegin()
@@ -65,7 +65,7 @@ func TestExchangeExecutionExpiredLeaseCanBeReclaimed(t *testing.T) {
 	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-reclaim?mode=memory&cache=shared")
 	database.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = database.Close() })
-	database.MustExec(`create table data_exchange_execution (
+	database.MustExec(`create table exchange_run (
 		id integer primary key autoincrement,
 		state text not null,
 		attempt_count integer not null,
@@ -77,12 +77,12 @@ func TestExchangeExecutionExpiredLeaseCanBeReclaimed(t *testing.T) {
 		updated_at timestamp
 	)`)
 	now := time.Now().UTC()
-	database.MustExec(`insert into data_exchange_execution
+	database.MustExec(`insert into exchange_run
 		(state, attempt_count, max_attempts, lease_token, lease_expires_at, created_at)
 		values (?, ?, ?, ?, ?, ?)`, exchangeExecutionRunning, 1, exchangeExecutionMaxAttempts,
 		"expired", now.Add(-time.Minute), now.Add(-time.Hour))
 	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
-		"data_exchange_execution": {connection: database},
+		EXCHANGE_RUN_TABLE_NAME: {connection: database},
 	})
 	tx := database.MustBegin()
 	claim, err := service.claimNext(tx, now)
@@ -119,7 +119,7 @@ func TestExchangeSourceVersionAcceptsResourceRepresentations(t *testing.T) {
 func TestDataExchangeExecutionSchemaStoresIdentityNotPayload(t *testing.T) {
 	var columns map[string]bool
 	for _, table := range StandardTables {
-		if table.TableName != "data_exchange_execution" {
+		if table.TableName != EXCHANGE_RUN_TABLE_NAME {
 			continue
 		}
 		columns = make(map[string]bool, len(table.Columns))
@@ -141,7 +141,7 @@ func TestDataExchangeExecutionSchemaStoresIdentityNotPayload(t *testing.T) {
 
 	relations := map[string]bool{}
 	for _, relation := range StandardRelations {
-		if relation.GetSubject() == "data_exchange_execution" {
+		if relation.GetSubject() == EXCHANGE_RUN_TABLE_NAME {
 			relations[relation.GetObjectName()] = true
 		}
 	}
@@ -152,7 +152,7 @@ func TestDataExchangeExecutionSchemaStoresIdentityNotPayload(t *testing.T) {
 
 func TestRetryDataExchangeExecutionUsesTheActionSubject(t *testing.T) {
 	for _, action := range SystemActions {
-		if action.Name != "retry_data_exchange_execution" || action.OnType != "data_exchange_execution" {
+		if action.Name != "retry_data_exchange_execution" || action.OnType != EXCHANGE_RUN_TABLE_NAME {
 			continue
 		}
 		if len(action.OutFields) != 1 || action.OutFields[0].Attributes["subject"] != "~subject" {
@@ -168,7 +168,7 @@ func TestManualRetryReturnsTerminalExecutionToScheduledPath(t *testing.T) {
 	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-retry?mode=memory&cache=shared")
 	database.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = database.Close() })
-	database.MustExec(`create table data_exchange_execution (
+	database.MustExec(`create table exchange_run (
 		id integer primary key autoincrement,
 		reference_id blob not null unique,
 		state text not null,
@@ -183,11 +183,11 @@ func TestManualRetryReturnsTerminalExecutionToScheduledPath(t *testing.T) {
 		updated_at timestamp
 	)`)
 	referenceID := daptinid.DaptinReferenceId(uuid.New())
-	database.MustExec(`insert into data_exchange_execution
+	database.MustExec(`insert into exchange_run
 		(reference_id, state, attempt_count, max_attempts, completed_at)
 		values (?, ?, ?, ?, ?)`, referenceID[:], exchangeExecutionTerminalFailed, 5, 5, time.Now())
 	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
-		"data_exchange_execution": {connection: database},
+		EXCHANGE_RUN_TABLE_NAME: {connection: database},
 	})
 	tx := database.MustBegin()
 	if err := service.Retry(referenceID, tx); err != nil {
@@ -198,7 +198,7 @@ func TestManualRetryReturnsTerminalExecutionToScheduledPath(t *testing.T) {
 	}
 	var state string
 	var attempts, maxAttempts int64
-	if err := database.QueryRow(`select state, attempt_count, max_attempts from data_exchange_execution`).
+	if err := database.QueryRow(`select state, attempt_count, max_attempts from exchange_run`).
 		Scan(&state, &attempts, &maxAttempts); err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +212,7 @@ func TestExpiredFinalLeaseBecomesTerminal(t *testing.T) {
 	database := sqlx.MustOpen("sqlite3", "file:exchange-execution-terminal?mode=memory&cache=shared")
 	database.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = database.Close() })
-	database.MustExec(`create table data_exchange_execution (
+	database.MustExec(`create table exchange_run (
 		id integer primary key autoincrement,
 		state text not null,
 		attempt_count integer not null,
@@ -225,18 +225,18 @@ func TestExpiredFinalLeaseBecomesTerminal(t *testing.T) {
 		updated_at timestamp
 	)`)
 	now := time.Now().UTC()
-	database.MustExec(`insert into data_exchange_execution
+	database.MustExec(`insert into exchange_run
 		(state, attempt_count, max_attempts, lease_token, lease_expires_at)
 		values (?, ?, ?, ?, ?)`, exchangeExecutionRunning, 5, 5, "abandoned", now.Add(-time.Minute))
 	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
-		"data_exchange_execution": {connection: database},
+		EXCHANGE_RUN_TABLE_NAME: {connection: database},
 	})
 	tx := database.MustBegin()
 	if err := service.terminalizeExhaustedLeases(tx, now); err != nil {
 		t.Fatal(err)
 	}
 	var state, code string
-	if err := tx.QueryRow(`select state, last_error_code from data_exchange_execution`).Scan(&state, &code); err != nil {
+	if err := tx.QueryRow(`select state, last_error_code from exchange_run`).Scan(&state, &code); err != nil {
 		t.Fatal(err)
 	}
 	if state != exchangeExecutionTerminalFailed || code != "lease_expired" {

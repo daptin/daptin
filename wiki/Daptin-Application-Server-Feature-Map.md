@@ -22,7 +22,7 @@ Daptin is organized around a small set of recurring concepts:
 5. The `action` table and action performers provide backend logic beyond CRUD.
 6. System tables such as `cloud_store`, `site`, `oauth_connect`,
    `integration`, `llm_provider`, `api_plan`, `mail_server`, `task`, and
-   `data_exchange_execution` turn built-in infrastructure into data-managed
+   `exchange_run` turn built-in infrastructure into data-managed
    runtime capabilities.
 7. Side services attach protocols and product surfaces to the same resource
    graph: GraphQL, WebSocket, OAuth/OIDC, LLM `/v1`, SMTP, IMAP, FTP,

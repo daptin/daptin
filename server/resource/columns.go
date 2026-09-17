@@ -107,8 +107,8 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("oauth_grant", "belongs_to", "oauth_app"),
 	api2go.NewTableRelation("data_exchange", "has_one", "oauth_token"),
 	api2go.NewTableRelationWithNames("data_exchange", "user_data_exchange", "has_one", "user_account", "as_user_id"),
-	api2go.NewTableRelationWithNames("data_exchange_execution", "execution_exchange", "has_one", "data_exchange", "data_exchange_id"),
-	api2go.NewTableRelationWithNames("data_exchange_execution", "execution_user", "has_one", "user_account", "as_user_id"),
+	api2go.NewTableRelationWithNames(EXCHANGE_RUN_TABLE_NAME, "execution_exchange", "has_one", "data_exchange", "data_exchange_id"),
+	api2go.NewTableRelationWithNames(EXCHANGE_RUN_TABLE_NAME, "execution_user", "has_one", "user_account", "as_user_id"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
 	api2go.NewTableRelation("cloud_store", "has_one", "credential"),
 	api2go.NewTableRelation("llm_provider", "has_one", "credential"),
@@ -614,7 +614,7 @@ var SystemActions = []actionresponse.Action{
 	{
 		Name:             "process_data_exchange_executions",
 		Label:            "Process Data Exchange Executions",
-		OnType:           "data_exchange_execution",
+		OnType:           EXCHANGE_RUN_TABLE_NAME,
 		InstanceOptional: true,
 		Permission:       &adminOnlyActionPermission,
 		AccessGroups:     adminOnlyActionAccessGroups,
@@ -630,7 +630,7 @@ var SystemActions = []actionresponse.Action{
 	{
 		Name:             "retry_data_exchange_execution",
 		Label:            "Retry Data Exchange Execution",
-		OnType:           "data_exchange_execution",
+		OnType:           EXCHANGE_RUN_TABLE_NAME,
 		InstanceOptional: false,
 		Permission:       &adminOnlyActionPermission,
 		AccessGroups:     adminOnlyActionAccessGroups,
@@ -2902,7 +2902,7 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:         "data_exchange_execution",
+		TableName:         EXCHANGE_RUN_TABLE_NAME,
 		IsHidden:          true,
 		Icon:              "fa-sync-alt",
 		DefaultGroups:     adminQueueGroup,

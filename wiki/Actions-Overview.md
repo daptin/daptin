@@ -237,7 +237,7 @@ See [[Email-Actions|Email-Actions]] for setup.
 | Action | Entity | Description |
 |--------|--------|-------------|
 | `add_exchange` | world | Create data sync job |
-| `process_data_exchange_executions` | data_exchange_execution | Process one due durable retry (administrator only) |
+| `process_data_exchange_executions` | exchange_run | Process one due durable retry (administrator only) |
 
 See [[Data-Exchange|Data-Exchange]] for details.
 

@@ -48,6 +48,28 @@ func TestGeneratedRelationColumnsAreIndexed(t *testing.T) {
 	}
 }
 
+func TestStandardGeneratedTableNamesArePortable(t *testing.T) {
+	const exchangeRunJoin = "exchange_run_exchange_run_id_has_usergroup_usergroup_id"
+	config := CmsConfig{
+		Tables:    standardTablesForTest(nil),
+		Relations: append([]api2go.TableRelation(nil), StandardRelations...),
+	}
+	CheckRelations(&config)
+
+	foundExchangeRunJoin := false
+	for _, table := range config.Tables {
+		if len([]byte(table.TableName)) > 63 {
+			t.Errorf("generated table %q is %d bytes", table.TableName, len([]byte(table.TableName)))
+		}
+		if table.TableName == exchangeRunJoin {
+			foundExchangeRunJoin = true
+		}
+	}
+	if !foundExchangeRunJoin {
+		t.Fatalf("generated exchange run usergroup table %q is missing", exchangeRunJoin)
+	}
+}
+
 func TestCreateIndexesCreatesConfiguredColumnIndexes(t *testing.T) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {

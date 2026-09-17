@@ -1004,7 +1004,7 @@ this action automatically; administrators may also invoke it manually.
 
 | Property | Value |
 |----------|-------|
-| Entity | `data_exchange_execution` |
+| Entity | `exchange_run` |
 | Instance Required | No |
 | Permission | Administrator only |
 
@@ -1015,17 +1015,17 @@ attempt budget. This action never calls the target directly.
 
 | Property | Value |
 |----------|-------|
-| Entity | `data_exchange_execution` |
+| Entity | `exchange_run` |
 | Instance Required | Yes |
 | Permission | Administrator only |
 
 Pass the execution reference as the normal instance-action attribute:
 
 ```bash
-curl -X POST http://localhost:6336/action/data_exchange_execution/retry_data_exchange_execution \
+curl -X POST http://localhost:6336/action/exchange_run/retry_data_exchange_execution \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes":{"data_exchange_execution_id":"EXECUTION_REFERENCE_ID"}}'
+  -d '{"attributes":{"exchange_run_id":"EXECUTION_REFERENCE_ID"}}'
 ```
 
 See [[Data-Exchange|Data Exchange]] for transaction, retry, and cluster

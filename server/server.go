@@ -541,7 +541,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		}
 		exchangeTaskConfig := resource.CmsConfig{Tasks: []task.Task{{
 			Name:        "process-data-exchange-executions",
-			EntityName:  "data_exchange_execution",
+			EntityName:  resource.EXCHANGE_RUN_TABLE_NAME,
 			ActionName:  "process_data_exchange_executions",
 			Attributes:  map[string]interface{}{},
 			AsUserEmail: adminTaskUserEmail,

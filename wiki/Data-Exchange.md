@@ -15,7 +15,7 @@ is logged and the resource operation continues. An `after` exchange is always
 recorded for background execution and is never attempted inside the source
 request.
 
-The source mutation and every matching `data_exchange_execution` row use the
+The source mutation and every matching `exchange_run` row use the
 same database transaction. If an execution cannot be stored, the mutation is
 rolled back. Once committed, the standard persisted task invokes the same
 exchange executor for action and HTTP targets.
@@ -217,7 +217,7 @@ For REST target type:
 ## Reliable Background Processing
 
 Every mutation `after` exchange is stored as an administrator-only
-`data_exchange_execution` resource. The execution stores the related exchange,
+`exchange_run` resource. The execution stores the related exchange,
 configured execution account, source reference and version, method, bounded
 attempt state, and lease. It does not copy the source payload or credentials.
 The source is reloaded through Daptin resources for each attempt and the

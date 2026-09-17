@@ -279,7 +279,7 @@ Configure OAuth providers for:
 The `data_exchange` resource attaches action, REST, or Google Sheets targets to
 resource lifecycle hooks. Before-hooks execute synchronously and retain their
 continue-on-target-failure behavior. Mutation after-hooks atomically create
-permissioned `data_exchange_execution` records, which a persisted task
+permissioned `exchange_run` records, which a persisted task
 processes through the standard action with bounded attempts and database-owned
 leases.
 

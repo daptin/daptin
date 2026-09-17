@@ -19,6 +19,8 @@ import (
 )
 
 const (
+	EXCHANGE_RUN_TABLE_NAME = "exchange_run"
+
 	exchangeExecutionPending         = "pending"
 	exchangeExecutionRunning         = "running"
 	exchangeExecutionRetryableFailed = "retryable_failed"
@@ -78,7 +80,7 @@ func (service *ExchangeExecutionService) Enqueue(exchange ExchangeContract, meth
 		exchangeReference.String(), sourceType, sourceReference, strings.ToLower(method), fmt.Sprint(sourceVersion),
 	}, "\x00")))
 	if existing, _, findErr := queue.GetSingleRowByReferenceIdWithTransaction(
-		"data_exchange_execution", daptinid.DaptinReferenceId(executionReference), nil, transaction); findErr == nil && existing != nil {
+		EXCHANGE_RUN_TABLE_NAME, daptinid.DaptinReferenceId(executionReference), nil, transaction); findErr == nil && existing != nil {
 		return nil
 	}
 
@@ -122,7 +124,7 @@ func (service *ExchangeExecutionService) Enqueue(exchange ExchangeContract, meth
 	}
 	request.PlainRequest = request.PlainRequest.WithContext(
 		context.WithValue(request.PlainRequest.Context(), "user", adminUser))
-	model := api2go.NewApi2GoModelWithData("data_exchange_execution", nil, 0, nil, attributes)
+	model := api2go.NewApi2GoModelWithData(EXCHANGE_RUN_TABLE_NAME, nil, 0, nil, attributes)
 	if _, err = queue.CreateWithoutFilter(model, request, transaction); err != nil {
 		return fmt.Errorf("create data exchange execution: %w", err)
 	}
@@ -239,7 +241,7 @@ func (service *ExchangeExecutionService) ProcessPending(transaction *sqlx.Tx) er
 
 func (service *ExchangeExecutionService) terminalizeExhaustedLeases(transaction *sqlx.Tx, now time.Time) error {
 	query, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).
-		From("data_exchange_execution").Where(
+		From(EXCHANGE_RUN_TABLE_NAME).Where(
 		goqu.Ex{"state": exchangeExecutionRunning},
 		goqu.Ex{"lease_expires_at": goqu.Op{"lte": now}},
 		goqu.I("attempt_count").Gte(goqu.I("max_attempts")),
@@ -266,7 +268,7 @@ func (service *ExchangeExecutionService) terminalizeExhaustedLeases(transaction 
 	if len(ids) == 0 {
 		return nil
 	}
-	updateSQL, updateArgs, err := statementbuilder.Squirrel.Update("data_exchange_execution").Prepared(true).
+	updateSQL, updateArgs, err := statementbuilder.Squirrel.Update(EXCHANGE_RUN_TABLE_NAME).Prepared(true).
 		Set(goqu.Record{
 			"state":              exchangeExecutionTerminalFailed,
 			"completed_at":       now,
@@ -291,7 +293,7 @@ func (service *ExchangeExecutionService) terminalizeExhaustedLeases(transaction 
 
 func (service *ExchangeExecutionService) cleanupCompleted(transaction *sqlx.Tx, now time.Time) error {
 	query, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).
-		From("data_exchange_execution").Where(
+		From(EXCHANGE_RUN_TABLE_NAME).Where(
 		goqu.Ex{"state": goqu.Op{"in": []string{exchangeExecutionSucceeded, exchangeExecutionTerminalFailed}}},
 		goqu.Ex{"completed_at": goqu.Op{"lt": now.Add(-exchangeExecutionRetention)}},
 	).Order(goqu.C("completed_at").Asc()).Limit(exchangeExecutionCleanupSize).ToSQL()
@@ -317,7 +319,7 @@ func (service *ExchangeExecutionService) cleanupCompleted(transaction *sqlx.Tx, 
 	if len(ids) == 0 {
 		return nil
 	}
-	deleteSQL, deleteArgs, err := statementbuilder.Squirrel.Delete("data_exchange_execution").Prepared(true).
+	deleteSQL, deleteArgs, err := statementbuilder.Squirrel.Delete(EXCHANGE_RUN_TABLE_NAME).Prepared(true).
 		Where(
 			goqu.Ex{"id": goqu.Op{"in": ids}},
 			goqu.Ex{"state": goqu.Op{"in": []string{exchangeExecutionSucceeded, exchangeExecutionTerminalFailed}}},
@@ -341,7 +343,7 @@ type exchangeExecutionClaim struct {
 
 func (service *ExchangeExecutionService) claimNext(transaction *sqlx.Tx, now time.Time) (*exchangeExecutionClaim, error) {
 	query, args, err := statementbuilder.Squirrel.Select("id", "attempt_count", "max_attempts").
-		Prepared(true).From("data_exchange_execution").Where(exchangeExecutionEligible(now)).
+		Prepared(true).From(EXCHANGE_RUN_TABLE_NAME).Where(exchangeExecutionEligible(now)).
 		Order(goqu.C("created_at").Asc()).Limit(1).ToSQL()
 	if err != nil {
 		return nil, err
@@ -355,7 +357,7 @@ func (service *ExchangeExecutionService) claimNext(transaction *sqlx.Tx, now tim
 	}
 	claim.leaseToken = uuid.NewString()
 	claim.attempts++
-	claimSQL, claimArgs, err := statementbuilder.Squirrel.Update("data_exchange_execution").Prepared(true).
+	claimSQL, claimArgs, err := statementbuilder.Squirrel.Update(EXCHANGE_RUN_TABLE_NAME).Prepared(true).
 		Set(goqu.Record{
 			"state":            exchangeExecutionRunning,
 			"attempt_count":    claim.attempts,
@@ -380,8 +382,8 @@ func (service *ExchangeExecutionService) claimNext(transaction *sqlx.Tx, now tim
 func (service *ExchangeExecutionService) loadAttempt(id int64, transaction *sqlx.Tx) (
 	map[string]interface{}, ExchangeContract, map[string]interface{}, string, error) {
 	row := make(map[string]interface{})
-	rows, err := transaction.Queryx(transaction.Rebind(`select id, data_exchange_id, as_user_id,
-		source_type, source_reference_id, source_method, source_version from data_exchange_execution where id = ?`), id)
+	rows, err := transaction.Queryx(transaction.Rebind(fmt.Sprintf(`select id, data_exchange_id, as_user_id,
+		source_type, source_reference_id, source_method, source_version from %s where id = ?`, EXCHANGE_RUN_TABLE_NAME)), id)
 	if err != nil {
 		return nil, ExchangeContract{}, nil, "execution_not_found", err
 	}
@@ -516,7 +518,7 @@ func (service *ExchangeExecutionService) markFailure(claim *exchangeExecutionCla
 }
 
 func (service *ExchangeExecutionService) updateClaim(claim *exchangeExecutionClaim, values goqu.Record, transaction *sqlx.Tx) error {
-	query, args, err := statementbuilder.Squirrel.Update("data_exchange_execution").Prepared(true).
+	query, args, err := statementbuilder.Squirrel.Update(EXCHANGE_RUN_TABLE_NAME).Prepared(true).
 		Set(values).Where(goqu.Ex{
 		"id": claim.id, "state": exchangeExecutionRunning, "lease_token": claim.leaseToken,
 	}).ToSQL()
@@ -567,10 +569,10 @@ func exchangeRetryDelay(attempts int64) time.Duration {
 }
 
 func (service *ExchangeExecutionService) queueResource() (*DbResource, error) {
-	if service == nil || service.cruds == nil || (*service.cruds)["data_exchange_execution"] == nil {
-		return nil, fmt.Errorf("data_exchange_execution resource is unavailable")
+	if service == nil || service.cruds == nil || (*service.cruds)[EXCHANGE_RUN_TABLE_NAME] == nil {
+		return nil, fmt.Errorf("%s resource is unavailable", EXCHANGE_RUN_TABLE_NAME)
 	}
-	return (*service.cruds)["data_exchange_execution"], nil
+	return (*service.cruds)[EXCHANGE_RUN_TABLE_NAME], nil
 }
 
 // Retry returns a terminal execution to the same scheduled claim path. It does
@@ -583,7 +585,7 @@ func (service *ExchangeExecutionService) Retry(referenceID daptinid.DaptinRefere
 		return fmt.Errorf("retry data exchange execution without a valid identity or transaction")
 	}
 	now := service.now().UTC()
-	query, args, err := statementbuilder.Squirrel.Update("data_exchange_execution").Prepared(true).
+	query, args, err := statementbuilder.Squirrel.Update(EXCHANGE_RUN_TABLE_NAME).Prepared(true).
 		Set(goqu.Record{
 			"state":              exchangeExecutionPending,
 			"max_attempts":       goqu.L("attempt_count + ?", exchangeExecutionMaxAttempts),
