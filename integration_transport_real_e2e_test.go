@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,6 +27,40 @@ import (
 	"google.golang.org/grpc/reflection"
 	grpc_testing "google.golang.org/grpc/reflection/grpc_testing"
 )
+
+func TestFirstAdminClosesPublicSignupRealE2E(t *testing.T) {
+	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
+		t.Skip("set DAPTIN_REAL_E2E=1 to run the first-admin signup authorization e2e")
+	}
+
+	usedPorts := make(map[int]bool, 2)
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	databasePath := filepath.Join(t.TempDir(), "first-admin-signup.db")
+	options := transportE2EDaptinOptions{databaseType: "sqlite3", connectionString: databasePath}
+	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
+	defer func() { daptinProcess.stopProcess() }()
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	blockedEmail := "post-admin-guest@test.local"
+	accessGroupsE2EAssertStatus(t, client, http.MethodPost, baseURL+"/action/user_account/signup", "", map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"name":            "Blocked Guest",
+			"email":           blockedEmail,
+			"password":        "testpass123",
+			"passwordConfirm": "testpass123",
+		},
+	}, http.StatusForbidden)
+
+	query := fmt.Sprintf(`[{"column":"email","operator":"is","value":%q}]`, blockedEmail)
+	response := accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		baseURL+"/api/user_account?query="+url.QueryEscape(query), adminToken, nil, http.StatusOK)
+	if got := len(accessGroupsE2EDataArray(t, response)); got != 0 {
+		t.Fatalf("unauthenticated post-admin signup persisted %d user rows: %#v", got, response)
+	}
+}
 
 func TestIntegrationOperationActionAuthorizationRealE2E(t *testing.T) {
 	if os.Getenv("DAPTIN_REAL_E2E") != "1" {

@@ -149,6 +149,7 @@ func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *tes
 	_, err = db.Exec(`create table action (
 		id integer primary key,
 		action_name text,
+		world_id integer,
 		permission integer
 	)`)
 	if err != nil {
@@ -158,15 +159,33 @@ func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *tes
 	publicRoutePermission := int64(auth.GuestExecute | auth.GuestPeek | auth.UserRead | auth.UserExecute | auth.GroupRead | auth.GroupExecute)
 	lockedActionPermission := int64(auth.None)
 	bootstrapActionPermission := int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN)
-	_, err = db.Exec(`insert into action (id, action_name, permission) values
-		(1, 'bootstrap_action', ?),
-		(2, 'get_canaster_document_by_public_path', ?),
-		(3, 'set_canaster_document_private', ?),
-		(4, 'signin', ?)`,
+	_, err = db.Exec(`create table world (
+		id integer primary key,
+		table_name text
+	)`)
+	if err != nil {
+		t.Fatalf("create world: %v", err)
+	}
+	_, err = db.Exec(`insert into world (id, table_name) values
+		(1, 'user_account'),
+		(2, 'other_resource')`)
+	if err != nil {
+		t.Fatalf("insert worlds: %v", err)
+	}
+
+	_, err = db.Exec(`insert into action (id, action_name, world_id, permission) values
+		(1, 'bootstrap_action', 2, ?),
+		(2, 'get_canaster_document_by_public_path', 2, ?),
+		(3, 'set_canaster_document_private', 2, ?),
+		(4, 'signin', 1, ?),
+		(5, 'signup', 1, ?),
+		(6, 'signup', 2, ?)`,
 		bootstrapActionPermission,
 		publicRoutePermission,
 		lockedActionPermission,
 		bootstrapActionPermission,
+		publicRoutePermission,
+		publicRoutePermission,
 	)
 	if err != nil {
 		t.Fatalf("insert action rows: %v", err)
@@ -184,10 +203,13 @@ func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *tes
 		t.Fatalf("commit tx: %v", err)
 	}
 
-	assertActionPermission(t, db, "bootstrap_action", int64(auth.UserRead|auth.UserExecute|auth.GroupCRUD|auth.GroupExecute|auth.GroupRefer))
-	assertActionPermission(t, db, "get_canaster_document_by_public_path", publicRoutePermission)
-	assertActionPermission(t, db, "set_canaster_document_private", lockedActionPermission)
-	assertActionPermission(t, db, "signin", publicRoutePermission)
+	postBootstrapPermission := int64(auth.UserRead | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute | auth.GroupRefer)
+	assertActionPermission(t, db, 1, postBootstrapPermission)
+	assertActionPermission(t, db, 2, publicRoutePermission)
+	assertActionPermission(t, db, 3, lockedActionPermission)
+	assertActionPermission(t, db, 4, publicRoutePermission)
+	assertActionPermission(t, db, 5, postBootstrapPermission)
+	assertActionPermission(t, db, 6, publicRoutePermission)
 }
 
 func TestNewImportAdminSessionUserIncludesAdminGroup(t *testing.T) {
@@ -215,14 +237,14 @@ func TestNewImportAdminSessionUserIncludesAdminGroup(t *testing.T) {
 	}
 }
 
-func assertActionPermission(t *testing.T, db *sqlx.DB, actionName string, expected int64) {
+func assertActionPermission(t *testing.T, db *sqlx.DB, actionID int64, expected int64) {
 	t.Helper()
 	var permission int64
-	if err := db.QueryRow(`select permission from action where action_name = ?`, actionName).Scan(&permission); err != nil {
-		t.Fatalf("select action permission for %s: %v", actionName, err)
+	if err := db.QueryRow(`select permission from action where id = ?`, actionID).Scan(&permission); err != nil {
+		t.Fatalf("select action permission for %d: %v", actionID, err)
 	}
 	if permission != expected {
-		t.Fatalf("expected action %s permission %d, got %d", actionName, expected, permission)
+		t.Fatalf("expected action %d permission %d, got %d", actionID, expected, permission)
 	}
 }
 

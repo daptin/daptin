@@ -1310,14 +1310,16 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	err = becomeAdminTransitionActionPermissions(transaction)
 	if err != nil {
 		log.Errorf("Failed to update action permissions : %v", err)
+		return false
 	}
 
 	return true
 }
 
 func becomeAdminTransitionActionPermissions(transaction *sqlx.Tx) error {
+	postBootstrapPermission := auth.UserRead | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute | auth.GroupRefer
 	query, args, err := statementbuilder.Squirrel.Update("action").Prepared(true).
-		Set(goqu.Record{"permission": int64(auth.UserRead | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute | auth.GroupRefer)}).
+		Set(goqu.Record{"permission": int64(postBootstrapPermission)}).
 		Where(goqu.Ex{
 			"permission": int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN),
 		}).
@@ -1327,6 +1329,19 @@ func becomeAdminTransitionActionPermissions(transaction *sqlx.Tx) error {
 	}
 
 	_, err = transaction.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	// Signup can be created with the ordinary public-action permission rather
+	// than the bootstrap-wide permission above. Close only the canonical
+	// user_account signup action; actions with the same name on other resources
+	// retain their explicitly persisted policy.
+	query = transaction.Rebind(`UPDATE action
+		SET permission = ?
+		WHERE action_name = ?
+		AND world_id IN (SELECT id FROM world WHERE table_name = ?)`)
+	_, err = transaction.Exec(query, int64(postBootstrapPermission), "signup", USER_ACCOUNT_TABLE_NAME)
 	if err != nil {
 		return err
 	}
