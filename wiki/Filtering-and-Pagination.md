@@ -82,6 +82,12 @@ if err != nil {  // Should be: if err == nil
 
 Daptin uses JSON-based query syntax with the `query` parameter.
 
+Every filter column must exist in the resource schema. If an ordinary,
+logically grouped, or fuzzy filter names an unknown column, Daptin rejects the
+whole request with HTTP `400` and the JSON:API error title
+`invalid query filter column`. It does not ignore the invalid condition or run
+the remaining filters.
+
 ### Query Structure
 
 ```json

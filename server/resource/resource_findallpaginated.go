@@ -7,6 +7,7 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -1387,6 +1388,13 @@ var OperatorMap = map[string]string{
 	"fuzzy_all":    "fuzzy_all", // ALL keywords must match with fuzzy tolerance
 }
 
+const invalidQueryFilterMessage = "invalid query filter column"
+
+func invalidQueryFilterError(tableName, columnName string) error {
+	detail := fmt.Errorf("table [%v] invalid column query [%v]", tableName, columnName)
+	return api2go.NewHTTPError(detail, invalidQueryFilterMessage, http.StatusBadRequest)
+}
+
 // Helper function to generate partial matches for non-postgres databases
 func generatePartialPatterns(keyword string) []string {
 	patterns := []string{keyword}
@@ -1414,8 +1422,8 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 	colInfo, ok := tableInfo.GetColumnByName(columnName)
 
 	if !ok {
-		log.Warnf("[1316] Table [%v] invalid column query [%v], skipping", dbResource.model.GetName(), columnName)
-		return nil, fmt.Errorf("table [%v] invalid column query [%v]", dbResource.model.GetName(), columnName)
+		log.Warnf("[1316] Table [%v] invalid column query [%v]", dbResource.model.GetName(), columnName)
+		return nil, invalidQueryFilterError(dbResource.model.GetName(), columnName)
 	}
 
 	// Handle foreign key columns
@@ -1551,19 +1559,12 @@ func (dbResource *DbResource) processFuzzySearch(filterQuery Query, prefix strin
 
 	// Validate each column against table schema (prevents SQL injection via goqu.L)
 	tableInfo := dbResource.tableInfo
-	var validColumns []string
 	for _, col := range columns {
-		if _, ok := tableInfo.GetColumnByName(col); ok {
-			validColumns = append(validColumns, col)
-		} else {
-			log.Warnf("[1484] Table [%v] invalid fuzzy search column [%v], skipping", dbResource.model.GetName(), col)
+		if _, ok := tableInfo.GetColumnByName(col); !ok {
+			log.Warnf("[1484] Table [%v] invalid fuzzy search column [%v]", dbResource.model.GetName(), col)
+			return nil, invalidQueryFilterError(dbResource.model.GetName(), col)
 		}
 	}
-	if len(validColumns) == 0 {
-		log.Warnf("[1484] Table [%v] no valid columns for fuzzy search from [%v]", dbResource.model.GetName(), filterQuery.ColumnName)
-		return nil, fmt.Errorf("table [%v] no valid columns for fuzzy search", dbResource.model.GetName())
-	}
-	columns = validColumns
 
 	dbType := dbResource.Connection().DriverName()
 
@@ -1873,9 +1874,7 @@ func (dbResource *DbResource) addFilters(queryBuilder *goqu.SelectDataset, count
 		for _, filterQuery := range groupQueries {
 			expr, err := dbResource.processQueryFilter(filterQuery, prefix, transaction)
 			if err != nil {
-				// Log error but continue with other filters
-				log.Warnf("Error processing filter in group: %v", err)
-				continue
+				return nil, nil, err
 			}
 			if expr != nil {
 				orExpressions = append(orExpressions, expr)
