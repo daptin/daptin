@@ -48,6 +48,19 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 		//log.Printf("We have %d objects to validate", len(objects))
 
 		for i, obj := range objects {
+			for _, conformation := range conformations {
+				colValue, ok := obj[conformation.ColumnName]
+				if !ok {
+					continue
+				}
+				colValueString, ok := colValue.(string)
+
+				if !ok {
+					continue
+				}
+				transformedValue := conform.TransformString(colValueString, conformation.Tags)
+				objects[i][conformation.ColumnName] = transformedValue
+			}
 
 			for _, validate := range validations {
 
@@ -66,20 +79,6 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 					return nil, httpErr
 				}
 
-			}
-
-			for _, conformation := range conformations {
-				colValue, ok := obj[conformation.ColumnName]
-				if !ok {
-					continue
-				}
-				colValueString, ok := colValue.(string)
-
-				if !ok {
-					continue
-				}
-				transformedValue := conform.TransformString(colValueString, conformation.Tags)
-				objects[i][conformation.ColumnName] = transformedValue
 			}
 
 		}

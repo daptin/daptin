@@ -999,17 +999,20 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 	for _, bf := range dbResource.ms.BeforeCreate {
 		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
 		data.SetType(dbResource.model.GetName())
-		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.GetAttributes()}, transaction)
+		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.GetAllAsAttributes()}, transaction)
 		if err != nil {
 			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
 			return nil, err
 		}
-		if responseData == nil {
+		if len(responseData) == 0 {
 			return nil, errors.New(fmt.Sprintf("No object to act upon after %v", bf.String()))
+		}
+		for key, value := range responseData[0] {
+			data.Set(key, value)
 		}
 	}
 
-	createdResource, err := dbResource.CreateWithoutFilter(obj, req, transaction)
+	createdResource, err := dbResource.CreateWithoutFilter(data, req, transaction)
 	if err != nil {
 		return NewResponse(nil, nil, 500, nil), err
 	}
@@ -1052,19 +1055,22 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 	for _, bf := range dbResource.ms.BeforeCreate {
 		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
 		data.SetType(dbResource.model.GetName())
-		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.GetAttributes()}, transaction)
+		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.GetAllAsAttributes()}, transaction)
 		if err != nil {
 			log.Warnf("Error from BeforeCreate[%v]: %v", bf.String(), err)
 			transaction.Rollback()
 			return nil, err
 		}
-		if responseData == nil {
+		if len(responseData) == 0 {
 			transaction.Rollback()
 			return nil, errors.New(fmt.Sprintf("No object to act upon after %v", bf.String()))
 		}
+		for key, value := range responseData[0] {
+			data.Set(key, value)
+		}
 	}
 
-	createdResource, err := dbResource.CreateWithoutFilter(obj, req, transaction)
+	createdResource, err := dbResource.CreateWithoutFilter(data, req, transaction)
 	log.Tracef("CreateWithoutFilter [%v]", dbResource.model.GetName())
 	if err != nil {
 		rollbackErr := transaction.Rollback()

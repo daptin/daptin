@@ -1148,7 +1148,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 		}
 	}
 
-	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)
+	updatedResource, err := dbResource.UpdateWithoutFilters(data, req, transaction)
 	log.Tracef("Completed UpdateWithoutFilters")
 	if err != nil {
 		return NewResponse(nil, nil, 500, nil), err
@@ -1263,7 +1263,7 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 		data.SetAttributes(res)
 	}
 
-	updatedResource, err := dbResource.UpdateWithoutFilters(obj, req, transaction)
+	updatedResource, err := dbResource.UpdateWithoutFilters(data, req, transaction)
 	log.Tracef("Completed UpdateWithoutFilters in UpdateWithTransaction")
 
 	if err != nil {

@@ -531,6 +531,7 @@ type transportE2EDaptinProcess struct {
 	processGroupID int
 	stop           func()
 	stopOnce       sync.Once
+	logs           *lockedTransportE2EBuffer
 }
 
 func (process *transportE2EDaptinProcess) stopProcess() {
@@ -618,7 +619,7 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 			_, _ = io.Copy(io.Discard, resp.Body)
 			_ = resp.Body.Close()
 			if resp.StatusCode < 500 {
-				return &transportE2EDaptinProcess{processGroupID: cmd.Process.Pid, stop: func() {
+				return &transportE2EDaptinProcess{processGroupID: cmd.Process.Pid, logs: logs, stop: func() {
 					if cmd.Process != nil {
 						_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
 					}

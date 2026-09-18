@@ -319,16 +319,6 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 		}
 	}
 
-	for _, validation := range action.Validations {
-		errs := ValidatorInstance.VarWithValue(actionRequest.Attributes[validation.ColumnName], actionRequest.Attributes, validation.Tags)
-		if errs != nil {
-			log.Warnf("validation on input fields failed: %v - %v", actionRequest.Action, actionRequest.Type)
-			validationErrors := errs.(validator.ValidationErrors)
-			firstError := validationErrors[0]
-			return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf("invalid value for %s", validation.ColumnName)), firstError.Tag(), 400)
-		}
-	}
-
 	for _, conformations := range action.Conformations {
 
 		val, ok := actionRequest.Attributes[conformations.ColumnName]
@@ -341,6 +331,16 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 		}
 		newVal := conform.TransformString(valStr, conformations.Tags)
 		actionRequest.Attributes[conformations.ColumnName] = newVal
+	}
+
+	for _, validation := range action.Validations {
+		errs := ValidatorInstance.VarWithValue(actionRequest.Attributes[validation.ColumnName], actionRequest.Attributes, validation.Tags)
+		if errs != nil {
+			log.Warnf("validation on input fields failed: %v - %v", actionRequest.Action, actionRequest.Type)
+			validationErrors := errs.(validator.ValidationErrors)
+			firstError := validationErrors[0]
+			return nil, api2go.NewHTTPError(errors.New(fmt.Sprintf("invalid value for %s", validation.ColumnName)), firstError.Tag(), 400)
+		}
 	}
 
 	inFieldMap, err := GetValidatedInFields(actionRequest, action)
