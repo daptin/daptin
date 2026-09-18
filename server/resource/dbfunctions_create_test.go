@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/artpar/api2go/v2"
@@ -67,6 +68,47 @@ func TestStandardGeneratedTableNamesArePortable(t *testing.T) {
 	}
 	if !foundExchangeRunJoin {
 		t.Fatalf("generated exchange run usergroup table %q is missing", exchangeRunJoin)
+	}
+}
+
+func TestDocumentSchemaIsPortableToMySQL(t *testing.T) {
+	document := tableFromConfig(t, &CmsConfig{Tables: StandardTables}, "document")
+	want := map[string]struct {
+		dataType  string
+		isIndexed bool
+	}{
+		"document_name":      {dataType: "varchar(768)", isIndexed: true},
+		"document_path":      {dataType: "varchar(2048)", isIndexed: false},
+		"document_extension": {dataType: "varchar(100)", isIndexed: true},
+		"mime_type":          {dataType: "varchar(255)", isIndexed: true},
+	}
+
+	for columnName, expected := range want {
+		column, ok := document.GetColumnByName(columnName)
+		if !ok {
+			t.Fatalf("document.%s is missing", columnName)
+		}
+		if column.DataType != expected.dataType || column.IsIndexed != expected.isIndexed {
+			t.Errorf("document.%s = type %q indexed %v, want type %q indexed %v",
+				columnName, column.DataType, column.IsIndexed, expected.dataType, expected.isIndexed)
+		}
+	}
+
+	query := MakeCreateTableQuery(document, "mysql")
+	for _, invalid := range []string{"varchar(99999)"} {
+		if strings.Contains(query, invalid) {
+			t.Errorf("MySQL document schema contains invalid definition %q:\n%s", invalid, query)
+		}
+	}
+	for _, expected := range []string{
+		"document_name varchar(768) not null",
+		"document_path varchar(2048) not null",
+		"document_extension varchar(100) not null",
+		"mime_type varchar(255) not null",
+	} {
+		if !strings.Contains(query, expected) {
+			t.Errorf("MySQL document schema is missing %q:\n%s", expected, query)
+		}
 	}
 }
 

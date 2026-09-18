@@ -43,7 +43,7 @@ docker run --pull=always -p 6336:8080 -p 6443:6443 \
   -v /path/to/data:/data \
   daptin/daptin:latest
 
-# With MariaDB - diagnostic only; v0.13.14 fresh initialization is incomplete
+# With MariaDB 10.11
 # First start MariaDB
 docker run -d --name mysql \
   -e MARIADB_ROOT_PASSWORD=rootpass \
@@ -79,8 +79,8 @@ docker run --pull=always -p 6336:8080 -p 6443:6443 \
 - Use `daptin/daptin:latest` with `--pull=always` to fetch the newest image
 - Port mapping is `6336:8080` (host:container), not `6336:6336`
 - For persistent storage, mount to `/data` and set `DAPTIN_DB_CONNECTION_STRING=/data/daptin.db`
-- Do not use MySQL/MariaDB for a v0.13.14 production deployment. MariaDB 10.11
-  can start with required built-in tables missing; see [[Database-Setup]].
+- The published v0.13.14 image predates the MariaDB schema corrections. See
+  [[Release-v0.13.14-Feature-Status]] when operating that release.
 
 ## Docker Compose
 
@@ -233,16 +233,16 @@ Run `./daptin -h` to see all available flags.
 
 **Note**: Database file is created automatically if it doesn't exist.
 
-### MySQL/MariaDB - known broken for v0.13.14 production initialization
+### MySQL/MariaDB - MariaDB 10.11 tested ✅
 
 ```bash
 ./daptin -db_type=mysql \
   -db_connection_string="user:password@tcp(localhost:3306)/daptin?charset=utf8mb4&parseTime=True"
 ```
 
-**Important**: the connection syntax works, but MariaDB 10.11 is not fully
-compatible with the v0.13.14 built-in schema. Use PostgreSQL for production and
-see [[Database-Setup]] for the known identifier and column-size failures.
+Current source is tested with a complete clean initialization and restart on
+MariaDB 10.11. The published v0.13.14 image predates these schema corrections;
+see [[Release-v0.13.14-Feature-Status]] when operating that release.
 
 ### PostgreSQL - TESTED ✅
 

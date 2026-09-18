@@ -4,14 +4,14 @@ Supported databases and configuration.
 
 ## Supported Databases
 
-| Database | Driver | v0.13.14 status |
+| Database | Driver | Current source status |
 |----------|--------|------------------|
 | SQLite | sqlite3 | Verified for development and single-node use |
-| MySQL/MariaDB | mysql | Known-broken fresh initialization; do not use for production |
+| MySQL/MariaDB | mysql | MariaDB 10.11 clean initialization and restart verified |
 | PostgreSQL 15 | postgres | Verified for persistence and two-node shared-database use |
 
-The status above is release-specific. See [[Release-v0.13.14-Feature-Status]]
-before choosing a production dependency.
+The published v0.13.14 release predates the MariaDB schema corrections. See
+[[Release-v0.13.14-Feature-Status]] when operating that release.
 
 ## SQLite (Default)
 
@@ -29,16 +29,9 @@ DAPTIN_DB_TYPE=sqlite3 DAPTIN_DB_CONNECTION_STRING=./data/daptin.db ./daptin
 
 ## MySQL/MariaDB
 
-> **v0.13.14 limitation:** a fresh MariaDB 10.11 initialization can omit
-> required built-in tables while the process continues to listen and `/ready`
-> returns 200. Known failures include the `document` table's
-> `varchar(99999)` columns and relationship identifiers longer than MariaDB's
-> 64-character limit. There is no MySQL/MariaDB version currently validated for
-> a complete v0.13.14 schema. Treat this backend as known broken until the
-> schema defects and startup/readiness behavior are fixed.
-
-The following connection shape is retained for development diagnosis; it is
-not a production recommendation.
+MariaDB 10.11 is covered by a clean-schema manifest test and a restart test.
+The test initializes every registered built-in table, including `document` and
+the generated `exchange_run` access table.
 
 ### Connection String
 
@@ -54,12 +47,12 @@ DAPTIN_DB_CONNECTION_STRING="user:password@tcp(localhost:3306)/daptin?charset=ut
 version: '3'
 services:
   mysql:
-    image: mysql:8
+    image: mariadb:10.11
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: daptin
-      MYSQL_USER: daptin
-      MYSQL_PASSWORD: daptinpass
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: daptin
+      MARIADB_USER: daptin
+      MARIADB_PASSWORD: daptinpass
     volumes:
       - mysql_data:/var/lib/mysql
 
@@ -143,13 +136,10 @@ volumes:
 ### Verify initialization
 
 `/ready` proves that the runtime is accepting traffic and that the database is
-reachable. In v0.13.14 it does not prove that every required table or
-relationship was created. After first start, inspect startup logs for schema
-errors and perform authenticated reads of the built-in resources your
-deployment needs. At minimum, verify `world`, `user_account`, `usergroup`,
-`action`, `task`, `document`, and any enabled audit/resource relationship
-endpoints. Do not put the instance into service if any returns an unexpected
-404 or 500.
+reachable. After first start, inspect startup logs for schema errors and
+perform authenticated reads of the built-in resources your deployment needs.
+At minimum, verify `world`, `user_account`, `usergroup`, `action`, `task`,
+`document`, and any enabled audit/resource relationship endpoints.
 
 For a PostgreSQL operator-level schema check (read-only, not an application
 workflow), confirm the minimum built-in set is present:
@@ -165,8 +155,7 @@ ORDER BY table_name;
 
 Expect six rows, then extend the list with every enabled feature/audit/join
 table from the deployed schema. A table-name check alone is not enough; follow
-it with authenticated resource and relationship reads because v0.13.14 can
-miss generated relationship tables.
+it with authenticated resource and relationship reads.
 
 ## Connection Pool
 
