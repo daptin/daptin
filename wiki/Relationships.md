@@ -251,7 +251,7 @@ Creates join table: `product_product_id_has_category_category_id`
 # Get product's categories via relationship endpoint
 curl "http://localhost:6336/api/product/PROD_ID/category_id"
 
-# Add category to product via PATCH (adds to relationship array)
+# Replace the product's category links via PATCH
 curl -X PATCH "http://localhost:6336/api/product/PROD_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -270,6 +270,13 @@ curl -X PATCH "http://localhost:6336/api/product/PROD_ID" \
 # To remove a relationship, you need to update with the remaining relationships
 # or use the inverse relationship from the other entity
 ```
+
+### GraphQL mutations
+
+When GraphQL is enabled, generated mutations use the same configured
+relationship names and public `reference_id` values. To-one relationships are
+`ID` arguments; to-many relationships are shallow reference inputs and may
+include declared join-table columns. See [[GraphQL-API#Create-and-update-relationships|GraphQL API: Create and update relationships]] for the canonical syntax and update semantics.
 
 ---
 

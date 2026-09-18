@@ -75,6 +75,9 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 	}
 
 	allChanges := data.GetChanges()
+	if err := dbResource.prepareRelationshipReplacements(&data, allChanges, idInt, updateTransaction); err != nil {
+		return nil, err
+	}
 	allColumns := dbResource.model.GetColumns()
 	//log.Printf("Update object request with changes: %v", allChanges)
 
@@ -1105,6 +1108,106 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 	return data.GetAllAsAttributes(), nil
 
+}
+
+func (dbResource *DbResource) prepareRelationshipReplacements(data *api2go.Api2GoModel, changes map[string]api2go.Change,
+	hostID interface{}, transaction *sqlx.Tx) error {
+	for _, relation := range dbResource.model.GetRelations() {
+		localName := relation.GetSubjectName()
+		if relation.GetSubject() == dbResource.model.GetName() {
+			localName = relation.GetObjectName()
+		}
+		change, supplied := changes[localName]
+		if !supplied {
+			continue
+		}
+		requested := relationshipReplacementReferenceIDs(change.NewValue)
+
+		if relation.GetRelation() == "belongs_to" || relation.GetRelation() == "has_one" {
+			// Forward to-one relationships are physical foreign-key columns and were
+			// handled above. On the inverse side, an explicit list replaces the rows
+			// which point at this object.
+			if relation.GetSubject() == dbResource.model.GetName() {
+				continue
+			}
+			rows, err := GetObjectByWhereClauseWithTransaction(relation.GetSubject(), transaction,
+				goqu.Ex{relation.GetObjectName(): hostID})
+			if err != nil {
+				return err
+			}
+			for _, row := range rows {
+				referenceID := daptinid.InterfaceToDIR(row["reference_id"])
+				if referenceID == daptinid.NullReferenceId || requested[referenceID.String()] {
+					continue
+				}
+				if data.DeleteIncludes == nil {
+					data.DeleteIncludes = make(map[string][]string)
+				}
+				data.DeleteIncludes[localName] = append(data.DeleteIncludes[localName], referenceID.String())
+			}
+			continue
+		}
+		if relation.GetRelation() != "has_many" && relation.GetRelation() != "has_many_and_belongs_to_many" {
+			continue
+		}
+
+		hostColumn := relation.GetObjectName()
+		relatedColumn := relation.GetSubjectName()
+		relatedType := relation.GetSubject()
+		if relation.GetSubject() == dbResource.model.GetName() {
+			hostColumn = relation.GetSubjectName()
+			relatedColumn = relation.GetObjectName()
+			relatedType = relation.GetObject()
+		}
+		rows, err := GetObjectByWhereClauseWithTransaction(relation.GetJoinTableName(), transaction, goqu.Ex{hostColumn: hostID})
+		if err != nil {
+			return err
+		}
+		for _, row := range rows {
+			relatedID, ok := row[relatedColumn].(int64)
+			if !ok {
+				continue
+			}
+			referenceID, err := GetIdToReferenceIdWithTransaction(relatedType, relatedID, transaction)
+			if err != nil {
+				return err
+			}
+			if requested[referenceID.String()] {
+				continue
+			}
+			if data.DeleteIncludes == nil {
+				data.DeleteIncludes = make(map[string][]string)
+			}
+			data.DeleteIncludes[localName] = append(data.DeleteIncludes[localName], referenceID.String())
+		}
+	}
+	return nil
+}
+
+func relationshipReplacementReferenceIDs(value interface{}) map[string]bool {
+	requested := make(map[string]bool)
+	add := func(item map[string]interface{}) {
+		referenceID := daptinid.InterfaceToDIR(item["id"])
+		if referenceID == daptinid.NullReferenceId {
+			referenceID = daptinid.InterfaceToDIR(item["reference_id"])
+		}
+		if referenceID != daptinid.NullReferenceId {
+			requested[referenceID.String()] = true
+		}
+	}
+	switch values := value.(type) {
+	case []interface{}:
+		for _, value := range values {
+			if item, ok := value.(map[string]interface{}); ok {
+				add(item)
+			}
+		}
+	case []map[string]interface{}:
+		for _, item := range values {
+			add(item)
+		}
+	}
+	return requested
 }
 
 func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {

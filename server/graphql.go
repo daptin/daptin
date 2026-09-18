@@ -7,7 +7,6 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/table_info"
-	"github.com/gobuffalo/flect"
 	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/relay"
@@ -27,6 +26,167 @@ import (
 var nodeDefinitions *relay.NodeDefinitions
 
 var Schema graphql.Schema
+
+func graphqlMutationArguments(table table_info.TableInfo) (graphql.FieldConfigArgument, graphql.FieldConfigArgument) {
+	createFields := make(graphql.FieldConfigArgument)
+	updateFields := make(graphql.FieldConfigArgument)
+	for _, col := range table.Columns {
+		if resource.IsStandardColumn(col.ColumnName) || col.ColumnName == resource.USER_ACCOUNT_ID_COLUMN {
+			continue
+		}
+		var fieldType graphql.Type
+		if col.IsForeignKey {
+			if col.ForeignKeyData.DataSource != "self" {
+				continue
+			}
+			fieldType = graphql.ID
+		} else {
+			fieldType = resource.ColumnManager.GetGraphqlType(col.ColumnType)
+		}
+		updateFields[col.ColumnName] = &graphql.ArgumentConfig{Type: fieldType, Description: col.ColumnDescription}
+		createType := fieldType
+		if !col.IsNullable || col.ColumnType == "encrypted" {
+			createType = graphql.NewNonNull(fieldType)
+		}
+		createFields[col.ColumnName] = &graphql.ArgumentConfig{Type: createType, Description: col.ColumnDescription, DefaultValue: col.DefaultValue}
+	}
+
+	for _, relation := range table.Relations {
+		if relation.GetSubject() == table.TableName &&
+			(relation.GetRelation() == "belongs_to" || relation.GetRelation() == "has_one") {
+			continue
+		}
+		name := relation.GetSubjectName()
+		if relation.GetSubject() == table.TableName {
+			name = relation.GetObjectName()
+		}
+		if _, exists := createFields[name]; exists {
+			continue
+		}
+		relationFields := graphql.InputObjectConfigFieldMap{
+			"reference_id": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.ID)},
+		}
+		for _, col := range relation.Columns {
+			if resource.IsStandardColumn(col.ColumnName) || col.IsForeignKey {
+				continue
+			}
+			relationFields[col.ColumnName] = &graphql.InputObjectFieldConfig{Type: resource.ColumnManager.GetGraphqlType(col.ColumnType), Description: col.ColumnDescription}
+		}
+		relationInput := graphql.NewInputObject(graphql.InputObjectConfig{
+			Name: strcase.ToCamel(table.TableName) + strcase.ToCamel(name) + "RelationshipInput", Fields: relationFields,
+		})
+		relationType := graphql.NewList(graphql.NewNonNull(relationInput))
+		createFields[name] = &graphql.ArgumentConfig{Type: relationType}
+		updateFields[name] = &graphql.ArgumentConfig{Type: relationType}
+	}
+	return createFields, updateFields
+}
+
+func graphqlMutationAttributes(table table_info.TableInfo, args map[string]interface{}, update bool) map[string]interface{} {
+	attributes := make(map[string]interface{}, len(args))
+	for key, value := range args {
+		attributes[key] = value
+	}
+	for _, relation := range table.Relations {
+		if relation.GetSubject() == table.TableName &&
+			(relation.GetRelation() == "belongs_to" || relation.GetRelation() == "has_one") {
+			continue
+		}
+		name := relation.GetSubjectName()
+		if relation.GetSubject() == table.TableName {
+			name = relation.GetObjectName()
+		}
+		value, supplied := attributes[name]
+		if !supplied || value == nil {
+			continue
+		}
+		items, ok := value.([]interface{})
+		if !ok {
+			continue
+		}
+		links := make([]interface{}, 0, len(items))
+		for _, itemValue := range items {
+			input, ok := itemValue.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			link := make(map[string]interface{})
+			if update {
+				link["id"] = input["reference_id"]
+			} else {
+				link["reference_id"] = input["reference_id"]
+			}
+			joinAttributes := make(map[string]interface{})
+			for _, col := range relation.Columns {
+				if value, exists := input[col.ColumnName]; exists {
+					joinAttributes[col.ColumnName] = value
+				}
+			}
+			if len(joinAttributes) > 0 {
+				link["attributes"] = joinAttributes
+			}
+			links = append(links, link)
+		}
+		attributes[name] = links
+	}
+	return attributes
+}
+
+func validateGraphQLRelationshipAttributes(table table_info.TableInfo, attributes map[string]interface{}) error {
+	for _, col := range table.Columns {
+		if !col.IsForeignKey || col.ForeignKeyData.DataSource != "self" || col.ColumnName == resource.USER_ACCOUNT_ID_COLUMN {
+			continue
+		}
+		value, supplied := attributes[col.ColumnName]
+		if !supplied {
+			continue
+		}
+		if value == nil {
+			if !col.IsNullable {
+				return fmt.Errorf("relationship %s is required", col.ColumnName)
+			}
+			continue
+		}
+		valueString, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("invalid relationship reference for %s", col.ColumnName)
+		}
+		if _, err := uuid.Parse(valueString); err != nil {
+			return fmt.Errorf("invalid relationship reference for %s", col.ColumnName)
+		}
+	}
+	for _, relation := range table.Relations {
+		name := relation.GetSubjectName()
+		if relation.GetSubject() == table.TableName {
+			name = relation.GetObjectName()
+		}
+		value, supplied := attributes[name]
+		if !supplied || value == nil {
+			continue
+		}
+		items, ok := value.([]interface{})
+		if !ok {
+			continue
+		}
+		for _, itemValue := range items {
+			item, ok := itemValue.(map[string]interface{})
+			if !ok {
+				return fmt.Errorf("invalid relationship reference for %s", name)
+			}
+			referenceID, ok := item["reference_id"].(string)
+			if !ok {
+				referenceID, ok = item["id"].(string)
+			}
+			if !ok {
+				return fmt.Errorf("invalid relationship reference for %s", name)
+			}
+			if _, err := uuid.Parse(referenceID); err != nil {
+				return fmt.Errorf("invalid relationship reference for %s", name)
+			}
+		}
+	}
+	return nil
+}
 
 func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*resource.DbResource) *graphql.Schema {
 
@@ -589,47 +749,18 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 		func(table table_info.TableInfo) {
 
-			inputFields := make(graphql.FieldConfigArgument)
-			updateFields := make(graphql.FieldConfigArgument)
-
-			for _, col := range table.Columns {
-
-				if resource.IsStandardColumn(col.ColumnName) {
-					continue
-				}
-				if col.IsForeignKey {
-					continue
-				}
-
-				var finalGraphqlType graphql.Type
-				var finalGraphqlType1 graphql.Type
-				finalGraphqlType = resource.ColumnManager.GetGraphqlType(col.ColumnType)
-				finalGraphqlType1 = finalGraphqlType
-
-				updateFields[col.ColumnName] = &graphql.ArgumentConfig{
-					Type:         finalGraphqlType,
-					Description:  col.ColumnDescription,
-					DefaultValue: col.DefaultValue,
-				}
-
-				if !col.IsNullable || col.ColumnType == "encrypted" {
-					finalGraphqlType1 = graphql.NewNonNull(finalGraphqlType)
-				}
-
-				inputFields[col.ColumnName] = &graphql.ArgumentConfig{
-					Type:         finalGraphqlType1,
-					Description:  col.ColumnDescription,
-					DefaultValue: col.DefaultValue,
-				}
-
-			}
+			inputFields, updateFields := graphqlMutationArguments(table)
 
 			mutationFields["add"+strcase.ToCamel(table.TableName)] = &graphql.Field{
 				Type:        inputTypesMap[table.TableName],
 				Description: "Create new " + strings.ReplaceAll(table.TableName, "_", " "),
 				Args:        inputFields,
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-					obj := api2go.NewApi2GoModelWithData(table.TableName, nil, 0, nil, params.Args)
+					attributes := graphqlMutationAttributes(table, params.Args, false)
+					if err := validateGraphQLRelationshipAttributes(table, attributes); err != nil {
+						return nil, err
+					}
+					obj := api2go.NewApi2GoModelWithData(table.TableName, table.Columns, int64(table.DefaultPermission), table.Relations, attributes)
 
 					ur, _ := url.Parse("/api/" + table.TableName)
 
@@ -679,7 +810,11 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					referenceIdInf, ok := params.Args["reference_id"]
 					var referenceId daptinid.DaptinReferenceId
 					if ok {
-						referenceId = daptinid.DaptinReferenceId(uuid.MustParse(referenceIdInf.(string)))
+						parsedReferenceID, parseErr := uuid.Parse(referenceIdInf.(string))
+						if parseErr != nil {
+							return nil, errors.New("invalid parameter value for reference_id")
+						}
+						referenceId = daptinid.DaptinReferenceId(parsedReferenceID)
 					} else {
 						log.Errorf("parameter reference_id is not a valid string")
 						return nil, errors.New("invalid parameter value for reference_id")
@@ -718,10 +853,13 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 
 					obj := api2go.NewApi2GoModelWithData(table.TableName, nil, 0, nil, existingObj)
 
-					args := params.Args
+					args := graphqlMutationAttributes(table, params.Args, true)
+					if err := validateGraphQLRelationshipAttributes(table, args); err != nil {
+						return nil, err
+					}
 					deleteKeys := make([]string, 0)
 					for k := range args {
-						if args[k] == "" {
+						if stringValue, isString := args[k].(string); isString && stringValue == "" {
 							deleteKeys = append(deleteKeys, k)
 						}
 					}
@@ -763,7 +901,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 				Description: "Delete " + strings.ReplaceAll(table.TableName, "_", " "),
 				Args: graphql.FieldConfigArgument{
 					"reference_id": &graphql.ArgumentConfig{
-						Type:        graphql.String,
+						Type:        graphql.NewNonNull(graphql.ID),
 						Description: "Resource id",
 					},
 				},
@@ -787,7 +925,11 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 					}
 					defer transaction.Rollback()
 
-					_, err = resources[table.TableName].DeleteWithTransaction(daptinid.DaptinReferenceId(uuid.MustParse(params.Args["reference_id"].(string))), req, transaction)
+					parsedReferenceID, parseErr := uuid.Parse(params.Args["reference_id"].(string))
+					if parseErr != nil {
+						return nil, errors.New("invalid parameter value for reference_id")
+					}
+					deleted, err := resources[table.TableName].DeleteWithTransaction(daptinid.DaptinReferenceId(parsedReferenceID), req, transaction)
 
 					if err != nil {
 						return nil, err
@@ -797,12 +939,10 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 						return nil, err
 					}
 
-					return fmt.Sprintf(`{
-													"data": {
-														"delete%s": {
-														}
-													}
-												}`, flect.Capitalize(table.TableName)), err
+					if deleted == nil || deleted.Result() == nil {
+						return map[string]interface{}{"reference_id": params.Args["reference_id"]}, nil
+					}
+					return deleted.Result().(api2go.Api2GoModel).GetAttributes(), nil
 				},
 			}
 

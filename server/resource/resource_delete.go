@@ -621,5 +621,11 @@ func (dbResource *DbResource) DeleteWithTransaction(id daptinid.DaptinReferenceI
 		}
 	}
 
-	return NewResponse(nil, nil, 200, nil), nil
+	delete(deletedRow, "id")
+	publicModel, err := newPublicApi2GoModel(dbResource.model.GetName(), dbResource.model.GetColumns(),
+		dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), deletedRow)
+	if err != nil {
+		return nil, err
+	}
+	return NewResponse(nil, publicModel, 200, nil), nil
 }

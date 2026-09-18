@@ -1,6 +1,6 @@
 # GraphQL API
 
-**Tested ✓ 2026-01-26**
+**Tested ✓ 2026-09-18**
 
 Complete GraphQL API for querying and mutating your Daptin data with full introspection support.
 
@@ -126,7 +126,7 @@ curl -s -X POST http://localhost:6336/graphql \
 
 ```graphql
 {
-  task(page: {size: 10, number: 0}) {
+  task(page: {size: 10, number: 1}) {
     name
     schedule
   }
@@ -134,7 +134,7 @@ curl -s -X POST http://localhost:6336/graphql \
 ```
 
 - `page.size` - Results per page
-- `page.number` - Page number (0-indexed)
+- `page.number` - Page number (1-indexed)
 
 ### Query with Keyword Filter
 
@@ -239,6 +239,57 @@ mutation {
 }
 ```
 
+### Create and update relationships
+
+Relationship mutation arguments use the configured local relationship name
+(`ObjectName` on the subject side and `SubjectName` on the inverse side).
+Inspect the schema's mutation type as shown below instead of deriving argument
+names from table names.
+
+A to-one relationship stored on the record accepts the related resource's
+public `reference_id`. On create it is generated as `ID!` when required and
+`ID` when nullable. Update arguments remain optional so omission can mean
+"leave unchanged"; an explicit `null` is accepted only for nullable columns:
+
+```graphql
+mutation {
+  addBbproduct(name: "Phone", category_id: "019c...") {
+    reference_id
+  }
+}
+```
+
+To-many and inverse relationship arguments accept shallow reference objects.
+They never recursively create the related resource, so bidirectional
+relationships cannot produce recursive inputs. Declared join-table columns are
+fields on the generated relationship input:
+
+```graphql
+mutation {
+  updateBbproduct(
+    reference_id: "019c..."
+    tags: [{ reference_id: "019d...", priority: 10 }]
+  ) {
+    reference_id
+  }
+}
+```
+
+On update, omitting a relationship leaves it unchanged. Supplying a to-many
+list replaces its links, and an empty list removes all links. Supplying `null`
+for a nullable to-one relationship clears it.
+
+All identifiers above are public UUID `reference_id` values, never internal
+numeric IDs. Daptin resolves them inside the mutation transaction and applies
+the normal create/update, row, relationship, and `CanRefer` permission checks.
+The server-managed `user_account_id` ownership relationship is intentionally
+not a mutation argument; ownership comes from the authenticated session.
+
+Malformed IDs, missing related records, attempts to clear a required
+relationship, and denied references are reported in the GraphQL `errors`
+array. As usual for GraphQL, the HTTP response can still be `200`; inspect both
+`data` and `errors`.
+
 ### Delete Record
 
 ```graphql
@@ -250,7 +301,9 @@ mutation {
 }
 ```
 
-**Important:** Delete mutations MUST include field selection.
+Delete returns the deleted public resource snapshot, so selected fields such
+as `reference_id` and `name` retain their pre-delete values. Delete mutations
+MUST include a field selection.
 
 ### Batch Mutations
 
@@ -402,17 +455,28 @@ Group and aggregate data:
 }
 ```
 
-### Inspect Query Arguments
+### Inspect mutation arguments
 
 ```graphql
 {
-  __type(name: "RootQuery") {
-    fields {
-      name
-      args {
+  __schema {
+    mutationType {
+      fields {
         name
-        type {
+        args {
           name
+          type {
+            name
+            kind
+            ofType {
+              name
+              kind
+              ofType {
+                name
+                kind
+              }
+            }
+          }
         }
       }
     }
@@ -555,7 +619,17 @@ mutation { deleteTask(reference_id: "...") }  # Error: must have sub selection
 mutation { deleteTask(reference_id: "...") { reference_id } }  # ✅ Works
 ```
 
-### 3. Action Attributes Needs Sub-Selection
+The selected fields contain the values from the deleted resource rather than
+`null` placeholders.
+
+### 3. Relationship IDs are public reference IDs
+
+Use the UUID-style `reference_id` returned by Daptin. Do not pass an internal
+numeric database ID. Required relationship arguments appear as `ID!` in
+introspection. To-many inputs use shallow objects such as
+`[{reference_id: "..."}]`, not nested resource creation.
+
+### 4. Action Attributes Needs Sub-Selection
 
 **Problem:**
 ```graphql
@@ -567,7 +641,7 @@ mutation { executeAction { ResponseType Attributes } }  # Error
 mutation { executeAction { ResponseType Attributes { message value } } }  # ✅
 ```
 
-### 4. Query Operator "contains" Doesn't Work
+### 5. Query Operator "contains" Doesn't Work
 
 **Problem:**
 ```graphql

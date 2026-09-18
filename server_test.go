@@ -793,8 +793,8 @@ func runTests(t *testing.T) error {
 		return errors.New("auth failure")
 	}
 	if strings.Index(graphqlResponse.String(), `TableAccessPermissionChecker and 0 more errors`) == -1 {
-		t.FailNow()
 		t.Errorf("Expected auth error not found in response from graphql [%v] without auth token", graphqlResponse.String())
+		t.FailNow()
 	}
 
 	graphqlResponse, err = requestClient.Post(baseAddress+"/graphql",
@@ -806,8 +806,8 @@ func runTests(t *testing.T) error {
 		return err
 	}
 	if strings.Index(graphqlResponse.String(), `"reference_id": "`) == -1 {
-		t.FailNow()
 		t.Errorf("Expected 'reference_id' not found in response from graphql [%v] with auth token on certificate create", graphqlResponse.String())
+		t.FailNow()
 	}
 
 	certReferenceId := strings.Split(strings.Split(graphqlResponse.String(), `"reference_id": "`)[1], "\"")[0]
@@ -861,10 +861,10 @@ func runTests(t *testing.T) error {
 		t.FailNow()
 		return err
 	}
-	if strings.Index(graphqlResponse.String(), `"hostname": null`) == -1 {
-		t.FailNow()
-		t.Errorf("hostname=null] Expected string not found in response from graphql [%v] "+
+	if strings.Index(graphqlResponse.String(), `"hostname": "hello"`) == -1 {
+		t.Errorf("deleted resource fields were not returned from graphql [%v] "+
 			"with auth token on certificate delete", graphqlResponse.String())
+		t.FailNow()
 	}
 
 	FtpTest(t)

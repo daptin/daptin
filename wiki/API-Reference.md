@@ -526,6 +526,11 @@ POST /graphql
 GET /graphql
 ```
 
+The generated schema includes scalar CRUD arguments, shallow relationship
+reference inputs, declared join attributes, and deleted-resource return
+values. See [[GraphQL-API|GraphQL API]] for mutation syntax, replacement
+semantics, permissions, and introspection examples.
+
 **Example:**
 
 ```bash
