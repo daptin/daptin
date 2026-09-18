@@ -509,12 +509,15 @@ Columns:
 
 ### json
 
-JSON data structure.
+Stores a JSON object or array. Send the value as structured JSON; clients do
+not need to stringify it before sending a request. Daptin serializes the value
+once for database storage and returns it as the original object or array from
+REST, action, and GraphQL resource operations.
 
 | Property | Value |
 |----------|-------|
 | SQL Type | `text` or `JSON` |
-| GraphQL Type | `String` |
+| GraphQL Type | `JSON` |
 | Fake Data | `{}` |
 
 ```yaml
@@ -522,6 +525,23 @@ Columns:
   - ColumnName: metadata
     ColumnType: json
 ```
+
+Example JSON:API attributes:
+
+```json
+{
+  "metadata": {
+    "source": "import",
+    "tags": ["reviewed", "public"]
+  }
+}
+```
+
+Both objects and arrays are accepted on create and update. Malformed JSON and
+JSON scalar values return HTTP `422 Unprocessable Entity` with the stable error
+title `invalid JSON value for <column>`. A valid pre-serialized object or array
+is accepted for existing integrations, but structured JSON is the canonical
+request representation.
 
 ## Binary/File Types
 
@@ -669,7 +689,7 @@ Columns:
 | url | varchar(500) | String | string |
 | color | varchar(50) | String | string |
 | enum | varchar(50) | String | string |
-| json | text/JSON | String | string |
+| json | text/JSON | JSON | object/array |
 | measurement | int(10) | Int | number |
 | float | float(7,4) | Float | number |
 | rating | int(4) | Int | number |

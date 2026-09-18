@@ -186,11 +186,16 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 	CheckErr(commitErr, "failed to commit")
 
 	infos := dbResource.model.GetColumns()
-	var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(), infos,
+	a, err := newPublicApi2GoModel(dbResource.model.GetTableName(), infos,
 		dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), data)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, inc := range include {
-		dbResource.appendFindOneInclude(&a, inc)
+		if err := dbResource.appendFindOneInclude(&a, inc); err != nil {
+			return nil, err
+		}
 	}
 	log.Tracef("Completed FindOne [194]")
 	return NewResponse(nil, a, 200, nil), commitErr
@@ -331,31 +336,37 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 	delete(data, "id")
 
 	infos := dbResource.model.GetColumns()
-	var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
+	a := api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
 		infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), data)
 
 	for _, inc := range include {
-		dbResource.appendFindOneInclude(&a, inc)
+		if err := dbResource.appendFindOneIncludeWithJSON(&a, inc, false); err != nil {
+			return nil, err
+		}
 	}
 
 	return NewResponse(nil, a, 200, nil), nil
 }
 
-func (dbResource *DbResource) appendFindOneInclude(model *api2go.Api2GoModel, include map[string]interface{}) {
+func (dbResource *DbResource) appendFindOneInclude(model *api2go.Api2GoModel, include map[string]interface{}) error {
+	return dbResource.appendFindOneIncludeWithJSON(model, include, true)
+}
+
+func (dbResource *DbResource) appendFindOneIncludeWithJSON(model *api2go.Api2GoModel, include map[string]interface{}, public bool) error {
 	incType, ok := include["__type"].(string)
 	if !ok || incType == "" {
-		return
+		return nil
 	}
 
 	if strings.Index(incType, ".") > -1 {
 		model.Includes = append(model.Includes, api2go.NewApi2GoModelWithData(incType, nil, 0, nil, include))
-		return
+		return nil
 	}
 
 	includeResource, ok := dbResource.Cruds[incType]
 	if !ok || includeResource == nil {
 		log.Debugf("Skipping non-resource include type [%s]", incType)
-		return
+		return nil
 	}
 
 	p, ok := include["permission"].(int64)
@@ -364,5 +375,14 @@ func (dbResource *DbResource) appendFindOneInclude(model *api2go.Api2GoModel, in
 		p = 0
 	}
 
-	model.Includes = append(model.Includes, api2go.NewApi2GoModelWithData(incType, includeResource.model.GetColumns(), int64(p), includeResource.model.GetRelations(), include))
+	if public {
+		includeModel, err := newPublicApi2GoModel(incType, includeResource.model.GetColumns(), int64(p), includeResource.model.GetRelations(), include)
+		if err != nil {
+			return err
+		}
+		model.Includes = append(model.Includes, includeModel)
+	} else {
+		model.Includes = append(model.Includes, api2go.NewApi2GoModelWithData(incType, includeResource.model.GetColumns(), int64(p), includeResource.model.GetRelations(), include))
+	}
+	return nil
 }

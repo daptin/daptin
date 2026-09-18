@@ -400,6 +400,13 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 
 		}
 
+		if col.ColumnType == "json" {
+			columnValue, err = jsonColumnStorageValue(columnValue)
+			if err != nil {
+				return nil, invalidJSONColumnError(col.ColumnName, err)
+			}
+		}
+
 		_, isInterfaceArray := columnValue.([]interface{})
 		if isInterfaceArray {
 			columnValue, err = json.MarshalToString(columnValue)
@@ -1041,8 +1048,12 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 	c1 := dbResource.model.GetColumns()
 	p1 := dbResource.model.GetDefaultPermission()
 	r1 := dbResource.model.GetRelations()
+	publicModel, err := newPublicApi2GoModel(n1, c1, p1, r1, createdResource)
+	if err != nil {
+		return nil, err
+	}
 	return NewResponse(nil,
-		api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
+		publicModel,
 		201, nil,
 	), nil
 
@@ -1108,8 +1119,12 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 	c1 := dbResource.model.GetColumns()
 	p1 := dbResource.model.GetDefaultPermission()
 	r1 := dbResource.model.GetRelations()
+	publicModel, err := newPublicApi2GoModel(n1, c1, p1, r1, createdResource)
+	if err != nil {
+		return nil, err
+	}
 	return NewResponse(nil,
-		api2go.NewApi2GoModelWithData(n1, c1, p1, r1, createdResource),
+		publicModel,
 		201, nil,
 	), nil
 

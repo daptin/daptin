@@ -399,6 +399,13 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 				}
 			}
 
+			if col.ColumnType == "json" {
+				val, err = jsonColumnStorageValue(val)
+				if err != nil {
+					return nil, invalidJSONColumnError(col.ColumnName, err)
+				}
+			}
+
 			if ok {
 				//dataToInsert[col.ColumnName] = val
 				colsList = append(colsList, col.ColumnName)
@@ -1187,7 +1194,11 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	delete(updatedResource, "id")
 
 	log.Tracef("Completed update request [%v]", dbResource.model.GetName())
-	return NewResponse(nil, api2go.NewApi2GoModelWithData(dbResource.model.GetName(), dbResource.model.GetColumns(), dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), updatedResource), 200, nil), nil
+	publicModel, err := newPublicApi2GoModel(dbResource.model.GetName(), dbResource.model.GetColumns(), dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), updatedResource)
+	if err != nil {
+		return nil, err
+	}
+	return NewResponse(nil, publicModel, 200, nil), nil
 
 }
 
@@ -1297,6 +1308,10 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 	}
 	delete(updatedResource, "id")
 
-	return NewResponse(nil, api2go.NewApi2GoModelWithData(dbResource.model.GetName(), dbResource.model.GetColumns(), dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), updatedResource), 200, nil), nil
+	publicModel, err := newPublicApi2GoModel(dbResource.model.GetName(), dbResource.model.GetColumns(), dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), updatedResource)
+	if err != nil {
+		return nil, err
+	}
+	return NewResponse(nil, publicModel, 200, nil), nil
 
 }

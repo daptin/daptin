@@ -2,13 +2,16 @@ package resource
 
 import (
 	"crypto/md5"
+	stdjson "encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/graphql/language/ast"
 	"github.com/icrowley/fake"
 	log "github.com/sirupsen/logrus"
 	validator2 "gopkg.in/go-playground/validator.v9"
 	"math/rand"
+	"strconv"
 	"strings"
 
 	"time"
@@ -26,6 +29,68 @@ type ColumnType struct {
 	ReclineType   string
 	DataTypes     []string
 	GraphqlType   graphql.Type
+}
+
+var graphqlJSONType = graphql.NewScalar(graphql.ScalarConfig{
+	Name:        "JSON",
+	Description: "A JSON object or array.",
+	Serialize: func(value interface{}) interface{} {
+		switch typed := value.(type) {
+		case string:
+			var decoded interface{}
+			if stdjson.Unmarshal([]byte(typed), &decoded) == nil {
+				return decoded
+			}
+			return nil
+		case []byte:
+			var decoded interface{}
+			if stdjson.Unmarshal(typed, &decoded) == nil {
+				return decoded
+			}
+			return nil
+		default:
+			return value
+		}
+	},
+	ParseValue: func(value interface{}) interface{} {
+		return value
+	},
+	ParseLiteral: graphqlJSONLiteral,
+})
+
+func graphqlJSONLiteral(value ast.Value) interface{} {
+	switch typed := value.(type) {
+	case *ast.ObjectValue:
+		result := make(map[string]interface{}, len(typed.Fields))
+		for _, field := range typed.Fields {
+			result[field.Name.Value] = graphqlJSONLiteral(field.Value)
+		}
+		return result
+	case *ast.ListValue:
+		result := make([]interface{}, len(typed.Values))
+		for index, item := range typed.Values {
+			result[index] = graphqlJSONLiteral(item)
+		}
+		return result
+	case *ast.StringValue:
+		return typed.Value
+	case *ast.IntValue:
+		parsed, err := strconv.ParseInt(typed.Value, 10, 64)
+		if err != nil {
+			return nil
+		}
+		return parsed
+	case *ast.FloatValue:
+		parsed, err := strconv.ParseFloat(typed.Value, 64)
+		if err != nil {
+			return nil
+		}
+		return parsed
+	case *ast.BooleanValue:
+		return typed.Value
+	default:
+		return nil
+	}
 }
 
 // generate random date between 1980 - 2050
@@ -257,7 +322,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		BlueprintType: "string",
 		DataTypes:     []string{"text", "varchar(100)"},
-		GraphqlType:   graphql.String,
+		GraphqlType:   graphqlJSONType,
 	},
 	{
 		Name:          "password",
@@ -421,7 +486,7 @@ var ColumnTypes = []ColumnType{
 		ReclineType:   "string",
 		Validations:   []string{"text"},
 		DataTypes:     []string{"JSON"},
-		GraphqlType:   graphql.String,
+		GraphqlType:   graphqlJSONType,
 	},
 	{
 		Name:          "image",

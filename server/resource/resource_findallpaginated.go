@@ -1990,8 +1990,11 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 	for i, res := range results {
 		delete(res, "id")
 		includes := includesNew[i]
-		var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
+		a, err := newPublicApi2GoModel(dbResource.model.GetTableName(),
 			infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), res)
+		if err != nil {
+			return 0, nil, err
+		}
 
 		for _, include := range includes {
 			delete(include, "id")
@@ -2005,7 +2008,10 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 			}
 
 			incType := include["__type"].(string)
-			model := api2go.NewApi2GoModelWithData(incType, dbResource.Cruds[incType].model.GetColumns(), int64(perm), dbResource.Cruds[incType].model.GetRelations(), include)
+			model, err := newPublicApi2GoModel(incType, dbResource.Cruds[incType].model.GetColumns(), int64(perm), dbResource.Cruds[incType].model.GetRelations(), include)
+			if err != nil {
+				return 0, nil, err
+			}
 
 			a.Includes = append(a.Includes, model)
 		}
@@ -2108,7 +2114,7 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 	for i, res := range results {
 		delete(res, "id")
 		includes := includesNew[i]
-		var a = api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
+		a := api2go.NewApi2GoModelWithData(dbResource.model.GetTableName(),
 			infos, dbResource.model.GetDefaultPermission(), dbResource.model.GetRelations(), res)
 
 		for _, include := range includes {
