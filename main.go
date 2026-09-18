@@ -317,7 +317,7 @@ func main() {
 
 	statementbuilder.InitialiseStatementBuilder(*dbType)
 	auth.PrepareAuthQueries()
-	log.Printf("Database connection using: [%v] [%v]", *dbType, *connectionString)
+	log.Printf("Database connection using: [%v]", *dbType)
 
 	db, err := server.GetDbConnection(*dbType, *connectionString)
 	if err != nil {
