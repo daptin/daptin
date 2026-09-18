@@ -29,7 +29,12 @@ import (
 // - 200 OK: Update successful, however some field(s) were changed, returns updates source
 // - 202 Accepted: Processing is delayed, return nothing
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
-func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request, updateTransaction *sqlx.Tx) (map[string]interface{}, error) {
+func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request, updateTransaction *sqlx.Tx) (result map[string]interface{}, err error) {
+	defer func() {
+		if err != nil {
+			err = normalizeDatabaseConstraintError(err)
+		}
+	}()
 
 	data, ok := obj.(api2go.Api2GoModel)
 
@@ -40,7 +45,6 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 	updateObjectReferenceId := uuid.MustParse(data.GetID())
 
-	var err error
 	idInt := data.GetColumnOriginalValue("id")
 
 	if idInt == nil {

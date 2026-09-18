@@ -42,6 +42,7 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 	case "post":
 		fallthrough
 	case "patch":
+		isCreate := strings.EqualFold(req.PlainRequest.Method, "post")
 		validations := dvm.tableInfoMap[dr.model.GetName()].Validations
 		conformations := dvm.tableInfoMap[dr.model.GetName()].Conformations
 
@@ -66,7 +67,10 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 
 				colValue, ok := obj[validate.ColumnName]
 				if !ok {
-					continue
+					if !isCreate || !hasValidationTag(validate.Tags, "required") {
+						continue
+					}
+					colValue = nil
 				}
 				errs := ValidatorInstance.VarWithValue(colValue, obj, validate.Tags)
 
@@ -90,6 +94,16 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 
 	return objects, err
 
+}
+
+func hasValidationTag(tags string, expected string) bool {
+	for _, tag := range strings.Split(tags, ",") {
+		name := strings.TrimSpace(strings.SplitN(tag, "=", 2)[0])
+		if name == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func NewDataValidationMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) DatabaseRequestInterceptor {

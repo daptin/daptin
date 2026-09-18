@@ -53,7 +53,7 @@ Tables:
 **Test Results:**
 - ✅ `"username": "john"` → Success
 - ❌ `"username": ""` → Field validation 'username' failed on the 'required' tag
-- ❌ Missing field → NOT NULL constraint failed
+- ❌ Missing field → HTTP 400 `required` validation error
 
 ---
 

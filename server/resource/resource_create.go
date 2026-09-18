@@ -37,7 +37,13 @@ import (
 // - 204 No Content: Resource created with a client generated ID, and no fields were modified by
 //   the server
 
-func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (map[string]interface{}, error) {
+func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (result map[string]interface{}, err error) {
+	defer func() {
+		if err != nil {
+			err = normalizeDatabaseConstraintError(err)
+		}
+	}()
+
 	log.Tracef("Create object of type [%v]", dbResource.model.GetName())
 	data := obj.(api2go.Api2GoModel)
 	user := req.PlainRequest.Context().Value("user")

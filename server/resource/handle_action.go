@@ -187,6 +187,10 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 
 		if err != nil {
 			if httpErr, ok := err.(api2go.HTTPError); ok {
+				message := err.Error()
+				if len(httpErr.Errors) > 0 && httpErr.Errors[0].Title != "" {
+					message = httpErr.Errors[0].Title
+				}
 				if len(responses) > 0 {
 					ginContext.AbortWithStatusJSON(httpErr.Status(), responses)
 				} else {
@@ -194,7 +198,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 						{
 							ResponseType: "client.notify",
 							Attributes: map[string]interface{}{
-								"message": err.Error(),
+								"message": message,
 								"title":   "failed",
 								"type":    "error",
 							},

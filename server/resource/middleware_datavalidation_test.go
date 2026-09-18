@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
@@ -64,5 +65,41 @@ func TestDataValidationMiddlewareValidatesConformedValue(t *testing.T) {
 	}
 	if got := objects[0]["code"]; got != "AB-12" {
 		t.Fatalf("code = %#v, want conformed value AB-12", got)
+	}
+}
+
+func TestDataValidationMiddlewareRejectsMissingRequiredFieldOnlyOnCreate(t *testing.T) {
+	config := &CmsConfig{Tables: []table_info.TableInfo{{
+		TableName: "validation_probe",
+		Validations: []columns.ColumnTag{
+			{ColumnName: "name", Tags: "required"},
+			{ColumnName: "count", Tags: "gte=0"},
+		},
+	}}}
+	middleware := NewDataValidationMiddleware(config, nil)
+	crud := &DbResource{model: api2go.NewApi2GoModel("validation_probe", nil, 0, nil)}
+
+	_, err := middleware.InterceptBefore(crud, &api2go.Request{
+		PlainRequest: &http.Request{Method: http.MethodPost},
+	}, []map[string]interface{}{{}}, nil)
+	if err == nil {
+		t.Fatal("missing required field was accepted on create")
+	}
+	var httpErr api2go.HTTPError
+	if !errors.As(err, &httpErr) || httpErr.Status() != http.StatusBadRequest {
+		t.Fatalf("missing required field error = %T %v, want HTTP 400", err, err)
+	}
+	_, err = middleware.InterceptBefore(crud, &api2go.Request{
+		PlainRequest: &http.Request{Method: http.MethodPost},
+	}, []map[string]interface{}{{"name": "present"}}, nil)
+	if err != nil {
+		t.Fatalf("create rejected omitted optional validated field: %v", err)
+	}
+
+	_, err = middleware.InterceptBefore(crud, &api2go.Request{
+		PlainRequest: &http.Request{Method: http.MethodPatch},
+	}, []map[string]interface{}{{}}, nil)
+	if err != nil {
+		t.Fatalf("partial update rejected omitted required field: %v", err)
 	}
 }
