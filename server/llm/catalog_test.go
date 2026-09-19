@@ -66,7 +66,7 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		{"llm_deployment", map[string]interface{}{
 			"name": "deployment", "llm_model_id": modelReference.String(), "llm_provider_id": providerReference.String(), "upstream_model": "upstream-model",
 			"operations": `["chat","responses"]`, "priority": 1, "weight": 2, "request_timeout_ms": 90000,
-			"connect_timeout_ms": 10000, "max_concurrency": 8, "rpm": 60, "tpm": 10000,
+			"connect_timeout_ms": 10000, "max_concurrency": 8, "rpm": 60, "tpm": 20000,
 			"pricing": `{}`, "parameters": `{}`, "health_check": `{}`, "enable": true,
 			"reference_id": deploymentReference.String(),
 		}},
@@ -351,6 +351,30 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	if err != nil || len(usageRows) != 1 || resource.StringOrEmpty(usageRows[0]["state"]) != "completed" || usageOwner != owner.UserReferenceId {
 		t.Fatalf("Responses metering rows=%#v err=%v", usageRows, err)
 	}
+	guestRequest := httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(
+		`{"model":"public-model","input":[{"type":"message","role":"user","content":[{"type":"input_file","file_data":"data:application/pdf;base64,cGRm","filename":"brief.pdf"}]}],"tools":[{"type":"web_search"}]}`,
+	))
+	guestRequest.Header.Set("Content-Type", "application/json")
+	guestRequest.Header.Set("X-Request-ID", "guest-host-responses")
+	guestResponse := httptest.NewRecorder()
+	hostA.Handler().ServeHTTP(guestResponse, guestRequest)
+	if guestResponse.Code != http.StatusOK || responsesCalls.Load() != 2 {
+		t.Fatalf("guest Responses status=%d provider calls=%d body=%s", guestResponse.Code, responsesCalls.Load(), guestResponse.Body.String())
+	}
+	guestUsageTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	guestAccount, guestErr := cruds["user_account"].GetUserAccountRowByEmailWithTransaction("guest@cms.go", guestUsageTransaction)
+	guestUsage, _, usageErr := cruds["api_usage"].GetRowsByWhereClauseWithTransaction(
+		"api_usage", nil, guestUsageTransaction, goqu.Ex{"request_id": "guest-host-responses"},
+	)
+	_ = guestUsageTransaction.Rollback()
+	if guestErr != nil || usageErr != nil || len(guestUsage) != 1 ||
+		resource.StringOrEmpty(guestUsage[0]["state"]) != "completed" ||
+		daptinid.InterfaceToDIR(guestUsage[0]["user_account_id"]) != daptinid.InterfaceToDIR(guestAccount["reference_id"]) {
+		t.Fatalf("guest Responses metering rows=%#v guest=%#v errors=%v,%v", guestUsage, guestAccount, guestErr, usageErr)
+	}
 	responsesRevision := hostA.Status().Revision
 	update("llm_model", "capabilities", `{"tools":true}`)
 	publishCatalogEvent(t, cruds["world"].PubSub, "llm_model")
@@ -366,7 +390,7 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	}
 	_, _ = io.Copy(io.Discard, deniedResponse.Body)
 	_ = deniedResponse.Body.Close()
-	if deniedResponse.StatusCode != http.StatusBadRequest || responsesCalls.Load() != 1 {
+	if deniedResponse.StatusCode != http.StatusBadRequest || responsesCalls.Load() != 2 {
 		t.Fatalf("disabled files status=%d provider calls=%d", deniedResponse.StatusCode, responsesCalls.Load())
 	}
 	streamContext, cancelStream := context.WithCancel(context.Background())
@@ -389,7 +413,9 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 	select {
 	case <-upstreamStarted:
 	case <-time.After(5 * time.Second):
-		t.Fatal("provider stream did not start")
+		cancelStream()
+		body, _ := io.ReadAll(streamResponse.Body)
+		t.Fatalf("provider stream did not start: %s", body)
 	}
 	firstDrainContext, cancelFirstDrain := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	if err := hostA.Drain(firstDrainContext); !errors.Is(err, context.DeadlineExceeded) {

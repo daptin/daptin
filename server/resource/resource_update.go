@@ -1219,6 +1219,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 		URL:    req.PlainRequest.URL,
 	}
 	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
+	updateAPIRequest := api2go.Request{PlainRequest: updateRequest, QueryParams: req.QueryParams, Header: req.Header, Pagination: req.Pagination}
 
 	transaction, err := dbResource.Connection().Beginx()
 	defer func() {
@@ -1243,12 +1244,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 		for _, bf := range dbResource.ms.BeforeUpdate {
 			//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
-			finalData, err := bf.InterceptBefore(dbResource, &api2go.Request{
-				PlainRequest: updateRequest,
-				QueryParams:  req.QueryParams,
-				Header:       req.Header,
-				Pagination:   req.Pagination,
-			}, []map[string]interface{}{
+			finalData, err := bf.InterceptBefore(dbResource, &updateAPIRequest, []map[string]interface{}{
 				attributes,
 			}, transaction)
 			if err != nil {
@@ -1271,12 +1267,7 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	for _, bf := range dbResource.ms.AfterUpdate {
 		log.Tracef("Invoke AfterUpdate [%v][%v] on Update Request [%v]", bf.String(), dbResource.model.GetName(), updatedResource)
 
-		results, err := bf.InterceptAfter(dbResource, &api2go.Request{
-			PlainRequest: updateRequest,
-			QueryParams:  req.QueryParams,
-			Header:       req.Header,
-			Pagination:   req.Pagination,
-		}, []map[string]interface{}{updatedResource}, transaction)
+		results, err := bf.InterceptAfter(dbResource, &updateAPIRequest, []map[string]interface{}{updatedResource}, transaction)
 		if len(results) != 0 {
 			updatedResource = results[0]
 
@@ -1356,18 +1347,14 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 		URL:    req.PlainRequest.URL,
 	}
 	updateRequest = updateRequest.WithContext(req.PlainRequest.Context())
+	updateAPIRequest := api2go.Request{PlainRequest: updateRequest, QueryParams: req.QueryParams, Header: req.Header, Pagination: req.Pagination}
 
 	data.SetType(dbResource.model.GetName())
 
 	for _, bf := range dbResource.ms.BeforeUpdate {
 		//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
-		finalData, err := bf.InterceptBefore(dbResource, &api2go.Request{
-			PlainRequest: updateRequest,
-			QueryParams:  req.QueryParams,
-			Header:       req.Header,
-			Pagination:   req.Pagination,
-		}, []map[string]interface{}{
+		finalData, err := bf.InterceptBefore(dbResource, &updateAPIRequest, []map[string]interface{}{
 			data.GetAllAsAttributes(),
 		}, transaction)
 		if err != nil {
@@ -1391,12 +1378,7 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 	for _, bf := range dbResource.ms.AfterUpdate {
 		log.Tracef("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
-		results, err := bf.InterceptAfter(dbResource, &api2go.Request{
-			PlainRequest: updateRequest,
-			QueryParams:  req.QueryParams,
-			Header:       req.Header,
-			Pagination:   req.Pagination,
-		}, []map[string]interface{}{updatedResource}, transaction)
+		results, err := bf.InterceptAfter(dbResource, &updateAPIRequest, []map[string]interface{}{updatedResource}, transaction)
 		if len(results) != 0 {
 			updatedResource = results[0]
 

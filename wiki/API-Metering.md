@@ -181,11 +181,11 @@ LLM actions use the same admit/complete/cancel lifecycle. Request types are
 operation-derived, for example `llm_chat`, `llm_embeddings`, and
 `llm_text_completion`.
 
-Model entitlement and quantity are independent gates. The active account must
-first pass the `llm_model` execute permission check through its usergroup
-relationships. Metering then uses that same account's active `api_member` and
-related `api_plan`. Permission to execute a wrapper action does not bypass either
-gate.
+Model entitlement and quantity are independent gates. The active session must
+first pass the `llm_model` execute permission check through Daptin permissions.
+Metering then uses the signed-in account, or the persisted guest account for an
+unauthenticated request, to find an active `api_member` and related `api_plan`.
+Permission to execute a wrapper action does not bypass either gate.
 
 Provider usage is normalized into named measures including:
 
@@ -200,17 +200,19 @@ estimated by the gateway.
 
 If no active `api_member` exists, Daptin still records the request but there are
 no plan limits to enforce. Create an active membership to define how much that
-account may consume. In a trusted workflow, `SWITCH_USER` makes the selected
-account the owner of the LLM reservation and usage; any separate wrapper-action
-metering remains attached to the original caller.
+account may consume. Guest requests use the dedicated `guest@cms.go` account
+for usage and quota without becoming authenticated for permission checks. In a
+trusted workflow, `SWITCH_USER` makes the selected account the owner of the LLM
+reservation and usage; any separate wrapper-action metering remains attached to
+the original caller.
 
 ## Reservations and quota state
 
 Admission creates an `api_usage` row in `held` state and reserves applicable
 hard-limit measures in `api_quota`. Completion atomically releases reservations,
 increments consumed totals, stores final measures, and marks the usage row
-`completed`. Cancellation and expiry release reservations without counting them
-as completed consumption.
+`completed`. Cancellation and expiry release reservations. Cancellation can
+record the request and any reported measures; expiry records no consumption.
 
 Hard-limit admission failure returns `402 Payment Required`. Deployment RPM,
 TPM, and concurrency protection are separate gateway controls and may return
@@ -257,7 +259,7 @@ marker so it does not recursively meter itself.
 
 | Problem | Check |
 |---|---|
-| No usage row | Metering configuration, active signed-in account, and request logs; guest requests have no account usage row |
+| No usage row | Metering configuration, request logs, and the persisted guest account for unauthenticated requests |
 | No quota bucket | Active membership, plan relationship, and matching metric |
 | Limit never denies | Metric spelling, window, `maximum`, and `mode: hard` |
 | LLM token count is absent | Provider response and normalized gateway usage |

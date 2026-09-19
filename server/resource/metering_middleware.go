@@ -28,9 +28,6 @@ func (m *MeteringMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request
 		return rows, nil
 	}
 	user := sessionUserFromAPIRequest(req)
-	if user == nil || user.UserId == 0 {
-		return rows, nil
-	}
 	decision, err := m.service.Admit(MeteringContext{
 		Request:     req.PlainRequest,
 		User:        user,
@@ -56,9 +53,6 @@ func (m *MeteringMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
 		return rows, nil
 	}
 	user := sessionUserFromAPIRequest(req)
-	if user == nil || user.UserId == 0 {
-		return rows, nil
-	}
 	start := time.Now()
 	response := map[string]interface{}{
 		"rows": rows,

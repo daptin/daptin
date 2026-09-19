@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"net/http"
 	"strings"
 	"time"
 
@@ -21,6 +22,10 @@ import (
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
 func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Request) (api2go.Responder, error) {
+	// A write request may call FindOne to load its target; meter the write itself.
+	if req.PlainRequest.Method != http.MethodGet {
+		req.PlainRequest = req.PlainRequest.WithContext(WithMeteringInternal(req.PlainRequest.Context()))
+	}
 
 	var referenceId daptinid.DaptinReferenceId
 
@@ -204,6 +209,10 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 // FindOne returns an object by its ID
 // Possible Responder success status code 200
 func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.DaptinReferenceId, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+	// A write request may call FindOne to load its target; meter the write itself.
+	if req.PlainRequest.Method != http.MethodGet {
+		req.PlainRequest = req.PlainRequest.WithContext(WithMeteringInternal(req.PlainRequest.Context()))
+	}
 
 	if string(referenceId[0:4]) == "mine" && dbResource.tableInfo.TableName == "user_account" {
 		//log.Debugf("Request for mine")

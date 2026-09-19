@@ -114,6 +114,25 @@ func (m *MeteringService) internalUser(user *auth.SessionUser) *auth.SessionUser
 	return &copyOfUser
 }
 
+func (m *MeteringService) usageOwner(user *auth.SessionUser, tx *sqlx.Tx) (*auth.SessionUser, error) {
+	if user != nil && user.UserId != 0 {
+		return user, nil
+	}
+	guest, err := (*m.cruds)[USER_ACCOUNT_TABLE_NAME].GetUserAccountRowByEmailWithTransaction("guest@cms.go", tx)
+	if err != nil {
+		return nil, fmt.Errorf("resolve guest metering account: %w", err)
+	}
+	id, err := ResourceRowInt64(guest["id"])
+	if err != nil || id <= 0 {
+		return nil, fmt.Errorf("invalid guest metering account id: %v", guest["id"])
+	}
+	reference := daptinid.InterfaceToDIR(guest["reference_id"])
+	if reference == daptinid.NullReferenceId {
+		return nil, errors.New("invalid guest metering account reference_id")
+	}
+	return &auth.SessionUser{UserId: id, UserReferenceId: reference}, nil
+}
+
 func IsMeteringInternalRequest(req *http.Request) bool {
 	if req == nil {
 		return false
@@ -133,12 +152,17 @@ func IsMeteringSystemTable(tableName string) bool {
 func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDecision, error) {
 	decision := &MeteringDecision{}
 	config := normalizeMeteringConfig(ctx.Metering)
-	if config == nil || !config.Enabled || ctx.User == nil || ctx.User.UserId == 0 {
+	if config == nil || !config.Enabled {
 		return decision, nil
 	}
 	if tx == nil {
 		return nil, errors.New("metering admission requires a transaction")
 	}
+	owner, err := m.usageOwner(ctx.User, tx)
+	if err != nil {
+		return nil, err
+	}
+	ctx.User = owner
 	decision.Enabled = true
 	decision.config = config
 	if err := m.lockMeteringUser(ctx.User.UserId, tx); err != nil {
@@ -331,10 +355,17 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if usageUserID <= 0 {
 		return errors.New("invalid api_usage user_account_id: must be positive")
 	}
-	if ctx.User != nil && usageUserID != ctx.User.UserId {
-		return errors.New("metering reservation belongs to another user")
-	}
 	ctx = hydrateMeteringContext(ctx, usage)
+	if terminalState != meteringStateExpired {
+		owner, ownerErr := m.usageOwner(ctx.User, tx)
+		if ownerErr != nil {
+			return ownerErr
+		}
+		if usageUserID != owner.UserId {
+			return errors.New("metering reservation belongs to another user")
+		}
+		ctx.User = owner
+	}
 	usageRequestID := StringOrEmpty(usage["request_id"])
 	if decision.RequestID != "" && decision.RequestID != usageRequestID {
 		return errors.New("metering reservation request_id does not match its usage record")

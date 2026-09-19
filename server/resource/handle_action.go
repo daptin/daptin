@@ -377,13 +377,19 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 
 	var meteringService *MeteringService
 	var meteringDecision *MeteringDecision
+	var meteringCaller *auth.SessionUser
+	var meteringRequest *http.Request
 	actionMetering := MeteringConfigForAction(dbResource.TableInfo().Metering, actionRequest.Action)
 	if actionMetering != nil && actionMetering.Enabled && req.PlainRequest != nil && !IsMeteringInternalRequest(req.PlainRequest) {
+		caller := *sessionUser
+		caller.Groups = append(auth.GroupPermissionList(nil), sessionUser.Groups...)
+		meteringCaller = &caller
+		meteringRequest = req.PlainRequest.WithContext(context.WithValue(req.PlainRequest.Context(), "user", meteringCaller))
 		meteringService = NewMeteringService(&dbResource.Cruds)
 		var meteringErr error
 		meteringDecision, meteringErr = meteringService.Admit(MeteringContext{
-			Request:     req.PlainRequest,
-			User:        sessionUser,
+			Request:     meteringRequest,
+			User:        meteringCaller,
 			Endpoint:    req.PlainRequest.URL.Path,
 			Method:      req.PlainRequest.Method,
 			EntityType:  actionRequest.Type,
@@ -663,8 +669,8 @@ OutFields:
 			responseTypes = append(responseTypes, response.ResponseType)
 		}
 		recordErr := meteringService.Complete(MeteringContext{
-			Request:       req.PlainRequest,
-			User:          sessionUser,
+			Request:       meteringRequest,
+			User:          meteringCaller,
 			Endpoint:      req.PlainRequest.URL.Path,
 			Method:        req.PlainRequest.Method,
 			EntityType:    actionRequest.Type,

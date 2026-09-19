@@ -524,16 +524,17 @@ Hard limits use the database-backed generic quota state and fail closed when
 that authority is unavailable. Olric counters protect deployments
 (`max_concurrency`, RPM, TPM) and do not replace durable customer quotas.
 
-The active account determines metering ownership. Guest invocation has no
-account usage or quota record. Without `SWITCH_USER`, a signed-in caller is the
-metered account. After a trusted action performs `SWITCH_USER`, the selected
-account's `api_member`, plan, usage, and quota are used.
+The active account determines metering ownership. Guest invocation uses the
+persisted guest account for usage and any configured plan limits while remaining
+unauthenticated for model permissions. Without `SWITCH_USER`, a signed-in caller
+is the metered account. After a trusted action performs `SWITCH_USER`, the
+selected account's `api_member`, plan, usage, and quota are used.
 If the wrapper action is itself metered, its admission occurred before the
 switch and remains charged to the original caller.
 
 An account without an active `api_member` still produces `api_usage`, but it has
 no plan-defined maximum. Assign an active membership whenever a hard or soft
-limit is required.
+limit is required. See [[API-Metering]] for the shared ledger lifecycle.
 
 ## Health, reload, and shutdown
 

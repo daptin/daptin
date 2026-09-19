@@ -112,6 +112,228 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 	}
 }
 
+func TestMeteringGuestUsesPersistedAccountAndPlan(t *testing.T) {
+	database, cruds, _ := newCanonicalMeteringDatabase(t)
+	lookup, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	guestRow, err := cruds[USER_ACCOUNT_TABLE_NAME].GetUserAccountRowByEmailWithTransaction("guest@cms.go", lookup)
+	if err != nil {
+		lookup.Rollback()
+		t.Fatal(err)
+	}
+	guestID, err := ResourceRowInt64(guestRow["id"])
+	if err != nil {
+		lookup.Rollback()
+		t.Fatal(err)
+	}
+	guest := &auth.SessionUser{UserId: guestID, UserReferenceId: daptinid.InterfaceToDIR(guestRow["reference_id"])}
+	if err := lookup.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, time.September, 1, 10, 0, 0, 0, time.UTC)
+	insertMeteringPlanAndMember(t, cruds, guest, now, `[{"metric":"requests","window":"minute","maximum":2,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
+	service.now = func() time.Time { return now }
+	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
+	admit := func(requestID string) (*MeteringDecision, error) {
+		t.Helper()
+		tx, beginErr := database.Beginx()
+		if beginErr != nil {
+			t.Fatal(beginErr)
+		}
+		defer tx.Rollback()
+		decision, admitErr := service.Admit(MeteringContext{RequestID: requestID, User: &auth.SessionUser{}, Metering: config}, tx)
+		if admitErr != nil {
+			return nil, admitErr
+		}
+		return decision, tx.Commit()
+	}
+	first, err := admit("guest-first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.MemberID == 0 || first.PlanID == 0 {
+		t.Fatalf("guest membership was not applied: %#v", first)
+	}
+	second, err := admit("guest-second")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admit("guest-denied"); err == nil {
+		t.Fatal("guest plan limit did not deny a third reservation")
+	}
+	terminalize := func(decision *MeteringDecision, cancel bool) {
+		t.Helper()
+		tx, beginErr := database.Beginx()
+		if beginErr != nil {
+			t.Fatal(beginErr)
+		}
+		defer tx.Rollback()
+		ctx := MeteringContext{User: &auth.SessionUser{}, StatusCode: 200, Metering: config}
+		if cancel {
+			ctx.StatusCode = 499
+			err = service.Cancel(ctx, decision, tx)
+		} else {
+			err = service.Complete(ctx, decision, tx)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	terminalize(first, false)
+	terminalize(second, true)
+	verify, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer verify.Rollback()
+	for requestID, expectedState := range map[string]string{"guest-first": meteringStateCompleted, "guest-second": meteringStateCancelled} {
+		usage, findErr := service.findUsageByRequestID(requestID, verify)
+		if findErr != nil {
+			t.Fatal(findErr)
+		}
+		ownerID, conversionErr := ResourceRowInt64(usage["user_account_id"])
+		if conversionErr != nil || ownerID != guestID {
+			t.Fatalf("%s owner = %v, %v; want guest %d", requestID, usage["user_account_id"], conversionErr, guestID)
+		}
+		if state := StringOrEmpty(usage["state"]); state != expectedState {
+			t.Fatalf("%s state = %s, want %s", requestID, state, expectedState)
+		}
+	}
+	for bucketKey := range first.reservation {
+		assertMeteringBucket(t, service, verify, "requests", bucketKey, 0, 2)
+	}
+}
+
+func TestMeteringMiddlewareRecordsGuestRequest(t *testing.T) {
+	database, cruds, _ := newCanonicalMeteringDatabase(t)
+	crud := cruds[USER_ACCOUNT_TABLE_NAME]
+	table := *crud.tableInfo
+	table.Metering = &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
+	crud.tableInfo = &table
+	middleware := NewMeteringMiddleware(&cruds)
+	request := api2go.Request{PlainRequest: &http.Request{Method: http.MethodGet, URL: &url.URL{Path: "/api/user_account"}}}
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err := middleware.InterceptBefore(crud, &request, nil, tx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := middleware.InterceptAfter(crud, &request, nil, tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	verify, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer verify.Rollback()
+	rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, verify)
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("guest middleware usage rows = %d, %v", len(rows), err)
+	}
+	if rows[0]["state"] != meteringStateCompleted || rows[0]["endpoint"] != "/api/user_account" {
+		t.Fatalf("guest middleware usage = %#v", rows[0])
+	}
+}
+
+func TestMeteredUpdateCompletesOneReservation(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	crud := cruds[USER_ACCOUNT_TABLE_NAME]
+	table := *crud.tableInfo
+	table.Metering = &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
+	crud.tableInfo = &table
+	middleware := NewMeteringMiddleware(&cruds)
+	crud.ms = &MiddlewareSet{
+		BeforeFindOne: []DatabaseRequestInterceptor{middleware}, AfterFindOne: []DatabaseRequestInterceptor{middleware},
+		BeforeUpdate: []DatabaseRequestInterceptor{middleware}, AfterUpdate: []DatabaseRequestInterceptor{middleware},
+	}
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
+		URL: &url.URL{Path: "/api/user_account/" + user.UserReferenceId.String()}}).
+		WithContext(context.WithValue(context.Background(), "user", user))}
+	if _, err := crud.FindOne(user.UserReferenceId.String(), request); err != nil {
+		t.Fatal(err)
+	}
+	update := api2go.NewApi2GoModelWithData(USER_ACCOUNT_TABLE_NAME, nil, 0, nil,
+		map[string]interface{}{"name": "Updated metering user"})
+	update.SetID(user.UserReferenceId.String())
+	if _, err := crud.Update(update, request); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err := crud.FindOneWithTransaction(user.UserReferenceId, request, tx); err != nil {
+		t.Fatal(err)
+	}
+	update = api2go.NewApi2GoModelWithData(USER_ACCOUNT_TABLE_NAME, nil, 0, nil,
+		map[string]interface{}{"name": "Updated metering user again"})
+	update.SetID(user.UserReferenceId.String())
+	if _, err := crud.UpdateWithTransaction(update, request, tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	verify, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer verify.Rollback()
+	rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, verify)
+	if err != nil || len(rows) != 2 {
+		t.Fatalf("PATCH usage rows = %d, %v; want 2", len(rows), err)
+	}
+	for _, row := range rows {
+		if row["state"] != meteringStateCompleted || row["method"] != http.MethodPatch ||
+			daptinid.InterfaceToDIR(row["user_account_id"]) != user.UserReferenceId {
+			t.Fatalf("PATCH usage is not completed for the active account: %#v", row)
+		}
+	}
+}
+
+func TestMeteringGuestAccountUnavailableFailsAdmission(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	guest, err := cruds[USER_ACCOUNT_TABLE_NAME].GetUserAccountRowByEmailWithTransaction("guest@cms.go", tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	administrator := *user
+	administrator.Groups = auth.GroupPermissionList{{GroupReferenceId: cruds[USER_ACCOUNT_TABLE_NAME].AdministratorGroupId}}
+	reference := daptinid.InterfaceToDIR(guest["reference_id"])
+	model := api2go.NewApi2GoModelWithData(USER_ACCOUNT_TABLE_NAME, cruds[USER_ACCOUNT_TABLE_NAME].TableInfo().Columns,
+		int64(cruds[USER_ACCOUNT_TABLE_NAME].TableInfo().DefaultPermission), cruds[USER_ACCOUNT_TABLE_NAME].TableInfo().Relations, guest)
+	model.SetAttributes(map[string]interface{}{"email": "former-guest@example.test"})
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
+		URL: &url.URL{Path: "/user_account/" + reference.String()}}).
+		WithContext(context.WithValue(context.Background(), "user", &administrator))}
+	if _, err := cruds[USER_ACCOUNT_TABLE_NAME].UpdateWithoutFilters(model, request, tx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewMeteringService(&cruds).Admit(MeteringContext{
+		User: &auth.SessionUser{}, RequestID: "guest-missing",
+		Metering: &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"},
+	}, tx); err == nil {
+		t.Fatal("admission succeeded without the persisted guest account")
+	}
+}
+
 func TestArchivedPlanContinuesToEnforceExistingMembership(t *testing.T) {
 	database, cruds, user := newCanonicalMeteringDatabase(t)
 	now := time.Date(2026, time.September, 1, 10, 0, 0, 0, time.UTC)

@@ -18,7 +18,15 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const llmE2EActionsSchema = `Actions:
+const llmE2EActionsSchema = `Tables:
+  - TableName: world
+    Metering:
+      on_actions:
+        llm_e2e_switched_chat:
+          enabled: true
+          cost_expr: "1"
+          meter_type: requests
+Actions:
   - Name: llm_e2e_chat
     Label: LLM chat E2E
     OnType: world

@@ -87,6 +87,7 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 	serviceToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "llm-service")
 	callerReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "llm-caller@test.local")
 	serviceReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "llm-service@test.local")
+	guestReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "guest@cms.go")
 
 	modelName := "llm-authorization-e2e"
 	createLLME2ECatalog(t, client, baseURL, adminToken, llmE2ECatalog{
@@ -122,6 +123,13 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 	if !llmE2EModelListed(serviceModels, modelName) {
 		t.Fatal("model with a shared execute group was hidden from the service account")
 	}
+	guestDenied, _ := postLLMActionForStatus(t, client, baseURL+"/v1/chat/completions", "", map[string]interface{}{
+		"model": modelName, "messages": []interface{}{map[string]interface{}{"role": "user", "content": "guest denied"}},
+	})
+	if guestDenied != http.StatusForbidden || upstreamRequests.Load() != 0 {
+		t.Fatalf("guest without model permission: status=%d upstream=%d", guestDenied, upstreamRequests.Load())
+	}
+	assertLLMUsageOwnedBy(t, client, baseURL, adminToken, guestReference, 0)
 
 	directDenied, _ := postLLMActionForStatus(t, client, baseURL+"/v1/chat/completions", callerToken, map[string]interface{}{
 		"model": modelName, "messages": []interface{}{map[string]interface{}{"role": "user", "content": "denied"}},
@@ -146,6 +154,7 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 	if upstreamRequests.Load() != 3 {
 		t.Fatalf("authorized requests = %d, want 3", upstreamRequests.Load())
 	}
+	assertLLMActionMeteringOwnedBy(t, client, baseURL, adminToken, callerReference, 2)
 	quotaStatus, _ := postLLMActionForStatus(t, client, baseURL+"/action/world/llm_e2e_switched_chat", callerToken, map[string]interface{}{
 		"attributes": map[string]interface{}{"user_reference_id": serviceReference, "model": modelName, "prompt": "over quota"},
 	})
@@ -166,6 +175,7 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 
 	assertLLMUsageOwnedBy(t, client, baseURL, adminToken, callerReference, 1)
 	assertLLMUsageOwnedBy(t, client, baseURL, adminToken, serviceReference, 2)
+	assertLLMUsageOwnedBy(t, client, baseURL, adminToken, guestReference, 1)
 }
 
 func llmE2EModelListed(response interface{}, modelName string) bool {
@@ -207,6 +217,27 @@ func assertLLMUsageOwnedBy(t testing.TB, client *http.Client, baseURL, token, us
 	}
 }
 
+func assertLLMActionMeteringOwnedBy(t testing.TB, client *http.Client, baseURL, token, userReference string, expected int) {
+	t.Helper()
+	response := transportE2EGetJSON(t, client, baseURL+"/api/api_usage?page%5Bsize%5D=100", token)
+	rows, _ := transportE2EPath(response, "data")
+	completed := 0
+	for _, item := range rows.([]interface{}) {
+		actionName, _ := transportE2EPath(item, "attributes.action_name")
+		owner, _ := transportE2EPath(item, "attributes.user_account_id")
+		state, _ := transportE2EPath(item, "attributes.state")
+		if actionName == "llm_e2e_switched_chat" && state == "completed" {
+			if owner != userReference {
+				t.Fatalf("switched wrapper action charged %v instead of %s", owner, userReference)
+			}
+			completed++
+		}
+	}
+	if completed != expected {
+		t.Fatalf("switched action usage owned by %s: completed=%d, want %d: %#v", userReference, completed, expected, response)
+	}
+}
+
 func assertLLMActionUsage(t testing.TB, response interface{}, path string, expected int64) {
 	t.Helper()
 	value, found := transportE2EPath(response, path)
@@ -226,7 +257,9 @@ func postLLMActionForStatus(t testing.TB, client *http.Client, url string, token
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("Authorization", "Bearer "+token)
+	if token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
 	request.Header.Set("Content-Type", "application/json")
 	response, err := client.Do(request)
 	if err != nil {
