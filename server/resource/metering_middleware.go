@@ -35,6 +35,7 @@ func (m *MeteringMiddleware) InterceptBefore(dr *DbResource, req *api2go.Request
 		Method:      req.PlainRequest.Method,
 		EntityType:  dr.TableInfo().TableName,
 		RequestType: "crud",
+		RequestBody: meteringResourceRequestBody(req, rows),
 		Metering:    dr.TableInfo().Metering,
 		Metadata: map[string]interface{}{
 			"phase": "preflight",
@@ -57,6 +58,7 @@ func (m *MeteringMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
 	response := map[string]interface{}{
 		"rows": rows,
 	}
+	responseJSON := ToJson(response)
 	decision, _ := req.PlainRequest.Context().Value(meteringDecisionContextKey{}).(*MeteringDecision)
 	err := m.service.Complete(MeteringContext{
 		Request:       req.PlainRequest,
@@ -68,7 +70,8 @@ func (m *MeteringMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
 		StatusCode:    statusCodeForMethod(req.PlainRequest.Method),
 		LatencyMS:     int(time.Since(start).Milliseconds()),
 		RequestBytes:  requestContentLength(req.PlainRequest.ContentLength),
-		ResponseBytes: len(ToJson(response)),
+		ResponseBytes: len(responseJSON),
+		ResponseBody:  []byte(responseJSON),
 		Metering:      dr.TableInfo().Metering,
 		Metadata: map[string]interface{}{
 			"table":     dr.TableInfo().TableName,
@@ -80,6 +83,13 @@ func (m *MeteringMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request,
 		return nil, err
 	}
 	return rows, nil
+}
+
+func meteringResourceRequestBody(req *api2go.Request, rows []map[string]interface{}) []byte {
+	if req.PlainRequest.Method == "GET" {
+		return []byte{}
+	}
+	return []byte(ToJson(rows))
 }
 
 func requestContentLength(contentLength int64) int {

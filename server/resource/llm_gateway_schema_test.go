@@ -16,7 +16,7 @@ func TestLLMGatewayUsesCanonicalResourcesAndRelations(t *testing.T) {
 		"llm_batch":      {"endpoint", "completion_window", "status", "metadata", "errors", "request_counts", "output_expiration_seconds", "claim_expires_at"},
 		"llm_batch_item": {"line_number", "custom_id", "body", "status", "response_status", "response_request_id", "response_body"},
 		"api_plan":       {"name", "limits"},
-		"api_usage":      {"request_id", "reservation_token", "state", "reservation_expires_at", "terminal_at", "reserved_measures", "reservation_buckets", "measures"},
+		"api_usage":      {"request_id", "reservation_token", "state", "reservation_expires_at", "terminal_at", "reserved_measures", "reservation_buckets", "measures", "request_body", "response_body", "request_body_encoding", "response_body_encoding"},
 		"api_quota":      {"bucket_key", "metric", "window_start", "window_end", "maximum", "reserved", "consumed"},
 	}
 	for tableName, columns := range requiredColumns {

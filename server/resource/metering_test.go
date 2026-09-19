@@ -112,6 +112,61 @@ func TestMeteringLifecycleIsAtomicGenericAndIdempotent(t *testing.T) {
 	}
 }
 
+func TestMeteringRecordsCompletePayloadsAndChecksOwner(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	service := NewMeteringService(&cruds)
+	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestBody := []byte(`{"prompt":"hello"}`)
+	decision, err := service.Admit(MeteringContext{RequestID: "payload-request", User: user, Metering: config, RequestBody: requestBody}, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Complete(MeteringContext{User: user, Metering: config, ResponseBody: []byte(`{"reply":"world"}`)}, decision, tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	verify, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	usage, err := service.findUsageByRequestID("payload-request", verify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if StringOrEmpty(usage["request_body"]) != string(requestBody) || StringOrEmpty(usage["response_body"]) != `{"reply":"world"}` ||
+		StringOrEmpty(usage["request_body_encoding"]) != "utf8" || StringOrEmpty(usage["response_body_encoding"]) != "utf8" {
+		t.Fatalf("payloads were not persisted: %#v", usage)
+	}
+	if err := service.RecordResponseBody(&auth.SessionUser{UserId: user.UserId + 1}, decision.ReservationToken, []byte("forged"), verify); err == nil {
+		t.Fatal("another account changed the response body")
+	}
+	binaryBody := []byte{0xff, 0x00, 0x80}
+	if err := service.RecordResponseBody(user, decision.ReservationToken, binaryBody, verify); err != nil {
+		t.Fatal(err)
+	}
+	if err := verify.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	check, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Rollback()
+	usage, err = service.findUsageByRequestID("payload-request", check)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if StringOrEmpty(usage["response_body"]) != "/wCA" || StringOrEmpty(usage["response_body_encoding"]) != "base64" {
+		t.Fatalf("binary response was not preserved: %#v", usage)
+	}
+}
+
 func TestMeteringGuestUsesPersistedAccountAndPlan(t *testing.T) {
 	database, cruds, _ := newCanonicalMeteringDatabase(t)
 	lookup, err := database.Beginx()

@@ -421,12 +421,6 @@ The following features have been verified working across a 3-node cluster:
 - **Olric PubSub (user topics)** — Messages published on Node B reach user topic subscribers on Node A
 - **Olric DMap (topic metadata)** — Topics created on Node A are visible on Node B
 
-### Known Issues
-
-1. **SMTP Listener** — The SMTP server logs "Started mail server" but the port does not actually open. The `guerrillad.Start()` call returns nil but the listener goroutine may fail silently.
-
-2. **`emb.Start()` timeout warning** — Olric's `Start()` is a blocking server loop that never returns. The 10-second timeout in `main.go` always fires — this is expected, not a bug. The cluster forms correctly after the timeout.
-
 ## Troubleshooting
 
 ### Olric Cluster Not Forming

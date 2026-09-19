@@ -179,12 +179,11 @@ curl -X DELETE "http://localhost:6336/api/task/$TASK_ID" \
 
 When a task triggers:
 
-1. **Transaction Start** - Database transaction begins
-2. **User Context** - Resolve the `user_account` referenced by `as_user_id`
-3. **Permission Setup** - Load that user's current usergroup memberships
-4. **Action Request** - Build request to `/action/{entity_name}/{action_name}`
-5. **Execute** - Call `HandleActionRequest()` on the target resource
-6. **Commit/Rollback** - Transaction completes based on result
+1. Daptin selects the account configured for the task.
+2. It checks that account's current group memberships and action permissions.
+3. It runs the configured action and its outcomes in order.
+4. It logs whether the action succeeded or failed. External effects from
+   outcomes that already ran may still have occurred when a later outcome fails.
 
 ### Execution Context
 
@@ -354,7 +353,7 @@ side effect.
 
 ### Startup
 
-1. Daptin loads all tasks from database via `GetAllTasks()`
+1. Daptin loads saved tasks
 2. Active tasks are registered with the cron scheduler
 3. Scheduler starts running in background
 
@@ -366,7 +365,7 @@ side effect.
 
 ### Shutdown
 
-1. `StopTasks()` halts the cron scheduler
+1. Daptin stops scheduling new runs
 2. Running tasks complete their current execution
 3. No new tasks are started
 

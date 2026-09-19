@@ -1483,53 +1483,12 @@ curl -X POST https://oauth2.googleapis.com/token \
   -d "grant_type=authorization_code"
 ```
 
-### Problem: User name shows as <nil>
+### Problem: User name is empty after Google login
 
-**Symptom:**
-
-```sql
-SELECT name, email FROM user_account;
--- name         | email
--- <nil>        | artpar@bug.video
-```
-
-**Cause:** Profile mapping looks for `displayName` but Google uses `name`
-
-**Current Workaround:** Name extraction is broken, but account still functions
-
-**Proper Fix:** (Requires code change)
-
-Update `server/resource/columns.go` line ~115:
-
-```go
-// Change from:
-"name": "$profile.displayName",
-
-// To:
-"name": "$profile.name",
-```
-
-Then rebuild Daptin.
-
-**Temporary Workaround:** Manually update user name:
-
-```bash
-TOKEN="admin-jwt-token"
-USER_ID="019bf964-4d52-7399-8ae1-17487c35ef62"
-
-curl -X PATCH "http://localhost:6336/api/user_account/$USER_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "user_account",
-      "id": "'$USER_ID'",
-      "attributes": {
-        "name": "Parth Mudgal"
-      }
-    }
-  }'
-```
+Daptin uses the provider's `displayName`, `name`, email, or provider ID when
+creating the account name. If an existing account has an empty name, inspect
+its profile through `/api/user_account` and update the account through that
+same API. See [[Users-and-Groups]] for account updates.
 
 ### Problem: OAuth works but user can't log in with password
 
@@ -1538,12 +1497,6 @@ curl -X PATCH "http://localhost:6336/api/user_account/$USER_ID" \
 **Error:** Invalid password
 
 **Cause:** OAuth sets password to `profile.id` (provider's user ID), not a real password
-
-**Example:**
-```sql
-SELECT password FROM user_account WHERE email = 'artpar@bug.video';
--- password: $2a$10$...hashed_value_of_"107201678880522641136"...
-```
 
 **Solution:** User must either:
 
@@ -1567,7 +1520,7 @@ SELECT password FROM user_account WHERE email = 'artpar@bug.video';
 
 **Purpose:** Prevent CSRF attacks where attacker tricks user into completing OAuth with attacker's account
 
-**Implementation:** TOTP-based state token
+**Protection:** Time-limited state token
 
 **Strength:**
 - ✅ Stateless (no database storage needed)
@@ -1585,7 +1538,7 @@ SELECT password FROM user_account WHERE email = 'artpar@bug.video';
 
 **Storage:** Encrypted in database with `encryption.secret`
 
-**Algorithm:** AES (based on Daptin's Encrypt function)
+**Algorithm:** AES
 
 **Key Management:** Secret stored in `_config` table
 
@@ -2064,9 +2017,10 @@ Visit the URL for the auth dialog: https://accounts.google.com/o/oauth2/v2/auth?
 4. ✅ **Usergroup Creation Works**
 5. ✅ **JWT Token Generation Works**
 6. ✅ **User Automatically Logged In**
-7. ⚠️ **Name Extraction Needs Fix** (known bug, low severity)
 
-**Overall:** OAuth implementation is functional and production-ready with minor name extraction fix needed.
+**Overall:** This tested flow completed account creation and login. Current
+account-name mapping checks several available profile fields. See the
+troubleshooting steps above if an existing account has an empty name.
 
 ---
 

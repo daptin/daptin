@@ -124,7 +124,8 @@ Relations:
 
 ### ✅ Complete Reference
 
-[[Schema-Reference-Complete|Schema Reference Complete]] documents all 19 TableInfo properties with test status.
+[[Schema-Reference-Complete|Schema Reference Complete]] documents resource
+definition fields and their test status.
 
 ### ✅ Full Walkthrough
 

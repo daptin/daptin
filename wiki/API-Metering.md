@@ -21,6 +21,22 @@ For maintainer internals, see [[API-Metering-Technical-KT]].
 | `api_usage` | One held, completed, cancelled, or expired request reservation |
 | `api_quota` | Durable reserved and consumed totals for one metric/window bucket |
 
+Each `api_usage` record identifies the metered operation and account, its
+progress and result, the quantities consumed, and the complete request and
+response payloads in `request_body` and `response_body`. For a metered HTTP
+resource or action call, these fields contain the body received by Daptin and
+the body returned to the client. An empty request body is stored as an empty
+string. For scheduled actions and other calls without an HTTP client, Daptin
+stores the action inputs and results. LLM HTTP calls also store the full body,
+including streamed responses; direct action and batch invocations store their
+invocation data and results.
+
+`request_body_encoding` and `response_body_encoding` are `utf8` for text or
+`base64` when the payload contains non-UTF-8 bytes. Decode base64 values to
+recover the exact bytes. These fields store bodies, not authorization headers
+or the complete HTTP exchange. Access to `api_usage` follows its ordinary
+resource permissions; payloads may contain user-supplied sensitive data.
+
 `api_plan.archived_at` is the canonical retirement state for sales workflows.
 Set it to a timestamp to retire a plan and to `null` to restore it. Archival does
 not delete or disable the plan: existing `api_member`, `api_usage`, and
@@ -137,8 +153,8 @@ row is selected.
 
 ## Enable metering on resources and actions
 
-Metering is part of `TableInfo`, not a backend `metering.llm.*` configuration.
-For a normal resource:
+Set `metering` on the resource definition in your world schema. For example,
+to count operations on an `orders` resource:
 
 ```json
 {
@@ -151,7 +167,9 @@ For a normal resource:
 }
 ```
 
-Action-specific settings inherit omitted fields from the resource:
+Action-specific settings inherit omitted `cost_expr`, `meter_type`, and
+`post_metering_action` fields from the resource. Set `enabled` explicitly in
+an action override:
 
 ```json
 {
@@ -173,6 +191,56 @@ Action-specific settings inherit omitted fields from the resource:
 `cost_expr` is evaluated only when the completed request did not already supply
 the configured metric. It can read `request`, `response`, `metadata`, and
 `user`. The defaults are `cost_expr: "1"` and `meter_type: "requests"`.
+
+### What you can meter
+
+| Operation | Where to enable it | What one usage record represents |
+|---|---|---|
+| Create, read, update, or delete a resource | Set `metering.enabled` on that resource | One resource operation, whether called through REST or GraphQL |
+| Run a named action | Enable metering on the resource the action belongs to, or in its `on_actions` entry | One action run, including a run started by a scheduled task |
+| Invoke an LLM model | The built-in `llm_model` `invoke` setting is enabled | One model invocation, whether started directly, by an action, or by a batch item |
+| Call an installed integration operation directly | Enable its generated action under the `integration` resource's `on_actions` setting | One generated action run |
+
+Installing an integration does not enable metering for its operations. To meter
+one, use the exact generated action name in the `integration` resource's
+`metering.on_actions` setting. For example, to count calls to the
+`github.com/listRepos` operation:
+
+```json
+{
+  "metering": {
+    "on_actions": {
+      "github.com/listRepos": {
+        "enabled": true,
+        "cost_expr": "1",
+        "meter_type": "requests"
+      }
+    }
+  }
+}
+```
+
+The generated integration action's usage record contains the request to Daptin
+and Daptin's action response. It does not separately capture the request sent
+to the external provider or the provider's raw response bytes.
+
+When one action includes an integration call as an outcome, metering that action
+records the outer action once. It does not create a separate usage record for
+the integration call, even if the generated integration action is metered for
+direct calls. When an action invokes an LLM model, the model invocation has its
+own usage record; a metered outer action has a separate record. These records
+represent different operations and can have different owners or limits.
+
+Choose the metering setting for the work you intend to count. Permission to run
+an action does not grant permission to its records, models, or provider
+credentials. Metering that action does not automatically meter every service
+it calls.
+
+An authorized, admitted operation creates a usage row even without an active
+`api_member`; without a membership and plan, no plan limit applies. Anonymous
+calls are attributed to the persisted `guest@cms.go` account for metering. All such
+calls share that account's quota if it has a plan; they are not separately
+metered per visitor. Guest authorization still uses guest permissions.
 
 ## LLM metering
 

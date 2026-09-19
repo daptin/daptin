@@ -1,31 +1,31 @@
 # Complete Schema Reference
 
-**Last Updated:** 2026-05-01 | **Status:** ✅ All properties tested | **Source:** `server/table_info/tableinfo.go`
+**Last Updated:** 2026-05-01
 
-Complete authoritative reference for all TableInfo properties in Daptin schema definitions.
+Reference for the fields in a Daptin resource definition.
 
 ## Quick Reference
 
 | Property | Type | Default | Required | Test Suite | Description |
 |----------|------|---------|----------|------------|-------------|
 | TableName | string | - | ✅ Yes | All | Table identifier (database name) |
-| Columns | []ColumnInfo | - | ✅ Yes | 1 | Array of column definitions |
+| Columns | array of objects | - | ✅ Yes | 1 | Column definitions |
 | DefaultPermission | int | 2097151 | No | All | Default access rights (octal) |
-| Relations | []TableRelation | [] | No | Relationships.md | Foreign key relationships |
+| Relations | array of objects | [] | No | Relationships.md | Foreign key relationships |
 | IsTopLevel | bool | true | No | 6 | Show in main navigation |
 | IsHidden | bool | false | No | 6 | Hide from /api/world listing |
 | IsJoinTable | bool | false | No | 6 | Mark as join table (metadata) |
 | IsStateTrackingEnabled | bool | false | No | 2 | Enable state machine tracking |
 | IsAuditEnabled | bool | false | No | 3 | Enable change history logging |
 | TranslationsEnabled | bool | false | No | 4 | Enable multi-language support |
-| DefaultGroups | []string or []object | [] | No | 10 | Auto-share with groups and optional relation permissions |
-| AccessGroups | []string or []object | [] | No | 10 | Grant groups access to this table's schema/type gate |
-| DefaultRelations | map | {} | No | 10 | Pre-configure relationships |
-| Validations | []ColumnTag | [] | No | 9 | Table-level validation rules |
-| Conformations | []ColumnTag | [] | No | 9 | Table-level data transformations |
+| DefaultGroups | array of names or objects | [] | No | 10 | Auto-share with groups and optional relation permissions |
+| AccessGroups | array of names or objects | [] | No | 10 | Grant groups access to this table's schema/type gate |
+| DefaultRelations | object | {} | No | 10 | Pre-configure relationships |
+| Validations | array of objects | [] | No | 9 | Table-level validation rules |
+| Conformations | array of objects | [] | No | 9 | Table-level data transformations |
 | DefaultOrder | string | "" | No | 7 | Default sort order |
 | Icon | string | "" | No | 8 | UI icon identifier |
-| CompositeKeys | [][]string | [] | No | 5 | Multi-column unique constraints |
+| CompositeKeys | array of name arrays | [] | No | 5 | Multi-column unique constraints |
 | TableDescription | string | "" | No | 8 | Table documentation |
 
 ## Core Properties
@@ -60,7 +60,7 @@ Tables:
 
 ### Columns
 
-**Type:** `[]api2go.ColumnInfo`
+**Type:** Array of column definitions
 **Required:** ✅ Yes
 **Default:** None
 
@@ -138,7 +138,7 @@ See [[Permissions|Permissions]] for detailed permission system.
 
 ### Relations
 
-**Type:** `[]api2go.TableRelation`
+**Type:** Array of relation definitions
 **Required:** No
 **Default:** `[]`
 
@@ -151,7 +151,6 @@ Relations:
     Object: post           # Table being referenced
     Relation: belongs_to   # Relationship type
     ObjectName: post_id    # FK column on comment (optional)
-    OnDelete: cascade      # Cascade behavior
 ```
 
 For `belongs_to`, omit `SubjectName`; defining both naming sides can create an
@@ -316,7 +315,7 @@ VALUES ('es', 'Hola', 'Contenido', 1);
 
 ### CompositeKeys
 
-**Type:** `[][]string`
+**Type:** Array of column-name arrays
 **Required:** No
 **Default:** `[]`
 
@@ -365,7 +364,7 @@ INSERT: student_id=S001, course_id=CS101  ❌ UNIQUE constraint failed
 
 ### Validations
 
-**Type:** `[]columns.ColumnTag`
+**Type:** Array of validation rules
 **Required:** No
 **Default:** `[]`
 
@@ -399,7 +398,7 @@ Tables:
 
 ### Conformations
 
-**Type:** `[]columns.ColumnTag`
+**Type:** Array of transformation rules
 **Required:** No
 **Default:** `[]`
 
@@ -587,11 +586,13 @@ Tables:
 
 ### DefaultGroups
 
-**Type:** `[]string` or `[]DefaultGroupBinding`
+**Type:** Array of group names or group settings
 **Required:** No
 **Default:** `[]`
 
-Automatically share new records with specified usergroups. The string form keeps the historical behavior. The object form also lets the schema set the permission stored on the generated `<entity>_<entity>_id_has_usergroup_usergroup_id` relation row.
+Automatically share new records with specified usergroups. List a group by
+name to use the relationship's default permission, or provide a group name and
+`Permission` to set the permission on the new record's group relationship.
 
 **String form:**
 ```yaml
@@ -613,7 +614,9 @@ Tables:
         Permission: 32768
 ```
 
-**Behavior:** When a project record is created, it is automatically shared with the listed usergroups. If `Permission` is set on the group binding, that value is written to the join-table relation row. If `Permission` is omitted, Daptin uses the relation table's default permission.
+**Behavior:** When a project record is created, it is automatically shared
+with the listed usergroups. If `Permission` is omitted, Daptin uses the
+relationship's default permission.
 
 For built-in entities, `DefaultGroups` remains table-scoped. `TableName: action` plus `DefaultGroups` applies to every schema-managed action. Use `Actions[].AccessGroups` when only selected actions should belong to a group.
 
@@ -623,11 +626,12 @@ For built-in entities, `DefaultGroups` remains table-scoped. `TableName: action`
 
 ### AccessGroups
 
-**Type:** `[]string` or `[]DefaultGroupBinding`
+**Type:** Array of group names or group settings
 **Required:** No
 **Default:** `[]`
 
-Grant usergroups access to this table's schema/type gate. Daptin stores this as a relation from the table's `world` row to the usergroup.
+Grant usergroups access to this resource type. This controls access to the
+resource as a whole; record permissions remain separate.
 
 **Example:**
 ```yaml
@@ -639,7 +643,9 @@ Tables:
         Permission: 999424
 ```
 
-**Behavior:** This creates or updates `world(document) -> users` in `world_world_id_has_usergroup_usergroup_id`. It does not grant access to individual `document` rows; use `DefaultGroups` or explicit row relations for that.
+**Behavior:** This lets the `users` group reach the `document` resource. It
+does not grant access to individual document records; use `DefaultGroups` or
+explicit record sharing for that.
 
 **Tested:** Suite 10 | **Status:** ✅ Working
 
@@ -647,7 +653,7 @@ Tables:
 
 ### DefaultRelations
 
-**Type:** `map[string][]string`
+**Type:** Object mapping names to arrays of names
 **Required:** No
 **Default:** `{}`
 

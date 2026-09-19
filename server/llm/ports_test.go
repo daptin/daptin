@@ -3,6 +3,10 @@ package llm
 import (
 	"context"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +16,45 @@ import (
 	"github.com/daptin/llmgateway/contract"
 	"github.com/google/uuid"
 )
+
+func TestDaptinMeteringCapturesHTTPPayloads(t *testing.T) {
+	database, cruds, _, _ := newCatalogTestResources(t)
+	metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}
+	handler := metering.captureHandler(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if _, err := io.ReadAll(request.Body); err != nil {
+			t.Error(err)
+		}
+		token, err := metering.Admit(request.Context(), contract.Admission{RequestID: "capture-http", Operation: contract.OperationResponses})
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if err := metering.Complete(request.Context(), contract.Completion{Token: token, Status: "completed", HTTPStatus: 200}); err != nil {
+			t.Error(err)
+			return
+		}
+		writer.Write([]byte(`{"answer":"complete"}`))
+		writer.(http.Flusher).Flush()
+	}))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(`{"prompt":"all bytes"}`)))
+	transaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer transaction.Rollback()
+	rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, transaction)
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("usage rows = %d, %v", len(rows), err)
+	}
+	if resource.StringOrEmpty(rows[0]["request_body"]) != `{"prompt":"all bytes"}` || resource.StringOrEmpty(rows[0]["response_body"]) != `{"answer":"complete"}` {
+		t.Fatalf("HTTP payloads were not recorded: %#v", rows[0])
+	}
+	requestBytes, err := resource.ResourceRowInt64(rows[0]["request_bytes"])
+	if err != nil || requestBytes != int64(len(`{"prompt":"all bytes"}`)) {
+		t.Fatalf("request_bytes = %v, %v", rows[0]["request_bytes"], err)
+	}
+}
 
 func TestDaptinMeteringRecordsGuestInvocation(t *testing.T) {
 	database, cruds, _, _ := newCatalogTestResources(t)

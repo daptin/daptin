@@ -111,21 +111,9 @@ curl -X PATCH "http://localhost:6336/api/product_product_id_has_usergroup_usergr
 - TTL: 60 minutes
 - **Critical**: Stale cache causes "Unauthorized" errors even with fresh database
 
-**Why port 5336 matters**:
-
-Code reference (server/resource/dbresource.go):
-```go
-func GetAdminReferenceIdWithTransaction(transaction *sqlx.Tx) map[uuid.UUID]bool {
-    if OlricCache != nil {
-        cacheValueGet, err := OlricCache.Get(context.Background(), "administrator_reference_id")
-        if err == nil {
-            cacheValueGet.Scan(&adminMap)
-            return adminMap  // Returns cached data!
-        }
-    }
-    // ... query database if cache miss
-}
-```
+**Why port 5336 matters:** Daptin uses this cache for permission-related
+lookups. An older Daptin process connected to a different database can return
+stale values, so stop it before starting a fresh instance.
 
 **Tested symptom**:
 ```bash

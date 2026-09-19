@@ -71,7 +71,7 @@ This walkthrough teaches you:
 │  └──────┴────────┴───────────┴────┬─────┴────────────────────┘  │
 └───────────────────────────────────┼─────────────────────────────┘
                                     │
-                    ForeignKeyData.Namespace = "product-images"
+                    Cloud store: "product-images"
                                     │
 ┌───────────────────────────────────▼─────────────────────────────┐
 │                      cloud_store                                 │
@@ -87,30 +87,25 @@ This walkthrough teaches you:
 
 ### Prerequisites Check
 
-Make sure you have these installed:
+Install a Daptin binary using [[Installation]] and make it available as
+`daptin` on your PATH. Run the commands below from a new working directory
+where you want to keep the schema and SQLite database. You also need `jq`.
 
 ```bash
-# Check Go version (need 1.19 or higher)
-go version
-# Expected: go version go1.24.3 darwin/arm64 (or similar)
+# Check Daptin is available
+command -v daptin
 
 # Check jq (JSON parser)
 jq --version
 # Expected: jq-1.6 (or similar)
 
-# Check you're in the Daptin directory
+# Check your working directory
 pwd
-# Expected: .../daptin
-
-# Check source code exists
-ls main.go
-# Expected: main.go
 ```
 
 If anything is missing:
-- **Go**: Install from https://go.dev/dl/
 - **jq**: `brew install jq` (Mac) or `apt-get install jq` (Linux)
-- **Daptin source**: Clone from https://github.com/daptin/daptin
+- **Daptin**: Follow [[Installation#native-binary]]
 
 ### What This Walkthrough Uses
 
@@ -153,7 +148,7 @@ schema_product.yaml → Daptin reads → Creates product table → Exposes /api/
 
 **What we're doing**: Setting up a clean Daptin instance with our product table.
 
-**Why start fresh**: Using an existing database can cause permission issues due to cached data. Starting fresh ensures everything works correctly.
+Use a new working directory so this walkthrough has its own schema and database.
 
 ---
 
@@ -226,32 +221,21 @@ ls -lh schema_product.yaml
 
 **What we're doing**: Starting Daptin server with a clean database.
 
-**Why kill existing processes?**
-Old Daptin processes keep permissions in cache (Olric). If you don't kill them, you'll get confusing "403 Forbidden" errors later.
+Stop only the Daptin process started by this walkthrough if you are repeating it.
 
 ```bash
-# Step 1: Kill any existing Daptin processes
-pkill -9 -f daptin 2>/dev/null || true
-pkill -9 -f "go run main" 2>/dev/null || true
+# Step 1: Stop an earlier walkthrough process, if any
+if test -f .daptin-walkthrough.pid; then kill "$(cat .daptin-walkthrough.pid)" 2>/dev/null || true; fi
 sleep 2
-echo "✓ Killed existing processes"
 
-# Step 2: Free the ports Daptin uses
-lsof -i :6336 -t | xargs kill -9 2>/dev/null || true  # HTTP API port
-lsof -i :5336 -t | xargs kill -9 2>/dev/null || true  # Olric cache port
-echo "✓ Freed ports 6336 and 5336"
-
-# Step 3: Remove old database for clean start
-rm -f daptin.db
-echo "✓ Removed old database"
-
-# Step 4: Start server in background
-nohup go run main.go > /tmp/daptin.log 2>&1 &
+# Step 2: Start server in background
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
 echo "✓ Started Daptin server"
 echo "Waiting 20 seconds for initialization..."
 sleep 20
 
-# Step 5: Verify server is running
+# Step 3: Verify server is running
 curl -s http://localhost:6336/api/world | head -c 50
 echo ""
 echo "✓ Server is running!"
@@ -461,11 +445,12 @@ Daptin loads cloud storage configuration on startup. After creating a `cloud_sto
 
 ```bash
 # Kill current server
-pkill -f "go run main"
+kill "$(cat .daptin-walkthrough.pid)"
 sleep 2
 
 # Start fresh
-nohup go run main.go > /tmp/daptin.log 2>&1 &
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
 echo "Waiting 20 seconds for server to restart..."
 sleep 20
 
@@ -533,7 +518,10 @@ curl -X POST http://localhost:6336/api/cloud_store \
   }'
 
 # Restart server
-pkill -f "go run main" && sleep 2 && nohup go run main.go > /tmp/daptin.log 2>&1 &
+kill "$(cat .daptin-walkthrough.pid)"
+sleep 2
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
 sleep 20
 TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
   -H "Content-Type: application/json" \
@@ -822,9 +810,10 @@ If the product table wasn't created:
 
 3. Restart server to reload schema:
    ```bash
-   pkill -f "go run main"
+   kill "$(cat .daptin-walkthrough.pid)"
    sleep 2
-   nohup go run main.go > /tmp/daptin.log 2>&1 &
+   nohup daptin > /tmp/daptin.log 2>&1 &
+   echo $! > .daptin-walkthrough.pid
    sleep 20
    ```
 
@@ -990,28 +979,8 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   jq -r '.data[] | "\(.attributes.user_account_id) → \(.attributes.usergroup_id)"'
 ```
 
-Or using SQLite directly:
-
-```bash
-echo "User-Group Memberships (readable):"
-sqlite3 daptin.db "
-SELECT u.name as User, ug.name as UserGroup
-FROM user_account_user_account_id_has_usergroup_usergroup_id j
-JOIN user_account u ON j.user_account_id = u.id
-JOIN usergroup ug ON j.usergroup_id = ug.id
-ORDER BY u.name, ug.name;
-"
-```
-
-**Expected output:**
-```
-User              | UserGroup
-------------------|-----------------
-Admin             | administrators
-Admin             | users
-Marketing Mary    | marketing
-Sales Sam         | sales
-```
+Use the relationship response above to check each user's group. The
+`user_account_id` and `usergroup_id` values are record reference IDs.
 
 **What this means**:
 - Admin is in administrators and users groups ✓
@@ -1154,9 +1123,11 @@ curl -s -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergro
   }"
 
 # CRITICAL: Restart server to clear Olric permission cache
-./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
-./scripts/testing/test-runner.sh token
-TOKEN=$(cat /tmp/daptin-token.txt)
+kill "$(cat .daptin-walkthrough.pid)"
+sleep 2
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
+# Sign in again using the signin request in Step 0.3
 ```
 
 ### 5.3 Share Individual Products with Groups (Optional)
@@ -1307,11 +1278,12 @@ cat schema_product.yaml
 
 ```bash
 echo "Stopping server..."
-pkill -9 -f "go run main"
+kill "$(cat .daptin-walkthrough.pid)"
 sleep 2
 
 echo "Starting server..."
-nohup go run main.go > /tmp/daptin.log 2>&1 &
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
 sleep 20
 
 # Get new token
@@ -1623,7 +1595,10 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 # 2. If missing, add it (see Step 5.2)
 
 # 3. CRITICAL: Restart server to clear Olric permission cache
-./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
+kill "$(cat .daptin-walkthrough.pid)"
+sleep 2
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
 ```
 
 **Other checks:**
@@ -1693,7 +1668,10 @@ curl -s -X PATCH "http://localhost:6336/api/product_product_id_has_usergroup_use
 **Solution**: Restart the server to clear the Olric distributed cache:
 
 ```bash
-./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
+kill "$(cat .daptin-walkthrough.pid)"
+sleep 2
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
 ```
 
 The Olric cache has a 10-minute TTL, so alternatively you can wait for it to expire.
@@ -1841,42 +1819,23 @@ Group Read only (2):       2 × 16384 = 32768 (for join tables)
 }
 ```
 
-### Useful Database Queries
+### Useful API Queries
 
 ```bash
-# List all tables
-sqlite3 daptin.db ".tables"
-
-# Check users
-sqlite3 daptin.db "SELECT id, name, email FROM user_account;"
-
-# Check groups
-sqlite3 daptin.db "SELECT id, name FROM usergroup;"
-
-# Check user-group memberships
-sqlite3 daptin.db "
-SELECT u.name, ug.name
-FROM user_account_user_account_id_has_usergroup_usergroup_id j
-JOIN user_account u ON j.user_account_id = u.id
-JOIN usergroup ug ON j.usergroup_id = ug.id;
-"
-
-# Check product permissions
-sqlite3 daptin.db "SELECT name, permission FROM product;"
-
-# Check world (table) permissions
-sqlite3 daptin.db "SELECT table_name, default_permission FROM world;"
+for resource in world user_account usergroup user_account_user_account_id_has_usergroup_usergroup_id product; do
+  curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:6336/api/$resource" | jq '.data'
+done
 ```
 
 ### Server Management
 
 ```bash
 # Start server
-nohup go run main.go > /tmp/daptin.log 2>&1 &
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
 
 # Stop server
-pkill -9 -f "go run main"
-pkill -9 -f daptin
+kill "$(cat .daptin-walkthrough.pid)"
 
 # View logs
 tail -f /tmp/daptin.log
@@ -1888,12 +1847,12 @@ tail -f /tmp/daptin.log | grep -i error
 lsof -i :6336
 curl -s http://localhost:6336/api/world | head -c 50
 
-# Restart (clean)
-pkill -9 -f daptin && \
-  pkill -9 -f "go run main" && \
-  sleep 2 && \
-  nohup go run main.go > /tmp/daptin.log 2>&1 & && \
-  sleep 20
+# Restart
+kill "$(cat .daptin-walkthrough.pid)"
+sleep 2
+nohup daptin > /tmp/daptin.log 2>&1 &
+echo $! > .daptin-walkthrough.pid
+sleep 20
 ```
 
 ### Common Errors and Solutions
@@ -1910,8 +1869,7 @@ pkill -9 -f daptin && \
 ### Project Structure
 
 ```
-daptin/
-├── main.go                      # Entry point
+working-directory/
 ├── schema_product.yaml          # Your table schema
 ├── daptin.db                    # SQLite database (created automatically)
 ├── /tmp/daptin.log             # Server logs

@@ -16,6 +16,8 @@ Metering remains a Daptin resource concern:
 | `server/resource/metering_middleware.go` | CRUD lifecycle integration |
 | `server/resource/handle_action.go` | Action lifecycle integration |
 | `server/llm/ports.go` | LLM authorization and metering adapter |
+| `server/metering_payload.go` | Final HTTP response capture for metered resource and action requests |
+| `server/llm/gateway.go` | LLM HTTP and streaming payload capture |
 
 There is one durable ledger (`api_usage`) and one quota authority
 (`api_quota`). Olric protects LLM deployments but is not the authority for
@@ -27,7 +29,7 @@ customer quota enforcement.
 |---|---|
 | `api_plan` | `name`, `limits`, `price_monthly_cents`, `archived_at`, `metadata` |
 | `api_member` | `status`, `period_start`, `period_end`, `metadata`, `api_plan_id` |
-| `api_usage` | request identity, lifecycle state, reservation data, final `measures`, metadata, terminal status |
+| `api_usage` | request identity, lifecycle state, reservation data, final `measures`, request and response bodies with encoding, metadata, terminal status |
 | `api_quota` | `bucket_key`, metric/window bounds, `maximum`, `reserved`, `consumed` |
 
 `api_plan.limits` is a JSON array of `{metric, window, maximum, mode}` values.
@@ -54,6 +56,14 @@ type MeteringConfig struct {
 `MeteringConfigForAction` resolves an action override and inherits its missing
 cost expression, meter type, and post-metering action from the resource-level
 configuration. There is no separate LLM metering configuration store.
+
+Generated integration actions are attached to the `integration` resource and
+use this same action configuration when entered directly. An integration
+performer called as an outcome of another action does not re-enter action
+admission; only the containing action's configured metering runs. See
+[[API-Metering#what-you-can-meter]] for the operator-facing boundaries. The
+ledger also stores complete Daptin operation payloads. Integration action
+metering does not capture the separate outbound provider exchange.
 
 ## Lifecycle
 

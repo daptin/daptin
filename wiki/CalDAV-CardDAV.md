@@ -437,16 +437,7 @@ go run main.go
 
 ---
 
-## Implementation Details
-
-### Code Location
-
-- **Endpoint**: `server/endpoint_caldav.go`
-- **Configuration**: `server/server.go` lines 387-436
-- **Backend**: Uses `github.com/emersion/go-webdav` library
-- **File System**: `webdav.LocalFileSystem("./storage")`
-
-### Supported Methods
+## Supported Methods
 
 All standard WebDAV methods are registered for both `/caldav/*` and `/carddav/*`:
 

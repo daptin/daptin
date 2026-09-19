@@ -267,6 +267,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	cruds := make(map[string]*resource.DbResource)
 	crudsInterface := make(map[string]dbresourceinterface.DbResourceInterface)
+	defaultRouter.Use(meteringPayloadMiddleware(&cruds))
 	defaultRouter.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
 
 	api := api2go.NewAPIWithRouting(

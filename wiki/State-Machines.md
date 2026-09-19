@@ -402,7 +402,7 @@ State machine transitions require Execute permission on the `smd` table. Only us
 
 ## Limitations
 
-The current implementation:
+Current limits:
 - **No guard conditions** - Transitions validate only source state membership
 - **No entry/exit actions** - Actions must be triggered separately
 - **No parallel states** - One state per instance only
@@ -527,83 +527,6 @@ curl "http://localhost:6336/api/smd" \
 
 **Tested:** 2026-09-16 | **Status:** transition executed; confirm the embedded
 outcome and durable state because the HTTP status is not authoritative
-
-## Technical Details: Bug Fix (2026-01-26)
-
-### The Bug
-
-Prior to 2026-01-26, the `/track/event/:typename/:objectStateId/:eventName` endpoint would hang indefinitely with stuck transactions. Logs showed:
-```
-Failed to get object [] by reference id [00000000-0000-0000-0000-000000000000]
-```
-
-### Root Cause
-
-The handler at `server/handlers.go:CreateEventHandler` had three interconnected issues:
-
-1. **Empty QueryParams** (Line 40): The FindOne request had empty QueryParams, preventing relationship loading via `included_relations`.
-
-2. **Missing Includes**: Without loaded includes, the handler couldn't find the subject instance (e.g., the `ticket` record), so it passed a nil/zero-value model to the FSM.
-
-3. **Transaction Deadlock**: The FSM tried to query the database while the handler held an open transaction, causing a deadlock.
-
-4. **Binary UUID Mismatch**: The UPDATE query used binary UUID in WHERE clause which didn't match SQLite's BLOB storage format correctly.
-
-### The Fix
-
-**File:** `server/handlers.go` - CreateEventHandler function
-
-**Change 1: Added Relationship Includes** (Lines 31-46)
-```go
-typename_state := typename + "_state"
-req := api2go.Request{
-    PlainRequest: gincontext.Request,
-    QueryParams: map[string][]string{
-        "included_relations": []string{
-            "is_state_of_" + typename,  // Load the subject instance
-            typename + "_smd",           // Load the SMD definition
-        },
-    },
-}
-```
-
-**Change 2: Split Transaction Handling** (Lines 107-125)
-```go
-// Check permissions with transaction
-transaction, err := db.Beginx()
-stateMachinePermission := cruds["smd"].GetRowPermission(...)
-
-// Commit BEFORE calling FSM to avoid deadlock
-err = transaction.Commit()
-
-// Now call FSM (uses separate DB connection)
-nextState, err := fsmManager.ApplyEvent(...)
-
-// Start NEW transaction for state update
-transaction, err = db.Beginx()
-```
-
-**Change 3: Hex Format for Binary UUID** (Lines 169-176)
-```go
-// Use X'hex' format for SQLite BLOB comparison
-hexId := fmt.Sprintf("%X", stateMachineId[:])
-Where(goqu.L("reference_id = X'" + hexId + "'"))
-```
-
-### Verification
-
-Run the E2E test:
-```bash
-./scripts/testing/test-runner.sh start
-TOKEN=$(./scripts/testing/test-runner.sh token)
-STATE_ID="<your-state-id>"
-
-# Test transition (should return in <5ms)
-time curl -X POST "http://localhost:6336/track/event/ticket/$STATE_ID/assign" \
-  -H "Authorization: Bearer $TOKEN" -d '{}'
-```
-
-Expected: HTTP 200 in ~2ms, database updated successfully.
 
 ## Related
 

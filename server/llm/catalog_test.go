@@ -447,7 +447,8 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		if queryErr != nil {
 			t.Fatal(queryErr)
 		}
-		if len(usageRows) == 1 && resource.StringOrEmpty(usageRows[0]["state"]) == "cancelled" {
+		if len(usageRows) == 1 && resource.StringOrEmpty(usageRows[0]["state"]) == "cancelled" &&
+			resource.StringOrEmpty(usageRows[0]["response_body_encoding"]) == "utf8" {
 			break
 		}
 		if time.Now().After(terminalDeadline) {

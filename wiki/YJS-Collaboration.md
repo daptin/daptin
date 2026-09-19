@@ -569,8 +569,6 @@ YJS endpoints are auto-generated for any column with `ColumnType` starting with 
 | `file.spreadsheet` | Spreadsheet data | Handsontable |
 | `file.*` | Any file type | Custom editors |
 
-**Implementation:** `server/endpoint_yjs.go:42-44`
-
 ---
 
 ## Testing Status

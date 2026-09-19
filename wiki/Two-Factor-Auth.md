@@ -1,6 +1,8 @@
 # OTP Authentication and Account Recovery
 
-Daptin uses time-based one-time passwords for authenticated OTP enrollment and for account recovery. The implementation is designed so an anonymous caller cannot enroll an OTP profile or use the passwordless-login actions.
+Daptin uses time-based one-time passwords for authenticated OTP enrollment and
+account recovery. Anonymous callers cannot enroll an OTP profile or use the
+passwordless-login actions.
 
 ## Security Properties
 
@@ -25,7 +27,9 @@ The account counter is the primary defense against distributed-source attacks. C
 
 The built-in `send_otp`, `verify_otp`, and `verify_mobile_number` actions require the `AuthenticatedExecute` permission. They do not grant `GuestExecute`.
 
-The performers also verify that the authenticated user owns the target account for enrollment, sending, and authenticated verification. This ownership check is intentional defense in depth and is not replaced by action-row permission changes.
+Daptin also checks that the signed-in user owns the target account when
+enrolling an OTP profile, sending a code, or verifying one. Changing action
+permissions does not remove this ownership requirement.
 
 The `reset-password` and `reset-password-verify` actions remain reachable for account recovery, but they operate only on an already enrolled and verified OTP profile and are protected by the distributed attempt and replay controls.
 

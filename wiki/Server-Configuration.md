@@ -701,37 +701,11 @@ host=hostname port=5432 user=username password=password dbname=database_name ssl
 | Setup Complexity | Simple (file-based) | Moderate (server required) | Moderate (server required) |
 | Concurrent Writes | Limited (1 connection) | Excellent (50 connections) | Excellent (50 connections) |
 | Production Ready | Development only | Yes | Yes |
-| Clustering Support | No | Yes (with Olric)* | Yes (with Olric)* |
+| Clustering Support | No | Yes (with Olric) | Yes (with Olric) |
 | File Size Limit | ~281 TB | Server dependent | Server dependent |
 | Best For | Development, prototyping | Production, web apps | Production, complex queries |
 
-*Note: Olric clustering currently has known issues (see below)
-
----
-
-## Known Issues
-
-### Olric Multi-Node Clustering (Not Working)
-
-**Status**: ⚠️ Clustering configuration exists but has bugs
-
-**Issue**: When starting Daptin with Olric clustering flags, nodes fail with:
-```
-[FATA] failed to create olric topic - no available client found
-```
-
-**What Was Tested:**
-- 2-node cluster with shared PostgreSQL database
-- Olric bind ports: 5001, 5002
-- Membership ports configured
-- Peers configured: each node knows about the other
-- Environment: `lan`
-
-**Result:** Olric starts successfully but PubSub topic creation fails in `server/server.go:304-307`.
-
-**Conclusion**: Olric clustering flags are present but the feature appears incomplete or has initialization timing issues. Single-node Olric (default, no clustering flags) works fine.
-
-**For now:** Run separate Daptin instances with separate databases (no clustering), or use a single Daptin instance with MySQL/PostgreSQL for production.
+For multi-node setup and verification, see [[Clustering]].
 
 ---
 

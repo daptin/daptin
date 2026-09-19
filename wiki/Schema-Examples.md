@@ -694,7 +694,7 @@ curl -X DELETE /api/your_table/ID ...
 
 ## Related Documentation
 
-- [[Schema-Reference-Complete|Schema Reference Complete]] - All TableInfo properties
+- [[Schema-Reference-Complete|Schema Reference Complete]] - Resource definition fields
 - [[Column-Types|Column Types]] - All 41 column types
 - [[Column-Type-Reference|Column Type Reference]] - Detailed per-type docs
 - [[Relationships|Relationships]] - Foreign keys and relations

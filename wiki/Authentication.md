@@ -4,8 +4,6 @@ Daptin supports multiple authentication methods: JWT tokens, OAuth providers, an
 
 **Related**: [[Permissions|Permissions]] | [[Users-and-Groups|Users and Groups]] | [[Two-Factor-Auth|Two-Factor Auth]] | [[OAuth-Provider|OAuth Provider]]
 
-**Source of truth**: `server/resource/columns.go` (actions), `server/actions/action_oauth_*.go` (OAuth consumer performers), `server/endpoint_oauth.go` and `server/resource/oauth_provider.go` (OAuth provider)
-
 ---
 
 ## JWT Authentication

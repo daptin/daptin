@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -81,8 +82,20 @@ type daptinMetering struct {
 	service *resource.MeteringService
 }
 
+type meteringPayloadKey struct{}
+
+type meteringPayload struct {
+	requestBody *bytes.Buffer
+	token       string
+}
+
 func (metering daptinMetering) Admit(ctx context.Context, admission contract.Admission) (contract.ReservationToken, error) {
 	user := daptinSessionUser(ctx)
+	payload, _ := ctx.Value(meteringPayloadKey{}).(*meteringPayload)
+	var requestBody []byte
+	if payload != nil && payload.requestBody != nil {
+		requestBody = append([]byte{}, payload.requestBody.Bytes()...)
+	}
 	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
 	if err != nil {
 		return contract.ReservationToken{}, fmt.Errorf("begin metering admission: %w", err)
@@ -92,6 +105,7 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 	decision, err := metering.service.Admit(resource.MeteringContext{
 		RequestID: string(admission.RequestID), User: user, Endpoint: "/v1/" + string(admission.Operation), Method: "POST",
 		EntityType: "llm_model", RequestType: "llm_" + string(admission.Operation),
+		RequestBody:       requestBody,
 		EstimatedMeasures: admission.EstimatedUsage.AllMeasures(), Metering: config,
 		Metadata: map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation},
 	}, transaction)
@@ -105,7 +119,25 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 	if err := transaction.Commit(); err != nil {
 		return contract.ReservationToken{}, fmt.Errorf("commit metering admission: %w", err)
 	}
+	if payload != nil {
+		payload.token = decision.ReservationToken
+	}
 	return contract.ReservationToken{RequestID: admission.RequestID, Opaque: decision.ReservationToken}, nil
+}
+
+func (metering daptinMetering) recordResponse(ctx context.Context, payload *meteringPayload, body []byte) error {
+	if payload == nil || payload.token == "" {
+		return nil
+	}
+	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
+	if err != nil {
+		return err
+	}
+	defer transaction.Rollback()
+	if err := metering.service.RecordResponseBody(daptinSessionUser(ctx), payload.token, body, transaction); err != nil {
+		return err
+	}
+	return transaction.Commit()
 }
 
 func (metering daptinMetering) Complete(ctx context.Context, completion contract.Completion) error {

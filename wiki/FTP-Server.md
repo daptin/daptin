@@ -591,22 +591,14 @@ FTP performance depends on:
 
 Default maximum: 100 concurrent FTP connections.
 
-**To change**:
-```go
-// In server/ftp_server.go:DaptinFtpServerSettings
-MaxConnections: 100,  // Change this value
-```
-
-Requires code change and recompilation.
+There is currently no runtime setting to change this limit.
 
 ### Passive Mode Ports
 
 FTP uses dynamic passive ports for data transfer. Ensure firewall allows these connections.
 
-**Configure passive port range** (requires code change in `ftp_server.go`):
-```go
-PassiveTransferPortRange: &server.PortRange{Start: 50000, End: 51000},
-```
+Daptin does not currently expose a passive-port-range setting. Verify the
+data ports used by your deployment before restricting them in a firewall.
 
 ---
 

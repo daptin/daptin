@@ -75,8 +75,8 @@ schema_*.yml
 
 Daptin always scans `schema_*.*` in the process working directory. If
 `DAPTIN_SCHEMA_FOLDER` is set, it also scans that directory and appends those
-matches. Unsupported extensions are logged and skipped; TOML is not loaded by
-the current implementation. File-system definitions are loaded before stored
+matches. Unsupported extensions are logged and skipped; TOML files are not
+loaded. Schema files are loaded before stored
 `world` rows are merged. Use `DAPTIN_SKIP_CONFIG_FROM_DATABASE=true` only when
 you intentionally do not want stored world definitions merged, and
 `DAPTIN_SKIP_INITIALISE_RESOURCES=true` only for controlled diagnostics because
@@ -125,23 +125,23 @@ Relations:
     Relation: belongs_to
 ```
 
-## CmsConfig Structure
+## Schema File Sections
 
-Full configuration schema:
+Schema files can contain these top-level sections:
 
-```go
-type CmsConfig struct {
-    Tables        []TableInfo       // Entity definitions
-    Relations     []RelationInfo    // Relationships
-    Actions       []ActionInfo      // Business logic
-    StateMachines []StateMachine    // FSM definitions
-    Streams       []StreamInfo      // Data streams
-    Exchanges     []ExchangeInfo    // External integrations
-    Tasks         []TaskInfo        // Scheduled jobs
-    Imports       []ImportInfo      // Initial data
-    EnableGraphQL bool              // GraphQL toggle
-}
-```
+| Section | Defines |
+|---|---|
+| `Tables` | Resources and their columns |
+| `Relations` | Connections between resources |
+| `Actions` | Named operations and their outcomes |
+| `StateMachineDescriptions` | State machine definitions |
+| `Streams` | Data streams |
+| `ExchangeContracts` | Data exchange definitions |
+| `Tasks` | Scheduled actions |
+| `Imports` | Initial data |
+| `EnableGraphQL` | Enable the GraphQL endpoint at startup |
+
+You can also set `graphql.enable` through the configuration API shown above.
 
 ## Environment-Specific Configuration
 

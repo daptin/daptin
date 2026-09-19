@@ -58,8 +58,6 @@ Fresh database, first user signup succeeds, but `become_an_administrator` return
 
 The cache stores admin IDs with 60-minute TTL. Even with a fresh database, if an old process holds port 5336, the cache says "admin exists" and rejects your request.
 
-**Code reference**: server/resource/dbresource.go:GetAdminReferenceIdWithTransaction()
-
 ### Solution
 
 ```bash

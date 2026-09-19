@@ -4,8 +4,6 @@ Define connections between tables to create linked data structures.
 
 **Related**: [[Core-Concepts|Core Concepts]] | [[Schema-Definition|Schema Definition]] | [[CRUD-Operations|CRUD Operations]]
 
-**Source of truth**: `server/resource/columns.go` (StandardRelations), `github.com/artpar/api2go/v2` (TableRelation)
-
 ---
 
 ## Relationship Types
@@ -481,104 +479,12 @@ Relations:
 
 ---
 
-## Cascade Behavior (OnDelete Property)
+## Deleting Related Records
 
-The `table_info.TableRelation` struct includes an `OnDelete` field to control what happens when a referenced record is deleted.
-
-**Defined in:** `server/table_info/tableinfo.go:10-13`
-
-### OnDelete Options
-
-| OnDelete Value | Behavior | Use Case |
-|----------------|----------|----------|
-| `cascade` | Delete related records automatically | Comments when post deleted |
-| `restrict` | Prevent delete if related records exist | Can't delete category with products |
-| `set_null` | Set FK to NULL (column must be nullable) | Optional author on blog post |
-| `set_default` | Set FK to default value | Reset to "uncategorized" |
-| `no_action` | Database default behavior | Let database handle it |
-
-### Example: Cascade Delete
-
-```yaml
-Relations:
-  - Subject: comment
-    Object: post
-    Relation: belongs_to
-    OnDelete: cascade  # Delete comments when post deleted
-```
-
-**Behavior:**
-```sql
--- When you delete a post
-DELETE FROM post WHERE id = 1;
-
--- All comments are automatically deleted
--- No orphaned comments remain
-```
-
-### Example: Restrict Delete
-
-```yaml
-Relations:
-  - Subject: product
-    Object: category
-    Relation: belongs_to
-    OnDelete: restrict  # Prevent deleting categories with products
-```
-
-**Behavior:**
-```sql
--- If category has products
-DELETE FROM category WHERE id = 1;
--- Error: Cannot delete - products still reference this category
-
--- Must delete products first
-DELETE FROM product WHERE category_id = 1;
--- Now can delete category
-DELETE FROM category WHERE id = 1;  -- Success
-```
-
-### Example: Set NULL
-
-```yaml
-Relations:
-  - Subject: post
-    Object: user_account
-    Relation: belongs_to
-    SubjectName: author_id
-    OnDelete: set_null  # Keep posts when author deleted
-```
-
-**Requirements:**
-- FK column MUST be nullable (`IsNullable: true`)
-
-**Behavior:**
-```sql
--- When author deleted
-DELETE FROM user_account WHERE id = 5;
-
--- Posts remain but author_id set to NULL
-UPDATE post SET author_id = NULL WHERE author_id = 5;
-```
-
-### Important Notes
-
-**SQLite Limitation:**
-SQLite does not enforce foreign key constraints by default. For production with FK enforcement, use:
-- PostgreSQL
-- MySQL with `FOREIGN_KEY_CHECKS=1`
-
-**Daptin's Approach:**
-Daptin manages relationships at the application level, not relying solely on database FK constraints.
-
-**Default Behavior:**
-If `OnDelete` is not specified, database default behavior applies (typically `no_action`).
-
-**Tested:** Structure verified in `server/table_info/tableinfo.go` | Runtime behavior depends on database engine
-
-**Note**: SQLite does not enforce foreign key constraints by default.
-
----
+Daptin does not currently apply an `OnDelete` rule from a relation definition.
+Do not rely on `cascade`, `restrict`, `set_null`, or `set_default` in a schema
+file to change delete behavior. Update or delete related records explicitly
+through Daptin's resource API before deleting the record they reference.
 
 ## Complete Example
 

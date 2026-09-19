@@ -514,11 +514,10 @@ and `cost_micros`, plus operation-specific named measures. The same `api_plan`
 limits can be applied to any other metered Daptin resource using its own named
 measures.
 
-LLM invocation uses the `llm_model` resource's ordinary `TableInfo.Metering`
-configuration under the `invoke` action. The standard table enables request
-metering there. Custom cost expressions, meter types, and post-metering actions
-are configured through that same resource metering definition; there is no
-separate LLM metering configuration path.
+LLM invocation is metered through the `invoke` setting on the `llm_model`
+resource. It is enabled by default. To change the cost expression, measured
+quantity, or billing action, edit that resource's `metering.on_actions.invoke`
+setting in the world schema. See [[API-Metering]] for the complete setup.
 
 Hard limits use the database-backed generic quota state and fail closed when
 that authority is unavailable. Olric counters protect deployments

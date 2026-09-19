@@ -4,7 +4,7 @@ Daptin supports **41 built-in column types** for automatic validation, storage, 
 
 **Related**: [[Core-Concepts|Core Concepts]] | [[Column-Type-Reference|Column Type Reference]] | [[Schema-Definition|Schema Definition]]
 
-**Source of truth**: `server/resource/column_types.go` | **Tested:** 2026-01-25 (test-results/01-column-types-complete.md)
+**Tested:** 2026-01-25
 
 ---
 

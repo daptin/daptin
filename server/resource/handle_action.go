@@ -386,6 +386,10 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 		meteringCaller = &caller
 		meteringRequest = req.PlainRequest.WithContext(context.WithValue(req.PlainRequest.Context(), "user", meteringCaller))
 		meteringService = NewMeteringService(&dbResource.Cruds)
+		requestBody := actionRequest.RawBodyBytes
+		if requestBody == nil {
+			requestBody = []byte(ToJson(actionRequest.Attributes))
+		}
 		var meteringErr error
 		meteringDecision, meteringErr = meteringService.Admit(MeteringContext{
 			Request:     meteringRequest,
@@ -395,6 +399,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 			EntityType:  actionRequest.Type,
 			ActionName:  actionRequest.Action,
 			RequestType: "action",
+			RequestBody: requestBody,
 			Metering:    actionMetering,
 			Metadata: map[string]interface{}{
 				"action_type": actionRequest.Type,
@@ -664,6 +669,7 @@ OutFields:
 	}
 
 	if meteringService != nil && actionMetering != nil {
+		responseJSON := ToJson(responses)
 		responseTypes := make([]string, 0, len(responses))
 		for _, response := range responses {
 			responseTypes = append(responseTypes, response.ResponseType)
@@ -679,7 +685,8 @@ OutFields:
 			StatusCode:    200,
 			LatencyMS:     int(time.Since(start).Milliseconds()),
 			RequestBytes:  len(actionRequest.RawBodyBytes),
-			ResponseBytes: len(ToJson(responses)),
+			ResponseBytes: len(responseJSON),
+			ResponseBody:  []byte(responseJSON),
 			Metering:      actionMetering,
 			Metadata: map[string]interface{}{
 				"action_type":    actionRequest.Type,

@@ -1,6 +1,7 @@
 # GET API Complete Reference
 
-Comprehensive reference for Daptin's GET API based on systematic testing of `server/resource/resource_findallpaginated.go`.
+Comprehensive reference for filtering, sorting, field selection, and
+pagination through Daptin's GET API.
 
 **All features tested ✓** - January 25, 2026
 
@@ -248,13 +249,11 @@ curl -H "Authorization: Bearer $TOKEN" \
 - `page[size]=0` falls back to 1 (safe default)
 - Use single quotes or URL-encode brackets
 
-### Cursor Pagination **⚠️ BUG**
+### Cursor Pagination
 
-**Status**: NOT WORKING
-
-`page[after]` and `page[before]` have a bug in `resource_findallpaginated.go:477-495`. They return all records instead of filtering.
-
-**Do not use** until bug is fixed.
+Pass a record reference ID in `page[after]` or `page[before]`. Verify the
+returned IDs and ordering for your resource before relying on cursors in a
+client. See [[Filtering-and-Pagination#cursor-based-pagination]].
 
 ---
 
@@ -562,34 +561,6 @@ curl --get \
   -H "Authorization: Bearer $TOKEN" \
   "http://localhost:6336/api/world?fields=table_name,icon&sort=table_name&page%5Bsize%5D=100"
 ```
-
----
-
-## Code Reference
-
-Implementation: `server/resource/resource_findallpaginated.go`
-
-| Feature | Lines | Function |
-|---------|-------|----------|
-| Query parsing | 233-249 | Parse JSON query array |
-| Filter fallback | 316-332 | Legacy filter support |
-| Pagination | 225-230, 277-282 | Page number/size parsing |
-| Cursor pagination | 477-495 | page[after]/page[before] (buggy) |
-| Sorting | 301-312, 909-937 | Sort parameter parsing |
-| Field selection | 264-274, 352-372 | Select specific columns |
-| Included relations | 284-294 | Load related records |
-| Operator map | 1294-1320 | All supported operators |
-| Query filter processing | 1342-1467 | Apply filters to SQL |
-| Fuzzy search | 1470-1740 | Fuzzy search implementation |
-| Logical groups | 1751-1806 | OR logic via groups |
-
----
-
-## Known Bugs
-
-1. **Cursor Pagination** (lines 477-495): `if err != nil` should be `if err == nil`
-2. **any of / none of**: Not implemented correctly - use `in` instead
-3. **Wildcard Auto-Add**: `contains`, `begins with`, `ends with` don't add wildcards automatically
 
 ---
 

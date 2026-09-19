@@ -119,6 +119,5 @@ rows.
   both table-level and row-level read permissions.
 
 The `enable_rss`, `enable_atom`, and `enable_json` fields describe the intended
-format policy, but v0.13.14's handler selects output from the requested file
-extension. Enforce disabled formats at the ingress until those flags are
-checked by the handler.
+format policy, but v0.13.14 selects output from the requested file extension.
+If a format must be unavailable, block its URL at your ingress.

@@ -4,8 +4,6 @@ Secure storage for sensitive authentication data.
 
 **Related**: [[Cloud-Storage|Cloud Storage]] | [[Integrations|Integrations]]
 
-**Source of truth**: `server/resource/columns.go` (credential table)
-
 ---
 
 ## Overview

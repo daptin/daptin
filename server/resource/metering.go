@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -60,6 +62,8 @@ type MeteringContext struct {
 	LatencyMS         int
 	RequestBytes      int
 	ResponseBytes     int
+	RequestBody       []byte
+	ResponseBody      []byte
 	EstimatedMeasures map[string]int64
 	Measures          map[string]int64
 	ReservationTTL    time.Duration
@@ -163,6 +167,13 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 		return nil, err
 	}
 	ctx.User = owner
+	capture := meteringPayloadCapture(ctx.Request)
+	if capture != nil {
+		ctx.RequestBody = capture.RequestBody()
+	}
+	if ctx.RequestBytes == 0 && ctx.RequestBody != nil {
+		ctx.RequestBytes = len(ctx.RequestBody)
+	}
 	decision.Enabled = true
 	decision.config = config
 	if err := m.lockMeteringUser(ctx.User.UserId, tx); err != nil {
@@ -232,7 +243,11 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 		if existingUserID != ctx.User.UserId {
 			return nil, errors.New("metering request_id belongs to another user")
 		}
-		return m.existingDecision(existing, config, tx)
+		existingDecision, err := m.existingDecision(existing, config, tx)
+		if err == nil {
+			capture.register(existingDecision, owner)
+		}
+		return existingDecision, err
 	}
 	if !errors.Is(err, errMeteringRowNotFound) {
 		return nil, err
@@ -259,6 +274,7 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	if decision.UsageID <= 0 {
 		return nil, errors.New("invalid api_usage id: must be positive")
 	}
+	capture.register(decision, owner)
 	return decision, nil
 }
 
@@ -440,11 +456,18 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	}
 	usageModel := api2go.NewApi2GoModelWithData("api_usage", (*m.cruds)["api_usage"].TableInfo().Columns,
 		int64((*m.cruds)["api_usage"].TableInfo().DefaultPermission), (*m.cruds)["api_usage"].TableInfo().Relations, usage)
-	usageModel.SetAttributes(map[string]interface{}{
+	attributes := map[string]interface{}{
 		"state": terminalState, "status_code": ctx.StatusCode, "latency_ms": ctx.LatencyMS,
 		"request_bytes": ctx.RequestBytes, "response_bytes": ctx.ResponseBytes, "measures": measuresJSON,
 		"metadata": metadata, "error_message": nullableString(ctx.ErrorMessage), "terminal_at": m.now(),
-	})
+	}
+	if ctx.RequestBody != nil {
+		attributes["request_body"], attributes["request_body_encoding"] = encodeMeteringBody(ctx.RequestBody)
+	}
+	if ctx.ResponseBody != nil {
+		attributes["response_body"], attributes["response_body_encoding"] = encodeMeteringBody(ctx.ResponseBody)
+	}
+	usageModel.SetAttributes(attributes)
 	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
 		URL: &url.URL{Path: "/api_usage/" + daptinid.InterfaceToDIR(usage["reference_id"]).String()}}).
 		WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", ctx.User))}
@@ -458,6 +481,11 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 }
 
 func hydrateMeteringContext(ctx MeteringContext, usage map[string]interface{}) MeteringContext {
+	if ctx.RequestBytes == 0 {
+		if recorded, err := ResourceRowInt64(usage["request_bytes"]); err == nil {
+			ctx.RequestBytes = int(recorded)
+		}
+	}
 	if ctx.Endpoint == "" {
 		ctx.Endpoint = StringOrEmpty(usage["endpoint"])
 	}
@@ -506,6 +534,9 @@ func (m *MeteringService) insertAdmission(ctx MeteringContext, decision *Meterin
 		"state": meteringStateHeld, "reservation_expires_at": now.Add(lease),
 		"reserved_measures": reservedJSON, "reservation_buckets": reservationJSON, "measures": "{}", "metadata": metadata,
 	}
+	if ctx.RequestBody != nil {
+		record["request_body"], record["request_body_encoding"] = encodeMeteringBody(ctx.RequestBody)
+	}
 	if decision.Plan != nil {
 		record["api_plan_id"] = daptinid.InterfaceToDIR(decision.Plan["reference_id"]).String()
 	}
@@ -520,6 +551,44 @@ func (m *MeteringService) insertAdmission(ctx MeteringContext, decision *Meterin
 		return nil, fmt.Errorf("create metering admission: %w", err)
 	}
 	return m.findUsageByRequestID(decision.RequestID, tx)
+}
+
+func encodeMeteringBody(body []byte) (string, string) {
+	if utf8.Valid(body) {
+		return string(body), "utf8"
+	}
+	return base64.StdEncoding.EncodeToString(body), "base64"
+}
+
+// RecordResponseBody stores the final payload when serialization or streaming
+// finishes after metering terminalization.
+func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservationToken string, body []byte, tx *sqlx.Tx) error {
+	if tx == nil {
+		return errors.New("metering response recording requires a transaction")
+	}
+	usage, err := m.findUsageByToken(reservationToken, tx)
+	if err != nil {
+		return err
+	}
+	owner, err := m.usageOwner(user, tx)
+	if err != nil {
+		return err
+	}
+	usageUserID, err := ResourceRowInt64(usage["user_account_id"])
+	if err != nil || usageUserID != owner.UserId {
+		return errors.New("metering reservation belongs to another user")
+	}
+	value, encoding := encodeMeteringBody(body)
+	usageModel := api2go.NewApi2GoModelWithData("api_usage", (*m.cruds)["api_usage"].TableInfo().Columns,
+		int64((*m.cruds)["api_usage"].TableInfo().DefaultPermission), (*m.cruds)["api_usage"].TableInfo().Relations, usage)
+	usageModel.SetAttributes(map[string]interface{}{
+		"response_body": value, "response_body_encoding": encoding, "response_bytes": len(body),
+	})
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
+		URL: &url.URL{Path: "/api_usage/" + daptinid.InterfaceToDIR(usage["reference_id"]).String()}}).
+		WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", m.internalUser(owner)))}
+	_, err = (*m.cruds)["api_usage"].UpdateWithoutFilters(usageModel, request, tx)
+	return err
 }
 
 func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimit, amount int64, user *auth.SessionUser, tx *sqlx.Tx) (meteringReservation, error) {

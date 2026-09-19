@@ -4,8 +4,6 @@ Actions for importing, exporting, and managing data.
 
 **Related**: [[Data-Exchange|Data Exchange]] | [[Cloud-Storage|Cloud Storage]] | [[Actions-Overview|Actions Overview]]
 
-**Source of truth**: `server/resource/columns.go` (SystemActions), `server/actions/action_*_data.go` (performers)
-
 ---
 
 ## export_data

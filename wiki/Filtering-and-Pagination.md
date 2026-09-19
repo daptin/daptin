@@ -14,8 +14,8 @@ Complete reference for querying, filtering, sorting, and paginating API requests
 |-----------|---------|-------------|--------|
 | `page[number]` | 1 | Page number (1-indexed) | ✓ Working |
 | `page[size]` | 10 | Records per page | ✓ Working |
-| `page[after]` | - | Cursor-based: records after UUID | ⚠️ Bug (see below) |
-| `page[before]` | - | Cursor-based: records before UUID | ⚠️ Bug (see below) |
+| `page[after]` | - | Records after a reference ID | Available |
+| `page[before]` | - | Records before a reference ID | Available |
 
 ### Pagination Response Structure
 
@@ -58,23 +58,11 @@ curl "http://localhost:6336/api/product?page%5Bnumber%5D=2&page%5Bsize%5D=20" \
 
 Where `%5B` = `[` and `%5D` = `]`
 
-### Cursor-Based Pagination **⚠️ BUG**
+### Cursor-Based Pagination
 
-**Status**: NOT WORKING - `page[after]` and `page[before]` parameters have a bug.
-
-**Expected**: `page[after]=UUID` should return records after that UUID
-**Actual**: Returns all records, ignoring cursor
-
-**Bug Location**: `server/resource/resource_findallpaginated.go` lines 477-495
-
-The filter is only applied when there's an error (backwards logic):
-```go
-if err != nil {  // Should be: if err == nil
-    queryBuilder = queryBuilder.Where(...)
-}
-```
-
-**Do NOT use** cursor pagination until this bug is fixed.
+Pass a record reference ID in `page[after]` or `page[before]` to request the
+next or previous set of records. Check the returned IDs and ordering for your
+resource before relying on cursors in a client.
 
 ---
 
@@ -488,17 +476,15 @@ curl --get \
 2. **Select only needed fields** - Use `fields` parameter to reduce response size
 3. **Filter early** - Apply query filters to reduce result set
 4. **Index frequently filtered columns** - Set `IsIndexed: true` in schema
-5. **Avoid cursor pagination** - Use offset pagination until cursor bug is fixed
+5. **Check cursor ordering** - Verify the returned IDs when using `page[after]` or `page[before]`
 6. **Use fuzzy search carefully** - Fuzzy search is slower than exact match
 
 ---
 
 ## Known Issues
 
-1. **Cursor Pagination Bug**: `page[after]` and `page[before]` don't filter correctly (lines 477-495 in `resource_findallpaginated.go`)
-2. **Operators `any of` and `none of`**: Not working - use `in` instead
-3. **Invalid sort columns**: No error thrown, query succeeds but sorting may not apply
-4. **Wildcard requirement**: `contains`, `begins with`, `ends with` require manual `%` wildcards
+1. **Invalid sort columns**: No error thrown, query succeeds but sorting may not apply
+2. **Wildcard requirement**: `contains`, `begins with`, `ends with` require manual `%` wildcards
 
 ---
 

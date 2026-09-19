@@ -1,11 +1,15 @@
 package llm
 
 import (
+	"bytes"
 	"context"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,6 +31,7 @@ import (
 type Gateway struct {
 	engine             *gateway.Engine
 	handler            http.Handler
+	metering           daptinMetering
 	batchProcessor     *daptinBatchProcessor
 	maintenanceCancel  context.CancelFunc
 	batchCancel        context.CancelFunc
@@ -65,9 +70,10 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 			return nil, err
 		}
 	}
+	metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}
 	engine, err := gateway.New(gateway.Dependencies{
 		Catalog: &daptinCatalog{cruds: cruds}, Secrets: daptinSecrets{cruds: cruds}, Adapters: adapters,
-		Authorizer: daptinAuthorizer{cruds: cruds}, Metering: daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)},
+		Authorizer: daptinAuthorizer{cruds: cruds}, Metering: metering,
 		Counters: coordination, Cache: olricResponseCache{values: cache},
 		Guardrails: guardrail.NewRegistry(), Telemetry: daptinTelemetry{}, Selector: gateway.RandomSelector{}, Clock: gateway.SystemClock{},
 	}, gateway.Options{})
@@ -84,7 +90,8 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 	if err := engine.Reload(ctx); err != nil {
 		return nil, fmt.Errorf("load LLM gateway catalog: %w", err)
 	}
-	gatewayHost := &Gateway{engine: engine, handler: handler, batchProcessor: &daptinBatchProcessor{
+	handler = metering.captureHandler(handler)
+	gatewayHost := &Gateway{engine: engine, handler: handler, metering: metering, batchProcessor: &daptinBatchProcessor{
 		cruds: cruds, files: files, batches: daptinBatches{cruds: cruds, files: files}, handler: handler, coordination: coordination,
 	}}
 	gatewayHost.startMaintenance(ctx, cruds["world"].PubSub)
@@ -110,7 +117,69 @@ func (gatewayHost *Gateway) Invoke(ctx context.Context, user *auth.SessionUser, 
 		user = &auth.SessionUser{}
 	}
 	ctx = context.WithValue(ctx, "user", user)
-	return gatewayHost.engine.Invoke(ctx, gatewayPrincipal(user), request)
+	requestBody, err := stdjson.Marshal(request)
+	if err != nil {
+		return contract.Response{}, err
+	}
+	payload := &meteringPayload{requestBody: bytes.NewBuffer(requestBody)}
+	ctx = context.WithValue(ctx, meteringPayloadKey{}, payload)
+	response, err := gatewayHost.engine.Invoke(ctx, gatewayPrincipal(user), request)
+	responseBody, marshalErr := stdjson.Marshal(response)
+	if err != nil {
+		responseBody, marshalErr = stdjson.Marshal(map[string]string{"error": err.Error()})
+	}
+	if marshalErr == nil {
+		if recordErr := gatewayHost.metering.recordResponse(ctx, payload, responseBody); recordErr != nil {
+			log.Errorf("record LLM response payload: %v", recordErr)
+		}
+	}
+	return response, err
+}
+
+type meteringReadCloser struct {
+	io.Reader
+	io.Closer
+}
+
+type meteringResponseWriter struct {
+	http.ResponseWriter
+	body bytes.Buffer
+}
+
+func (writer *meteringResponseWriter) Write(body []byte) (int, error) {
+	n, err := writer.ResponseWriter.Write(body)
+	writer.body.Write(body[:n])
+	return n, err
+}
+
+func (writer *meteringResponseWriter) Flush() {
+	if flusher, ok := writer.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+func (writer *meteringResponseWriter) Unwrap() http.ResponseWriter {
+	return writer.ResponseWriter
+}
+
+func (metering daptinMetering) captureHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost || strings.HasPrefix(request.URL.Path, "/v1/files") ||
+			strings.HasPrefix(request.URL.Path, "/v1/batches") {
+			next.ServeHTTP(writer, request)
+			return
+		}
+		payload := &meteringPayload{requestBody: &bytes.Buffer{}}
+		if request.Body != nil {
+			request.Body = meteringReadCloser{Reader: io.TeeReader(request.Body, payload.requestBody), Closer: request.Body}
+		}
+		request = request.WithContext(context.WithValue(request.Context(), meteringPayloadKey{}, payload))
+		responseWriter := &meteringResponseWriter{ResponseWriter: writer}
+		next.ServeHTTP(responseWriter, request)
+		if err := metering.recordResponse(request.Context(), payload, responseWriter.body.Bytes()); err != nil {
+			log.Errorf("record LLM response payload: %v", err)
+		}
+	})
 }
 
 func (gatewayHost *Gateway) Reload(ctx context.Context) error {

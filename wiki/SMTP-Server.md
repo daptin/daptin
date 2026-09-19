@@ -251,7 +251,7 @@ time, so scheduled outbox retries do not duplicate it.
 
 ### aws.mail.send Parameters
 
-For AWS SES, the performer expects a stored credential reference:
+For AWS SES, `aws.mail.send` expects a stored credential reference:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

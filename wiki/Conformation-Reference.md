@@ -17,7 +17,8 @@ Daptin uses [conform library](https://github.com/artpar/conform) for data transf
 - Tags are applied in left-to-right order
 - Works with string data only
 
-**Important:** Conformations are applied in the `InterceptBefore` middleware during POST/PATCH requests.
+Conformations transform values submitted in POST and PATCH requests before
+Daptin validates and saves them.
 
 ---
 
@@ -737,11 +738,11 @@ Tables:
 
 ## Execution Order
 
-**Important:** Conformations are applied in the `InterceptBefore` middleware when processing POST and PATCH requests.
+Conformations apply to values submitted in POST and PATCH requests.
 
 **Order of Operations:**
 1. Request received
-2. `InterceptBefore` called
+2. Daptin processes each submitted object
 3. For each object:
    - Conformations applied (data transformed)
    - Validations checked (on transformed data)

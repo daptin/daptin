@@ -4,8 +4,6 @@ External API integration via OpenAPI specifications.
 
 **Related**: [[Authentication|Authentication]] | [[Actions-Overview|Actions Overview]]
 
-**Source of truth**: `server/resource/columns.go` (integration table), `server/actions/action_integration_*.go` (performers)
-
 ---
 
 ## Overview
@@ -80,6 +78,15 @@ Both endpoints execute the same generated Daptin action. A call is admitted
 only when the active user can execute the `integration` entity and the
 `{provider_name}/{operation_id}` action, and can read the selected credential or
 OAuth token. REST and GraphQL do not have separate integration permissions.
+
+You can meter a generated integration action through the `integration`
+resource's `metering.on_actions` setting. Its usage record counts the action
+run and stores the request body sent to Daptin and the action response returned
+by Daptin. It does not separately store the raw request and response exchanged
+with the external provider. If another action includes the integration call as
+an outcome, only that outer action's metering applies. See
+[[API-Metering#what-you-can-meter]] for examples and the behavior when combining
+actions and integrations.
 
 ## Which User Supplies the Credential?
 
@@ -529,7 +536,7 @@ curl -X POST "http://localhost:6336/action/integration/install_integration" \
 2. Creates an action for each operation (identified by `operationId`)
 3. Adds a required, optional, or absent auth selector according to each operation's effective OpenAPI `security`
 4. Maps path/query/body parameters to action input fields
-5. Registers the integration name as a performer
+5. Makes the installed operations available as generated actions
 6. Refreshes provider-scoped operation mappings in memory without requiring a server restart
 
 ---

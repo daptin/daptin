@@ -9,7 +9,8 @@ Daptin keeps four decisions independent:
    member, or the active user selected by a trusted action.
 2. **Permissions** decide whether that identity may reach a table, row, or
    action.
-3. **Metering** records and limits how much an authenticated account may use.
+3. **Metering** records usage for the active account, including the shared
+   persisted guest account, and enforces any applicable plan limits.
 4. **Credential ownership** decides which account may use an external-provider
    secret.
 
@@ -26,16 +27,17 @@ backend workflows without separate execution paths.
 | Free signed-in tier | Daptin user | User or group permissions | Active free `api_plan` membership | [[Authorization-Scenario-Private-Site]] and [[API-Metering]] |
 | Paid individual tier | Daptin user | User or group permissions | Active paid plan with hard or soft limits | [[API-Metering]] |
 | Team workspace | User plus persisted usergroup membership | World, row, and action group permissions | Meter each active user through their plan | [[Authorization-Scenario-Shared-Group-Workspace]] |
-| Public catalogue with private customer data | Guest or signed-in user, depending on the row | World and row permissions | Meter authenticated operations when required | [[Authorization-Scenario-Mixed-Public-Private]] |
+| Public catalogue with private customer data | Guest or signed-in user, depending on the row | World and row permissions | Meter enabled operations to the active account when required | [[Authorization-Scenario-Mixed-Public-Private]] |
 | User-connected external provider | Signed-in user | Generated integration action permission | Meter the generated action if required | [[Integrations#execute-integration-operations]] |
 | Shared provider/service account | Caller starts a trusted action; `SWITCH_USER` selects the service user for later outcomes | Wrapper action permission plus credential ownership | Meter the caller-facing action separately from provider identity | [[Integrations#run-an-integration-as-a-service-account]] |
 | Administrator provisioning workflow | Administrator group | Administrator-only action | Usually not customer-metered | [[Authorization-Scenario-Action-Access-Gates]] |
 
 ## Public Does Not Mean Individually Metered
 
-A guest has no durable Daptin `user_account` identity. Daptin can grant that
-guest access with guest permission bits, but API metering does not create
-per-user usage or quota records for anonymous requests.
+Anonymous requests remain guests for permission checks. When an operation has
+metering enabled, Daptin attributes its usage to the persisted `guest@cms.go`
+account. All anonymous requests share that account and any plan quota assigned
+to it; metering does not identify or limit individual visitors.
 
 Choose one of these supported designs:
 
@@ -48,9 +50,9 @@ Choose one of these supported designs:
 - A frontend may look public while obtaining a user session before a metered
   operation. The operation is then authorized and metered as that account.
 
-Do not enable metering on a guest endpoint and assume anonymous requests will
-become plan members. See [[Rate-Limiting]] for anonymous protection and
-[[API-Metering]] for durable account quotas.
+Do not assume metering a guest endpoint creates separate memberships or quotas
+for anonymous visitors. See [[Rate-Limiting]] for per-IP/path protection and
+[[API-Metering]] for the shared guest ledger and account quotas.
 
 ## Common SaaS Compositions
 
