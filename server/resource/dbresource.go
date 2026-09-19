@@ -1154,13 +1154,9 @@ func (dbResource *DbResource) UpdateAssetColumnWithFile(columnName,
 		return err
 	}
 
-	colData := obj[columnName]
-
-	var files []map[string]interface{}
-	if colData != nil {
-		files = colData.([]map[string]interface{})
-	} else {
-		files = make([]map[string]interface{}, 0)
+	files, err := assetColumnFiles(obj[columnName])
+	if err != nil {
+		return err
 	}
 
 	// Check if file already exists and update or append
@@ -1192,7 +1188,10 @@ func (dbResource *DbResource) UpdateAssetColumnWithFile(columnName,
 	}
 
 	// Update column
-	jsonData, _ := json.Marshal(files)
+	jsonData, err := json.Marshal(files)
+	if err != nil {
+		return err
+	}
 
 	newData := goqu.Record{
 		"updated_at": time.Now(),
@@ -1218,25 +1217,19 @@ func (dbResource *DbResource) UpdateAssetColumnStatus(resourceUuid daptinid.Dapt
 		return err
 	}
 
-	colData := resourceData[columnName]
-	var files []map[string]interface{}
-	if colData != nil {
-		// Handle both string (JSON) and direct array types
-		switch v := colData.(type) {
-		case string:
-			json.Unmarshal([]byte(v), &files)
-		case []map[string]interface{}:
-			files = v
-		default:
-			files = make([]map[string]interface{}, 0)
-		}
+	files, err := assetColumnFiles(resourceData[columnName])
+	if err != nil {
+		return err
 	}
 
 	// Find and update the file with matching upload_id
+	found := false
 	for i, file := range files {
 		if file["upload_id"] == uploadId {
+			found = true
 			file["status"] = status
 			delete(file, "upload_id")
+			delete(file, "s3_upload_id")
 
 			// Add metadata if provided
 			if metadata != nil {
@@ -1253,9 +1246,15 @@ func (dbResource *DbResource) UpdateAssetColumnStatus(resourceUuid daptinid.Dapt
 			break
 		}
 	}
+	if !found {
+		return fmt.Errorf("pending asset upload not found")
+	}
 
 	// Update column
-	jsonData, _ := json.Marshal(files)
+	jsonData, err := json.Marshal(files)
+	if err != nil {
+		return err
+	}
 
 	newData := goqu.Record{
 		"updated_at": time.Now(),
@@ -1273,35 +1272,130 @@ func (dbResource *DbResource) UpdateAssetColumnStatus(resourceUuid daptinid.Dapt
 
 }
 
+func assetColumnFiles(value interface{}) ([]map[string]interface{}, error) {
+	switch files := value.(type) {
+	case nil:
+		return []map[string]interface{}{}, nil
+	case string:
+		var decoded []map[string]interface{}
+		if err := json.Unmarshal([]byte(files), &decoded); err != nil {
+			return nil, err
+		}
+		return decoded, nil
+	case []byte:
+		var decoded []map[string]interface{}
+		if err := json.Unmarshal(files, &decoded); err != nil {
+			return nil, err
+		}
+		return decoded, nil
+	case []map[string]interface{}:
+		return files, nil
+	case []interface{}:
+		decoded := make([]map[string]interface{}, 0, len(files))
+		for _, item := range files {
+			file, ok := item.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("invalid asset entry %T", item)
+			}
+			decoded = append(decoded, file)
+		}
+		return decoded, nil
+	default:
+		return nil, fmt.Errorf("invalid asset column value %T", value)
+	}
+}
+
+func (dbResource *DbResource) GetAssetColumnFiles(resourceUuid daptinid.DaptinReferenceId, columnName string, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
+	row, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.tableInfo.TableName, resourceUuid, transaction)
+	if err != nil {
+		return nil, err
+	}
+	return assetColumnFiles(row[columnName])
+}
+
+func (dbResource *DbResource) GetPendingAssetUpload(resourceUuid daptinid.DaptinReferenceId, columnName, uploadId string, transaction *sqlx.Tx) (map[string]interface{}, error) {
+	files, err := dbResource.GetAssetColumnFiles(resourceUuid, columnName, transaction)
+	if err != nil {
+		return nil, err
+	}
+	for _, file := range files {
+		if file["upload_id"] == uploadId && file["status"] == "pending" {
+			return file, nil
+		}
+	}
+	return nil, fmt.Errorf("pending asset upload not found")
+}
+
+func (dbResource *DbResource) RemoveAssetColumnFile(resourceUuid daptinid.DaptinReferenceId, columnName string, index int, fileName, filePath string, transaction *sqlx.Tx) error {
+	row, err := dbResource.GetReferenceIdToObjectWithTransaction(dbResource.tableInfo.TableName, resourceUuid, transaction)
+	if err != nil {
+		return err
+	}
+	files, err := assetColumnFiles(row[columnName])
+	if err != nil {
+		return err
+	}
+	if index < 0 || index >= len(files) {
+		return fmt.Errorf("asset attachment changed during deletion")
+	}
+	storedPath, _ := files[index]["path"].(string)
+	if files[index]["name"] != fileName || storedPath != filePath {
+		return fmt.Errorf("asset attachment changed during deletion")
+	}
+	remaining := make([]map[string]interface{}, 0, len(files)-1)
+	for _, file := range files {
+		pathValue, _ := file["path"].(string)
+		if file["name"] == fileName && pathValue == filePath {
+			continue
+		}
+		remaining = append(remaining, file)
+	}
+	jsonData, err := json.Marshal(remaining)
+	if err != nil {
+		return err
+	}
+	query, args, err := statementbuilder.Squirrel.Update(dbResource.tableInfo.TableName).
+		Where(goqu.Ex{"reference_id": resourceUuid[:]}).
+		Set(goqu.Record{columnName: jsonData, "updated_at": time.Now()}).Prepared(true).ToSQL()
+	if err != nil {
+		return err
+	}
+	_, err = transaction.Exec(query, args...)
+	return err
+}
+
 func (dbResource *DbResource) UpdateAssetColumnWithPendingUpload(resourceUuid daptinid.DaptinReferenceId,
-	columnName, fileName, uploadId string, fileSize int64, fileType string, transaction *sqlx.Tx) error {
+	columnName, fileName, uploadId string, fileSize int64, fileType, s3UploadId string, transaction *sqlx.Tx) error {
 
 	obj, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction(dbResource.tableInfo.TableName, resourceUuid, nil, transaction)
 	if err != nil {
 		return err
 	}
 
-	colData := obj[columnName]
-
-	var files []map[string]interface{}
-	if colData != nil {
-		files = colData.([]map[string]interface{})
-	} else {
-		files = make([]map[string]interface{}, 0)
+	files, err := assetColumnFiles(obj[columnName])
+	if err != nil {
+		return err
 	}
 
 	// Add pending upload entry
-	files = append(files, map[string]interface{}{
+	pendingFile := map[string]interface{}{
 		"name":       fileName,
 		"size":       fileSize,
 		"type":       fileType,
 		"upload_id":  uploadId,
 		"status":     "pending",
 		"created_at": time.Now(),
-	})
+	}
+	if s3UploadId != "" {
+		pendingFile["s3_upload_id"] = s3UploadId
+	}
+	files = append(files, pendingFile)
 
 	// Update column
-	jsonData, _ := json.MarshalToString(files)
+	jsonData, err := json.MarshalToString(files)
+	if err != nil {
+		return err
+	}
 
 	newData := goqu.Record{
 		"updated_at": time.Now(),

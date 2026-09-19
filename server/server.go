@@ -612,7 +612,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	// Main upload endpoint - uses operation query param for different actions
 	defaultRouter.POST("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)
 	defaultRouter.GET("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler)    // For get_part_url operation
-	defaultRouter.DELETE("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler) // For abort operation
+	defaultRouter.DELETE("/asset/:typename/:resource_id/:columnname/upload", assetUploadHandler) // Delete attached asset
 
 	defaultRouter.GET("/feed/:feedname", feedHandler)
 

@@ -378,13 +378,21 @@ Returns file stored in asset column.
 POST /asset/{entity}/{reference_id}/{column_name}/upload
 ```
 
-Multipart file upload.
+Submit the file as multipart form field `file`. The response confirms storage
+and row metadata completion. For direct-to-S3 uploads, use the explicit
+presigned workflow described in [[Asset-Columns|Asset Columns]].
 
 ### Delete Asset
 
 ```
 DELETE /asset/{entity}/{reference_id}/{column_name}/upload
 ```
+
+Deletes a stored attachment, not an unfinished upload. Use `?file={name}` to
+select an attachment; add `&path={stored-path}` if names repeat. With exactly
+one attachment, the selector is optional. Returns 202 when deletion is queued
+and 204 on a repeat request. See [[Asset-Columns|Asset Columns]] for examples
+and permissions.
 
 ## Configuration Endpoints
 

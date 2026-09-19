@@ -354,6 +354,48 @@ curl -o photo.png "http://localhost:6336/asset/product/019bf4b7-3cb9-7c11-9b75-f
 
 **Note:** This endpoint only works with cloud storage, not inline base64.
 
+For an existing row with a cloud-store file column, upload a file directly:
+
+```bash
+curl -X POST "http://localhost:6336/asset/product/$PRODUCT_ID/photo/upload" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F 'file=@photo.png;type=image/png'
+```
+
+The response reports `status: completed` only after the file has been stored
+and its metadata attached to the row. Read a particular attachment with
+`GET /asset/product/$PRODUCT_ID/photo?file=photo.png`.
+
+Delete an attached file using that same `file` selector:
+
+```bash
+curl -X DELETE "http://localhost:6336/asset/product/$PRODUCT_ID/photo/upload?file=photo.png" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+DELETE returns 202 after removing the row attachment and queuing storage
+deletion through Daptin's file-delete action. It is safe to repeat (204 when
+the attachment is already absent). If the column contains only one file, `file` may be omitted;
+if two attachments share a name, include `path` from the chosen row metadata
+entry as well. `index` may also be supplied with `file` and `path`; the path
+keeps a repeated request from selecting a different file after the array
+shrinks. These values only select a row attachment, not an arbitrary storage
+path. Deleting a pending upload is not supported.
+
+For a direct-to-S3 upload, start with `POST .../upload?operation=init&filename=photo.png`
+and `X-File-Size`/`X-File-Type` headers. PUT the bytes to the returned
+`presigned_data.presigned_url`, then POST the returned `complete_url` with your
+Daptin bearer token. Completion looks up the pending row entry by `upload_id`,
+checks that the object exists, and attaches its actual size. For an upload over
+100 MiB, use the returned `get_part_url` with `part_number` for each part, then
+POST `complete_url` with JSON `parts` entries containing `part_number` and
+`etag`. The URLs are valid for one hour.
+
+The S3 credential's `endpoint` must be reachable by the client using the
+presigned URL. If Daptin reaches storage through an internal address, set
+`public_endpoint` in the same credential to the client-reachable address;
+Daptin signs against that address. Do not rewrite a signed URL's host.
+
 #### Authorization & Permissions
 
 The asset endpoint checks permissions before serving files:

@@ -111,7 +111,6 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 		return nil, nil, []error{errors.New("credential_name is required for remote cloud storage")}
 	}
 
-	fsrc := cmd.NewFsSrc(args)
 	cobraCommand := &cobra.Command{
 		Use: fmt.Sprintf("Delete file action at [%v]", atPath),
 	}
@@ -123,17 +122,18 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 
 	// Execute delete asynchronously
 	go cmd.Run(true, false, cobraCommand, func() error {
-		if fsrc == nil {
-			log.Errorf("path is null for delete operation")
-			return errors.New("delete path is null")
-		}
-
 		var err error
 		if !isLocal {
+			fsrc := cmd.NewFsSrc(args)
+			if fsrc == nil {
+				log.Errorf("path is null for delete operation")
+				return errors.New("delete path is null")
+			}
 			// Remote storage (S3, MinIO, etc.)
 			// Detect if path is a directory (ends with / or has no extension)
-			isDirectory := strings.HasSuffix(atPath, "/") ||
-				(atPath != "" && !strings.Contains(filepath.Base(atPath), "."))
+			isFile, _ := inFields["is_file"].(bool)
+			isDirectory := !isFile && (strings.HasSuffix(atPath, "/") ||
+				(atPath != "" && !strings.Contains(filepath.Base(atPath), ".")))
 
 			if isDirectory {
 				// Use Purge for directories

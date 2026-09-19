@@ -152,6 +152,9 @@ func GetS3PartPresignedURL(credentials map[string]interface{}, bucketName string
 	}
 
 	endpoint, _ := credentials["endpoint"].(string)
+	if publicEndpoint, ok := credentials["public_endpoint"].(string); ok && publicEndpoint != "" {
+		endpoint = publicEndpoint
+	}
 
 	// Create AWS config
 	ctx := context.Background()
@@ -213,6 +216,9 @@ func generateS3PresignedURL(credentials map[string]interface{}, bucketName strin
 	}
 
 	endpoint, _ := credentials["endpoint"].(string)
+	if publicEndpoint, ok := credentials["public_endpoint"].(string); ok && publicEndpoint != "" {
+		endpoint = publicEndpoint
+	}
 
 	// Create AWS config with static credentials
 	ctx := context.Background()
@@ -422,67 +428,5 @@ func CompleteS3MultipartUpload(credentials map[string]interface{}, bucket, key, 
 	}
 
 	log.Infof("Successfully completed S3 multipart upload for bucket: %s, key: %s, uploadId: %s", bucket, key, awsUploadId)
-	return nil
-}
-
-// AbortMultipartUpload aborts a multipart upload on S3
-func AbortMultipartUpload(bucket, key, awsUploadId string) error {
-	// This would need credentials to be passed in or retrieved
-	return fmt.Errorf("S3 multipart upload abort requires credential retrieval implementation")
-}
-
-// AbortS3MultipartUpload aborts a multipart upload on S3 with provided credentials
-func AbortS3MultipartUpload(credentials map[string]interface{}, bucket, key, awsUploadId string) error {
-	// Extract S3 credentials
-	accessKeyID, ok := credentials["access_key_id"].(string)
-	if !ok || accessKeyID == "" {
-		return fmt.Errorf("missing access_key_id in S3 credentials")
-	}
-
-	secretAccessKey, ok := credentials["secret_access_key"].(string)
-	if !ok || secretAccessKey == "" {
-		return fmt.Errorf("missing secret_access_key in S3 credentials")
-	}
-
-	region, ok := credentials["region"].(string)
-	if !ok || region == "" {
-		region = "us-east-1"
-	}
-
-	endpoint, _ := credentials["endpoint"].(string)
-
-	// Create AWS config
-	ctx := context.Background()
-	cfg, err := awsconfig.LoadDefaultConfig(ctx,
-		awsconfig.WithRegion(region),
-		awsconfig.WithCredentialsProvider(
-			awscredentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, ""),
-		),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create AWS config: %v", err)
-	}
-
-	// Create S3 client
-	s3Options := func(o *s3.Options) {
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = true
-		}
-	}
-	s3Client := s3.NewFromConfig(cfg, s3Options)
-
-	// Abort the multipart upload
-	_, err = s3Client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
-		Bucket:   aws.String(bucket),
-		Key:      aws.String(key),
-		UploadId: aws.String(awsUploadId),
-	})
-
-	if err != nil {
-		return fmt.Errorf("failed to abort multipart upload: %v", err)
-	}
-
-	log.Infof("Successfully aborted S3 multipart upload for bucket: %s, key: %s, uploadId: %s", bucket, key, awsUploadId)
 	return nil
 }

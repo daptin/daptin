@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/daptin/daptin/server/assetcachepojo"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/gin-gonic/gin"
 )
@@ -40,9 +42,9 @@ func TestStreamUploadCannotEscapeLocalAssetRoot(t *testing.T) {
 			response := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(response)
 			ctx.Request = httptest.NewRequest("POST", "/?upload_id=test", strings.NewReader("outside"))
-			handleStreamUpload(ctx, fileName, assetCache)
-			if response.Code != 400 {
-				t.Fatalf("status = %d, want 400", response.Code)
+			_, err := writeAsset(ctx, fileName, ctx.Request.Body, assetCache)
+			if !errors.Is(err, storagefs.ErrPathEscapesRoot) {
+				t.Fatalf("writeAsset error = %v, want path containment rejection", err)
 			}
 		})
 	}
