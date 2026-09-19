@@ -321,36 +321,14 @@ curl -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_
 
 ---
 
-## Cloud Storage Credential Linking
+## Cloud Storage Credential Selection
 
-### credential_name does not auto-link, and v0.13.14 needs both values
+`cloud_store.credential_name` is the sole credential selector. Set it to the
+credential row's exact `name`:
 
-**Tested wrong approach**:
 ```bash
-# Create cloud_store with credential_name
 curl -X POST http://localhost:6336/api/cloud_store \
-  -d '{"data":{"attributes":{"name":"my-store","credential_name":"my-creds"}}}'
-
-# Check database - credential_id is NULL
-sqlite3 daptin.db "SELECT credential_id FROM cloud_store WHERE name='my-store';"
-# Shows: (empty)
-```
-
-The runtime reads `credential_name`, while Daptin persists the association and
-permission boundary through `credential_id`. Create the store with the exact
-credential name and then link the same row through the resource relationship.
-
-**Correct approach**:
-```bash
-# Create cloud_store
-STORE_ID=$(curl -X POST http://localhost:6336/api/cloud_store ... | jq -r '.data.id')
-
-# Get credential ID
-CRED_ID=$(curl http://localhost:6336/api/credential | jq -r '.data[0].id')
-
-# Link via relationship PATCH
-curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -d '{"data":{"relationships":{"credential_id":{"data":{"type":"credential","id":"'$CRED_ID'"}}}}}'
+  -d '{"data":{"type":"cloud_store","attributes":{"name":"my-store","store_type":"s3","credential_name":"my-creds","root_path":"my-store:bucket"}}}'
 
 # MUST restart server
 ./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start

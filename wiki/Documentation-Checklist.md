@@ -216,7 +216,7 @@ Before documenting a feature, verify you understand:
 
 - [ ] Credential `content` is rclone JSON format
 - [ ] Must include `"type"` and `"provider"` fields
-- [ ] Credential must be linked via relationship PATCH (credential_name doesn't auto-link)
+- [ ] `credential_name` must exactly match the credential row name
 - [ ] Server restart required after creating cloud_store
 - [ ] ForeignKeyData.Namespace must match cloud_store name field
 - [ ] File uploads must be array of objects: `[{name, file, type}]`
@@ -603,12 +603,11 @@ curl -X POST "http://localhost:6336/action/user_account/signup" \
 
 ## Cloud Storage Documentation Standards
 
-### Always Include Three Steps
+### Always Include the Required Steps
 
 1. **Create credential** (with rclone content format)
-2. **Create cloud_store**
-3. **Link credential via relationship PATCH**
-4. **Restart server**
+2. **Create cloud_store with the exact `credential_name`**
+3. **Restart server**
 
 Don't skip any of these steps - all are required.
 

@@ -123,31 +123,7 @@ curl -X POST http://localhost:6336/api/cloud_store \
     }
   }'
 
-# Step 3: Link credential to cloud store via relationship
-CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/credential | \
-  jq -r '.data[] | select(.attributes.name == "aws-creds") | .id')
-
-STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/cloud_store | \
-  jq -r '.data[] | select(.attributes.name == "aws-storage") | .id')
-
-curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"cloud_store\",
-      \"id\": \"$STORE_ID\",
-      \"relationships\": {
-        \"credential_id\": {
-          \"data\": {\"type\": \"credential\", \"id\": \"$CRED_ID\"}
-        }
-      }
-    }
-  }"
-
-# Step 4: Restart server to load cloud storage
+# Step 3: Restart server to load cloud storage
 pkill -9 -f daptin
 sleep 2
 ./daptin &
@@ -156,9 +132,8 @@ sleep 10
 
 **Important Notes**:
 - The `content` field is passed directly to rclone - it must include `type`, `provider`, and provider-specific fields
-- v0.13.14 requires both `credential_name` for runtime lookup and the
-  `credential_id` relationship for the Daptin association/permission boundary
-- Server restart is REQUIRED after creating/linking cloud storage
+- `credential_name` must exactly match the credential row's `name`
+- Server restart is REQUIRED after creating or changing cloud storage
 
 ### S3 Compatible (MinIO, DigitalOcean, etc.)
 
@@ -679,41 +654,10 @@ The `content` field must include:
 
 **References**: See [rclone documentation](https://rclone.org/docs/) for all provider configurations.
 
-### Link Credential to Cloud Store
+### Select the Cloud Store Credential
 
-**CRITICAL**: v0.13.14 needs both references. `credential_name` drives runtime
-lookup but does not create the `credential_id` relationship. Set the exact name
-on the store and link the same credential with this relationship PATCH:
-
-```bash
-# Get credential ID
-CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/credential | \
-  jq -r '.data[] | select(.attributes.name == "my-creds") | .id')
-
-# Get cloud store ID
-STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/cloud_store | \
-  jq -r '.data[] | select(.attributes.name == "my-storage") | .id')
-
-# Link via relationship PATCH
-curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"cloud_store\",
-      \"id\": \"$STORE_ID\",
-      \"relationships\": {
-        \"credential_id\": {
-          \"data\": {\"type\": \"credential\", \"id\": \"$CRED_ID\"}
-        }
-      }
-    }
-  }"
-```
-
-**After linking**: Restart the server for the credential link to take effect.
+Set `credential_name` on the cloud store to the credential row's exact `name`.
+This is the only credential selector used by cloud-storage operations.
 
 ---
 
@@ -741,14 +685,15 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   jq '.data[] | {name: .attributes.name, store_type: .attributes.store_type, root_path: .attributes.root_path}'
 ```
 
-**Check 2**: Verify credential is linked
+**Check 2**: Verify the credential name
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" \
   "http://localhost:6336/api/cloud_store/$STORE_ID" | \
-  jq '.data.relationships.credential_id'
+  jq '.data.attributes.credential_name'
 ```
 
-If `null`, the credential is not linked. Use the relationship PATCH from the section above.
+The value must exactly match the `name` of the credential row containing the
+rclone configuration.
 
 **Check 3**: Check server logs for cloud storage initialization
 ```bash

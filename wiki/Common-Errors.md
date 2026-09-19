@@ -520,7 +520,7 @@ File column defined with cloud storage, but upload fails or files don't appear i
 
 Multiple possible causes:
 
-1. **Credential not linked** - `credential_name` doesn't auto-link
+1. **Credential name missing or incorrect**
 2. **Credential format wrong** - Missing rclone fields
 3. **Server not restarted** - Cloud stores loaded at startup
 4. **Namespace mismatch** - Schema uses wrong cloud_store name
@@ -551,17 +551,12 @@ curl -X POST http://localhost:6336/api/credential \
 - `"provider"`: provider name
 - Provider-specific fields (access keys, endpoints, etc.)
 
-**Step 2: Link credential to cloud_store**
+**Step 2: Set the credential name on cloud_store**
 
 ```bash
-# Get IDs
-CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/credential" | jq -r '.data[0].id')
-
 STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "http://localhost:6336/api/cloud_store" | jq -r '.data[0].id')
 
-# Also link via relationship; credential_name does not create this relation
 curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -569,13 +564,8 @@ curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
     "data": {
       "type": "cloud_store",
       "id": "'$STORE_ID'",
-      "relationships": {
-        "credential_id": {
-          "data": {
-            "type": "credential",
-            "id": "'$CRED_ID'"
-          }
-        }
+      "attributes": {
+        "credential_name": "s3-creds"
       }
     }
   }'

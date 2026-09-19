@@ -7,7 +7,6 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/cmd"
 	"github.com/artpar/rclone/fs"
-	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/operations"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -18,7 +17,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 type syncSiteStorageActionPerformer struct {
@@ -46,18 +44,8 @@ func (d *syncSiteStorageActionPerformer) DoAction(request actionresponse.Outcome
 		return nil, nil, []error{errors.New("no site found here")}
 	}
 
-	configSetName := cloudStore.Name
-	if strings.Index(cloudStore.RootPath, ":") > -1 {
-		configSetName = strings.Split(cloudStore.RootPath, ":")[0]
-	}
-	if cloudStore.CredentialName != "" {
-		cred, err := d.cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)
-		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", cloudStore.CredentialName))
-		if cred != nil && cred.DataMap != nil {
-			for key, val := range cred.DataMap {
-				config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
-			}
-		}
+	if err := resource.ConfigureCloudStoreCredential(d.cruds["credential"], cloudStore.CredentialName, cloudStore.RootPath, cloudStore.StoreType != "local", transaction); err != nil {
+		return nil, nil, []error{err}
 	}
 
 	tempDirectoryPath, err := storagefs.ResolveLocalPath(siteCacheFolder.LocalSyncPath, "")

@@ -14,10 +14,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"path/filepath"
-	"strings"
 
 	"github.com/artpar/api2go/v2"
-	"github.com/artpar/rclone/fs/config"
 	"os"
 )
 
@@ -79,16 +77,9 @@ func (d *cloudStorePathMoveActionPerformer) DoAction(request actionresponse.Outc
 	}
 	log.Printf("Create move %v to %v (destParent: %v)", sourcePath, destinationPath, destParentDir)
 
-	storeName := strings.Split(rootPath, ":")[0]
-	credentialName, ok := inFields["credential_name"]
-	if ok && credentialName != nil && credentialName != "" {
-		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
-		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
-		if cred != nil && cred.DataMap != nil {
-			for key, val := range cred.DataMap {
-				config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
-			}
-		}
+	credentialName, _ := inFields["credential_name"].(string)
+	if err := resource.ConfigureCloudStoreCredential(d.cruds["credential"], credentialName, rootPath, !isLocal, transaction); err != nil {
+		return nil, nil, []error{err}
 	}
 
 	cobraCommand := &cobra.Command{

@@ -110,7 +110,6 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelationWithNames(EXCHANGE_RUN_TABLE_NAME, "execution_exchange", "has_one", "data_exchange", "data_exchange_id"),
 	api2go.NewTableRelationWithNames(EXCHANGE_RUN_TABLE_NAME, "execution_user", "has_one", "user_account", "as_user_id"),
 	api2go.NewTableRelation("timeline", "belongs_to", "world"),
-	api2go.NewTableRelation("cloud_store", "has_one", "credential"),
 	api2go.NewTableRelation("llm_provider", "has_one", "credential"),
 	api2go.NewTableRelation("llm_deployment", "belongs_to", "llm_model"),
 	api2go.NewTableRelation("llm_deployment", "belongs_to", "llm_provider"),

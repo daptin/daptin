@@ -452,21 +452,21 @@ curl -X PATCH "http://localhost:6336/api/join_table/$JOIN_ID" \
 - Field name is `content` (not credential_value)
 - Content must be rclone JSON format as a string
 - Must include `"type"` and `"provider"` fields
-- Credential must be linked via relationship PATCH (credential_name doesn't auto-link)
+- `credential_name` must exactly match the credential row name
 
 **Status**: ✅ Fixed in Cloud-Storage.md with complete examples.
 
 ---
 
-#### 5. Credential Linking Not Documented ✅ FIXED
+#### 5. Credential Selection Not Documented ✅ FIXED
 
-**Impact**: HIGH - Cloud storage won't work without this step.
+**Impact**: HIGH - Cloud storage will not work when the configured name cannot be resolved.
 
-**Missing Step**: Creating a cloud_store with `credential_name` does NOT automatically link the credential. Must use relationship PATCH:
+**Required Step**: Set the cloud store's `credential_name` to the credential row's exact `name`:
 
 ```bash
 curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -d '{"data":{"relationships":{"credential_id":{"data":{"type":"credential","id":"$CRED_ID"}}}}}'
+  -d '{"data":{"type":"cloud_store","id":"'$STORE_ID'","attributes":{"credential_name":"my-creds"}}}'
 ```
 
 **Status**: ✅ Documented in Cloud-Storage.md and walkthrough.

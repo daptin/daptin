@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
@@ -21,7 +20,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 )
 
 type cloudStoreSiteCreateActionPerformer struct {
@@ -135,17 +133,10 @@ func (d *cloudStoreSiteCreateActionPerformer) DoAction(request actionresponse.Ou
 
 	log.Printf("Upload source target for site create %v %v", tempDirectoryPath, rootPath)
 
-	storeName := strings.Split(rootPath, ":")[0]
-
-	credentialName, ok := inFields["credential_name"]
-	if ok && credentialName != nil && credentialName != "" {
-		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
-		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
-		if cred != nil && cred.DataMap != nil {
-			for key, val := range cred.DataMap {
-				config.Data().SetValue(storeName, key, fmt.Sprintf("%s", val))
-			}
-		}
+	credentialName, _ := inFields["credential_name"].(string)
+	if err := resource.ConfigureCloudStoreCredential(d.cruds["credential"], credentialName, rootPath, !isLocal, transaction); err != nil {
+		_ = os.RemoveAll(tempDirectoryPath)
+		return nil, nil, []error{err}
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)

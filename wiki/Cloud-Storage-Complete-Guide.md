@@ -70,8 +70,7 @@ Returns file metadata (md5, size, path)
 │  name: "my-store"                                    │
 │  store_type: "s3"                                    │
 │  root_path: "my-store:bucket-name/prefix"           │
-│  credential_name: "my-creds" (runtime lookup)          │
-│  credential_id: → (permissioned relationship)       │
+│  credential_name: "my-creds"                         │
 └────────────────────────────────────┬────────────────┘
                                      │
 ┌────────────────────────────────────▼────────────────┐
@@ -82,14 +81,11 @@ Returns file metadata (md5, size, path)
 └─────────────────────────────────────────────────────┘
 ```
 
-### Important: v0.13.14 Requires Both Credential References
+### Credential Selection
 
-Set `cloud_store.credential_name` to the credential row's exact `name` and link
-`credential_id` with a relationship PATCH. In v0.13.14 the cloud action runtime
-loads rclone configuration by `credential_name`; omitting it can cause an HTTP
-500 instead of a validation error. The relationship remains the persisted
-Daptin association and permission boundary. This duplication is a known
-product defect; neither value should be treated as optional in this release.
+Set `cloud_store.credential_name` to the credential row's exact `name`. It is
+the sole credential selector for cloud storage. Remote stores return a
+configuration error when the name is missing or cannot be resolved.
 
 ---
 
@@ -145,42 +141,7 @@ curl -X POST http://localhost:6336/api/cloud_store \
   }'
 ```
 
-### Step 3: Link Credential to Cloud Store (CRITICAL)
-
-This step is often missed! You must link the credential via a relationship PATCH:
-
-```bash
-# Get the credential ID
-CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/credential | \
-  jq -r '.data[] | select(.attributes.name == "my-s3-creds") | .id')
-
-# Get the cloud store ID
-STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/cloud_store | \
-  jq -r '.data[] | select(.attributes.name == "my-store") | .id')
-
-# Link the same credential named in credential_name
-curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"cloud_store\",
-      \"id\": \"$STORE_ID\",
-      \"relationships\": {
-        \"credential_id\": {
-          \"data\": {
-            \"type\": \"credential\",
-            \"id\": \"$CRED_ID\"
-          }
-        }
-      }
-    }
-  }"
-```
-
-### Step 4: Restart Server
+### Step 3: Restart Server
 
 **Important**: After creating cloud stores, restart the server to pick up the configuration:
 
@@ -192,7 +153,7 @@ curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
 pkill -f daptin && sleep 2 && ./daptin
 ```
 
-### Step 5: Create a Table with File Column
+### Step 4: Create a Table with File Column
 
 Upload a schema that references your cloud store:
 
@@ -207,7 +168,7 @@ curl -X POST "http://localhost:6336/api/world/action/upload_system_schema" \
   }'
 ```
 
-### Step 6: Restart Again
+### Step 5: Restart Again
 
 Restart after creating new tables:
 
@@ -456,15 +417,15 @@ Successful upload returns file metadata:
 
 **Symptom**: Server crashes with `runtime error: invalid memory address or nil pointer dereference`
 
-**Cause**: Credential not properly linked or credential content missing rclone fields
+**Cause**: `credential_name` is missing, names no credential row, or the credential content is missing rclone fields
 
 **Solution**:
 1. Verify credential content includes `type` field
-2. Verify credential is linked via relationship PATCH
+2. Verify the cloud store's `credential_name` exactly matches the credential row
 3. Check with:
    ```bash
    curl -s -H "Authorization: Bearer $TOKEN" \
-     "http://localhost:6336/api/cloud_store?include=credential_id" | jq
+     "http://localhost:6336/api/cloud_store" | jq '.data[] | {name: .attributes.name, credential_name: .attributes.credential_name}'
    ```
 
 ### 2. 403 Forbidden on Fresh Database
@@ -608,20 +569,11 @@ curl -X POST http://localhost:6336/api/cloud_store \
     }
   }'
 
-# 3. Link credential (CRITICAL!)
-CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/credential | jq -r '.data[] | select(.attributes.name == "minio-creds") | .id')
-STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/cloud_store | jq -r '.data[] | select(.attributes.name == "minio-store") | .id')
-
-curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{\"data\":{\"type\":\"cloud_store\",\"id\":\"$STORE_ID\",\"relationships\":{\"credential_id\":{\"data\":{\"type\":\"credential\",\"id\":\"$CRED_ID\"}}}}}"
-
-# 4. Restart server
+# 3. Restart server
 ./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
 ./scripts/testing/test-runner.sh token
 
-# 5. Create table
+# 4. Create table
 TOKEN=$(cat /tmp/daptin-token.txt)
 curl -X POST "http://localhost:6336/api/world/action/upload_system_schema" \
   -H "Authorization: Bearer $TOKEN" \
@@ -662,7 +614,7 @@ docker exec minio mc ls local/my-bucket/photos/
 Before reporting an issue, verify:
 
 - [ ] Credential content includes `type` field (e.g., `"type":"s3"`)
-- [ ] Credential is linked to cloud_store via relationship PATCH
+- [ ] `credential_name` exactly matches the credential row name
 - [ ] Server was restarted after creating cloud_store
 - [ ] Server was restarted after creating table with file column
 - [ ] Bucket/directory exists and is accessible

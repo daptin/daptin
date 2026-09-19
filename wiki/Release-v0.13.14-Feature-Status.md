@@ -35,7 +35,7 @@ possible.
 | Data export | Verified | JSON/CSV/basic export exercised |
 | Audit writes | Experimental | Rows were written; generated audit-resource reads failed when a join table was absent |
 | Local cloud store | Verified | Basic local operations exercised |
-| MinIO/S3-compatible store | Experimental | Upload/delete worked only with relationship plus `credential_name`; provider failures may still return HTTP 200 |
+| MinIO/S3-compatible store | Experimental | Upload/delete use `credential_name`; provider failures may still return HTTP 200 |
 | FTP/explicit FTPS | **Experimental, non-durable** | Protocol operations worked only against the temporary site directory; writes are not synced back |
 | Static subsites/templates | Verified locally | Host routing worked; cache invalidation and multi-node semantics require deployment testing |
 | CalDAV/CardDAV | **Known broken for writes** | Authentication/PROPFIND worked; documented MKCOL/PUT flow returned 500/404 |
@@ -93,7 +93,7 @@ any mismatch:
 - Confirm stable JWT/encryption secrets are supplied from the secret manager;
   verify encrypted credential content is not plaintext without printing it.
 - Verify certificate association and SNI with the public hostname.
-- Verify every cloud credential relationship and `credential_name`, then
+- Verify every cloud store's `credential_name`, then
   create/list/download/delete a canary object.
 - Verify mail MX/DKIM, relay policy, outbox terminal state, and retry alerts if
   mail is enabled.

@@ -6,11 +6,10 @@ as other Daptin operations.
 
 ## v0.13.14 boundaries
 
-- Set `cloud_store.credential_name` to the credential row's exact `name` **and**
-  link the row through the `credential_id` relationship. Runtime provider
-  lookup uses the name; the relationship is the persisted Daptin association
-  and permission boundary. Omitting the name can cause HTTP 500 instead of a
-  configuration validation error.
+- Set `cloud_store.credential_name` to the credential row's exact `name`.
+  Cloud-storage operations use this name as their sole credential selector and
+  reject missing or unavailable remote-store credentials before invoking
+  rclone.
 - An HTTP 200 action response may mean that asynchronous rclone work was
   accepted, not that it completed. In particular, `move_path` and
   `delete_path` can report success when the provider later reports a missing
@@ -115,20 +114,15 @@ Credential content is an encrypted JSON string containing rclone-compatible
 fields:
 
 ```bash
-CRED_ID=$(curl -sS -X POST http://localhost:6336/api/credential \
+curl -sS -X POST http://localhost:6336/api/credential \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/vnd.api+json' \
-  --data-binary '{"data":{"type":"credential","attributes":{"name":"minio-creds","content":"{\"type\":\"s3\",\"provider\":\"Minio\",\"env_auth\":\"false\",\"access_key_id\":\"ACCESS_KEY\",\"secret_access_key\":\"SECRET_KEY\",\"endpoint\":\"http://minio:9000\",\"region\":\"us-east-1\"}"}}}' | jq -r '.data.id')
+  --data-binary '{"data":{"type":"credential","attributes":{"name":"minio-creds","content":"{\"type\":\"s3\",\"provider\":\"Minio\",\"env_auth\":\"false\",\"access_key_id\":\"ACCESS_KEY\",\"secret_access_key\":\"SECRET_KEY\",\"endpoint\":\"http://minio:9000\",\"region\":\"us-east-1\"}"}}}'
 
-STORE_ID=$(curl -sS -X POST http://localhost:6336/api/cloud_store \
+curl -sS -X POST http://localhost:6336/api/cloud_store \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/vnd.api+json' \
-  --data-binary '{"data":{"type":"cloud_store","attributes":{"name":"minio-store","store_type":"s3","store_provider":"s3","credential_name":"minio-creds","root_path":"minio-store:bucket-name","store_parameters":"{}"}}}' | jq -r '.data.id')
-
-curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/vnd.api+json' \
-  --data-binary '{"data":{"type":"cloud_store","id":"'"$STORE_ID"'","relationships":{"credential_id":{"data":{"type":"credential","id":"'"$CRED_ID"'"}}}}}'
+  --data-binary '{"data":{"type":"cloud_store","attributes":{"name":"minio-store","store_type":"s3","store_provider":"s3","credential_name":"minio-creds","root_path":"minio-store:bucket-name","store_parameters":"{}"}}}'
 ```
 
 Create the bucket before invoking an action. For self-hosted HTTPS endpoints,

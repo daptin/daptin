@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 type syncColumnStorageActionPerformer struct {
@@ -44,19 +42,9 @@ func (d *syncColumnStorageActionPerformer) DoAction(request actionresponse.Outco
 	}
 	cloudStore := cacheFolder.CloudStore
 
-	credentialName, ok := inFields["credential_name"]
-	configSetName := cloudStore.Name
-	if strings.Index(cloudStore.RootPath, ":") > -1 {
-		configSetName = strings.Split(cloudStore.RootPath, ":")[0]
-	}
-	if ok && credentialName != nil && credentialName != "" {
-		cred, err := d.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
-		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
-		if cred != nil && cred.DataMap != nil {
-			for key, val := range cred.DataMap {
-				config.Data().SetValue(configSetName, key, fmt.Sprintf("%s", val))
-			}
-		}
+	credentialName, _ := inFields["credential_name"].(string)
+	if err := resource.ConfigureCloudStoreCredential(d.cruds["credential"], credentialName, cloudStore.RootPath, cloudStore.StoreType != "local", transaction); err != nil {
+		return nil, nil, []error{err}
 	}
 
 	args := []string{

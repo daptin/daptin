@@ -20,7 +20,6 @@ import (
 	//"os"
 	"archive/zip"
 	"github.com/artpar/api2go/v2"
-	"github.com/artpar/rclone/fs/config"
 	"github.com/artpar/rclone/fs/sync"
 	storagefs "github.com/daptin/daptin/server/filesystem"
 	"io"
@@ -221,16 +220,10 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 	}
 	log.Infof("[183] Upload source [%v] target [%v] with [%v]", tempDirectoryPath, rootPath, inFields["credential_name"])
 
-	credentialName, ok := inFields["credential_name"]
-	if ok && credentialName != nil && credentialName != "" {
-		cred, err := actionPerformer.cruds["credential"].GetCredentialByName(credentialName.(string), transaction)
-		resource.CheckErr(err, fmt.Sprintf("Failed to get credential for [%s]", credentialName))
-		name := strings.Split(rootPath, ":")[0]
-		if cred != nil && cred.DataMap != nil {
-			for key, val := range cred.DataMap {
-				config.Data().SetValue(name, key, fmt.Sprintf("%s", val))
-			}
-		}
+	credentialName, _ := inFields["credential_name"].(string)
+	if err := resource.ConfigureCloudStoreCredential(actionPerformer.cruds["credential"], credentialName, rootPath, !isLocal, transaction); err != nil {
+		_ = os.RemoveAll(tempDirectoryPath)
+		return nil, nil, []error{err}
 	}
 
 	fsrc, fdst := cmd.NewFsSrcDst(args)

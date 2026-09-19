@@ -77,7 +77,7 @@ This walkthrough teaches you:
 │                      cloud_store                                 │
 │  name: "product-images"                                          │
 │  root_path: "product-images:techgear-bucket/products"           │
-│  credential_id: → minio-creds                                    │
+│  credential_name: "minio-creds"                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -531,17 +531,6 @@ curl -X POST http://localhost:6336/api/cloud_store \
       }
     }
   }'
-
-# Link credential to cloud store
-CRED_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/credential | jq -r '.data[0].id')
-STORE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/cloud_store | jq -r '.data[0].id')
-
-curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{\"data\":{\"type\":\"cloud_store\",\"id\":\"$STORE_ID\",\"relationships\":{\"credential_id\":{\"data\":{\"type\":\"credential\",\"id\":\"$CRED_ID\"}}}}}"
 
 # Restart server
 pkill -f "go run main" && sleep 2 && nohup go run main.go > /tmp/daptin.log 2>&1 &

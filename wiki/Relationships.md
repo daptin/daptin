@@ -125,7 +125,6 @@ Daptin creates these relationships automatically between system tables:
 | `data_exchange` | has_one | `oauth_token` | `data_exchange.oauth_token_id` |
 | `data_exchange` | has_one | `user_account` | `data_exchange.as_user_id` |
 | `timeline` | belongs_to | `world` | `timeline.world_id` |
-| `cloud_store` | has_one | `credential` | `cloud_store.credential_id` |
 | `site` | has_one | `cloud_store` | `site.cloud_store_id` |
 | `mail_account` | belongs_to | `mail_server` | `mail_account.mail_server_id` |
 | `mail_box` | belongs_to | `mail_account` | `mail_box.mail_account_id` |

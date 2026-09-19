@@ -23,6 +23,7 @@ func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table
 	initConfigTables = mergedInitConfigTables
 
 	for j, existableTable := range existingTables {
+		existableTable = removeObsoleteCloudStoreCredentialRelation(existableTable)
 		existingTablesMap[existableTable.TableName] = true
 		var isBeingModified = false
 
@@ -53,6 +54,30 @@ func MergeTables(existingTables []table_info.TableInfo, initConfigTables []table
 
 	return allTables
 
+}
+
+func removeObsoleteCloudStoreCredentialRelation(table table_info.TableInfo) table_info.TableInfo {
+	relations := table.Relations[:0]
+	for _, relation := range table.Relations {
+		if relation.Subject == "cloud_store" && relation.Object == "credential" && relation.ObjectName == "credential_id" {
+			continue
+		}
+		relations = append(relations, relation)
+	}
+	table.Relations = relations
+
+	if table.TableName != "cloud_store" {
+		return table
+	}
+	columns := table.Columns[:0]
+	for _, column := range table.Columns {
+		if column.ColumnName == "credential_id" && column.IsForeignKey && column.ForeignKeyData.Namespace == "credential" {
+			continue
+		}
+		columns = append(columns, column)
+	}
+	table.Columns = columns
+	return table
 }
 
 func mergeTableConfigIntoExisting(existing table_info.TableInfo, override table_info.TableInfo, partialOverride bool) table_info.TableInfo {

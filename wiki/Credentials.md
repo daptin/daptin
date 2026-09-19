@@ -95,12 +95,12 @@ There is no verified online bulk key-rotation workflow in v0.13.14.
 
 ---
 
-## Link Credential to Cloud Store
+## Use a Credential with a Cloud Store
 
 Credentials are used with cloud storage for authenticated access:
 
 ```bash
-# Create cloud store with credential reference
+# Create cloud store with the credential's exact name
 curl -X POST http://localhost:6336/api/cloud_store \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -110,12 +110,8 @@ curl -X POST http://localhost:6336/api/cloud_store \
       "attributes": {
         "name": "s3-bucket",
         "store_type": "s3",
+        "credential_name": "s3-creds",
         "root_path": "my-bucket/data"
-      },
-      "relationships": {
-        "credential_id": {
-          "data": {"type": "credential", "id": "CREDENTIAL_REF_ID"}
-        }
       }
     }
   }'
@@ -362,7 +358,6 @@ curl -X DELETE http://localhost:6336/api/credential/CREDENTIAL_ID \
 
 | Entity | Relationship | FK Column |
 |--------|--------------|-----------|
-| `cloud_store` | has_one | `credential_id` |
 
 ---
 
