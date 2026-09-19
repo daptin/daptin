@@ -34,8 +34,6 @@ func (d *cloudStoreFileDeleteActionPerformer) DoAction(request actionresponse.Ou
 
 	responses := make([]actionresponse.ActionResponse, 0)
 
-	log.Infof("[DELETE DEBUG] inFields: %+v", inFields)
-
 	atPath, ok := inFields["path"].(string)
 	if !ok {
 		return nil, nil, []error{errors.New("path is missing")}
