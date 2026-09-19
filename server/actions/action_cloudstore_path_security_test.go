@@ -112,6 +112,23 @@ func TestCloudStoreDeleteRejectsStorageRoot(t *testing.T) {
 	}
 }
 
+func TestCloudStoreMoveReportsMissingLocalSource(t *testing.T) {
+	root := t.TempDir()
+	_, responses, errs := (&cloudStorePathMoveActionPerformer{}).DoAction(actionresponse.Outcome{}, map[string]interface{}{
+		"root_path":      root,
+		"store_type":     "local",
+		"store_provider": "localstore",
+		"source":         "missing.txt",
+		"destination":    "moved.txt",
+	}, nil)
+	if len(errs) == 0 || len(responses) != 0 {
+		t.Fatalf("missing source returned responses %v and errors %v", responses, errs)
+	}
+	if _, err := os.Stat(filepath.Join(root, "moved.txt")); !os.IsNotExist(err) {
+		t.Fatalf("destination unexpectedly exists: %v", err)
+	}
+}
+
 func TestCloudStoreActionsUseConfinedLocalStorage(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("DAPTIN_CACHE_FOLDER", t.TempDir())

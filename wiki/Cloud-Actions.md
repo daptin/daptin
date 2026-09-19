@@ -4,17 +4,15 @@ Daptin exposes cloud operations as actions on `cloud_store` and `site`
 resources. These routes enter the same action permission and resource context
 as other Daptin operations.
 
-## v0.13.14 boundaries
+## Operational boundaries
 
 - Set `cloud_store.credential_name` to the credential row's exact `name`.
   Cloud-storage operations use this name as their sole credential selector and
   reject missing or unavailable remote-store credentials before invoking
   rclone.
-- An HTTP 200 action response may mean that asynchronous rclone work was
-  accepted, not that it completed. In particular, `move_path` and
-  `delete_path` can report success when the provider later reports a missing
-  object. Verify the resulting object state with `list_files` or the provider
-  API.
+- An HTTP 200 response from `delete_path` may mean that asynchronous rclone
+  work was accepted, not that it completed. Verify the resulting object state
+  with `list_files` or the provider API.
 - The log line `rclone session exitcode - 1` is not sufficient by itself to
   classify an operation. Inspect the surrounding provider error and the actual
   object state.
@@ -72,7 +70,9 @@ curl -X POST http://localhost:6336/action/cloud_store/move_path \
   --data-binary '{"attributes":{"cloud_store_id":"CLOUD_STORE_REFERENCE_ID","source":"/uploads/old-name.pdf","destination":"/archive/new-name.pdf"}}'
 ```
 
-Verify both that the destination exists and that the source no longer exists.
+`move_path` completes before returning success. A failed or missing-source move
+returns an error, and Daptin confirms the destination exists before reporting
+success.
 
 ### create_site
 
