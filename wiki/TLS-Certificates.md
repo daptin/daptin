@@ -18,7 +18,17 @@ Generate a self-signed certificate for development:
 # Get authentication token
 TOKEN=$(cat /tmp/daptin-token.txt)
 
-# Step 1: Create certificate record
+# Step 1: Make daptin.test the primary HTTPS hostname
+curl -X POST http://localhost:6336/_config/backend/hostname \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-binary 'daptin.test'
+
+# Step 2: Enable HTTPS
+curl -X POST http://localhost:6336/_config/backend/enable_https \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-binary 'true'
+
+# Step 3: Create certificate record
 curl -X POST http://localhost:6336/api/certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -31,10 +41,10 @@ curl -X POST http://localhost:6336/api/certificate \
     }
   }'
 
-# Step 2: Get certificate ID
-CERT_ID=$(curl -s -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/certificate | jq -r '.data[0].id')
+# Step 4: Get certificate ID
+CERT_ID=$(curl -s -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/certificate | jq -r '.data[] | select(.attributes.hostname == "daptin.test") | .id')
 
-# Step 3: Generate self-signed certificate
+# Step 5: Generate self-signed certificate
 curl -X POST http://localhost:6336/action/certificate/generate_self_certificate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -53,19 +63,56 @@ curl -X POST http://localhost:6336/action/certificate/generate_self_certificate 
 }]
 ```
 
+Restart Daptin through your process supervisor to start the HTTPS listener
+and load the certificate. For a Docker deployment, use `docker restart daptin`.
+
 **Note:** Self-signed certificates will show browser warnings in production. Use ACME for production deployments.
 
-Map the certificate hostname for a local SNI test and request that hostname,
-not `localhost`:
+Map the hostname to your local server for a test without changing DNS. Request
+`daptin.test`, not `localhost`, so the client sends the correct TLS SNI name:
 
 ```bash
-curl --resolve daptin.test:6443:127.0.0.1 -vk https://daptin.test:6443/ping
+curl --resolve daptin.test:6443:127.0.0.1 -vk https://daptin.test:6443/api/world
 openssl s_client -connect 127.0.0.1:6443 -servername daptin.test </dev/null
 ```
 
-The HTTPS listener selects a certificate by SNI. A request for `localhost`
-fails with `certificate not found for hostname [localhost]` when only
-`daptin.test` (or another site hostname) has a certificate.
+The HTTPS listener selects a certificate by SNI for the exact primary
+`backend.hostname` or an enabled site's hostname. A request for `localhost`
+fails the TLS handshake when neither is configured for `localhost`, even if a
+certificate record for another hostname exists.
+
+### Choosing HTTPS hostnames
+
+- For one primary hostname, set `backend.hostname` to that exact name. Both
+  the dashboard and API paths are available there; for example,
+  `https://daptin.test:6443/` and `https://daptin.test:6443/api/world`.
+- For a separate website hostname, create an enabled `site` resource and set
+  its `hostname` to that exact name. Follow [[Subsites]] to link storage and
+  publish site content. Issue a trusted certificate for production; otherwise
+  Daptin can create a self-signed one at startup. A successful TLS handshake
+  alone does not mean the site's content is ready.
+- `api.daptin.test` and `dashboard.daptin.test` are separate TLS names, not
+  aliases automatically added by `backend.hostname=daptin.test`. If you want
+  `api.daptin.test` as the primary API address, set `backend.hostname` to
+  `api.daptin.test`; the dashboard remains available by path on that same
+  hostname. Issuing a certificate for either subdomain without configuring
+  it as the primary hostname or an enabled site does not make it work over
+  HTTPS.
+
+### Verification gotchas
+
+- HTTPS starts only after `enable_https=true` and a restart. Issuing or
+  renewing a certificate also requires a restart before HTTPS serves it.
+- SNI is selected before HTTP routing. Changing only the HTTP `Host` header
+  cannot make a failed TLS handshake succeed. Use `curl --resolve` or
+  `openssl s_client -servername` to test the intended hostname.
+- `curl -k` bypasses trust checks for a self-signed certificate; it does not
+  bypass a missing SNI certificate. An unknown hostname still fails the
+  handshake. Without `-k` or a trusted CA, a self-signed certificate can
+  complete the handshake but still be rejected by the client.
+- If a certificate exists in `/api/certificate` but its hostname is neither
+  the primary hostname nor an enabled site hostname, HTTPS will not select
+  it. Certificate issuance and HTTPS hostname configuration are separate.
 
 ---
 
@@ -95,8 +142,13 @@ fails with `certificate not found for hostname [localhost]` when only
 1. **Certificate Record**: Create a record in the `certificate` table with hostname
 2. **Generation**: Call action to generate certificate (self-signed or ACME)
 3. **Storage**: Certificate stored encrypted in database
-4. **SNI Support**: Multiple certificates for different hostnames
-5. **HTTPS Server**: Daptin serves certificates based on requested hostname
+4. **HTTPS Selection**: At startup, Daptin loads the primary hostname's certificate and certificates for enabled sites
+5. **SNI Support**: HTTPS selects among those certificates by the requested hostname; an unmatched hostname fails the handshake
+
+Creating or issuing a certificate record alone does not make its hostname an
+HTTPS hostname. The API and dashboard are available by path on the primary
+hostname. `api.<primary>` and `dashboard.<primary>` are not automatic TLS
+aliases: issuing certificates for them alone does not enable HTTPS for them.
 
 ### Certificate Table Schema
 
@@ -115,6 +167,10 @@ fails with `certificate not found for hostname [localhost]` when only
 ## Self-Signed Certificates (Development)
 
 ### Complete Workflow
+
+This `localhost` example requires `backend.hostname` to be `localhost` (or an
+enabled site with hostname `localhost`), `enable_https=true`, and a restart as
+shown in [Quick Start](#quick-start-5-minutes).
 
 **Step 1: Create Certificate Record**
 ```bash
@@ -191,7 +247,9 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 ### Multiple Domains (SNI)
 
-Create certificates for multiple hostnames:
+Configure each HTTPS hostname as the primary `backend.hostname` or an enabled
+site (see [[Subsites]]), then create certificates for those hostnames. The
+certificate rows in this example do not activate the hostnames by themselves:
 
 ```bash
 TOKEN=$(cat /tmp/daptin-token.txt)
@@ -242,6 +300,7 @@ Before generating ACME certificates:
 2. **DNS Configuration**: Domain must resolve to your Daptin server's public IP
 3. **Port 80 Access**: Let's Encrypt requires port 80 accessible from internet for HTTP-01 challenge
 4. **Valid Email**: User email must exist in `user_account` table (used for Let's Encrypt notifications)
+5. **HTTPS Hostname**: Set `backend.hostname` to the certificate hostname or configure an enabled site for it; enable HTTPS and restart after issuance
 
 ### Complete Workflow
 
@@ -386,7 +445,9 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 ### Server Configuration
 
-Certificates are automatically loaded from the database at server startup. To use new certificates:
+The primary hostname's certificate and enabled sites' certificates are loaded
+from the database at server startup. To use a newly issued or renewed
+certificate for one of these hostnames, restart Daptin:
 
 **Restart Daptin through your process supervisor**
 ```bash
@@ -401,7 +462,9 @@ docker restart daptin
 
 ### HTTPS Configuration
 
-Once certificates are generated, Daptin automatically serves HTTPS on the configured port (default: 6443).
+HTTPS starts on the configured port (default: 6443) only after
+`enable_https=true` and a restart. Issuing a certificate alone does not start
+HTTPS or add its hostname to the SNI selector.
 
 **Test HTTPS:**
 ```bash
@@ -544,9 +607,9 @@ the certificate resource's issuer/date and an external TLS handshake.
 - Backup database includes private keys - secure backups appropriately
 
 ### SNI (Server Name Indication)
-- Daptin serves different certificates based on requested hostname
+- Daptin serves certificates for the exact primary hostname and enabled site hostnames
 - Requires client SNI support (all modern browsers)
-- Default certificate served if hostname not found
+- Unknown hostnames fail the TLS handshake; there is no fallback certificate
 
 ---
 
@@ -555,6 +618,8 @@ the certificate resource's issuer/date and an external TLS handshake.
 For production HTTPS deployment:
 
 - [ ] Real domain with public DNS configured
+- [ ] Certificate hostname configured as `backend.hostname` or an enabled site
+- [ ] `enable_https=true` and Daptin restarted after certificate issuance
 - [ ] Port 80 open and accessible from internet (ACME validation)
 - [ ] Port 443 (or custom HTTPS port) open for secure traffic
 - [ ] Valid email in `user_account` table
@@ -623,19 +688,22 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
 **Symptom:** Generated certificate but HTTPS not working
 
 **Solution:**
-1. Verify the certificate resource without exposing its private key:
+1. Confirm the hostname is the exact primary `backend.hostname` or an enabled
+   site hostname. A certificate row alone is not selected for HTTPS. Confirm
+   `enable_https=true`.
+2. Verify the certificate resource without exposing its private key:
 ```bash
 curl -sS -H "Authorization: Bearer $TOKEN" \
   'http://localhost:6336/api/certificate?page[size]=100' | \
   jq '.data[] | {hostname:.attributes.hostname, issuer:.attributes.issuer, generated_at:.attributes.generated_at}'
 ```
 
-2. Restart Daptin to load certificates:
+3. Restart Daptin to load certificates:
 ```bash
 ./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
 ```
 
-3. Check HTTPS port is accessible:
+4. Check HTTPS port is accessible:
 ```bash
 curl --resolve daptin.test:6443:127.0.0.1 -k https://daptin.test:6443/api/world
 ```
