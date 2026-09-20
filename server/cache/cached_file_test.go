@@ -16,14 +16,18 @@ func TestCachedFileMarshalRoundTripIncludesPermissionSnapshot(t *testing.T) {
 	adminGroupRef := daptinid.DaptinReferenceId(uuid.New())
 
 	original := &CachedFile{
-		Data:         []byte("private-bytes"),
-		ETag:         `"etag"`,
-		Modtime:      time.Unix(100, 0),
-		MimeType:     "image/svg+xml",
-		Path:         "asset/ref/file.svg",
-		Size:         len("private-bytes"),
-		IsDownload:   false,
-		ExpiresAt:    time.Unix(200, 0),
+		Data:       []byte("private-bytes"),
+		ETag:       `"etag"`,
+		Modtime:    time.Unix(100, 0),
+		MimeType:   "image/svg+xml",
+		Path:       "asset/ref/file.svg",
+		Size:       len("private-bytes"),
+		IsDownload: false,
+		ExpiresAt:  time.Unix(200, 0),
+		Headers: map[string]string{
+			"Cache-Control":   "public, max-age=60, must-revalidate",
+			"X-Frame-Options": "DENY",
+		},
 		AuthzVersion: 1,
 		TablePermission: permission.PermissionInstance{
 			UserId:     ownerRef,
@@ -64,5 +68,8 @@ func TestCachedFileMarshalRoundTripIncludesPermissionSnapshot(t *testing.T) {
 	}
 	if decoded.AdminGroupId != adminGroupRef {
 		t.Fatalf("AdminGroupId = %v, want %v", decoded.AdminGroupId, adminGroupRef)
+	}
+	if decoded.Headers["Cache-Control"] != original.Headers["Cache-Control"] || decoded.Headers["X-Frame-Options"] != "DENY" {
+		t.Fatalf("response headers did not round-trip: %#v", decoded.Headers)
 	}
 }

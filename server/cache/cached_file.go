@@ -3,6 +3,7 @@ package cache
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
@@ -33,6 +34,7 @@ type CachedFile struct {
 	TablePermission permission.PermissionInstance
 	RowPermission   permission.PermissionInstance
 	AdminGroupId    daptinid.DaptinReferenceId
+	Headers         map[string]string // Response headers owned by a routed template
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler interface for Olric compatibility
@@ -51,6 +53,10 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	rowPermissionBytes, err := cf.RowPermission.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	headerBytes, err := json.Marshal(cf.Headers)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +83,8 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 		len(tablePermissionBytes) + // Size for TablePermission
 		4 + // Size for RowPermission length
 		len(rowPermissionBytes) + // Size for RowPermission
-		16 // Size for AdminGroupId
+		16 + // Size for AdminGroupId
+		4 + len(headerBytes) // Size for routed-template headers
 
 	// Grow the buffer if needed
 	if buf.Cap() < bufSize {
@@ -137,6 +144,8 @@ func (cf *CachedFile) MarshalBinary() ([]byte, error) {
 	binary.Write(buf, binary.LittleEndian, int32(len(rowPermissionBytes)))
 	buf.Write(rowPermissionBytes)
 	buf.Write(cf.AdminGroupId[:])
+	binary.Write(buf, binary.LittleEndian, int32(len(headerBytes)))
+	buf.Write(headerBytes)
 
 	// Make a copy of the bytes to return (since we're returning the buffer to the pool)
 	result := make([]byte, buf.Len())
@@ -295,6 +304,21 @@ func (cf *CachedFile) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("failed to read AdminGroupId: %v", err)
 	}
 	copy(cf.AdminGroupId[:], adminGroupBytes)
+
+	var headerLen int32
+	if err := binary.Read(buf, binary.LittleEndian, &headerLen); err != nil {
+		return fmt.Errorf("failed to read Headers length: %v", err)
+	}
+	if headerLen < 0 || int(headerLen) > buf.Len() {
+		return fmt.Errorf("invalid Headers length: %d", headerLen)
+	}
+	headerBytes := make([]byte, headerLen)
+	if _, err := buf.Read(headerBytes); err != nil {
+		return fmt.Errorf("failed to read Headers: %v", err)
+	}
+	if err := json.Unmarshal(headerBytes, &cf.Headers); err != nil {
+		return fmt.Errorf("failed to unmarshal Headers: %v", err)
+	}
 
 	return nil
 }

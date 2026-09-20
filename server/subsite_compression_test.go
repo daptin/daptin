@@ -20,6 +20,10 @@ func TestAcceptsGzip(t *testing.T) {
 		{"GZip; q=0.5", true},
 		{"*;q=1", true},
 		{"gzip;q=0", false},
+		{"gzip;q=0, *;q=1", false},
+		{"*;q=0, gzip;q=1", true},
+		{"gzip;q=0.25", true},
+		{"gzip;q=1.5", false},
 		{"br", false},
 		{"", false},
 	}

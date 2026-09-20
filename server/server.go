@@ -145,10 +145,16 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	transaction.Commit()
 
 	if enableGzip == "true" {
-		defaultRouter.Use(gzip.Gzip(gzip.DefaultCompression,
+		gzipMiddleware := gzip.Gzip(gzip.DefaultCompression,
 			gzip.WithExcludedExtensions([]string{".pdf", ".mp4", ".jpg", ".png", ".wav", ".gif", ".mp3"}),
-			gzip.WithExcludedPaths([]string{"/asset/", "/live"})),
-		)
+			gzip.WithExcludedPaths([]string{"/asset/", "/live"}))
+		defaultRouter.Use(func(c *gin.Context) {
+			if !acceptsGzip(c.GetHeader("Accept-Encoding")) {
+				c.Next()
+				return
+			}
+			gzipMiddleware(c)
+		})
 	}
 
 	defaultRouter.Use(func() gin.HandlerFunc {
@@ -499,7 +505,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}
 
 	// Set the Olric client for template cache
-	_ = subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch, olricDb)
+	_ = subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch, olricDb, enableGzip == "true")
 	_ = transaction.Commit()
 
 	transaction, err = db.Beginx()

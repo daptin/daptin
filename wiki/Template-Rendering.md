@@ -486,8 +486,8 @@ Server-side in-memory cache for public pages:
 | `enable` | bool | Enables route cache handling. Required for all other cache behavior. |
 | `max_age` | int | Adds `max-age=<seconds>` and an `Expires` header. |
 | `revalidate` | bool | Adds `must-revalidate`. Defaults to true when config is parsed. |
-| `no_cache` | bool | Adds `no-cache`; disables validator shortcut checks. |
-| `no_store` | bool | Adds `no-store` and returns before other cache directives. |
+| `no_cache` | bool | Adds `no-cache`; bypasses server-side cached responses so the template is rendered before validation. |
+| `no_store` | bool | Adds `no-store` and prevents server-side storage. |
 | `private` | bool | Adds `private`; otherwise Daptin adds `public`. |
 | `vary_by_headers` | string array | Adds a `Vary` header and includes those header values in the in-memory cache key. |
 | `vary_by_query_params` | string array | Adds `X-Vary-By-Query-Params` and includes those query values in the in-memory cache key. |
@@ -498,7 +498,7 @@ Server-side in-memory cache for public pages:
 | `etag_strategy` | string | `weak`, `strong`, or `none`. Defaults to `weak`. |
 | `cache_key_prefix` | string | Prefix for in-memory cache keys. Useful for deployment/version invalidation. |
 | `enable_in_memory_cache` | bool | Enables server-side cached rendered responses. |
-| `in_memory_cache_ttl` | int | Parsed with default 300 seconds; current route storage uses the file cache expiry calculation. |
+| `in_memory_cache_ttl` | int | Server-side cache lifetime in seconds (default 300), capped by `max_age` and `expires_at` when set. |
 | `in_memory_cache_max_size` | int | Parsed with default 100; enforcement depends on the underlying cache implementation. |
 | `in_memory_cache_strategy` | string | Parsed as `lru` or `lfu`; enforcement depends on the underlying cache implementation. |
 | `in_memory_cache_compression` | bool | Parsed; route cache compression is currently decided from MIME type and content size. |
@@ -510,7 +510,9 @@ Important cache notes:
 - In-memory cache keys always include request path.
 - Configure `vary_by_query_params` and `vary_by_headers` for anything that changes rendered output.
 - If `etag_strategy` is not `none`, Daptin generates an ETag from rendered content for fresh responses.
-- The current validator shortcut treats a present `If-None-Match` header as cache-valid before re-rendering. Use `etag_strategy: "none"` if that behavior is not appropriate for a route.
+- Conditional requests return 304 only when `If-None-Match` matches the current response's ETag. Cached responses retain the route's declared headers and cache policy.
+- Routed-template compression follows the backend `gzip.enable` setting and `Accept-Encoding`; gzip and uncompressed responses use distinct ETags.
+- Responses marked `no-store`, `no-cache`, or `private`, or carrying `Set-Cookie`, are not served from the shared server-side cache.
 
 ## Headers and MIME Types
 

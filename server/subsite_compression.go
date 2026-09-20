@@ -6,9 +6,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/daptin/daptin/server/subsite"
 )
 
 const subsiteCompressedCacheDirectory = ".daptin-compressed"
@@ -29,25 +30,7 @@ type subsiteCompressedFileState struct {
 var subsiteCompressedFiles sync.Map
 
 func acceptsGzip(value string) bool {
-	for _, item := range strings.Split(value, ",") {
-		parts := strings.Split(strings.TrimSpace(item), ";")
-		if !strings.EqualFold(strings.TrimSpace(parts[0]), "gzip") && strings.TrimSpace(parts[0]) != "*" {
-			continue
-		}
-		quality := 1.0
-		for _, parameter := range parts[1:] {
-			keyValue := strings.SplitN(strings.TrimSpace(parameter), "=", 2)
-			if len(keyValue) == 2 && strings.EqualFold(keyValue[0], "q") {
-				parsed, err := strconv.ParseFloat(keyValue[1], 64)
-				if err != nil {
-					return false
-				}
-				quality = parsed
-			}
-		}
-		return quality > 0
-	}
-	return false
+	return subsite.AcceptsGzip(value)
 }
 
 func shouldGzipSubsitePath(path string) bool {
@@ -56,7 +39,7 @@ func shouldGzipSubsitePath(path string) bool {
 }
 
 func gzipETag(etag string) string {
-	return strings.TrimSuffix(etag, `"`) + "-gzip\""
+	return subsite.GzipETag(etag)
 }
 
 func appendVary(headerValue, value string) string {
