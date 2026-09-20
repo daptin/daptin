@@ -97,27 +97,26 @@ FEED_ID=$(curl -sS -X POST http://localhost:6336/api/feed \
 Restart Daptin with its process supervisor, then verify all formats:
 
 ```bash
-curl -fsS http://localhost:6336/feed/articles.rss  -o articles.rss
-curl -fsS http://localhost:6336/feed/articles.atom -o articles.atom
-curl -fsS http://localhost:6336/feed/articles.json | jq .
+curl -fsS -H "Authorization: Bearer $TOKEN" http://localhost:6336/feed/articles.rss  -o articles.rss
+curl -fsS -H "Authorization: Bearer $TOKEN" http://localhost:6336/feed/articles.atom -o articles.atom
+curl -fsS -H "Authorization: Bearer $TOKEN" http://localhost:6336/feed/articles.json | jq .
 ```
 
-If the source is not guest-readable, include the same bearer token you would
-use for `GET /api/article`. A feed being enabled does not grant access to source
-rows.
+You can omit the bearer token only if the source rows are guest-readable. A
+feed being enabled does not grant access to source rows.
 
 ## Failure checks
 
-- **404:** confirm `feed_name`, `enable`, the `stream_id` relationship, and that
-  both rows existed before restart.
+- **404:** confirm `feed_name`, `enable`, the requested format's `enable_rss`,
+  `enable_atom`, or `enable_json` field, the `stream_id` relationship, and that
+  both rows existed before restart. Other extensions are not supported.
 - **404 after creating rows:** restart; feed and stream maps are composed at
-  startup in v0.13.14.
-- **500 while rendering:** confirm the stream result contains string values for
-  `title`, `link`, `description`, `author_name`, `author_email`, and
-  `created_at`.
+  startup.
+- **JSON error while rendering:** confirm `page_size` is positive and the stream
+  returns `title`, `link`, `description`, `author_name`, `author_email`, and
+  `created_at` for each item.
 - **Empty feed:** test the same identity against the source resource and check
   both table-level and row-level read permissions.
 
-The `enable_rss`, `enable_atom`, and `enable_json` fields describe the intended
-format policy, but v0.13.14 selects output from the requested file extension.
-If a format must be unavailable, block its URL at your ingress.
+The `enable_rss`, `enable_atom`, and `enable_json` fields control which feed
+formats are available. A disabled format returns 404.

@@ -2,15 +2,95 @@ package server
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/artpar/api2go/v2"
-	"github.com/daptin/daptin/server/columntypes"
+	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/feeds"
 	"github.com/jmoiron/sqlx"
-	"net/http"
-	"strings"
+	log "github.com/sirupsen/logrus"
 )
+
+func feedEnabled(value interface{}) (bool, error) {
+	switch v := value.(type) {
+	case bool:
+		return v, nil
+	case int64:
+		if v == 0 || v == 1 {
+			return v == 1, nil
+		}
+	case string:
+		return strconv.ParseBool(v)
+	}
+	return false, fmt.Errorf("invalid feed boolean value %T", value)
+}
+
+func feedText(row map[string]interface{}, name string) (string, error) {
+	value, ok := row[name].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid feed field %s: %T", name, row[name])
+	}
+	return value, nil
+}
+
+func feedCreatedAt(value interface{}) (time.Time, error) {
+	switch v := value.(type) {
+	case time.Time:
+		return v, nil
+	case string:
+		if parsed, err := time.Parse(time.RFC3339Nano, v); err == nil {
+			return parsed, nil
+		}
+		parsed, _, err := fieldtypes.GetTime(v)
+		if err == nil {
+			return parsed, nil
+		}
+		// The stream's dataframe converts time.Time values to time.Time.String().
+		// Its final zone label may itself be a numeric offset.
+		if zone := strings.LastIndexByte(v, ' '); zone >= 0 {
+			return time.Parse("2006-01-02 15:04:05.999999999 -0700", v[:zone])
+		}
+		return time.Time{}, err
+	default:
+		return time.Time{}, fmt.Errorf("invalid feed created_at: %T", value)
+	}
+}
+
+func feedItem(row map[string]interface{}) (*feeds.Item, error) {
+	title, err := feedText(row, "title")
+	if err != nil {
+		return nil, err
+	}
+	link, err := feedText(row, "link")
+	if err != nil {
+		return nil, err
+	}
+	description, err := feedText(row, "description")
+	if err != nil {
+		return nil, err
+	}
+	authorName, err := feedText(row, "author_name")
+	if err != nil {
+		return nil, err
+	}
+	authorEmail, err := feedText(row, "author_email")
+	if err != nil {
+		return nil, err
+	}
+	created, err := feedCreatedAt(row["created_at"])
+	if err != nil {
+		return nil, err
+	}
+	return &feeds.Item{
+		Title: title, Link: &feeds.Link{Href: link}, Description: description,
+		Author: &feeds.Author{Name: authorName, Email: authorEmail}, Created: created,
+	}, nil
+}
 
 func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resource.StreamProcessor, transaction *sqlx.Tx) func(*gin.Context) {
 
@@ -26,28 +106,29 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 	resource.CheckErr(err, "Failed to load stream")
 
 	feedMap := make(map[string]map[string]interface{})
-	streamInfoMap := make(map[string]map[string]interface{})
+	streamInfoMap := make(map[int64]map[string]interface{})
 	for _, feed := range feedsInfo {
-		feedMap[feed["feed_name"].(string)] = feed
+		if name, ok := feed["feed_name"].(string); ok {
+			feedMap[name] = feed
+		}
 	}
 	for _, stream := range streamInfos {
-		s, ok := stream["id"].(string)
-		if !ok {
-			s = fmt.Sprintf("%v", stream["id"])
+		if id, err := resource.ResourceRowInt64(stream["id"]); err == nil {
+			streamInfoMap[id] = stream
 		}
-		streamInfoMap[s] = stream
 	}
 
 	return func(c *gin.Context) {
-		var feedName = c.Param("feedname")
-
-		var parts = strings.Split(feedName, ".")
-		if len(parts) < 2 {
+		feedName, feedExtension, ok := strings.Cut(c.Param("feedname"), ".")
+		if !ok || feedName == "" {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid feed request"})
 			return
 		}
-		feedName = parts[0]
-		feedExtension := parts[1]
+		feedExtension = strings.ToLower(feedExtension)
+		if feedExtension != "rss" && feedExtension != "atom" && feedExtension != "json" {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 
 		feedInfo, ok := feedMap[feedName]
 		if !ok || feedInfo == nil {
@@ -55,98 +136,113 @@ func CreateFeedHandler(cruds map[string]*resource.DbResource, streams []*resourc
 			return
 		}
 
-		if feedInfo["enable"].(string) != "1" {
+		enabled, err := feedEnabled(feedInfo["enable"])
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed configuration"})
+			return
+		}
+		if !enabled {
 			c.AbortWithStatus(404)
 			return
 		}
-		streamId, ok := feedInfo["stream_id"].(string)
+		formatEnabled, err := feedEnabled(feedInfo["enable_"+feedExtension])
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed configuration"})
+			return
+		}
+		if !formatEnabled {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		streamID, err := resource.ResourceRowInt64(feedInfo["stream_id"])
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed stream"})
+			return
+		}
+
+		streamInfo, ok := streamInfoMap[streamID]
 		if !ok {
 			c.AbortWithStatus(404)
 			return
 		}
 
-		streamInfo, ok := streamInfoMap[streamId]
+		streamName, err := feedText(streamInfo, "stream_name")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed stream"})
+			return
+		}
+		streamProcessor, ok := streamMap[streamName]
 		if !ok {
 			c.AbortWithStatus(404)
 			return
 		}
 
-		streamProcessor, ok := streamMap[streamInfo["stream_name"].(string)]
-		if !ok {
-			c.AbortWithStatus(404)
+		pageSize, err := resource.ResourceRowInt64(feedInfo["page_size"])
+		if err != nil || pageSize < 1 {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed page_size"})
 			return
 		}
-
-		pageSize := feedInfo["page_size"].(string)
-
-		pr := &http.Request{
-			Method: "GET",
-			URL:    c.Request.URL,
-		}
-
-		pr = pr.WithContext(c.Request.Context())
 
 		req := api2go.Request{
-			PlainRequest: pr,
+			PlainRequest: c.Request,
 			QueryParams: map[string][]string{
-				"page[size]": {pageSize},
+				"page[size]": {strconv.FormatInt(pageSize, 10)},
 			},
 		}
 
 		_, rows, err := streamProcessor.PaginatedFindAll(req)
 
-		if err != nil {
-			c.AbortWithError(500, err)
+		if err != nil || rows == nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to read feed stream"})
 			return
 		}
 
-		createdAtTime, _, _ := fieldtypes.GetTime(feedInfo["created_at"].(string))
+		metadata, err := feedItem(feedInfo)
+		if err != nil {
+			log.Errorf("invalid feed configuration for %s: %v", feedName, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed configuration"})
+			return
+		}
 		feed := &feeds.Feed{
-			Title:       feedInfo["title"].(string),
-			Link:        &feeds.Link{Href: feedInfo["link"].(string)},
-			Description: feedInfo["description"].(string),
-			Author:      &feeds.Author{Name: feedInfo["author_name"].(string), Email: feedInfo["author_email"].(string)},
-			Created:     createdAtTime,
+			Title: metadata.Title, Link: metadata.Link,
+			Description: metadata.Description, Author: metadata.Author,
+			Created: metadata.Created,
 		}
 
-		feedItems := make([]*feeds.Item, 0)
-
-		for _, rowInterface := range rows.Result().([]api2go.Api2GoModel) {
-
-			row := rowInterface.GetAttributes()
-			createdAtTime, _, _ = fieldtypes.GetTime(row["created_at"].(string))
-			feedItems = append(feedItems, &feeds.Item{
-				Title:       row["title"].(string),
-				Link:        &feeds.Link{Href: row["link"].(string)},
-				Description: row["description"].(string),
-				Author:      &feeds.Author{Name: row["author_name"].(string), Email: row["author_email"].(string)},
-				Created:     createdAtTime,
-			})
-
+		result, ok := rows.Result().([]api2go.Api2GoModel)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed stream result"})
+			return
+		}
+		for _, model := range result {
+			item, err := feedItem(model.GetAttributes())
+			if err != nil {
+				log.Errorf("invalid feed stream item for %s: %v", feedName, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid feed stream item"})
+				return
+			}
+			feed.Items = append(feed.Items, item)
 		}
 
-		feed.Items = feedItems
-
-		var output string
-		switch strings.ToLower(feedExtension) {
+		var output, contentType string
+		switch feedExtension {
 		case "rss":
-			c.Header("Content-Type", "application/xml")
+			contentType = "application/xml"
 			output, err = feed.ToRss()
 		case "atom":
-			c.Header("Content-Type", "application/xml")
+			contentType = "application/xml"
 			output, err = feed.ToAtom()
 		case "json":
-			c.Header("Content-Type", "application/json")
+			contentType = "application/json"
 			output, err = feed.ToJSON()
-		default:
-			c.Header("Content-Type", "application/xml")
-			output, err = feed.ToRss()
 		}
 
-		resource.CheckErr(err, "Failed to generate feed [%v]", feedInfo)
-
-		c.Writer.WriteString(output)
-		c.AbortWithStatus(200)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to render feed"})
+			return
+		}
+		c.Data(http.StatusOK, contentType, []byte(output))
 
 	}
 }
