@@ -13,6 +13,7 @@ require (
 	github.com/artpar/api2go-adapter v1.0.2
 	github.com/artpar/api2go/v2 v2.7.3
 	github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81
+	github.com/artpar/ftpserver v0.0.4-daptin.2
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.5
 	github.com/artpar/go-imap-idle v1.0.2
@@ -39,7 +40,6 @@ require (
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/emersion/go-smtp v0.12.1
 	github.com/emersion/go-webdav v0.4.0
-	github.com/fclairamb/ftpserver v0.0.4
 	github.com/flysnow-org/soha v0.0.0-20191204153003-307ff1f8b4d8
 	github.com/getkin/kin-openapi v0.110.0
 	github.com/ghodss/yaml v1.0.0

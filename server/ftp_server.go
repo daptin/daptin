@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -14,8 +15,9 @@ import (
 	"strings"
 	"time"
 
+	rclonefs "github.com/artpar/rclone/fs"
+	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
-	storagefs "github.com/daptin/daptin/server/filesystem"
 	daptinid "github.com/daptin/daptin/server/id"
 	log "github.com/sirupsen/logrus"
 
@@ -23,7 +25,7 @@ import (
 
 	"sync/atomic"
 
-	"github.com/fclairamb/ftpserver/server"
+	"github.com/artpar/ftpserver/server"
 )
 
 // DaptinFtpDriver defines a very basic ftpserver driver
@@ -244,36 +246,24 @@ func (driver *ClientDriver) sitePath(ftpPath string) (string, SubSiteAssetCache,
 	return siteName, site, relativePath, nil
 }
 
-func containedPath(rootPath string, relativePath string) (string, error) {
-	return storagefs.ResolveLocalPath(rootPath, relativePath)
-}
-
-func (driver *ClientDriver) resolveSitePath(ftpPath string) (string, SubSiteAssetCache, string, error) {
-	siteName, site, relativePath, err := driver.sitePath(ftpPath)
-	if err != nil {
-		return "", SubSiteAssetCache{}, "", err
-	}
-	fullPath, err := containedPath(site.LocalSyncPath, relativePath)
-	if err != nil {
-		return "", SubSiteAssetCache{}, "", err
-	}
-	return siteName, site, fullPath, nil
-}
-
 // UserLeft is called when the user disconnects, even if he never authenticated
 func (driver *DaptinFtpDriver) UserLeft(cc server.ClientContext) {
 	atomic.AddInt32(&driver.nbClients, -1)
 }
 
 func (driver *ClientDriver) SetFileMtime(cc server.ClientContext, path string, mtime time.Time) error {
-	_, site, fullPath, err := driver.resolveSitePath(path)
+	_, site, relativePath, err := driver.sitePath(path)
 	if err != nil {
 		return err
 	}
 	if !site.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return errors.New("permission denied")
 	}
-	return os.Chtimes(fullPath, mtime, mtime)
+	if err := site.SetStoredModTime(context.Background(), relativePath, mtime); err != nil {
+		return err
+	}
+	invalidateFTPSiteCache(site)
+	return nil
 }
 
 // ChangeDirectory changes the current working directory
@@ -285,11 +275,11 @@ func (driver *ClientDriver) ChangeDirectory(cc server.ClientContext, directory s
 		return nil
 	}
 
-	siteName, site, fullPath, err := driver.resolveSitePath(directory)
+	siteName, site, relativePath, err := driver.sitePath(directory)
 	if err != nil || !site.Permission.CanPeek(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return fmt.Errorf("no such path %v", directory)
 	}
-	fileInfo, err := os.Stat(fullPath)
+	fileInfo, err := site.StatStoredFile(context.Background(), relativePath)
 	if err != nil || !fileInfo.IsDir() {
 		return fmt.Errorf("no such path %v", directory)
 	}
@@ -309,11 +299,11 @@ func (driver *ClientDriver) MakeDirectory(cc server.ClientContext, path string) 
 	if relativePath == "." {
 		return errors.New("cannot create site root")
 	}
-	fullPath, err := containedPath(site.LocalSyncPath, relativePath)
-	if err != nil {
+	if err := site.MakeStoredDirectory(context.Background(), relativePath); err != nil {
 		return err
 	}
-	return os.Mkdir(fullPath, 0750)
+	invalidateFTPSiteCache(site)
+	return nil
 }
 
 // ListFiles lists the files of a directory
@@ -337,67 +327,166 @@ func (driver *ClientDriver) ListFiles(cc server.ClientContext, directory string)
 		return files, nil
 	}
 
-	_, site, fullPath, err := driver.resolveSitePath(directory)
+	_, site, relativePath, err := driver.sitePath(directory)
 	if err != nil {
 		return nil, err
 	}
 	if !site.Permission.CanRead(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return nil, errors.New("permission denied")
 	}
-	entries, err := os.ReadDir(fullPath)
-	if err != nil {
-		return nil, err
-	}
-	for _, entry := range entries {
-		entryInfo, infoErr := entry.Info()
-		if infoErr != nil {
-			return nil, infoErr
-		}
-		files = append(files, entryInfo)
-	}
-	return files, nil
+	return site.ListStoredFiles(context.Background(), relativePath)
 }
 
 // OpenFile opens a file in 3 possible modes: read, write, appending write (use appropriate flags)
 func (driver *ClientDriver) OpenFile(cc server.ClientContext, path string, flag int) (server.FileStream, error) {
-	_, site, fullPath, err := driver.resolveSitePath(path)
+	_, site, relativePath, err := driver.sitePath(path)
 	if err != nil {
 		return nil, err
 	}
 	if (flag & (os.O_WRONLY | os.O_RDWR)) != 0 {
-		_, statErr := os.Stat(fullPath)
-		if errors.Is(statErr, os.ErrNotExist) {
-			if !site.Permission.CanCreate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+		adminGroupID := driver.FtpDriver.cruds["site"].AdministratorGroupId
+		canCreate := site.Permission.CanCreate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, adminGroupID)
+		canUpdate := site.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, adminGroupID)
+		if !canCreate && !canUpdate {
+			return nil, errors.New("permission denied")
+		}
+		info, statErr := site.StatStoredFile(context.Background(), relativePath)
+		existing := statErr == nil
+		if existing && info.IsDir() {
+			return nil, errors.New("cannot write a directory")
+		}
+		if isFTPNotExist(statErr) {
+			if !canCreate {
 				return nil, errors.New("permission denied")
 			}
 		} else {
 			if statErr != nil {
 				return nil, statErr
 			}
-			if !site.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
+			if !canUpdate {
 				return nil, errors.New("permission denied")
 			}
 		}
-		flag |= os.O_CREATE
-		if (flag & os.O_APPEND) == 0 {
-			flag |= os.O_TRUNC
+		stage, err := os.CreateTemp("", "daptin-ftp-upload-*")
+		if err != nil {
+			return nil, err
 		}
+		if !existing && ftpRestartOffset(cc) != 0 {
+			_ = stage.Close()
+			_ = os.Remove(stage.Name())
+			return nil, os.ErrNotExist
+		}
+		if existing && (flag&os.O_APPEND != 0 || ftpRestartOffset(cc) != 0) {
+			previous, err := site.GetFileByNameContext(context.Background(), relativePath)
+			if err != nil {
+				_ = stage.Close()
+				_ = os.Remove(stage.Name())
+				return nil, err
+			}
+			_, copyErr := io.Copy(stage, previous)
+			_ = previous.Close()
+			if copyErr != nil {
+				_ = stage.Close()
+				_ = os.Remove(stage.Name())
+				return nil, copyErr
+			}
+			if flag&os.O_APPEND != 0 {
+				if _, err := stage.Seek(0, io.SeekEnd); err != nil {
+					_ = stage.Close()
+					_ = os.Remove(stage.Name())
+					return nil, err
+				}
+			}
+		}
+		return &ftpStoredFile{File: stage, site: site.AssetFolderCache, name: relativePath, afterWrite: func() { invalidateFTPSiteCache(site) }}, nil
 	} else if !site.Permission.CanRead(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return nil, errors.New("permission denied")
 	}
-	return os.OpenFile(fullPath, flag, 0600)
+	file, err := site.GetFileByNameContext(context.Background(), relativePath)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
+func isFTPNotExist(err error) bool {
+	return errors.Is(err, os.ErrNotExist) || errors.Is(err, rclonefs.ErrorObjectNotFound) || errors.Is(err, rclonefs.ErrorDirNotFound)
+}
+
+func ftpRestartOffset(cc server.ClientContext) int64 {
+	if restart, ok := cc.(interface{ RestartOffset() int64 }); ok {
+		return restart.RestartOffset()
+	}
+	return 0
+}
+
+type ftpStoredFile struct {
+	*os.File
+	site       *assetcachepojo.AssetFolderCache
+	name       string
+	afterWrite func()
+	aborted    bool
+	closed     bool
+}
+
+func (file *ftpStoredFile) Abort() error {
+	file.aborted = true
+	return nil
+}
+
+func (file *ftpStoredFile) Close() error {
+	if file.closed {
+		return nil
+	}
+	file.closed = true
+	name := file.File.Name()
+	if file.site != nil {
+		defer os.Remove(name)
+	}
+	closeErr := file.File.Close()
+	if closeErr != nil {
+		return closeErr
+	}
+	if file.site == nil {
+		return nil
+	}
+	if file.aborted {
+		return nil
+	}
+	reader, err := os.Open(name)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	if _, err := file.site.PutStoredFile(context.Background(), file.name, reader); err != nil {
+		return err
+	}
+	file.afterWrite()
+	return nil
+}
+
+func invalidateFTPSiteCache(site SubSiteAssetCache) {
+	for _, hostname := range strings.Split(site.Hostname, ",") {
+		indexCache.Delete(hostname)
+		negativeCache.Range(func(key, _ interface{}) bool {
+			if cachedKey, ok := key.(string); ok && strings.HasPrefix(cachedKey, hostname+":") {
+				negativeCache.Delete(key)
+			}
+			return true
+		})
+	}
 }
 
 // GetFileInfo gets some info around a file or a directory
 func (driver *ClientDriver) GetFileInfo(cc server.ClientContext, path string) (os.FileInfo, error) {
-	_, site, fullPath, err := driver.resolveSitePath(path)
+	_, site, relativePath, err := driver.sitePath(path)
 	if err != nil {
 		return nil, err
 	}
 	if !site.Permission.CanRead(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return nil, errors.New("permission denied")
 	}
-	return os.Stat(fullPath)
+	return site.StatStoredFile(context.Background(), relativePath)
 }
 
 // CanAllocate gives the approval to allocate some data
@@ -407,42 +496,42 @@ func (driver *ClientDriver) CanAllocate(cc server.ClientContext, size int) (bool
 
 // ChmodFile changes the attributes of the file
 func (driver *ClientDriver) ChmodFile(cc server.ClientContext, path string, mode os.FileMode) error {
-	_, site, fullPath, err := driver.resolveSitePath(path)
+	_, site, relativePath, err := driver.sitePath(path)
 	if err != nil {
 		return err
 	}
 	if !site.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return errors.New("permission denied")
 	}
-	return os.Chmod(fullPath, mode)
+	return site.ChmodStoredFile(relativePath, mode)
 }
 
 // DeleteFile deletes a file or a directory
 func (driver *ClientDriver) DeleteFile(cc server.ClientContext, path string) error {
-	_, site, fullPath, err := driver.resolveSitePath(path)
+	_, site, relativePath, err := driver.sitePath(path)
 	if err != nil {
 		return err
 	}
 	if !site.Permission.CanDelete(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return errors.New("permission denied")
 	}
-	siteRoot, rootErr := filepath.Abs(site.LocalSyncPath)
-	if rootErr != nil {
-		return rootErr
-	}
-	if fullPath == filepath.Clean(siteRoot) {
+	if relativePath == "." {
 		return errors.New("cannot delete site root")
 	}
-	return os.Remove(fullPath)
+	if err := site.RemoveStoredFile(context.Background(), relativePath); err != nil {
+		return err
+	}
+	invalidateFTPSiteCache(site)
+	return nil
 }
 
 // RenameFile renames a file or a directory
 func (driver *ClientDriver) RenameFile(cc server.ClientContext, from, to string) error {
-	fromSiteName, fromSite, fromPath, err := driver.resolveSitePath(from)
+	fromSiteName, fromSite, fromPath, err := driver.sitePath(from)
 	if err != nil {
 		return err
 	}
-	toSiteName, toSite, toPath, err := driver.resolveSitePath(to)
+	toSiteName, toSite, toPath, err := driver.sitePath(to)
 	if err != nil {
 		return err
 	}
@@ -453,18 +542,15 @@ func (driver *ClientDriver) RenameFile(cc server.ClientContext, from, to string)
 		!toSite.Permission.CanUpdate(driver.sessionUser.UserReferenceId, driver.sessionUser.Groups, driver.FtpDriver.cruds["site"].AdministratorGroupId) {
 		return errors.New("permission denied")
 	}
-	fromSiteRoot, err := filepath.Abs(fromSite.LocalSyncPath)
-	if err != nil {
-		return err
-	}
-	toSiteRoot, err := filepath.Abs(toSite.LocalSyncPath)
-	if err != nil {
-		return err
-	}
-	if fromPath == filepath.Clean(fromSiteRoot) || toPath == filepath.Clean(toSiteRoot) {
+	if fromPath == "." || toPath == "." {
 		return errors.New("cannot rename site root")
 	}
-	return os.Rename(fromPath, toPath)
+	if err := fromSite.MoveStoredFile(context.Background(), fromPath, toPath); err != nil {
+		return err
+	}
+	invalidateFTPSiteCache(fromSite)
+	invalidateFTPSiteCache(toSite)
+	return nil
 }
 
 // The virtual file is an example of how you can implement a purely virtual file

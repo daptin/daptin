@@ -29,7 +29,7 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
-	server2 "github.com/fclairamb/ftpserver/server"
+	server2 "github.com/artpar/ftpserver/server"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

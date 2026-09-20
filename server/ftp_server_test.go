@@ -13,6 +13,7 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/google/uuid"
 )
@@ -45,7 +46,10 @@ func ftpTestSite(hostname, localSyncPath string, sitePermission permission.Permi
 			Hostname:   hostname,
 			Permission: sitePermission,
 		},
-		AssetFolderCache: &assetcachepojo.AssetFolderCache{LocalSyncPath: localSyncPath},
+		AssetFolderCache: &assetcachepojo.AssetFolderCache{
+			LocalSyncPath: localSyncPath,
+			CloudStore:    rootpojo.CloudStore{RootPath: localSyncPath, StoreType: "local"},
+		},
 	}
 }
 
@@ -182,6 +186,9 @@ func TestFtpFileOperationsUseExistingSitePermissions(t *testing.T) {
 	file.Close()
 	if err := owner.DeleteFile(nil, "/files.example/document.txt"); err == nil {
 		t.Fatal("owner without UserDelete deleted a file")
+	}
+	if _, err := owner.OpenFile(nil, "/files.example/document.txt", os.O_WRONLY); err == nil || err.Error() != "permission denied" {
+		t.Fatalf("owner without write permission opened file: %v", err)
 	}
 
 	groupMember := ftpTestClient(&auth.SessionUser{
@@ -322,16 +329,12 @@ func TestFtpSiteRootCannotBeDeletedOrRenamed(t *testing.T) {
 	}
 }
 
-func TestFtpStoreTruncatesWithoutRemovingExistingFile(t *testing.T) {
+func TestFtpStoreReplacesBackingFile(t *testing.T) {
 	ownerReferenceId := ftpTestReferenceId()
 	adminGroupId := ftpTestReferenceId()
 	root := t.TempDir()
 	filePath := filepath.Join(root, "existing.txt")
-	if err := os.WriteFile(filePath, []byte("old content that is longer"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	originalInfo, err := os.Stat(filePath)
-	if err != nil {
+	if err := os.WriteFile(filePath, []byte("old content that is longer"), 0640); err != nil {
 		t.Fatal(err)
 	}
 	site := ftpTestSite("write.example", root, permission.PermissionInstance{
@@ -358,12 +361,9 @@ func TestFtpStoreTruncatesWithoutRemovingExistingFile(t *testing.T) {
 	if string(contents) != "new" {
 		t.Fatalf("file contents = %q, want new", contents)
 	}
-	newInfo, err := os.Stat(filePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !os.SameFile(originalInfo, newInfo) {
-		t.Fatal("STOR removed and recreated the existing file")
+	info, err := os.Stat(filePath)
+	if err != nil || info.Mode().Perm() != 0640 {
+		t.Fatalf("replacing file changed its permissions: %v, %v", info, err)
 	}
 }
 

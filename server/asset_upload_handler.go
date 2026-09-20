@@ -14,14 +14,12 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/rclone/fs/config"
-	"github.com/artpar/rclone/fs/operations"
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
@@ -336,50 +334,8 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 
 // writeAsset is the storage write used by raw and multipart HTTP uploads.
 func writeAsset(c *gin.Context, fileName string, reader io.Reader, assetCache *assetcachepojo.AssetFolderCache) (int64, error) {
-	var err error
-	fileName, err = storagefs.ValidatePath(fileName)
-	if err != nil {
-		return 0, err
-	}
-	if fileName == "" {
-		return 0, fmt.Errorf("filename is required")
-	}
-	setupCloudStorageCredentials(assetCache)
-	if isLocalStorage(assetCache) {
-		localPath, err := assetCache.CloudStore.ResolvePath(path.Join(assetCache.Keyname, fileName))
-		if err != nil {
-			return 0, err
-		}
-		if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
-			return 0, err
-		}
-		file, err := os.Create(localPath)
-		if err != nil {
-			return 0, err
-		}
-		size, copyErr := io.Copy(file, reader)
-		closeErr := file.Close()
-		if copyErr != nil {
-			return 0, copyErr
-		}
-		return size, closeErr
-	}
-
-	destination, err := assetCache.CloudStore.ResolvePath(assetCache.Keyname)
-	if err != nil {
-		return 0, err
-	}
-	ctx := c.Request.Context()
-	fdst, err := fs.NewFs(ctx, destination)
-	if err != nil {
-		return 0, err
-	}
 	progress := &progressReader{reader: reader, total: c.Request.ContentLength}
-	_, err = operations.Rcat(ctx, fdst, fileName, io.NopCloser(progress), time.Now(), fs.Metadata{})
-	if err != nil {
-		return 0, err
-	}
-	return progress.bytesRead, nil
+	return assetCache.PutStoredFile(c.Request.Context(), fileName, progress)
 }
 
 // handleUploadComplete marks an upload as complete after client-side upload

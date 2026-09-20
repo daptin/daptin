@@ -1,8 +1,8 @@
 # FTP Server
 
-**Protocol interoperability verified for v0.13.14. Durability is not.** Login,
-listing, upload, download, and explicit FTPS work, but FTP writes affect only a
-site's temporary local sync directory.
+FTP file operations use the site's configured cloud store. A successful FTP
+upload means the local or rclone-backed store accepted the file; a failed store
+write returns an FTP error.
 
 Host site files via FTP/FTPS with site-based access control and automatic TLS encryption.
 
@@ -13,15 +13,11 @@ Daptin includes an FTP/FTPS server that provides file access to subsites. Featur
 - **Permission-aware site access**: Users see only FTP-enabled sites allowed by the site's Daptin permissions
 - **Daptin authentication**: Login with your Daptin username (email) and password
 - **Automatic FTPS/TLS**: Encryption enabled automatically using site certificates
-- **Temporary file operations**: Upload, download, delete, create directories in the local site cache
+- **Stored file operations**: Upload, download, delete, and rename files in the site's configured storage
 - **Default port**: 2121
 
-> **Data-loss warning (v0.13.14):** FTP/FTPS does not write changes back to the
-> configured cloud store. Site sync copies the backing store into the temporary
-> local directory, so an FTP upload can disappear on restart or a later sync.
-> Use FTP only for disposable/development edits and verify the backing object
-> independently. Do not use it as a durable publishing path until reverse or
-> bidirectional synchronization is implemented.
+The FTP server waits for the backing-store write before completing an upload;
+if the store rejects it, the client must retry.
 
 FTP operations are not JSON:API resource mutations and do not trigger
 `data_exchange` lifecycle hooks. See [[Data-Exchange|Data Exchange]].
@@ -295,7 +291,10 @@ with open('file.txt', 'rb') as f:
     ftp.storbinary('STOR uploads/file.txt', f)
 ```
 
-**Note**: Cannot create directories in root (`/`). This is by design - sites must be created via API.
+**Note**: Cannot create directories in root (`/`); sites must be created via API.
+An object store that cannot retain empty directories (including S3-compatible
+stores) rejects `MKD`. Uploading `uploads/file.txt` can still create that
+prefix as part of the stored object's path.
 
 ---
 
@@ -322,7 +321,8 @@ FTP uses the existing `PermissionInstance` methods:
 | Show a site in `/`, change into it | `Peek` |
 | List files, inspect metadata, download | `Read` |
 | Upload a new file, create a directory | `Create` |
-| Overwrite, append, rename, chmod, change mtime | `Update` |
+| Overwrite, append, chmod, change mtime | `Update` |
+| Rename | `Read` and `Update` |
 | Delete a file or directory | `Delete` |
 
 The permission may be an `Owner*` bit for the site's owner or a `Group*` bit on a site-usergroup relationship for a member of that group. Members of the administrator group are accepted by the existing permission methods. Unknown and unauthorized sites are intentionally reported in the same way.
@@ -505,7 +505,7 @@ curl -X POST http://localhost:6336/action/user_account/signin \
 
 **Symptom**: FTP LIST command shows empty directory, but files exist.
 
-Current releases return directory entries normally. An empty root means the authenticated user has no `Peek` permission on any FTP-enabled site. An empty site listing means the directory is empty or the backing site cache has not completed its initial synchronization. Check the user's site permissions and server sync logs; do not grant broad permissions merely to make a site appear.
+An empty root means the authenticated user has no `Peek` permission on any FTP-enabled site. A site listing reads the configured backing store; if it is unexpectedly empty, check that site's storage path and credentials. Do not grant broad permissions merely to make a site appear.
 
 ### Cannot Create Directory in Root
 
@@ -520,7 +520,7 @@ ftp.mkd('newsite')  # Error
 
 # Right - works
 ftp.cwd('/existing-site.com')
-ftp.mkd('uploads')  # Success
+ftp.mkd('uploads')  # Succeeds when the backing store supports empty directories
 ```
 
 ### FTPS Certificate Warnings
@@ -551,7 +551,7 @@ curl -X POST http://localhost:6336/action/world/acme.tls.generate \
 - FTP uses the same owner, related-usergroup, and administrator checks as Daptin resources.
 - Grant the minimum `Peek`, `Read`, `Create`, `Update`, and `Delete` bits required for each site.
 - A valid account without permission cannot discover the site hostname or access it by an absolute FTP path.
-- Paths are confined to the selected site's synchronized root. Parent traversal, symlink escape, cross-site rename, and site-root delete/rename are rejected.
+- Paths are confined to the selected site's configured storage root. Parent traversal, symlink escape, cross-site rename, and site-root delete/rename are rejected.
 - Keep `ftp.enable=false` when FTP is unused. Bind `ftp.listen_interface` to a private interface or restrict it with a firewall.
 - Restart Daptin after permission or site relationship changes so the FTP site snapshot is refreshed.
 
@@ -609,12 +609,12 @@ data ports used by your deployment before restricting them in a firewall.
 | Upload files | ✅ | All file types |
 | Download files | ✅ | All file types |
 | Delete files | ✅ | |
-| Create directories | ✅ | Within sites only |
-| Directory listings | ⚠️ | May show empty, but files accessible |
+| Create directories | ⚠️ | Within sites, when the storage backend preserves empty directories |
+| Directory listings | ✅ | Lists the configured backing store |
 | Rename files | ✅ | |
-| File permissions (chmod) | ✅ | |
+| File permissions (chmod) | ⚠️ | Local storage only |
 | Symbolic links | ❌ | Not supported |
-| Resume transfers | ❌ | Not supported |
+| Resume transfers | ✅ | `REST` with `STOR`/`RETR`; append is also supported |
 | Site creation via FTP | ❌ | Must use API |
 | ASCII mode | ⚠️ | Not fully supported (use binary) |
 

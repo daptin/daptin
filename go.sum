@@ -261,6 +261,8 @@ github.com/artpar/api2go/v2 v2.7.3 h1:Va0AoVanwBxfGETLviVDgBzjOfOdX4UB5o3+mOhgH0
 github.com/artpar/api2go/v2 v2.7.3/go.mod h1:Mk1Cov/Epc5E6mg/nHpw+ZQ1nK3+7ujFXg86yxBRs5k=
 github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81 h1:MLrwgsAnzSfOdTXNWYdOS2a3aRJk9uSyCarDMOW4S9U=
 github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81/go.mod h1:gTQE1bELgcZsb9xDvo0PSPOPGb5OQuhKRQ3zFZJDjLc=
+github.com/artpar/ftpserver v0.0.4-daptin.2 h1:bKtwuSSRLcZ508My5fk1GgP6hwjnMikQNDntM7BdBb8=
+github.com/artpar/ftpserver v0.0.4-daptin.2/go.mod h1:zTsaSKP1grcI3l+PJLLbYVfCnkP3b0sbfan9/0MDcFo=
 github.com/artpar/go-guerrilla v1.5.2 h1:L9G1LaXwddgtXXby21gRexoFGAZ6hNV5aUKcw9qNLRE=
 github.com/artpar/go-guerrilla v1.5.2/go.mod h1:sfKsJOlZNXa7BL0w5NPZIFvs+r1CYeqI521DZ+j9iGE=
 github.com/artpar/go-imap v1.0.5 h1:m73nUXjH2kwbYb5xkCdFJgxbjybriFWDy45aK9WYdJc=
@@ -556,8 +558,6 @@ github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5Kwzbycv
 github.com/fatih/color v1.16.0 h1:zmkK9Ngbjj+K0yRhTVONQh1p/HknKYSlNT+vZCzyokM=
 github.com/fatih/color v1.16.0/go.mod h1:fL2Sau1YI5c0pdGEVCbKQbLXB6edEj1ZgiY4NijnWvE=
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
-github.com/fclairamb/ftpserver v0.0.4 h1:qBUt1g5F+SbyWkfcI6LWL3ohSDskWZ/aAqzvJplKiKI=
-github.com/fclairamb/ftpserver v0.0.4/go.mod h1:qpS9SluxSRBcYtfF7W4UObh9nKdMc9vK5F4FWxIfngQ=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/flynn/noise v1.0.1 h1:vPp/jdQLXC6ppsXSj/pM3W1BIJ5FEHE2TulSJBpb43Y=

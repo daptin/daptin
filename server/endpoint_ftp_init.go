@@ -7,7 +7,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/fclairamb/ftpserver/server"
+	"github.com/artpar/ftpserver/server"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )

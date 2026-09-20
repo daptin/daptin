@@ -12,7 +12,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/daptin/daptin/server/websockets"
-	ftpserver "github.com/fclairamb/ftpserver/server"
+	ftpserver "github.com/artpar/ftpserver/server"
 	"github.com/go-redis/redis/v8"
 )
 

@@ -9,7 +9,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/rootpojo"
 	"github.com/daptin/daptin/server/subsite"
-	ftpserver "github.com/fclairamb/ftpserver/server"
+	ftpserver "github.com/artpar/ftpserver/server"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
