@@ -70,9 +70,10 @@ func TestAssetUploadLocalRealE2E(t *testing.T) {
 	usedPorts := map[int]bool{}
 	port := freeTransportE2EPort(t, usedPorts)
 	httpsPort := freeTransportE2EPort(t, usedPorts)
+	olricPort := freeTransportE2EPortPair(t, usedPorts)
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	root := t.TempDir()
-	options := transportE2EDaptinOptions{databaseType: "sqlite3", connectionString: filepath.Join(t.TempDir(), "asset-upload-local.db"), schema: assetUploadLocalE2ESchema}
+	options := transportE2EDaptinOptions{databaseType: "sqlite3", connectionString: filepath.Join(t.TempDir(), "asset-upload-local.db"), olricPort: olricPort, schema: assetUploadLocalE2ESchema}
 	process := startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
 	client := &http.Client{Timeout: 30 * time.Second}
 	token := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
@@ -86,7 +87,51 @@ func TestAssetUploadLocalRealE2E(t *testing.T) {
 	signin := accessGroupsE2ERequestJSON(t, client, http.MethodPost, baseURL+"/action/user_account/signin", "",
 		map[string]interface{}{"attributes": map[string]interface{}{"email": "admin@test.local", "password": "testpass123"}}, http.StatusOK)
 	token, _ = accessGroupsE2EFindString(signin, "value")
+	invalidCreate, _ := json.Marshal(map[string]interface{}{"data": map[string]interface{}{
+		"type": "asset_upload_probe", "attributes": map[string]interface{}{
+			"title": "invalid asset", "attachment": []map[string]interface{}{{"name": "invalid.txt", "file": "data:text/plain;base64,@@@not-base64@@@"}},
+		},
+	}})
+	requestAssetE2E(t, client, http.MethodPost, baseURL+"/api/asset_upload_probe", token,
+		bytes.NewReader(invalidCreate), "application/vnd.api+json", http.StatusBadRequest)
+	traversalCreate, _ := json.Marshal(map[string]interface{}{"data": map[string]interface{}{
+		"type": "asset_upload_probe", "attributes": map[string]interface{}{
+			"title": "traversal asset", "attachment": []map[string]interface{}{{"name": "../../escape.txt", "file": "data:text/plain;base64,dGVzdA=="}},
+		},
+	}})
+	requestAssetE2E(t, client, http.MethodPost, baseURL+"/api/asset_upload_probe", token,
+		bytes.NewReader(traversalCreate), "application/vnd.api+json", http.StatusBadRequest)
+	if rows := requestAssetE2E(t, client, http.MethodGet, baseURL+"/api/asset_upload_probe", token, nil, "", http.StatusOK); strings.Contains(string(rows), "invalid asset") || strings.Contains(string(rows), "traversal asset") {
+		t.Fatalf("rejected create committed a row: %s", rows)
+	}
+	if _, err := os.Stat(filepath.Join(root, "uploaded", "invalid.txt")); !os.IsNotExist(err) {
+		t.Fatalf("invalid create wrote an object: %v", err)
+	}
+	validID := accessGroupsE2ECreateRecord(t, client, baseURL, token, "asset_upload_probe", map[string]interface{}{
+		"title": "valid inline asset", "attachment": []map[string]interface{}{{"name": "inline.txt", "file": "data:text/plain;base64,aGVsbG8="}},
+	})
+	validRow := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseURL+"/api/asset_upload_probe/"+validID, token, nil, http.StatusOK)
+	validJSON, _ := json.Marshal(validRow)
+	if !strings.Contains(string(validJSON), `"size":5`) || !strings.Contains(string(validJSON), `"md5":"5d41402abc4b2a76b9719d911017c592"`) {
+		t.Fatalf("valid asset metadata was not computed from decoded bytes: %s", validJSON)
+	}
+	waitAssetE2E(t, func() bool {
+		content, err := os.ReadFile(filepath.Join(root, "uploaded", "inline.txt"))
+		return err == nil && string(content) == "hello"
+	})
 	rowID := accessGroupsE2ECreateRecord(t, client, baseURL, token, "asset_upload_probe", map[string]interface{}{"title": "local asset"})
+	invalidUpdate, _ := json.Marshal(map[string]interface{}{"data": map[string]interface{}{
+		"type": "asset_upload_probe", "id": rowID, "attributes": map[string]interface{}{
+			"attachment": []map[string]interface{}{{"name": "invalid.txt", "file": "data:text/plain;base64,@@@not-base64@@@"}},
+		},
+	}})
+	requestAssetE2E(t, client, http.MethodPatch, baseURL+"/api/asset_upload_probe/"+rowID, token,
+		bytes.NewReader(invalidUpdate), "application/vnd.api+json", http.StatusBadRequest)
+	row := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseURL+"/api/asset_upload_probe/"+rowID, token, nil, http.StatusOK)
+	rowJSON, _ := json.Marshal(row)
+	if strings.Contains(string(rowJSON), "invalid.txt") {
+		t.Fatalf("invalid update committed metadata: %s", rowJSON)
+	}
 	assetURL := baseURL + "/asset/asset_upload_probe/" + rowID + "/attachment"
 	init := requestAssetE2E(t, client, http.MethodPost, assetURL+"/upload?operation=init&filename=local.txt", token, nil, "", http.StatusOK)
 	if !strings.Contains(string(init), `"upload_type":"stream"`) {
@@ -148,9 +193,10 @@ func TestAssetUploadRealE2E(t *testing.T) {
 	usedPorts := map[int]bool{}
 	port := freeTransportE2EPort(t, usedPorts)
 	httpsPort := freeTransportE2EPort(t, usedPorts)
+	olricPort := freeTransportE2EPortPair(t, usedPorts)
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	databasePath := filepath.Join(t.TempDir(), "asset-upload.db")
-	options := transportE2EDaptinOptions{databaseType: "sqlite3", connectionString: databasePath, schema: assetUploadE2ESchema}
+	options := transportE2EDaptinOptions{databaseType: "sqlite3", connectionString: databasePath, olricPort: olricPort, schema: assetUploadE2ESchema}
 	process := startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
 	client := &http.Client{Timeout: 30 * time.Second}
 	token := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)

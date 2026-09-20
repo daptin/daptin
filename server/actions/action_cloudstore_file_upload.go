@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"net/http"
 	sync2 "sync"
 	"time"
 
@@ -35,6 +36,17 @@ type fileUploadActionPerformer struct {
 
 func (actionPerformer *fileUploadActionPerformer) Name() string {
 	return "cloudstore.file.upload"
+}
+
+func decodeCloudStoreFileContent(value string) ([]byte, error) {
+	if len(value) >= 5 && strings.EqualFold(value[:5], "data:") {
+		header, encoded, ok := strings.Cut(value[5:], ",")
+		if !ok || !strings.HasSuffix(strings.ToLower(header), ";base64") {
+			return nil, fmt.Errorf("invalid base64 data URL")
+		}
+		value = encoded
+	}
+	return base64.StdEncoding.Strict().DecodeString(value)
 }
 
 func unzip(archive, target string) error {
@@ -95,35 +107,38 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 	atPath, ok := inFields["path"].(string)
 	files, ok := inFields["file"].([]interface{})
 	if !ok {
-		return nil, nil, []error{fmt.Errorf("improper file attachment, expected []interface{} got %v", inFields["file"])}
+		return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file attachment", http.StatusBadRequest)}
 	}
 	atPath, err := storagefs.ValidatePath(atPath)
 	if err != nil {
-		return nil, nil, []error{err}
+		return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file path", http.StatusBadRequest)}
 	}
 	for _, fileInterface := range files {
-		file := fileInterface.(map[string]interface{})
+		file, ok := fileInterface.(map[string]interface{})
+		if !ok {
+			return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file attachment", http.StatusBadRequest)}
+		}
 		fileName, ok := file["name"].(string)
 		if !ok {
-			return nil, nil, []error{fmt.Errorf("file name is missing")}
+			return nil, nil, []error{api2go.NewHTTPError(nil, "file name is required", http.StatusBadRequest)}
 		}
 		fileName, err = storagefs.ValidatePath(fileName)
 		if err != nil {
-			return nil, nil, []error{err}
+			return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file path", http.StatusBadRequest)}
 		}
 		if fileName == "" {
-			return nil, nil, []error{fmt.Errorf("file name cannot be empty")}
+			return nil, nil, []error{api2go.NewHTTPError(nil, "file name is required", http.StatusBadRequest)}
 		}
 		file["name"] = fileName
 		filePath := ""
 		if file["path"] != nil {
 			filePath, ok = file["path"].(string)
 			if !ok {
-				return nil, nil, []error{fmt.Errorf("file path must be a string")}
+				return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file path", http.StatusBadRequest)}
 			}
 			filePath, err = storagefs.ValidatePath(filePath)
 			if err != nil {
-				return nil, nil, []error{err}
+				return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file path", http.StatusBadRequest)}
 			}
 		}
 		file["path"] = filePath
@@ -149,7 +164,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 		for _, fileInterface := range files {
 			file := fileInterface.(map[string]interface{})
 			if _, err := storagefs.ResolveLocalPath(localStorageRoot, path.Join(atPath, file["path"].(string), file["name"].(string))); err != nil {
-				return nil, nil, []error{err}
+				return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file path", http.StatusBadRequest)}
 			}
 		}
 	}
@@ -161,6 +176,12 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 	if err != nil {
 		return nil, nil, []error{err}
 	}
+	queued := false
+	defer func() {
+		if !queued {
+			_ = os.RemoveAll(tempDirectoryPath)
+		}
+	}()
 
 	for _, fileInterface := range files {
 		file := fileInterface.(map[string]interface{})
@@ -178,20 +199,23 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 				continue
 			}
 		}
-		splitParts := strings.Split(fileContentsBase64, ",")
-		encodedPart := splitParts[0]
-		if len(splitParts) > 1 {
-			encodedPart = splitParts[len(splitParts)-1]
+		fileBytes, err := decodeCloudStoreFileContent(fileContentsBase64)
+		if err != nil {
+			return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file content", http.StatusBadRequest)}
 		}
-		fileBytes, err := base64.StdEncoding.DecodeString(encodedPart)
 		log.Infof("[116] Write file [%v] for upload", temproryFilePath)
-		resource.CheckErr(err, "Failed to convert base64 to []bytes")
 
 		fileDir := filepath.Dir(temproryFilePath)
-		os.MkdirAll(fileDir, 0755)
+		if err := os.MkdirAll(fileDir, 0755); err != nil {
+			return nil, nil, []error{err}
+		}
 
 		err = os.WriteFile(temproryFilePath, fileBytes, 0666)
-		resource.CheckErr(err, "[122] Failed to write file bytes to temp file for rclone upload")
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		file["md5"] = resource.GetMD5Hash(fileBytes)
+		file["size"] = len(fileBytes)
 
 		if EndsWithCheck(fileName, ".zip") {
 			err = unzip(temproryFilePath, filepath.Dir(temproryFilePath))
@@ -210,8 +234,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 	}
 	if localStorageRoot != "" {
 		if err := storagefs.ValidateLocalTreeDestination(localStorageRoot, atPath, tempDirectoryPath); err != nil {
-			_ = os.RemoveAll(tempDirectoryPath)
-			return nil, nil, []error{err}
+			return nil, nil, []error{api2go.NewHTTPError(nil, "invalid file path", http.StatusBadRequest)}
 		}
 	}
 	args := []string{
@@ -238,6 +261,7 @@ func (actionPerformer *fileUploadActionPerformer) DoAction(request actionrespons
 
 	defaultConfig.LogLevel = fs.LogLevelDebug
 
+	queued = true
 	go cmd.Run(true, false, cobraCommand, func() error {
 		if fsrc == nil || fdst == nil {
 			log.Errorf("Source or destination is null")

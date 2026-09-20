@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"encoding/base64"
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	jwtmiddleware "github.com/daptin/daptin/server/jwt"
@@ -169,37 +168,6 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 					files, ok := val.([]interface{})
 					if !ok {
 						continue
-					}
-
-					for i := range files {
-						file := files[i].(map[string]interface{})
-
-						i2, ok := file["file"]
-						fileContentsBase64 := ""
-						ok1 := false
-						if ok {
-
-							fileContentsBase64, ok1 = i2.(string)
-						}
-						if !ok || !ok1 {
-							fileContentsBase64, ok = file["contents"].(string)
-							if !ok {
-								continue
-							}
-						}
-						splitParts := strings.Split(fileContentsBase64, ",")
-						encodedPart := splitParts[0]
-						if len(splitParts) > 1 {
-							encodedPart = splitParts[1]
-						}
-						fileBytes, _ := base64.StdEncoding.DecodeString(encodedPart)
-						filemd5 := GetMD5Hash(fileBytes)
-						file["md5"] = filemd5
-						file["size"] = len(fileBytes)
-						if file["path"] == nil {
-							file["path"] = ""
-						}
-						files[i] = file
 					}
 
 					actionRequestParameters := make(map[string]interface{})

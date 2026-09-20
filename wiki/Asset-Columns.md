@@ -263,6 +263,7 @@ Example with `root_path="/tmp/storage"` and `KeyName="photo"`:
 | `src` | Same as `name` - used by frontend for display |
 
 **Note:** The `file`/`contents` fields are **removed** from the stored data. Only metadata is kept in the database.
+Malformed base64 is rejected with HTTP 400; it does not create an asset. A valid empty payload creates a zero-byte file. MIME metadata is optional, both in the data URL and in the separate `type` field.
 
 ### Upload Example
 

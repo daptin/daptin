@@ -2,7 +2,6 @@ package resource
 
 import (
 	"crypto/md5"
-	"encoding/base64"
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"net/http"
@@ -153,33 +152,6 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 				files, ok := columnValue.([]interface{})
 				if ok {
 					var err error
-
-					for i := range files {
-						file := files[i].(map[string]interface{})
-
-						fileContentsBase64, ok := file["file"].(string)
-						if !ok {
-							fileContentsBase64, ok = file["contents"].(string)
-							if !ok {
-								continue
-							}
-						}
-						splitParts := strings.Split(fileContentsBase64, ",")
-						encodedPart := splitParts[0]
-						if len(splitParts) > 1 {
-							encodedPart = splitParts[len(splitParts)-1]
-						}
-						fileBytes, _ := base64.StdEncoding.DecodeString(encodedPart)
-						//partial := fileBytes[0:500]
-						//log.Infof("Partial file: [%v]", partial)
-						filemd5 := GetMD5Hash(fileBytes)
-						file["md5"] = filemd5
-						file["size"] = len(fileBytes)
-						if file["path"] == nil {
-							file["path"] = ""
-						}
-						files[i] = file
-					}
 
 					uploadActionPerformer, _ := GetGlobalActionHandler("cloudstore.file.upload")
 
