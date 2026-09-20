@@ -96,8 +96,8 @@ func (dbResource *DbResource) GetActionByName(typeName string, actionName string
 	}
 	if errScan != nil {
 		log.Errorf("sql: %v", sql)
-		log.Errorf("Failed to scan action 66: %v", err)
-		return action, err
+		log.Errorf("Failed to scan action 66: %v", errScan)
+		return action, errScan
 	}
 
 	action, err = ActionFromActionRow(actionRow)

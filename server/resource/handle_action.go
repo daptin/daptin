@@ -20,6 +20,7 @@ import (
 
 	//"io"
 	"crypto/md5"
+	"database/sql"
 	"encoding/hex"
 	"net/http"
 	"reflect"
@@ -256,9 +257,10 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	action, err := dbResource.GetActionByName(actionRequest.Type, actionRequest.Action, transaction)
 	CheckErr(err, "Failed to get action by Type/action [%v][%v]", actionRequest.Type, actionRequest.Action)
 	if err != nil {
-		log.Warnf("invalid action: %v - %v", actionRequest.Action, actionRequest.Type)
-		//CheckErr(rollbackErr, "failed to rollback")
-		return nil, api2go.NewHTTPError(err, "no such action", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, api2go.NewHTTPError(err, "no such action", http.StatusNotFound)
+		}
+		return nil, api2go.NewHTTPError(err, "failed to load action", http.StatusInternalServerError)
 	}
 
 	isAdmin := IsAdminWithTransaction(sessionUser, transaction)
