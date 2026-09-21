@@ -79,7 +79,7 @@ The table below groups the implemented surface by responsibility.
 | **Integrations and LLM routing** | OpenAPI v2/v3 operations installed as Daptin actions; REST, GraphQL, short-lived WebSocket, and unary gRPC transports; OAuth or custom credentials; multi-deployment LLM routing with OpenAI-compatible chat, Responses, embeddings, image generation, model discovery, streaming, tools, and structured output. The normalized three-resource gateway is available from v0.13.0. | [Integrations](https://github.com/daptin/daptin/wiki/Integrations) · [LLM gateway](https://github.com/daptin/daptin/wiki/LLM-Providers) · [Compose example](examples/llm-gateway/README.md) |
 | **Metering, clustering, and operations** | Plans, memberships, usage, quotas, credit hooks, and rate limits; metering for CRUD, actions, and LLM tokens; Olric cache, PubSub, counters, clustering, and outbox deduplication; audit logs, TLS, ping, statistics, config, logs, and profiles. | [API metering](https://github.com/daptin/daptin/wiki/API-Metering) · [Clustering](https://github.com/daptin/daptin/wiki/Clustering) · [Audit logging](https://github.com/daptin/daptin/wiki/Audit-Logging) · [Production](https://github.com/daptin/daptin/wiki/Production-Deployment) |
 
-> **Protocol scope:** Daptin’s CalDAV/CardDAV routes provide basic WebDAV-style file storage. They are not documented as complete calendar/contact protocol implementations.
+> **Protocol scope:** Daptin’s CalDAV/CardDAV routes provide standards-based discovery, calendar/address-book collections, query and multiget reports, ETags, and authenticated user isolation. Scheduling, sync tokens, delegation, COPY, MOVE, and property mutation are not implemented.
 
 ## A small schema becomes a permission-aware API
 

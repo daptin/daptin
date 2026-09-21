@@ -8,12 +8,13 @@ import (
 func TestMergeCloudStoreFileSetUpdatesExistingFileMetadata(t *testing.T) {
 	existingFiles := []map[string]interface{}{
 		{
-			"md5":  "old-md5",
-			"name": "test_dummy_page.jsx",
-			"path": "0195b3d8-7742-7b61-ba87-2ef1056af746/2026-05-06/",
-			"size": 1797,
-			"src":  "0195b3d8-7742-7b61-ba87-2ef1056af746/2026-05-06//test_dummy_page.jsx",
-			"type": "text/javascript",
+			"contents": "data:text/javascript;base64,b2xk",
+			"md5":      "old-md5",
+			"name":     "test_dummy_page.jsx",
+			"path":     "0195b3d8-7742-7b61-ba87-2ef1056af746/2026-05-06/",
+			"size":     1797,
+			"src":      "0195b3d8-7742-7b61-ba87-2ef1056af746/2026-05-06//test_dummy_page.jsx",
+			"type":     "text/javascript",
 		},
 	}
 	seo := []interface{}{

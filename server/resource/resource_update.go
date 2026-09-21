@@ -1308,6 +1308,9 @@ func mergeCloudStoreFileSet(existingFiles []map[string]interface{}, incomingFile
 func copyFileMetadata(file map[string]interface{}) map[string]interface{} {
 	copiedFile := make(map[string]interface{}, len(file))
 	for key, value := range file {
+		if key == "file" || key == "contents" {
+			continue
+		}
 		copiedFile[key] = value
 	}
 	return copiedFile

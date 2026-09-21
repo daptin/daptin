@@ -1,518 +1,210 @@
-# CalDAV and CardDAV Support
+# CalDAV and CardDAV
 
-**v0.13.14 status: experimental reads/discovery; documented writes are known broken.**
+Daptin exposes authenticated, user-isolated CalDAV and CardDAV services backed
+by normal Daptin resources.
 
-Daptin provides basic CalDAV and CardDAV server functionality using WebDAV protocol for storing calendar events (.ics files) and contacts (.vcf files).
+- CalDAV stores collections in `collection` and objects in `calendar`.
+- CardDAV stores collections in `address_book` and objects in `contact`.
+- The authenticated `user_account` owns every collection and object.
+- The SQL database is durable authority. No `./storage/caldav` or
+  `./storage/carddav` directories are required.
+- Writes use the normal resource lifecycle. If an administrator configures a
+  content column as a cloud-storage file column, DAV uses that configured
+  storage through the same resource path.
 
----
+## Enable DAV
 
-## Overview
-
-CalDAV (Calendaring Extensions to WebDAV) and CardDAV (vCard Extensions to WebDAV) enable calendar and contact synchronization with standard clients.
-
-**Important**: Daptin implements only basic WebDAV-shaped storage and does not
-implement the full CalDAV/CardDAV specifications. Authentication and PROPFIND
-were observed working, but the published MKCOL/PUT sequence returned HTTP 500
-through an empty-collection parser path and the following GET returned 404.
-Until a standard-client write conformance test passes, do not use this surface
-for production calendar/contact writes.
-
-CalDAV/CardDAV file operations use the WebDAV storage backend rather than the
-JSON:API resource lifecycle, so they do not trigger `data_exchange` hooks. See
-[[Data-Exchange|Data Exchange]] for the operations covered by exchanges.
-
-### What Works
-
-⚠️ **Registered methods (not all operational in v0.13.14)**:
-- PROPFIND - List collections and resources
-- GET - Retrieve calendar events/contacts
-- PUT - registered; known failing in the documented collection flow
-- DELETE - Remove events/contacts
-- MKCOL - registered; known empty-collection failure
-- COPY - Duplicate resources
-- MOVE - Rename/move resources
-- PROPPATCH - Modify properties
-
-✅ **File Formats**:
-- iCalendar (.ics) for calendar events
-- vCard (.vcf) for contacts
-
-✅ **Authentication**:
-- Bearer token (JWT) via Authorization header
-- Basic authentication with email/password
-
-### What Doesn't Work
-
-❌ **Advanced CalDAV/CardDAV Features**:
-- REPORT method (calendar queries)
-- Calendar-specific WebDAV properties
-- Free/busy time queries
-- Advanced filtering and search
-
----
-
-## Configuration
-
-### Enable CalDAV/CardDAV
-
-CalDAV/CardDAV is **disabled by default**. Enable it via configuration:
+DAV is disabled by default. Set `caldav.enable` as an administrator, then
+restart Daptin:
 
 ```bash
-# As admin, set the config value
 TOKEN="your-admin-token"
+
 curl -X POST "http://localhost:6336/_config/backend/caldav.enable" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "true"
-
-# Verify it was set
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/_config/backend/caldav.enable"
-# Should return: true
-
-# CRITICAL: Restart server for changes to take effect
-pkill daptin && go run main.go
+  -H "Content-Type: text/plain" \
+  --data 'true'
 ```
 
-### Create Storage Directories
+Both CalDAV and CardDAV endpoints are enabled by this setting.
 
-CalDAV/CardDAV stores files in `./storage/caldav/` and `./storage/carddav/`:
+## Client endpoints
 
-```bash
-mkdir -p ./storage/caldav ./storage/carddav
+Configure clients with the service root and the user's normal Daptin
+credentials:
+
+| Protocol | Service URL | Well-known URL |
+|---|---|---|
+| CalDAV | `https://api.example.com/caldav/` | `https://api.example.com/.well-known/caldav` |
+| CardDAV | `https://api.example.com/carddav/` | `https://api.example.com/.well-known/carddav` |
+
+Bearer authentication and HTTP Basic authentication are supported. A client
+does not need to know the user's Daptin reference ID in advance. It obtains the
+principal and home-set URLs through DAV discovery.
+
+The discovery chain is:
+
+```text
+/caldav/
+  -> /caldav/{user-reference-id}/
+  -> /caldav/{user-reference-id}/calendars/
+  -> /caldav/{user-reference-id}/calendars/{calendar}/
+
+/carddav/
+  -> /carddav/{user-reference-id}/
+  -> /carddav/{user-reference-id}/addressbooks/
+  -> /carddav/{user-reference-id}/addressbooks/{address-book}/
 ```
 
-Without these directories, you'll get "no such file or directory" errors.
+These are protocol URLs, not authorization input. Daptin derives the permitted
+principal from the authenticated `SessionUser`. Requesting another user's URL
+returns HTTP 403.
 
----
+## Verify discovery
 
-## Endpoints
-
-| Endpoint | Purpose |
-|----------|---------|
-| `/caldav/*` | CalDAV resources (calendar events) |
-| `/carddav/*` | CardDAV resources (contacts) |
-
-Both endpoints require authentication. Default port: 6336
-
----
-
-## Authentication
-
-### Option 1: Bearer Token (JWT)
+Ask the CalDAV root for the authenticated principal:
 
 ```bash
-# Get token via signin
-TOKEN=$(curl -s -X POST http://localhost:6336/action/user_account/signin \
-  -H "Content-Type: application/json" \
-  -d '{"attributes":{"email":"admin@admin.com","password":"adminadmin"}}' | \
-  jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value')
-
-# Use token in requests
 curl -X PROPFIND "http://localhost:6336/caldav/" \
-  -H "Authorization: Bearer $TOKEN" \
+  -u "user@example.com:password" \
   -H "Depth: 0" \
   -H "Content-Type: application/xml" \
-  -d '<?xml version="1.0"?><propfind xmlns="DAV:"><prop><displayname/></prop></propfind>'
-```
-
-### Option 2: Basic Authentication
-
-```bash
-curl -X PROPFIND "http://localhost:6336/caldav/" \
-  -u "admin@admin.com:adminadmin" \
-  -H "Depth: 0" \
-  -H "Content-Type: application/xml" \
-  -d '<?xml version="1.0"?><propfind xmlns="DAV:"><prop><displayname/></prop></propfind>'
-```
-
-Unauthorized requests return HTTP 401 with `WWW-Authenticate: Basic realm='caldav'`.
-
----
-
-## CalDAV Usage
-
-### List Available Calendars
-
-```bash
-curl -X PROPFIND "http://localhost:6336/caldav/" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Depth: 1" \
-  -H "Content-Type: application/xml" \
-  -d '<?xml version="1.0" encoding="utf-8" ?>
+  --data '<?xml version="1.0"?>
 <D:propfind xmlns:D="DAV:">
-  <D:prop>
-    <D:displayname/>
-    <D:resourcetype/>
-  </D:prop>
+  <D:prop><D:current-user-principal/></D:prop>
 </D:propfind>'
 ```
 
-**Response**: HTTP 207 Multi-Status with XML listing calendars
+The response is HTTP 207 and contains an authenticated principal such as:
 
-### Create a Calendar
-
-> **Known failure:** the following is the historical sequence that returned
-> HTTP 500 in v0.13.14; it is retained only for reproducing the defect. Do not
-> expect the stated 201/PUT behavior and do not use it as a production
-> quickstart. Use PROPFIND for read/discovery testing until a standard-client
-> conformance test replaces this section.
-
-```bash
-curl -X MKCOL "http://localhost:6336/caldav/personal/" \
-  -H "Authorization: Bearer $TOKEN"
+```xml
+<D:current-user-principal>
+  <D:href>/caldav/USER_REFERENCE_ID/</D:href>
+</D:current-user-principal>
 ```
 
-**Intended response**: HTTP 201 Created. **Observed v0.13.14 response:** HTTP 500.
-
-**Creates**: `./storage/caldav/personal/` directory
-
-### Add a Calendar Event
+Ask that principal for its calendar home:
 
 ```bash
-curl -X PUT "http://localhost:6336/caldav/personal/event1.ics" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: text/calendar" \
-  -d 'BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Daptin//CalDAV//EN
-BEGIN:VEVENT
-UID:event1@daptin.local
-DTSTART:20260127T100000Z
-DTEND:20260127T110000Z
-SUMMARY:Team Meeting
-DESCRIPTION:Weekly team sync
-LOCATION:Conference Room A
-END:VEVENT
-END:VCALENDAR'
-```
-
-**Response**: HTTP 201 Created
-
-**Creates**: `./storage/caldav/personal/event1.ics` file
-
-### Retrieve an Event
-
-```bash
-curl -X GET "http://localhost:6336/caldav/personal/event1.ics" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Response**: HTTP 200 OK with iCalendar content
-
-### Update an Event
-
-Use PUT to the same URL with updated content:
-
-```bash
-curl -X PUT "http://localhost:6336/caldav/personal/event1.ics" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: text/calendar" \
-  -d 'BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Daptin//CalDAV//EN
-BEGIN:VEVENT
-UID:event1@daptin.local
-DTSTART:20260127T140000Z
-DTEND:20260127T150000Z
-SUMMARY:Team Meeting - UPDATED
-DESCRIPTION:Moved to afternoon
-LOCATION:Conference Room B
-END:VEVENT
-END:VCALENDAR'
-```
-
-**Response**: HTTP 201 Created
-
-### List Events in Calendar
-
-```bash
-curl -X PROPFIND "http://localhost:6336/caldav/personal/" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Depth: 1" \
+curl -X PROPFIND \
+  "http://localhost:6336/caldav/USER_REFERENCE_ID/" \
+  -u "user@example.com:password" \
+  -H "Depth: 0" \
   -H "Content-Type: application/xml" \
-  -d '<?xml version="1.0" encoding="utf-8" ?>
-<D:propfind xmlns:D="DAV:">
-  <D:prop>
-    <D:displayname/>
-    <D:getcontenttype/>
-    <D:getetag/>
-  </D:prop>
+  --data '<?xml version="1.0"?>
+<D:propfind xmlns:D="DAV:"
+            xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:prop><C:calendar-home-set/></D:prop>
 </D:propfind>'
 ```
 
-**Response**: HTTP 207 Multi-Status with list of events including ETags
+For CardDAV, use `/carddav/` and request
+`<A:addressbook-home-set/>` in the
+`urn:ietf:params:xml:ns:carddav` namespace.
 
-### Delete an Event
+## Calendar example
+
+The examples below use the home-set URL returned by discovery:
 
 ```bash
-curl -X DELETE "http://localhost:6336/caldav/personal/event1.ics" \
-  -H "Authorization: Bearer $TOKEN"
+CALENDAR_HOME="http://localhost:6336/caldav/USER_REFERENCE_ID/calendars"
+
+curl -X MKCOL "$CALENDAR_HOME/personal/" \
+  -u "user@example.com:password"
+
+curl -X PUT "$CALENDAR_HOME/personal/event.ics" \
+  -u "user@example.com:password" \
+  -H "Content-Type: text/calendar" \
+  --data-binary $'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:event-1\r\nDTSTAMP:20260921T120000Z\r\nDTSTART:20260922T120000Z\r\nDTEND:20260922T130000Z\r\nSUMMARY:Team meeting\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n'
+
+curl "$CALENDAR_HOME/personal/event.ics" \
+  -u "user@example.com:password"
 ```
 
-**Response**: HTTP 204 No Content
+Calendar collections support `calendar-query` and `calendar-multiget` REPORT
+requests. Calendar data is parsed and validated before it is stored.
 
-**Effect**: Deletes `./storage/caldav/personal/event1.ics`
-
-### Copy an Event
-
-```bash
-curl -X COPY "http://localhost:6336/caldav/personal/event1.ics" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Destination: /caldav/personal/event1-copy.ics"
-```
-
-**Response**: HTTP 201 Created
-
-### Move/Rename an Event
+## Address-book example
 
 ```bash
-curl -X MOVE "http://localhost:6336/caldav/personal/event1.ics" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Destination: /caldav/personal/event1-renamed.ics"
-```
+ADDRESSBOOK_HOME="http://localhost:6336/carddav/USER_REFERENCE_ID/addressbooks"
 
-**Response**: HTTP 201 Created
+curl -X MKCOL "$ADDRESSBOOK_HOME/contacts/" \
+  -u "user@example.com:password"
 
----
-
-## CardDAV Usage
-
-CardDAV works identically to CalDAV but with `/carddav/` endpoints and vCard format.
-
-### Create an Address Book
-
-```bash
-curl -X MKCOL "http://localhost:6336/carddav/contacts/" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Response**: HTTP 201 Created
-
-**Creates**: `./storage/carddav/contacts/` directory
-
-### Add a Contact
-
-```bash
-curl -X PUT "http://localhost:6336/carddav/contacts/john-doe.vcf" \
-  -H "Authorization: Bearer $TOKEN" \
+curl -X PUT "$ADDRESSBOOK_HOME/contacts/person.vcf" \
+  -u "user@example.com:password" \
   -H "Content-Type: text/vcard" \
-  -d 'BEGIN:VCARD
-VERSION:3.0
-FN:John Doe
-N:Doe;John;;;
-EMAIL;TYPE=INTERNET:john.doe@example.com
-TEL;TYPE=CELL:+1-555-1234
-ORG:Acme Corp
-TITLE:Software Engineer
-END:VCARD'
+  --data-binary $'BEGIN:VCARD\r\nVERSION:3.0\r\nUID:person-1\r\nFN:Test Person\r\nEMAIL:test@example.com\r\nEND:VCARD\r\n'
+
+curl "$ADDRESSBOOK_HOME/contacts/person.vcf" \
+  -u "user@example.com:password"
 ```
 
-**Response**: HTTP 201 Created
+Address books support `addressbook-query` and `addressbook-multiget` REPORT
+requests. vCard data is parsed and validated before it is stored.
 
-**Creates**: `./storage/carddav/contacts/john-doe.vcf` file
+## Conflict-safe updates
 
-### Retrieve a Contact
+DAV objects return an `ETag`. Use it with `If-Match` when updating an existing
+object:
 
 ```bash
-curl -X GET "http://localhost:6336/carddav/contacts/john-doe.vcf" \
-  -H "Authorization: Bearer $TOKEN"
+ETAG=$(curl -sSI "$CALENDAR_HOME/personal/event.ics" \
+  -u "user@example.com:password" |
+  awk 'tolower($1) == "etag:" {gsub(/\r/, "", $2); print $2}')
+
+curl -X PUT "$CALENDAR_HOME/personal/event.ics" \
+  -u "user@example.com:password" \
+  -H "Content-Type: text/calendar" \
+  -H "If-Match: $ETAG" \
+  --data-binary @event.ics
 ```
 
-**Response**: HTTP 200 OK with vCard content
+A stale or incorrect `If-Match`, or a matching `If-None-Match`, returns HTTP
+412 without overwriting the stored object.
 
-### List Contacts
+## Supported behavior
 
-```bash
-curl -X PROPFIND "http://localhost:6336/carddav/contacts/" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Depth: 1" \
-  -H "Content-Type: application/xml" \
-  -d '<?xml version="1.0" encoding="utf-8" ?>
-<D:propfind xmlns:D="DAV:">
-  <D:prop>
-    <D:displayname/>
-    <D:getcontenttype/>
-  </D:prop>
-</D:propfind>'
-```
+- standards-based current-user-principal and home-set discovery;
+- separate CalDAV calendars and CardDAV address books;
+- `OPTIONS`, `PROPFIND`, `REPORT`, `MKCOL`, `GET`, `HEAD`, `PUT`, and `DELETE`;
+- calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
+- stable content ETags and conditional PUT protection;
+- per-user ownership and HTTP 403 cross-principal denial;
+- durable SQL-backed storage through Daptin resources.
 
-**Response**: HTTP 207 Multi-Status with list of contacts
-
----
-
-## Client Compatibility
-
-Since Daptin implements basic WebDAV (not full CalDAV/CardDAV), compatibility with clients varies:
-
-### May Work
-
-Clients that primarily use WebDAV methods for file sync:
-- Manual sync tools using WebDAV
-- Simple calendar apps that store .ics files
-- Custom scripts using curl/WebDAV libraries
-
-### May Not Work
-
-Clients requiring full CalDAV/CardDAV protocol:
-- Apple Calendar (requires calendar-query)
-- Thunderbird Lightning (expects REPORT method)
-- Evolution (requires scheduling extensions)
-- Most mobile calendar apps (expect CalDAV queries)
-
-**Workaround**: Use Daptin as file storage backend and sync .ics/.vcf files manually or via WebDAV-only clients.
-
----
-
-## File Storage Structure
-
-```
-./storage/
-├── caldav/
-│   ├── personal/
-│   │   ├── event1.ics
-│   │   └── event2.ics
-│   └── work/
-│       └── meeting.ics
-└── carddav/
-    ├── contacts/
-    │   ├── john-doe.vcf
-    │   └── jane-smith.vcf
-    └── family/
-        └── mom.vcf
-```
-
-- Collections (calendars/address books) = directories
-- Events/contacts = .ics/.vcf files
-- File names can be anything with appropriate extension
-
----
+`COPY`, `MOVE`, and collection property mutation are not currently implemented
+and return an explicit unsupported response. Scheduling, free/busy,
+CalDAV/CardDAV sync tokens, and shared-calendar delegation are also not
+implemented.
 
 ## Troubleshooting
 
-### "404 Not Found: stat storage/caldav: no such file or directory"
+### HTTP 401
 
-**Cause**: Storage directories don't exist
+The credentials are missing or invalid. Use a bearer token or the Daptin
+account's email and password with Basic authentication.
 
-**Solution**:
-```bash
-mkdir -p ./storage/caldav ./storage/carddav
-```
+### HTTP 403 on a principal path
 
-### "401 Unauthorized"
+The URL belongs to another Daptin account. Start discovery at `/caldav/` or
+`/carddav/` while authenticated as the intended user; do not copy another
+user's discovered URL.
 
-**Cause**: Missing or invalid authentication
+### HTTP 404 on a collection or object
 
-**Solution**:
-- Verify token is valid (not expired)
-- Use Bearer token or Basic auth correctly
-- Check user has permission to access resources
+Follow the discovered home-set URL and create the collection with `MKCOL`
+before uploading objects.
 
-### "400 Bad Request: webdav: expected application/xml request"
+### HTTP 412 on PUT
 
-**Cause**: PROPFIND request missing XML body or Content-Type header
+The conditional request does not match current state. Fetch the current ETag,
+resolve the conflict, and retry with the new value.
 
-**Solution**:
-```bash
-curl -X PROPFIND "http://localhost:6336/caldav/" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/xml" \
-  -d '<?xml version="1.0"?><propfind xmlns="DAV:"><prop><displayname/></prop></propfind>'
-```
+## See also
 
-### CalDAV Not Responding After Enable
-
-**Cause**: Server restart required after config change
-
-**Solution**:
-```bash
-pkill daptin
-go run main.go
-```
-
-### Client Says "Server Does Not Support CalDAV"
-
-**Cause**: Client checking for CalDAV-specific features (REPORT, calendar-query) that Daptin doesn't implement
-
-**Solution**: Use WebDAV-only client or manual file sync instead
-
----
-
-## Supported Methods
-
-All standard WebDAV methods are registered for both `/caldav/*` and `/carddav/*`:
-
-```go
-OPTIONS, HEAD, GET, POST, PUT, PATCH, PROPFIND, DELETE, COPY, MOVE, MKCOL, PROPPATCH
-```
-
-### Authentication Flow
-
-1. Request arrives at CalDAV/CardDAV endpoint
-2. `authMiddleware.AuthCheckMiddlewareWithHttp()` validates token/credentials
-3. If unauthorized: HTTP 401 with `WWW-Authenticate: Basic realm='caldav'`
-4. If authorized: Request forwarded to WebDAV handler
-
-### Storage Backend
-
-Currently uses local file system only. The code has a commented-out line suggesting database-backed storage was considered:
-
-```go
-//caldavStorage, err := resource.NewCaldavStorage(cruds, certificateManager)
-```
-
-This functionality is not implemented in the current version.
-
----
-
-## Limitations
-
-1. **No full CalDAV/CardDAV protocol**: Missing REPORT, calendar-query, etc.
-2. **No database storage**: Files only, no integration with Daptin tables
-3. **No scheduling extensions**: No free/busy, no meeting invitations
-4. **No sync tokens**: Clients can't efficiently detect changes
-5. **File system only**: No cloud storage backend support
-6. **No multi-user isolation**: All users share the same `./storage/` directory
-7. **No calendar metadata**: Can't set calendar colors, descriptions, etc.
-
----
-
-## Use Cases
-
-### Good For
-
-✅ Simple calendar/contact file storage
-✅ Manual sync of .ics/.vcf files
-✅ WebDAV-based backup of calendar data
-✅ Custom scripts needing calendar file access
-✅ Testing CalDAV client implementations
-
-### Not Suitable For
-
-❌ Production calendar/contact server for standard clients
-❌ Multi-user calendar sharing with permissions
-❌ Calendar scheduling and free/busy queries
-❌ Mobile app sync (most expect full CalDAV)
-❌ Outlook/Thunderbird/Apple Calendar integration
-
----
-
-## Future Enhancements
-
-Potential improvements (not currently implemented):
-
-1. Full CalDAV/CardDAV protocol support (REPORT method, queries)
-2. Database-backed storage with Daptin tables
-3. Per-user calendar/address book isolation
-4. Calendar sharing with permissions
-5. Scheduling extensions (free/busy, invitations)
-6. Sync tokens for efficient change detection
-7. Cloud storage backend support
-8. Integration with Daptin user/group system
-
----
-
-## See Also
-
-- [[Cloud-Storage|Cloud Storage]] - File storage backends
-- [[Authentication|Authentication]] - User authentication methods
-- [[Permissions|Permissions]] - Access control system
+- [[Authentication|Authentication]]
+- [[Permissions|Permissions]]
+- [[Asset-Columns|Asset Columns]]
+- [[Server-Configuration|Server Configuration]]

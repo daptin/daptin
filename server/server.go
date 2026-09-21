@@ -469,8 +469,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)
 	if enableCaldav == "true" {
 		log.Printf("[CALDAV INIT] Initializing CalDAV resources...")
-		// Pass cruds and certificateManager like FTP/IMAP/SMTP do
-		InitializeCaldavResources(authMiddleware, cruds, certificateManager, defaultRouter)
+		InitializeCaldavResources(authMiddleware, cruds, defaultRouter)
 		log.Printf("[CALDAV INIT] CalDAV initialization complete!")
 	} else {
 		log.Printf("[CALDAV INIT] CalDAV NOT enabled (value: '%s')", enableCaldav)
