@@ -225,22 +225,17 @@ To send emails externally, create a custom action with `mail.send` in its OutFie
 | to | array | Yes | Recipients |
 | subject | string | Yes | Subject line |
 | body | string | Yes | Email content |
-| mail_server_hostname | string | No | Use specific mail server for DKIM signing |
+| mail_server_hostname | string | No | Assert the hostname of the sender account's related mail server |
 | send_immediately | boolean | No | Attempt outbox delivery before the action returns |
 | attempt_delivery | boolean | No | Alias for `send_immediately` |
 
-### mail.send Operation Modes
+### mail.send Delivery
 
-**Mode 1: Direct Send** (no `mail_server_hostname`)
-- Sends via MTA directly to recipient's mail server
-- No DKIM signing
-- Simpler but may have lower deliverability
-
-**Mode 2: Via Mail Server** (with `mail_server_hostname`)
-- Uses configured mail server settings
-- Signs outgoing mail with DKIM using the domain from the `from` address
-- Requires a valid certificate/private key for the sender domain
-- Better deliverability and authenticity
+The sender's `mail_account.mail_server_id` relationship selects the SMTP
+server identity. Daptin DKIM-signs the message with the domain from the `from`
+address and delivers it directly to each recipient domain's MX server. If
+`mail_server_hostname` is supplied, it must match the related server; it does
+not select another server.
 
 For production DNS, DKIM alignment, immediate delivery, cloud-backed outbox
 storage, and retry behavior, see [[Production-Mail-Delivery]].

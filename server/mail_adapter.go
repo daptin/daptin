@@ -302,7 +302,11 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							if err != nil || authorizedAddress.User != e.MailFrom.User || !strings.EqualFold(authorizedAddress.Host, e.MailFrom.Host) {
 								return nil, errors.New("authenticated SMTP account does not match envelope sender")
 							}
-							sessionUser, err := dbResource.MailAccountSessionUser(authorizedAddress.String(), transaction)
+							authorizedMailAccount, err := dbResource.GetUserMailAccountRowByEmail(authorizedAddress.String(), transaction)
+							if err != nil {
+								return nil, err
+							}
+							sessionUser, err := dbResource.MailAccountSessionUser(authorizedMailAccount, transaction)
 							if err != nil {
 								return nil, err
 							}
@@ -438,26 +442,11 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							resource.CheckErr(err, "Failed to begin transaction [383]")
 							return nil, err
 						}
-						user, _, err := dbResource.GetSingleRowByReferenceIdWithTransaction("user_account",
-							daptinid.InterfaceToDIR(mailAccount["user_account_id"]), nil, transaction)
-						log.Tracef("Completed mailAdapter GetSingleRowByReferenceIdWithTransaction")
-						if err != nil || user == nil {
+						sessionUser, err := dbResource.MailAccountSessionUser(mailAccount, transaction)
+						if err != nil {
 							log.Errorf("Failed to get user account for mail recipient [%v]: %v", rcpt.String(), err)
 							transaction.Rollback()
 							continue
-						}
-
-						userId, ok := user["id"].(int64)
-						if !ok {
-							log.Errorf("Invalid user id type for mail recipient [%v]", rcpt.String())
-							transaction.Rollback()
-							continue
-						}
-
-						sessionUser := &auth.SessionUser{
-							UserId:          userId,
-							UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
-							Groups:          dbResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId),
 						}
 
 						mailboxName := "INBOX"

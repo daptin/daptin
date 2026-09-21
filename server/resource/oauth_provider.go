@@ -518,13 +518,12 @@ func rsaPublicJWK(keyID string, publicKey *rsa.PublicKey) map[string]interface{}
 
 func (op *OAuthProvider) sessionUserFromRow(row map[string]interface{}, transaction *sqlx.Tx) (*auth.SessionUser, error) {
 	userRef := daptinid.InterfaceToDIR(row["user_account_id"])
-	userRow, _, err := op.cruds[USER_ACCOUNT_TABLE_NAME].GetSingleRowByReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, userRef, nil, transaction)
-	if err != nil {
-		return nil, err
+	if userRef == daptinid.NullReferenceId {
+		return nil, fmt.Errorf("oauth row has no user_account owner")
 	}
-	userID, err := ResourceRowInt64(userRow["id"])
+	userID, err := op.cruds[USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, userRef, transaction)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user_account id: %w", err)
+		return nil, fmt.Errorf("resolve oauth user_account owner: %w", err)
 	}
 	if userID <= 0 {
 		return nil, fmt.Errorf("invalid user_account id: must be positive")
@@ -532,7 +531,7 @@ func (op *OAuthProvider) sessionUserFromRow(row map[string]interface{}, transact
 	groups := op.cruds[USER_ACCOUNT_TABLE_NAME].GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "id", userID)
 	return &auth.SessionUser{
 		UserId:          userID,
-		UserReferenceId: daptinid.InterfaceToDIR(userRow["reference_id"]),
+		UserReferenceId: userRef,
 		Groups:          groups,
 	}, nil
 }

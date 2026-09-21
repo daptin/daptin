@@ -46,19 +46,6 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	if mailFrom == "" {
 		return nil, nil, []error{fmt.Errorf("missing required field: from")}
 	}
-	mailServerHostname := ""
-	if mailServer, useMailServer := inFields["mail_server_hostname"]; useMailServer && mailServer != nil {
-		mailServerHostname = strings.TrimSpace(fmt.Sprintf("%v", mailServer))
-	}
-	if mailServerHostname == "" {
-		configuredHostname, err := d.cruds["mail"].ConfigStore.GetConfigValueFor("mail.default_server_hostname", "backend", transaction)
-		if err == nil {
-			mailServerHostname = strings.TrimSpace(configuredHostname)
-		}
-	}
-	if mailServerHostname == "" {
-		return nil, nil, []error{fmt.Errorf("missing required field: mail_server_hostname or backend config mail.default_server_hostname")}
-	}
 	attemptDelivery := mailSendAttemptDelivery(inFields)
 	createdOutboxMailReferences := make([]daptinid.DaptinReferenceId, 0)
 
@@ -71,12 +58,6 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	}
 	outboxReq.PlainRequest = outboxReq.PlainRequest.WithContext(context.WithValue(context.Background(), "user", d.internalOutboxSessionUser()))
 
-	mailServerObj, err := d.cruds["mail_server"].GetObjectByWhereClause("mail_server", "hostname", mailServerHostname, transaction)
-	if err != nil {
-		log.Errorf("Failed to get mail server details for sending as: %v", mailServerHostname)
-		return nil, nil, []error{fmt.Errorf("failed to get mail server details for sending as: %v", mailServerHostname)}
-	}
-
 	mailFromAddress, err := mail.NewAddress(mailFrom)
 	if err != nil {
 		log.Errorf("Invalid mail from address [%v]: %v", mailFrom, err)
@@ -87,7 +68,20 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	if httpRequest != nil {
 		sessionUser, _ = httpRequest.Context().Value("user").(*auth.SessionUser)
 	}
-	if err := d.cruds["mail"].AuthorizeMailSender(mailFromAddress.String(), sessionUser, transaction); err != nil {
+	mailAccount, err := d.cruds["mail"].ResolveMailSenderAccount(mailFromAddress.String(), sessionUser, transaction)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	mailServerReference := daptinid.InterfaceToDIR(mailAccount["mail_server_id"])
+	if mailServerReference == daptinid.NullReferenceId {
+		return nil, nil, []error{fmt.Errorf("sender mail account has no mail server")}
+	}
+	mailServerObj, _, err := d.cruds["mail_server"].GetSingleRowByReferenceIdWithTransaction("mail_server", mailServerReference, nil, transaction)
+	if err != nil {
+		return nil, nil, []error{fmt.Errorf("failed to resolve sender mail server: %w", err)}
+	}
+	mailServerHostname, err := mailSendServerHostname(inFields, mailServerObj)
+	if err != nil {
 		return nil, nil, []error{err}
 	}
 	toAddresses := make([]mail.Address, 0, len(mailTo))
@@ -193,6 +187,21 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	}
 
 	return nil, responses, nil
+}
+
+func mailSendServerHostname(inFields map[string]interface{}, mailServer map[string]interface{}) (string, error) {
+	hostname, ok := mailServer["hostname"].(string)
+	hostname = strings.TrimSpace(hostname)
+	if !ok || hostname == "" {
+		return "", fmt.Errorf("sender mail server has no hostname")
+	}
+	if asserted, present := inFields["mail_server_hostname"]; present && asserted != nil {
+		assertedHostname := strings.TrimSpace(fmt.Sprintf("%v", asserted))
+		if assertedHostname != "" && !strings.EqualFold(assertedHostname, hostname) {
+			return "", fmt.Errorf("mail_server_hostname [%s] does not match sender mail server [%s]", assertedHostname, hostname)
+		}
+	}
+	return hostname, nil
 }
 
 func (d *mailSendActionPerformer) deliverOutboxMailsAsync(outboxMailReferences []daptinid.DaptinReferenceId) {

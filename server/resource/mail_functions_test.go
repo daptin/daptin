@@ -389,7 +389,7 @@ func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
 		t.Fatalf("insert user: %v", err)
 	}
 	if _, err := db.Exec(`insert into mail_account (id, username, user_account_id, reference_id, permission, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?)`,
-		1, "sender@example.test", 1, mailAccountRef[:], int64(16256), time.Now(), time.Now()); err != nil {
+		1, "sender@example.test", userRef.String(), mailAccountRef[:], int64(16256), time.Now(), time.Now()); err != nil {
 		t.Fatalf("insert mail account: %v", err)
 	}
 	if existingSent {

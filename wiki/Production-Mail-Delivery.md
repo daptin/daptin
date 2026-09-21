@@ -12,9 +12,10 @@ custom action `OutFields`; they are not standalone REST endpoints.
 `mail_account.username` owned by the active Daptin account. A trusted action
 that sends through a shared service account must use `SWITCH_USER` to select
 that account before `mail.send`; the `from` value does not grant access to its
-mailbox. The performer creates one `Sent` mailbox copy for that sender at queue
-time, then creates an `outbox` row for each recipient. By default outbox rows
-are queued and later processed by the scheduled `process_outbox` task.
+mailbox. The mail account's `mail_server_id` relationship selects the SMTP
+identity. The performer creates one `Sent` mailbox copy for that sender at
+queue time, then creates an `outbox` row for each recipient. By default outbox
+rows are queued and later processed by the scheduled `process_outbox` task.
 
 Authenticated SMTP relay applies the same boundary: the envelope sender must
 match the authenticated mail account. A mismatch is rejected before DKIM key
@@ -32,7 +33,6 @@ OutFields:
       to: "![email]"
       subject: "Your sign-in code"
       body: "~body"
-      mail_server_hostname: "mail.example.com"
       send_immediately: true
 ```
 
@@ -64,8 +64,10 @@ Separate these names explicitly:
 | Visible sender | `login@example.com` | `From` address shown to recipients |
 | DKIM domain | `example.com` | Domain in the DKIM `d=` value |
 
-When `mail_server_hostname` is set, Daptin looks up that configured mail server
-but signs the outgoing mail with the domain from the `From` address.
+The sender mail account's `mail_server_id` relationship selects the configured
+mail server. An optional `mail_server_hostname` value only asserts that
+server's hostname; it cannot override the relationship. Daptin signs outgoing
+mail with the domain from the `From` address.
 
 Example:
 

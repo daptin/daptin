@@ -559,13 +559,9 @@ func (processor *daptinBatchProcessor) batchOwner(row map[string]interface{}, tr
 	if reference == daptinid.NullReferenceId {
 		return &auth.SessionUser{}, nil
 	}
-	userRow, err := processor.cruds["user_account"].GetReferenceIdToObjectWithTransaction("user_account", reference, transaction)
+	id, err := processor.cruds["user_account"].GetReferenceIdToId(resource.USER_ACCOUNT_TABLE_NAME, reference, transaction)
 	if err != nil {
-		return nil, fmt.Errorf("load batch owner: %w", err)
-	}
-	id, err := resource.ResourceRowInt64(userRow["id"])
-	if err != nil {
-		return nil, fmt.Errorf("decode batch owner: %w", err)
+		return nil, fmt.Errorf("resolve batch owner: %w", err)
 	}
 	groups := processor.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction(
 		resource.USER_ACCOUNT_TABLE_NAME, transaction, "id", id,

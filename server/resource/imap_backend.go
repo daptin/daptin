@@ -9,7 +9,6 @@ import (
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/buraksezer/olric"
-	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	log "github.com/sirupsen/logrus"
 )
@@ -79,21 +78,9 @@ func (be *DaptinImapBackend) Login(conn *imap.ConnInfo, username, password strin
 		return nil, err
 	}
 
-	userAccount, _, err := userAccountResource.GetSingleRowByReferenceIdWithTransaction("user_account",
-		daptinid.InterfaceToDIR(userMailAccount["user_account_id"]), nil, transaction)
+	sessionUser, err := userAccountResource.MailAccountSessionUser(userMailAccount, transaction)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user account: %w", err)
-	}
-	userId, ok := userAccount["id"].(int64)
-	if !ok {
-		return nil, errors.New("invalid user account id")
-	}
-	groups := userAccountResource.GetObjectUserGroupsByWhereWithTransaction("user_account", transaction, "id", userId)
-
-	sessionUser := &auth.SessionUser{
-		UserId:          userId,
-		UserReferenceId: daptinid.InterfaceToDIR(userAccount["reference_id"]),
-		Groups:          groups,
+		return nil, err
 	}
 
 	mailPassword, _ := userMailAccount["password"].(string)

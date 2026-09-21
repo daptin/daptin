@@ -253,15 +253,9 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 
 }
 
-// AuthorizeMailSender verifies that the active Daptin identity owns the mail
-// account selected by the From address. The address selects an account; it is
-// never itself an authorization credential.
-func (dbResource *DbResource) AuthorizeMailSender(fromAddress string, sessionUser *auth.SessionUser, transaction *sqlx.Tx) error {
-	_, err := dbResource.mailAccountForSession(fromAddress, sessionUser, transaction)
-	return err
-}
-
-func (dbResource *DbResource) mailAccountForSession(fromAddress string, sessionUser *auth.SessionUser, transaction *sqlx.Tx) (map[string]interface{}, error) {
+// ResolveMailSenderAccount returns the mail account selected by the From
+// address after verifying that it belongs to the active Daptin identity.
+func (dbResource *DbResource) ResolveMailSenderAccount(fromAddress string, sessionUser *auth.SessionUser, transaction *sqlx.Tx) (map[string]interface{}, error) {
 	if transaction == nil {
 		return nil, errors.New("mail sender authorization requires a transaction")
 	}
@@ -277,15 +271,7 @@ func (dbResource *DbResource) mailAccountForSession(fromAddress string, sessionU
 	if err != nil {
 		return nil, fmt.Errorf("sender mail account not found [%s]: %w", senderAddress, err)
 	}
-	userCrud := dbResource.Cruds[USER_ACCOUNT_TABLE_NAME]
-	if userCrud == nil {
-		return nil, errors.New("user_account resource is not configured")
-	}
-	user, _, err := getMailAccountUserRow(userCrud, mailAccount[USER_ACCOUNT_ID_COLUMN], transaction)
-	if err != nil || user == nil {
-		return nil, fmt.Errorf("failed to get user account for sender [%s]: %w", senderAddress, err)
-	}
-	if daptinid.InterfaceToDIR(user["reference_id"]) != sessionUser.UserReferenceId {
+	if daptinid.InterfaceToDIR(mailAccount[USER_ACCOUNT_ID_COLUMN]) != sessionUser.UserReferenceId {
 		return nil, errors.New("authenticated user does not own sender mail account")
 	}
 	return mailAccount, nil
@@ -293,26 +279,25 @@ func (dbResource *DbResource) mailAccountForSession(fromAddress string, sessionU
 
 // MailAccountSessionUser resolves the Daptin identity established by a
 // successfully authenticated protocol account.
-func (dbResource *DbResource) MailAccountSessionUser(address string, transaction *sqlx.Tx) (*auth.SessionUser, error) {
-	mailAccount, err := dbResource.GetUserMailAccountRowByEmail(address, transaction)
-	if err != nil {
-		return nil, err
-	}
+func (dbResource *DbResource) MailAccountSessionUser(mailAccount map[string]interface{}, transaction *sqlx.Tx) (*auth.SessionUser, error) {
 	userCrud := dbResource.Cruds[USER_ACCOUNT_TABLE_NAME]
 	if userCrud == nil {
 		return nil, errors.New("user_account resource is not configured")
 	}
-	user, _, err := getMailAccountUserRow(userCrud, mailAccount[USER_ACCOUNT_ID_COLUMN], transaction)
-	if err != nil || user == nil {
+	userReference := daptinid.InterfaceToDIR(mailAccount[USER_ACCOUNT_ID_COLUMN])
+	if userReference == daptinid.NullReferenceId {
+		return nil, errors.New("mail account has no resource owner")
+	}
+	userID, err := userCrud.GetReferenceIdToId(USER_ACCOUNT_TABLE_NAME, userReference, transaction)
+	if err != nil {
 		return nil, fmt.Errorf("failed to resolve mail account owner: %w", err)
 	}
-	userID, ok := user["id"].(int64)
-	if !ok || userID == 0 {
+	if userID == 0 {
 		return nil, errors.New("mail account has no resource owner")
 	}
 	return &auth.SessionUser{
 		UserId:          userID,
-		UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
+		UserReferenceId: userReference,
 		Groups:          userCrud.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "id", userID),
 	}, nil
 }
@@ -366,7 +351,7 @@ func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, sessio
 		return nil, err
 	}
 
-	mailAccount, err := dbResource.mailAccountForSession(senderAddress, sessionUser, transaction)
+	mailAccount, err := dbResource.ResolveMailSenderAccount(senderAddress, sessionUser, transaction)
 	if err != nil {
 		return nil, err
 	}
@@ -514,27 +499,6 @@ func normalizedMailAddress(address string) (string, error) {
 		return address, nil
 	}
 	return "", err
-}
-
-func getMailAccountUserRow(userCrud *DbResource, userAccountReference interface{}, transaction *sqlx.Tx) (map[string]interface{}, []map[string]interface{}, error) {
-	userRef := daptinid.InterfaceToDIR(userAccountReference)
-	if userRef != daptinid.NullReferenceId {
-		return userCrud.GetSingleRowByReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, userRef, nil, transaction)
-	}
-
-	switch value := userAccountReference.(type) {
-	case int64:
-		user, includes, err := userCrud.GetSingleRowById(USER_ACCOUNT_TABLE_NAME, value, nil, transaction)
-		return user, includes, err
-	case int:
-		user, includes, err := userCrud.GetSingleRowById(USER_ACCOUNT_TABLE_NAME, int64(value), nil, transaction)
-		return user, includes, err
-	case float64:
-		user, includes, err := userCrud.GetSingleRowById(USER_ACCOUNT_TABLE_NAME, int64(value), nil, transaction)
-		return user, includes, err
-	default:
-		return nil, nil, fmt.Errorf("invalid user_account_id reference type: %T", userAccountReference)
-	}
 }
 
 // Returns the user mail account box row of a user

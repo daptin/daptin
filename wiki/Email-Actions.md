@@ -109,7 +109,7 @@ and 20 nesting levels.
 
 ## mail.send Performer
 
-Send email via direct SMTP delivery or configured mail server.
+Queue DKIM-signed email for direct delivery to each recipient's MX server.
 
 ### Parameters
 
@@ -119,28 +119,14 @@ Send email via direct SMTP delivery or configured mail server.
 | `to` | array of strings | Yes | Recipient email addresses |
 | `subject` | string | Yes | Email subject line |
 | `body` | string | Yes | Email body (plain text) |
-| `mail_server_hostname` | string | No | Use specific mail server with DKIM signing |
+| `mail_server_hostname` | string | No | Assert the hostname of the sender account's related mail server |
 | `send_immediately` | boolean | No | Attempt outbox delivery before the action returns |
 | `attempt_delivery` | boolean | No | Alias for `send_immediately` |
 
-### Basic Sending (Direct MTA)
+### Sending Mail
 
-Sends email directly by looking up MX records for recipient domain:
-
-```yaml
-OutFields:
-  - Type: mail.send
-    Method: EXECUTE
-    Attributes:
-      from: "noreply@mydomain.com"
-      to: "![recipient_email]"
-      subject: "~email_subject"
-      body: "~email_body"
-```
-
-### Sending via Configured Mail Server
-
-Use a specific mail server with DKIM signing:
+The `from` mail account's `mail_server_id` relationship selects the SMTP
+identity. Delivery looks up the recipient domain's MX records.
 
 ```yaml
 OutFields:
@@ -151,20 +137,20 @@ OutFields:
       to: "![recipient_email]"
       subject: "~email_subject"
       body: "~email_body"
-      mail_server_hostname: "mail.mydomain.com"
       send_immediately: true
 ```
 
 **Prerequisites:**
-- Mail server must be configured in Daptin
+- The sender's mail account must be related to a Daptin mail server
 - Sender address in `from` must exist as a Daptin `mail_account.username` owned by the active account
 - Shared service senders require a trusted action to `SWITCH_USER` to the sender account before `mail.send`
 - See [[SMTP-Server|SMTP Server Guide]] for setup
 - For production DNS, DKIM, and retry behavior, see [[Production-Mail-Delivery]]
 
-When `mail_server_hostname` is set, Daptin signs with the domain from the
-`from` address. For example, `from: "login@example.com"` signs with
-`example.com`, even if `mail_server_hostname` is `mail.example.com`.
+If `mail_server_hostname` is supplied, it must match the related mail server;
+it does not select or override the relationship. Daptin signs with the domain
+from the `from` address. For example, `from: "login@example.com"` signs with
+`example.com` while the related server may be `mail.example.com`.
 
 When the message is queued, Daptin also appends one copy to the sender's
 `Sent` mailbox. Outbox retries do not create additional `Sent` copies.
