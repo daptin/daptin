@@ -1,9 +1,9 @@
 # IMAP Support
 
-When setting `imap.listen_interface` or `imap.hostname` through `/_config`, send
-the value as raw `text/plain`. A JSON string stores literal quote characters
-in v0.13.14 and can cause `lookup tcp/... unknown port` on restart. See
-[[Configuration]] for the type/encoding table.
+The `/_config` API stores text exactly as submitted. Send IMAP scalar values as
+raw `text/plain` without JSON quotes. JSON-valued settings remain JSON text and
+are interpreted by their owning feature. See [[Configuration]] for the
+type/encoding table.
 
 Built-in IMAP server for email retrieval.
 
@@ -30,25 +30,41 @@ Daptin includes an IMAP server that allows email clients to:
 ```bash
 # Enable IMAP
 curl -X POST 'http://localhost:6336/_config/backend/imap.enabled' \
-  -H 'Content-Type: application/json' \
+  -H 'Content-Type: text/plain' \
   -H 'Authorization: Bearer $TOKEN' \
-  -d 'true'
+  --data-binary 'true'
 
 # Set listen interface (default: :1143)
 curl -X POST 'http://localhost:6336/_config/backend/imap.listen_interface' \
-  -H 'Content-Type: application/json' \
+  -H 'Content-Type: text/plain' \
   -H 'Authorization: Bearer $TOKEN' \
-  -d '"0.0.0.0:993"'
+  --data-binary '0.0.0.0:993'
 
 # Set IMAP hostname independently from the backend/API hostname
 curl -X POST 'http://localhost:6336/_config/backend/imap.hostname' \
-  -H 'Content-Type: application/json' \
+  -H 'Content-Type: text/plain' \
   -H 'Authorization: Bearer $TOKEN' \
-  -d '"imap.example.com"'
+  --data-binary 'imap.example.com'
+```
+
+Read the values back before restarting and confirm that no surrounding quote
+characters were stored:
+
+```bash
+curl 'http://localhost:6336/_config/backend/imap.enabled' \
+  -H 'Authorization: Bearer $TOKEN'
+curl 'http://localhost:6336/_config/backend/imap.listen_interface' \
+  -H 'Authorization: Bearer $TOKEN'
+curl 'http://localhost:6336/_config/backend/imap.hostname' \
+  -H 'Authorization: Bearer $TOKEN'
 ```
 
 If `imap.hostname` is not set, Daptin falls back to the legacy derived hostname
 `imap.{hostname}`, where `hostname` is the global backend/API hostname.
+
+If the IMAP address or certificate configuration is invalid, Daptin leaves
+IMAP disabled for that runtime while keeping the HTTP API available. Correct
+the value through `/_config` and restart Daptin.
 
 ### Restart to Apply
 

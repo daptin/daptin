@@ -580,12 +580,14 @@ IMAP requires explicit configuration:
 # Enable IMAP
 curl -X POST 'http://localhost:7337/_config/backend/imap.enabled' \
   -H "Authorization: Bearer $TOKEN" \
-  -d '"true"'
+  -H 'Content-Type: text/plain' \
+  --data-binary 'true'
 
 # Set IMAP hostname independently from the backend/API hostname
 curl -X POST 'http://localhost:7337/_config/backend/imap.hostname' \
   -H "Authorization: Bearer $TOKEN" \
-  -d '"imap.mail.test.local"'
+  -H 'Content-Type: text/plain' \
+  --data-binary 'imap.mail.test.local'
 ```
 
 **Note:** Requires Daptin restart after enabling.

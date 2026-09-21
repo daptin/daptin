@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/artpar/api2go/v2"
+	server2 "github.com/artpar/ftpserver/server"
 	"github.com/artpar/go-imap/server"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/stats"
@@ -29,7 +30,6 @@ import (
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/websockets"
-	server2 "github.com/artpar/ftpserver/server"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -378,7 +378,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	// Create a memory backend
 	transaction, err = db.Beginx()
 	if err != nil {
-		resource.CheckErr(err, "Failed to begin transaction [442]")
+		return nil, fmt.Errorf("begin IMAP configuration transaction: %w", err)
 	}
 
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend", transaction)
@@ -386,16 +386,29 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		imapServer, err = InitializeImapResources(configStore, transaction, cruds, imapServer, certificateManager, runtimeErrors)
 		if err != nil {
 			_ = transaction.Rollback()
-			return nil, fmt.Errorf("failed to start IMAP server: %w", err)
+			imapServer = nil
+			log.WithError(err).Error("IMAP is disabled for this runtime; correct its backend configuration and restart Daptin")
 		}
 	} else {
 		if err != nil {
 			err = configStore.SetConfigValueFor("imap.enabled", "false", "backend", transaction)
-			resource.CheckErr(err, "Failed to set default value for imap.enabled")
+			if err != nil {
+				_ = transaction.Rollback()
+				return nil, fmt.Errorf("store default imap.enabled configuration: %w", err)
+			}
+		}
+	}
+	if err == nil {
+		if err = transaction.Commit(); err != nil {
+			return nil, fmt.Errorf("commit IMAP configuration transaction: %w", err)
 		}
 	}
 	log.Tracef("Processed imps")
 
+	transaction, err = db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("begin CalDAV configuration transaction: %w", err)
+	}
 	enableCaldav, err := configStore.GetConfigValueFor("caldav.enable", "backend", transaction)
 	if err != nil {
 		enableCaldav = "false"
@@ -403,7 +416,9 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		resource.CheckErr(err, "Failed to store caldav.enable in _config")
 	}
 	log.Printf("[CALDAV INIT] enableCaldav read from config: '%s', err: %v", enableCaldav, err)
-	transaction.Commit()
+	if err = transaction.Commit(); err != nil {
+		return nil, fmt.Errorf("commit CalDAV configuration transaction: %w", err)
+	}
 
 	taskScheduler, err := resource.NewTaskScheduler(cruds)
 	if err != nil {
