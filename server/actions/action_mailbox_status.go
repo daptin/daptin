@@ -1,16 +1,18 @@
 package actions
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -23,6 +25,10 @@ func (d *mailboxStatusActionPerformer) Name() string {
 }
 
 func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
+	sessionUser, ok := inFields["sessionUser"].(*auth.SessionUser)
+	if !ok || sessionUser == nil {
+		return nil, nil, []error{fmt.Errorf("mail_box.status requires an authenticated session")}
+	}
 	tx := transaction
 	createdTx := false
 	if tx == nil {
@@ -46,37 +52,31 @@ func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, 
 	if pageNumber < 1 {
 		pageNumber = 1
 	}
-	offset := (pageNumber - 1) * pageSize
-
-	where := make([]goqu.Ex, 0)
+	queries := make([]resource.Query, 0, 2)
 	if mailAccountRef := strings.TrimSpace(fmt.Sprintf("%v", inFields["mail_account_id"])); mailAccountRef != "" && mailAccountRef != "<nil>" {
-		mailAccountId, err := resource.GetReferenceIdToIdWithTransaction("mail_account", daptinid.InterfaceToDIR(mailAccountRef), tx)
-		if err != nil {
-			return nil, nil, []error{err}
-		}
-		where = append(where, goqu.Ex{"mail_account_id": mailAccountId})
+		queries = append(queries, resource.Query{ColumnName: "mail_account_id", Operator: "eq", Value: mailAccountRef})
 	}
 	if mailBoxRef := strings.TrimSpace(fmt.Sprintf("%v", inFields["mail_box_id"])); mailBoxRef != "" && mailBoxRef != "<nil>" {
-		mailBoxId, err := resource.GetReferenceIdToIdWithTransaction("mail_box", daptinid.InterfaceToDIR(mailBoxRef), tx)
-		if err != nil {
-			return nil, nil, []error{err}
-		}
-		where = append(where, goqu.Ex{"id": mailBoxId})
+		queries = append(queries, resource.Query{ColumnName: "reference_id", Operator: "eq", Value: mailBoxRef})
 	}
 
-	total, err := d.countMailboxes(where, tx)
-	if err != nil {
-		return nil, nil, []error{err}
-	}
-	boxes, err := d.listMailboxes(where, pageSize, offset, tx)
+	total, boxes, err := d.listMailboxes(queries, pageSize, pageNumber, sessionUser, tx)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
 
 	statusRows := make([]map[string]interface{}, 0, len(boxes))
 	for _, box := range boxes {
-		boxId, _ := box["id"].(int64)
-		mailAccountId, _ := box["mail_account_id"].(int64)
+		boxReferenceID := daptinid.InterfaceToDIR(box["reference_id"])
+		boxId, err := resource.GetReferenceIdToIdWithTransaction("mail_box", boxReferenceID, tx)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		mailAccountReferenceID := daptinid.InterfaceToDIR(box["mail_account_id"])
+		mailAccountId, err := resource.GetReferenceIdToIdWithTransaction("mail_account", mailAccountReferenceID, tx)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
 		status, err := d.cruds["mail_box"].GetMailBoxStatus(mailAccountId, boxId, tx)
 		if err != nil {
 			return nil, nil, []error{err}
@@ -91,7 +91,7 @@ func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, 
 			"uidnext":         status.UidNext,
 			"uidvalidity":     status.UidValidity,
 		}
-		latest, err := d.latestMailMetadata(boxId, tx)
+		latest, err := d.latestMailMetadata(boxReferenceID, sessionUser, tx)
 		if err != nil {
 			return nil, nil, []error{err}
 		}
@@ -113,78 +113,87 @@ func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, 
 			"total":        total,
 			"per_page":     pageSize,
 			"current_page": pageNumber,
-			"from":         offset + 1,
-			"to":           offset + len(statusRows),
+			"from":         (pageNumber-1)*pageSize + 1,
+			"to":           (pageNumber-1)*pageSize + len(statusRows),
 		},
 	}
 	return nil, []actionresponse.ActionResponse{resource.NewActionResponse("mail_box.status", payload)}, nil
 }
 
-func (d *mailboxStatusActionPerformer) countMailboxes(where []goqu.Ex, tx *sqlx.Tx) (int64, error) {
-	query := statementbuilder.Squirrel.Select(goqu.COUNT("*")).Prepared(true).From("mail_box")
-	for _, w := range where {
-		query = query.Where(w)
+func (d *mailboxStatusActionPerformer) listMailboxes(queries []resource.Query, pageSize int, pageNumber int,
+	sessionUser *auth.SessionUser, tx *sqlx.Tx) (uint, []map[string]interface{}, error) {
+	requestURL, _ := url.Parse("/api/mail_box")
+	request := api2go.Request{
+		PlainRequest: (&http.Request{Method: http.MethodGet, URL: requestURL}).WithContext(
+			context.WithValue(context.Background(), "user", sessionUser)),
+		QueryParams: map[string][]string{
+			"page[size]":   {strconv.Itoa(pageSize)},
+			"page[number]": {strconv.Itoa(pageNumber)},
+			"sort":         {"+name"},
+		},
 	}
-	sql, args, err := query.ToSQL()
+	if len(queries) > 0 {
+		encoded, err := json.Marshal(queries)
+		if err != nil {
+			return 0, nil, err
+		}
+		request.QueryParams["query"] = []string{string(encoded)}
+	}
+	total, responder, err := d.cruds["mail_box"].PaginatedFindAllWithTransaction(request, tx)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
-	var total int64
-	err = tx.QueryRowx(sql, args...).Scan(&total)
-	return total, err
+	models, ok := responder.Result().([]api2go.Api2GoModel)
+	if !ok {
+		return 0, nil, fmt.Errorf("mail_box resource read returned %T", responder.Result())
+	}
+	boxes := make([]map[string]interface{}, 0, len(models))
+	for _, model := range models {
+		attributes := model.GetAttributes()
+		attributes["reference_id"] = model.GetID()
+		boxes = append(boxes, attributes)
+	}
+	return total, boxes, nil
 }
 
-func (d *mailboxStatusActionPerformer) listMailboxes(where []goqu.Ex, pageSize int, offset int, tx *sqlx.Tx) ([]map[string]interface{}, error) {
-	query := statementbuilder.Squirrel.Select("*").Prepared(true).From("mail_box").
-		Order(goqu.C("name").Asc()).
-		Limit(uint(pageSize)).
-		Offset(uint(offset))
-	for _, w := range where {
-		query = query.Where(w)
-	}
-	sql, args, err := query.ToSQL()
+func (d *mailboxStatusActionPerformer) latestMailMetadata(mailBoxReferenceID daptinid.DaptinReferenceId,
+	sessionUser *auth.SessionUser, tx *sqlx.Tx) (map[string]interface{}, error) {
+	encoded, err := json.Marshal([]resource.Query{
+		{ColumnName: "mail_box_id", Operator: "eq", Value: mailBoxReferenceID.String()},
+		{ColumnName: "deleted", Operator: "eq", Value: false},
+	})
 	if err != nil {
 		return nil, err
 	}
-	rows, err := tx.Queryx(sql, args...)
+	requestURL, _ := url.Parse("/api/mail")
+	request := api2go.Request{
+		PlainRequest: (&http.Request{Method: http.MethodGet, URL: requestURL}).WithContext(
+			context.WithValue(context.Background(), "user", sessionUser)),
+		QueryParams: map[string][]string{
+			"query":      {string(encoded)},
+			"page[size]": {"1"},
+			"sort":       {"-internal_date", "-id"},
+		},
+	}
+	_, responder, err := d.cruds["mail"].PaginatedFindAllWithTransaction(request, tx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	rawRows, err := resource.RowsToMap(rows, "mail_box")
-	if err != nil {
-		return nil, err
+	models, ok := responder.Result().([]api2go.Api2GoModel)
+	if !ok || len(models) == 0 {
+		return nil, nil
 	}
-	boxes, _, err := d.cruds["mail_box"].ResultToArrayOfMapWithTransaction(rawRows, d.cruds["mail_box"].ColumnMap(), nil, tx)
-	return boxes, err
-}
-
-func (d *mailboxStatusActionPerformer) latestMailMetadata(mailBoxId int64, tx *sqlx.Tx) (map[string]interface{}, error) {
-	query, args, err := statementbuilder.Squirrel.
-		Select("reference_id", "subject", "from_address", "internal_date", "message_id", "seen", "recent", "uid").
-		Prepared(true).
-		From("mail").
-		Where(goqu.Ex{"mail_box_id": mailBoxId, "deleted": false}).
-		Order(goqu.C("internal_date").Desc(), goqu.C("id").Desc()).
-		Limit(1).
-		ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	rows, err := tx.Queryx(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	rawRows, err := resource.RowsToMap(rows, "mail")
-	if err != nil || len(rawRows) == 0 {
-		return nil, err
-	}
-	mails, _, err := d.cruds["mail"].ResultToArrayOfMapWithTransaction(rawRows, d.cruds["mail"].ColumnMap(), nil, tx)
-	if err != nil || len(mails) == 0 {
-		return nil, err
-	}
-	return mails[0], nil
+	attributes := models[0].GetAttributes()
+	return map[string]interface{}{
+		"reference_id":  models[0].GetID(),
+		"subject":       attributes["subject"],
+		"from_address":  attributes["from_address"],
+		"internal_date": attributes["internal_date"],
+		"message_id":    attributes["message_id"],
+		"seen":          attributes["seen"],
+		"recent":        attributes["recent"],
+		"uid":           attributes["uid"],
+	}, nil
 }
 
 func parseMailboxStatusInt(value interface{}, fallback int) int {

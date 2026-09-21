@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -10,11 +11,60 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/daptin/daptin/server/table_info"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+func TestReferenceIDInFilter(t *testing.T) {
+	statementbuilder.InitialiseStatementBuilder("sqlite3")
+	db := sqlx.MustOpen("sqlite3", ":memory:")
+	defer db.Close()
+	db.MustExec(`create table item (id integer primary key, reference_id blob not null unique)`)
+	first := daptinid.DaptinReferenceId(uuid.New())
+	second := daptinid.DaptinReferenceId(uuid.New())
+	third := daptinid.DaptinReferenceId(uuid.New())
+	db.MustExec(`insert into item (id, reference_id) values (?, ?), (?, ?), (?, ?)`,
+		1, first[:], 2, second[:], 3, third[:])
+
+	crud := &DbResource{
+		model: api2go.NewApi2GoModel("item", []api2go.ColumnInfo{{ColumnName: "reference_id"}}, 0, nil),
+		tableInfo: &table_info.TableInfo{TableName: "item", Columns: []api2go.ColumnInfo{
+			{ColumnName: "reference_id"},
+		}},
+	}
+	tx := db.MustBegin()
+	defer tx.Rollback()
+	expression, err := crud.processQueryFilter(Query{
+		ColumnName: "reference_id",
+		Operator:   "in",
+		Value:      []interface{}{first.String(), third.String()},
+	}, "item.", tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).From("item").Where(expression).Order(goqu.C("id").Asc()).ToSQL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []int
+	if err := tx.Select(&ids, query, args...); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(ids) != "[1 3]" {
+		t.Fatalf("reference_id IN returned %v, want [1 3]", ids)
+	}
+	if _, err := crud.processQueryFilter(Query{
+		ColumnName: "reference_id",
+		Operator:   "in",
+		Value:      []interface{}{first.String(), "not-a-reference-id"},
+	}, "item.", tx); err == nil {
+		t.Fatal("invalid reference_id in IN filter should fail")
+	}
+}
 
 func TestGetReferenceIdListToIdListWithTransactionMissingReference(t *testing.T) {
 	db, err := sqlx.Open("sqlite3", ":memory:")

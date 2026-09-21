@@ -1,7 +1,10 @@
 package resource
 
 import (
+	"context"
 	"encoding/base64"
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -114,7 +117,7 @@ func TestAppendSentMailForSenderCreatesSentMailboxAndMailRow(t *testing.T) {
 	env := newSentMailTestEnv(t, false)
 	tx := env.db.MustBegin()
 
-	_, err := env.root.AppendSentMailForSender("sender@example.test", sentMailTestMessage(), tx)
+	_, err := env.root.AppendSentMailForSender("sender@example.test", env.sessionUser, sentMailTestMessage(), tx)
 	if err != nil {
 		t.Fatalf("AppendSentMailForSender returned error: %v", err)
 	}
@@ -154,7 +157,7 @@ func TestAppendSentMailForSenderReusesExistingSentMailbox(t *testing.T) {
 	env := newSentMailTestEnv(t, true)
 	tx := env.db.MustBegin()
 
-	_, err := env.root.AppendSentMailForSender("Sender <sender@example.test>", sentMailTestMessage(), tx)
+	_, err := env.root.AppendSentMailForSender("Sender <sender@example.test>", env.sessionUser, sentMailTestMessage(), tx)
 	if err != nil {
 		t.Fatalf("AppendSentMailForSender returned error: %v", err)
 	}
@@ -185,7 +188,7 @@ func TestAppendSentMailForSenderRequiresSenderMailAccount(t *testing.T) {
 	tx := env.db.MustBegin()
 	defer tx.Rollback()
 
-	if _, err := env.root.AppendSentMailForSender("missing@example.test", sentMailTestMessage(), tx); err == nil {
+	if _, err := env.root.AppendSentMailForSender("missing@example.test", env.sessionUser, sentMailTestMessage(), tx); err == nil {
 		t.Fatalf("expected missing sender account error")
 	}
 
@@ -198,9 +201,69 @@ func TestAppendSentMailForSenderRequiresSenderMailAccount(t *testing.T) {
 	}
 }
 
+func TestAppendSentMailForSenderRejectsDifferentAuthenticatedUser(t *testing.T) {
+	env := newSentMailTestEnv(t, false)
+	tx := env.db.MustBegin()
+	defer tx.Rollback()
+
+	otherUser := &auth.SessionUser{
+		UserId:          2,
+		UserReferenceId: daptinid.DaptinReferenceId(uuid.New()),
+	}
+	if _, err := env.root.AppendSentMailForSender("sender@example.test", otherUser, sentMailTestMessage(), tx); err == nil {
+		t.Fatal("expected cross-account sender authorization to fail")
+	}
+
+	var mailboxCount, mailCount int
+	if err := tx.QueryRowx(`select count(*) from mail_box`).Scan(&mailboxCount); err != nil {
+		t.Fatalf("count mailboxes: %v", err)
+	}
+	if err := tx.QueryRowx(`select count(*) from mail`).Scan(&mailCount); err != nil {
+		t.Fatalf("count mail: %v", err)
+	}
+	if mailboxCount != 0 || mailCount != 0 {
+		t.Fatalf("authorization failure created mailbox/mail rows: %d/%d", mailboxCount, mailCount)
+	}
+}
+
+func TestCreateInboundMailRejectsMailboxOwnedByDifferentUser(t *testing.T) {
+	env := newSentMailTestEnv(t, false)
+	mailboxReference := daptinid.DaptinReferenceId(uuid.New())
+	if _, err := env.db.Exec(`insert into mail_box (id, name, mail_account_id, uidvalidity, nextuid, subscribed, attributes, flags, permanent_flags, user_account_id, reference_id, permission, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		1, "INBOX", 1, 1, 1, true, "", "\\*", "\\*", 1, mailboxReference[:], int64(16256), time.Now(), time.Now()); err != nil {
+		t.Fatalf("insert mailbox: %v", err)
+	}
+
+	attacker := &auth.SessionUser{
+		UserId:          2,
+		UserReferenceId: daptinid.DaptinReferenceId(uuid.New()),
+	}
+	requestURL, _ := url.Parse("/api/mail")
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: requestURL}).WithContext(
+		context.WithValue(context.Background(), "user", attacker))}
+	model := api2go.NewApi2GoModelWithData("mail", nil, 0, nil, map[string]interface{}{
+		"mail_box_id":     mailboxReference.String(),
+		"user_account_id": attacker.UserReferenceId.String(),
+	})
+	tx := env.db.MustBegin()
+	defer tx.Rollback()
+	if _, err := env.root.CreateInboundMailWithTransaction(model, request, tx); err == nil {
+		t.Fatal("expected cross-account inbound destination authorization to fail")
+	}
+
+	var mailCount int
+	if err := tx.QueryRowx(`select count(*) from mail`).Scan(&mailCount); err != nil {
+		t.Fatalf("count mail: %v", err)
+	}
+	if mailCount != 0 {
+		t.Fatalf("authorization failure created %d mail rows", mailCount)
+	}
+}
+
 type sentMailTestEnv struct {
-	db   *sqlx.DB
-	root *DbResource
+	db          *sqlx.DB
+	root        *DbResource
+	sessionUser *auth.SessionUser
 }
 
 func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
@@ -338,7 +401,14 @@ func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
 	}
 
 	root := newSentMailTestCrudGraph(t, db, adminGroupRef)
-	return sentMailTestEnv{db: db, root: root}
+	return sentMailTestEnv{
+		db:   db,
+		root: root,
+		sessionUser: &auth.SessionUser{
+			UserId:          1,
+			UserReferenceId: userRef,
+		},
+	}
 }
 
 func newSentMailTestCrudGraph(t *testing.T, db *sqlx.DB, adminGroupRef daptinid.DaptinReferenceId) *DbResource {

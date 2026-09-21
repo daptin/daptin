@@ -380,7 +380,8 @@ func TestMergeTablesClearsExplicitEmptyCollectionFields(t *testing.T) {
 			Conformations: []columns.ColumnTag{
 				{ColumnName: "name", Tags: "trim"},
 			},
-			CompositeKeys: [][]string{{"name"}},
+			CompositeKeys:    [][]string{{"name"}},
+			CompositeIndexes: [][]string{{"name", "id"}},
 		},
 	}
 	initConfigTables := []table_info.TableInfo{
@@ -392,6 +393,7 @@ func TestMergeTablesClearsExplicitEmptyCollectionFields(t *testing.T) {
 			Validations:      []columns.ColumnTag{},
 			Conformations:    []columns.ColumnTag{},
 			CompositeKeys:    [][]string{},
+			CompositeIndexes: [][]string{},
 		},
 	}
 
@@ -414,6 +416,9 @@ func TestMergeTablesClearsExplicitEmptyCollectionFields(t *testing.T) {
 	}
 	if len(merged[0].CompositeKeys) != 0 {
 		t.Fatalf("expected explicit empty CompositeKeys to clear state, got %#v", merged[0].CompositeKeys)
+	}
+	if len(merged[0].CompositeIndexes) != 0 {
+		t.Fatalf("expected explicit empty CompositeIndexes to clear state, got %#v", merged[0].CompositeIndexes)
 	}
 }
 

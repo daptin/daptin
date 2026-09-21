@@ -127,6 +127,7 @@ type TableInfo struct {
 	DefaultOrder           string
 	Icon                   string
 	CompositeKeys          [][]string
+	CompositeIndexes       [][]string
 	Metering               *MeteringConfig `json:"metering,omitempty"`
 	ExplicitFields         map[string]bool `json:"-" db:"-"`
 }

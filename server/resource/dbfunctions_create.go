@@ -156,7 +156,25 @@ func CreateIndexes(initConfig *CmsConfig, db database.DatabaseConnection) {
 				}
 			}
 		}
+		for _, columns := range table.CompositeIndexes {
+			if len(columns) < 2 {
+				log.Errorf("Table[%v]: composite index requires at least two columns, got %v", table.TableName, columns)
+				continue
+			}
+			indexName := compositeIndexName(table.TableName, columns)
+			if existingIndexes[indexName] {
+				continue
+			}
+			statement := "create index " + indexName + " on " + table.TableName + " (" + strings.Join(columns, ", ") + ")"
+			if _, err := db.Exec(statement); err != nil {
+				log.Debugf("Table[%v] Columns[%v]: index was not created: %v", table.TableName, columns, err)
+			}
+		}
 	}
+}
+
+func compositeIndexName(tableName string, columns []string) string {
+	return "i" + GetMD5HashString("index_"+tableName+"_"+strings.Join(columns, "_")+"_index")
 }
 
 func usergroupAccessIndexName(tableName, usergroupColumnName, entityColumnName string) string {
@@ -173,7 +191,8 @@ func GetExistingIndexes(db *sqlx.Tx) map[string]bool {
 
 	indexQuery := ""
 	if db.DriverName() == "mysql" {
-		indexQuery = `SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS union SELECT   CONSTRAINT_NAME FROM   INFORMATION_SCHEMA.KEY_COLUMN_USAGE`
+		indexQuery = `SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE()
+union SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE()`
 	} else if db.DriverName() == "postgres" {
 		indexQuery = `SELECT
     indexname

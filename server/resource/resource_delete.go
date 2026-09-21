@@ -33,6 +33,55 @@ func (dbResource *DbResource) DeleteWithoutFilters(id daptinid.DaptinReferenceId
 	return dbResource.deleteWithoutFiltersWithData(id, req, transaction, data)
 }
 
+func (dbResource *DbResource) deleteUsergroupRelations(parentID int64, req api2go.Request, transaction *sqlx.Tx) error {
+	resourceName := dbResource.model.GetName()
+	if strings.HasSuffix(resourceName, "_has_usergroup_usergroup_id") {
+		return nil
+	}
+
+	joinTableName := resourceName + "_" + resourceName + "_id_has_usergroup_usergroup_id"
+	joinResource, ok := dbResource.Cruds[joinTableName]
+	if !ok {
+		return nil
+	}
+
+	query, args, err := statementbuilder.Squirrel.
+		Select("reference_id").
+		From(joinTableName).
+		Where(goqu.Ex{resourceName + "_id": parentID}).
+		Prepared(true).
+		ToSQL()
+	if err != nil {
+		return err
+	}
+	rows, err := transaction.Queryx(query, args...)
+	if err != nil {
+		return err
+	}
+	referenceIDs := make([]daptinid.DaptinReferenceId, 0)
+	for rows.Next() {
+		var referenceID daptinid.DaptinReferenceId
+		if err := rows.Scan(&referenceID); err != nil {
+			rows.Close()
+			return err
+		}
+		referenceIDs = append(referenceIDs, referenceID)
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	for _, referenceID := range referenceIDs {
+		if err := joinResource.DeleteWithoutFilters(referenceID, req, transaction); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (dbResource *DbResource) deleteWithoutFiltersWithData(id daptinid.DaptinReferenceId, req api2go.Request,
 	transaction *sqlx.Tx, data map[string]interface{}) error {
 	var err error
@@ -494,6 +543,9 @@ func (dbResource *DbResource) deleteWithoutFiltersWithData(id daptinid.DaptinRef
 
 		}
 	} else {
+		if err := dbResource.deleteUsergroupRelations(parentId, req, transaction); err != nil {
+			return err
+		}
 
 		queryBuilder := statementbuilder.Squirrel.
 			Delete(m.GetTableName()).Prepared(true).Where(goqu.Ex{"reference_id": id[:]})
@@ -580,9 +632,19 @@ func (dbResource *DbResource) Delete(idString string, req api2go.Request) (api2g
 }
 
 func (dbResource *DbResource) DeleteWithTransaction(id daptinid.DaptinReferenceId, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+	return dbResource.deleteWithTransaction(id, req, transaction, dbResource.ms.BeforeDelete, dbResource.ms.AfterDelete)
+}
+
+func (dbResource *DbResource) deleteAfterAuthorizationWithTransaction(id daptinid.DaptinReferenceId, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+	return dbResource.deleteWithTransaction(id, req, transaction,
+		lifecycleInterceptors(dbResource.ms.BeforeDelete), lifecycleInterceptors(dbResource.ms.AfterDelete))
+}
+
+func (dbResource *DbResource) deleteWithTransaction(id daptinid.DaptinReferenceId, req api2go.Request, transaction *sqlx.Tx,
+	before, after []DatabaseRequestInterceptor) (api2go.Responder, error) {
 
 	log.Printf("Delete [%v][%v]", dbResource.model.GetTableName(), id)
-	for _, bf := range dbResource.ms.BeforeDelete {
+	for _, bf := range before {
 		//log.Printf("[Before][%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 		r, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{
 			{
@@ -612,7 +674,7 @@ func (dbResource *DbResource) DeleteWithTransaction(id daptinid.DaptinReferenceI
 		return nil, err
 	}
 
-	for _, bf := range dbResource.ms.AfterDelete {
+	for _, bf := range after {
 		//log.Printf("Invoke AfterDelete [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 		_, err = bf.InterceptAfter(dbResource, &req, []map[string]interface{}{deletedRow}, transaction)
 		if err != nil {

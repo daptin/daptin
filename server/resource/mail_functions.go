@@ -230,7 +230,7 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 	}
 
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
-	resp, err := dbResource.Cruds["mail_box"].CreateWithTransaction(api2go.NewApi2GoModelWithData("mail_box", nil, 0, nil, map[string]interface{}{
+	resp, err := dbResource.Cruds["mail_box"].createAfterAuthorizationWithTransaction(api2go.NewApi2GoModelWithData("mail_box", nil, 0, nil, map[string]interface{}{
 		"name":            mailBoxName,
 		"mail_account_id": mailAccountId,
 		"uidvalidity":     time.Now().Unix(),
@@ -253,7 +253,110 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 
 }
 
-func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, messageBytes []byte, transaction *sqlx.Tx) (map[string]interface{}, error) {
+// AuthorizeMailSender verifies that the active Daptin identity owns the mail
+// account selected by the From address. The address selects an account; it is
+// never itself an authorization credential.
+func (dbResource *DbResource) AuthorizeMailSender(fromAddress string, sessionUser *auth.SessionUser, transaction *sqlx.Tx) error {
+	_, err := dbResource.mailAccountForSession(fromAddress, sessionUser, transaction)
+	return err
+}
+
+func (dbResource *DbResource) mailAccountForSession(fromAddress string, sessionUser *auth.SessionUser, transaction *sqlx.Tx) (map[string]interface{}, error) {
+	if transaction == nil {
+		return nil, errors.New("mail sender authorization requires a transaction")
+	}
+	if sessionUser == nil || sessionUser.UserReferenceId == daptinid.NullReferenceId {
+		return nil, errors.New("mail sender has no authenticated resource identity")
+	}
+
+	senderAddress, err := normalizedMailAddress(fromAddress)
+	if err != nil {
+		return nil, err
+	}
+	mailAccount, err := dbResource.GetUserMailAccountRowByEmail(senderAddress, transaction)
+	if err != nil {
+		return nil, fmt.Errorf("sender mail account not found [%s]: %w", senderAddress, err)
+	}
+	userCrud := dbResource.Cruds[USER_ACCOUNT_TABLE_NAME]
+	if userCrud == nil {
+		return nil, errors.New("user_account resource is not configured")
+	}
+	user, _, err := getMailAccountUserRow(userCrud, mailAccount[USER_ACCOUNT_ID_COLUMN], transaction)
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("failed to get user account for sender [%s]: %w", senderAddress, err)
+	}
+	if daptinid.InterfaceToDIR(user["reference_id"]) != sessionUser.UserReferenceId {
+		return nil, errors.New("authenticated user does not own sender mail account")
+	}
+	return mailAccount, nil
+}
+
+// MailAccountSessionUser resolves the Daptin identity established by a
+// successfully authenticated protocol account.
+func (dbResource *DbResource) MailAccountSessionUser(address string, transaction *sqlx.Tx) (*auth.SessionUser, error) {
+	mailAccount, err := dbResource.GetUserMailAccountRowByEmail(address, transaction)
+	if err != nil {
+		return nil, err
+	}
+	userCrud := dbResource.Cruds[USER_ACCOUNT_TABLE_NAME]
+	if userCrud == nil {
+		return nil, errors.New("user_account resource is not configured")
+	}
+	user, _, err := getMailAccountUserRow(userCrud, mailAccount[USER_ACCOUNT_ID_COLUMN], transaction)
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("failed to resolve mail account owner: %w", err)
+	}
+	userID, ok := user["id"].(int64)
+	if !ok || userID == 0 {
+		return nil, errors.New("mail account has no resource owner")
+	}
+	return &auth.SessionUser{
+		UserId:          userID,
+		UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
+		Groups:          userCrud.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "id", userID),
+	}, nil
+}
+
+// CreateInboundMailWithTransaction is the SMTP adapter boundary. The recipient
+// account and destination mailbox must both match the server-created session
+// before SMTP may enter the shared resource lifecycle after authorization.
+func (dbResource *DbResource) CreateInboundMailWithTransaction(obj interface{}, req api2go.Request,
+	transaction *sqlx.Tx) (api2go.Responder, error) {
+	if dbResource.model.GetName() != "mail" {
+		return nil, errors.New("inbound mail can only create mail resources")
+	}
+	data, ok := obj.(api2go.Api2GoModel)
+	if !ok || req.PlainRequest == nil {
+		return nil, errors.New("invalid inbound mail request")
+	}
+	sessionUser, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+	if sessionUser == nil || sessionUser.UserReferenceId == daptinid.NullReferenceId {
+		return nil, errors.New("inbound mail recipient has no authenticated resource identity")
+	}
+	attributes := data.GetAllAsAttributes()
+	if daptinid.InterfaceToDIR(attributes[USER_ACCOUNT_ID_COLUMN]) != sessionUser.UserReferenceId {
+		return nil, errors.New("inbound mail recipient does not match resource owner")
+	}
+	mailboxReference := daptinid.InterfaceToDIR(attributes["mail_box_id"])
+	mailbox, err := dbResource.Cruds["mail_box"].GetReferenceIdToObjectWithTransaction("mail_box", mailboxReference, transaction)
+	if err != nil {
+		return nil, err
+	}
+	mailAccountID, ok := mailbox["mail_account_id"].(int64)
+	if !ok || mailAccountID == 0 {
+		return nil, errors.New("inbound mail destination has no mail account")
+	}
+	mailAccount, _, err := dbResource.Cruds["mail_account"].GetSingleRowById("mail_account", mailAccountID, nil, transaction)
+	if err != nil {
+		return nil, err
+	}
+	if daptinid.InterfaceToDIR(mailAccount[USER_ACCOUNT_ID_COLUMN]) != sessionUser.UserReferenceId {
+		return nil, errors.New("inbound mail destination does not belong to recipient")
+	}
+	return dbResource.createAfterAuthorizationWithTransaction(obj, req, transaction)
+}
+
+func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, sessionUser *auth.SessionUser, messageBytes []byte, transaction *sqlx.Tx) (map[string]interface{}, error) {
 	if transaction == nil {
 		return nil, errors.New("sent mailbox append requires a transaction")
 	}
@@ -263,30 +366,9 @@ func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, messag
 		return nil, err
 	}
 
-	mailAccount, err := dbResource.GetUserMailAccountRowByEmail(senderAddress, transaction)
+	mailAccount, err := dbResource.mailAccountForSession(senderAddress, sessionUser, transaction)
 	if err != nil {
-		return nil, fmt.Errorf("sender mail account not found [%s]: %w", senderAddress, err)
-	}
-
-	userCrud := dbResource.Cruds[USER_ACCOUNT_TABLE_NAME]
-	if userCrud == nil {
-		return nil, errors.New("user_account resource is not configured")
-	}
-
-	user, _, err := getMailAccountUserRow(userCrud, mailAccount[USER_ACCOUNT_ID_COLUMN], transaction)
-	if err != nil || user == nil {
-		return nil, fmt.Errorf("failed to get user account for sender [%s]: %w", senderAddress, err)
-	}
-
-	userId, ok := user["id"].(int64)
-	if !ok || userId == 0 {
-		return nil, fmt.Errorf("invalid user id for sender [%s]", senderAddress)
-	}
-
-	sessionUser := &auth.SessionUser{
-		UserId:          userId,
-		UserReferenceId: daptinid.InterfaceToDIR(user["reference_id"]),
-		Groups:          userCrud.GetObjectUserGroupsByWhereWithTransaction(USER_ACCOUNT_TABLE_NAME, transaction, "id", userId),
+		return nil, err
 	}
 
 	mailAccountId, ok := mailAccount["id"].(int64)
@@ -338,7 +420,7 @@ func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, messag
 		URL:    requestURL,
 	}).WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
-	resp, err := dbResource.Cruds["mail"].CreateWithTransaction(
+	resp, err := dbResource.Cruds["mail"].createAfterAuthorizationWithTransaction(
 		api2go.NewApi2GoModelWithData("mail", nil, 768, nil, attrs),
 		api2go.Request{PlainRequest: httpRequest},
 		transaction,
@@ -378,51 +460,36 @@ func (dbResource *DbResource) sentMailAttributes(messageBytes []byte, sentBox ma
 	if mailDate.IsZero() {
 		mailDate = time.Now()
 	}
+	searchMetadata := mailSearchMetadataFromParsed(parsedMail)
+	searchMetadata.Body = textBody
 
-	messageId := parsedMail.MessageID
+	messageId := searchMetadata.MessageID
 	if strings.TrimSpace(messageId) == "" {
 		messageId = uuid.NewString()
-	}
-
-	toAddress := ""
-	if len(parsedMail.To) > 0 {
-		toAddress = parsedMail.To[0].String()
-	}
-
-	replyTo := ""
-	if len(parsedMail.ReplyTo) > 0 {
-		replyTo = parsedMail.ReplyTo[0].String()
-	}
-
-	fromAddress := ""
-	if len(parsedMail.From) > 0 {
-		fromAddress = parsedMail.From[0].String()
-	}
-
-	sender := fromAddress
-	if parsedMail.Sender != nil {
-		sender = parsedMail.Sender.String()
 	}
 
 	return map[string]interface{}{
 		"message_id":       messageId,
 		"mail_id":          hash,
-		"from_address":     fromAddress,
-		"to_address":       toAddress,
-		"sender_address":   sender,
-		"subject":          parsedMail.Subject,
-		"body":             textBody,
+		"from_address":     searchMetadata.From,
+		"to_address":       searchMetadata.To,
+		"cc_address":       searchMetadata.Cc,
+		"bcc_address":      searchMetadata.Bcc,
+		"sender_address":   searchMetadata.Sender,
+		"subject":          searchMetadata.Subject,
+		"body":             searchMetadata.Body,
 		"mail":             storedMailContents,
 		"spam_score":       0,
 		"spam":             false,
 		"hash":             hash,
-		"internal_date":    mailDate,
+		"internal_date":    time.Now(),
+		"sent_date":        nullableMailDate(mailDate),
 		"content_type":     messageEntity.Header.Get("Content-Type"),
-		"reply_to_address": replyTo,
-		"recipient":        toAddress,
+		"reply_to_address": searchMetadata.ReplyTo,
+		"recipient":        searchMetadata.To,
 		"has_attachment":   len(parsedMail.Attachments) > 0,
 		"ip_addr":          "",
-		"return_path":      fromAddress,
+		"return_path":      searchMetadata.From,
 		"is_tls":           false,
 		"mail_box_id":      sentBox["reference_id"],
 		"uid":              uid,
@@ -471,7 +538,7 @@ func getMailAccountUserRow(userCrud *DbResource, userAccountReference interface{
 }
 
 // Returns the user mail account box row of a user
-func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string) error {
+func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxName string, sessionUser *auth.SessionUser) error {
 
 	transaction, err := dbResource.Cruds["mail_box"].Connection().Beginx()
 	if err != nil {
@@ -489,24 +556,50 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 		return errors.New("mailbox does not exist")
 	}
 
-	query, args, err := statementbuilder.Squirrel.Delete("mail").Prepared(true).
-		Where(goqu.Ex{"mail_box_id": box[0]["id"]}).ToSQL()
+	mailRequestURL, _ := url.Parse("/api/mail")
+	mailRequest := api2go.Request{PlainRequest: (&http.Request{
+		Method: http.MethodDelete,
+		URL:    mailRequestURL,
+	}).WithContext(context.WithValue(context.Background(), "user", sessionUser))}
+
+	query, args, err := statementbuilder.Squirrel.Select("reference_id").Prepared(true).
+		From("mail").Where(goqu.Ex{"mail_box_id": box[0]["id"]}).ToSQL()
 	if err != nil {
 		return err
 	}
-
-	_, err = transaction.Exec(query, args...)
+	rows, err := transaction.Queryx(query, args...)
 	if err != nil {
 		return err
 	}
-
-	query, args, err = statementbuilder.Squirrel.Delete("mail_box").Prepared(true).Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
-	if err != nil {
+	mailReferenceIDs := make([]daptinid.DaptinReferenceId, 0)
+	for rows.Next() {
+		var referenceID daptinid.DaptinReferenceId
+		if err := rows.Scan(&referenceID); err != nil {
+			rows.Close()
+			return err
+		}
+		mailReferenceIDs = append(mailReferenceIDs, referenceID)
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	if err := rows.Err(); err != nil {
 		return err
 	}
 
-	_, err = transaction.Exec(query, args...)
-	if err != nil {
+	for _, referenceID := range mailReferenceIDs {
+		if _, err := dbResource.Cruds["mail"].deleteAfterAuthorizationWithTransaction(referenceID, mailRequest, transaction); err != nil {
+			return err
+		}
+	}
+
+	mailBoxRequestURL, _ := url.Parse("/api/mail_box")
+	mailBoxRequest := api2go.Request{PlainRequest: (&http.Request{
+		Method: http.MethodDelete,
+		URL:    mailBoxRequestURL,
+	}).WithContext(context.WithValue(context.Background(), "user", sessionUser))}
+	mailBoxReferenceID := daptinid.InterfaceToDIR(box[0]["reference_id"])
+	if _, err := dbResource.Cruds["mail_box"].deleteAfterAuthorizationWithTransaction(mailBoxReferenceID, mailBoxRequest, transaction); err != nil {
 		return err
 	}
 
@@ -516,7 +609,8 @@ func (dbResource *DbResource) DeleteMailAccountBox(mailAccountId int64, mailBoxN
 
 // RenameMailAccountBox renames a mailbox. Per RFC 3strstrings, renaming INBOX
 // moves all messages to the new mailbox and leaves INBOX empty.
-func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string) error {
+func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxName string, newBoxName string,
+	sessionUser *auth.SessionUser) error {
 
 	transaction, err := dbResource.Cruds["mail_box"].Connection().Beginx()
 	if err != nil {
@@ -534,6 +628,10 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 		return errors.New("mailbox does not exist")
 	}
 
+	requestURL, _ := url.Parse("/api/mail_box")
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch, URL: requestURL}).WithContext(
+		context.WithValue(context.Background(), "user", sessionUser))}
+
 	if strings.EqualFold(oldBoxName, "INBOX") {
 		// RFC 3501: Renaming INBOX creates new mailbox and moves messages, INBOX stays empty
 		// First check if target already exists
@@ -543,19 +641,12 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 			return errors.New("target mailbox already exists")
 		}
 
-		// Create the new mailbox by duplicating INBOX's row with new name
 		oldBoxId := box[0]["id"]
-		newRefId, _ := uuid.NewV7()
-		query, args, err := statementbuilder.Squirrel.
-			Insert("mail_box").Prepared(true).
-			Cols("name", "mail_account_id", "uidvalidity", "nextuid", "subscribed", "attributes", "flags", "permanent_flags", "reference_id", "permission").
-			Vals(goqu.Vals{newBoxName, mailAccountId, time.Now().Unix(), 1, true, "", "\\*", "\\*", newRefId.String(), box[0]["permission"]}).
-			ToSQL()
+		accountReference, err := GetIdToReferenceIdWithTransaction("mail_account", mailAccountId, transaction)
 		if err != nil {
 			return err
 		}
-		_, err = transaction.Exec(query, args...)
-		if err != nil {
+		if _, err = dbResource.CreateMailAccountBox(accountReference.String(), sessionUser, newBoxName, transaction); err != nil {
 			return err
 		}
 
@@ -563,29 +654,28 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 		newBox, _ := dbResource.Cruds["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
 			goqu.Ex{"mail_account_id": mailAccountId, "name": newBoxName})
 		if len(newBox) > 0 {
-			moveQuery, moveArgs, moveErr := statementbuilder.Squirrel.
-				Update("mail").Prepared(true).
-				Set(goqu.Record{"mail_box_id": newBox[0]["id"]}).
-				Where(goqu.Ex{"mail_box_id": oldBoxId}).ToSQL()
-			if moveErr != nil {
-				return moveErr
-			}
-			_, err = transaction.Exec(moveQuery, moveArgs...)
+			mails, err := dbResource.Cruds["mail"].GetAllObjectsWithWhereWithTransaction("mail", transaction,
+				goqu.Ex{"mail_box_id": oldBoxId})
 			if err != nil {
 				return err
 			}
+			mailURL, _ := url.Parse("/api/mail")
+			mailRequest := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch, URL: mailURL}).WithContext(
+				context.WithValue(context.Background(), "user", sessionUser))}
+			for _, mail := range mails {
+				model := api2go.NewApi2GoModelWithData("mail", nil, 0, nil, map[string]interface{}{
+					"mail_box_id": daptinid.InterfaceToDIR(newBox[0]["reference_id"]).String(),
+				})
+				model.SetID(daptinid.InterfaceToDIR(mail["reference_id"]).String())
+				if _, err := dbResource.Cruds["mail"].updateAfterAuthorizationWithTransaction(model, mailRequest, transaction); err != nil {
+					return err
+				}
+			}
 		}
 	} else {
-		query, args, err := statementbuilder.Squirrel.
-			Update("mail_box").Prepared(true).
-			Set(goqu.Record{"name": newBoxName}).
-			Where(goqu.Ex{"id": box[0]["id"]}).ToSQL()
-		if err != nil {
-			return err
-		}
-
-		_, err = transaction.Exec(query, args...)
-		if err != nil {
+		model := api2go.NewApi2GoModelWithData("mail_box", nil, 0, nil, map[string]interface{}{"name": newBoxName})
+		model.SetID(daptinid.InterfaceToDIR(box[0]["reference_id"]).String())
+		if _, err = dbResource.Cruds["mail_box"].updateAfterAuthorizationWithTransaction(model, request, transaction); err != nil {
 			return err
 		}
 	}
@@ -595,21 +685,18 @@ func (dbResource *DbResource) RenameMailAccountBox(mailAccountId int64, oldBoxNa
 }
 
 // Returns the user mail account box row of a user
-func (dbResource *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool, transaction *sqlx.Tx) error {
-
-	query, args, err := statementbuilder.Squirrel.
-		Update("mail_box").Prepared(true).
-		Set(goqu.Record{"subscribed": subscribed}).
-		Where(goqu.Ex{
-			"mail_account_id": mailAccountId,
-			"name":            mailBoxName,
-		}).ToSQL()
+func (dbResource *DbResource) SetMailBoxSubscribed(mailAccountId int64, mailBoxName string, subscribed bool,
+	sessionUser *auth.SessionUser, transaction *sqlx.Tx) error {
+	box, err := dbResource.GetMailAccountBox(mailAccountId, mailBoxName, transaction)
 	if err != nil {
 		return err
 	}
-
-	_, err = transaction.Exec(query, args...)
-
+	model := api2go.NewApi2GoModelWithData("mail_box", nil, 0, nil, map[string]interface{}{"subscribed": subscribed})
+	model.SetID(daptinid.InterfaceToDIR(box["reference_id"]).String())
+	requestURL, _ := url.Parse("/api/mail_box")
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch, URL: requestURL}).WithContext(
+		context.WithValue(context.Background(), "user", sessionUser))}
+	_, err = dbResource.Cruds["mail_box"].updateAfterAuthorizationWithTransaction(model, request, transaction)
 	return err
 
 }

@@ -1,6 +1,6 @@
 # Complete Schema Reference
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-09-21
 
 Reference for the fields in a Daptin resource definition.
 
@@ -25,6 +25,7 @@ Reference for the fields in a Daptin resource definition.
 | Conformations | array of objects | [] | No | 9 | Table-level data transformations |
 | DefaultOrder | string | "" | No | 7 | Default sort order |
 | Icon | string | "" | No | 8 | UI icon identifier |
+| CompositeIndexes | array of name arrays | [] | No | Unit | Multi-column non-unique indexes |
 | CompositeKeys | array of name arrays | [] | No | 5 | Multi-column unique constraints |
 | TableDescription | string | "" | No | 8 | Table documentation |
 
@@ -312,6 +313,30 @@ VALUES ('es', 'Hola', 'Contenido', 1);
 ---
 
 ## Constraint Properties
+
+### CompositeIndexes
+
+**Type:** Array of column-name arrays
+**Required:** No
+**Default:** `[]`
+
+Define multi-column indexes used to accelerate queries without requiring the
+column combination to be unique. Each index must contain at least two columns.
+Use `IsIndexed: true` on the column definition for a single-column index, and
+use `CompositeKeys` when duplicate column combinations must be rejected.
+
+```yaml
+Tables:
+  - TableName: mail
+    CompositeIndexes:
+      - [mail_box_id, uid, id]
+```
+
+This declaration creates an index in the listed column order. Column order is
+significant: place the equality/filter columns first and ordering or range
+columns after them.
+
+---
 
 ### CompositeKeys
 
@@ -696,6 +721,7 @@ StateMachineDescriptions:
 **No dependencies for:**
 - IsAuditEnabled (standalone)
 - TranslationsEnabled (standalone)
+- CompositeIndexes (standalone)
 - CompositeKeys (standalone)
 
 ### Common Combinations
@@ -803,6 +829,7 @@ Tables:
 | DefaultOrder | ✅ | Stored | Suite 7 |
 | Icon | ✅ | Stored | Suite 8 |
 | TableDescription | ✅ | Stored | Suite 8 |
+| CompositeIndexes | ✅ | Working | Unit and database schema tests |
 | DefaultGroups | ✅ | String and object forms | Suite 10 |
 | AccessGroups | ✅ | String and object forms | Suite 10 |
 | DefaultRelations | ❌ | Not tested | Suite 10 |

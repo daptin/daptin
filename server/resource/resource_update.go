@@ -29,6 +29,25 @@ import (
 // - 202 Accepted: Processing is delayed, return nothing
 // - 204 No Content: Update was successful, no fields were changed by the server, return nothing
 func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.Request, updateTransaction *sqlx.Tx) (result map[string]interface{}, err error) {
+	return dbResource.updateWithoutFilters(obj, req, updateTransaction, func(namespace string, referenceID daptinid.DaptinReferenceId) bool {
+		permission := GetObjectPermissionByReferenceIdWithTransaction(namespace, referenceID, updateTransaction)
+		user, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+		if user == nil {
+			user = &auth.SessionUser{}
+		}
+		return IsAdminWithTransaction(user, updateTransaction) ||
+			permission.CanRefer(user.UserReferenceId, user.Groups, dbResource.AdministratorGroupId)
+	})
+}
+
+func (dbResource *DbResource) updateWithoutFiltersAfterAuthorization(obj interface{}, req api2go.Request,
+	updateTransaction *sqlx.Tx) (map[string]interface{}, error) {
+	return dbResource.updateWithoutFilters(obj, req, updateTransaction,
+		func(string, daptinid.DaptinReferenceId) bool { return true })
+}
+
+func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.Request, updateTransaction *sqlx.Tx,
+	canRefer func(string, daptinid.DaptinReferenceId) bool) (result map[string]interface{}, err error) {
 	defer func() {
 		if err != nil {
 			err = normalizeDatabaseConstraintError(err)
@@ -52,14 +71,6 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 			return nil, err
 		}
 	}
-
-	user := req.PlainRequest.Context().Value("user")
-	sessionUser := &auth.SessionUser{}
-
-	if user != nil {
-		sessionUser = user.(*auth.SessionUser)
-	}
-	isAdmin := IsAdminWithTransaction(sessionUser, updateTransaction)
 
 	attrs := data.GetAllAsAttributes()
 
@@ -145,9 +156,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 							return nil, err
 						}
 
-						foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, valAsDir, updateTransaction)
-
-						if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
+						if canRefer(col.ForeignKeyData.Namespace, valAsDir) {
 							val = foreignObjectId
 						} else {
 							return nil, errors.New(fmt.Sprintf("no refer permission on object [%v][%v]", col.ForeignKeyData.Namespace, valAsDir))
@@ -996,9 +1005,7 @@ func (dbResource *DbResource) UpdateWithoutFilters(obj interface{}, req api2go.R
 
 			delRefUUId := uuid.MustParse(deleteReferneceUuidString)
 
-			otherObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(referencedTypeName, daptinid.DaptinReferenceId(delRefUUId), updateTransaction)
-
-			if isAdmin || otherObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
+			if canRefer(referencedTypeName, daptinid.DaptinReferenceId(delRefUUId)) {
 
 				otherObjectId, err := GetReferenceIdToIdWithTransaction(referencedTypeName, daptinid.DaptinReferenceId(delRefUUId), updateTransaction)
 
@@ -1307,6 +1314,19 @@ func copyFileMetadata(file map[string]interface{}) map[string]interface{} {
 }
 
 func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+	return dbResource.updateWithTransaction(obj, req, transaction, dbResource.ms.BeforeUpdate, dbResource.ms.AfterUpdate,
+		dbResource.UpdateWithoutFilters)
+}
+
+func (dbResource *DbResource) updateAfterAuthorizationWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+	return dbResource.updateWithTransaction(obj, req, transaction,
+		lifecycleInterceptors(dbResource.ms.BeforeUpdate), lifecycleInterceptors(dbResource.ms.AfterUpdate),
+		dbResource.updateWithoutFiltersAfterAuthorization)
+}
+
+func (dbResource *DbResource) updateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx,
+	before, after []DatabaseRequestInterceptor,
+	persist func(interface{}, api2go.Request, *sqlx.Tx) (map[string]interface{}, error)) (api2go.Responder, error) {
 	data, _ := obj.(api2go.Api2GoModel)
 	//log.Printf("Update object request: [%v][%v]", dbResource.model.GetTableName(), data.GetID())
 
@@ -1319,7 +1339,7 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 
 	data.SetType(dbResource.model.GetName())
 
-	for _, bf := range dbResource.ms.BeforeUpdate {
+	for _, bf := range before {
 		//log.Printf("Invoke BeforeUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
 		finalData, err := bf.InterceptBefore(dbResource, &updateAPIRequest, []map[string]interface{}{
@@ -1336,14 +1356,14 @@ func (dbResource *DbResource) UpdateWithTransaction(obj interface{}, req api2go.
 		data.SetAttributes(res)
 	}
 
-	updatedResource, err := dbResource.UpdateWithoutFilters(data, req, transaction)
+	updatedResource, err := persist(data, req, transaction)
 	log.Tracef("Completed UpdateWithoutFilters in UpdateWithTransaction")
 
 	if err != nil {
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
-	for _, bf := range dbResource.ms.AfterUpdate {
+	for _, bf := range after {
 		log.Tracef("Invoke AfterUpdate [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
 		results, err := bf.InterceptAfter(dbResource, &updateAPIRequest, []map[string]interface{}{updatedResource}, transaction)

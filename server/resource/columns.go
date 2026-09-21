@@ -3492,10 +3492,11 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "mail",
-		IsHidden:      false,
-		Icon:          "fa-envelope",
-		DefaultGroups: adminsGroup,
+		TableName:        "mail",
+		IsHidden:         false,
+		Icon:             "fa-envelope",
+		DefaultGroups:    adminsGroup,
+		CompositeIndexes: [][]string{{"mail_box_id", "uid", "id"}},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "message_id",
@@ -3530,6 +3531,20 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType: "label",
 			},
 			{
+				Name:       "cc_address",
+				ColumnName: "cc_address",
+				DataType:   "text",
+				ColumnType: "label",
+				IsNullable: true,
+			},
+			{
+				Name:       "bcc_address",
+				ColumnName: "bcc_address",
+				DataType:   "text",
+				ColumnType: "label",
+				IsNullable: true,
+			},
+			{
 				Name:       "reply_to_address",
 				ColumnName: "reply_to_address",
 				DataType:   "varchar(200)",
@@ -3540,6 +3555,13 @@ var StandardTables = []table_info.TableInfo{
 				ColumnName: "sender_address",
 				DataType:   "varchar(200)",
 				ColumnType: "label",
+			},
+			{
+				Name:       "sent_date",
+				ColumnName: "sent_date",
+				DataType:   "timestamp",
+				ColumnType: "datetime",
+				IsNullable: true,
 			},
 			{
 				Name:       "subject",

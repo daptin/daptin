@@ -9,9 +9,16 @@ custom action `OutFields`; they are not standalone REST endpoints.
 ## Delivery Model
 
 `mail.send` requires the `from` address to match a configured
-`mail_account.username`. It creates one `Sent` mailbox copy for that sender at
-queue time, then creates an `outbox` row for each recipient. By default outbox
-rows are queued and later processed by the scheduled `process_outbox` task.
+`mail_account.username` owned by the active Daptin account. A trusted action
+that sends through a shared service account must use `SWITCH_USER` to select
+that account before `mail.send`; the `from` value does not grant access to its
+mailbox. The performer creates one `Sent` mailbox copy for that sender at queue
+time, then creates an `outbox` row for each recipient. By default outbox rows
+are queued and later processed by the scheduled `process_outbox` task.
+
+Authenticated SMTP relay applies the same boundary: the envelope sender must
+match the authenticated mail account. A mismatch is rejected before DKIM key
+access, Sent-mail storage, or outbox creation.
 
 For login, OTP, and password reset flows, set `send_immediately: true` or
 `attempt_delivery: true` to attempt delivery before the action returns:

@@ -131,7 +131,8 @@ func TestCreateIndexesCreatesConfiguredColumnIndexes(t *testing.T) {
 	config := CmsConfig{
 		Tables: []table_info.TableInfo{
 			{
-				TableName: "document",
+				TableName:        "document",
+				CompositeIndexes: [][]string{{"user_account_id", "id"}},
 				Columns: []api2go.ColumnInfo{
 					{
 						ColumnName:   "user_account_id",
@@ -161,6 +162,27 @@ func TestCreateIndexesCreatesConfiguredColumnIndexes(t *testing.T) {
 	CreateIndexes(&config, db)
 
 	assertSqliteIndexExists(t, db, columnIndexName("document", "user_account_id"))
+	assertSqliteIndexColumns(t, db, compositeIndexName("document", []string{"user_account_id", "id"}), "user_account_id", "id")
+	assertSqliteIndexMissing(t, db, "document", "title")
+}
+
+func TestCreateIndexesRejectsSingleColumnCompositeIndex(t *testing.T) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	if _, err := db.Exec(`create table document (id integer primary key, title text)`); err != nil {
+		t.Fatalf("create document table: %v", err)
+	}
+	config := CmsConfig{Tables: []table_info.TableInfo{{
+		TableName:        "document",
+		CompositeIndexes: [][]string{{"title"}},
+	}}}
+
+	CreateIndexes(&config, db)
 	assertSqliteIndexMissing(t, db, "document", "title")
 }
 

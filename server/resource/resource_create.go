@@ -37,6 +37,25 @@ import (
 //   the server
 
 func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx) (result map[string]interface{}, err error) {
+	return dbResource.createWithoutFilter(obj, req, createTransaction, func(namespace string, referenceID daptinid.DaptinReferenceId) bool {
+		permission := GetObjectPermissionByReferenceIdWithTransaction(namespace, referenceID, createTransaction)
+		user, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+		if user == nil {
+			user = &auth.SessionUser{}
+		}
+		return IsAdminWithTransaction(user, createTransaction) ||
+			permission.CanRefer(user.UserReferenceId, user.Groups, dbResource.AdministratorGroupId)
+	})
+}
+
+func (dbResource *DbResource) createWithoutFilterAfterAuthorization(obj interface{}, req api2go.Request,
+	createTransaction *sqlx.Tx) (map[string]interface{}, error) {
+	return dbResource.createWithoutFilter(obj, req, createTransaction,
+		func(string, daptinid.DaptinReferenceId) bool { return true })
+}
+
+func (dbResource *DbResource) createWithoutFilter(obj interface{}, req api2go.Request, createTransaction *sqlx.Tx,
+	canRefer func(string, daptinid.DaptinReferenceId) bool) (result map[string]interface{}, err error) {
 	defer func() {
 		if err != nil {
 			err = normalizeDatabaseConstraintError(err)
@@ -51,8 +70,6 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 	if user != nil {
 		sessionUser = user.(*auth.SessionUser)
 	}
-
-	isAdmin := IsAdminWithTransaction(sessionUser, createTransaction)
 
 	attrs := data.GetAllAsAttributes()
 
@@ -135,9 +152,7 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 						return nil, fmt.Errorf("[129] foreign object not found [%v][%v]", col.ForeignKeyData.Namespace, dir)
 					}
 
-					foreignObjectPermission := GetObjectPermissionByReferenceIdWithTransaction(col.ForeignKeyData.Namespace, dir, createTransaction)
-
-					if isAdmin || foreignObjectPermission.CanRefer(sessionUser.UserReferenceId, sessionUser.Groups, dbResource.AdministratorGroupId) {
+					if canRefer(col.ForeignKeyData.Namespace, dir) {
 						uId = foreignObjectReferenceId
 					} else {
 						log.Errorf("[137] User cannot refer this object [%v][%v]", col.ForeignKeyData.Namespace, columnValue)
@@ -978,10 +993,25 @@ func (dbResource *DbResource) CreateWithoutFilter(obj interface{}, req api2go.Re
 }
 
 func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+	return dbResource.createWithTransaction(obj, req, transaction, dbResource.ms.BeforeCreate, dbResource.ms.AfterCreate,
+		dbResource.CreateWithoutFilter)
+}
+
+// createAfterAuthorizationWithTransaction runs the normal resource lifecycle
+// after an attached service has already authorized and scoped the operation.
+func (dbResource *DbResource) createAfterAuthorizationWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx) (api2go.Responder, error) {
+	return dbResource.createWithTransaction(obj, req, transaction,
+		lifecycleInterceptors(dbResource.ms.BeforeCreate), lifecycleInterceptors(dbResource.ms.AfterCreate),
+		dbResource.createWithoutFilterAfterAuthorization)
+}
+
+func (dbResource *DbResource) createWithTransaction(obj interface{}, req api2go.Request, transaction *sqlx.Tx,
+	before, after []DatabaseRequestInterceptor,
+	persist func(interface{}, api2go.Request, *sqlx.Tx) (map[string]interface{}, error)) (api2go.Responder, error) {
 	data := obj.(api2go.Api2GoModel)
 	//log.Printf("Create object request: [%v] %v", dbResource.model.GetTableName(), data.Data)
 
-	for _, bf := range dbResource.ms.BeforeCreate {
+	for _, bf := range before {
 		//log.Printf("Invoke BeforeCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
 		data.SetType(dbResource.model.GetName())
 		responseData, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{data.GetAllAsAttributes()}, transaction)
@@ -997,12 +1027,12 @@ func (dbResource *DbResource) CreateWithTransaction(obj interface{}, req api2go.
 		}
 	}
 
-	createdResource, err := dbResource.CreateWithoutFilter(data, req, transaction)
+	createdResource, err := persist(data, req, transaction)
 	if err != nil {
 		return NewResponse(nil, nil, 500, nil), err
 	}
 
-	for _, bf := range dbResource.ms.AfterCreate {
+	for _, bf := range after {
 		log.Tracef("Invoke AfterCreate [%v][%v] on Create Request", bf.String(), dbResource.model.GetName())
 		results, err := bf.InterceptAfter(dbResource, &req, []map[string]interface{}{createdResource}, transaction)
 		if err != nil {

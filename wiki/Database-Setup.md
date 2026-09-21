@@ -227,7 +227,13 @@ Daptin creates indexes for:
 - Primary keys
 - Foreign keys (relationships)
 - Unique columns
-- Indexed columns
+- Columns declared with `IsIndexed: true`
+- Multi-column lookup paths declared with `CompositeIndexes`
+- Multi-column uniqueness rules declared with `CompositeKeys`
+
+Use one declaration path for each intent: `IsIndexed` for a single column,
+`CompositeIndexes` for two or more non-unique columns, and `CompositeKeys`
+when the database must reject duplicate column combinations.
 
 ### Query Optimization
 

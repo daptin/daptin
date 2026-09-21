@@ -160,6 +160,9 @@ func mergeTableConfigIntoExisting(existing table_info.TableInfo, override table_
 	if override.CompositeKeys != nil {
 		existing.CompositeKeys = override.CompositeKeys
 	}
+	if override.CompositeIndexes != nil {
+		existing.CompositeIndexes = override.CompositeIndexes
+	}
 	if !partialOverride || override.Icon != "" || override.ExplicitFields["Icon"] || override.ExplicitFields["icon"] {
 		existing.Icon = override.Icon
 	}

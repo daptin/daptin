@@ -186,6 +186,10 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 		}
 	}
 	log.Tracef("Completed all AfterFindOne middlewares")
+	if data == nil {
+		_ = transaction.Rollback()
+		return nil, errors.New("Cannot find this object")
+	}
 
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "failed to commit")
@@ -340,6 +344,9 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 		if err != nil {
 			log.Errorf("Error from AfterFindOne middleware: %v", err)
 		}
+	}
+	if data == nil {
+		return nil, errors.New("Cannot find this object")
 	}
 
 	delete(data, "id")

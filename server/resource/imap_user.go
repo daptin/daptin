@@ -46,7 +46,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 	defer transaction.Rollback()
 	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction(
 		"mail_box", transaction, goqu.Ex{"mail_account_id": diu.mailAccountId})
-	if err != nil || len(mailBoxes) == 0 {
+	if err != nil {
 		return boxes, err
 	}
 
@@ -76,7 +76,6 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			sessionUser:        diu.sessionUser,
 			mailAccountId:      diu.mailAccountId,
 			mailBoxReferenceId: daptinid.InterfaceToDIR(box["reference_id"]).String(),
-			sequenceToMail:     make(map[uint32]*imap.Message),
 			knownKeywords:      make(map[string]bool),
 			mailBoxId:          boxId,
 			info: imap.MailboxInfo{
@@ -241,7 +240,6 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 		mailBoxId:          boxId,
 		mailAccountId:      diu.mailAccountId,
 		lock:               sync.Mutex{},
-		sequenceToMail:     make(map[uint32]*imap.Message),
 		knownKeywords:      kwMap,
 		lastKnownMessages:  mbStatus.Messages,
 		mailBoxReferenceId: daptinid.InterfaceToDIR(box[0]["reference_id"]).String(),
@@ -374,7 +372,7 @@ func (diu *DaptinImapUser) DeleteMailbox(name string) error {
 	if strings.EqualFold(name, "INBOX") {
 		return errors.New("cannot delete INBOX")
 	}
-	return diu.dbResource["mail"].DeleteMailAccountBox(diu.mailAccountId, name)
+	return diu.dbResource["mail"].DeleteMailAccountBox(diu.mailAccountId, name, diu.sessionUser)
 }
 
 // RenameMailbox changes the name of a mailbox. It is an error to attempt to
@@ -403,7 +401,7 @@ func (diu *DaptinImapUser) DeleteMailbox(name string) error {
 // empty.  If the server implementation supports inferior hierarchical names
 // of INBOX, these are unaffected by a rename of INBOX.
 func (diu *DaptinImapUser) RenameMailbox(existingName, newName string) error {
-	return diu.dbResource["mail_box"].RenameMailAccountBox(diu.mailAccountId, existingName, newName)
+	return diu.dbResource["mail_box"].RenameMailAccountBox(diu.mailAccountId, existingName, newName, diu.sessionUser)
 
 }
 

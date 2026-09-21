@@ -115,7 +115,7 @@ Send email via direct SMTP delivery or configured mail server.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `from` | string | Yes | Sender email address; must match a configured `mail_account.username` |
+| `from` | string | Yes | Sender email address; must match a `mail_account.username` owned by the active account |
 | `to` | array of strings | Yes | Recipient email addresses |
 | `subject` | string | Yes | Email subject line |
 | `body` | string | Yes | Email body (plain text) |
@@ -157,7 +157,8 @@ OutFields:
 
 **Prerequisites:**
 - Mail server must be configured in Daptin
-- Sender address in `from` must exist as a Daptin `mail_account.username`
+- Sender address in `from` must exist as a Daptin `mail_account.username` owned by the active account
+- Shared service senders require a trusted action to `SWITCH_USER` to the sender account before `mail.send`
 - See [[SMTP-Server|SMTP Server Guide]] for setup
 - For production DNS, DKIM, and retry behavior, see [[Production-Mail-Delivery]]
 

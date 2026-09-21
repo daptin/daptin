@@ -188,7 +188,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 			mailSender := func(e *mail.Envelope, task backends.SelectTask) (backends.Result, error) {
 
 				if task == backends.TaskSaveMail {
-					var to, body string
 					sentCopyAppended := false
 
 					hash := ""
@@ -196,38 +195,33 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						hash = e.Hashes[0]
 						e.QueuedId = e.Hashes[0]
 					}
+					mailBytes := e.Data.Bytes()
+					if _, err := mail1.ReadMessage(bytes.NewReader(mailBytes)); err != nil {
+						return nil, err
+					}
+					searchMetadata, err := resource.ExtractMailSearchMetadata(mailBytes)
+					if err != nil {
+						return nil, err
+					}
+					var sentDate interface{}
+					if !searchMetadata.SentDate.IsZero() {
+						sentDate = searchMetadata.SentDate
+					}
 
 					//if c, ok := e.Values["zlib-compressor"]; ok {
 					//	co = c.(Compressor)
 					//}
 
 					for i := range e.RcptTo {
-						// use the To header, otherwise rcpt to
-						to = trimToLimit(s.fillAddressFromHeader(e, "To"), 255)
 						rcpt := e.RcptTo[i]
-						if to == "" {
-							// trimToLimit(strings.TrimSpace(e.RcptTo[i].User)+"@"+config.PrimaryHost, 255)
-							to = trimToLimit(strings.TrimSpace(rcpt.String()), 255)
-						}
 						mid := trimToLimit(s.fillAddressFromHeader(e, "Message-Id"), 255)
 						if mid == "" {
 							mid = fmt.Sprintf("%s.%s@%s", hash, rcpt.User, config.PrimaryHost)
 						}
-						// replyTo is the 'Reply-to' header, it may be blank
-						replyTo := trimToLimit(s.fillAddressFromHeader(e, "Reply-To"), 255)
-						// sender is the 'Sender' header, it may be blank
-						sender := e.MailFrom.String()
-
 						recipient := trimToLimit(strings.TrimSpace(rcpt.String()), 255)
 						contentType := ""
 						if v, ok := e.Header["Content-Type"]; ok {
 							contentType = trimToLimit(v[0], 255)
-						}
-
-						mailBytes := e.Data.Bytes()
-						_, err := mail1.ReadMessage(bytes.NewReader(mailBytes))
-						if err != nil {
-							return nil, err
 						}
 
 						parsedMail, err := mailpacket.CreateReader(bytes.NewReader(mailBytes))
@@ -243,24 +237,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						log.Printf("Authorized login: %v", e.AuthorizedLogin)
-
-						// Extract text body from parsed mail parts
-						for {
-							part, partErr := parsedMail.NextPart()
-							if partErr != nil {
-								break
-							}
-							if _, ok := part.Header.(*mailpacket.InlineHeader); ok {
-								ct := part.Header.Get("Content-Type")
-								if strings.HasPrefix(ct, "text/plain") || ct == "" {
-									bodyBytes, readErr := io.ReadAll(part.Body)
-									if readErr == nil && len(bodyBytes) > 0 {
-										body = string(bodyBytes)
-									}
-									break
-								}
-							}
-						}
 
 						var mailSize int
 						// `mail` column
@@ -321,6 +297,15 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								return nil, fmt.Errorf("mail server has invalid hostname for outbound relay")
 							}
 							e.DeliveryHeader = e.DeliveryHeader + "Return-PATH: admin@" + mailServerHostname + "\n"
+
+							authorizedAddress, err := mail.NewAddress(e.AuthorizedLogin)
+							if err != nil || authorizedAddress.User != e.MailFrom.User || !strings.EqualFold(authorizedAddress.Host, e.MailFrom.Host) {
+								return nil, errors.New("authenticated SMTP account does not match envelope sender")
+							}
+							sessionUser, err := dbResource.MailAccountSessionUser(authorizedAddress.String(), transaction)
+							if err != nil {
+								return nil, err
+							}
 
 							cert, err := certificateManager.GetTLSConfig(e.MailFrom.Host, false, transaction)
 							if err != nil {
@@ -387,7 +372,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							log.Printf("Final Mail: From [%v] to [%v]", e.MailFrom.String(), rcpt.String())
 
 							if !sentCopyAppended {
-								if _, err := dbResource.AppendSentMailForSender(e.MailFrom.String(), mailBytes, transaction); err != nil {
+								if _, err := dbResource.AppendSentMailForSender(e.MailFrom.String(), sessionUser, mailBytes, transaction); err != nil {
 									log.Errorf("Failed to append outbound relay mail to Sent for [%v]: %v", e.MailFrom.String(), err)
 									return nil, err
 								}
@@ -550,18 +535,21 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							nil, 768, nil, map[string]interface{}{
 								"message_id":       mid,
 								"mail_id":          hash,
-								"from_address":     trimToLimit(e.MailFrom.String(), 255),
-								"to_address":       to,
-								"sender_address":   sender,
-								"subject":          trimToLimit(e.Subject, 255),
-								"body":             body,
+								"from_address":     searchMetadata.From,
+								"to_address":       searchMetadata.To,
+								"cc_address":       searchMetadata.Cc,
+								"bcc_address":      searchMetadata.Bcc,
+								"sender_address":   searchMetadata.Sender,
+								"subject":          searchMetadata.Subject,
+								"body":             searchMetadata.Body,
 								"mail":             mailBody,
 								"spam_score":       spamScore,
 								"spam":             spam,
 								"hash":             hash,
 								"content_type":     contentType,
-								"reply_to_address": replyTo,
+								"reply_to_address": searchMetadata.ReplyTo,
 								"internal_date":    time.Now(),
+								"sent_date":        sentDate,
 								"recipient":        recipient,
 								"has_attachment":   hasAttachment,
 								"ip_addr":          e.RemoteIP,
@@ -575,7 +563,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"flags":            flags,
 								"size":             mailSize,
 							})
-						_, err = dbResource.Cruds["mail"].CreateWithTransaction(model, *req, transaction)
+						_, err = dbResource.Cruds["mail"].CreateInboundMailWithTransaction(model, *req, transaction)
 						resource.CheckErr(err, "Failed to store mail")
 						//err1 := dbResource.Cruds["mail"].IncrementMailBoxUid(mailBox["id"].(int64), nextUid+1)
 						//resource.CheckErr(err1, "Failed to increment uid for mailbox")

@@ -533,7 +533,8 @@ OutFields:
 				}
 			}
 
-			responseObjects, _, _, _, err = dbResource.Cruds[outcome.Type].PaginatedFindAllWithoutFilters(request, transaction)
+			var responder api2go.Responder
+			_, responder, err = dbResource.Cruds[outcome.Type].PaginatedFindAllWithTransaction(request, transaction)
 			CheckErr(err, "Failed to get inside action")
 			if err != nil {
 				actionResponse = NewActionResponse("client.notify",
@@ -541,6 +542,18 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
+				models, ok := responder.Result().([]api2go.Api2GoModel)
+				if !ok {
+					err = fmt.Errorf("action GET [%s] returned %T", outcome.Type, responder.Result())
+					break OutFields
+				}
+				rows := make([]map[string]interface{}, 0, len(models))
+				for _, resultModel := range models {
+					attributes := resultModel.GetAttributes()
+					attributes["reference_id"] = resultModel.GetID()
+					rows = append(rows, attributes)
+				}
+				responseObjects = rows
 				actionResponse = NewActionResponse(outcome.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)
@@ -552,19 +565,15 @@ OutFields:
 				err = api2go.NewHTTPError(err, "no reference id provided for GET_BY_ID", 400)
 				break OutFields
 			}
-			includedRelations := make(map[string]bool, 0)
+			if request.QueryParams == nil {
+				request.QueryParams = make(map[string][]string)
+			}
 			if model.GetAttributes()["included_relations"] != nil {
-				//included := req.QueryParams["included_relations"][0]
-				//includedRelationsList := strings.Split(included, ",")
-				for _, incl := range strings.Split(model.GetAttributes()["included_relations"].(string), ",") {
-					includedRelations[incl] = true
-				}
-
-			} else {
-				includedRelations = nil
+				request.QueryParams["included_relations"] = strings.Split(model.GetAttributes()["included_relations"].(string), ",")
 			}
 
-			responseObjects, _, err = dbResource.Cruds[outcome.Type].GetSingleRowByReferenceIdWithTransaction(outcome.Type, referenceIdDir, nil, transaction)
+			var responder api2go.Responder
+			responder, err = dbResource.Cruds[outcome.Type].FindOneWithTransaction(referenceIdDir, request, transaction)
 			CheckErr(err, "Failed to get by id")
 
 			if err != nil {
@@ -573,6 +582,13 @@ OutFields:
 				responses = append(responses, actionResponse)
 				break OutFields
 			} else {
+				resultModel, ok := responder.Result().(api2go.Api2GoModel)
+				if !ok {
+					err = fmt.Errorf("action GET_BY_ID [%s] returned %T", outcome.Type, responder.Result())
+					break OutFields
+				}
+				responseObjects = resultModel.GetAttributes()
+				responseObjects.(map[string]interface{})["reference_id"] = resultModel.GetID()
 				actionResponse = NewActionResponse(outcome.Type, responseObjects)
 			}
 			actionResponses = append(actionResponses, actionResponse)

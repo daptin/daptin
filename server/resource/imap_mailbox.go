@@ -3,10 +3,11 @@ package resource
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
-	"github.com/daptin/daptin/server/id"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-imap"
@@ -15,13 +16,14 @@ import (
 	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
 	fieldtypes "github.com/daptin/daptin/server/columntypes"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/textproto"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 
 	"strings"
 	"sync"
@@ -39,10 +41,55 @@ type DaptinImapMailBox struct {
 	mailBoxReferenceId string
 	info               imap.MailboxInfo
 	status             *imap.MailboxStatus
-	sequenceToMail     map[uint32]*imap.Message
 	lastKnownMessages  uint32
 	pendingUpdate      *imap.MailboxStatus
 	knownKeywords      map[string]bool
+}
+
+const imapResourceReadBatchSize = 200
+
+func (dimb *DaptinImapMailBox) readSelectedMails(selections []MailSelection, includeBody bool,
+	transaction *sqlx.Tx) (map[daptinid.DaptinReferenceId]map[string]interface{}, error) {
+	result := make(map[daptinid.DaptinReferenceId]map[string]interface{}, len(selections))
+	for start := 0; start < len(selections); start += imapResourceReadBatchSize {
+		stop := start + imapResourceReadBatchSize
+		if stop > len(selections) {
+			stop = len(selections)
+		}
+
+		referenceIDs := make([]daptinid.DaptinReferenceId, 0, stop-start)
+		for _, selection := range selections[start:stop] {
+			referenceIDs = append(referenceIDs, selection.ReferenceID)
+		}
+
+		requestURL, _ := url.Parse("/api/mail")
+		requestContext := context.WithValue(context.Background(), "user", dimb.sessionUser)
+		if start > 0 {
+			requestContext = WithMeteringInternal(requestContext)
+		}
+		request := api2go.Request{
+			PlainRequest: (&http.Request{Method: http.MethodGet, URL: requestURL}).WithContext(requestContext),
+		}
+		var includedRelations map[string]bool
+		if includeBody {
+			includedRelations = map[string]bool{"mail": true}
+		}
+
+		rows, err := dimb.dbResource["mail"].readByReferenceIDsAfterAuthorizationWithTransaction(
+			referenceIDs, includedRelations, request, transaction)
+		if err != nil {
+			return nil, err
+		}
+		for _, attributes := range rows {
+			referenceID := daptinid.InterfaceToDIR(attributes["reference_id"])
+			if referenceID == daptinid.NullReferenceId {
+				continue
+			}
+			attributes["reference_id"] = referenceID
+			result[referenceID] = attributes
+		}
+	}
+	return result, nil
 }
 
 // ConsumePollUpdate returns the pending mailbox status if Poll() found new
@@ -139,12 +186,11 @@ func (dimb *DaptinImapMailBox) SetSubscribed(subscribed bool) error {
 		return err
 	}
 	defer transaction.Rollback()
-	err = dimb.dbResource["mail_box"].SetMailBoxSubscribed(dimb.mailAccountId, dimb.name, subscribed, transaction)
+	err = dimb.dbResource["mail_box"].SetMailBoxSubscribed(dimb.mailAccountId, dimb.name, subscribed, dimb.sessionUser, transaction)
 	if err != nil {
 		return err
 	}
-	transaction.Commit()
-	return nil
+	return transaction.Commit()
 }
 
 // Check requests a checkpoint of the currently selected mailbox. A checkpoint
@@ -181,8 +227,7 @@ func (dimb *DaptinImapMailBox) Check() error {
 	newStatus.Name = dimb.name
 	dimb.status = newStatus
 
-	transaction.Commit()
-	return nil
+	return transaction.Commit()
 }
 
 // ListMessages returns a list of messages. seqset must be interpreted as UIDs
@@ -191,6 +236,7 @@ func (dimb *DaptinImapMailBox) Check() error {
 //
 // Messages must be sent to ch. When the function returns, ch must be closed.
 func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items []imap.FetchItem, ch chan<- *imap.Message) error {
+	defer close(ch)
 
 	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
@@ -198,383 +244,171 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 	}
 	defer transaction.Rollback()
 
-	for _, seq := range seqset.Set {
-		//log.Printf("Fetch request [%v] from %v to %v", uid, seq.Start, seq.Stop)
+	selections, err := dimb.dbResource["mail"].SelectMailBoxCandidates(dimb.mailBoxId, uid, seqset, transaction)
+	if err != nil {
+		return err
+	}
+	mails, err := dimb.readSelectedMails(selections, true, transaction)
+	if err != nil {
+		return err
+	}
 
-		seqNo := seq.Start
-		var mails []map[string]interface{}
-		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, map[string]bool{"mail": true}, transaction)
-		} else {
-			startAt := seq.Start
-			stopAt := seq.Stop
+	for _, selection := range selections {
+		mailContent, ok := mails[selection.ReferenceID]
+		if !ok {
+			continue
+		}
+		//log.Printf("Return mailContent: %v", mailContent)
 
-			// Collect cached messages under lock, then send without lock
-			dimb.lock.Lock()
-			var cached []*imap.Message
-			for {
-				if dimb.sequenceToMail[startAt] == nil {
+		bodyContents, e := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mailContent["mail"])
+		if e != nil {
+			CheckErr(e, "Failed to read mail contents")
+			continue
+		}
+		//messageBytes := bytes.NewReader(bodyContents)
+		//log.Printf("Message: %v", string(bodyContents))
+		//parsedMail, err := parsemail.Parse(messageBytes)
+
+		//messageEntity, err := message.Read(messageBytes)
+
+		returnMail := imap.NewMessage(selection.SequenceNumber, items)
+		returnMail.Size = uint32(mailContent["size"].(int64))
+
+		skipMail := false
+
+		//responseItems := make([]interface{}, 0)
+		for _, item1 := range items {
+
+			for _, subItems := range item1.Expand() {
+
+				if skipMail {
 					break
 				}
-				cached = append(cached, dimb.sequenceToMail[startAt])
-				startAt = startAt + 1
-			}
-			dimb.lock.Unlock()
 
-			for _, msg := range cached {
-				ch <- msg
-			}
+				flagList := strings.Split(mailContent["flags"].(string), ",")
+				//log.Printf("Mail flags: %v at fetch item [%v]", flagList, subItems)
 
-			if startAt > stopAt {
-				continue
-			}
+				switch subItems {
+				case imap.FetchEnvelope:
 
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, startAt, stopAt, map[string]bool{"mail": true}, transaction)
-		}
+					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+					header, _ := textproto.ReadHeader(bodyReader)
 
-		if err != nil {
-			return err
-		}
+					enve, err := backendutil.FetchEnvelope(header)
+					if err != nil {
+						log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
+						skipMail = true
+						break
+					}
+					returnMail.Envelope = enve
+				case imap.FetchBodyStructure:
+					log.Printf("Fetch Body [%v] update flags: ", subItems == imap.FetchBodyStructure)
+					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+					header, err := textproto.ReadHeader(bodyReader)
 
-		for _, mailContent := range mails {
-			//log.Printf("Return mailContent: %v", mailContent)
+					bs, err := backendutil.FetchBodyStructure(header, bodyReader, subItems == imap.FetchBodyStructure)
+					if err != nil {
+						log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
+						skipMail = true
+						break
+					}
+					returnMail.BodyStructure = bs
+				case imap.FetchFlags:
+					returnMail.Flags = flagList
 
-			bodyContents, e := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mailContent["mail"])
-			if e != nil {
-				CheckErr(e, "Failed to read mail contents")
-				continue
-			}
-			//messageBytes := bytes.NewReader(bodyContents)
-			//log.Printf("Message: %v", string(bodyContents))
-			//parsedMail, err := parsemail.Parse(messageBytes)
+				case imap.FetchInternalDate:
+					returnMail.InternalDate = mailContent["internal_date"].(time.Time)
+				case imap.FetchRFC822Size:
+					returnMail.Size = uint32(mailContent["size"].(int64))
+				case imap.FetchUid:
+					returnMail.Uid = selection.UID
+				default:
+					log.Printf("Fetch default [%v] update flags: %v", subItems, flagList)
 
-			//messageEntity, err := message.Read(messageBytes)
-
-			if err != nil {
-				log.Printf("Failed to parse email body: %v", err)
-				continue
-			}
-			returnMail := imap.NewMessage(seqNo, items)
-			returnMail.Size = uint32(mailContent["size"].(int64))
-
-			skipMail := false
-
-			//responseItems := make([]interface{}, 0)
-			for _, item1 := range items {
-
-				for _, subItems := range item1.Expand() {
-
-					if skipMail {
+					section, err := imap.ParseBodySectionName(subItems)
+					if CheckErr(err, "failed to parse item name") {
+						skipMail = true
 						break
 					}
 
-					flagList := strings.Split(mailContent["flags"].(string), ",")
-					//log.Printf("Mail flags: %v at fetch item [%v]", flagList, subItems)
+					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+					header, err := textproto.ReadHeader(bodyReader)
 
-					switch subItems {
-					case imap.FetchEnvelope:
+					log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
 
-						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-						header, _ := textproto.ReadHeader(bodyReader)
-
-						enve, err := backendutil.FetchEnvelope(header)
-						if err != nil {
-							log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
-							skipMail = true
-							break
-						}
-						returnMail.Envelope = enve
-					case imap.FetchBodyStructure:
-						log.Printf("Fetch Body [%v] update flags: ", subItems == imap.FetchBodyStructure)
-						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-						header, err := textproto.ReadHeader(bodyReader)
-
-						bs, err := backendutil.FetchBodyStructure(header, bodyReader, subItems == imap.FetchBodyStructure)
-						if err != nil {
-							log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
-							skipMail = true
-							break
-						}
-						returnMail.BodyStructure = bs
-					case imap.FetchFlags:
-						returnMail.Flags = flagList
-
-					case imap.FetchInternalDate:
-						returnMail.InternalDate = mailContent["internal_date"].(time.Time)
-					case imap.FetchRFC822Size:
-						returnMail.Size = uint32(mailContent["size"].(int64))
-					case imap.FetchUid:
-						uid := mailContent["id"].(int64)
-						if storedUid, ok := mailContent["uid"].(int64); ok && storedUid > 0 {
-							uid = storedUid
-						}
-						returnMail.Uid = uint32(uid)
-					default:
-						log.Printf("Fetch default [%v] update flags: %v", subItems, flagList)
-
-						section, err := imap.ParseBodySectionName(subItems)
-						if CheckErr(err, "failed to parse item name") {
-							skipMail = true
-							break
-						}
-
-						bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-						header, err := textproto.ReadHeader(bodyReader)
-
-						log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
-
-						l, err := backendutil.FetchBodySection(header, bodyReader, section)
-						if err != nil || l.Len() == 0 {
-							log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
-							skipMail = true
-							break
-						}
-
-						if !section.Peek {
-							// Remove \Recent flag on non-PEEK fetch
-							if HasAnyFlag(flagList, []string{imap.RecentFlag}) {
-								flagList = backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
-							}
-							// Set \Seen flag only on non-PEEK fetch
-							flagList = backendutil.UpdateFlags(flagList, imap.AddFlags, []string{imap.SeenFlag})
-							err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailContent["id"].(int64), flagList, transaction)
-							CheckErr(err, "Failed to update mail flags after non-PEEK fetch")
-						}
-
-						returnMail.Body[section] = l
-						//responseItems = append(responseItems, string(item), l)
+					l, err := backendutil.FetchBodySection(header, bodyReader, section)
+					if err != nil || l.Len() == 0 {
+						log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
+						skipMail = true
+						break
 					}
+
+					if !section.Peek {
+						// Remove \Recent flag on non-PEEK fetch
+						if HasAnyFlag(flagList, []string{imap.RecentFlag}) {
+							flagList = backendutil.UpdateFlags(flagList, imap.RemoveFlags, []string{imap.RecentFlag})
+						}
+						// Set \Seen flag only on non-PEEK fetch
+						flagList = backendutil.UpdateFlags(flagList, imap.AddFlags, []string{imap.SeenFlag})
+						err = dimb.dbResource["mail"].UpdateMailFlags(
+							daptinid.InterfaceToDIR(mailContent["reference_id"]), flagList, dimb.sessionUser, transaction)
+						if err != nil {
+							return err
+						}
+					}
+
+					returnMail.Body[section] = l
+					//responseItems = append(responseItems, string(item), l)
 				}
 			}
-
-			if skipMail {
-				continue
-			}
-			//err = returnMail.Parse(responseItems)
-			//if err != nil {
-			//	log.Printf("Failed to parse fields: %v", err)
-			//	continue
-			//}
-
-			dimb.lock.Lock()
-			dimb.sequenceToMail[seqNo] = returnMail
-			dimb.lock.Unlock()
-			ch <- returnMail
-			seqNo += 1
 		}
 
+		if skipMail {
+			continue
+		}
+		//err = returnMail.Parse(responseItems)
+		//if err != nil {
+		//	log.Printf("Failed to parse fields: %v", err)
+		//	continue
+		//}
+
+		ch <- returnMail
 	}
 
-	close(ch)
-
-	transaction.Commit()
-	return nil
+	return transaction.Commit()
 }
 
 // SearchMessages searches messages. The returned list must contain UIDs if
 // uid is set to true, or sequence numbers otherwise.
 func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCriteria) ([]uint32, error) {
-	log.Printf("[IMAP] SearchMessages called uid=%v mailBoxId=%v mailBoxReferenceId=%v", uid, dimb.mailBoxId, dimb.mailBoxReferenceId)
-	if dimb.sessionUser != nil {
-		log.Printf("[IMAP] SearchMessages sessionUser: id=%v email=%v", dimb.sessionUser.UserId, dimb.sessionUser.UserReferenceId)
-	} else {
-		log.Printf("[IMAP] SearchMessages sessionUser is NIL")
-	}
-
-	httpRequest := &http.Request{}
-	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", dimb.sessionUser))
-
-	//filterParams := make(map[string][]string)
-
-	// Always filter by current mailbox - use reference_id for foreign key filter
-	queries := []Query{
-		{
-			ColumnName: "mail_box_id",
-			Operator:   "is",
-			Value:      dimb.mailBoxReferenceId, // Use reference_id (UUID) for foreign key
-		},
-	}
-
-	if criteria.Uid != nil && len(criteria.Uid.Set) > 0 {
-		// Compute bounding box across all UID ranges for the DB query
-		minStart := criteria.Uid.Set[0].Start
-		maxStop := criteria.Uid.Set[0].Stop
-		for _, setRange := range criteria.Uid.Set[1:] {
-			if setRange.Start < minStart {
-				minStart = setRange.Start
-			}
-			if setRange.Stop > maxStop {
-				maxStop = setRange.Stop
-			}
-		}
-		queries = append(queries, Query{
-			ColumnName: "id",
-			Operator:   "after",
-			Value:      minStart - 1,
-		}, Query{
-			ColumnName: "id",
-			Operator:   "before",
-			Value:      maxStop + 1,
-		})
-	}
-
-	if len(criteria.WithFlags) > 0 {
-		for _, flag := range criteria.WithFlags {
-			switch strings.ToLower(flag) {
-			case "\\deleted":
-				queries = append(queries, Query{
-					ColumnName: "deleted",
-					Operator:   "is",
-					Value:      true,
-				})
-			case "\\seen":
-				queries = append(queries, Query{
-					ColumnName: "seen",
-					Operator:   "is",
-					Value:      true,
-				})
-			case "\\flagged":
-				queries = append(queries, Query{
-					ColumnName: "flags",
-					Operator:   "contains",
-					Value:      "\\Flagged",
-				})
-			case "\\answered":
-				queries = append(queries, Query{
-					ColumnName: "flags",
-					Operator:   "contains",
-					Value:      "\\Answered",
-				})
-			}
-		}
-	}
-
-	if len(criteria.WithoutFlags) > 0 {
-		for _, flag := range criteria.WithoutFlags {
-			switch strings.ToLower(flag) {
-			case "\\deleted":
-				queries = append(queries, Query{
-					ColumnName: "deleted",
-					Operator:   "is",
-					Value:      false,
-				})
-			case "\\seen":
-				queries = append(queries, Query{
-					ColumnName: "seen",
-					Operator:   "is",
-					Value:      false,
-				})
-			}
-		}
-	}
-
-	// Date range criteria
-	if !criteria.Since.IsZero() {
-		queries = append(queries, Query{
-			ColumnName: "internal_date",
-			Operator:   "after",
-			Value:      criteria.Since.Format("2006-01-02T15:04:05Z"),
-		})
-	}
-	if !criteria.Before.IsZero() {
-		queries = append(queries, Query{
-			ColumnName: "internal_date",
-			Operator:   "before",
-			Value:      criteria.Before.Format("2006-01-02T15:04:05Z"),
-		})
-	}
-
-	// Size criteria
-	if criteria.Larger > 0 {
-		queries = append(queries, Query{
-			ColumnName: "size",
-			Operator:   "after",
-			Value:      criteria.Larger,
-		})
-	}
-	if criteria.Smaller > 0 {
-		queries = append(queries, Query{
-			ColumnName: "size",
-			Operator:   "before",
-			Value:      criteria.Smaller,
-		})
-	}
-
-	if len(criteria.Header) > 0 {
-		for headerName, flag := range criteria.Header {
-			switch strings.ToLower(headerName) {
-			case "message-id":
-				queries = append(queries, Query{
-					ColumnName: "message_id",
-					Operator:   "is",
-					Value:      flag,
-				})
-			}
-		}
-	}
-
-	// Post-filter for multi-range UID sets is done after query results come back
-
-	queryJson, _ := json.Marshal(queries)
-
-	searchRequest := api2go.Request{
-		PlainRequest: httpRequest,
-		QueryParams: map[string][]string{
-			"fields": {
-				"id",
-			},
-			"query": {
-				string(queryJson),
-			},
-		},
-	}
-
-	log.Printf("[IMAP] Search query for mail: %v", searchRequest.QueryParams)
-	log.Printf("[IMAP] SearchMessages: attempting to begin transaction")
 	transaction, err := dimb.dbResource["mail"].Connection().Beginx()
 	if err != nil {
-		CheckErr(err, "Failed to begin transaction [383]")
 		return nil, err
 	}
-	log.Printf("[IMAP] SearchMessages: transaction started")
 	defer transaction.Rollback()
-
-	results, _, _, _, err := dimb.dbResource["mail"].PaginatedFindAllWithoutFilters(searchRequest, transaction)
-
+	selections, err := dimb.dbResource["mail"].SearchMailBoxCandidates(dimb.mailBoxId, criteria, transaction)
 	if err != nil {
 		return nil, err
 	}
-
-	ids := make([]uint32, 0)
-	log.Printf("Mail search results: %v", results)
-	for i, res := range results {
+	mails, err := dimb.readSelectedMails(selections, false, transaction)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]uint32, 0, len(mails))
+	for _, selection := range selections {
+		if _, ok := mails[selection.ReferenceID]; !ok {
+			continue
+		}
 		if uid {
-			id, err := dimb.dbResource["mail"].GetReferenceIdToId("mail",
-				daptinid.InterfaceToDIR(res["reference_id"]), transaction)
-			if err != nil {
-				CheckErr(err, "Failed to get id from reference id")
-				continue
-			}
-			// Post-filter: for multi-range UID sets, keep only UIDs within any specified range
-			if criteria.Uid != nil && len(criteria.Uid.Set) > 1 {
-				inRange := false
-				for _, setRange := range criteria.Uid.Set {
-					if uint32(id) >= setRange.Start && uint32(id) <= setRange.Stop {
-						inRange = true
-						break
-					}
-				}
-				if !inRange {
-					continue
-				}
-			}
-			ids = append(ids, uint32(id))
+			result = append(result, selection.UID)
 		} else {
-			ids = append(ids, uint32(i+1))
+			result = append(result, selection.SequenceNumber)
 		}
 	}
-
-	return ids, nil
+	if err := transaction.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // CreateMessage appends a new message to this mailbox. The \Recent flag will
@@ -590,9 +424,8 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		return err
 	}
 
-	httpRequest := &http.Request{
-		Method: "POST",
-	}
+	requestURL, _ := url.Parse("/api/mail")
+	httpRequest := &http.Request{Method: http.MethodPost, URL: requestURL}
 
 	httpRequest = httpRequest.WithContext(context.WithValue(context.Background(), "user", dimb.sessionUser))
 
@@ -627,6 +460,9 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	storedMailContents := dimb.dbResource["mail"].MailColumnValue("mail", "mail", mailBody, hash)
 
 	parsedmail, err := parsemail.Parse(bytes.NewReader(mailBody))
+	if err != nil {
+		return err
+	}
 	//log.Printf("%v length of the new message", len(mailBody), parsedmail.From, parsedmail.Subject)
 
 	textBody := parsedmail.TextBody
@@ -645,8 +481,10 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	} else {
 		parsedmail.Date = mailDate
 	}
+	searchMetadata := mailSearchMetadataFromParsed(parsedmail)
+	searchMetadata.Body = textBody
 
-	msgId := parsedmail.MessageID
+	msgId := searchMetadata.MessageID
 	if len(msgId) < 1 {
 		msgId3, _ := uuid.NewV7()
 		msgId = msgId3.String()
@@ -656,25 +494,8 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 		return err
 	}
 
-	toAddress := ""
-	if len(parsedmail.To) > 0 {
-		toAddress = parsedmail.To[0].String()
-	}
-
-	replyTo := ""
-	if len(parsedmail.ReplyTo) > 0 {
-		replyTo = parsedmail.ReplyTo[0].String()
-	}
-
-	fromAddress := ""
-
-	if len(parsedmail.From) > 0 {
-		fromAddress = parsedmail.From[0].String()
-	}
-
-	sender := fromAddress
-	if parsedmail.Sender != nil {
-		sender = parsedmail.Sender.String()
+	if date.IsZero() {
+		date = time.Now()
 	}
 
 	// Permission 768 = Owner read (256) + Owner write (512)
@@ -682,18 +503,21 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	model := api2go.NewApi2GoModelWithData("mail", nil, 768, nil, map[string]interface{}{
 		"message_id":       msgId,
 		"mail_id":          hash,
-		"from_address":     fromAddress,
-		"to_address":       toAddress,
-		"sender_address":   sender,
-		"subject":          parsedmail.Subject,
-		"body":             textBody,
+		"from_address":     searchMetadata.From,
+		"to_address":       searchMetadata.To,
+		"cc_address":       searchMetadata.Cc,
+		"bcc_address":      searchMetadata.Bcc,
+		"sender_address":   searchMetadata.Sender,
+		"subject":          searchMetadata.Subject,
+		"body":             searchMetadata.Body,
 		"mail":             storedMailContents,
 		"spam_score":       0,
 		"hash":             hash,
-		"internal_date":    parsedmail.Date,
+		"internal_date":    date,
+		"sent_date":        nullableMailDate(searchMetadata.SentDate),
 		"content_type":     messageEntity.Header.Get("Content-Type"),
-		"reply_to_address": replyTo,
-		"recipient":        toAddress,
+		"reply_to_address": searchMetadata.ReplyTo,
+		"recipient":        searchMetadata.To,
 		"has_attachment":   len(parsedmail.Attachments),
 		"ip_addr":          "",
 		"return_path":      "",
@@ -710,7 +534,7 @@ func (dimb *DaptinImapMailBox) CreateMessage(flags []string, date time.Time, bod
 	//uidNext, err := txDbResource.GetMailboxNextUid(dimb.mailBoxId)
 	//log.Printf("Assign next UID: %v", uidNext)
 	//model.Data["uid"] = uidNext
-	_, err = dimb.dbResource["mail"].CreateWithTransaction(model, apiRequest, transaction)
+	_, err = dimb.dbResource["mail"].createAfterAuthorizationWithTransaction(model, apiRequest, transaction)
 	//log.Printf("UID size [%s]", len(mailBody))
 
 	//if err != nil {
@@ -783,41 +607,40 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 	}
 	defer transaction.Rollback()
 
-	var mails []map[string]interface{}
-	for _, seq := range seqset.Set {
-		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, seq.Start, seq.Stop, nil, transaction)
-		} else {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, seq.Start, seq.Stop, nil, transaction)
+	selections, err := dimb.dbResource["mail"].SelectMailBoxCandidates(dimb.mailBoxId, uid, seqset, transaction)
+	if err != nil {
+		return err
+	}
+	mails, err := dimb.readSelectedMails(selections, false, transaction)
+	if err != nil {
+		return err
+	}
+	for _, selection := range selections {
+		mailRow, ok := mails[selection.ReferenceID]
+		if !ok {
+			continue
 		}
-
+		currentFlags := strings.Split(mailRow["flags"].(string), ",")
+		newFlags := backendutil.UpdateFlags(currentFlags, operation, flags)
+		log.Printf("New flags: [%v]", newFlags)
+		// Deduplicate flags
+		fla := map[string]bool{}
+		dedupedFlags := make([]string, 0, len(newFlags))
+		for _, f := range newFlags {
+			if !fla[f] {
+				fla[f] = true
+				dedupedFlags = append(dedupedFlags, f)
+			}
+		}
+		newFlags = dedupedFlags
+		err = dimb.dbResource["mail"].UpdateMailFlags(
+			daptinid.InterfaceToDIR(mailRow["reference_id"]), newFlags, dimb.sessionUser, transaction)
 		if err != nil {
 			return err
 		}
-
-		for _, mailRow := range mails {
-			currentFlags := strings.Split(mailRow["flags"].(string), ",")
-			newFlags := backendutil.UpdateFlags(currentFlags, operation, flags)
-			log.Printf("New flags: [%v]", newFlags)
-			// Deduplicate flags
-			fla := map[string]bool{}
-			dedupedFlags := make([]string, 0, len(newFlags))
-			for _, f := range newFlags {
-				if !fla[f] {
-					fla[f] = true
-					dedupedFlags = append(dedupedFlags, f)
-				}
-			}
-			newFlags = dedupedFlags
-			err = dimb.dbResource["mail_box"].UpdateMailFlags(dimb.mailBoxId, mailRow["id"].(int64), newFlags, transaction)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
-	transaction.Commit()
-	return nil
+	return transaction.Commit()
 }
 
 // CopyMessages copies the specified message(s) to the end of the specified
@@ -831,85 +654,80 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 // via a mailbox update.
 func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest string) error {
 
-	var mails []map[string]interface{}
-	var err error
-
 	transaction, err := dimb.dbResource["mail"].Connection().Beginx()
 	if err != nil {
 		CheckErr(err, "Failed to begin transaction [644]")
 		return err
 	}
+	defer transaction.Rollback()
 
 	destinationMailBoxId, err := dimb.dbResource["mail_box"].GetMailAccountBox(dimb.mailAccountId, dest, transaction)
 	if err != nil {
 		return err
 	}
 
+	requestURL, _ := url.Parse("/api/mail")
 	httpRequest := (&http.Request{
-		Method: "POST",
+		Method: http.MethodPost,
+		URL:    requestURL,
 	}).WithContext(context.WithValue(context.Background(), "user", dimb.sessionUser))
 	req := api2go.Request{
 		PlainRequest: httpRequest,
 	}
 
-	for _, set := range seqset.Set {
-
-		if uid {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByUidSequence(dimb.mailBoxId, set.Start, set.Stop, map[string]bool{"mail": true}, transaction)
-		} else {
-			mails, err = dimb.dbResource["mail_box"].GetMailBoxMailsByOffset(dimb.mailBoxId, set.Start, set.Stop, map[string]bool{"mail": true}, transaction)
+	selections, err := dimb.dbResource["mail"].SelectMailBoxCandidates(dimb.mailBoxId, uid, seqset, transaction)
+	if err != nil {
+		return err
+	}
+	mails, err := dimb.readSelectedMails(selections, true, transaction)
+	if err != nil {
+		return err
+	}
+	for _, selection := range selections {
+		mail, ok := mails[selection.ReferenceID]
+		if !ok {
+			continue
 		}
-
+		uid, err := dimb.dbResource["mail_box"].AllocateMailBoxUid(destinationMailBoxId["id"].(int64), transaction)
 		if err != nil {
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "Failed to rollback")
 			return err
 		}
-
-		for _, mail := range mails {
-			uid, err := dimb.dbResource["mail_box"].AllocateMailBoxUid(destinationMailBoxId["id"].(int64), transaction)
-			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
-				return err
-			}
-			mailBytes, err := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mail["mail"])
-			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
-				return err
-			}
-			storageKey, _ := mail["hash"].(string)
-			if storageKey == "" {
-				storageKey, _ = mail["mail_id"].(string)
-			}
-			mail["mail"] = dimb.dbResource["mail"].MailColumnValue("mail", "mail", mailBytes, storageKey)
-			mail["mail_box_id"] = destinationMailBoxId["reference_id"]
-
-			delete(mail, "reference_id")
-			delete(mail, "updated_at")
-			delete(mail, "created_at")
-			delete(mail, "id")
-			mail["uid"] = uid
-			mail["recent"] = true
-			mailFlags := strings.Split(mail["flags"].(string), ",")
-			if !HasAnyFlag(mailFlags, []string{imap.RecentFlag}) {
-				mailFlags = backendutil.UpdateFlags(mailFlags, imap.AddFlags, []string{imap.RecentFlag})
-				log.Printf("New flags: [%v]", mailFlags)
-				mail["flags"] = strings.Join(mailFlags, ",")
-			}
-			_, err = dimb.dbResource["mail"].CreateWithoutFilter(api2go.NewApi2GoModelWithData(
-				"mail", nil, 768, nil, mail), req, transaction)
-			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
-				return err
-			}
+		mailBytes, err := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mail["mail"])
+		if err != nil {
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "Failed to rollback")
+			return err
 		}
+		storageKey, _ := mail["hash"].(string)
+		if storageKey == "" {
+			storageKey, _ = mail["mail_id"].(string)
+		}
+		mail["mail"] = dimb.dbResource["mail"].MailColumnValue("mail", "mail", mailBytes, storageKey)
+		mail["mail_box_id"] = destinationMailBoxId["reference_id"]
 
+		delete(mail, "reference_id")
+		delete(mail, "updated_at")
+		delete(mail, "created_at")
+		delete(mail, "id")
+		mail["uid"] = uid
+		mail["recent"] = true
+		mailFlags := strings.Split(mail["flags"].(string), ",")
+		if !HasAnyFlag(mailFlags, []string{imap.RecentFlag}) {
+			mailFlags = backendutil.UpdateFlags(mailFlags, imap.AddFlags, []string{imap.RecentFlag})
+			log.Printf("New flags: [%v]", mailFlags)
+			mail["flags"] = strings.Join(mailFlags, ",")
+		}
+		_, err = dimb.dbResource["mail"].createAfterAuthorizationWithTransaction(api2go.NewApi2GoModelWithData(
+			"mail", nil, 768, nil, mail), req, transaction)
+		if err != nil {
+			rollbackErr := transaction.Rollback()
+			CheckErr(rollbackErr, "Failed to rollback")
+			return err
+		}
 	}
-	transaction.Commit()
-	return err
+	return transaction.Commit()
 }
 
 // Expunge permanently removes all messages that have the \Deleted flag set
@@ -919,17 +737,12 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 // via an expunge update.
 func (dimb *DaptinImapMailBox) Expunge() error {
 
-	deleteCount, err := dimb.dbResource["mail_box"].ExpungeMailBox(dimb.mailBoxId)
+	deleteCount, err := dimb.dbResource["mail_box"].ExpungeMailBox(dimb.mailBoxId, dimb.sessionUser)
 	log.Printf("%v messages were deleted", deleteCount)
 
 	if err != nil {
 		log.Printf("Failed to expunge mails: %v", err)
 	}
-
-	// Clear sequence cache after expunge since sequence numbers shift
-	dimb.lock.Lock()
-	dimb.sequenceToMail = make(map[uint32]*imap.Message)
-	dimb.lock.Unlock()
 
 	return err
 }

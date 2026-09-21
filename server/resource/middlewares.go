@@ -25,3 +25,16 @@ type DatabaseRequestInterceptor interface {
 	InterceptAfter(*DbResource, *api2go.Request, []map[string]interface{}, *sqlx.Tx) ([]map[string]interface{}, error)
 	fmt.Stringer
 }
+
+func lifecycleInterceptors(interceptors []DatabaseRequestInterceptor) []DatabaseRequestInterceptor {
+	result := make([]DatabaseRequestInterceptor, 0, len(interceptors))
+	for _, interceptor := range interceptors {
+		switch interceptor.(type) {
+		case *TableAccessPermissionChecker, *ObjectAccessPermissionChecker:
+			continue
+		default:
+			result = append(result, interceptor)
+		}
+	}
+	return result
+}

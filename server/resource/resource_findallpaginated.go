@@ -1478,8 +1478,27 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 	actualvalue = filterQuery.Value
 
 	if filterQuery.ColumnName == "reference_id" {
-		i := daptinid.InterfaceToDIR(filterQuery.Value)
-		actualvalue = i[:]
+		if opValue == "in" || opValue == "notIn" {
+			values, ok := filterQuery.Value.([]interface{})
+			if !ok {
+				return nil, invalidQueryFilterError(dbResource.model.GetName(), filterQuery.ColumnName)
+			}
+			converted := make([]interface{}, 0, len(values))
+			for _, value := range values {
+				referenceID := daptinid.InterfaceToDIR(value)
+				if referenceID == daptinid.NullReferenceId {
+					return nil, invalidQueryFilterError(dbResource.model.GetName(), filterQuery.ColumnName)
+				}
+				converted = append(converted, referenceID[:])
+			}
+			actualvalue = converted
+		} else {
+			referenceID := daptinid.InterfaceToDIR(filterQuery.Value)
+			if referenceID == daptinid.NullReferenceId {
+				return nil, invalidQueryFilterError(dbResource.model.GetName(), filterQuery.ColumnName)
+			}
+			actualvalue = referenceID[:]
+		}
 	}
 
 	// Handle "is" and "not" operators
@@ -2053,8 +2072,71 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 }
 
 func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request, transaction *sqlx.Tx) (totalCount uint, response api2go.Responder, err error) {
+	return dbResource.paginatedFindAllWithTransaction(req, transaction, dbResource.ms.BeforeFindAll, dbResource.ms.AfterFindAll)
+}
 
-	for _, bf := range dbResource.ms.BeforeFindAll {
+// readByReferenceIDsAfterAuthorizationWithTransaction hydrates exact public
+// resource IDs after an attached service has already authorized and scoped
+// them. It preserves read conversion and lifecycle without applying JSON:API
+// table or row permission filters a second time.
+func (dbResource *DbResource) readByReferenceIDsAfterAuthorizationWithTransaction(referenceIDs []daptinid.DaptinReferenceId,
+	includedRelations map[string]bool, req api2go.Request, transaction *sqlx.Tx) ([]map[string]interface{}, error) {
+	if len(referenceIDs) == 0 {
+		return []map[string]interface{}{}, nil
+	}
+	before := lifecycleInterceptors(dbResource.ms.BeforeFindAll)
+	after := lifecycleInterceptors(dbResource.ms.AfterFindAll)
+	for _, interceptor := range before {
+		if _, err := interceptor.InterceptBefore(dbResource, &req, nil, transaction); err != nil {
+			return nil, err
+		}
+	}
+
+	values := make([]interface{}, 0, len(referenceIDs))
+	for _, referenceID := range referenceIDs {
+		values = append(values, referenceID[:])
+	}
+	query, args, err := statementbuilder.Squirrel.Select("*").Prepared(true).From(dbResource.model.GetTableName()).
+		Where(goqu.Ex{"reference_id": goqu.Op{"in": values}}).ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := transaction.Queryx(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	responseArray, err := RowsToMap(rows, dbResource.model.GetName())
+	closeErr := rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	results, includes, err := dbResource.ResultToArrayOfMapWithTransaction(
+		responseArray, dbResource.model.GetColumnMap(), includedRelations, transaction)
+	if err != nil {
+		return nil, err
+	}
+	for _, interceptor := range after {
+		results, err = interceptor.InterceptAfter(dbResource, &req, results, transaction)
+		if err != nil {
+			return nil, err
+		}
+		for index := range includes {
+			includes[index], err = interceptor.InterceptAfter(dbResource, &req, includes[index], transaction)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return results, nil
+}
+
+func (dbResource *DbResource) paginatedFindAllWithTransaction(req api2go.Request, transaction *sqlx.Tx,
+	before, after []DatabaseRequestInterceptor) (totalCount uint, response api2go.Responder, err error) {
+
+	for _, bf := range before {
 		//log.Printf("Invoke BeforeFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 		start := time.Now()
 		_, err := bf.InterceptBefore(dbResource, &req, []map[string]interface{}{}, transaction)
@@ -2073,7 +2155,7 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindAllWithoutFilters %v", duration)
 
-	for _, bf := range dbResource.ms.AfterFindAll {
+	for _, bf := range after {
 		//log.Printf("Invoke AfterFindAll [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
 		start := time.Now()
@@ -2089,7 +2171,7 @@ func (dbResource *DbResource) PaginatedFindAllWithTransaction(req api2go.Request
 
 	includesNew := make([][]map[string]interface{}, 0)
 	includesNew = append(includesNew, includes...)
-	for _, bf := range dbResource.ms.AfterFindAll {
+	for _, bf := range after {
 		log.Tracef("Invoke AfterFindAll Includes [%v][%v] on FindAll Request", bf.String(), dbResource.model.GetName())
 
 		includesNewUpdated := make([][]map[string]interface{}, 0)

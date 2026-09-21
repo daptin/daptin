@@ -82,6 +82,14 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 		log.Errorf("Invalid mail from address [%v]: %v", mailFrom, err)
 		return nil, nil, []error{err}
 	}
+	httpRequest, _ := inFields["httpRequest"].(*http.Request)
+	var sessionUser *auth.SessionUser
+	if httpRequest != nil {
+		sessionUser, _ = httpRequest.Context().Value("user").(*auth.SessionUser)
+	}
+	if err := d.cruds["mail"].AuthorizeMailSender(mailFromAddress.String(), sessionUser, transaction); err != nil {
+		return nil, nil, []error{err}
+	}
 	toAddresses := make([]mail.Address, 0, len(mailTo))
 	for _, adr := range mailTo {
 		mailToAddress, err := mail.NewAddress(adr)
@@ -136,7 +144,7 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	finalMail := b.Bytes()
 	log.Printf("Final Mail: From [%v] to [%v] via [%v]", mailFromAddress.String(), strings.Join(mailTo, ","), mailServerHostname)
 
-	if _, err := d.cruds["mail"].AppendSentMailForSender(mailFromAddress.String(), finalMail, transaction); err != nil {
+	if _, err := d.cruds["mail"].AppendSentMailForSender(mailFromAddress.String(), sessionUser, finalMail, transaction); err != nil {
 		log.Errorf("Failed to append outbound mail to Sent for [%v]: %v", mailFromAddress.String(), err)
 		return nil, nil, []error{err}
 	}

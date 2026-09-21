@@ -113,7 +113,8 @@ curl -X POST 'http://localhost:6336/api/mail_account' \
       "type": "mail_account",
       "attributes": {
         "username": "user@example.com",
-        "password": "secure-password"
+        "password": "secure-password",
+        "password_md5": "secure-password"
       },
       "relationships": {
         "mail_server_id": {
@@ -123,6 +124,20 @@ curl -X POST 'http://localhost:6336/api/mail_account' \
     }
   }'
 ```
+
+The creating user owns the new mail account. When an administrator provisions
+mail for another user, update the `user_account_id` relationship after creation:
+
+```bash
+curl -X PATCH 'http://localhost:6336/api/mail_account/MAIL_ACCOUNT_ID/relationships/user_account_id' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -H 'Authorization: Bearer ADMIN_TOKEN' \
+  -d '{"data":{"type":"user_account","id":"USER_ID"}}'
+```
+
+Supply the same initial password to both password fields; their column
+conformations store the forms used by the supported mail authentication
+mechanisms.
 
 ## Client Configuration
 
@@ -181,11 +196,18 @@ Default mailboxes created automatically:
 
 Additional folders can be created via IMAP or REST API.
 
-IMAP `APPEND` creates a `mail` row through Daptin's resource lifecycle, so a
-matching `after` exchange is durably recorded in the same transaction. Mailbox
-flag updates, `COPY`, and `EXPUNGE` are mailbox protocol operations and do not
-all enter that create lifecycle. See [[Data-Exchange|Data Exchange]] for the
-canonical execution behavior.
+IMAP adapts mailbox operations to Daptin's resource lifecycle. `APPEND` and
+`COPY` create `mail` resources, flag changes update them, and `EXPUNGE` deletes
+them through the same create, update, and delete paths used by the JSON:API.
+`FETCH`, `STORE`, `COPY`, and the candidate rows returned by `SEARCH` are read
+through the same resource-read path used by the JSON:API; IMAP sequence and UID
+selection only determines the ordered public reference IDs to read.
+IMAP authorization is based on the authenticated mail account and the mailbox
+being operated on; changing JSON:API table permissions does not grant or revoke
+mail protocol access. After that protocol authorization, validation, ownership,
+relations, exchanges, events, metering, audit, and asset handling use the same
+resource lifecycle as other Daptin surfaces. See
+[[Data-Exchange|Data Exchange]] for the canonical execution behavior.
 
 ### Mail Deletion Lifecycle
 
@@ -304,7 +326,23 @@ c SEARCH SINCE 01-Jan-2024
 
 # Combined search
 c SEARCH UNSEEN FROM "sender@example.com" SINCE 01-Jan-2024
+
+# Search by the stable mailbox UID rather than the current sequence number
+c UID SEARCH UID 100:200
 ```
+
+`SEARCH` returns the current sequence numbers in the selected mailbox. `UID
+SEARCH` returns stable mailbox UIDs. Messages carrying `\Deleted` remain in
+the sequence-number space and can be searched until `EXPUNGE` permanently
+removes them; messages after an expunged message then receive lower sequence
+numbers, while their UIDs do not change.
+
+Daptin evaluates search criteria against persisted mail metadata in the SQL
+database. This includes sequence and UID sets, flags and keywords, internal and
+sent dates, sizes, `FROM`, `TO`, `CC`, `BCC`, `SUBJECT`, `Message-ID`, `BODY`,
+`TEXT`, and combinations using `OR` and `NOT`. Searching another arbitrary
+header returns an unsupported-search error instead of silently ignoring the
+criterion. Search does not download cloud-backed RFC822 objects.
 
 ### FETCH Items
 
