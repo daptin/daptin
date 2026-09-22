@@ -17,7 +17,6 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	mailpacket "github.com/emersion/go-message/mail"
 	"github.com/emersion/go-msgauth/dkim"
@@ -196,12 +195,9 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						e.QueuedId = e.Hashes[0]
 					}
 					mailBytes := e.Data.Bytes()
-					if _, err := mail1.ReadMessage(bytes.NewReader(mailBytes)); err != nil {
-						return nil, err
-					}
-					searchMetadata, err := resource.ExtractMailSearchMetadata(mailBytes)
-					if err != nil {
-						return nil, err
+					searchMetadata, metadataErr := resource.ExtractMailSearchMetadata(mailBytes)
+					if metadataErr != nil {
+						log.Warnf("Failed to extract complete mail search metadata; storing raw message: %v", metadataErr)
 					}
 					var sentDate interface{}
 					if !searchMetadata.SentDate.IsZero() {
@@ -225,15 +221,8 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						parsedMail, err := mailpacket.CreateReader(bytes.NewReader(mailBytes))
-						resource.CheckErr(err, "Failed to parse mail from bytes")
 						if err != nil {
-							return nil, err
-						}
-
-						if message.IsUnknownCharset(err) {
-							log.Println("Unknown encoding:", err)
-						} else if err != nil {
-							return nil, err
+							log.Warnf("Failed to extract mail attachment metadata; storing raw message: %v", err)
 						}
 
 						log.Printf("Authorized login: %v", e.AuthorizedLogin)
@@ -271,7 +260,10 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							}
 
 							r := strings.NewReader(string(mailBytes))
-							netMessage, _ := mail1.ReadMessage(r)
+							netMessage, err := mail1.ReadMessage(r)
+							if err != nil {
+								return nil, err
+							}
 
 							transaction, err := dbResource.Connection().Beginx()
 							if err != nil {
@@ -506,15 +498,17 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						hasAttachment := false
-						for {
-							part, partErr := parsedMail.NextPart()
-							if partErr != nil {
-								break
-							}
-							_, ok := part.Header.(*mailpacket.AttachmentHeader)
-							if ok {
-								hasAttachment = true
-								break
+						if parsedMail != nil {
+							for {
+								part, partErr := parsedMail.NextPart()
+								if partErr != nil {
+									break
+								}
+								_, ok := part.Header.(*mailpacket.AttachmentHeader)
+								if ok {
+									hasAttachment = true
+									break
+								}
 							}
 						}
 

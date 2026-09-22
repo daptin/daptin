@@ -63,8 +63,10 @@ BIN_PATH="$TMP_DIR/daptin"
 FIRST_LOG="$TMP_DIR/daptin-bootstrap.log"
 SMTP_LOG="$TMP_DIR/daptin-smtp.log"
 SWAKS_LOG="$TMP_DIR/swaks.log"
+RELATED_SWAKS_LOG="$TMP_DIR/swaks-related.log"
 TOKEN_FILE="$TMP_DIR/token"
 SUBJECT="issue-288-inbound-$(date +%s)-$$"
+RELATED_SUBJECT="multipart-related-inbound-$(date +%s)-$$"
 
 PG_USER="daptin_e2e"
 PG_PASSWORD="daptin_e2e_password"
@@ -177,6 +179,48 @@ require_id() {
 	local value="$2"
 	if [[ -z "$value" || "$value" == "null" ]]; then
 		log "$name did not return an id"
+		exit 1
+	fi
+}
+
+deliver_opaque_mime() {
+	local label="$1"
+	local content_type="$2"
+	local body="$3"
+	local expected_uid="$4"
+	local subject="mime-${label}-inbound-$(date +%s)-$$"
+	local swaks_log="$TMP_DIR/swaks-${label}.log"
+	local message response count mail_id detail
+
+	message=$'To: recipient@example.test\r\nFrom: sender@external.test\r\nSubject: '"$subject"$'\r\nMIME-Version: 1.0\r\nContent-Type: '"$content_type"$'\r\n\r\n'"$body"
+	log "delivering $subject as $content_type"
+	swaks \
+		--server "127.0.0.1:$SMTP_PORT" \
+		--from sender@external.test \
+		--to recipient@example.test \
+		--data "$message" \
+		--timeout 15s >"$swaks_log" 2>&1 || true
+
+	if ! grep -Eq '<-  +250 2\.0\.0 OK: queued as' "$swaks_log"; then
+		log "$content_type SMTP delivery was not accepted"
+		cat "$swaks_log" >&2
+		exit 1
+	fi
+
+	response="$(api_get '/api/mail?page%5Bsize%5D=100')"
+	count="$(jq --arg subject "$subject" '[.data[] | select(.attributes.subject == $subject)] | length' <<<"$response")"
+	mail_id="$(jq -r --arg subject "$subject" '.data[] | select(.attributes.subject == $subject) | .id' <<<"$response")"
+	if [[ "$count" != "1" || -z "$mail_id" || "$mail_id" == "null" ]]; then
+		log "expected one stored $content_type mail resource, got $count"
+		exit 1
+	fi
+
+	detail="$(api_get "/api/mail/$mail_id")"
+	if [[ "$(jq -r '.data.attributes.user_account_id' <<<"$detail")" != "$ADMIN_ID" || \
+		"$(jq -r '.data.relationships.mail_box_id.data.id' <<<"$detail")" != "$MAILBOX_ID" || \
+		"$(jq -r '.data.attributes.uid' <<<"$detail")" != "$expected_uid" ]]; then
+		log "$content_type mail did not preserve owner, mailbox, and UID"
+		jq '.data' <<<"$detail" >&2
 		exit 1
 	fi
 }
@@ -322,6 +366,68 @@ if [[ "$EXCHANGE_RUN_COUNT" != "1" ]]; then
 	exit 1
 fi
 
+log "delivering $RELATED_SUBJECT as multipart/related"
+RELATED_DATA=$'To: recipient@example.test\r\nFrom: sender@external.test\r\nSubject: '"$RELATED_SUBJECT"$'\r\nMIME-Version: 1.0\r\nContent-Type: multipart/related; boundary="daptin-related"\r\n\r\nThis is a multipart message.\r\n--daptin-related\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body>related body<img src="cid:logo"></body></html>\r\n--daptin-related\r\nContent-Type: image/png; name="logo.png"\r\nContent-Disposition: attachment; filename="logo.png"\r\nContent-ID: <logo>\r\nContent-Transfer-Encoding: base64\r\n\r\naW1hZ2U=\r\n--daptin-related--\r\n'
+swaks \
+	--server "127.0.0.1:$SMTP_PORT" \
+	--from sender@external.test \
+	--to recipient@example.test \
+	--data "$RELATED_DATA" \
+	--timeout 15s >"$RELATED_SWAKS_LOG" 2>&1 || true
+
+if ! grep -Eq '<-  +250 2\.0\.0 OK: queued as' "$RELATED_SWAKS_LOG"; then
+	log "multipart/related SMTP delivery was not accepted"
+	cat "$RELATED_SWAKS_LOG" >&2
+	grep -E 'Unknown top level mime type|Failed to store mail|storage error|could not save email' "$SMTP_LOG" >&2 || true
+	exit 1
+fi
+
+RELATED_MAIL_RESPONSE="$(api_get '/api/mail?page%5Bsize%5D=100')"
+RELATED_COUNT="$(jq --arg subject "$RELATED_SUBJECT" '[.data[] | select(.attributes.subject == $subject)] | length' <<<"$RELATED_MAIL_RESPONSE")"
+RELATED_MAIL_ID="$(jq -r --arg subject "$RELATED_SUBJECT" '.data[] | select(.attributes.subject == $subject) | .id' <<<"$RELATED_MAIL_RESPONSE")"
+if [[ "$RELATED_COUNT" != "1" || -z "$RELATED_MAIL_ID" || "$RELATED_MAIL_ID" == "null" ]]; then
+	log "expected one stored multipart/related mail resource, got $RELATED_COUNT"
+	exit 1
+fi
+
+RELATED_DETAIL="$(api_get "/api/mail/$RELATED_MAIL_ID")"
+if [[ "$(jq -r '.data.attributes.user_account_id' <<<"$RELATED_DETAIL")" != "$ADMIN_ID" || \
+	"$(jq -r '.data.relationships.mail_box_id.data.id' <<<"$RELATED_DETAIL")" != "$MAILBOX_ID" || \
+	"$(jq -r '.data.attributes.uid' <<<"$RELATED_DETAIL")" != "2" || \
+	"$(jq -r '.data.attributes.has_attachment' <<<"$RELATED_DETAIL")" != "true" ]]; then
+	log "multipart/related mail did not preserve owner, mailbox, UID, and attachment metadata"
+	jq '.data' <<<"$RELATED_DETAIL" >&2
+	exit 1
+fi
+
+MAILBOX_AFTER_RELATED="$(api_get "/api/mail_box/$MAILBOX_ID")"
+if [[ "$(jq -r '.data.attributes.nextuid' <<<"$MAILBOX_AFTER_RELATED")" != "3" ]]; then
+	log "mailbox nextuid was not advanced after multipart/related delivery"
+	exit 1
+fi
+
+deliver_opaque_mime \
+	"signed" \
+	'multipart/signed; boundary="daptin-signed"; protocol="application/pgp-signature"' \
+	$'--daptin-signed\r\nContent-Type: text/plain\r\n\r\nsigned body\r\n--daptin-signed\r\nContent-Type: application/pgp-signature\r\n\r\nsignature\r\n--daptin-signed--\r\n' \
+	3
+deliver_opaque_mime \
+	"rfc822" \
+	'message/rfc822' \
+	$'From: nested@example.test\r\nTo: recipient@example.test\r\nSubject: nested message\r\n\r\nnested body\r\n' \
+	4
+deliver_opaque_mime \
+	"binary" \
+	'application/octet-stream' \
+	$'opaque binary body\r\n' \
+	5
+
+MAILBOX_AFTER_OPAQUE="$(api_get "/api/mail_box/$MAILBOX_ID")"
+if [[ "$(jq -r '.data.attributes.nextuid' <<<"$MAILBOX_AFTER_OPAQUE")" != "6" ]]; then
+	log "mailbox nextuid was not advanced after opaque MIME deliveries"
+	exit 1
+fi
+
 MAIL_PATCH_BODY="$(jq -n \
 	--arg id "$STORED_MAIL_ID" \
 	'{data:{type:"mail",id:$id,attributes:{seen:true}}}')"
@@ -335,4 +441,4 @@ if [[ "$(jq -r '.data.attributes.seen' <<<"$UPDATED_MAIL")" != "true" || \
 	exit 1
 fi
 
-log "PASS: SMTP storage, ownership, mailbox UID, lifecycle exchange, and mail JSON:API read/update agree"
+log "PASS: SMTP stores supported and opaque MIME through one resource lifecycle without content-type rejection"

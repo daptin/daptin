@@ -271,6 +271,8 @@ github.com/artpar/go-imap-idle v1.0.2 h1:jvMquFXpidtAItwQEkmB6OtzxjV/5Jhu/Zik77i
 github.com/artpar/go-imap-idle v1.0.2/go.mod h1:WqQ0e132Pff2YVR0TIchrZ0mFpGFHjwObC6+nBCCALc=
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a h1:W3JRCnyixXReLtgazoi45+mXLosITx/juCTy9IPs5kE=
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a/go.mod h1:P/AQ+7EvskopP7BmztqwWtb8WLxGXlJnFpQWlru1cKg=
+github.com/artpar/parsemail v0.0.0-20260922110859-a096334436b5 h1:FiECA3DXiC6odW6JuqW1ok6boK4yyCtUAirMRKxX5wg=
+github.com/artpar/parsemail v0.0.0-20260922110859-a096334436b5/go.mod h1:P/AQ+7EvskopP7BmztqwWtb8WLxGXlJnFpQWlru1cKg=
 github.com/artpar/rclone v1.71.2 h1:fc+7M3sa45L+tuFt77+ailxZSnUCJdOr7nGSZEIt9Kw=
 github.com/artpar/rclone v1.71.2/go.mod h1:wfjdkCTZhFdfKI14fy/dzIA712KYp9KYT/6kFyBj8uA=
 github.com/artpar/resty v1.0.3 h1:MNkSMhs4YU3tW+n93oewHrDRbXcFWcSPkPAtdsIBCmY=

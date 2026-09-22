@@ -39,10 +39,7 @@ type MailSelection struct {
 
 func ExtractMailSearchMetadata(messageBytes []byte) (MailSearchMetadata, error) {
 	parsed, err := parsemail.Parse(bytes.NewReader(messageBytes))
-	if err != nil {
-		return MailSearchMetadata{}, err
-	}
-	return mailSearchMetadataFromParsed(parsed), nil
+	return mailSearchMetadataFromParsed(parsed), err
 }
 
 func mailSearchMetadataFromParsed(parsed parsemail.Email) MailSearchMetadata {
