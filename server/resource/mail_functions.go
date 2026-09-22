@@ -266,11 +266,12 @@ func (dbResource *DbResource) CreateInboundMailWithTransaction(obj interface{}, 
 	if err != nil {
 		return nil, err
 	}
-	mailAccountID, ok := mailbox["mail_account_id"].(int64)
-	if !ok || mailAccountID == 0 {
+	mailAccountReference := daptinid.InterfaceToDIR(mailbox["mail_account_id"])
+	if mailAccountReference == daptinid.NullReferenceId {
 		return nil, errors.New("inbound mail destination has no mail account")
 	}
-	mailAccount, _, err := dbResource.Cruds["mail_account"].GetSingleRowById("mail_account", mailAccountID, nil, transaction)
+	mailAccount, err := dbResource.Cruds["mail_account"].GetReferenceIdToObjectWithTransaction(
+		"mail_account", mailAccountReference, transaction)
 	if err != nil {
 		return nil, err
 	}
