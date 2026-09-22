@@ -6,7 +6,6 @@ import (
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/conform"
-	"github.com/artpar/ydb"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
@@ -226,7 +225,6 @@ func GetTablesFromWorld(db database.DatabaseConnection) ([]table_info.TableInfo,
 
 func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	cruds *map[string]*resource.DbResource,
-	store ydb.Store,
 	dtopicMap *map[string]*olric.PubSub) resource.MiddlewareSet {
 
 	var ms resource.MiddlewareSet
@@ -241,13 +239,6 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	createEventHandler := resource.NewCreateEventHandler(cruds, dtopicMap)
 	updateEventHandler := resource.NewUpdateEventHandler(cruds, dtopicMap)
 	deleteEventHandler := resource.NewDeleteEventHandler(cruds, dtopicMap)
-
-	var yhsHandler resource.DatabaseRequestInterceptor
-	yhsHandler = nil
-
-	if store != nil {
-		yhsHandler = resource.NewYJSHandlerMiddleware(store)
-	}
 
 	ms.BeforeFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
@@ -294,25 +285,13 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		meteringMiddleware,
 	}
 
-	if yhsHandler != nil {
-		ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
-			tablePermissionChecker,
-			objectPermissionChecker,
-			meteringMiddleware,
-			dataValidationMiddleware,
-			yhsHandler,
-			updateEventHandler,
-			exchangeMiddleware,
-		}
-	} else {
-		ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
-			tablePermissionChecker,
-			objectPermissionChecker,
-			meteringMiddleware,
-			dataValidationMiddleware,
-			updateEventHandler,
-			exchangeMiddleware,
-		}
+	ms.BeforeUpdate = []resource.DatabaseRequestInterceptor{
+		tablePermissionChecker,
+		objectPermissionChecker,
+		meteringMiddleware,
+		dataValidationMiddleware,
+		updateEventHandler,
+		exchangeMiddleware,
 	}
 
 	ms.AfterUpdate = []resource.DatabaseRequestInterceptor{

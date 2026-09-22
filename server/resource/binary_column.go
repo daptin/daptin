@@ -7,6 +7,33 @@ import (
 	"strings"
 )
 
+const YjsStateMediaType = "x-crdt/yjs"
+
+func isInlineFileAsset(file map[string]interface{}) bool {
+	return file["type"] == YjsStateMediaType
+}
+
+func cloudStoreUploadFiles(files []interface{}) []interface{} {
+	uploads := make([]interface{}, 0, len(files))
+	for _, item := range files {
+		file, ok := item.(map[string]interface{})
+		if !ok || !isInlineFileAsset(file) {
+			uploads = append(uploads, item)
+		}
+	}
+	return uploads
+}
+
+func stripCloudStoreFileContents(files []interface{}) {
+	for _, item := range files {
+		file := item.(map[string]interface{})
+		delete(file, "file")
+		if !isInlineFileAsset(file) {
+			delete(file, "contents")
+		}
+	}
+}
+
 func (dbResource *DbResource) binaryColumnValueForStorage(tableName, columnName string, content []byte, name, contentType string) interface{} {
 	return dbResource.binaryColumnValue(tableName, columnName, content, binaryStorageFileName(name, content), contentType)
 }

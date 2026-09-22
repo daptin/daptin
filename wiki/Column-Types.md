@@ -108,13 +108,13 @@ Start here if you're unsure which type to use:
 
 | ColumnType | DataType | Description |
 |------------|----------|-------------|
-| `file` | text | Generic file |
-| `file.image` | text | Image file |
-| `file.video` | text | Video file |
-| `file.audio` | text | Audio file |
-| `file.document` | text | Document file |
-| `file.spreadsheet` | text | Spreadsheet file |
-| `file.pdf` | text | PDF file |
+| `file.*` | text | Files with any extension |
+| `file.jpg|jpeg|png|gif` | text | Files with one of the listed image extensions |
+| `file.mp4|webm` | text | Files with one of the listed video extensions |
+| `file.mp3|wav` | text | Files with one of the listed audio extensions |
+| `file.pdf|doc|docx` | text | Files with one of the listed document extensions |
+| `file.csv|xls|xlsx` | text | Files with one of the listed spreadsheet extensions |
+| `file.pdf` | text | PDF files only |
 
 File columns support:
 - Base64 encoding
@@ -223,7 +223,7 @@ Columns:
   # File
   - Name: attachment
     DataType: text
-    ColumnType: file.document
+    ColumnType: file.pdf|doc|docx
 
   # JSON
   - Name: metadata

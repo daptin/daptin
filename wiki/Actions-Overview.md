@@ -374,7 +374,7 @@ InFields:
     DataType: enum('low','medium','high')
 
   - Name: attachment
-    ColumnType: file.document
+    ColumnType: file.pdf|doc|docx
 
   - Name: due_date
     ColumnType: datetime

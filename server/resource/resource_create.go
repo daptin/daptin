@@ -171,7 +171,7 @@ func (dbResource *DbResource) createWithoutFilter(obj interface{}, req api2go.Re
 					uploadActionPerformer, _ := GetGlobalActionHandler("cloudstore.file.upload")
 
 					actionRequestParameters := make(map[string]interface{})
-					actionRequestParameters["file"] = columnValue
+					actionRequestParameters["file"] = cloudStoreUploadFiles(files)
 					actionRequestParameters["path"] = ""
 
 					log.Printf("Get cloud store details: %v", col.ForeignKeyData.Namespace)
@@ -193,17 +193,14 @@ func (dbResource *DbResource) createWithoutFilter(obj interface{}, req api2go.Re
 					}
 
 					log.Printf("Initiate file upload action from resource create")
-					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, createTransaction)
-					if len(errs) > 0 {
-						log.Errorf("Failed to upload attachments: %v", errs)
-						return nil, errs[0]
+					if len(actionRequestParameters["file"].([]interface{})) > 0 {
+						_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, createTransaction)
+						if len(errs) > 0 {
+							log.Errorf("Failed to upload attachments: %v", errs)
+							return nil, errs[0]
+						}
 					}
-					for i := range files {
-						file := files[i].(map[string]interface{})
-						delete(file, "file")
-						delete(file, "contents")
-						files[i] = file
-					}
+					stripCloudStoreFileContents(files)
 					columnValue, err = json.Marshal(files)
 					CheckErr(err, "Failed to marshal file data to column")
 				} else {

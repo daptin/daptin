@@ -23,6 +23,14 @@ import (
 	"github.com/daptin/daptin/server/auth"
 )
 
+var ErrVersionConflict = errors.New("resource version conflict")
+
+type versionConflictError string
+
+func (err versionConflictError) Error() string { return string(err) }
+
+func (versionConflictError) Is(target error) bool { return target == ErrVersionConflict }
+
 // Update an object
 // Possible Responder status codes are:
 // - 200 OK: Update successful, however some field(s) were changed, returns updates source
@@ -180,7 +188,7 @@ func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.R
 					}
 
 					actionRequestParameters := make(map[string]interface{})
-					actionRequestParameters["file"] = val
+					actionRequestParameters["file"] = cloudStoreUploadFiles(files)
 					actionRequestParameters["path"] = ""
 
 					cloudStore, err := dbResource.GetCloudStoreByNameWithTransaction(col.ForeignKeyData.Namespace, updateTransaction)
@@ -200,24 +208,29 @@ func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.R
 						return nil, err
 					}
 
-					_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, updateTransaction)
-					if len(errs) > 0 {
-						log.Errorf("Failed to upload attachments: %v", errs)
-						return nil, errs[0]
+					if len(actionRequestParameters["file"].([]interface{})) > 0 {
+						_, _, errs := uploadActionPerformer.DoAction(actionresponse.Outcome{}, actionRequestParameters, updateTransaction)
+						if len(errs) > 0 {
+							log.Errorf("Failed to upload attachments: %v", errs)
+							return nil, errs[0]
+						}
 					}
 
 					files, ok = val.([]interface{})
 					if ok {
 
-						var exitingFilesArray []map[string]interface{}
-						existingFiles := data.GetColumnOriginalValue(col.ColumnName)
-						exitingFilesArray, ok = existingFiles.([]map[string]interface{})
-
-						if !ok || existingFiles == nil {
-							exitingFilesArray = make([]map[string]interface{}, 0)
+						existingResource, _, loadErr := dbResource.GetSingleRowByReferenceIdWithTransaction(
+							dbResource.model.GetName(), daptinid.DaptinReferenceId(updateObjectReferenceId),
+							map[string]bool{YjsStateMediaType: true}, updateTransaction)
+						if loadErr != nil {
+							return nil, loadErr
+						}
+						existingFiles, decodeErr := assetColumnFiles(existingResource[col.ColumnName])
+						if decodeErr != nil {
+							return nil, decodeErr
 						}
 
-						finalFileSet := mergeCloudStoreFileSet(exitingFilesArray, files)
+						finalFileSet := mergeCloudStoreFileSet(existingFiles, files)
 
 						val, err = json.Marshal(finalFileSet)
 						CheckErr(err, "Failed to marshal file data to column")
@@ -432,7 +445,7 @@ func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.R
 			if err != nil {
 				log.Warnf("[464] Failed to inspect update rows affected [%s] [%v]: %v", query, vals, err)
 			} else if rowsAffected == 0 {
-				return nil, fmt.Errorf("failed to update %s [%s]: no rows matched current version", dbResource.model.GetName(), updateObjectReferenceId.String())
+				return nil, versionConflictError(fmt.Sprintf("failed to update %s [%s]: no rows matched current version", dbResource.model.GetName(), updateObjectReferenceId.String()))
 			}
 
 		} else if len(languagePreferences) > 0 {
@@ -1287,7 +1300,9 @@ func mergeCloudStoreFileSet(existingFiles []map[string]interface{}, incomingFile
 	for i := range incomingFiles {
 		file := incomingFiles[i].(map[string]interface{})
 		delete(file, "file")
-		delete(file, "contents")
+		if !isInlineFileAsset(file) {
+			delete(file, "contents")
+		}
 		incomingFiles[i] = file
 
 		fileName := file["name"].(string)
@@ -1308,7 +1323,7 @@ func mergeCloudStoreFileSet(existingFiles []map[string]interface{}, incomingFile
 func copyFileMetadata(file map[string]interface{}) map[string]interface{} {
 	copiedFile := make(map[string]interface{}, len(file))
 	for key, value := range file {
-		if key == "file" || key == "contents" {
+		if key == "file" || (key == "contents" && !isInlineFileAsset(file)) {
 			continue
 		}
 		copiedFile[key] = value

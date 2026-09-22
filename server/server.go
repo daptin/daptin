@@ -305,7 +305,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}
 	transaction.Commit()
 
-	ms := BuildMiddlewareSet(&initConfig, &cruds, store, &dtopicMap)
+	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
 	log.Tracef("Created middleware set")
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
 	log.Tracef("Added ResourcesToApi2Go")
@@ -678,7 +678,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	var yjsRuntime *YjsRuntime
 	if enableYjs == "true" {
-		yjsRuntime, err = InitializeYjsResources(ctx, store, defaultRouter, cruds, dtopicMap)
+		yjsRuntime, err = InitializeYjsResources(ctx, store, defaultRouter, cruds)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize YJS: %w", err)
 		}

@@ -2,6 +2,8 @@ package resource
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -167,5 +169,12 @@ func TestUpdateWithoutFiltersReturnsErrorWhenVersionMatchesNoRows(t *testing.T) 
 	_, err = crud.UpdateWithoutFilters(model, req, tx)
 	if err == nil {
 		t.Fatalf("expected stale version update to fail")
+	}
+	if !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("stale version error = %v, want ErrVersionConflict", err)
+	}
+	wantError := fmt.Sprintf("failed to update widget [%s]: no rows matched current version", ref.String())
+	if err.Error() != wantError {
+		t.Fatalf("stale version error = %q, want %q", err.Error(), wantError)
 	}
 }

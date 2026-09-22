@@ -3549,7 +3549,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 				for _, file := range foreignFilesList {
 
-					if file["type"] == "x-crdt/yjs" && !includedRelationMap["x-crdt/yjs"] {
+					if file["type"] == YjsStateMediaType && !includedRelationMap[YjsStateMediaType] {
 						continue
 					}
 

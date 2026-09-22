@@ -75,3 +75,30 @@ func TestMergeCloudStoreFileSetUpdatesExistingFileMetadata(t *testing.T) {
 		t.Errorf("did not expect file payload to be persisted: %#v", newFile)
 	}
 }
+
+func TestCloudStoreKeepsYjsStateInline(t *testing.T) {
+	ordinary := map[string]interface{}{
+		"name": "note.txt", "type": "text/plain", "contents": "bm90ZQ==",
+	}
+	state := map[string]interface{}{
+		"name": "content.yjs", "type": YjsStateMediaType, "contents": "c3RhdGU=",
+	}
+	files := []interface{}{ordinary, state}
+
+	uploads := cloudStoreUploadFiles(files)
+	if len(uploads) != 1 || !reflect.DeepEqual(uploads[0], ordinary) {
+		t.Fatalf("upload files = %#v", uploads)
+	}
+	stripCloudStoreFileContents(files)
+	if _, ok := ordinary["contents"]; ok {
+		t.Fatalf("ordinary file contents were retained: %#v", ordinary)
+	}
+	if state["contents"] != "c3RhdGU=" {
+		t.Fatalf("YJS state contents were removed: %#v", state)
+	}
+
+	merged := mergeCloudStoreFileSet([]map[string]interface{}{state}, []interface{}{state})
+	if len(merged) != 1 || merged[0]["contents"] != "c3RhdGU=" {
+		t.Fatalf("merged YJS state = %#v", merged)
+	}
+}

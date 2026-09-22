@@ -6,15 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/artpar/api2go/v2"
 	"github.com/artpar/ydb"
-	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -89,16 +86,17 @@ func serveYjsRoom(ginContext *gin.Context, yjsConnectionHandler http.HandlerFunc
 	yjsConnectionHandler(ginContext.Writer, ginContext.Request)
 }
 
+func prepareYjsRoom(store ydb.Store, roomName string) error {
+	_, err := store.Size(ydb.YjsRoomName(roomName))
+	return err
+}
+
 type YjsRuntime struct {
-	database      *ydb.Ydb
-	broadcaster   *olricYjsBroadcaster
-	subscriptions []*redis.PubSub
+	database    *ydb.Ydb
+	broadcaster *olricYjsBroadcaster
 }
 
 func (r *YjsRuntime) Close() {
-	for _, subscription := range r.subscriptions {
-		_ = subscription.Close()
-	}
 	if r.database != nil {
 		r.database.Close()
 	}
@@ -108,7 +106,7 @@ func (r *YjsRuntime) Close() {
 }
 
 func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter *gin.Engine,
-	cruds map[string]*resource.DbResource, dtopicMap map[string]*olric.PubSub) (*YjsRuntime, error) {
+	cruds map[string]*resource.DbResource) (*YjsRuntime, error) {
 	var err error
 
 	broadcaster, err := newOlricYjsBroadcaster(ctx, cruds["world"].PubSub)
@@ -141,6 +139,11 @@ func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter 
 				ginContext.AbortWithStatus(status)
 				return
 			}
+			if err := prepareYjsRoom(store, roomName); err != nil {
+				logrus.Errorf("failed to prepare YJS room: %v", err)
+				ginContext.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
 			serveYjsRoom(ginContext, yjsConnectionHandler, roomName, readOnly)
 			return
 		}
@@ -158,24 +161,7 @@ func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter 
 
 			path := fmt.Sprintf("/live/%v/:referenceId/%v/yjs", typename, columnInfo.ColumnName)
 			logrus.Printf("[%v] YJS websocket endpoint for %v[%v]", path, typename, columnInfo.ColumnName)
-			defaultRouter.GET(path, func(typename string, columnInfo api2go.ColumnInfo) func(ginContext *gin.Context) {
-
-				pubSub, ok := dtopicMap[typename]
-				if !ok || pubSub == nil {
-					logrus.Warnf("no pub/sub topic for type %v, skipping subscription", typename)
-				} else {
-					redisPubSub := pubSub.Subscribe(ctx, typename)
-					runtime.subscriptions = append(runtime.subscriptions, redisPubSub)
-					go func(rps *redis.PubSub) {
-						channel := rps.Channel()
-						for msg := range channel {
-							var eventMessage resource.WsOutMessage
-							processErr := ProcessEventMessage(eventMessage, msg, typename, cruds, columnInfo, store)
-							CheckErr(processErr, "Failed to process message on OlricTopic[%v]", typename)
-						}
-					}(redisPubSub)
-				}
-
+			defaultRouter.GET(path, func(typename string, columnName string) func(ginContext *gin.Context) {
 				return func(ginContext *gin.Context) {
 
 					sessionUser := ginContext.Request.Context().Value("user")
@@ -190,7 +176,7 @@ func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter 
 					}
 
 					roomName, readOnly, status, authorizeErr := authorizeYjsRoom(cruds, user, typename,
-						ginContext.Param("referenceId"), columnInfo.ColumnName)
+						ginContext.Param("referenceId"), columnName)
 					if status != 0 {
 						if authorizeErr != nil {
 							logrus.Errorf("failed to authorize YJS room: %v", authorizeErr)
@@ -198,11 +184,16 @@ func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter 
 						ginContext.AbortWithStatus(status)
 						return
 					}
+					if err := prepareYjsRoom(store, roomName); err != nil {
+						logrus.Errorf("failed to prepare YJS room: %v", err)
+						ginContext.AbortWithStatus(http.StatusInternalServerError)
+						return
+					}
 
 					serveYjsRoom(ginContext, yjsConnectionHandler, roomName, readOnly)
 
 				}
-			}(typename, columnInfo))
+			}(typename, columnInfo.ColumnName))
 
 		}
 

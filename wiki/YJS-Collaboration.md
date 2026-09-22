@@ -1,74 +1,10 @@
-# YJS Collaboration
+# YJS collaboration
 
-Real-time collaborative document editing with conflict-free replication.
+Daptin exposes the YJS WebSocket protocol for standalone rooms and for file
+columns on resource records. Both endpoint forms for a resource-backed room
+use the same room, resource permissions, and persistence path.
 
-**Tested ✓** (2026-01-26) - YJS endpoints working and verified
-
-> **Security notice:** Daptin versions `0.11.4` through `0.12.29` allow
-> authenticated users to bypass row permissions through canonical names on the
-> generic YJS endpoint. The fix is available on `master` in commit `a1a3c48f`;
-> deploy that commit or upgrade to the first release containing it. See
-> [GHSA-wj7x-58c2-5793](https://github.com/daptin/daptin/security/advisories/GHSA-wj7x-58c2-5793).
-
-## Overview
-
-YJS enables multiple users to edit documents simultaneously:
-- Conflict-free (CRDT-based)
-- Works offline
-- Automatic synchronization
-- User presence/awareness
-
-An active room spans the Daptin cluster: document updates and awareness reach
-participants connected to different nodes through Daptin's Olric cluster.
-
-## Endpoints
-
-Daptin provides two YJS endpoints:
-
-### 1. Direct YJS Endpoint (General Purpose)
-
-```
-ws://localhost:6336/yjs/:documentName
-```
-
-For standalone collaborative rooms. Any authenticated user who knows the same
-room name can read and write that room, so use an unguessable name when the
-room is not intended for every signed-in user:
-```javascript
-const ws = new WebSocket(`ws://localhost:6336/yjs/test-document?token=${TOKEN}`);
-```
-
-### 2. File Column YJS Endpoint (Auto-Generated)
-
-```
-ws://localhost:6336/live/{typename}/{referenceId}/{columnName}/yjs
-```
-
-Automatically created for any column with `ColumnType` starting with `file.`:
-
-**Example:**
-```javascript
-// For a document table with file.document column named 'content'
-const ws = new WebSocket(
-  `ws://localhost:6336/live/document/abc123/content/yjs?token=${JWT_TOKEN}`
-);
-```
-
-Access follows the database row's existing permissions:
-
-- Users for whom `CanUpdate` succeeds can read and edit.
-- Users for whom only `CanRead` succeeds receive updates but their edits are ignored.
-- Other users cannot connect. A missing row and a forbidden row both return `404`.
-
-The generic endpoint also accepts the canonical database-room name
-`{typename}.{referenceId}.{columnName}`. Such names use the same row permission
-checks as `/live/...`; they never fall back to a standalone room.
-
-**Authentication:** Pass the JWT token as a query parameter (`?token=JWT_TOKEN`).
-Permissions are captured when the WebSocket connects, so reconnect after a
-permission or group-membership change.
-
-## Enabling YJS
+## Enable YJS
 
 ```bash
 curl -X POST http://localhost:6336/_config/backend/yjs.enabled \
@@ -76,555 +12,107 @@ curl -X POST http://localhost:6336/_config/backend/yjs.enabled \
   -d 'true'
 ```
 
-The storage path is determined by the `DAPTIN_STORAGE` environment variable (defaults to the current working directory). Documents are stored under `{storagePath}/yjs-documents`. This path is set at startup and cannot be changed at runtime via the config API.
+Restart Daptin after changing this startup setting.
 
-## File Column Types
+## Resource-backed collaboration
 
-YJS automatically works with file-type columns:
-
-| Column Type | Editor |
-|-------------|--------|
-| `file.document` | Rich text (Quill) |
-| `file.text` | Plain text |
-| `file.code` | Code (Monaco/CodeMirror) |
-| `file.markdown` | Markdown |
-| `file.spreadsheet` | Spreadsheet |
-
-## Quick Start
-
-### 1. Enable YJS
-
-```bash
-TOKEN=$(cat /tmp/daptin-token.txt)
-
-# Enable YJS
-curl -X POST http://localhost:6336/_config/backend/yjs.enabled \
-  -H "Authorization: Bearer $TOKEN" \
-  -d 'true'
-
-# Storage path is {DAPTIN_STORAGE}/yjs-documents (set at startup, not configurable at runtime)
-```
-
-### 2. Test Connection
-
-```bash
-# Install dependencies
-npm install ws
-
-# Create test script
-cat > test-yjs.js << 'EOF'
-const WebSocket = require('ws');
-const TOKEN = process.argv[2];
-
-const ws = new WebSocket(
-  `ws://localhost:6336/yjs/test-document?token=${TOKEN}`
-);
-
-ws.on('open', () => console.log('✓ Connected to YJS!'));
-ws.on('error', (err) => console.error('Error:', err.message));
-EOF
-
-# Run test
-node test-yjs.js "$(cat /tmp/daptin-token.txt)"
-```
-
-## JavaScript Integration
-
-### Using Direct YJS Endpoint
-
-For general-purpose collaborative documents:
-
-```javascript
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-
-// Create YJS document
-const ydoc = new Y.Doc();
-
-// Connect to Daptin (use direct endpoint)
-// WebsocketProvider appends roomname as path: serverUrl/roomname?params
-const provider = new WebsocketProvider(
-  'ws://localhost:6336/yjs',
-  'my-document',  // Appended as path: /yjs/my-document
-  ydoc,
-  { params: { token } }
-);
-
-// Get shared text type
-const ytext = ydoc.getText('content');
-
-// Listen for changes
-ytext.observe((event) => {
-  console.log('Content changed:', ytext.toString());
-});
-
-// Make changes (syncs to all connected users)
-ytext.insert(0, 'Hello, World!');
-```
-
-### Using File Column Endpoint
-
-For collaborative editing of specific database records:
-
-```javascript
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-
-// Connect to specific document record
-// WebsocketProvider appends roomname as path: serverUrl/roomname?params
-const documentId = 'abc-123-def';  // From database
-const provider = new WebsocketProvider(
-  `ws://localhost:6336/live/document/${documentId}/content`,
-  'yjs',  // Appended as path: /live/document/{id}/content/yjs
-  ydoc,
-  { params: { token } }
-);
-
-// Rest is the same as above
-const ytext = ydoc.getText('content');
-```
-
-## Complete Examples
-
-### Plain Text Collaborative Editor
-
-Simple collaborative text editor without rich text libraries:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Collaborative Editor</title>
-  <script src="https://cdn.jsdelivr.net/npm/yjs@13/dist/yjs.mjs" type="module"></script>
-  <script src="https://cdn.jsdelivr.net/npm/y-websocket@1/dist/y-websocket.mjs" type="module"></script>
-</head>
-<body>
-  <h1>Collaborative Document</h1>
-  <textarea id="editor" rows="20" cols="80"></textarea>
-  <div id="users"></div>
-
-  <script type="module">
-    import * as Y from 'https://cdn.jsdelivr.net/npm/yjs@13/dist/yjs.mjs';
-    import { WebsocketProvider } from 'https://cdn.jsdelivr.net/npm/y-websocket@1/dist/y-websocket.mjs';
-
-    const TOKEN = 'your-jwt-token-here';
-    const ydoc = new Y.Doc();
-
-    // Connect to Daptin
-    // WebsocketProvider appends roomname as path: serverUrl/roomname?params
-    const provider = new WebsocketProvider(
-      'ws://localhost:6336/yjs',
-      'my-document',
-      ydoc,
-      { params: { token: TOKEN } }
-    );
-
-    const ytext = ydoc.getText('content');
-    const textarea = document.getElementById('editor');
-
-    // Update textarea when YJS changes
-    ytext.observe(() => {
-      if (textarea.value !== ytext.toString()) {
-        const cursorPos = textarea.selectionStart;
-        textarea.value = ytext.toString();
-        textarea.setSelectionRange(cursorPos, cursorPos);
-      }
-    });
-
-    // Update YJS when textarea changes
-    textarea.addEventListener('input', (e) => {
-      const newValue = textarea.value;
-      const oldValue = ytext.toString();
-
-      if (newValue !== oldValue) {
-        // Find the diff and apply it
-        ydoc.transact(() => {
-          ytext.delete(0, oldValue.length);
-          ytext.insert(0, newValue);
-        });
-      }
-    });
-
-    // Show online users
-    provider.awareness.on('change', () => {
-      const states = Array.from(provider.awareness.getStates().values());
-      document.getElementById('users').textContent =
-        `Online: ${states.length} user(s)`;
-    });
-
-    // Set this user's info
-    provider.awareness.setLocalStateField('user', {
-      name: 'User ' + Math.floor(Math.random() * 1000),
-      color: '#' + Math.floor(Math.random()*16777215).toString(16)
-    });
-  </script>
-</body>
-</html>
-```
-
-### With Quill Rich Text Editor
-
-Professional rich text collaborative editing:
-
-```javascript
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-import { QuillBinding } from 'y-quill';
-import Quill from 'quill';
-import 'quill/dist/quill.snow.css';
-
-// Initialize YJS
-const ydoc = new Y.Doc();
-const ytext = ydoc.getText('quill');
-
-// Connect to Daptin
-// WebsocketProvider appends roomname as path: serverUrl/roomname?params
-const provider = new WebsocketProvider(
-  'ws://localhost:6336/yjs',
-  'rich-document',
-  ydoc,
-  { params: { token: TOKEN } }
-);
-
-// Initialize Quill
-const quill = new Quill('#editor', {
-  theme: 'snow',
-  modules: {
-    toolbar: [
-      ['bold', 'italic', 'underline', 'strike'],
-      ['blockquote', 'code-block'],
-      [{ 'header': 1 }, { 'header': 2 }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'indent': '-1'}, { 'indent': '+1' }],
-      ['link', 'image'],
-      ['clean']
-    ]
-  }
-});
-
-// Bind Quill to YJS
-const binding = new QuillBinding(ytext, quill, provider.awareness);
-
-// Show cursors and selections of other users
-provider.awareness.setLocalStateField('user', {
-  name: 'Current User',
-  color: '#' + Math.floor(Math.random()*16777215).toString(16)
-});
-```
-
-### With Monaco Code Editor
-
-Collaborative code editing:
-
-```javascript
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-import { MonacoBinding } from 'y-monaco';
-import * as monaco from 'monaco-editor';
-
-// Initialize YJS
-const ydoc = new Y.Doc();
-const ytext = ydoc.getText('monaco');
-
-// Connect to Daptin
-// WebsocketProvider appends roomname as path: serverUrl/roomname?params
-const provider = new WebsocketProvider(
-  'ws://localhost:6336/yjs',
-  'code-file',
-  ydoc,
-  { params: { token: TOKEN } }
-);
-
-// Initialize Monaco
-const editor = monaco.editor.create(document.getElementById('editor'), {
-  value: '',
-  language: 'javascript',
-  theme: 'vs-dark',
-  automaticLayout: true
-});
-
-// Bind Monaco to YJS
-const binding = new MonacoBinding(
-  ytext,
-  editor.getModel(),
-  new Set([editor]),
-  provider.awareness
-);
-
-// Set user identity
-provider.awareness.setLocalStateField('user', {
-  name: 'Developer ' + Math.floor(Math.random() * 100),
-  color: '#' + Math.floor(Math.random()*16777215).toString(16)
-});
-```
-
-### With Database Record (File Column)
-
-Collaborative editing of a specific database record:
-
-```javascript
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-
-// 1. Create a document record with file.document column
-const response = await fetch('http://localhost:6336/api/document', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${TOKEN}`,
-    'Content-Type': 'application/vnd.api+json'
-  },
-  body: JSON.stringify({
-    data: {
-      type: 'document',
-      attributes: {
-        title: 'Team Notes',
-        content: [{
-          name: 'notes.txt',
-          file: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
-          type: 'text/plain'
-        }]
-      }
-    }
-  })
-});
-
-const doc = await response.json();
-const documentId = doc.data.id;
-
-// 2. Connect to YJS endpoint for this specific record
-// WebsocketProvider appends roomname as path: serverUrl/roomname?params
-const ydoc = new Y.Doc();
-const provider = new WebsocketProvider(
-  `ws://localhost:6336/live/document/${documentId}/content`,
-  'yjs',  // Appended as path: /live/document/{id}/content/yjs
-  ydoc,
-  { params: { token: TOKEN } }
-);
-
-// 3. Use the shared document
-const ytext = ydoc.getText('content');
-// ... bind to your editor of choice
-```
-
-## User Awareness
-
-Show other users' cursors and selections:
-
-Awareness is ephemeral: Daptin removes a client's state when its WebSocket
-disconnects and does not store awareness with the document. Resource-backed
-rooms still apply the row's normal owner and usergroup permissions before
-joining the room.
-
-```javascript
-const provider = new WebsocketProvider(url, room, ydoc);
-
-// Set local user info
-provider.awareness.setLocalStateField('user', {
-  name: 'John Doe',
-  color: '#ff0000'
-});
-
-// Listen for awareness changes
-provider.awareness.on('change', () => {
-  const states = provider.awareness.getStates();
-  states.forEach((state, clientId) => {
-    if (state.user) {
-      console.log(`User ${state.user.name} is online`);
-    }
-  });
-});
-```
-
-## Document Storage
-
-YJS documents are stored as:
-- Binary files on the server's filesystem (raw YJS update data)
-- Conflict resolution built-in (CRDT)
-
-## React Component Example
-
-```javascript
-import React, { useEffect, useRef, useState } from 'react';
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-import { QuillBinding } from 'y-quill';
-import Quill from 'quill';
-
-function CollaborativeEditor({ documentId, token }) {
-  const editorRef = useRef(null);
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    const ydoc = new Y.Doc();
-
-    // WebsocketProvider appends roomname as path: serverUrl/roomname?params
-    const provider = new WebsocketProvider(
-      `ws://localhost:6336/live/document/${documentId}/content`,
-      'yjs',
-      ydoc,
-      { params: { token } }
-    );
-
-    // Set user identity
-    provider.awareness.setLocalStateField('user', {
-      name: 'Current User',
-      color: '#' + Math.floor(Math.random()*16777215).toString(16)
-    });
-
-    // Track online users
-    provider.awareness.on('change', () => {
-      const states = Array.from(provider.awareness.getStates().values());
-      setUsers(states.filter(s => s.user).map(s => s.user));
-    });
-
-    const ytext = ydoc.getText('quill');
-
-    const quill = new Quill(editorRef.current, {
-      theme: 'snow'
-    });
-
-    const binding = new QuillBinding(ytext, quill, provider.awareness);
-
-    return () => {
-      binding.destroy();
-      provider.destroy();
-      ydoc.destroy();
-    };
-  }, [documentId, token]);
-
-  return (
-    <div>
-      <div className="users">
-        {users.map((user, i) => (
-          <span key={i} style={{ color: user.color }}>
-            {user.name}
-          </span>
-        ))}
-      </div>
-      <div ref={editorRef} />
-    </div>
-  );
-}
-```
-
-## Creating YJS-Enabled Documents
-
-### Schema Definition
+Declare a file column with its extension filter. `file.*` declares any
+extension; `file.md|txt` declares `.md` and `.txt`. Labels such as
+`file.document` and `file.markdown` are not semantic editor types: they mean
+the literal extensions `.document` and `.markdown`.
 
 ```yaml
 Tables:
-  - TableName: document
+  - TableName: collaborative_note
     Columns:
       - Name: title
-        DataType: varchar(500)
+        DataType: varchar(200)
         ColumnType: label
       - Name: content
         DataType: text
-        ColumnType: file.document  # YJS-enabled
+        ColumnType: file.md|txt
 ```
 
-### Create Document
+Create a record through the normal resource API, then connect using its public
+`reference_id`:
 
-```bash
-curl -X POST http://localhost:6336/api/document \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "document",
-      "attributes": {
-        "title": "Collaborative Doc"
-      }
-    }
-  }'
+```text
+ws://localhost:6336/live/collaborative_note/{reference_id}/content/yjs?token={jwt}
 ```
 
-Then connect to YJS endpoint using the returned reference_id.
+The equivalent canonical endpoint is:
 
-## Offline Support
-
-YJS works offline:
-
-```javascript
-// Changes are stored locally
-ytext.insert(0, 'Offline edit');
-
-// When reconnected, changes sync automatically
-provider.on('sync', (isSynced) => {
-  console.log('Synced:', isSynced);
-});
+```text
+ws://localhost:6336/yjs/collaborative_note.{reference_id}.content?token={jwt}
 ```
 
-## Performance
+The two URLs identify the same room. A canonical-looking room never falls back
+to standalone storage.
 
-- Documents sync incrementally (deltas only)
-- Efficient binary encoding
-- Handles large documents
-- Low latency updates
+Access follows the record's normal authorities:
 
----
+- `CanUpdate` grants read/write collaboration.
+- `CanRead` without `CanUpdate` grants a read-only connection; client edits are
+  discarded.
+- No read access, a missing record, an unknown table, or a non-file column is
+  reported as not found.
 
-## Supported File Column Types
+Each accepted update runs through `DbResource.Update` with the authenticated
+session user. Validation, ownership, row permissions, metering, file handling,
+events, and optimistic resource versioning therefore remain the authorities.
+An update is broadcast only after that resource update succeeds.
 
-YJS endpoints are auto-generated for any column with `ColumnType` starting with `file.`:
+The file column remains the durable state. Daptin preserves ordinary assets in
+the column and maintains exactly one reserved `x-crdt/yjs` asset containing the
+raw base64-encoded YJS update history. That state stays inline in the resource
+column even when ordinary assets use a cloud store. Malformed or duplicate
+state prevents the WebSocket upgrade instead of creating another state path.
 
-| Column Type | Description | Editor Support |
-|-------------|-------------|----------------|
-| `file.document` | Rich text documents | Quill, TipTap |
-| `file.text` | Plain text files | TextArea, CodeMirror |
-| `file.code` | Source code | Monaco, CodeMirror |
-| `file.markdown` | Markdown documents | SimpleMDE, CodeMirror |
-| `file.spreadsheet` | Spreadsheet data | Handsontable |
-| `file.*` | Any file type | Custom editors |
+## JavaScript client
 
----
-
-## Testing Status
-
-**Last Tested:** 2026-01-26
-**Status:** ✅ All features working
-
-### Verified Features
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| YJS enabled | ✅ Working | Configured via config API |
-| Storage path | ✅ Working | Set at startup from DAPTIN_STORAGE env var |
-| Direct endpoint (`/yjs/:name`) | ✅ Working | Successfully connected |
-| File column endpoints | ✅ Working | Auto-generated for `file.*` columns |
-| WebSocket connection | ✅ Working | Connects with token query param |
-| Permission checks | ✅ Working | User context properly set |
-| Document storage | ✅ Working | Binary files with raw YJS update data |
-| CRDT sync | ✅ Working | Conflict-free collaborative editing |
-
-### Test Results
-
-Successfully tested direct YJS endpoint with Node.js WebSocket client:
-
-```bash
-# Test YJS connection
-node test-yjs-ws.js "$(cat /tmp/daptin-token.txt)"
-
-# Output:
-# Testing YJS WebSocket connection...
-# ✓ YJS WebSocket connected successfully!
-# Connection closed. Code: 1000
-```
-
-### Example from dadadash
-
-The official example app uses YJS with Daptin (from git history):
+Editor choice is entirely client-side. Bind any YJS-compatible editor to the
+shared type your application chooses.
 
 ```javascript
 import * as Y from 'yjs'
-import {WebsocketProvider} from 'y-websocket'
+import { WebsocketProvider } from 'y-websocket'
 
-const ydoc = new Y.Doc()
+const doc = new Y.Doc()
 const provider = new WebsocketProvider(
-  'ws://localhost:6336/yjs',
-  'monaco-demo',
-  ydoc,
-  { params: { token: 'JWT_TOKEN' } }
+  `ws://localhost:6336/live/collaborative_note/${referenceId}/content`,
+  'yjs',
+  doc,
+  { params: { token } }
 )
-const ytext = ydoc.getText('monaco')
+
+const text = doc.getText('content')
+text.observe(() => console.log(text.toString()))
+text.insert(0, 'Collaborative text')
 ```
+
+`WebsocketProvider` appends the room name, so the base URL above plus the room
+`yjs` produces the generated endpoint.
+
+## Standalone rooms
+
+Use a non-canonical name when collaboration is not attached to a resource:
+
+```text
+ws://localhost:6336/yjs/{room_name}?token={jwt}
+```
+
+Standalone rooms are stored under the configured local storage path
+(`DAPTIN_LOCAL_STORAGE_PATH` or `-local_storage_path`) in `yjs-documents`.
+They are authenticated but have no resource record from which to derive
+row-level permissions; authenticated users sharing a room name share that
+room. Use an unguessable name when that is the intended boundary.
+
+## Cluster and offline behavior
+
+Connected nodes distribute document updates and awareness through Daptin's
+Olric-backed YJS broadcaster. Durable truth remains the resource file column
+for canonical rooms and the configured disk store for standalone rooms. YJS
+clients can edit offline and exchange their missing updates after reconnecting.
+
+See [Column Type Reference](Column-Type-Reference.md#file-type-patterns) for the file
+column grammar and [Permissions](Permissions.md) for resource access rules.
