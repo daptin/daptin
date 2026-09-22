@@ -91,6 +91,7 @@ func serveYjsRoom(ginContext *gin.Context, yjsConnectionHandler http.HandlerFunc
 
 type YjsRuntime struct {
 	database      *ydb.Ydb
+	broadcaster   *olricYjsBroadcaster
 	subscriptions []*redis.PubSub
 }
 
@@ -101,15 +102,21 @@ func (r *YjsRuntime) Close() {
 	if r.database != nil {
 		r.database.Close()
 	}
+	if r.broadcaster != nil {
+		r.broadcaster.Close()
+	}
 }
 
 func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter *gin.Engine,
 	cruds map[string]*resource.DbResource, dtopicMap map[string]*olric.PubSub) (*YjsRuntime, error) {
 	var err error
 
-	broadcaster := ydb.NewLocalBroadcaster(64)
+	broadcaster, err := newOlricYjsBroadcaster(ctx, cruds["world"].PubSub)
+	if err != nil {
+		return nil, err
+	}
 	ydbInstance := ydb.InitYdb(store, broadcaster)
-	runtime := &YjsRuntime{database: ydbInstance}
+	runtime := &YjsRuntime{database: ydbInstance, broadcaster: broadcaster}
 
 	yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
 

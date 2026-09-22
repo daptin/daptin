@@ -18,6 +18,9 @@ YJS enables multiple users to edit documents simultaneously:
 - Automatic synchronization
 - User presence/awareness
 
+An active room spans the Daptin cluster: document updates and awareness reach
+participants connected to different nodes through Daptin's Olric cluster.
+
 ## Endpoints
 
 Daptin provides two YJS endpoints:
@@ -406,6 +409,11 @@ const ytext = ydoc.getText('content');
 ## User Awareness
 
 Show other users' cursors and selections:
+
+Awareness is ephemeral: Daptin removes a client's state when its WebSocket
+disconnects and does not store awareness with the document. Resource-backed
+rooms still apply the row's normal owner and usergroup permissions before
+joining the room.
 
 ```javascript
 const provider = new WebsocketProvider(url, room, ydoc);
