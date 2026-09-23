@@ -169,6 +169,59 @@ func TestMeteringRecordsCompletePayloadsAndChecksOwner(t *testing.T) {
 	}
 }
 
+func TestMeteringServiceBoundsOperationPayloads(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	service := NewMeteringService(&cruds)
+	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
+	requestBody := []byte(strings.Repeat("q", MeteringPayloadBodyLimit+101))
+	responseBody := []byte(strings.Repeat("r", MeteringPayloadBodyLimit+203))
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision, err := service.Admit(MeteringContext{RequestID: "bounded-operation", User: user, Metering: config, RequestBody: requestBody}, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Complete(MeteringContext{User: user, Metering: config, ResponseBody: responseBody}, decision, tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	verify, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer verify.Rollback()
+	usage, err := service.findUsageByRequestID("bounded-operation", verify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestBytes, requestErr := ResourceRowInt64(usage["request_bytes"])
+	responseBytes, responseErr := ResourceRowInt64(usage["response_bytes"])
+	if requestErr != nil || responseErr != nil || requestBytes != int64(len(requestBody)) || responseBytes != int64(len(responseBody)) {
+		t.Fatalf("full byte counts = %d, %d (%v, %v)", requestBytes, responseBytes, requestErr, responseErr)
+	}
+	if len(StringOrEmpty(usage["request_body"])) != MeteringPayloadBodyLimit || len(StringOrEmpty(usage["response_body"])) != MeteringPayloadBodyLimit {
+		t.Fatalf("retained body sizes = %d, %d", len(StringOrEmpty(usage["request_body"])), len(StringOrEmpty(usage["response_body"])))
+	}
+	metadata := StringOrEmpty(usage["metadata"])
+	if !strings.Contains(metadata, `"request_body_truncated":true`) || !strings.Contains(metadata, `"response_body_truncated":true`) {
+		t.Fatalf("truncation flags missing: %s", metadata)
+	}
+	if err := service.RecordResponseBody(user, decision.ReservationToken, responseBody, len(responseBody), verify); err != nil {
+		t.Fatal(err)
+	}
+	usage, err = service.findUsageByRequestID("bounded-operation", verify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(StringOrEmpty(usage["response_body"])) != MeteringPayloadBodyLimit {
+		t.Fatalf("response recording bypassed the retention limit: %d", len(StringOrEmpty(usage["response_body"])))
+	}
+}
+
 func TestMeteringCaptureTruncationKeepsByteCounts(t *testing.T) {
 	database, cruds, user := newCanonicalMeteringDatabase(t)
 	service := NewMeteringService(&cruds)

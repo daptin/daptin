@@ -56,6 +56,58 @@ func TestDaptinMeteringCapturesHTTPPayloads(t *testing.T) {
 	}
 }
 
+func TestDaptinMeteringBoundsHTTPPayloadCapture(t *testing.T) {
+	database, cruds, _, _ := newCatalogTestResources(t)
+	metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}
+	requestBody := strings.Repeat("r", resource.MeteringPayloadBodyLimit+1024)
+	responseBody := strings.Repeat("s", resource.MeteringPayloadBodyLimit+2048)
+	handler := metering.captureHandler(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if _, err := io.Copy(io.Discard, request.Body); err != nil {
+			t.Error(err)
+		}
+		token, err := metering.Admit(request.Context(), contract.Admission{RequestID: "bounded-http", Operation: contract.OperationResponses})
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if err := metering.Complete(request.Context(), contract.Completion{Token: token, Status: "completed", HTTPStatus: 200}); err != nil {
+			t.Error(err)
+			return
+		}
+		for offset := 0; offset < len(responseBody); offset += 4096 {
+			writer.Write([]byte(responseBody[offset:min(offset+4096, len(responseBody))]))
+		}
+	}))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(requestBody)))
+	if response.Body.String() != responseBody {
+		t.Fatal("client response was truncated")
+	}
+	transaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer transaction.Rollback()
+	rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, transaction)
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("usage rows = %d, %v", len(rows), err)
+	}
+	usage := rows[0]
+	requestBytes, requestErr := resource.ResourceRowInt64(usage["request_bytes"])
+	responseBytes, responseErr := resource.ResourceRowInt64(usage["response_bytes"])
+	if requestErr != nil || responseErr != nil || requestBytes != int64(len(requestBody)) || responseBytes != int64(len(responseBody)) {
+		t.Fatalf("metered byte counts = %v, %v (%v, %v)", requestBytes, responseBytes, requestErr, responseErr)
+	}
+	if len(resource.StringOrEmpty(usage["request_body"])) != resource.MeteringPayloadBodyLimit ||
+		len(resource.StringOrEmpty(usage["response_body"])) != resource.MeteringPayloadBodyLimit {
+		t.Fatalf("retained body sizes = %d, %d", len(resource.StringOrEmpty(usage["request_body"])), len(resource.StringOrEmpty(usage["response_body"])))
+	}
+	metadata := resource.StringOrEmpty(usage["metadata"])
+	if !strings.Contains(metadata, `"request_body_truncated":true`) || !strings.Contains(metadata, `"response_body_truncated":true`) {
+		t.Fatalf("truncation flags missing: %s", metadata)
+	}
+}
+
 func TestDaptinMeteringRecordsGuestInvocation(t *testing.T) {
 	database, cruds, _, _ := newCatalogTestResources(t)
 	metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}

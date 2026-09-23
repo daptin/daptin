@@ -1,8 +1,10 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -69,6 +71,74 @@ func TestGraphQLBodyLimitRejectsOversizedRequests(t *testing.T) {
 			router.ServeHTTP(ping, httptest.NewRequest(http.MethodGet, "/ping", nil))
 			if ping.Code != http.StatusOK || ping.Body.String() != "pong" {
 				t.Fatalf("/ping unavailable after request: %d %q", ping.Code, ping.Body.String())
+			}
+		})
+	}
+}
+
+func TestGraphQLOperationSelectionLimit(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	resolved := 0
+	query := graphql.NewObject(graphql.ObjectConfig{
+		Name: "Query",
+		Fields: graphql.Fields{
+			"ping": &graphql.Field{Type: graphql.String, Resolve: func(graphql.ResolveParams) (interface{}, error) {
+				resolved++
+				return "pong", nil
+			}},
+		},
+	})
+	schema, err := graphql.NewSchema(graphql.SchemaConfig{Query: query})
+	if err != nil {
+		t.Fatal(err)
+	}
+	graphqlHandler := handler.New(&handler.Config{Schema: &schema})
+	cruds := map[string]*resource.DbResource{}
+	router := gin.New()
+	router.Use(meteringPayloadMiddleware(&cruds, defaultGraphQLRequestBodyLimit))
+	router.POST("/graphql", func(c *gin.Context) { graphqlHandler.ServeHTTP(c.Writer, c.Request) })
+	router.GET("/graphql", func(c *gin.Context) { graphqlHandler.ServeHTTP(c.Writer, c.Request) })
+
+	aliasFields := make([]string, maxGraphQLOperationSelections+1)
+	for i := range aliasFields {
+		aliasFields[i] = fmt.Sprintf("a%d: ping", i)
+	}
+	for _, tc := range []struct {
+		name        string
+		method      string
+		contentType string
+		query       string
+		wantStatus  int
+		wantResolve int
+	}{
+		{"at limit", http.MethodPost, "application/json", "{" + strings.Join(aliasFields[:maxGraphQLOperationSelections], " ") + "}", http.StatusOK, maxGraphQLOperationSelections},
+		{"aliases over limit", http.MethodPost, "application/json", "{" + strings.Join(aliasFields, " ") + "}", http.StatusBadRequest, 0},
+		{"repeated fragment over limit", http.MethodPost, "application/json", "{ " + strings.Repeat("...P ", 129) + "} fragment P on Query { ping }", http.StatusBadRequest, 0},
+		{"nested fragment over limit", http.MethodPost, "application/json", "{ ...P } fragment P on Query { " + strings.Repeat("...Q ", 129) + "} fragment Q on Query { ping }", http.StatusBadRequest, 0},
+		{"inline fragment over limit", http.MethodPost, "application/json", "{ ... on Query { " + strings.Join(aliasFields, " ") + " } }", http.StatusBadRequest, 0},
+		{"raw GraphQL over limit", http.MethodPost, "application/graphql", "{" + strings.Join(aliasFields, " ") + "}", http.StatusBadRequest, 0},
+		{"form GraphQL over limit", http.MethodPost, "application/x-www-form-urlencoded", "{" + strings.Join(aliasFields, " ") + "}", http.StatusBadRequest, 0},
+		{"GET aliases over limit", http.MethodGet, "", "{" + strings.Join(aliasFields, " ") + "}", http.StatusBadRequest, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resolved = 0
+			var request *http.Request
+			if tc.method == http.MethodGet {
+				request = httptest.NewRequest(http.MethodGet, "/graphql?query="+url.QueryEscape(tc.query), nil)
+			} else {
+				body := fmt.Sprintf(`{"query":%q}`, tc.query)
+				if tc.contentType == "application/graphql" {
+					body = tc.query
+				} else if tc.contentType == "application/x-www-form-urlencoded" {
+					body = url.Values{"query": {tc.query}}.Encode()
+				}
+				request = httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(body))
+				request.Header.Set("Content-Type", tc.contentType)
+			}
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if response.Code != tc.wantStatus || resolved != tc.wantResolve {
+				t.Fatalf("status = %d, resolved = %d, want %d and %d; body = %s", response.Code, resolved, tc.wantStatus, tc.wantResolve, response.Body.String())
 			}
 		})
 	}

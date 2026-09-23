@@ -23,9 +23,9 @@ For maintainer internals, see [[API-Metering-Technical-KT]].
 
 Each `api_usage` record identifies the metered operation and account, its
 progress and result, the quantities consumed, and request and response payloads
-in `request_body` and `response_body`. For metered resource and action HTTP calls,
-payload capture retains at most 64 KiB of each body. The `request_bytes` and
-`response_bytes` fields count the full body, and `metadata.request_body_truncated` or
+in `request_body` and `response_body`. Payload capture retains at most 64 KiB
+of each body. The `request_bytes` and `response_bytes` fields count the full
+operation payload, and `metadata.request_body_truncated` or
 `metadata.response_body_truncated` is true when a captured body was shortened.
 An empty request body is stored as an empty string. For scheduled actions and
 other calls without an HTTP client, Daptin stores the action inputs and
@@ -201,6 +201,13 @@ the configured metric. It can read `request`, `response`, `metadata`, and
 | Run a named action | Enable metering on the resource the action belongs to, or in its `on_actions` entry | One action run, including a run started by a scheduled task |
 | Invoke an LLM model | The built-in `llm_model` `invoke` setting is enabled | One model invocation, whether started directly, by an action, or by a batch item |
 | Call an installed integration operation directly | Enable its generated action under the `integration` resource's `on_actions` setting | One generated action run |
+
+For GraphQL, each metered resource or action resolver records its own result;
+`response_bytes` describes that result. The combined GraphQL HTTP response is
+not copied into each usage record. When one HTTP request runs several metered
+operations, each usage record keeps its own result rather than a copy of the
+combined HTTP response. A request with one metered REST operation also records
+the HTTP response body and its full byte count.
 
 Installing an integration does not enable metering for its operations. To meter
 one, use the exact generated action name in the `integration` resource's

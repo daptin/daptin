@@ -85,16 +85,31 @@ type daptinMetering struct {
 type meteringPayloadKey struct{}
 
 type meteringPayload struct {
-	requestBody *bytes.Buffer
-	token       string
+	requestBody  *bytes.Buffer
+	requestBytes int
+	token        string
+}
+
+func (payload *meteringPayload) Write(value []byte) (int, error) {
+	payload.requestBytes += len(value)
+	if remaining := resource.MeteringPayloadBodyLimit - payload.requestBody.Len(); remaining > 0 {
+		payload.requestBody.Write(value[:min(len(value), remaining)])
+	}
+	return len(value), nil
 }
 
 func (metering daptinMetering) Admit(ctx context.Context, admission contract.Admission) (contract.ReservationToken, error) {
 	user := daptinSessionUser(ctx)
 	payload, _ := ctx.Value(meteringPayloadKey{}).(*meteringPayload)
 	var requestBody []byte
+	requestBytes := 0
 	if payload != nil && payload.requestBody != nil {
 		requestBody = append([]byte{}, payload.requestBody.Bytes()...)
+		requestBytes = payload.requestBytes
+	}
+	metadata := map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation}
+	if requestBytes > len(requestBody) {
+		metadata["request_body_truncated"] = true
 	}
 	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
 	if err != nil {
@@ -106,8 +121,9 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 		RequestID: string(admission.RequestID), User: user, Endpoint: "/v1/" + string(admission.Operation), Method: "POST",
 		EntityType: "llm_model", RequestType: "llm_" + string(admission.Operation),
 		RequestBody:       requestBody,
+		RequestBytes:      requestBytes,
 		EstimatedMeasures: admission.EstimatedUsage.AllMeasures(), Metering: config,
-		Metadata: map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation},
+		Metadata: metadata,
 	}, transaction)
 	if err != nil {
 		var httpError api2go.HTTPError
@@ -125,7 +141,7 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 	return contract.ReservationToken{RequestID: admission.RequestID, Opaque: decision.ReservationToken}, nil
 }
 
-func (metering daptinMetering) recordResponse(ctx context.Context, payload *meteringPayload, body []byte) error {
+func (metering daptinMetering) recordResponse(ctx context.Context, payload *meteringPayload, body []byte, responseBytes int) error {
 	if payload == nil || payload.token == "" {
 		return nil
 	}
@@ -134,7 +150,7 @@ func (metering daptinMetering) recordResponse(ctx context.Context, payload *mete
 		return err
 	}
 	defer transaction.Rollback()
-	if err := metering.service.RecordResponseBody(daptinSessionUser(ctx), payload.token, body, len(body), transaction); err != nil {
+	if err := metering.service.RecordResponseBody(daptinSessionUser(ctx), payload.token, body, responseBytes, transaction); err != nil {
 		return err
 	}
 	return transaction.Commit()

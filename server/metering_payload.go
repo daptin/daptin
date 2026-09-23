@@ -63,6 +63,7 @@ func meteringPayloadMiddleware(cruds *map[string]*resource.DbResource, graphqlRe
 			c.Next()
 			return
 		}
+		var graphqlBody []byte
 		if path == "/graphql" && c.Request.Method == http.MethodPost && c.Request.Body != nil {
 			if c.Request.ContentLength > int64(graphqlRequestBodyLimit) {
 				c.AbortWithStatus(http.StatusRequestEntityTooLarge)
@@ -78,15 +79,24 @@ func meteringPayloadMiddleware(cruds *map[string]*resource.DbResource, graphqlRe
 				c.AbortWithStatus(http.StatusRequestEntityTooLarge)
 				return
 			}
+			graphqlBody = body
 			c.Request.Body = io.NopCloser(bytes.NewReader(body))
+		}
+		if path == "/graphql" && !graphQLOperationWithinSelectionLimit(c.Request, graphqlBody) {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "GraphQL operation exceeds 256 selections"})
+			return
 		}
 		request, capture := resource.NewMeteringPayloadCapture(c.Request)
 		c.Request = request
+		if path == "/graphql" {
+			c.Next()
+			return
+		}
 		writer := &meteringPayloadWriter{ResponseWriter: c.Writer, capture: capture}
 		c.Writer = writer
 		c.Next()
 		reservations := capture.Reservations()
-		if len(reservations) == 0 {
+		if len(reservations) != 1 {
 			return
 		}
 		transaction, err := (*cruds)["api_usage"].Connection().Beginx()
@@ -95,11 +105,10 @@ func meteringPayloadMiddleware(cruds *map[string]*resource.DbResource, graphqlRe
 			return
 		}
 		defer transaction.Rollback()
-		for _, reservation := range reservations {
-			if err := service.RecordResponseBody(reservation.Owner, reservation.Token, writer.body.Bytes(), writer.bytes, transaction); err != nil {
-				log.Errorf("record metering response payload: %v", err)
-				return
-			}
+		reservation := reservations[0]
+		if err := service.RecordResponseBody(reservation.Owner, reservation.Token, writer.body.Bytes(), writer.bytes, transaction); err != nil {
+			log.Errorf("record metering response payload: %v", err)
+			return
 		}
 		if err := transaction.Commit(); err != nil {
 			log.Errorf("commit metering response payload: %v", err)

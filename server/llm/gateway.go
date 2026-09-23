@@ -121,7 +121,10 @@ func (gatewayHost *Gateway) Invoke(ctx context.Context, user *auth.SessionUser, 
 	if err != nil {
 		return contract.Response{}, err
 	}
-	payload := &meteringPayload{requestBody: bytes.NewBuffer(requestBody)}
+	payload := &meteringPayload{
+		requestBody:  bytes.NewBuffer(append([]byte(nil), requestBody[:min(len(requestBody), resource.MeteringPayloadBodyLimit)]...)),
+		requestBytes: len(requestBody),
+	}
 	ctx = context.WithValue(ctx, meteringPayloadKey{}, payload)
 	response, err := gatewayHost.engine.Invoke(ctx, gatewayPrincipal(user), request)
 	responseBody, marshalErr := stdjson.Marshal(response)
@@ -129,7 +132,8 @@ func (gatewayHost *Gateway) Invoke(ctx context.Context, user *auth.SessionUser, 
 		responseBody, marshalErr = stdjson.Marshal(map[string]string{"error": err.Error()})
 	}
 	if marshalErr == nil {
-		if recordErr := gatewayHost.metering.recordResponse(ctx, payload, responseBody); recordErr != nil {
+		if recordErr := gatewayHost.metering.recordResponse(ctx, payload,
+			responseBody[:min(len(responseBody), resource.MeteringPayloadBodyLimit)], len(responseBody)); recordErr != nil {
 			log.Errorf("record LLM response payload: %v", recordErr)
 		}
 	}
@@ -143,12 +147,16 @@ type meteringReadCloser struct {
 
 type meteringResponseWriter struct {
 	http.ResponseWriter
-	body bytes.Buffer
+	body  bytes.Buffer
+	bytes int
 }
 
 func (writer *meteringResponseWriter) Write(body []byte) (int, error) {
 	n, err := writer.ResponseWriter.Write(body)
-	writer.body.Write(body[:n])
+	writer.bytes += n
+	if remaining := resource.MeteringPayloadBodyLimit - writer.body.Len(); remaining > 0 {
+		writer.body.Write(body[:min(n, remaining)])
+	}
 	return n, err
 }
 
@@ -171,12 +179,12 @@ func (metering daptinMetering) captureHandler(next http.Handler) http.Handler {
 		}
 		payload := &meteringPayload{requestBody: &bytes.Buffer{}}
 		if request.Body != nil {
-			request.Body = meteringReadCloser{Reader: io.TeeReader(request.Body, payload.requestBody), Closer: request.Body}
+			request.Body = meteringReadCloser{Reader: io.TeeReader(request.Body, payload), Closer: request.Body}
 		}
 		request = request.WithContext(context.WithValue(request.Context(), meteringPayloadKey{}, payload))
 		responseWriter := &meteringResponseWriter{ResponseWriter: writer}
 		next.ServeHTTP(responseWriter, request)
-		if err := metering.recordResponse(request.Context(), payload, responseWriter.body.Bytes()); err != nil {
+		if err := metering.recordResponse(request.Context(), payload, responseWriter.body.Bytes(), responseWriter.bytes); err != nil {
 			log.Errorf("record LLM response payload: %v", err)
 		}
 	})

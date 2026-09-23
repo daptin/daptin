@@ -178,8 +178,15 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 			ctx.Metadata["request_body_truncated"] = true
 		}
 	}
-	if ctx.RequestBytes == 0 && ctx.RequestBody != nil {
+	if ctx.RequestBytes < len(ctx.RequestBody) {
 		ctx.RequestBytes = len(ctx.RequestBody)
+	}
+	if len(ctx.RequestBody) > MeteringPayloadBodyLimit {
+		if ctx.Metadata == nil {
+			ctx.Metadata = make(map[string]interface{})
+		}
+		ctx.Metadata["request_body_truncated"] = true
+		ctx.RequestBody = ctx.RequestBody[:MeteringPayloadBodyLimit]
 	}
 	decision.Enabled = true
 	decision.config = config
@@ -379,6 +386,38 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 		return errors.New("invalid api_usage user_account_id: must be positive")
 	}
 	ctx = hydrateMeteringContext(ctx, usage)
+	var admissionMetadata map[string]interface{}
+	if raw := StringOrEmpty(usage["metadata"]); raw != "" {
+		if err := json.UnmarshalFromString(raw, &admissionMetadata); err != nil {
+			return fmt.Errorf("decode metering admission metadata: %w", err)
+		}
+	}
+	if admissionMetadata["request_body_truncated"] == true {
+		if ctx.Metadata == nil {
+			ctx.Metadata = make(map[string]interface{})
+		}
+		ctx.Metadata["request_body_truncated"] = true
+	}
+	if ctx.RequestBytes < len(ctx.RequestBody) {
+		ctx.RequestBytes = len(ctx.RequestBody)
+	}
+	if ctx.ResponseBytes < len(ctx.ResponseBody) {
+		ctx.ResponseBytes = len(ctx.ResponseBody)
+	}
+	if len(ctx.ResponseBody) > MeteringPayloadBodyLimit {
+		if ctx.Metadata == nil {
+			ctx.Metadata = make(map[string]interface{})
+		}
+		ctx.Metadata["response_body_truncated"] = true
+		ctx.ResponseBody = ctx.ResponseBody[:MeteringPayloadBodyLimit]
+	}
+	if len(ctx.RequestBody) > MeteringPayloadBodyLimit {
+		if ctx.Metadata == nil {
+			ctx.Metadata = make(map[string]interface{})
+		}
+		ctx.Metadata["request_body_truncated"] = true
+		ctx.RequestBody = ctx.RequestBody[:MeteringPayloadBodyLimit]
+	}
 	if capture := meteringPayloadCapture(ctx.Request); capture != nil && capture.RequestBodyTruncated() {
 		if ctx.Metadata == nil {
 			ctx.Metadata = make(map[string]interface{})
@@ -582,6 +621,7 @@ func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservation
 	if responseBytes < len(body) {
 		return errors.New("metering response byte count is smaller than the captured body")
 	}
+	retained := body[:min(len(body), MeteringPayloadBodyLimit)]
 	usage, err := m.findUsageByToken(reservationToken, tx)
 	if err != nil {
 		return err
@@ -594,7 +634,7 @@ func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservation
 	if err != nil || usageUserID != owner.UserId {
 		return errors.New("metering reservation belongs to another user")
 	}
-	value, encoding := encodeMeteringBody(body)
+	value, encoding := encodeMeteringBody(retained)
 	usageModel := api2go.NewApi2GoModelWithData("api_usage", (*m.cruds)["api_usage"].TableInfo().Columns,
 		int64((*m.cruds)["api_usage"].TableInfo().DefaultPermission), (*m.cruds)["api_usage"].TableInfo().Relations, usage)
 	attributes := map[string]interface{}{
@@ -609,7 +649,7 @@ func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservation
 	if metadata == nil {
 		metadata = make(map[string]interface{})
 	}
-	if responseBytes > len(body) {
+	if responseBytes > len(retained) {
 		metadata["response_body_truncated"] = true
 	} else {
 		delete(metadata, "response_body_truncated")

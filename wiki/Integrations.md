@@ -81,10 +81,11 @@ OAuth token. REST and GraphQL do not have separate integration permissions.
 
 You can meter a generated integration action through the `integration`
 resource's `metering.on_actions` setting. Its usage record counts the action
-run and stores the request body sent to Daptin and the action response returned
-by Daptin. It does not separately store the raw request and response exchanged
-with the external provider. If another action includes the integration call as
-an outcome, only that outer action's metering applies. See
+run. The provider-scoped HTTP route records the response returned to its client;
+the action and GraphQL routes record the action result. Payload retention follows
+the 64 KiB limit in [[API-Metering]]. Daptin does not separately store the raw
+request and response exchanged with the external provider. If another action
+includes the integration call as an outcome, only that outer action's metering applies. See
 [[API-Metering#what-you-can-meter]] for examples and the behavior when combining
 actions and integrations.
 

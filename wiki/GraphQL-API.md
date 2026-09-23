@@ -28,6 +28,11 @@ POST request bodies are limited to 10 MiB by default. Larger bodies receive
 HTTP 413. Administrators can set `graphql.max_request_bytes` under `/_config/backend`
 to another positive byte count (up to 64 MiB), then restart Daptin.
 
+Each GraphQL operation is limited to 256 field and fragment selections, counting
+repeated fragment expansions each time they appear. Requests over this limit
+receive HTTP 400 before any resolver runs. Split larger operations into smaller
+requests.
+
 GraphiQL playground included for interactive exploration.
 
 ## Enabling GraphQL
