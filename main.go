@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -186,6 +187,27 @@ func printVersion() {
    BuildDate: %s
      Version: %s
 	`, GitCommit, GitBranch, GitState, GitSummary, BuildDate, Version)
+}
+
+func newHTTPServer(addr string, handler http.Handler, tlsConfig *tls.Config, readHeaderTimeout, idleTimeout time.Duration) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		TLSConfig:         tlsConfig,
+		ReadHeaderTimeout: readHeaderTimeout,
+		IdleTimeout:       idleTimeout,
+	}
+}
+
+func parseHTTPTimeoutSeconds(raw string) (time.Duration, error) {
+	if _, err := strconv.ParseInt(raw, 10, 64); err != nil {
+		return 0, err
+	}
+	duration, err := time.ParseDuration(raw + "s")
+	if err != nil || duration <= 0 {
+		return 0, fmt.Errorf("expected a positive number of seconds")
+	}
+	return duration, nil
 }
 
 func main() {
@@ -531,6 +553,31 @@ func main() {
 		enableHttps = "false"
 		_ = configStore.SetConfigValueFor("enable_https", enableHttps, "backend", transaction)
 	}
+	var readHeaderTimeout, idleTimeout time.Duration
+	for _, setting := range []struct {
+		key            string
+		defaultSeconds int
+		value          *time.Duration
+	}{
+		{"http.read_header_timeout_seconds", 2, &readHeaderTimeout},
+		{"http.idle_timeout_seconds", 30, &idleTimeout},
+	} {
+		raw, configErr := configStore.GetConfigValueFor(setting.key, "backend", transaction)
+		if errors.Is(configErr, sql.ErrNoRows) {
+			raw = strconv.Itoa(setting.defaultSeconds)
+			configErr = configStore.SetConfigValueFor(setting.key, raw, "backend", transaction)
+		}
+		if configErr != nil {
+			_ = transaction.Rollback()
+			log.Fatalf("failed to load %s: %v", setting.key, configErr)
+		}
+		duration, parseErr := parseHTTPTimeoutSeconds(raw)
+		if parseErr != nil {
+			_ = transaction.Rollback()
+			log.Fatalf("invalid %s: %v", setting.key, parseErr)
+		}
+		*setting.value = duration
+	}
 
 	var hostname string
 	var backendHostnameCertificate *resource.TLSCertificate
@@ -561,7 +608,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen on %s: %v", portValue, err)
 	}
-	plainServer := &http.Server{Addr: portValue, Handler: gate}
+	plainServer := newHTTPServer(portValue, gate, nil, readHeaderTimeout, idleTimeout)
 	httpServers := []*http.Server{plainServer}
 	serveErrors := make(chan error, 3)
 	go func() {
@@ -595,7 +642,7 @@ func main() {
 		if listenErr != nil {
 			log.Fatalf("failed to listen on HTTPS address %s: %v", *httpsPort, listenErr)
 		}
-		tlsServer := &http.Server{Addr: *httpsPort, Handler: gate, TLSConfig: tlsConfig}
+		tlsServer := newHTTPServer(*httpsPort, gate, tlsConfig, readHeaderTimeout, idleTimeout)
 		httpServers = append(httpServers, tlsServer)
 		go func() {
 			listener := tls.NewListener(tracker.Wrap(httpsListener), tlsConfig)

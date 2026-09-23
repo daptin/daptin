@@ -168,6 +168,8 @@ curl http://localhost:6336/_config \
   "jwt.token.life.hours": "72",
   "language.default": "en",
   "limit.max_connections": "100",
+  "http.read_header_timeout_seconds": "2",
+  "http.idle_timeout_seconds": "30",
   "limit.rate": "{\"version\":\"default\"}",
   "rclone.retries": "5",
   "yjs.enabled": "true",
@@ -226,6 +228,7 @@ Process restarts are managed externally through Kubernetes, Docker, systemd, or 
 - New schema files (schema_*.yaml/json/toml)
 - Port changes
 - Database connection changes
+- HTTP header and idle timeout changes (`http.read_header_timeout_seconds`, `http.idle_timeout_seconds`)
 
 ### Takes Effect Immediately
 
@@ -233,6 +236,15 @@ Process restarts are managed externally through Kubernetes, Docker, systemd, or 
 - `limit.max_connections` - Connection limit
 - `gzip.enable` - Compression
 - Custom config values you create
+
+### HTTP connection deadlines
+
+`http.read_header_timeout_seconds` (default `2`) limits the time to receive
+request headers on both HTTP and HTTPS. It also bounds the TLS handshake.
+`http.idle_timeout_seconds` (default `30`) limits how long a keep-alive
+connection may wait for another request. Both values must be positive integer
+seconds and take effect after a process restart. Request bodies and response
+streams do not have a server-wide deadline.
 
 ---
 
