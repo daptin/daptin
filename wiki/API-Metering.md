@@ -22,18 +22,19 @@ For maintainer internals, see [[API-Metering-Technical-KT]].
 | `api_quota` | Durable reserved and consumed totals for one metric/window bucket |
 
 Each `api_usage` record identifies the metered operation and account, its
-progress and result, the quantities consumed, and the complete request and
-response payloads in `request_body` and `response_body`. For a metered HTTP
-resource or action call, these fields contain the body received by Daptin and
-the body returned to the client. An empty request body is stored as an empty
-string. For scheduled actions and other calls without an HTTP client, Daptin
-stores the action inputs and results. LLM HTTP calls also store the full body,
-including streamed responses; direct action and batch invocations store their
+progress and result, the quantities consumed, and request and response payloads
+in `request_body` and `response_body`. For metered resource and action HTTP calls,
+payload capture retains at most 64 KiB of each body. The `request_bytes` and
+`response_bytes` fields count the full body, and `metadata.request_body_truncated` or
+`metadata.response_body_truncated` is true when a captured body was shortened.
+An empty request body is stored as an empty string. For scheduled actions and
+other calls without an HTTP client, Daptin stores the action inputs and
+results. LLM HTTP calls and direct action and batch invocations store their
 invocation data and results.
 
 `request_body_encoding` and `response_body_encoding` are `utf8` for text or
 `base64` when the payload contains non-UTF-8 bytes. Decode base64 values to
-recover the exact bytes. These fields store bodies, not authorization headers
+recover the retained bytes. These fields store bodies, not authorization headers
 or the complete HTTP exchange. Access to `api_usage` follows its ordinary
 resource permissions; payloads may contain user-supplied sensitive data.
 

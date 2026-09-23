@@ -16,9 +16,14 @@ type meteringPayloadCaptureKey struct{}
 // admitted reservation back to the HTTP response boundary.
 type MeteringPayloadCapture struct {
 	requestBody  bytes.Buffer
+	requestBytes int
 	mu           sync.Mutex
 	reservations []MeteringPayloadReservation
 }
+
+// MeteringPayloadBodyLimit bounds the request and response bodies retained for
+// api_usage while byte counters continue to describe the complete payload.
+const MeteringPayloadBodyLimit = 64 * 1024
 
 type MeteringPayloadReservation struct {
 	Token string
@@ -31,9 +36,17 @@ func NewMeteringPayloadCapture(request *http.Request) (*http.Request, *MeteringP
 		request.Body = struct {
 			io.Reader
 			io.Closer
-		}{Reader: io.TeeReader(request.Body, &capture.requestBody), Closer: request.Body}
+		}{Reader: io.TeeReader(request.Body, capture), Closer: request.Body}
 	}
 	return request.WithContext(context.WithValue(request.Context(), meteringPayloadCaptureKey{}, capture)), capture
+}
+
+func (capture *MeteringPayloadCapture) Write(value []byte) (int, error) {
+	capture.requestBytes += len(value)
+	if remaining := MeteringPayloadBodyLimit - capture.requestBody.Len(); remaining > 0 {
+		capture.requestBody.Write(value[:min(len(value), remaining)])
+	}
+	return len(value), nil
 }
 
 func meteringPayloadCapture(request *http.Request) *MeteringPayloadCapture {
@@ -46,6 +59,14 @@ func meteringPayloadCapture(request *http.Request) *MeteringPayloadCapture {
 
 func (capture *MeteringPayloadCapture) RequestBody() []byte {
 	return append([]byte{}, capture.requestBody.Bytes()...)
+}
+
+func (capture *MeteringPayloadCapture) RequestBytes() int {
+	return capture.requestBytes
+}
+
+func (capture *MeteringPayloadCapture) RequestBodyTruncated() bool {
+	return capture.requestBytes > capture.requestBody.Len()
 }
 
 func (capture *MeteringPayloadCapture) Reservations() []MeteringPayloadReservation {

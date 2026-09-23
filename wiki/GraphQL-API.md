@@ -24,6 +24,10 @@ Daptin auto-generates a complete GraphQL schema from your table definitions:
 
 GraphQL endpoint: `http://localhost:6336/graphql`
 
+POST request bodies are limited to 10 MiB by default. Larger bodies receive
+HTTP 413. Administrators can set `graphql.max_request_bytes` under `/_config/backend`
+to another positive byte count (up to 64 MiB), then restart Daptin.
+
 GraphiQL playground included for interactive exploration.
 
 ## Enabling GraphQL

@@ -249,6 +249,19 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 			initConfig.EnableGraphQL = false
 		}
 	}
+	graphqlRequestBodyLimit := defaultGraphQLRequestBodyLimit
+	configuredGraphQLRequestBodyLimit, err := configStore.GetConfigValueFor("graphql.max_request_bytes", "backend", transaction)
+	if err != nil {
+		err = configStore.SetConfigValueFor("graphql.max_request_bytes", graphqlRequestBodyLimit, "backend", transaction)
+		resource.CheckErr(err, "Failed to set a default value for graphql.max_request_bytes")
+	} else {
+		parsedLimit, parseErr := parseGraphQLRequestBodyLimit(configuredGraphQLRequestBodyLimit)
+		if parseErr != nil {
+			log.Errorf("Invalid backend graphql.max_request_bytes configuration; using the 10 MiB default: %v", parseErr)
+		} else {
+			graphqlRequestBodyLimit = parsedLimit
+		}
+	}
 
 	err = CheckSystemSecrets(configStore, transaction)
 	resource.CheckErr(err, "Failed to initialise system secrets")
@@ -273,7 +286,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	cruds := make(map[string]*resource.DbResource)
 	crudsInterface := make(map[string]dbresourceinterface.DbResourceInterface)
-	defaultRouter.Use(meteringPayloadMiddleware(&cruds))
+	defaultRouter.Use(meteringPayloadMiddleware(&cruds, graphqlRequestBodyLimit))
 	defaultRouter.GET("/actions", resource.CreateGuestActionListHandler(&initConfig))
 
 	api := api2go.NewAPIWithRouting(

@@ -41,6 +41,7 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `graphql.enable` | bool | false | Enable GraphQL endpoint |
+| `graphql.max_request_bytes` | integer | 10485760 | Maximum GraphQL POST body in bytes (1–67108864); restart after changing |
 | `gzip.enable` | bool | true | Enable negotiated GZIP compression for API, dashboard, and hosted-site responses; restart after changing |
 | `limit.rate` | JSON object | `{"version":"1","limits":{}}` | Per-path requests in a one-second UTC window; see [[Rate-Limiting]] |
 | `yjs.enabled` | bool | true | Enable YJS collaborative editing |

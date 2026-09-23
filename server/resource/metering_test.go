@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"sync"
@@ -143,11 +145,11 @@ func TestMeteringRecordsCompletePayloadsAndChecksOwner(t *testing.T) {
 		StringOrEmpty(usage["request_body_encoding"]) != "utf8" || StringOrEmpty(usage["response_body_encoding"]) != "utf8" {
 		t.Fatalf("payloads were not persisted: %#v", usage)
 	}
-	if err := service.RecordResponseBody(&auth.SessionUser{UserId: user.UserId + 1}, decision.ReservationToken, []byte("forged"), verify); err == nil {
+	if err := service.RecordResponseBody(&auth.SessionUser{UserId: user.UserId + 1}, decision.ReservationToken, []byte("forged"), len("forged"), verify); err == nil {
 		t.Fatal("another account changed the response body")
 	}
 	binaryBody := []byte{0xff, 0x00, 0x80}
-	if err := service.RecordResponseBody(user, decision.ReservationToken, binaryBody, verify); err != nil {
+	if err := service.RecordResponseBody(user, decision.ReservationToken, binaryBody, len(binaryBody), verify); err != nil {
 		t.Fatal(err)
 	}
 	if err := verify.Commit(); err != nil {
@@ -164,6 +166,68 @@ func TestMeteringRecordsCompletePayloadsAndChecksOwner(t *testing.T) {
 	}
 	if StringOrEmpty(usage["response_body"]) != "/wCA" || StringOrEmpty(usage["response_body_encoding"]) != "base64" {
 		t.Fatalf("binary response was not preserved: %#v", usage)
+	}
+}
+
+func TestMeteringCaptureTruncationKeepsByteCounts(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	service := NewMeteringService(&cruds)
+	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
+	requestBody := strings.Repeat("q", MeteringPayloadBodyLimit+37)
+	request, capture := NewMeteringPayloadCapture(httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(requestBody)))
+	if _, err := io.Copy(io.Discard, request.Body); err != nil {
+		t.Fatal(err)
+	}
+	if capture.RequestBytes() != len(requestBody) || len(capture.RequestBody()) != MeteringPayloadBodyLimit || !capture.RequestBodyTruncated() {
+		t.Fatalf("request capture bytes=%d retained=%d truncated=%v", capture.RequestBytes(), len(capture.RequestBody()), capture.RequestBodyTruncated())
+	}
+
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision, err := service.Admit(MeteringContext{Request: request, RequestID: "truncated-payload", User: user, Metering: config}, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Complete(MeteringContext{Request: request, User: user, Metering: config, Metadata: map[string]interface{}{"phase": "complete"}}, decision, tx); err != nil {
+		t.Fatal(err)
+	}
+	responseBody := []byte(strings.Repeat("r", MeteringPayloadBodyLimit))
+	if err := service.RecordResponseBody(user, decision.ReservationToken, responseBody, len(responseBody)+37, tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	verify, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer verify.Rollback()
+	usage, err := service.findUsageByRequestID("truncated-payload", verify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestBytes, err := ResourceRowInt64(usage["request_bytes"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	responseBytes, err := ResourceRowInt64(usage["response_bytes"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requestBytes != int64(len(requestBody)) || responseBytes != int64(len(responseBody)+37) ||
+		len(StringOrEmpty(usage["request_body"])) != MeteringPayloadBodyLimit || len(StringOrEmpty(usage["response_body"])) != MeteringPayloadBodyLimit {
+		t.Fatalf("usage payload sizes do not match full byte counts: %#v", usage)
+	}
+	metadata := map[string]interface{}{}
+	if err := json.UnmarshalFromString(StringOrEmpty(usage["metadata"]), &metadata); err != nil {
+		t.Fatal(err)
+	}
+	if metadata["request_body_truncated"] != true || metadata["response_body_truncated"] != true || metadata["phase"] != "complete" {
+		t.Fatalf("truncation metadata = %#v", metadata)
 	}
 }
 

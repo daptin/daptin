@@ -170,6 +170,13 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	capture := meteringPayloadCapture(ctx.Request)
 	if capture != nil {
 		ctx.RequestBody = capture.RequestBody()
+		ctx.RequestBytes = capture.RequestBytes()
+		if capture.RequestBodyTruncated() {
+			if ctx.Metadata == nil {
+				ctx.Metadata = make(map[string]interface{})
+			}
+			ctx.Metadata["request_body_truncated"] = true
+		}
 	}
 	if ctx.RequestBytes == 0 && ctx.RequestBody != nil {
 		ctx.RequestBytes = len(ctx.RequestBody)
@@ -372,6 +379,12 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 		return errors.New("invalid api_usage user_account_id: must be positive")
 	}
 	ctx = hydrateMeteringContext(ctx, usage)
+	if capture := meteringPayloadCapture(ctx.Request); capture != nil && capture.RequestBodyTruncated() {
+		if ctx.Metadata == nil {
+			ctx.Metadata = make(map[string]interface{})
+		}
+		ctx.Metadata["request_body_truncated"] = true
+	}
 	if terminalState != meteringStateExpired {
 		owner, ownerErr := m.usageOwner(ctx.User, tx)
 		if ownerErr != nil {
@@ -560,11 +573,14 @@ func encodeMeteringBody(body []byte) (string, string) {
 	return base64.StdEncoding.EncodeToString(body), "base64"
 }
 
-// RecordResponseBody stores the final payload when serialization or streaming
-// finishes after metering terminalization.
-func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservationToken string, body []byte, tx *sqlx.Tx) error {
+// RecordResponseBody stores the retained payload and full byte count after
+// serialization or streaming finishes and metering is terminalized.
+func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservationToken string, body []byte, responseBytes int, tx *sqlx.Tx) error {
 	if tx == nil {
 		return errors.New("metering response recording requires a transaction")
+	}
+	if responseBytes < len(body) {
+		return errors.New("metering response byte count is smaller than the captured body")
 	}
 	usage, err := m.findUsageByToken(reservationToken, tx)
 	if err != nil {
@@ -581,9 +597,25 @@ func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservation
 	value, encoding := encodeMeteringBody(body)
 	usageModel := api2go.NewApi2GoModelWithData("api_usage", (*m.cruds)["api_usage"].TableInfo().Columns,
 		int64((*m.cruds)["api_usage"].TableInfo().DefaultPermission), (*m.cruds)["api_usage"].TableInfo().Relations, usage)
-	usageModel.SetAttributes(map[string]interface{}{
-		"response_body": value, "response_body_encoding": encoding, "response_bytes": len(body),
-	})
+	attributes := map[string]interface{}{
+		"response_body": value, "response_body_encoding": encoding, "response_bytes": responseBytes,
+	}
+	metadata := make(map[string]interface{})
+	if raw := StringOrEmpty(usage["metadata"]); raw != "" {
+		if err := json.UnmarshalFromString(raw, &metadata); err != nil {
+			return err
+		}
+	}
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+	if responseBytes > len(body) {
+		metadata["response_body_truncated"] = true
+	} else {
+		delete(metadata, "response_body_truncated")
+	}
+	attributes["metadata"] = ToJson(metadata)
+	usageModel.SetAttributes(attributes)
 	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
 		URL: &url.URL{Path: "/api_usage/" + daptinid.InterfaceToDIR(usage["reference_id"]).String()}}).
 		WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", m.internalUser(owner)))}

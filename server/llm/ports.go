@@ -134,7 +134,7 @@ func (metering daptinMetering) recordResponse(ctx context.Context, payload *mete
 		return err
 	}
 	defer transaction.Rollback()
-	if err := metering.service.RecordResponseBody(daptinSessionUser(ctx), payload.token, body, transaction); err != nil {
+	if err := metering.service.RecordResponseBody(daptinSessionUser(ctx), payload.token, body, len(body), transaction); err != nil {
 		return err
 	}
 	return transaction.Commit()
