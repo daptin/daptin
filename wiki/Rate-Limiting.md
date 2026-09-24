@@ -34,6 +34,9 @@ The default is 500 requests in each one-second UTC window. When Olric is
 available, nodes share counters through the `http-rate-limit` DMap and entries
 have a two-second TTL. If Olric initialization or increment fails, the request
 uses a process-local counter for that node.
+During Olric membership changes, nodes can briefly use different routing tables;
+this limiter is operational protection, not a durable customer quota. Use
+metering for account-level limits.
 
 Successful limited responses include `X-RateLimit-Limit`,
 `X-RateLimit-Remaining`, and `X-RateLimit-Reset`. An exhausted bucket returns a

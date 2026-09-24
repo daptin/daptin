@@ -8,6 +8,7 @@ import (
 
 	"github.com/artpar/go-guerrilla"
 	imapserver "github.com/artpar/go-imap/server"
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/subsite"
@@ -31,6 +32,7 @@ type Runtime struct {
 	websocketServer         *websockets.Server
 	yjs                     *YjsRuntime
 	llmGateway              *llm.Gateway
+	rateLimitClient         *olric.ClusterClient
 	tableSubscription       *redis.PubSub
 	integrationSubscription *redis.PubSub
 	errors                  chan error
@@ -80,6 +82,9 @@ func (r *Runtime) Drain(ctx context.Context) error {
 	}
 	if r.llmGateway != nil {
 		errs = append(errs, r.llmGateway.Drain(ctx))
+	}
+	if r.rateLimitClient != nil {
+		errs = append(errs, r.rateLimitClient.Close(ctx))
 	}
 	errs = append(errs, resource.ShutdownEventWorkerPool(ctx))
 	if r.yjs != nil {

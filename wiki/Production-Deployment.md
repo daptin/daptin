@@ -152,17 +152,9 @@ curl -X POST http://localhost:6336/_config/backend/encryption.secret \
 
 #### Enable Rate Limiting
 
-```bash
-# Limit to 100 requests/second per IP
-curl -X POST http://localhost:6336/_config/backend/limit.rate \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  --data-binary '{"version":"1","limits":{"/statistics":2}}'
-```
-
-A scalar is invalid and silently falls back to the default limiter after a log
-error. Restart the process after changing this startup-composed middleware and
-verify an actual burst. `/ping` is outside this limiter.
+Configure the versioned `limit.rate` JSON as described in [[Rate-Limiting]].
+Restart the process after changing this startup-composed middleware and verify
+an actual burst. `/ping` is outside this limiter.
 
 #### Configure Firewall
 

@@ -186,18 +186,10 @@ curl -X POST http://localhost:6336/action/{entity}/{action_name} \
 
 ## Rate Limiting
 
-Default: 500 requests/second per IP
-
-When exceeded:
-```
-HTTP 429 Too Many Requests
-```
-
-Configure via:
-```bash
-curl -X POST http://localhost:6336/_config/backend/limit.rate \
-  -H "Authorization: Bearer $TOKEN" -d '1000'
-```
+The default is 500 requests per second per client IP and path. Exhausted
+buckets return HTTP 429. Configure the versioned `limit.rate` JSON through the
+administrator config API; see [[Rate-Limiting]] for the supported format and
+response headers.
 
 ## CORS
 

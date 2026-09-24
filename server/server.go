@@ -207,7 +207,28 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}
 	_ = transaction.Commit()
 
-	var rateLimiter = CreateRateLimiterMiddleware(rateConfig, olricDb)
+	var rateLimitClient *olric.ClusterClient
+	var rateCounter olric.DMap
+	if localOlricAddr != "" {
+		rateLimitClient, err = olric.NewClusterClient([]string{localOlricAddr}, olric.WithRoutingTableFetchInterval(time.Second))
+		if err == nil {
+			rateCounter, err = rateLimitClient.NewDMap(rateLimitDMapName)
+		}
+		if err != nil {
+			log.Errorf("Failed to initialize distributed HTTP rate limiter; using process-local fallback: %v", err)
+		}
+	}
+	rateLimitClientTransferred := false
+	defer func() {
+		if !rateLimitClientTransferred && rateLimitClient != nil {
+			closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if closeErr := rateLimitClient.Close(closeCtx); closeErr != nil {
+				log.WithError(closeErr).Error("failed to close HTTP rate limiter after runtime initialization failure")
+			}
+		}
+	}()
+	rateLimiter := CreateRateLimiterMiddleware(rateConfig, rateCounter)
 
 	defaultRouter.Use(NewCorsMiddleware(corsConfig).CorsMiddlewareFunc)
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
@@ -497,7 +518,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		log.WithError(taskUserErr).Warn("scheduled system tasks have no administrator identity")
 	}
 	hostSwitch, subsiteCacheFolders := CreateSubSites(ctx, &initConfig, transaction, cruds, authMiddleware, rateConfig,
-		maxConnections, olricDb, taskScheduler, adminTaskUserReferenceId, enableGzip == "true")
+		maxConnections, olricDb, rateCounter, taskScheduler, adminTaskUserReferenceId, enableGzip == "true")
 	transaction.Commit()
 
 	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)
@@ -736,6 +757,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	log.Printf("Our admin is [%v]", adminEmail)
 
 	llmGatewayTransferred = true
+	rateLimitClientTransferred = true
 	return &Runtime{
 		Handler:                 &hostSwitch,
 		ConfigStore:             configStore,
@@ -748,6 +770,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		websocketServer:         websocketServer,
 		yjs:                     yjsRuntime,
 		llmGateway:              llmGateway,
+		rateLimitClient:         rateLimitClient,
 		tableSubscription:       tableTopicSubscription,
 		integrationSubscription: integrationSubscription,
 		errors:                  runtimeErrors,

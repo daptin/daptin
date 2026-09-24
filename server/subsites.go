@@ -25,7 +25,7 @@ import (
 
 func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
-	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient,
+	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient, rateCounter olric.DMap,
 	scheduler *resource.DefaultTaskScheduler, adminTaskUserReferenceId daptinid.DaptinReferenceId,
 	gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
 	enableGzip := len(gzipEnabled) == 0 || gzipEnabled[0]
@@ -75,7 +75,7 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 	//max_connections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
 	//rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
 
-	rateLimiter := CreateSubsiteRateLimiterMiddleware(rateConfig, olricClient)
+	rateLimiter := CreateSubsiteRateLimiterMiddleware(rateConfig, rateCounter)
 	maxLimiter := limit.MaxAllowed(max_connections)
 	middlewares := []gin.HandlerFunc{rateLimiter, maxLimiter, authMiddleware.AuthCheckMiddleware}
 

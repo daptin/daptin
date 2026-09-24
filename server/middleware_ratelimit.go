@@ -79,27 +79,19 @@ func validateRateLimitRoute(route string) error {
 	return fmt.Errorf("rate-limit route %q must be /path or host/path", route)
 }
 
-func CreateRateLimiterMiddleware(rateConfig RateConfig, olricClient *olric.EmbeddedClient) gin.HandlerFunc {
-	return createRateLimiterMiddleware(rateConfig, olricClient, func(c *gin.Context) string {
+func CreateRateLimiterMiddleware(rateConfig RateConfig, counter olric.DMap) gin.HandlerFunc {
+	return createRateLimiterMiddleware(rateConfig, counter, func(c *gin.Context) string {
 		return strings.Split(c.Request.RequestURI, "?")[0]
 	}, time.Now)
 }
 
-func CreateSubsiteRateLimiterMiddleware(rateConfig RateConfig, olricClient *olric.EmbeddedClient) gin.HandlerFunc {
-	return createRateLimiterMiddleware(rateConfig, olricClient, func(c *gin.Context) string {
+func CreateSubsiteRateLimiterMiddleware(rateConfig RateConfig, counter olric.DMap) gin.HandlerFunc {
+	return createRateLimiterMiddleware(rateConfig, counter, func(c *gin.Context) string {
 		return c.Request.Host + strings.Split(c.Request.RequestURI, "?")[0]
 	}, time.Now)
 }
 
-func createRateLimiterMiddleware(rateConfig RateConfig, olricClient *olric.EmbeddedClient, routeKey func(*gin.Context) string, now func() time.Time) gin.HandlerFunc {
-	var distributedCounter olric.DMap
-	if olricClient != nil {
-		var err error
-		distributedCounter, err = olricClient.NewDMap(rateLimitDMapName)
-		if err != nil {
-			log.Errorf("Failed to initialize distributed HTTP rate limiter; using process-local fallback: %v", err)
-		}
-	}
+func createRateLimiterMiddleware(rateConfig RateConfig, distributedCounter olric.DMap, routeKey func(*gin.Context) string, now func() time.Time) gin.HandlerFunc {
 	localCounter := &localRateCounter{windows: make(map[string]localRateWindow)}
 
 	return func(c *gin.Context) {
