@@ -32,7 +32,7 @@ All client messages are JSON with `method`, optional `id` for request correlatio
 { "id": "req-1", "method": "subscribe", "attributes": { "topicName": "user_account" } }
 ```
 
-If `id` is included, the server echoes it in the response. If omitted, the response has no `id` field.
+For methods that return a response, the server echoes a supplied `id`. `new-message` is fire-and-forget on success; its `id` appears only in an error response.
 
 ### Server → Client (four message types)
 
@@ -68,7 +68,7 @@ Decoded `data`: `{"id": 1, "name": "John", "__type": "user_account"}`
 
 1. Client opens WebSocket with authentication
 2. Server sends `{"type": "session", "status": "open", ...}` with user info
-3. Client sends requests, server sends responses and push events
+3. Client sends requests; the server sends responses where applicable and push events
 4. Client can send `{"method": "ping"}` at any time to check liveness
 
 ## Methods
@@ -134,6 +134,8 @@ Subscribers on that topic receive:
 ```json
 { "type": "event", "topic": "chat-room-1", "event": "new-message", "data": { "text": "Hello everyone!", "from": "alice" }, "source": "user-uuid" }
 ```
+
+Successful publication sends no response to the publisher. An invalid request, missing topic, or permission denial returns an error response with the request `id` when supplied. Subscribe to the topic if the publisher also needs to receive its events.
 
 **Permission:** Requires CanExecute on user topics (GuestExecute bit for non-owners), CanCreate on system topics.
 
@@ -435,9 +437,13 @@ class DaptinWebSocket {
         return;
       }
 
-      if (msg.type === 'response' && msg.id && this.pendingRequests[msg.id]) {
-        this.pendingRequests[msg.id](msg);
-        delete this.pendingRequests[msg.id];
+      if (msg.type === 'response') {
+        if (msg.id && this.pendingRequests[msg.id]) {
+          this.pendingRequests[msg.id](msg);
+          delete this.pendingRequests[msg.id];
+        } else if (msg.method === 'new-message' && !msg.ok) {
+          console.error(`Publish failed [${msg.id}]: ${msg.error}`);
+        }
         return;
       }
 
@@ -465,8 +471,11 @@ class DaptinWebSocket {
     return this.send('subscribe', { topicName: topicList.join(',') });
   }
 
-  async publish(topic, message) {
-    return this.send('new-message', { topicName: topic, message });
+  publish(topic, message) {
+    this.ws.send(JSON.stringify({
+      id: this.nextId(), method: 'new-message',
+      attributes: { topicName: topic, message }
+    }));
   }
 
   async createTopic(name) {
@@ -497,7 +506,7 @@ ws.subscribe(['user_account', 'document'], (event) => {
 const resp = await ws.createTopic('chat-room-1');
 if (resp.ok) {
   await ws.setPermission('chat-room-1', 2097151); // ALLOW_ALL
-  await ws.publish('chat-room-1', { text: 'Hello!' });
+  ws.publish('chat-room-1', { text: 'Hello!' });
 }
 ```
 
