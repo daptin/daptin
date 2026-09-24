@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -18,8 +21,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
 )
 
 const IntegrationRuntimeInstallTopic = "daptin.integration.install"
@@ -153,13 +154,15 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 
 	actions := make([]actionresponse.Action, 0)
 
-	host := router.Servers[0].URL
-
 	authType := strings.ToLower(fmt.Sprintf("%v", integration["authentication_type"]))
 
 	for commandId, command := range commandMap {
 
 		path := pathMap[commandId]
+		host, err := selectedIntegrationServerBaseURL(router, router.Paths.Find(path), command)
+		if err != nil {
+			return nil, nil, []error{fmt.Errorf("integration operation [%s]: %w", commandId, err)}
+		}
 
 		params, err := GetParametersNames(host + path)
 		if err != nil {
@@ -230,27 +233,54 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 
 			contents := command.RequestBody.Value.Content
 
-			jsonMedia := contents.Get("application/json")
+			bodyMedia := contents.Get("application/json")
+			multipart := false
+			if bodyMedia == nil && contents.Get("application/x-www-form-urlencoded") == nil {
+				bodyMedia = contents.Get("multipart/form-data")
+				multipart = bodyMedia != nil
+			}
 
-			if jsonMedia != nil {
-				bodyParameterNames, err := GetBodyParameterNamesFromSchemaRef(ModeRequest, command.RequestBody.Value.Required, jsonMedia.Schema)
-
-				if err != nil {
-					err = fmt.Errorf("install_integration failed for %v operation %s %s %s: %w", integration["name"], commandId, strings.ToUpper(methodMap[commandId]), path, err)
-					log.Errorf("Failed to get parameter names from body [%v] == %v", host+path, err)
-					return nil, nil, []error{err}
+			if bodyMedia != nil {
+				if multipart && (bodyMedia.Schema == nil || bodyMedia.Schema.Value == nil || bodyMedia.Schema.Value.Type != "object") {
+					return nil, nil, []error{fmt.Errorf("integration operation [%s] needs an object schema for multipart form data", commandId)}
+				}
+				var bodyParameterNames []string
+				if multipart {
+					for name := range bodyMedia.Schema.Value.Properties {
+						bodyParameterNames = append(bodyParameterNames, name)
+					}
+					sort.Strings(bodyParameterNames)
+				} else {
+					bodyParameterNames, err = GetBodyParameterNamesFromSchemaRef(ModeRequest, command.RequestBody.Value.Required, bodyMedia.Schema)
+					if err != nil {
+						err = fmt.Errorf("install_integration failed for %v operation %s %s %s: %w", integration["name"], commandId, strings.ToUpper(methodMap[commandId]), path, err)
+						log.Errorf("Failed to get parameter names from body [%v] == %v", host+path, err)
+						return nil, nil, []error{err}
+					}
 				}
 
-				requiredBodyParameters := requiredIntegrationBodyParameters(command.RequestBody.Value.Required, jsonMedia.Schema)
+				requiredBodyParameters := requiredIntegrationBodyParameters(command.RequestBody.Value.Required, bodyMedia.Schema)
 				for _, param := range bodyParameterNames {
+					columnType := "label"
+					dataType := "varchar(100)"
+					if multipart {
+						if property := bodyMedia.Schema.Value.Properties[param]; property != nil && property.Value != nil &&
+							(property.Value.Type == "object" || property.Value.Type == "array" || property.Value.Format == "binary") {
+							columnType = "json"
+							dataType = "text"
+						}
+					}
 					cols = append(cols, api2go.ColumnInfo{
 						Name:       param,
 						ColumnName: param,
-						ColumnType: "label",
-						DataType:   "varchar(100)",
+						ColumnType: columnType,
+						DataType:   dataType,
 						IsNullable: !requiredBodyParameters[param],
 					})
 					attrs[param] = "~" + param
+					if multipart {
+						attrs[param] = "~attributes." + param
+					}
 				}
 			}
 		}

@@ -696,6 +696,29 @@ custom credential call unless `credential_id` is owned by the authenticated
 request user and grants owner read access. Credential contents are decrypted
 only after that check succeeds.
 
+For an operation whose OpenAPI request body is `multipart/form-data`, pass each
+form part in `input`. A binary part uses the same Daptin file object as asset
+columns: `name`, `file` (base64 or a data URL), and optional `type`. For example,
+with an installed Box upload integration:
+
+```bash
+FILE_BASE64=$(base64 < ./Contract.pdf | tr -d '\n')
+jq -n --arg file "data:application/pdf;base64,$FILE_BASE64" '{
+  oauth_token_id: "USER_OAUTH_TOKEN_REFERENCE_ID",
+  input: {
+    attributes: {name: "Contract.pdf", parent: {id: "0"}},
+    file: {name: "Contract.pdf", file: $file, type: "application/pdf"}
+  }
+}' | curl -X POST "http://localhost:6336/integration/box.com/postFilesContent" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data-binary @-
+```
+
+Daptin sends the JSON `attributes` part before the binary `file` part and uses
+the operation's OpenAPI `servers` URL when present. The generated action route
+accepts the same part values inside its top-level `attributes` request object.
+
 ### Generated Action Route
 
 **Action names**: `{provider_name}/{operationId}`

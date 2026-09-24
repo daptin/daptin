@@ -4009,6 +4009,25 @@ func requestBodyInputSchema(requestBody *openapi3.RequestBody) map[string]interf
 	for _, mediaType := range []string{"application/json", "application/x-www-form-urlencoded", "multipart/form-data"} {
 		if content := requestBody.Content.Get(mediaType); content != nil && content.Schema != nil {
 			schema := openAPI3SchemaToMap(content.Schema)
+			if mediaType == "multipart/form-data" {
+				if properties, ok := schema["properties"].(map[string]interface{}); ok {
+					for name, value := range properties {
+						property, ok := value.(map[string]interface{})
+						if !ok || property["type"] != "string" || property["format"] != "binary" {
+							continue
+						}
+						properties[name] = map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"name": map[string]interface{}{"type": "string"},
+								"file": map[string]interface{}{"type": "string", "description": "Base64 content or data URL"},
+								"type": map[string]interface{}{"type": "string", "description": "MIME type"},
+							},
+							"required": []string{"name", "file"},
+						}
+					}
+				}
+			}
 			schema["x-provider-content-type"] = mediaType
 			return schema
 		}

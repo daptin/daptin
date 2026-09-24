@@ -1,12 +1,25 @@
 package actions
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
 	stdjson "encoding/json"
 	"errors"
 	"fmt"
+	"mime"
+	"mime/multipart"
+	"net/http"
+	"net/textproto"
+	"net/url"
+	"reflect"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
@@ -33,14 +46,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
-	"net/http"
-	"net/url"
-	"reflect"
-	"regexp"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Mode defines a mode of operation for example generation.
@@ -130,12 +135,10 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	r := req.New()
 
-	if d.router.Servers == nil || len(d.router.Servers) == 0 {
-		log.Errorf("No servers found in integration spec of [%s]", d.integration.Name)
-		return nil, nil, []error{errors.New("No servers found in integration spec of [" + d.integration.Name + "]")}
+	basePath, err := selectedIntegrationServerBaseURL(d.router, pathItem, operation)
+	if err != nil {
+		return nil, nil, []error{err}
 	}
-
-	basePath := selectedIntegrationServerBaseURL(d.router)
 	requestPath := path
 	if transportConfig.UpstreamPath != "" {
 		requestPath = transportConfig.UpstreamPath
@@ -203,6 +206,15 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 						}
 					}
 				}
+			case "multipart/form-data":
+				if requestContent.Get("application/json") != nil || requestContent.Get("application/x-www-form-urlencoded") != nil {
+					continue
+				}
+				body, contentType, err := createIntegrationMultipartBody(spec, inFieldMap)
+				if err != nil {
+					return nil, nil, []error{err}
+				}
+				arguments = append(arguments, req.Header{"Content-Type": contentType}, body)
 
 			}
 		}
@@ -595,17 +607,136 @@ func stringFromOpenAPIExtensionBytes(key string, value []byte) (string, bool, er
 	return string(value), true, nil
 }
 
-func selectedIntegrationServerBaseURL(router *openapi3.T) string {
-	basePath := router.Servers[0].URL
+func selectedIntegrationServerBaseURL(router *openapi3.T, pathItem *openapi3.PathItem, operation *openapi3.Operation) (string, error) {
+	if router == nil {
+		return "", errors.New("integration specification has no server")
+	}
+	servers := router.Servers
+	if pathItem != nil && len(pathItem.Servers) > 0 {
+		servers = pathItem.Servers
+	}
+	if operation != nil && operation.Servers != nil && len(*operation.Servers) > 0 {
+		servers = *operation.Servers
+	}
+	if len(servers) == 0 || servers[0] == nil {
+		return "", errors.New("integration operation has no server")
+	}
+	basePath := servers[0].URL
 	// prefer https path over http paths
-	if len(router.Servers) > 1 && strings.Index(basePath, "https://") != 0 {
-		for _, apiServer := range router.Servers[1:] {
-			if strings.HasPrefix(apiServer.URL, "https://") {
+	if len(servers) > 1 && strings.Index(basePath, "https://") != 0 {
+		for _, apiServer := range servers[1:] {
+			if apiServer != nil && strings.HasPrefix(apiServer.URL, "https://") {
 				basePath = apiServer.URL
 			}
 		}
 	}
-	return strings.TrimSuffix(basePath, "/")
+	return strings.TrimSuffix(basePath, "/"), nil
+}
+
+func createIntegrationMultipartBody(media *openapi3.MediaType, values map[string]interface{}) ([]byte, string, error) {
+	if media == nil || media.Schema == nil || media.Schema.Value == nil || media.Schema.Value.Type != "object" {
+		return nil, "", errors.New("multipart request body must have an object schema")
+	}
+	schema := media.Schema.Value
+	var fields, files []string
+	for name, property := range schema.Properties {
+		if property == nil || property.Value == nil {
+			return nil, "", fmt.Errorf("multipart field %s has no schema", name)
+		}
+		if property.Value.Type == "string" && property.Value.Format == "binary" {
+			files = append(files, name)
+		} else {
+			fields = append(fields, name)
+		}
+	}
+	sort.Strings(fields)
+	sort.Strings(files)
+	for _, name := range schema.Required {
+		if values[name] == nil {
+			return nil, "", fmt.Errorf("multipart field %s is required", name)
+		}
+	}
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	for _, name := range append(fields, files...) {
+		value := values[name]
+		if value == nil {
+			continue
+		}
+		contentType := ""
+		if encoding := media.Encoding[name]; encoding != nil {
+			contentType = encoding.ContentType
+		}
+		var contents []byte
+		filename := ""
+		if schema.Properties[name].Value.Format == "binary" {
+			file, ok := value.(map[string]interface{})
+			if !ok {
+				return nil, "", fmt.Errorf("multipart field %s must be a Daptin file object", name)
+			}
+			filename, _ = file["name"].(string)
+			encoded, hasContent := file["file"].(string)
+			if filename == "" || !hasContent || strings.ContainsAny(filename, "/\\\r\n") {
+				return nil, "", fmt.Errorf("multipart field %s requires a valid name and file", name)
+			}
+			var err error
+			contents, err = decodeCloudStoreFileContent(encoded)
+			if err != nil {
+				return nil, "", fmt.Errorf("multipart field %s has invalid file content: %w", name, err)
+			}
+			if fileType, ok := file["type"].(string); ok && fileType != "" {
+				contentType = fileType
+			} else if strings.HasPrefix(strings.ToLower(encoded), "data:") {
+				if header, _, ok := strings.Cut(encoded[5:], ","); ok {
+					contentType = header[:len(header)-len(";base64")]
+				}
+			}
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+		} else if schema.Properties[name].Value.Type == "object" || schema.Properties[name].Value.Type == "array" {
+			var err error
+			contents, err = stdjson.Marshal(value)
+			if err != nil {
+				return nil, "", fmt.Errorf("multipart field %s: %w", name, err)
+			}
+			if contentType == "" {
+				contentType = "application/json"
+			}
+		} else {
+			contents = []byte(fmt.Sprint(value))
+			if contentType == "" {
+				contentType = "text/plain"
+			}
+		}
+		if _, _, err := mime.ParseMediaType(contentType); err != nil {
+			return nil, "", fmt.Errorf("multipart field %s has invalid content type: %w", name, err)
+		}
+		params := map[string]string{"name": name}
+		if filename != "" {
+			params["filename"] = filename
+		}
+		disposition := mime.FormatMediaType("form-data", params)
+		if disposition == "" {
+			return nil, "", fmt.Errorf("multipart field %s has invalid name or filename", name)
+		}
+		header := textproto.MIMEHeader{
+			"Content-Disposition": {disposition},
+			"Content-Type":        {contentType},
+		}
+		part, err := writer.CreatePart(header)
+		if err != nil {
+			return nil, "", err
+		}
+		if _, err := part.Write(contents); err != nil {
+			return nil, "", err
+		}
+	}
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return body.Bytes(), writer.FormDataContentType(), nil
 }
 
 func integrationOperationURL(basePath string, requestPath string) string {

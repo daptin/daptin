@@ -2,7 +2,10 @@ package actions
 
 import (
 	"context"
+	"encoding/base64"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -24,6 +27,101 @@ import (
 	"google.golang.org/grpc/reflection"
 	grpc_testing "google.golang.org/grpc/reflection/grpc_testing"
 )
+
+func TestIntegrationMultipartBodyUsesDaptinFileObject(t *testing.T) {
+	media := &openapi3.MediaType{Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
+		Type:     "object",
+		Required: []string{"attributes", "file"},
+		Properties: map[string]*openapi3.SchemaRef{
+			"attributes": {Value: &openapi3.Schema{Type: "object"}},
+			"file":       {Value: &openapi3.Schema{Type: "string", Format: "binary"}},
+		},
+	}}}
+	want := []byte("binary payload")
+	body, contentType, err := createIntegrationMultipartBody(media, map[string]interface{}{
+		"attributes": map[string]interface{}{"name": "probe.txt", "parent": map[string]interface{}{"id": "0"}},
+		"file":       map[string]interface{}{"name": "probe.txt", "file": "data:text/plain;base64," + base64.StdEncoding.EncodeToString(want)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := multipart.NewReader(strings.NewReader(string(body)), params["boundary"])
+	first, err := reader.NextPart()
+	if err != nil || first.FormName() != "attributes" || first.Header.Get("Content-Type") != "application/json" {
+		t.Fatalf("first part = %v, %v", first, err)
+	}
+	firstBytes, _ := io.ReadAll(first)
+	if !strings.Contains(string(firstBytes), `"name":"probe.txt"`) {
+		t.Fatalf("attributes = %s", firstBytes)
+	}
+	second, err := reader.NextPart()
+	if err != nil || second.FormName() != "file" || second.FileName() != "probe.txt" || second.Header.Get("Content-Type") != "text/plain" {
+		t.Fatalf("second part = %v, %v", second, err)
+	}
+	got, _ := io.ReadAll(second)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("file content = %q", got)
+	}
+	if _, err := reader.NextPart(); err != io.EOF {
+		t.Fatalf("extra part: %v", err)
+	}
+	upperBody, upperContentType, err := createIntegrationMultipartBody(media, map[string]interface{}{
+		"attributes": map[string]interface{}{},
+		"file":       map[string]interface{}{"name": "probe.txt", "file": "data:text/plain;BASE64," + base64.StdEncoding.EncodeToString(want)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, upperParams, err := mime.ParseMediaType(upperContentType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upperReader := multipart.NewReader(strings.NewReader(string(upperBody)), upperParams["boundary"])
+	if _, err := upperReader.NextPart(); err != nil {
+		t.Fatal(err)
+	}
+	upperFile, err := upperReader.NextPart()
+	if err != nil || upperFile.Header.Get("Content-Type") != "text/plain" {
+		t.Fatalf("uppercase base64 file part = %v, %v", upperFile, err)
+	}
+	if _, _, err := createIntegrationMultipartBody(media, map[string]interface{}{
+		"attributes": map[string]interface{}{},
+		"file":       map[string]interface{}{"name": "probe.txt", "file": "data:text/plain;base64,@@@"},
+	}); err == nil {
+		t.Fatal("invalid file content was accepted")
+	}
+	if _, _, err := createIntegrationMultipartBody(media, map[string]interface{}{
+		"attributes": map[string]interface{}{},
+		"file":       map[string]interface{}{"name": "empty.txt", "file": ""},
+	}); err != nil {
+		t.Fatalf("empty file was rejected: %v", err)
+	}
+}
+
+func TestIntegrationServerPrecedence(t *testing.T) {
+	router := &openapi3.T{Servers: openapi3.Servers{{URL: "https://root.example"}}}
+	path := &openapi3.PathItem{Servers: openapi3.Servers{{URL: "https://path.example"}}}
+	servers := openapi3.Servers{{URL: "https://operation.example"}}
+	operation := &openapi3.Operation{Servers: &servers}
+	for _, tc := range []struct {
+		path      *openapi3.PathItem
+		operation *openapi3.Operation
+		want      string
+	}{
+		{path, operation, "https://operation.example"},
+		{path, &openapi3.Operation{}, "https://path.example"},
+		{&openapi3.PathItem{}, &openapi3.Operation{}, "https://root.example"},
+	} {
+		got, err := selectedIntegrationServerBaseURL(router, tc.path, tc.operation)
+		if err != nil || got != tc.want {
+			t.Fatalf("server = %q, %v; want %q", got, err, tc.want)
+		}
+	}
+}
 
 func integrationResponderAttributes(t *testing.T, responder api2go.Responder, responseType string) map[string]interface{} {
 	t.Helper()
