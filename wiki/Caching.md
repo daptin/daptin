@@ -105,12 +105,14 @@ Default cache TTLs:
 
 ## Monitoring Cache
 
-Check Olric status via statistics:
+Check Olric membership, partition ownership, and cache counters via statistics:
 
 ```bash
-curl http://localhost:6336/statistics \
-  -H "Authorization: Bearer $TOKEN"
+curl -s http://localhost:6336/statistics | jq '.olric'
 ```
+
+See [[Monitoring#statistics]] for the fields and their limits. Protect this
+public endpoint at the ingress if its operational details should stay private.
 
 ## Performance Benefits
 

@@ -49,8 +49,8 @@ curl http://localhost:6336/health
 
 ## Statistics
 
-> **Sensitive default:** `/statistics` was unauthenticated in the v0.13.14
-> audit and exposes host, CPU, disk, process, database-pool, and web metrics.
+> **Sensitive default:** `/statistics` is public and exposes host, CPU, disk,
+> process, database-pool, web, and Olric cluster metrics.
 > Restrict it at the ingress or private network. Daptin does not currently
 > expose a native Prometheus or OpenTelemetry endpoint; adapt this JSON only
 > behind the same access boundary.
@@ -114,6 +114,17 @@ curl http://localhost:6336/statistics
     "swap": {"total": 3221225472, "used": 2442330112, "usedPercent": 75.82},
     "virtual": {"total": 34359738368, "used": 25720160256, "usedPercent": 74.86}
   },
+  "olric": {
+    "available": true,
+    "member": "10.0.0.1:5336",
+    "coordinator": "10.0.0.1:5336",
+    "members": ["10.0.0.1:5336"],
+    "member_count": 1,
+    "routing_available": true,
+    "partitions": {"total": 23, "without_primary": 0, "local_partitions": 23, "local_backups": 0},
+    "dmaps": {"entries_total": 0, "delete_hits": 0, "delete_misses": 0, "get_hits": 0, "get_misses": 0, "evicted_total": 0},
+    "pub_sub": {"published_total": 0, "current_subscribers": 0, "subscribers_total": 0, "current_psubscribers": 0, "psubscribers_total": 0}
+  },
   "process": {
     "count": 538,
     "top_processes": [{
@@ -145,8 +156,20 @@ curl http://localhost:6336/statistics
 | host | info, temperatures, users | System info, sensors (macOS has 29+ sensors!) |
 | load | avg (1/5/15 min), misc | System load averages and process counts |
 | memory | virtual, swap | Memory and swap utilization |
+| olric | member, members, partitions, dmaps, pub_sub | Local Olric view and counters |
 | process | count, top_processes | Total process count (integer) and top processes |
 | web | uptime, total_status_code_count, average_response_time | HTTP server metrics and response times |
+
+The Olric `members` list and partition ownership are this node's current view;
+compare nodes when diagnosing a split cluster. `partitions.without_primary`
+counts routes with no assigned primary, but zero does not prove every member is
+reachable. `local_partitions` includes fragments still held by previous owners
+during redistribution. DMap and PubSub counters are local to the responding
+process; PubSub activity does not prove delivery to another node. Olric does
+not provide an invalidation counter. If Olric statistics cannot be read,
+`olric.available` is `false` while the other statistics remain available. If
+routing cannot be read, `olric.routing_available` is `false` and `partitions`
+is absent.
 
 ## Meta Endpoint
 

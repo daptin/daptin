@@ -1,6 +1,13 @@
 package server
 
 import (
+	"context"
+	"net/http"
+	"sort"
+	"sync"
+	"time"
+
+	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	"github.com/gin-gonic/gin"
 	"github.com/shirou/gopsutil/v4/cpu"
@@ -11,9 +18,6 @@ import (
 	"github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
 	"github.com/shirou/gopsutil/v4/sensors"
-	"net/http"
-	"sync"
-	"time"
 )
 
 // StatCache holds cached statistics data with timestamps
@@ -341,7 +345,55 @@ func (hs *HostStats) GetProcessInfo() (interface{}, error) {
 // Global instance of HostStats with 30-second cache validity
 var hostStats = NewHostStats(30 * time.Second)
 
-func CreateStatisticsHandler(db database.DatabaseConnection) func(*gin.Context) {
+func olricStatistics(ctx context.Context, client *olric.EmbeddedClient, address string) map[string]interface{} {
+	if client == nil || address == "" {
+		return map[string]interface{}{"available": false}
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	local, err := client.Stats(ctx, address)
+	if err != nil {
+		return map[string]interface{}{"available": false}
+	}
+
+	members := make([]string, 0, len(local.ClusterMembers))
+	for _, member := range local.ClusterMembers {
+		members = append(members, member.Name)
+	}
+	sort.Strings(members)
+	result := map[string]interface{}{
+		"available":    true,
+		"member":       local.Member.Name,
+		"coordinator":  local.ClusterCoordinator.Name,
+		"members":      members,
+		"member_count": len(members),
+		"dmaps":        local.DMaps,
+		"pub_sub":      local.PubSub,
+	}
+
+	routes, err := client.RoutingTable(ctx)
+	if err != nil {
+		result["routing_available"] = false
+		return result
+	}
+	withoutPrimary := 0
+	for _, route := range routes {
+		if len(route.PrimaryOwners) == 0 {
+			withoutPrimary++
+		}
+	}
+	result["routing_available"] = true
+	result["partitions"] = map[string]int{
+		"total":            len(routes),
+		"without_primary":  withoutPrimary,
+		"local_partitions": len(local.Partitions),
+		"local_backups":    len(local.Backups),
+	}
+	return result
+}
+
+func CreateStatisticsHandler(db database.DatabaseConnection, olricDb *olric.EmbeddedClient, localOlricAddr string) func(*gin.Context) {
 	return func(c *gin.Context) {
 		stats := make(map[string]interface{})
 
@@ -350,6 +402,7 @@ func CreateStatisticsHandler(db database.DatabaseConnection) func(*gin.Context) 
 
 		// Database stats
 		stats["db"] = db.Stats()
+		stats["olric"] = olricStatistics(c.Request.Context(), olricDb, localOlricAddr)
 
 		// CPU stats
 		cpuStats, err := hostStats.GetCPUInfo()

@@ -234,7 +234,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 	defaultRouter.Use(rateLimiter)
 
-	defaultRouter.GET("/statistics", CreateStatisticsHandler(db))
+	defaultRouter.GET("/statistics", CreateStatisticsHandler(db, olricDb, localOlricAddr))
 
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 	defaultRouter.StaticFS("/statics", NewSubPathFs(boxRoot, "/statics"))
