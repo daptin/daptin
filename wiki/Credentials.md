@@ -340,7 +340,7 @@ curl -X DELETE http://localhost:6336/api/credential/CREDENTIAL_ID \
 
 - Content is encrypted at rest using AES encryption
 - Encryption key is derived from `encryption.secret` config
-- Never logged or exposed in API responses
+- Plaintext content is not returned in API responses; the encrypted value may be returned
 
 ### Best Practices
 
@@ -361,9 +361,10 @@ curl -X DELETE http://localhost:6336/api/credential/CREDENTIAL_ID \
 
 ## Troubleshooting
 
-### "content" Not Returned
+### "content" in API Responses
 
-This is by design. The encrypted content is never returned in API responses for security.
+API responses may include the encrypted `content` value. They do not return its
+plaintext value.
 
 ### Cloud Store Authentication Fails
 
