@@ -145,6 +145,8 @@ curl http://localhost:6336/aggregate/user_account \
 ## Runtime Configuration API
 
 Config values are stored in database. Most take effect immediately, some require restart.
+The buffered HTTP request-body limit takes effect after a restart; see
+[[Configuration#buffered-request-bodies|Buffered request bodies]].
 
 ### Get All Config
 

@@ -42,6 +42,7 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 |-----|------|---------|-------------|
 | `graphql.enable` | bool | false | Enable GraphQL endpoint |
 | `graphql.max_request_bytes` | integer | 10485760 | Maximum GraphQL POST body in bytes (1–67108864); restart after changing |
+| `http.max_buffered_request_bytes` | integer | 10485760 | Maximum body for actions, JSON:API writes, integration operations, and event starts in bytes (1–16777216); restart after changing. Oversized requests receive HTTP 413. Streaming asset uploads are unaffected. |
 | `gzip.enable` | bool | true | Enable negotiated GZIP compression for API, dashboard, and hosted-site responses; restart after changing |
 | `limit.rate` | JSON object | `{"version":"1","limits":{}}` | Per-path requests in a one-second UTC window; see [[Rate-Limiting]] |
 | `yjs.enabled` | bool | true | Enable YJS collaborative editing |
@@ -60,6 +61,28 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 | `totp.secret` | string | auto | 2FA TOTP secret |
 | `password.reset.email.from` | string | - | Password reset sender |
 | `enable_https` | bool | true | Enable HTTPS |
+
+### Buffered request bodies
+
+The limit applies to the complete HTTP request body before an action, JSON:API
+write, integration operation, or event start is processed. It includes JSON
+syntax and base64 data inside an action request. A request above the limit
+receives HTTP 413 before the operation runs. GraphQL POST bodies use the
+separate `graphql.max_request_bytes` setting. Asset uploads and other streaming
+protocols retain their own handling.
+
+An administrator can raise the limit to 16 MiB at most, then restart Daptin:
+
+```bash
+curl -X POST http://localhost:6336/_config/backend/http.max_buffered_request_bytes \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: text/plain' \
+  --data-binary '16777216'
+```
+
+The value must be a whole number from 1 through 16777216. An invalid stored
+value prevents the server from starting; check it with a GET request to
+`/_config/backend/http.max_buffered_request_bytes` before restarting.
 
 ## Schema Configuration Files
 

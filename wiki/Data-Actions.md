@@ -156,6 +156,10 @@ curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
 }
 ```
 
+Base64 file data counts toward the action's complete request-body limit. See
+[[Configuration#buffered-request-bodies|Buffered request bodies]] for the
+default, maximum, and HTTP 413 behavior.
+
 **Supported file formats**:
 - CSV (`.csv`)
 - JSON (`.json`)

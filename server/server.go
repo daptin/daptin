@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go-adapter/gingonic"
 	"github.com/buraksezer/olric"
@@ -262,6 +264,24 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 			graphqlRequestBodyLimit = parsedLimit
 		}
 	}
+	bufferedRequestBodyLimit := defaultBufferedRequestBodyLimit
+	configuredBufferedRequestBodyLimit, err := configStore.GetConfigValueFor("http.max_buffered_request_bytes", "backend", transaction)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = configStore.SetConfigValueFor("http.max_buffered_request_bytes", bufferedRequestBodyLimit, "backend", transaction)
+		if err != nil {
+			transaction.Rollback()
+			return nil, fmt.Errorf("set default http.max_buffered_request_bytes: %w", err)
+		}
+	} else if err != nil {
+		transaction.Rollback()
+		return nil, fmt.Errorf("read http.max_buffered_request_bytes: %w", err)
+	} else {
+		bufferedRequestBodyLimit, err = parseBufferedRequestBodyLimit(configuredBufferedRequestBodyLimit)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+	}
 
 	err = CheckSystemSecrets(configStore, transaction)
 	resource.CheckErr(err, "Failed to initialise system secrets")
@@ -283,6 +303,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer, olricDb)
 	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer, olricDb)
 	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
+	defaultRouter.Use(bufferedRequestBodyMiddleware(bufferedRequestBodyLimit))
 
 	cruds := make(map[string]*resource.DbResource)
 	crudsInterface := make(map[string]dbresourceinterface.DbResourceInterface)

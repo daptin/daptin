@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -65,22 +64,12 @@ func meteringPayloadMiddleware(cruds *map[string]*resource.DbResource, graphqlRe
 		}
 		var graphqlBody []byte
 		if path == "/graphql" && c.Request.Method == http.MethodPost && c.Request.Body != nil {
-			if c.Request.ContentLength > int64(graphqlRequestBodyLimit) {
-				c.AbortWithStatus(http.StatusRequestEntityTooLarge)
-				return
-			}
-			body, err := io.ReadAll(io.LimitReader(c.Request.Body, int64(graphqlRequestBodyLimit)+1))
-			c.Request.Body.Close()
-			if err != nil {
-				c.AbortWithStatus(http.StatusBadRequest)
-				return
-			}
-			if len(body) > graphqlRequestBodyLimit {
-				c.AbortWithStatus(http.StatusRequestEntityTooLarge)
+			body, status := readBoundedRequestBody(c.Request, graphqlRequestBodyLimit)
+			if status != 0 {
+				c.AbortWithStatus(status)
 				return
 			}
 			graphqlBody = body
-			c.Request.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		if path == "/graphql" && !graphQLOperationWithinSelectionLimit(c.Request, graphqlBody) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "GraphQL operation exceeds 256 selections"})
