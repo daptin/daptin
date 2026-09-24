@@ -55,6 +55,10 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 	return func(c *gin.Context) {
 
 		typeName := c.Param("typename")
+		if resource.EndsWithCheck(typeName, "_audit") {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 
 		user := c.Request.Context().Value("user")
 		var sessionUser *auth.SessionUser
@@ -115,6 +119,10 @@ func CreateStatsHandler(initConfig *resource.CmsConfig, cruds map[string]*resour
 			return
 		}
 		for _, joinTable := range joinTables {
+			if resource.EndsWithCheck(joinTable, "_audit") {
+				c.AbortWithStatus(http.StatusNotFound)
+				return
+			}
 			joinPermission := cruds[joinTable].GetObjectPermissionByWhereClause("world", "table_name", joinTable, transaction)
 			if !joinPermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) ||
 				!joinPermission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
@@ -176,6 +184,9 @@ func CreateMetaHandler(initConfig *resource.CmsConfig) func(*gin.Context) {
 func CreateJsModelHandler(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, transaction *sqlx.Tx) func(*gin.Context) {
 	tableMap := make(map[string]table_info.TableInfo)
 	for _, table := range initConfig.Tables {
+		if resource.EndsWithCheck(table.TableName, "_audit") {
+			continue
+		}
 
 		//log.Printf("Default permission for [%v]: [%v]", table.TableName, table.Columns)
 

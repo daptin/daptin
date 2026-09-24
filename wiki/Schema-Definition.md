@@ -285,7 +285,7 @@ See [[Permissions|Permissions]] for permission calculator.
 - **Add more tables:** Create additional schema files
 - **Add relationships:** Link tables with foreign keys
 - **Add workflows:** Use IsStateTrackingEnabled for process automation
-- **Add history:** Use IsAuditEnabled for compliance
+- **Retain previous values:** Use IsAuditEnabled for internal snapshots of supported columns
 - **Go multi-language:** Use TranslationsEnabled for i18n
 
 ---

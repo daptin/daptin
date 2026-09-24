@@ -133,6 +133,14 @@ func CreateColumnLine(colInfo api2go.ColumnInfo) map[string]interface{} {
 }
 
 func BuildApiBlueprint(config *resource.CmsConfig, cruds map[string]*resource.DbResource) string {
+	publicConfig := *config
+	publicConfig.Tables = make([]table_info.TableInfo, 0, len(config.Tables))
+	for _, table := range config.Tables {
+		if !resource.EndsWithCheck(table.TableName, "_audit") {
+			publicConfig.Tables = append(publicConfig.Tables, table)
+		}
+	}
+	config = &publicConfig
 
 	tableMap := map[string]table_info.TableInfo{}
 	for _, table := range config.Tables {

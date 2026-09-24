@@ -201,6 +201,9 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	nodeDefinitions = relay.NewNodeDefinitions(relay.NodeDefinitionsConfig{
 		IDFetcher: func(id string, info graphql.ResolveInfo, ctx context.Context) (interface{}, error) {
 			resolvedID := relay.FromGlobalID(id)
+			if resource.EndsWithCheck(strings.ToLower(resolvedID.Type), "_audit") {
+				return nil, nil
+			}
 
 			ur, _ := url.Parse("/api/" + resolvedID.Type)
 			pr := &http.Request{
@@ -364,7 +367,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 		if len(table.TableName) < 1 {
 			continue
 		}
-		if table.IsJoinTable {
+		if table.IsJoinTable || resource.EndsWithCheck(table.TableName, "_audit") {
 			continue
 		}
 		allFields := make(graphql.FieldConfigArgument)
@@ -419,6 +422,9 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 			if relation.Subject == table.TableName {
 				targetName = relation.GetObjectName()
 				targetObject = relation.GetObject()
+			}
+			if resource.EndsWithCheck(targetObject, "_audit") {
+				continue
 			}
 
 			switch relation.Relation {
@@ -743,7 +749,7 @@ func MakeGraphqlSchema(cmsConfig *resource.CmsConfig, resources map[string]*reso
 	})
 
 	for _, t := range cmsConfig.Tables {
-		if t.IsJoinTable {
+		if t.IsJoinTable || resource.EndsWithCheck(t.TableName, "_audit") {
 			continue
 		}
 

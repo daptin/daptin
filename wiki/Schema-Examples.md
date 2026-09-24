@@ -435,13 +435,15 @@ POST /api/enroll: {student_id: "S001", course_id: "CS101"}  ❌ UNIQUE constrain
 **Features:** Audit logging, encrypted fields
 **Tested:** ✅ Audit logging (Suite 3), encrypted column type (Suite 1)
 
+Generated audit snapshots exclude encrypted columns. See [[Audit-Logging|Audit Logging]].
+
 ### Schema
 
 ```yaml
 Tables:
   - TableName: account
     DefaultPermission: 16256  # Only owner can access
-    IsAuditEnabled: true      # Compliance requirement
+    IsAuditEnabled: true      # Retain previous supported values
     Columns:
       - Name: account_number
         DataType: varchar(50)
@@ -506,16 +508,8 @@ POST /api/account: {account_name: "Savings", balance: 1000.00}
 # Update balance
 PATCH /api/account/ID: {balance: 1500.00}
 
-# View history
-GET /api/account_audit?filter=source_reference_id||eq||ACCOUNT_ID
-
-# Response shows old value
-[
-  {
-    "balance": 1000.00,  # Before update
-    "created_at": "2026-01-25T15:46:23Z"
-  }
-]
+# Daptin stores the old balance in its internal account_audit table.
+# Audit tables have no CRUD API.
 
 # Current record
 GET /api/account/ID
@@ -533,19 +527,19 @@ GET /api/account/ID
 
 | Use Case | Features | Why |
 |----------|----------|-----|
-| User-generated content | IsAuditEnabled | Track edits, rollback spam |
+| User-generated content | IsAuditEnabled | Retain previous supported values |
 | Workflow processes | IsStateTrackingEnabled | Order status, ticket lifecycle |
 | Multi-language sites | TranslationsEnabled | Product descriptions, articles |
 | Many-to-many relations | CompositeKeys | Enrollments, memberships |
 | Internal tables | IsHidden | Logs, system config |
-| Financial data | IsAuditEnabled + encrypted | Compliance, security |
+| Financial data | IsAuditEnabled + encrypted | Retain supported values; protect sensitive fields |
 | Multi-tenant apps | CompositeKeys with tenant_id | Data isolation per tenant |
 
 ### Feature Combinations
 
 **High-security financial:**
 ```yaml
-IsAuditEnabled: true        # Compliance
+IsAuditEnabled: true        # Previous supported values
 encrypted columns           # Data security
 DefaultPermission: 16256    # Owner-only access
 ```

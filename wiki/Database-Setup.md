@@ -139,7 +139,8 @@ volumes:
 reachable. After first start, inspect startup logs for schema errors and
 perform authenticated reads of the built-in resources your deployment needs.
 At minimum, verify `world`, `user_account`, `usergroup`, `action`, `task`,
-`document`, and any enabled audit/resource relationship endpoints.
+`document`, and any enabled resource relationship endpoints. Generated audit
+tables have no API endpoints.
 
 For a PostgreSQL operator-level schema check (read-only, not an application
 workflow), confirm the minimum built-in set is present:

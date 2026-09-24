@@ -103,6 +103,9 @@ func AddResourcesToApi2Go(api *api2go.API, tables []table_info.TableInfo, db dat
 		}
 
 		cruds[table.TableName] = res
+		if resource.EndsWithCheck(table.TableName, "_audit") {
+			continue
+		}
 
 		//if table.IsJoinTable {
 		//	we do expose join table as web api

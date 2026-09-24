@@ -220,8 +220,8 @@ Enable automatic change history tracking for all updates.
 **When enabled:**
 - Auto-creates `{tablename}_audit` table
 - Records snapshot before each UPDATE
-- Tracks who made changes
-- Preserves complete history
+- Stores the previous values internally
+- Preserves previous values for supported columns
 
 **Example:**
 ```yaml
@@ -238,10 +238,9 @@ Creates table:
 ```sql
 CREATE TABLE account_audit (
   id INTEGER PRIMARY KEY,
-  -- All columns from main table
+  -- Supported columns from main table
   balance float(10,2),
   -- Audit-specific columns
-  user_account_id varchar,
   source_reference_id varchar(64)  -- Links to original record
 );
 ```
@@ -255,7 +254,8 @@ Record updated again → Another audit record with previous values
 
 See [[Audit-Logging|Audit-Logging]] for complete guide.
 
-**Tested:** Suite 3 | **Status:** ✅ Fully functional
+Audit tables have no CRUD or GraphQL resource. They do not record the
+authenticated actor. See [[Audit-Logging|Audit Logging]] for supported behavior.
 
 ---
 
@@ -726,11 +726,11 @@ StateMachineDescriptions:
 
 ### Common Combinations
 
-**Compliance tracking (audit + state):**
+**Previous values and workflow state:**
 ```yaml
 Tables:
   - TableName: order
-    IsAuditEnabled: true           # Track all changes
+    IsAuditEnabled: true           # Store previous values
     IsStateTrackingEnabled: true   # Track workflow
 ```
 
