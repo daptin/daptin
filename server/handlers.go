@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
@@ -12,11 +13,22 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"reflect"
 )
+
+func canExecuteStateMachine(cruds map[string]*resource.DbResource, smd map[string]interface{}, user *auth.SessionUser, transaction *sqlx.Tx) bool {
+	adminGroupID := cruds["usergroup"].AdministratorGroupId
+	tablePermission := cruds["smd"].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", "smd", transaction)
+	if !tablePermission.CanExecute(user.UserReferenceId, user.Groups, adminGroupID) {
+		return false
+	}
+	rowPermission := cruds["smd"].GetRowPermission(smd, transaction)
+	return rowPermission.CanExecute(user.UserReferenceId, user.Groups, adminGroupID)
+}
 
 func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManager, cruds map[string]*resource.DbResource, db database.DatabaseConnection) func(context *gin.Context) {
 
@@ -33,16 +45,11 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 		typename := gincontext.Param("typename")
 		typename_state := typename + "_state"
 
-		pr := &http.Request{
-			URL: gincontext.Request.URL,
-		}
-		pr.Method = "GET"
 		req := api2go.Request{
 			PlainRequest: gincontext.Request,
 			QueryParams: map[string][]string{
 				"included_relations": []string{
 					"is_state_of_" + typename,
-					typename + "_smd",
 				},
 			},
 		}
@@ -70,12 +77,10 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 
 		// Validate includes were loaded
 		if len(objectStateMachine.Includes) == 0 {
-			log.Errorf("No includes loaded for state transition. Required: is_state_of_%s, %s_smd", typename, typename)
+			log.Errorf("No includes loaded for state transition. Required: is_state_of_%s", typename)
 			gincontext.AbortWithStatus(500)
 			return
 		}
-
-		stateObject := objectStateMachine.GetAttributes()
 
 		var subjectInstanceModel api2go.Api2GoModel
 		//var stateMachineDescriptionInstance *api2go.Api2GoModel
@@ -102,11 +107,20 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 			resource.CheckErr(err, "Failed to begin transaction [59]")
 			return
 		}
+		defer transaction.Rollback()
 
-		stateMachinePermission := cruds["smd"].GetRowPermission(objectStateMachine.GetAllAsAttributes(), transaction)
+		smdReferenceID := daptinid.InterfaceToDIR(objectStateMachine.GetAttributes()[typename+"_smd"])
+		if smdReferenceID == daptinid.NullReferenceId {
+			gincontext.AbortWithStatus(500)
+			return
+		}
+		smd, err := cruds["smd"].GetReferenceIdToObjectWithTransaction("smd", smdReferenceID, transaction)
+		if err != nil {
+			gincontext.AbortWithError(500, err)
+			return
+		}
 
-		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
-			transaction.Rollback()
+		if !canExecuteStateMachine(cruds, smd, sessionUser, transaction) {
 			gincontext.AbortWithStatus(403)
 			return
 		}
@@ -121,7 +135,14 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 		nextState, err := fsmManager.ApplyEvent(subjectInstanceModel.GetAllAsAttributes(),
 			fsm.NewStateMachineEvent(daptinid.DaptinReferenceId(stateMachineId), eventName))
 		if err != nil {
-			gincontext.AbortWithError(400, err)
+			if errors.Is(err, fsm.ErrInvalidTransition) {
+				gincontext.AbortWithStatusJSON(400, gin.H{"errors": []gin.H{{
+					"status": "400", "title": "Invalid Transition",
+					"detail": fmt.Sprintf("event '%s' inappropriate in current state '%s'", eventName, objectStateMachine.GetAttributes()["current_state"]),
+				}}})
+			} else {
+				gincontext.AbortWithError(500, err)
+			}
 			return
 		}
 
@@ -131,60 +152,77 @@ func CreateEventHandler(initConfig *resource.CmsConfig, fsmManager fsm.FsmManage
 			resource.CheckErr(err, "Failed to begin transaction for state update")
 			return
 		}
-		defer transaction.Commit()
+		defer transaction.Rollback()
 
-		stateAudit := objectStateMachine.GetAuditModel()
-		creator, ok := cruds[stateAudit.GetTableName()]
-		if ok {
-
-			newRequest := &http.Request{
-				Method: "POST",
-				URL:    gincontext.Request.URL,
-			}
-			newRequest = newRequest.WithContext(gincontext.Request.Context())
-
-			req := api2go.Request{
-				PlainRequest: newRequest,
-				QueryParams:  map[string][]string{},
-			}
-
-			stateAudit.Set("source_reference_id", objectStateMachine.GetReferenceId())
-			stateAudit.Set("operation", resource.AuditOperationStateTransition)
-
-			_, err := creator.CreateWithoutFilter(stateAudit, req, transaction)
-			resource.CheckErr(err, "Failed to create audit for [%v]", objectStateMachine.GetTableName())
-		}
-
-		// Get current version, default to 0 if not present
-		versionInt := int64(0)
-		if stateObject["version"] != nil {
-			if v, ok := stateObject["version"].(int64); ok {
-				versionInt = v
-			} else if versionFloat, ok := stateObject["version"].(float64); ok {
-				versionInt = int64(versionFloat)
-			}
-		}
-
-		// Use hex format for WHERE clause since goqu doesn't handle binary properly
-		hexId := fmt.Sprintf("%X", stateMachineId[:])
-		s, v, err := statementbuilder.Squirrel.Update(typename+"_state").
+		s, v, err := statementbuilder.Squirrel.Update(typename_state).Prepared(true).
 			Set(goqu.Record{
 				"current_state": nextState,
-				"version":       versionInt + 1,
+				"version":       goqu.L("COALESCE(version, 0) + 1"),
 			}).
-			Where(goqu.L("reference_id = X'" + hexId + "'")).ToSQL()
-
-		_, err = transaction.Exec(s, v...)
+			Where(goqu.Ex{"reference_id": stateMachineId[:], "current_state": objectStateMachine.GetAttributes()["current_state"]}).ToSQL()
 		if err != nil {
-			transaction.Rollback()
 			gincontext.AbortWithError(500, err)
 			return
+		}
+
+		result, err := transaction.Exec(s, v...)
+		if err != nil {
+			gincontext.AbortWithError(500, err)
+			return
+		}
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			gincontext.AbortWithError(500, err)
+			return
+		}
+		if rowsAffected == 0 {
+			gincontext.AbortWithStatus(409)
+			return
+		}
+		if rowsAffected != 1 {
+			gincontext.AbortWithError(500, fmt.Errorf("state transition updated %d rows", rowsAffected))
+			return
+		}
+		stateAudit := objectStateMachine.GetAuditModel()
+		creator, ok := cruds[stateAudit.GetTableName()]
+		if !ok {
+			gincontext.AbortWithError(500, fmt.Errorf("state audit resource %s is unavailable", stateAudit.GetTableName()))
+			return
+		}
+
+		newRequest := &http.Request{Method: "POST", URL: gincontext.Request.URL}
+		newRequest = newRequest.WithContext(gincontext.Request.Context())
+		auditRequest := api2go.Request{PlainRequest: newRequest, QueryParams: map[string][]string{}}
+
+		stateAudit.Set("source_reference_id", objectStateMachine.GetReferenceId())
+		stateAudit.Set("operation", resource.AuditOperationStateTransition)
+		for column, value := range stateAudit.GetAttributes() {
+			if referenceID, ok := value.(daptinid.DaptinReferenceId); ok {
+				stateAudit.Set(column, referenceID.String())
+			}
+		}
+
+		_, err = creator.CreateWithoutFilter(stateAudit, auditRequest, transaction)
+		if err != nil {
+			gincontext.AbortWithError(500, err)
+			return
+		}
+		var state map[string]interface{}
+		if cruds[typename_state].PubSub != nil {
+			state, err = cruds[typename_state].GetReferenceIdToObjectWithTransaction(typename_state, daptinid.DaptinReferenceId(stateMachineId), transaction)
+			if err != nil {
+				gincontext.AbortWithError(500, err)
+				return
+			}
 		}
 		// Commit transaction before returning
 		err = transaction.Commit()
 		if err != nil {
 			gincontext.AbortWithError(500, err)
 			return
+		}
+		if topic := cruds[typename_state].PubSub; topic != nil {
+			resource.PublishUpdateEvent(topic, typename_state, state)
 		}
 
 		gincontext.AbortWithStatus(200)
@@ -244,9 +282,7 @@ func CreateEventStartHandler(fsmManager fsm.FsmManager, cruds map[string]*resour
 		}
 
 		defer transaction.Commit()
-		stateMachinePermission := cruds["smd"].GetRowPermission(stateMachineInstance.GetAllAsAttributes(), transaction)
-
-		if !stateMachinePermission.CanExecute(sessionUser.UserReferenceId, sessionUser.Groups, cruds["usergroup"].AdministratorGroupId) {
+		if !canExecuteStateMachine(cruds, stateMachineInstance.GetAllAsAttributes(), sessionUser, transaction) {
 			gincontext.AbortWithStatus(403)
 			return
 		}

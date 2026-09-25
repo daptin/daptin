@@ -12,12 +12,10 @@ Daptin provides a state machine system that:
 - ⚠️ `/track/start/` endpoint - Requires proper permissions on `smd` table
 - ✅ Uses the [looplab/fsm](https://github.com/looplab/fsm) Go library
 
-**Last Tested:** 2026-09-16 | **Status:** transition execution verified with response-semantics caveat
-
-The HTTP transport status is not necessarily the state-transition outcome.
-Clients must inspect the returned action response envelope and then read the
-state resource to confirm the durable state. Do not treat HTTP 200 alone as an
-authoritative successful transition.
+`/track/event/` returns HTTP 200 after the transition and its audit record commit.
+An invalid event returns a structured HTTP 400 error; a concurrent request that
+lost the state change returns HTTP 409. Read the state resource for its current
+value.
 
 ## Architecture
 
@@ -204,7 +202,7 @@ curl -X POST "http://localhost:6336/track/start/$SMD_ID" \
   }'
 ```
 
-Response: HTTP 201 Created
+Response: HTTP 200 OK (the response body reports `Code: 201`)
 
 This creates a record in `order_state` with:
 - `current_state` = `pending` (from initial_state)
@@ -395,10 +393,10 @@ State transitions are tracked automatically:
 
 ## Permissions
 
-State machine transitions require Execute permission on the `smd` table. Only users with appropriate permissions can:
-- Create state machine definitions
-- Start state machine instances
-- Apply state transitions
+Creating a state machine definition follows the normal `smd` Create permission.
+Starting and transitioning require Execute permission on both the `smd` table
+and the linked `smd` record. Starting also requires Refer permission on the
+definition and subject record.
 
 ## Limitations
 
@@ -447,18 +445,6 @@ curl -X PATCH "http://localhost:6336/api/smd/<SMD_ID>" \
 # Permission 1621954 = Guest:Read|Refer + Owner:Full + Group:Read|Execute|Refer
 ```
 
-3. **Or use SQL to grant global read/refer:**
-```bash
-# Stop server first
-./scripts/testing/test-runner.sh stop
-
-# Update permission
-sqlite3 daptin.db "UPDATE smd SET permission = 1621954 WHERE reference_id = X'<UUID_HEX>';"
-
-# Restart server
-./scripts/testing/test-runner.sh start
-```
-
 ### Issue: Transition Fails with HTTP 400 "event inappropriate"
 
 **Symptoms:**
@@ -500,12 +486,8 @@ If you're still experiencing this:
 ### Check Current State
 
 ```bash
-# Via API (works)
 curl "http://localhost:6336/api/order_state" \
   -H "Authorization: Bearer $TOKEN" | jq '.data[].attributes | {reference_id, current_state}'
-
-# Via SQL
-sqlite3 daptin.db "SELECT hex(reference_id), current_state, version FROM order_state;"
 ```
 
 ### View Available Transitions
@@ -524,9 +506,6 @@ curl "http://localhost:6336/api/smd" \
 # resolve: assigned -> resolved
 # close: resolved -> closed
 ```
-
-**Tested:** 2026-09-16 | **Status:** transition executed; confirm the embedded
-outcome and durable state because the HTTP status is not authoritative
 
 ## Related
 

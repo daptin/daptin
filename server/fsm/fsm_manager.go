@@ -3,7 +3,8 @@ package fsm
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
+
 	"github.com/daptin/daptin/server/database"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -11,13 +12,14 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	loopfsm "github.com/looplab/fsm"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 type fsmManager struct {
 	db database.DatabaseConnection
 }
+
+var ErrInvalidTransition = errors.New("invalid transition")
 
 type StateMachineInstance struct {
 	CurrestState   string
@@ -176,10 +178,7 @@ func (fsm *fsmManager) ApplyEvent(subject map[string]interface{}, stateMachineEv
 		}
 		return nextState, err
 	} else {
-		return stateMachineInstance.CurrestState,
-			errors.New(fmt.Sprintf("Cannot apply event %s at this state [%v]",
-				stateMachineEvent.GetEventName(), stateMachineInstance.CurrestState),
-			)
+		return stateMachineInstance.CurrestState, ErrInvalidTransition
 	}
 
 }

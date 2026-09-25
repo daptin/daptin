@@ -56,12 +56,31 @@ func TestCheckAuditTablesGeneratesSafeSchema(t *testing.T) {
 		}
 	}
 	project := columns["project_id"]
-	if project.IsForeignKey || project.ForeignKeyData != (api2go.ForeignKeyData{}) || project.DataType != "varchar" {
+	if project.IsForeignKey || project.ForeignKeyData != (api2go.ForeignKeyData{}) || project.DataType != "varchar(255)" {
 		t.Fatalf("audit foreign key was not normalized: %#v", project)
 	}
 	if columns["name"].IsUnique {
 		t.Fatal("audit copy retained source uniqueness")
 	}
+}
+
+func TestCheckAuditTablesAuditsPersistedTrackedState(t *testing.T) {
+	config := CmsConfig{Tables: []table_info.TableInfo{
+		{TableName: "order", IsStateTrackingEnabled: true},
+		{TableName: "order_state", Columns: []api2go.ColumnInfo{{Name: "current_state", ColumnName: "current_state", DataType: "varchar(100)"}}},
+	}}
+
+	CheckAuditTables(&config)
+
+	if !config.Tables[1].IsAuditEnabled {
+		t.Fatal("tracked state table was not marked for auditing")
+	}
+	for _, table := range config.Tables {
+		if table.TableName == "order_state_audit" {
+			return
+		}
+	}
+	t.Fatal("tracked state audit table was not generated")
 }
 
 func TestCheckAuditTablesPreservesExplicitAuditTable(t *testing.T) {

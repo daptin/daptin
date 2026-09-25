@@ -492,8 +492,16 @@ func CheckAuditTables(config *CmsConfig) {
 
 	newRelations := make([]api2go.TableRelation, 0)
 
+	trackedTables := make(map[string]bool)
+	for _, table := range config.Tables {
+		trackedTables[table.TableName] = table.IsStateTrackingEnabled
+	}
 	tableMap := make(map[string]*table_info.TableInfo)
 	for i := range config.Tables {
+		if strings.HasSuffix(config.Tables[i].TableName, "_state") &&
+			trackedTables[strings.TrimSuffix(config.Tables[i].TableName, "_state")] {
+			config.Tables[i].IsAuditEnabled = true
+		}
 		t := config.Tables[i]
 		tableMap[t.TableName] = &t
 	}
@@ -548,7 +556,7 @@ func CheckAuditTables(config *CmsConfig) {
 			if c.IsForeignKey {
 				c.IsForeignKey = false
 				c.ForeignKeyData = api2go.ForeignKeyData{}
-				c.DataType = "varchar"
+				c.DataType = "varchar(255)"
 			}
 
 			c.IsUnique = false

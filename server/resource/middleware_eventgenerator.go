@@ -130,6 +130,17 @@ func (p *EventWorkerPool) PublishEvent(topic *olric.PubSub, tableName string, me
 	}
 }
 
+func PublishUpdateEvent(topic *olric.PubSub, tableName string, state map[string]interface{}) {
+	messageBytes, err := json.Marshal(state)
+	if err != nil {
+		log.Errorf("Failed to serialize update message: %v", err)
+		return
+	}
+	GetEventWorkerPool().PublishEvent(topic, tableName, WsOutMessage{
+		Type: "event", Topic: tableName, Event: "update", Source: "database", Data: messageBytes,
+	})
+}
+
 // ShutdownEventWorkerPool rejects new events, drains the queue, and waits for
 // all publishers before Olric is closed.
 func ShutdownEventWorkerPool(ctx context.Context) error {
@@ -316,18 +327,7 @@ func (pc *eventHandlerMiddleware) InterceptAfter(dr *DbResource, req *api2go.Req
 		}
 		break
 	case "patch":
-		messageBytes, err := json.Marshal(results[0])
-		if err != nil {
-			log.Errorf("Failed to serialize update message: %v", err)
-		} else {
-			GetEventWorkerPool().PublishEvent(topic, tableName, WsOutMessage{
-				Type:   "event",
-				Topic:  dr.model.GetTableName(),
-				Event:  "update",
-				Source: "database",
-				Data:   messageBytes,
-			})
-		}
+		PublishUpdateEvent(topic, tableName, results[0])
 		break
 	default:
 		log.Errorf("Invalid method: %v", req.PlainRequest.Method)
