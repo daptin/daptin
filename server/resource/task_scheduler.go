@@ -2,10 +2,13 @@ package resource
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -172,14 +175,90 @@ func (dts *DefaultTaskScheduler) AddTask(task task.Task) error {
 	if task.AsUserReferenceId == daptinid.NullReferenceId {
 		return fmt.Errorf("task [%s] has no as_user_id relationship", task.Name)
 	}
+	if task.ReferenceId == daptinid.NullReferenceId {
+		return fmt.Errorf("task [%s] has no persisted reference_id", task.Name)
+	}
 	if dts.cruds[task.EntityName] == nil {
 		return fmt.Errorf("task [%s] targets unknown resource [%s]", task.Name, task.EntityName)
 	}
+	schedule, err := cron.ParseStandard(task.Schedule)
+	if err != nil {
+		return err
+	}
 	log.Printf("Register task [%v] at %v", task.ActionName, task.Schedule)
 	at := dts.cruds["task"].NewActiveTaskInstance(task)
-	_, err := dts.cronService.AddJob(task.Schedule, at)
+	_, err = dts.cronService.AddJob(task.Schedule, cron.FuncJob(func() {
+		claimed, claimErr := dts.claimDue(task, schedule)
+		if claimErr != nil {
+			log.WithError(claimErr).WithField("task", task.Name).Error("scheduled task claim failed")
+			return
+		}
+		if claimed {
+			at.Run()
+		}
+	}))
 
 	return err
+}
+
+func (dts *DefaultTaskScheduler) claimDue(task task.Task, schedule cron.Schedule) (bool, error) {
+	db := dts.cruds["task"].Connection()
+	var rawDue interface{}
+	var clock interface{}
+	query := db.Rebind("select next_due_at, CURRENT_TIMESTAMP from task where reference_id = ? and active = ? and schedule = ?")
+	if err := db.QueryRowx(query, task.ReferenceId[:], true, task.Schedule).Scan(&rawDue, &clock); errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	now, err := taskDatabaseTime(clock)
+	if err != nil {
+		return false, err
+	}
+	var due time.Time
+	if rawDue != nil {
+		due, err = taskDatabaseTime(rawDue)
+		if err != nil {
+			return false, err
+		}
+	}
+	if !due.IsZero() && due.After(now) {
+		return false, nil
+	}
+	where := "next_due_at is null"
+	args := []interface{}{schedule.Next(now), task.ReferenceId[:], true, task.Schedule}
+	if !due.IsZero() {
+		where = "next_due_at = ?"
+		args = append(args, due)
+	}
+	query = db.Rebind("update task set next_due_at = ? where reference_id = ? and active = ? and schedule = ? and " + where)
+	result, err := db.Exec(query, args...)
+	if err != nil {
+		return false, err
+	}
+	count, err := result.RowsAffected()
+	return count == 1, err
+}
+
+func taskDatabaseTime(value interface{}) (time.Time, error) {
+	if instant, ok := value.(time.Time); ok {
+		return instant.UTC(), nil
+	}
+	var raw string
+	switch typed := value.(type) {
+	case string:
+		raw = typed
+	case []byte:
+		raw = string(typed)
+	default:
+		return time.Time{}, fmt.Errorf("unsupported database time %T", value)
+	}
+	for _, layout := range []string{time.RFC3339Nano, "2006-01-02 15:04:05.999999999-07:00", "2006-01-02 15:04:05.999999999"} {
+		if instant, err := time.Parse(layout, raw); err == nil {
+			return instant.UTC(), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("invalid database time %q", raw)
 }
 
 func (dbResource *DbResource) NewActiveTaskInstance(task task.Task) *ActiveTaskInstance {

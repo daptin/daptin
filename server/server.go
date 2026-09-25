@@ -517,8 +517,9 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	if taskUserErr != nil {
 		log.WithError(taskUserErr).Warn("scheduled system tasks have no administrator identity")
 	}
-	hostSwitch, subsiteCacheFolders := CreateSubSites(ctx, &initConfig, transaction, cruds, authMiddleware, rateConfig,
-		maxConnections, olricDb, rateCounter, taskScheduler, adminTaskUserReferenceId, enableGzip == "true")
+	runtimeTasks := make([]task.Task, 0)
+	hostSwitch, subsiteCacheFolders := CreateSubSites(ctx, &initConfig, &runtimeTasks, transaction, cruds, authMiddleware, rateConfig,
+		maxConnections, olricDb, rateCounter, adminTaskUserReferenceId, enableGzip == "true")
 	transaction.Commit()
 
 	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)
@@ -577,73 +578,32 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	_ = subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch, olricDb, enableGzip == "true")
 	_ = transaction.Commit()
 
-	transaction, err = db.Beginx()
-	if err != nil {
-		resource.CheckErr(err, "Failed to begin transaction [642]")
-	}
-
-	err = taskScheduler.AddTask(task.Task{
-		EntityName:        "mail_server",
-		ActionName:        "sync_mail_servers",
-		Attributes:        map[string]interface{}{},
-		AsUserReferenceId: adminTaskUserReferenceId,
-		Schedule:          "@every 1h",
-	})
-	resource.CheckErr(err, "Failed to register mail server sync task")
-
-	err = taskScheduler.AddTask(task.Task{
-		EntityName:        "outbox",
-		ActionName:        "process_outbox",
-		Attributes:        map[string]interface{}{},
-		AsUserReferenceId: adminTaskUserReferenceId,
-		Schedule:          "@every 5m",
-	})
-	resource.CheckErr(err, "Failed to register outbox processing task")
-
 	if adminTaskUserReferenceId == daptinid.NullReferenceId {
-		_ = transaction.Rollback()
-		log.Warn("data exchange processor task was not persisted because no administrator identity exists")
+		log.Warn("system tasks were not persisted because no administrator identity exists")
 	} else {
-		adminTaskUser, _, err := cruds[resource.USER_ACCOUNT_TABLE_NAME].GetSingleRowByReferenceIdWithTransaction(
-			resource.USER_ACCOUNT_TABLE_NAME, adminTaskUserReferenceId, nil, transaction)
-		if err != nil {
-			_ = transaction.Rollback()
-			return nil, fmt.Errorf("load data exchange task administrator: %w", err)
-		}
-		adminTaskUserEmail := resource.StringOrEmpty(adminTaskUser["email"])
-		if adminTaskUserEmail == "" {
-			_ = transaction.Rollback()
-			return nil, fmt.Errorf("data exchange task administrator has no email")
-		}
-		exchangeTaskConfig := resource.CmsConfig{Tasks: []task.Task{{
-			Name:        "process-data-exchange-executions",
-			EntityName:  resource.EXCHANGE_RUN_TABLE_NAME,
-			ActionName:  "process_data_exchange_executions",
-			Attributes:  map[string]interface{}{},
-			AsUserEmail: adminTaskUserEmail,
-			Schedule:    "@every 1s",
-			Active:      true,
-			JobType:     "action",
-		}}}
-		err = resource.UpdateTasksData(&exchangeTaskConfig, transaction)
-		if err != nil {
-			_ = transaction.Rollback()
-			return nil, fmt.Errorf("persist data exchange execution processing task: %w", err)
-		}
-		if err := transaction.Commit(); err != nil {
-			return nil, fmt.Errorf("commit data exchange execution processing task: %w", err)
-		}
+		runtimeTasks = append(runtimeTasks,
+			task.Task{Name: "__daptin_mail_server_sync", EntityName: "mail_server", ActionName: "sync_mail_servers", Attributes: map[string]interface{}{}, AsUserReferenceId: adminTaskUserReferenceId, Schedule: "@every 1h", Active: true, JobType: "system"},
+			task.Task{Name: "__daptin_outbox_process", EntityName: "outbox", ActionName: "process_outbox", Attributes: map[string]interface{}{}, AsUserReferenceId: adminTaskUserReferenceId, Schedule: "@every 5m", Active: true, JobType: "system"},
+			task.Task{Name: "process-data-exchange-executions", EntityName: resource.EXCHANGE_RUN_TABLE_NAME, ActionName: "process_data_exchange_executions", Attributes: map[string]interface{}{}, AsUserReferenceId: adminTaskUserReferenceId, Schedule: "@every 1s", Active: true, JobType: "action"},
+		)
 	}
-
-	taskScheduler.LoadPersistedTasks()
 
 	transaction = db.MustBegin()
-	assetColumnFolders := CreateAssetColumnSync(crudsInterface, transaction, taskScheduler, adminTaskUserReferenceId)
-	transaction.Commit()
+	assetColumnFolders := CreateAssetColumnSync(crudsInterface, transaction, &runtimeTasks, adminTaskUserReferenceId)
+	if adminTaskUserReferenceId != daptinid.NullReferenceId {
+		if err := resource.UpdateRuntimeTasksData(runtimeTasks, transaction); err != nil {
+			_ = transaction.Rollback()
+			return nil, fmt.Errorf("persist asset synchronization tasks: %w", err)
+		}
+	}
+	if err := transaction.Commit(); err != nil {
+		return nil, fmt.Errorf("commit system tasks: %w", err)
+	}
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
 	llmGateway.StartBatchProcessing(ctx)
+	taskScheduler.LoadPersistedTasks()
 	taskScheduler.Start()
 
 	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])

@@ -23,10 +23,10 @@ import (
 	"time"
 )
 
-func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transaction *sqlx.Tx,
+func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeTasks *[]task.Task, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
 	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient, rateCounter olric.DMap,
-	scheduler *resource.DefaultTaskScheduler, adminTaskUserReferenceId daptinid.DaptinReferenceId,
+	adminTaskUserReferenceId daptinid.DaptinReferenceId,
 	gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
 	enableGzip := len(gzipEnabled) == 0 || gzipEnabled[0]
 
@@ -119,6 +119,7 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 		//}
 
 		syncTask := task.Task{
+			Name:       "__daptin_site_sync_" + site.ReferenceId.String(),
 			EntityName: "site",
 			ActionName: "sync_site_storage",
 			Attributes: map[string]interface{}{
@@ -126,6 +127,8 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 			},
 			AsUserReferenceId: adminTaskUserReferenceId,
 			Schedule:          "@every 1h",
+			Active:            true,
+			JobType:           "system",
 		}
 
 		activeTask := cruds["site"].NewActiveTaskInstance(syncTask)
@@ -138,8 +141,9 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 			}()
 		}(activeTask)
 
-		err = scheduler.AddTask(syncTask)
-		resource.CheckErr(err, "Failed to register site storage sync task [%s]", site.Name)
+		if adminTaskUserReferenceId != daptinid.NullReferenceId {
+			*runtimeTasks = append(*runtimeTasks, syncTask)
+		}
 		var credentials map[string]interface{}
 		if cloudStore.CredentialName != "" {
 			cred, err := cruds["credential"].GetCredentialByName(cloudStore.CredentialName, transaction)
@@ -155,8 +159,6 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, transact
 			Credentials:   credentials,
 		}
 		subsiteCacheFolders[site.ReferenceId] = subsiteAssetCache
-
-		resource.CheckErr(err, "Failed to register task to sync storage")
 
 		hostRouter := CreateSubsiteEngine(site, subsiteAssetCache, middlewares, enableGzip)
 

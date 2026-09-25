@@ -2247,6 +2247,7 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType:        "label",
 				IsIndexed:         true,
 				ColumnDescription: "A descriptive name for the task that serves as the primary user-facing identifier. This field is indexed to support efficient searching and sorting of tasks.",
+				IsUnique:          true,
 			},
 			{
 				Name:              "action_name",
@@ -2276,6 +2277,7 @@ var StandardTables = []table_info.TableInfo{
 				ColumnType:        "truefalse",
 				ColumnDescription: "Indicates whether the task is currently active and should be executed according to its schedule. Inactive tasks are not run regardless of their schedule.",
 			},
+			{Name: "next_due_at", ColumnName: "next_due_at", ColumnType: "datetime", DataType: "timestamp", IsNullable: true, ExcludeFromApi: true},
 			{
 				Name:              "attributes",
 				ColumnName:        "attributes",

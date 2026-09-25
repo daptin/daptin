@@ -3,6 +3,7 @@ package resource
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/csv"
 	"fmt"
 	"net/http"
@@ -97,6 +98,14 @@ func (dbResource *DbResource) UpdateAccessTokenByTokenReferenceId(
 }
 
 func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
+	var duplicateName string
+	err := transaction.QueryRowx("select name from task group by name having count(*) > 1 limit 1").Scan(&duplicateName)
+	if err == nil {
+		return fmt.Errorf("task name [%s] is not unique", duplicateName)
+	}
+	if err != sql.ErrNoRows {
+		return err
+	}
 
 	tasks, err := GetTasks(transaction)
 	if err != nil {
@@ -121,52 +130,41 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 	for index, newTask := range newTasks {
 		log.Tracef("Update TaskData: [%v]", newTask)
 		asUserId := configuredTaskUserIds[index]
-
-		_, ok := taskMap[newTask.Name]
+		refId, _ := uuid.NewV7()
+		s, v, err := statementbuilder.Squirrel.Insert("task").Prepared(true).
+			Cols("name", "schedule", "active", "action_name", "entity_name", "job_type",
+				"as_user_id", "reference_id", "attributes", "created_at", USER_ACCOUNT_ID_COLUMN, "permission").
+			Vals([]interface{}{newTask.Name, newTask.Schedule, newTask.Active, newTask.ActionName,
+				newTask.EntityName, newTask.JobType, asUserId, refId[:], ToJson(newTask.Attributes),
+				time.Now(), adminUserId, auth.DEFAULT_PERMISSION}).OnConflict(goqu.DoNothing()).ToSQL()
+		if err != nil {
+			return err
+		}
+		if _, err = transaction.Exec(s, v...); err != nil {
+			return err
+		}
+		reset, args, err := statementbuilder.Squirrel.Update("task").Prepared(true).
+			Set(goqu.Record{"next_due_at": nil}).Where(goqu.Ex{"name": newTask.Name},
+			goqu.Or(goqu.C("schedule").Neq(newTask.Schedule), goqu.C("active").Neq(newTask.Active))).ToSQL()
+		if err != nil {
+			return err
+		}
+		if _, err = transaction.Exec(reset, args...); err != nil {
+			return err
+		}
+		s, v, err = statementbuilder.Squirrel.Update("task").Prepared(true).
+			Set(goqu.Record{
+				"active": newTask.Active, "schedule": newTask.Schedule,
+				"attributes": ToJson(newTask.Attributes), "action_name": newTask.ActionName,
+				"entity_name": newTask.EntityName, "job_type": newTask.JobType, "as_user_id": asUserId,
+			}).Where(goqu.Ex{"name": newTask.Name}).ToSQL()
+		if err != nil {
+			return err
+		}
+		if _, err = transaction.Exec(s, v...); err != nil {
+			return err
+		}
 		taskMap[newTask.Name] = newTask
-		var s string
-		var v []interface{}
-
-		if ok {
-			log.Printf("Updating existing cron job: %v", newTask.Name)
-
-			s, v, err = statementbuilder.Squirrel.Update("task").Prepared(true).
-				Set(goqu.Record{
-					"active":      newTask.Active,
-					"schedule":    newTask.Schedule,
-					"attributes":  ToJson(newTask.Attributes),
-					"action_name": newTask.ActionName,
-					"entity_name": newTask.EntityName,
-					"job_type":    newTask.JobType,
-					"as_user_id":  asUserId,
-				}).Where(goqu.Ex{"name": newTask.Name}).ToSQL()
-
-		} else {
-
-			if err != nil {
-				return err
-			}
-			refId, _ := uuid.NewV7()
-			s, v, err = statementbuilder.Squirrel.Insert("task").Prepared(true).
-				Cols("name", "schedule", "active",
-					"action_name", "entity_name", "job_type", "as_user_id", "reference_id", "attributes", "created_at",
-					USER_ACCOUNT_ID_COLUMN, "permission").
-				Vals([]interface{}{newTask.Name, newTask.Schedule, newTask.Active,
-					newTask.ActionName, newTask.EntityName, newTask.JobType, asUserId, refId[:], ToJson(newTask.Attributes), time.Now(),
-					adminUserId, auth.DEFAULT_PERMISSION}).ToSQL()
-
-		}
-
-		if err != nil {
-			log.Errorf("Failed SQL 142: %s", s)
-			return err
-		}
-
-		_, err = transaction.Exec(s, v...)
-		if err != nil {
-			log.Errorf("Failed SQL 148: %s", s)
-			return err
-		}
 
 	}
 
@@ -180,6 +178,32 @@ func UpdateTasksData(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 	return nil
 
+}
+
+func UpdateRuntimeTasksData(tasks []task.Task, transaction *sqlx.Tx) error {
+	config := &CmsConfig{Tasks: tasks}
+	if err := UpdateTasksData(config, transaction); err != nil {
+		return err
+	}
+	current := make(map[string]bool, len(tasks))
+	for _, scheduled := range tasks {
+		current[scheduled.Name] = true
+	}
+	for _, previous := range config.Tasks {
+		if previous.JobType != "system" || !strings.HasPrefix(previous.Name, "__daptin_") || current[previous.Name] {
+			continue
+		}
+		query, args, err := statementbuilder.Squirrel.Update("task").Prepared(true).
+			Set(goqu.Record{"active": false, "next_due_at": nil}).
+			Where(goqu.Ex{"name": previous.Name, "active": true}).ToSQL()
+		if err != nil {
+			return err
+		}
+		if _, err := transaction.Exec(query, args...); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func GetTasks(connection *sqlx.Tx) ([]task.Task, error) {
@@ -228,6 +252,13 @@ func GetTasks(connection *sqlx.Tx) ([]task.Task, error) {
 }
 
 func resolveConfiguredTaskUserId(configuredTask task.Task, transaction *sqlx.Tx) (*int64, error) {
+	if configuredTask.AsUserReferenceId != daptinid.NullReferenceId {
+		userId, err := GetReferenceIdToIdWithTransaction(USER_ACCOUNT_TABLE_NAME, configuredTask.AsUserReferenceId, transaction)
+		if err != nil {
+			return nil, err
+		}
+		return &userId, nil
+	}
 	if configuredTask.AsUserEmail != "" {
 		sql, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).
 			From(USER_ACCOUNT_TABLE_NAME).Where(goqu.Ex{"email": configuredTask.AsUserEmail}).ToSQL()

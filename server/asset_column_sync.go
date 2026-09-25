@@ -15,7 +15,7 @@ import (
 )
 
 func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterface, transaction *sqlx.Tx,
-	scheduler *resource.DefaultTaskScheduler,
+	runtimeTasks *[]task.Task,
 	adminTaskUserReferenceId daptinid.DaptinReferenceId) map[string]map[string]*assetcachepojo.AssetFolderCache {
 	log.Tracef("CreateAssetColumnSync")
 
@@ -74,18 +74,22 @@ func CreateAssetColumnSync(cruds map[string]dbresourceinterface.DbResourceInterf
 
 				log.Infof("[71] Sync table column [%v][%v] at %v", tableName, columnName, tempDirectoryPath)
 				if cloudStore.StoreProvider != "local" && cloudStore.StoreType == "cached" {
-					err = scheduler.AddTask(task.Task{
-						EntityName: "world",
-						ActionName: "sync_column_storage",
-						Attributes: map[string]interface{}{
-							"table_name":      tableInfo.TableName,
-							"credential_name": cloudStore.CredentialName,
-							"column_name":     columnName,
-						},
-						AsUserReferenceId: adminTaskUserReferenceId,
-						Schedule:          "@every 30m",
-					})
-					CheckErr(err, "Failed to register column storage sync task [%s][%s]", tableName, columnName)
+					if adminTaskUserReferenceId != daptinid.NullReferenceId {
+						*runtimeTasks = append(*runtimeTasks, task.Task{
+							Name:       "__daptin_column_sync_" + resource.GetMD5HashString(tableName+"/"+columnName),
+							EntityName: "world",
+							ActionName: "sync_column_storage",
+							Attributes: map[string]interface{}{
+								"table_name":      tableInfo.TableName,
+								"credential_name": cloudStore.CredentialName,
+								"column_name":     columnName,
+							},
+							AsUserReferenceId: adminTaskUserReferenceId,
+							Schedule:          "@every 30m",
+							Active:            true,
+							JobType:           "system",
+						})
+					}
 				}
 
 			}

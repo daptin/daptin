@@ -13,11 +13,13 @@ Daptin's task scheduling system:
 - Supports any action defined in the system
 - Runs within database transactions for safety
 
-In a cluster, every node loads scheduled tasks. v0.13.14 does not document or
-verify singleton ownership for general tasks, site sync, mail-server sync, or
-data-exchange processing; only outbox processing has a tested Olric NX claim.
-Fence non-idempotent schedules to one node until a durable lease/idempotency
-contract is available. See [[Clustering]].
+In a cluster, every node loads scheduled tasks, but the database grants each
+due occurrence to only one node. User-created tasks and recurring system jobs
+use the same task scheduler and action path. A failed action consumes that
+occurrence; there is no automatic retry. If the winning node stops after the
+claim and before the action finishes, that occurrence may be missed. External
+effects still require their own idempotency guarantees when needed. See
+[[Clustering]].
 
 ## Critical Requirements
 
@@ -25,7 +27,7 @@ contract is available. See [[Clustering]].
 
 1. **`as_user_id` MUST be set** - Tasks without a user context won't execute
 2. **`active` must be `true`** - Inactive tasks are not registered with the scheduler
-3. **Server restart required** - New/updated tasks only load on server startup (no hot-reload)
+3. **Server restart required for new or edited tasks** - Cron registrations and action details load on startup. Deactivating a loaded task stops its next run immediately; reactivating it resumes on a later tick if its schedule has not changed.
 4. **Valid `action_name`** - Must reference an existing action in the system
 5. **Valid `schedule`** - Must be parseable by robfig/cron library
 
@@ -201,11 +203,15 @@ does not fall back to a guest, owner, email lookup, or administrator identity.
 
 Daptin creates these tasks automatically:
 
+Recurring system tasks are stored as `task` resources and appear in the task API.
+
 | Task | Schedule | Entity | Action | Purpose |
 |------|----------|--------|--------|---------|
 | Mail Server Sync | `@every 1h` | `mail_server` | `sync_mail_servers` | Sync IMAP accounts |
 | Column Storage Sync | `@every 30m` | `world` | `sync_column_storage` | Sync asset columns to cloud |
 | Site Storage Sync | `@every 1h` | `site` | `sync_site_storage` | Sync subsites to cloud storage |
+| Outbox Processing | `@every 5m` | `outbox` | `process_outbox` | Process queued mail |
+| Data Exchange Processing | `@every 1s` | `exchange_run` | `process_data_exchange_executions` | Process data exchange runs |
 
 ## Common Task Patterns
 

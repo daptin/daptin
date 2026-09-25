@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"testing"
@@ -73,7 +74,7 @@ func TestTaskRelationshipDatabaseMatrix(t *testing.T) {
 			for _, ddl := range []string{
 				fmt.Sprintf("create %stable user_account (id bigint primary key, reference_id %s not null, email text, auth_version bigint not null default 1)", test.temporary, test.referenceDB),
 				fmt.Sprintf("create %stable usergroup (id bigint primary key, name text)", test.temporary),
-				fmt.Sprintf("create %stable task (id %s, reference_id %s not null, name text, action_name text, entity_name text, job_type text, schedule text, active boolean, attributes text, as_user_id bigint, user_account_id bigint, permission bigint, created_at timestamp)", test.temporary, test.identity, test.referenceDB),
+				fmt.Sprintf("create %stable task (id %s, reference_id %s not null, name text unique, action_name text, entity_name text, job_type text, schedule text, active boolean, next_due_at timestamp, attributes text, as_user_id bigint, user_account_id bigint, permission bigint, created_at timestamp)", test.temporary, test.identity, test.referenceDB),
 			} {
 				if _, err := database.Exec(ddl); err != nil {
 					t.Fatal(err)
@@ -113,6 +114,19 @@ func TestTaskRelationshipDatabaseMatrix(t *testing.T) {
 			if tasks[0].AsUserEmail != "" {
 				t.Fatalf("persisted relation leaked into email field: %q", tasks[0].AsUserEmail)
 			}
+			scheduler := &DefaultTaskScheduler{cruds: map[string]*DbResource{"task": crud}}
+			schedule, err := cron.ParseStandard(tasks[0].Schedule)
+			if err != nil {
+				t.Fatal(err)
+			}
+			claimed, err := scheduler.claimDue(tasks[0], schedule)
+			if err != nil || !claimed {
+				t.Fatalf("first task claim = %v, %v", claimed, err)
+			}
+			claimed, err = scheduler.claimDue(tasks[0], schedule)
+			if err != nil || claimed {
+				t.Fatalf("duplicate task claim = %v, %v", claimed, err)
+			}
 
 			tx, err := database.Beginx()
 			if err != nil {
@@ -148,6 +162,10 @@ func TestTaskRelationshipDatabaseMatrix(t *testing.T) {
 			if activeSchedule != "@every 2h" || activeUserId != 42 {
 				t.Fatalf("configured task = schedule %q user %d, want @every 2h as user 42", activeSchedule, activeUserId)
 			}
+			var nextDue sql.NullTime
+			if err := database.QueryRowx(database.Rebind("select next_due_at from task where name = ?"), "active-task").Scan(&nextDue); err != nil || nextDue.Valid {
+				t.Fatalf("schedule change did not reset next due time: %v, %v", nextDue, err)
+			}
 			if inactiveSchedule != "@every 1h" {
 				t.Fatalf("unrelated task schedule = %q, want @every 1h", inactiveSchedule)
 			}
@@ -158,6 +176,42 @@ func TestTaskRelationshipDatabaseMatrix(t *testing.T) {
 			}
 			if configuredUserId != 42 || configuredOwnerId != 42 || configuredPermission != int64(auth.DEFAULT_PERMISSION) {
 				t.Fatalf("configured task context = actor %d owner %d permission %d", configuredUserId, configuredOwnerId, configuredPermission)
+			}
+			systemTasks := []task.Task{
+				{Name: "__daptin_site_sync_old", ActionName: "run", EntityName: "world", JobType: "system", Schedule: "@every 1h", Active: true, Attributes: map[string]interface{}{}, AsUserEmail: "actor@example.test"},
+				{Name: "__daptin_site_sync_current", ActionName: "run", EntityName: "world", JobType: "system", Schedule: "@every 1h", Active: true, Attributes: map[string]interface{}{}, AsUserEmail: "actor@example.test"},
+			}
+			tx, err = database.Beginx()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := UpdateRuntimeTasksData(systemTasks, tx); err != nil {
+				_ = tx.Rollback()
+				t.Fatal(err)
+			}
+			if err := tx.Commit(); err != nil {
+				t.Fatal(err)
+			}
+			tx, err = database.Beginx()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := UpdateRuntimeTasksData(systemTasks[1:], tx); err != nil {
+				_ = tx.Rollback()
+				t.Fatal(err)
+			}
+			if err := tx.Commit(); err != nil {
+				t.Fatal(err)
+			}
+			var staleActive, currentActive bool
+			if err := database.QueryRowx(database.Rebind("select active from task where name = ?"), systemTasks[0].Name).Scan(&staleActive); err != nil {
+				t.Fatal(err)
+			}
+			if err := database.QueryRowx(database.Rebind("select active from task where name = ?"), systemTasks[1].Name).Scan(&currentActive); err != nil {
+				t.Fatal(err)
+			}
+			if staleActive || !currentActive {
+				t.Fatalf("system task reconciliation = stale %v, current %v", staleActive, currentActive)
 			}
 
 			tx, err = database.Beginx()

@@ -407,6 +407,14 @@ func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.R
 
 		}
 
+		if dbResource.model.GetName() == "task" {
+			_, scheduleChanged := allChanges["schedule"]
+			_, activeChanged := allChanges["active"]
+			if scheduleChanged || activeChanged {
+				colsList = append(colsList, "next_due_at")
+				valsList = append(valsList, nil)
+			}
+		}
 		colsList = append(colsList, "updated_at")
 		valsList = append(valsList, time.Now())
 

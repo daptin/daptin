@@ -121,14 +121,10 @@ When multiple nodes run `process_outbox`, each mail is claimed via Olric NX (Not
 
 ### Background-job ownership
 
-Every node registers `sync_site_storage`, `sync_mail_servers`, `process_outbox`,
-and `process_data_exchange_executions`. Only `process_outbox` has a documented
-and verified per-item Olric NX claim in v0.13.14. Cluster-wide singleton or
-idempotency behavior has not been established for the other jobs. Treat
-multi-node scheduling as a production risk: disable or externally fence
-unverified jobs on all but one node, and do not infer durable ownership from an
-Olric cache entry. A database-backed lease/idempotency test is required before
-enabling those jobs on every node.
+Every node loads recurring tasks, including system jobs, but a conditional
+database claim admits only one node for each due occurrence. An occurrence is
+not retried after a node stops or an action fails. See [[Task-Scheduling]] for
+the scheduling and failure semantics.
 
 ## DNS-Based Peer Discovery
 
