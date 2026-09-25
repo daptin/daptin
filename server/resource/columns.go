@@ -2964,6 +2964,7 @@ var StandardTables = []table_info.TableInfo{
 			{Name: "source_reference_id", ColumnName: "source_reference_id", ColumnType: "alias", DataType: "blob", IsNullable: false, IsIndexed: true},
 			{Name: "source_method", ColumnName: "source_method", ColumnType: "label", DataType: "varchar(20)", IsNullable: false},
 			{Name: "source_version", ColumnName: "source_version", ColumnType: "measurement", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
+			{Name: "source_snapshot", ColumnName: "source_snapshot", ColumnType: "json", DataType: "longtext", IsNullable: true, ExcludeFromApi: true},
 			{Name: "state", ColumnName: "state", ColumnType: "label", DataType: "varchar(20)", IsNullable: false, IsIndexed: true, DefaultValue: "'pending'"},
 			{Name: "attempt_count", ColumnName: "attempt_count", ColumnType: "measurement", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
 			{Name: "max_attempts", ColumnName: "max_attempts", ColumnType: "measurement", DataType: "int(11)", IsNullable: false, DefaultValue: "5"},

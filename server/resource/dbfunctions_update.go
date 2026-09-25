@@ -393,6 +393,12 @@ func UpdateStreams(initConfig *CmsConfig, db *sqlx.Tx) {
 func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 
 	log.Printf("We have %d data exchange updates", len(initConfig.ExchangeContracts))
+	activeGenerated := make(map[string]bool)
+	for _, exchange := range initConfig.ExchangeContracts {
+		if exchange.Attributes["event_handler"] == true {
+			activeGenerated[exchange.Name] = true
+		}
+	}
 
 	adminId, _ := GetAdminUserIdAndUserGroupId(transaction)
 
@@ -437,18 +443,22 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 			attrsJson, err := json.Marshal(exchange.Attributes)
 			CheckErr(err, "Failed to marshal target attrs to json")
 
+			fields := goqu.Record{
+				"source_attributes":    sourceAttrsJson,
+				"source_type":          exchange.SourceType,
+				"target_attributes":    targetAttrsJson,
+				"attributes":           attrsJson,
+				"target_type":          exchange.TargetType,
+				"options":              optionsJson,
+				"updated_at":           time.Now(),
+				USER_ACCOUNT_ID_COLUMN: adminId,
+			}
+			if exchange.Attributes["event_handler"] == true {
+				fields["as_user_id"] = adminId
+			}
 			s, v, err = statementbuilder.Squirrel.
 				Update("data_exchange").Prepared(true).
-				Set(goqu.Record{
-					"source_attributes":    sourceAttrsJson,
-					"source_type":          exchange.SourceType,
-					"target_attributes":    targetAttrsJson,
-					"attributes":           attrsJson,
-					"target_type":          exchange.TargetType,
-					"options":              optionsJson,
-					"updated_at":           time.Now(),
-					USER_ACCOUNT_ID_COLUMN: adminId,
-				}).
+				Set(fields).
 				Where(goqu.Ex{"reference_id": referenceId[:]}).
 				ToSQL()
 
@@ -470,17 +480,21 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 			targetAttrsJson, err := json.Marshal(exchange.TargetAttributes)
 			CheckErr(err, "Failed to marshal target attributes to json")
 			u, _ := uuid.NewV7()
+			var asUserId interface{}
+			if exchange.Attributes["event_handler"] == true {
+				asUserId = adminId
+			}
 
 			s, v, err = statementbuilder.Squirrel.
 				Insert("data_exchange").Prepared(true).
 				Cols("permission", "name", "source_attributes",
 					"source_type", "target_attributes", "target_type", "attributes",
-					"options", "created_at", USER_ACCOUNT_ID_COLUMN, "reference_id").
+					"options", "created_at", USER_ACCOUNT_ID_COLUMN, "reference_id", "as_user_id").
 				Vals([]interface{}{
 					auth.DEFAULT_PERMISSION, exchange.Name,
 					sourceAttrsJson, exchange.SourceType, targetAttrsJson,
 					exchange.TargetType, attrsJson, optionsJson,
-					time.Now(), adminId, u[:]}).
+					time.Now(), adminId, u[:], asUserId}).
 				ToSQL()
 
 			_, err = transaction.Exec(s, v...)
@@ -559,6 +573,9 @@ func UpdateExchanges(initConfig *CmsConfig, transaction *sqlx.Tx) {
 			CheckErr(err, "Failed to unmarshal exchange options")
 
 			ec.AsUserId = *user_account_id
+			if ec.Attributes["event_handler"] == true && !activeGenerated[ec.Name] {
+				continue
+			}
 
 			allExchanges = append(allExchanges, ec)
 		}

@@ -82,6 +82,9 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 			log.Errorf("Failed to load config indexFile: %v", err)
 		}
 	}
+	if err := fatalSchemaEventError(errs); err != nil {
+		return nil, err
+	}
 
 	skipDbConfig, skipValueFound := os.LookupEnv("DAPTIN_SKIP_CONFIG_FROM_DATABASE")
 
@@ -93,6 +96,18 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		existingTables, _ = GetTablesFromWorld(db)
 		allTables := MergeTables(existingTables, initConfig.Tables)
 		initConfig.Tables = allTables
+	}
+	hasSynchronousSchemaEvent := false
+	for _, table := range initConfig.Tables {
+		if err := validateSchemaEventHandlers(table); err != nil {
+			return nil, err
+		}
+		for _, handler := range table.EventHandlers {
+			if handler.Handler == "http.post" {
+				hasSynchronousSchemaEvent = true
+			}
+		}
+		initConfig.ExchangeContracts = append(initConfig.ExchangeContracts, schemaEventExchanges(table)...)
 	}
 
 	// rclone config load
@@ -137,6 +152,18 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	initConfig.Hostname = hostname
 
 	defaultRouter := gin.Default()
+	if hasSynchronousSchemaEvent {
+		defaultRouter.Use(func(c *gin.Context) {
+			waiter := &resource.EventDeliveryWaiter{}
+			c.Request = c.Request.WithContext(resource.WithEventDeliveryWaiter(c.Request.Context(), waiter))
+			c.Next()
+			if c.Writer.Status() < http.StatusBadRequest {
+				if err := waiter.Wait(c.Request.Context(), db); err != nil {
+					log.WithError(err).Error("schema event webhook delivery failed")
+				}
+			}
+		})
+	}
 
 	enableGzip, err := configStore.GetConfigValueFor("gzip.enable", "backend", transaction)
 	if err != nil {

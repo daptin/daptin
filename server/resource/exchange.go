@@ -70,7 +70,21 @@ func (exchangeExecution *ExchangeExecution) Execute(data []map[string]interface{
 	case "action":
 		handler = NewActionExchangeHandler(exchangeExecution.ExchangeContract, *exchangeExecution.cruds)
 	default:
-		handler, err = NewRestExchangeHandler(exchangeExecution.ExchangeContract)
+		contract := exchangeExecution.ExchangeContract
+		if contract.Attributes["event_handler"] == true && len(data) == 1 {
+			resource := (*exchangeExecution.cruds)[StringOrEmpty(data[0]["__type"])]
+			if resource == nil {
+				return nil, fmt.Errorf("event source resource is unavailable")
+			}
+			context := schemaEventRenderContext(data[0], resource.envMap, contract.User.UserReferenceId.String())
+			context["user"].(map[string]interface{})["email"] = StringOrEmpty(data[0]["__event_user_email"])
+			resolved, resolveErr := schemaEventValue(contract.TargetAttributes, context)
+			if resolveErr != nil {
+				return nil, resolveErr
+			}
+			contract.TargetAttributes = resolved.(map[string]interface{})
+		}
+		handler, err = NewRestExchangeHandler(contract)
 		if err != nil {
 			return nil, fmt.Errorf("unknown data exchange target [%s]: %w", exchangeExecution.ExchangeContract.TargetType, err)
 		}

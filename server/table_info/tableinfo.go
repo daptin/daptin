@@ -103,6 +103,13 @@ type MeteringConfig struct {
 	OnActions          map[string]MeteringConfig `json:"on_actions,omitempty"`
 }
 
+type EventHandler struct {
+	Event      string
+	Handler    string
+	Condition  string
+	Attributes map[string]interface{}
+}
+
 type TableInfo struct {
 	TableName              string `db:"table_name"`
 	TableId                int
@@ -129,6 +136,7 @@ type TableInfo struct {
 	CompositeKeys          [][]string
 	CompositeIndexes       [][]string
 	Metering               *MeteringConfig `json:"metering,omitempty"`
+	EventHandlers          []EventHandler
 	ExplicitFields         map[string]bool `json:"-" db:"-"`
 }
 

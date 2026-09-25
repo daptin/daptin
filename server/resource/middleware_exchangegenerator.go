@@ -2,9 +2,11 @@ package resource
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -62,6 +64,20 @@ func NewExchangeMiddleware(cmsConfig *CmsConfig, cruds *map[string]*DbResource) 
 		}
 
 	}
+	for name, exchanges := range exchangeMap {
+		sort.SliceStable(exchanges, func(i, j int) bool {
+			left := exchanges[i].Attributes["event_handler"] == true
+			right := exchanges[j].Attributes["event_handler"] == true
+			if left != right {
+				return !left
+			}
+			if !left {
+				return false
+			}
+			return eventHandlerOrder(exchanges[i].Attributes["event_order"]) < eventHandlerOrder(exchanges[j].Attributes["event_order"])
+		})
+		exchangeMap[name] = exchanges
+	}
 
 	return &exchangeMiddleware{
 		cmsConfig:   cmsConfig,
@@ -109,7 +125,6 @@ func (em *exchangeMiddleware) InterceptBefore(dr *DbResource, req *api2go.Reques
 			if !InArray(methods, reqmethod) {
 				continue
 			}
-
 			//client := oauthDesc.Client(ctx, token)
 
 			log.Printf("executing before exchange: %v -> %v", exchange.SourceType, exchange.TargetType)
@@ -166,6 +181,8 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 		if err != nil {
 			return nil, err
 		}
+		var eventContext map[string]interface{}
+		activeUser, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
 
 		for _, exchange := range exchanges {
 
@@ -184,6 +201,24 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 			if !InArray(methods, reqmethod) {
 				continue
 			}
+			if exchange.Attributes["event_handler"] == true {
+				if eventContext == nil {
+					eventContext = schemaEventContext(dr, req, resultRow)
+				}
+				matches, conditionErr := schemaEventCondition(StringOrEmpty(exchange.Attributes["condition"]), eventContext)
+				if conditionErr != nil {
+					log.WithError(conditionErr).WithField("handler", exchange.Name).Error("event condition failed")
+					continue
+				}
+				if !matches {
+					continue
+				}
+				if activeUser == nil || activeUser.UserId <= 0 {
+					log.WithField("handler", exchange.Name).Error("event handler has no active user")
+					continue
+				}
+				exchange.AsUserId = activeUser.UserId
+			}
 
 			//client := oauthDesc.Client(ctx, token)
 
@@ -191,14 +226,34 @@ func (em *exchangeMiddleware) InterceptAfter(dr *DbResource, req *api2go.Request
 				return nil, fmt.Errorf("after exchange [%s] requires an active mutation transaction", exchange.Name)
 			}
 			log.Printf("enqueueing after exchange: %v -> %v", exchange.SourceType, exchange.TargetType)
-			if err := em.executions.Enqueue(exchange, reqmethod, enqueueRow, *req, transaction); err != nil {
+			executionID, err := em.executions.Enqueue(exchange, reqmethod, enqueueRow, *req, transaction)
+			if err != nil {
+				if exchange.Attributes["event_handler"] == true {
+					log.WithError(err).WithField("handler", exchange.Name).Error("event handler was not queued")
+					continue
+				}
 				return nil, fmt.Errorf("enqueue data exchange [%s]: %w", exchange.Name, err)
+			}
+			if exchange.Attributes["wait_for_delivery"] == true {
+				if waiter := EventDeliveryWaiterFromContext(req.PlainRequest.Context()); waiter != nil {
+					waiter.Add(executionID)
+				}
 			}
 		}
 	}
 
 	log.Tracef("[208] Completed request to intercept in middleware exchange: %v => %v", reqmethod, results)
 	return results, nil
+}
+
+func eventHandlerOrder(value interface{}) int {
+	if order, ok := value.(int); ok {
+		return order
+	}
+	if order, ok := value.(float64); ok {
+		return int(order)
+	}
+	return 0
 }
 
 func exchangeEnqueueRow(resultRow map[string]interface{}, method string) (map[string]interface{}, error) {

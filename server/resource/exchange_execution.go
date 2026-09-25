@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"math"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -46,33 +48,33 @@ func NewExchangeExecutionService(_ *CmsConfig, cruds *map[string]*DbResource) *E
 }
 
 func (service *ExchangeExecutionService) Enqueue(exchange ExchangeContract, method string,
-	row map[string]interface{}, request api2go.Request, transaction *sqlx.Tx) error {
+	row map[string]interface{}, request api2go.Request, transaction *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
 	queue, err := service.queueResource()
 	if err != nil {
-		return err
+		return daptinid.NullReferenceId, err
 	}
 	if transaction == nil {
-		return fmt.Errorf("enqueue data exchange execution without a transaction")
+		return daptinid.NullReferenceId, fmt.Errorf("enqueue data exchange execution without a transaction")
 	}
 
 	exchangeReference := daptinid.InterfaceToDIR(exchange.ReferenceId)
 	if exchangeReference == daptinid.NullReferenceId {
-		return fmt.Errorf("data exchange [%s] has no reference_id", exchange.Name)
+		return daptinid.NullReferenceId, fmt.Errorf("data exchange [%s] has no reference_id", exchange.Name)
 	}
 	sourceType := StringOrEmpty(row["__type"])
 	sourceReference := exchangeSourceReference(row["reference_id"])
 	if sourceType == "" || sourceReference == "" {
-		return fmt.Errorf("data exchange [%s] source identity is incomplete", exchange.Name)
+		return daptinid.NullReferenceId, fmt.Errorf("data exchange [%s] source identity is incomplete", exchange.Name)
 	}
 	sourceReferenceID := daptinid.InterfaceToDIR(sourceReference)
 	if sourceReferenceID == daptinid.NullReferenceId {
-		return fmt.Errorf("data exchange [%s] source reference_id is invalid", exchange.Name)
+		return daptinid.NullReferenceId, fmt.Errorf("data exchange [%s] source reference_id is invalid", exchange.Name)
 	}
 	sourceVersion := int64(0)
 	if row["version"] != nil {
 		sourceVersion, err = exchangeSourceVersion(row["version"])
 		if err != nil {
-			return fmt.Errorf("invalid source version for data exchange [%s]: %w", exchange.Name, err)
+			return daptinid.NullReferenceId, fmt.Errorf("invalid source version for data exchange [%s]: %w", exchange.Name, err)
 		}
 	}
 
@@ -81,16 +83,16 @@ func (service *ExchangeExecutionService) Enqueue(exchange ExchangeContract, meth
 	}, "\x00")))
 	if existing, _, findErr := queue.GetSingleRowByReferenceIdWithTransaction(
 		EXCHANGE_RUN_TABLE_NAME, daptinid.DaptinReferenceId(executionReference), nil, transaction); findErr == nil && existing != nil {
-		return nil
+		return daptinid.DaptinReferenceId(executionReference), nil
 	}
 
 	executionUser, err := exchangeSessionUser(*service.cruds, exchange.AsUserId, transaction)
 	if err != nil {
-		return fmt.Errorf("resolve data exchange execution user: %w", err)
+		return daptinid.NullReferenceId, fmt.Errorf("resolve data exchange execution user: %w", err)
 	}
 	sourceResource := (*service.cruds)[sourceType]
 	if sourceResource == nil {
-		return fmt.Errorf("data exchange [%s] source resource [%s] is unavailable", exchange.Name, sourceType)
+		return daptinid.NullReferenceId, fmt.Errorf("data exchange [%s] source resource [%s] is unavailable", exchange.Name, sourceType)
 	}
 	sourcePermission, hasCapturedPermission := row["__permission"].(permission.PermissionInstance)
 	if !hasCapturedPermission || strings.ToLower(method) != "delete" {
@@ -98,15 +100,15 @@ func (service *ExchangeExecutionService) Enqueue(exchange ExchangeContract, meth
 	}
 	if !sourcePermission.CanRead(executionUser.UserReferenceId, executionUser.Groups,
 		sourceResource.AdministratorGroupId) {
-		return fmt.Errorf("data exchange user cannot read source [%s][%s]", sourceType, sourceReference)
+		return daptinid.NullReferenceId, fmt.Errorf("data exchange user cannot read source [%s][%s]", sourceType, sourceReference)
 	}
 	adminID, _ := GetAdminUserIdAndUserGroupId(transaction)
 	if adminID <= 0 {
-		return fmt.Errorf("administrators group has no execution owner")
+		return daptinid.NullReferenceId, fmt.Errorf("administrators group has no execution owner")
 	}
 	adminUser, err := exchangeSessionUser(*service.cruds, adminID, transaction)
 	if err != nil {
-		return fmt.Errorf("resolve data exchange execution owner: %w", err)
+		return daptinid.NullReferenceId, fmt.Errorf("resolve data exchange execution owner: %w", err)
 	}
 
 	attributes := map[string]interface{}{
@@ -122,13 +124,39 @@ func (service *ExchangeExecutionService) Enqueue(exchange ExchangeContract, meth
 		"max_attempts":        exchangeExecutionMaxAttempts,
 		"next_attempt_at":     service.now().UTC(),
 	}
+	if exchange.Attributes["event_handler"] == true {
+		snapshot := make(map[string]interface{}, len(row))
+		for key, value := range row {
+			if key != "id" && key != "__permission" {
+				snapshot[key] = value
+			}
+		}
+		permissionBytes, err := sourcePermission.MarshalBinary()
+		if err != nil {
+			return daptinid.NullReferenceId, fmt.Errorf("encode event source permission: %w", err)
+		}
+		snapshot["__event_permission"] = base64.StdEncoding.EncodeToString(permissionBytes)
+		snapshot["__event"] = "after:" + schemaEventOperation(method)
+		snapshot["__event_timestamp"] = service.now().UTC().Format(time.RFC3339Nano)
+		account, _, err := (*service.cruds)[USER_ACCOUNT_TABLE_NAME].GetSingleRowById(
+			USER_ACCOUNT_TABLE_NAME, exchange.AsUserId, nil, transaction)
+		if err != nil {
+			return daptinid.NullReferenceId, fmt.Errorf("load event writer: %w", err)
+		}
+		snapshot["__event_user_email"] = StringOrEmpty(account["email"])
+		encoded, err := json.Marshal(snapshot)
+		if err != nil {
+			return daptinid.NullReferenceId, fmt.Errorf("encode event source snapshot: %w", err)
+		}
+		attributes["source_snapshot"] = string(encoded)
+	}
 	request.PlainRequest = request.PlainRequest.WithContext(
 		context.WithValue(request.PlainRequest.Context(), "user", adminUser))
 	model := api2go.NewApi2GoModelWithData(EXCHANGE_RUN_TABLE_NAME, nil, 0, nil, attributes)
 	if _, err = queue.CreateWithoutFilter(model, request, transaction); err != nil {
-		return fmt.Errorf("create data exchange execution: %w", err)
+		return daptinid.NullReferenceId, fmt.Errorf("create data exchange execution: %w", err)
 	}
-	return nil
+	return daptinid.DaptinReferenceId(executionReference), nil
 }
 
 func exchangeSourceVersion(value interface{}) (int64, error) {
@@ -343,7 +371,16 @@ type exchangeExecutionClaim struct {
 
 func (service *ExchangeExecutionService) claimNext(transaction *sqlx.Tx, now time.Time) (*exchangeExecutionClaim, error) {
 	query, args, err := statementbuilder.Squirrel.Select("id", "attempt_count", "max_attempts").
-		Prepared(true).From(EXCHANGE_RUN_TABLE_NAME).Where(exchangeExecutionEligible(now)).
+		Prepared(true).From(EXCHANGE_RUN_TABLE_NAME).Where(exchangeExecutionEligible(now),
+		goqu.L(`(source_snapshot IS NULL OR NOT EXISTS (
+				SELECT 1 FROM exchange_run AS earlier
+				WHERE earlier.source_snapshot IS NOT NULL
+				AND earlier.source_reference_id = exchange_run.source_reference_id
+				AND earlier.source_method = exchange_run.source_method
+				AND earlier.source_version = exchange_run.source_version
+				AND earlier.id < exchange_run.id
+				AND earlier.state NOT IN (?, ?)))`,
+			exchangeExecutionSucceeded, exchangeExecutionTerminalFailed)).
 		Order(goqu.C("created_at").Asc()).Limit(1).ToSQL()
 	if err != nil {
 		return nil, err
@@ -383,7 +420,7 @@ func (service *ExchangeExecutionService) loadAttempt(id int64, transaction *sqlx
 	map[string]interface{}, ExchangeContract, map[string]interface{}, string, error) {
 	row := make(map[string]interface{})
 	rows, err := transaction.Queryx(transaction.Rebind(fmt.Sprintf(`select id, data_exchange_id, as_user_id,
-		source_type, source_reference_id, source_method, source_version from %s where id = ?`, EXCHANGE_RUN_TABLE_NAME)), id)
+		source_type, source_reference_id, source_method, source_version, source_snapshot from %s where id = ?`, EXCHANGE_RUN_TABLE_NAME)), id)
 	if err != nil {
 		return nil, ExchangeContract{}, nil, "execution_not_found", err
 	}
@@ -416,6 +453,34 @@ func (service *ExchangeExecutionService) loadAttempt(id int64, transaction *sqlx
 		return row, exchange, nil, "execution_user_not_found", err
 	}
 	exchange.AsUserId = asUserID
+	exchange.User = *executionUser
+	if rawSnapshot := row["source_snapshot"]; rawSnapshot != nil {
+		var snapshot map[string]interface{}
+		if err := json.Unmarshal([]byte(StringOrEmpty(rawSnapshot)), &snapshot); err != nil {
+			return row, exchange, nil, "source_snapshot_invalid", err
+		}
+		permissionData, err := base64.StdEncoding.DecodeString(StringOrEmpty(snapshot["__event_permission"]))
+		if err != nil {
+			return row, exchange, nil, "source_permission_invalid", err
+		}
+		if len(permissionData) < 24 {
+			return row, exchange, nil, "source_permission_invalid", fmt.Errorf("event source permission is incomplete")
+		}
+		var sourcePermission permission.PermissionInstance
+		if err := sourcePermission.UnmarshalBinary(permissionData); err != nil {
+			return row, exchange, nil, "source_permission_invalid", err
+		}
+		sourceResource := (*service.cruds)[StringOrEmpty(row["source_type"])]
+		if sourceResource == nil {
+			return row, exchange, nil, "source_not_found", fmt.Errorf("data exchange source resource is unavailable")
+		}
+		if !sourcePermission.CanRead(executionUser.UserReferenceId, executionUser.Groups,
+			sourceResource.AdministratorGroupId) {
+			return row, exchange, nil, "source_read_denied", fmt.Errorf("data exchange user cannot read event source")
+		}
+		delete(snapshot, "__event_permission")
+		return row, exchange, snapshot, "", nil
+	}
 
 	sourceType := StringOrEmpty(row["source_type"])
 	sourceReference := daptinid.InterfaceToDIR(exchangeSourceReference(row["source_reference_id"]))
@@ -497,6 +562,9 @@ func (service *ExchangeExecutionService) markSucceeded(claim *exchangeExecutionC
 
 func (service *ExchangeExecutionService) markFailure(claim *exchangeExecutionClaim, code string,
 	executionErr error, terminal bool, transaction *sqlx.Tx) error {
+	log.WithError(executionErr).WithFields(log.Fields{
+		"exchange_run_id": claim.id, "code": code,
+	}).Error("data exchange delivery failed")
 	now := service.now().UTC()
 	state := exchangeExecutionRetryableFailed
 	completedAt := interface{}(nil)

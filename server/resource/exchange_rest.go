@@ -51,6 +51,14 @@ type RestExternalExchange struct {
 func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
 	log.Printf("Execute rest external exchange")
+	render := BuildActionContext
+	evaluateURL := EvaluateString
+	if g.exchangeContract.Attributes["event_handler"] == true {
+		// Schema event templates were resolved before constructing this target.
+		// Treat the resulting strings as values, including secrets containing '$'.
+		render = func(value interface{}, _ map[string]interface{}) (interface{}, error) { return value, nil }
+		evaluateURL = func(value string, _ map[string]interface{}) (interface{}, error) { return value, nil }
+	}
 
 	headersMap := make(map[string]string)
 
@@ -60,7 +68,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 		inFieldMap[k] = v
 	}
 
-	headInterface, err := BuildActionContext(g.exchangeInformation.Headers, inFieldMap)
+	headInterface, err := render(g.exchangeInformation.Headers, inFieldMap)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +86,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 	}
 
 	queryParamsMap := make(map[string]string)
-	queryInterface, err := BuildActionContext(g.exchangeInformation.QueryParams, inFieldMap)
+	queryInterface, err := render(g.exchangeInformation.QueryParams, inFieldMap)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +102,7 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 	}
 
 	attrs := make(map[string]interface{})
-	urlStr, err := EvaluateString(g.exchangeInformation.Url, inFieldMap)
+	urlStr, err := evaluateURL(g.exchangeInformation.Url, inFieldMap)
 	if err != nil {
 		return nil, err
 	}
@@ -108,13 +116,13 @@ func (g *RestExternalExchange) ExecuteTarget(row map[string]interface{}, transac
 		bodyMap = row
 	} else {
 		inFieldMap["subject"] = row
-		bodyMap, err = BuildActionContext(body, inFieldMap)
+		bodyMap, err = render(body, inFieldMap)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	buildAttrsInterface, err := BuildActionContext(attrs, inFieldMap)
+	buildAttrsInterface, err := render(attrs, inFieldMap)
 	if err != nil {
 		return nil, err
 	}

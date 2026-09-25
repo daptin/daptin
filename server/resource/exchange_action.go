@@ -72,7 +72,9 @@ func (exchangeHandler *ActionExchangeHandler) ExecuteTarget(row map[string]inter
 	req.PlainRequest = req.PlainRequest.WithContext(context.WithValue(context.Background(), "user", sessionUser))
 
 	request.Attributes["subject"] = row
-	request.Attributes[tableName+"_id"] = exchangeSourceReference(row["reference_id"])
+	if row["__event"] != "after:delete" {
+		request.Attributes[tableName+"_id"] = exchangeSourceReference(row["reference_id"])
+	}
 	response, err := exchangeHandler.cruds[tableName].HandleActionRequest(request, req, transaction)
 
 	log.Printf("Response from action exchange execution: %v", response)

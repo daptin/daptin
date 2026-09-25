@@ -237,6 +237,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	tablePermissionChecker := &resource.TableAccessPermissionChecker{}
 	objectPermissionChecker := &resource.ObjectAccessPermissionChecker{}
 	dataValidationMiddleware := resource.NewDataValidationMiddleware(cmsConfig, cruds)
+	schemaEventMiddleware := resource.NewSchemaEventMiddleware()
 	meteringMiddleware := resource.NewMeteringMiddleware(cruds)
 
 	createEventHandler := resource.NewCreateEventHandler(cruds, dtopicMap)
@@ -252,7 +253,6 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 
 	ms.AfterFindAll = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
-		exchangeMiddleware,
 		objectPermissionChecker,
 		meteringMiddleware,
 	}
@@ -261,6 +261,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		tablePermissionChecker,
 		objectPermissionChecker,
 		meteringMiddleware,
+		schemaEventMiddleware,
 		dataValidationMiddleware,
 		createEventHandler,
 		exchangeMiddleware,
@@ -277,6 +278,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		tablePermissionChecker,
 		objectPermissionChecker,
 		meteringMiddleware,
+		schemaEventMiddleware,
 		deleteEventHandler,
 		exchangeMiddleware,
 	}
@@ -292,6 +294,7 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 		tablePermissionChecker,
 		objectPermissionChecker,
 		meteringMiddleware,
+		schemaEventMiddleware,
 		dataValidationMiddleware,
 		updateEventHandler,
 		exchangeMiddleware,
@@ -314,7 +317,6 @@ func BuildMiddlewareSet(cmsConfig *resource.CmsConfig,
 	ms.AfterFindOne = []resource.DatabaseRequestInterceptor{
 		tablePermissionChecker,
 		objectPermissionChecker,
-		exchangeMiddleware,
 		meteringMiddleware,
 	}
 	return ms

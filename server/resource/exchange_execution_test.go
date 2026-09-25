@@ -18,6 +18,10 @@ func TestExchangeExecutionClaimIsDatabaseAuthoritative(t *testing.T) {
 	t.Cleanup(func() { _ = database.Close() })
 	database.MustExec(`create table exchange_run (
 		id integer primary key autoincrement,
+		source_snapshot text,
+		source_reference_id blob,
+		source_method text,
+		source_version integer,
 		state text not null,
 		attempt_count integer not null,
 		max_attempts integer not null,
@@ -29,10 +33,14 @@ func TestExchangeExecutionClaimIsDatabaseAuthoritative(t *testing.T) {
 	)`)
 
 	fixedNow := time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC)
-	database.MustExec(`insert into exchange_run
-		(state, attempt_count, max_attempts, next_attempt_at, created_at)
-		values (?, ?, ?, ?, ?)`, exchangeExecutionPending, 0, exchangeExecutionMaxAttempts,
-		fixedNow.Add(-time.Minute), fixedNow)
+	for _, createdAt := range []time.Time{fixedNow, fixedNow.Add(time.Second)} {
+		database.MustExec(`insert into exchange_run
+			(source_snapshot, source_reference_id, source_method, source_version,
+			 state, attempt_count, max_attempts, next_attempt_at, created_at)
+			values (?, ?, ?, ?, ?, ?, ?, ?, ?)`, "{}", []byte("same-source-id"), "post", 1,
+			exchangeExecutionPending, 0, exchangeExecutionMaxAttempts,
+			fixedNow.Add(-time.Minute), createdAt)
+	}
 	service := NewExchangeExecutionService(nil, &map[string]*DbResource{
 		EXCHANGE_RUN_TABLE_NAME: {connection: database},
 	})
@@ -55,9 +63,16 @@ func TestExchangeExecutionClaimIsDatabaseAuthoritative(t *testing.T) {
 		t.Fatal(err)
 	}
 	if staleClaim != nil {
-		t.Fatalf("unexpired running execution was claimed twice: %#v", staleClaim)
+		t.Fatalf("next event ran before the first completed: %#v", staleClaim)
 	}
 	_ = second.Rollback()
+	database.MustExec(`update exchange_run set state = ? where id = ?`, exchangeExecutionSucceeded, claim.id)
+	third := database.MustBegin()
+	nextClaim, err := service.claimNext(third, fixedNow)
+	if err != nil || nextClaim == nil || nextClaim.id == claim.id {
+		t.Fatalf("next event was not claimed after the first completed: %#v, %v", nextClaim, err)
+	}
+	_ = third.Rollback()
 }
 
 func TestExchangeExecutionExpiredLeaseCanBeReclaimed(t *testing.T) {
@@ -67,6 +82,10 @@ func TestExchangeExecutionExpiredLeaseCanBeReclaimed(t *testing.T) {
 	t.Cleanup(func() { _ = database.Close() })
 	database.MustExec(`create table exchange_run (
 		id integer primary key autoincrement,
+		source_snapshot text,
+		source_reference_id blob,
+		source_method text,
+		source_version integer,
 		state text not null,
 		attempt_count integer not null,
 		max_attempts integer not null,

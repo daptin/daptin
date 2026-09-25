@@ -172,6 +172,9 @@ func mergeTableConfigIntoExisting(existing table_info.TableInfo, override table_
 	if override.Metering != nil {
 		existing.Metering = override.Metering
 	}
+	if override.EventHandlers != nil || override.ExplicitFields["EventHandlers"] || override.ExplicitFields["event_handlers"] {
+		existing.EventHandlers = override.EventHandlers
+	}
 
 	return existing
 }

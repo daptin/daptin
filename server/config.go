@@ -2,6 +2,7 @@ package server
 
 import (
 	json1 "encoding/json"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -133,6 +134,10 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 				errs = append(errs, fmt.Errorf("schema file %s: %w", fileName, err))
 				continue
 			}
+			if err := validateSchemaEventHandlers(table); err != nil {
+				errs = append(errs, eventHandlerSchemaError{fmt.Errorf("schema file %s: %w", fileName, err)})
+				continue
+			}
 			rawTablesValue := initConfigRaw["Tables"]
 			if rawTablesValue == nil {
 				rawTablesValue = initConfigRaw["tables"]
@@ -195,6 +200,18 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 }
 
+type eventHandlerSchemaError struct{ error }
+
+func fatalSchemaEventError(errs []error) error {
+	for _, err := range errs {
+		var handlerErr eventHandlerSchemaError
+		if errors.As(err, &handlerErr) {
+			return err
+		}
+	}
+	return nil
+}
+
 // normalizeSchemaTableColumns establishes the database/runtime identity of
 // every schema column before the table is copied into the global config or
 // merged with a built-in table. YAML schemas historically allowed either Name
@@ -224,4 +241,101 @@ func normalizeSchemaTableColumns(table *table_info.TableInfo) error {
 		seen[column.ColumnName] = struct{}{}
 	}
 	return nil
+}
+
+func validateSchemaEventHandlers(table table_info.TableInfo) error {
+	for index, handler := range table.EventHandlers {
+		stage, operation, ok := strings.Cut(handler.Event, ":")
+		if !ok || (stage != "before" && stage != "after") ||
+			(operation != "create" && operation != "update" && operation != "delete") {
+			return fmt.Errorf("table %s EventHandlers[%d] has invalid event %q", table.TableName, index, handler.Event)
+		}
+		if handler.Attributes == nil {
+			return fmt.Errorf("table %s EventHandlers[%d] has no Attributes", table.TableName, index)
+		}
+		switch handler.Handler {
+		case "validation":
+			condition, ok := handler.Attributes["Condition"].(string)
+			if stage != "before" || !ok || strings.TrimSpace(condition) == "" {
+				return fmt.Errorf("table %s EventHandlers[%d] requires a before event and validation Condition", table.TableName, index)
+			}
+		case "conformation":
+			if stage != "before" || len(handler.Attributes) == 0 {
+				return fmt.Errorf("table %s EventHandlers[%d] requires a before event and conformation fields", table.TableName, index)
+			}
+		case "js":
+			script, ok := handler.Attributes["Script"].(string)
+			if stage != "before" || !ok || strings.TrimSpace(script) == "" {
+				return fmt.Errorf("table %s EventHandlers[%d] requires a before event and Script", table.TableName, index)
+			}
+		case "action.execute":
+			action, actionOK := handler.Attributes["ActionName"].(string)
+			entity, entityOK := handler.Attributes["EntityName"].(string)
+			if stage != "after" || !actionOK || !entityOK || strings.TrimSpace(action) == "" || strings.TrimSpace(entity) == "" {
+				return fmt.Errorf("table %s EventHandlers[%d] requires an after event, ActionName and EntityName", table.TableName, index)
+			}
+		case "http.post", "async.http.post":
+			url, ok := handler.Attributes["Url"].(string)
+			if stage != "after" || !ok || strings.TrimSpace(url) == "" {
+				return fmt.Errorf("table %s EventHandlers[%d] requires an after event and Url", table.TableName, index)
+			}
+			if headers := handler.Attributes["Headers"]; headers != nil {
+				if _, ok := headers.(map[string]interface{}); !ok {
+					return fmt.Errorf("table %s EventHandlers[%d] Headers must be an object", table.TableName, index)
+				}
+			}
+			if body := handler.Attributes["Body"]; body != nil {
+				if _, ok := body.(map[string]interface{}); !ok {
+					return fmt.Errorf("table %s EventHandlers[%d] Body must be an object", table.TableName, index)
+				}
+			}
+		default:
+			return fmt.Errorf("table %s EventHandlers[%d] has unsupported Handler %q", table.TableName, index, handler.Handler)
+		}
+	}
+	return nil
+}
+
+func schemaEventExchanges(table table_info.TableInfo) []resource.ExchangeContract {
+	exchanges := make([]resource.ExchangeContract, 0)
+	for index, handler := range table.EventHandlers {
+		stage, operation, _ := strings.Cut(handler.Event, ":")
+		if stage != "after" {
+			continue
+		}
+		name := "__daptin_event_" + resource.GetMD5HashString(fmt.Sprintf("%s/%d", table.TableName, index))
+		exchange := resource.ExchangeContract{
+			Name:             name,
+			SourceType:       "self",
+			SourceAttributes: map[string]interface{}{"name": table.TableName},
+			Attributes: map[string]interface{}{
+				"name": table.TableName, "hook": "after", "methods": []interface{}{map[string]string{"create": "post", "update": "patch", "delete": "delete"}[operation]},
+				"condition": handler.Condition, "event_handler": true, "event_order": index,
+				"wait_for_delivery": handler.Handler == "http.post",
+			},
+		}
+		switch handler.Handler {
+		case "action.execute":
+			exchange.TargetType = "action"
+			exchange.TargetAttributes = map[string]interface{}{
+				"type": handler.Attributes["EntityName"], "action": handler.Attributes["ActionName"], "attributes": map[string]interface{}{},
+			}
+		default:
+			exchange.TargetType = "rest"
+			exchange.TargetAttributes = map[string]interface{}{"url": handler.Attributes["Url"], "method": "POST"}
+			if headers := handler.Attributes["Headers"]; headers != nil {
+				exchange.TargetAttributes["headers"] = headers
+			}
+			if body := handler.Attributes["Body"]; body != nil {
+				exchange.TargetAttributes["body"] = body
+			} else {
+				exchange.TargetAttributes["body"] = map[string]interface{}{
+					"event": handler.Event, "table": table.TableName, "record": "{{.}}",
+					"user": "{{.user}}", "timestamp": "{{now}}",
+				}
+			}
+		}
+		exchanges = append(exchanges, exchange)
+	}
+	return exchanges
 }
