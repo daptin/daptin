@@ -168,38 +168,6 @@ curl -X POST http://localhost:6336/action/user_account/otp_login_verify \
 | email | User email |
 | otp | 6-digit code from authenticator |
 
-## switch_session_user
-
-Admin-only: Impersonate another user.
-
-```bash
-curl -X POST http://localhost:6336/action/user_account/switch_session_user \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "user_account_id": "TARGET_USER_REFERENCE_ID"
-    }
-  }'
-```
-
-Returns new JWT token for the target user.
-
-## generate_jwt_token
-
-Generate a new JWT token for current session.
-
-```bash
-curl -X POST http://localhost:6336/action/user_account/generate_jwt_token \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {}
-  }'
-```
-
-Useful for extending session or generating API tokens.
-
 ## JWT Token Structure
 
 ```json

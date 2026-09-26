@@ -254,7 +254,7 @@ Execute external processes (action_execute_process.go) - security-sensitive, not
 | Performer File | Performer Name | Action Name (columns.go) | Wiki Status |
 |----------------|----------------|--------------------------|-------------|
 | action_become_admin.go | `__become_admin` | `become_an_administrator` | ✅ Documented |
-| action_generate_jwt_token.go | `jwt.token` | `generate_jwt_token` | ✅ Documented |
+| action_generate_jwt_token.go | `jwt.token` | `signin` | ✅ Documented |
 | action_generate_oauth2_token.go | `oauth.token` | N/A (internal) | ✅ Documented in Authentication.md |
 | action_otp_generate.go | `otp.generate` | `register_otp` | ✅ Fixed |
 | action_otp_login_verify.go | `otp.login.verify` | `verify_otp` | ✅ Fixed |

@@ -137,7 +137,6 @@ Daptin includes 40+ built-in actions. Here are the most commonly used ones group
 | `signin` | user_account | Get JWT token | No |
 | `reset-password` | user_account | Request password reset email | No |
 | `reset-password-verify` | user_account | Complete password reset | No |
-| `generate_jwt_token` | user_account | Create API token for user | Yes |
 | `otp_generate` | user_account | Enable 2FA | Yes |
 | `otp_login_verify` | user_account | Verify 2FA code | No |
 
@@ -291,7 +290,7 @@ Response includes:
 **Instance Actions** (instance_optional=0):
 - Called on a specific record
 - Require the record reference ID in `attributes.{entity}_id`
-- Example: `POST /action/user_account/generate_jwt_token` with `attributes.user_account_id`
+- Example: `POST /action/oauth_token/get_token` with `attributes.oauth_token_id`
 
 ### Subject Row Authorization
 

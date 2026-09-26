@@ -487,7 +487,7 @@ curl -X POST http://localhost:6336/action/{entity}/{actionName} \
 ` + "```" + `
 
 **Built-in Action Categories:**
-- **User Management**: signin, signup, become_admin, generate_jwt_token, otp_generate, password reset
+- **User Management**: signin, signup, become_admin, otp_generate, password reset
 - **Data Operations**: export_data, export_csv_data, import_data, csv_to_entity, xls_to_entity
 - **Communication**: mail.send (SMTP), mail.send_ses (AWS SES), mail_servers_sync
 - **Cloud Storage**: cloudstore_file_upload/delete, folder_create, path_move, site_create
