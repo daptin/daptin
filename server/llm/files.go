@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -287,10 +288,12 @@ func daptinFile(row, document map[string]interface{}) (contract.File, error) {
 	if err != nil {
 		return contract.File{}, err
 	}
-	bytes, err := resource.ResourceRowInt64(metadata["size"])
-	if err != nil || bytes < 0 {
+	// Asset metadata is decoded from JSON, so its numeric size is a float64.
+	size, ok := metadata["size"].(float64)
+	if !ok || size < 0 || size >= float64(uint64(1)<<63) || math.Trunc(size) != size {
 		return contract.File{}, fmt.Errorf("LLM file has invalid byte size")
 	}
+	bytes := int64(size)
 	purpose := contract.FilePurpose(resource.StringOrEmpty(row["purpose"]))
 	if !purpose.Valid() {
 		return contract.File{}, fmt.Errorf("LLM file has invalid purpose")

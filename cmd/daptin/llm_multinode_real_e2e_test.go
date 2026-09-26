@@ -5,16 +5,96 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestLLMFileMetadataRealE2E(t *testing.T) {
+	requireRealE2E(t)
+	const schema = `Tables:
+  - TableName: document
+    Columns:
+      - Name: document_content
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: llm-file-e2e-store
+          KeyName: files
+`
+	usedPorts := map[int]bool{}
+	port := freeTransportE2EPort(t, usedPorts)
+	httpsPort := freeTransportE2EPort(t, usedPorts)
+	olricPort := freeTransportE2EPortPair(t, usedPorts)
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	options := transportE2EDaptinOptions{databaseType: "sqlite3", connectionString: filepath.Join(t.TempDir(), "llm-files.db"), olricPort: olricPort, schema: schema}
+	process := startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
+	client := &http.Client{Timeout: 20 * time.Second}
+	token := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	accessGroupsE2ECreateRecord(t, client, baseURL, token, "cloud_store", map[string]interface{}{
+		"name": "llm-file-e2e-store", "store_type": "local", "store_provider": "local", "root_path": t.TempDir(), "store_parameters": "{}",
+	})
+	process.stopProcess()
+	process = startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
+	defer process.stopProcess()
+	signin := accessGroupsE2ERequestJSON(t, client, http.MethodPost, baseURL+"/action/user_account/signin", "",
+		map[string]interface{}{"attributes": map[string]interface{}{"email": "admin@test.local", "password": "testpass123"}}, http.StatusOK)
+	token, _ = accessGroupsE2EFindString(signin, "value")
+
+	content := []byte("a real uploaded file\n")
+	var body bytes.Buffer
+	form := multipart.NewWriter(&body)
+	if err := form.WriteField("purpose", "assistants"); err != nil {
+		t.Fatal(err)
+	}
+	part, err := form.CreateFormFile("file", "notes.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(content); err != nil {
+		t.Fatal(err)
+	}
+	if err := form.Close(); err != nil {
+		t.Fatal(err)
+	}
+	upload := requestAssetE2E(t, client, http.MethodPost, baseURL+"/v1/files", token, &body, form.FormDataContentType(), http.StatusOK)
+	var created map[string]interface{}
+	if err := json.Unmarshal(upload, &created); err != nil {
+		t.Fatal(err)
+	}
+	id, ok := created["id"].(string)
+	if !ok || id == "" {
+		t.Fatalf("upload returned no file ID: %s", upload)
+	}
+	for _, path := range []string{"/v1/files", "/v1/files/" + id} {
+		metadata := requestAssetE2E(t, client, http.MethodGet, baseURL+path, token, nil, "", http.StatusOK)
+		var result map[string]interface{}
+		if err := json.Unmarshal(metadata, &result); err != nil {
+			t.Fatal(err)
+		}
+		if path == "/v1/files" {
+			files, ok := result["data"].([]interface{})
+			if !ok || len(files) != 1 {
+				t.Fatalf("file list = %s", metadata)
+			}
+			result, ok = files[0].(map[string]interface{})
+			if !ok {
+				t.Fatalf("file list entry = %s", metadata)
+			}
+		}
+		if result["id"] != id || result["bytes"] != float64(len(content)) || result["filename"] != "notes.txt" {
+			t.Fatalf("%s returned incorrect metadata: %s", path, metadata)
+		}
+	}
+}
 
 func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	if os.Getenv("DAPTIN_LLM_MULTINODE_E2E") != "1" {

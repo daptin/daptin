@@ -5,16 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/artpar/api2go/v2"
-	"github.com/artpar/rclone/cmd"
-	"github.com/artpar/rclone/fs"
-	"github.com/artpar/rclone/fs/operations"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"strings"
 	"time"
 )
 
@@ -40,13 +34,13 @@ func (d *importCloudStoreFilesPerformer) DoAction(request actionresponse.Outcome
 		return nil, nil, []error{errors.New("invalid table")}
 	}
 
-	cloudStores := make(map[string]api2go.ForeignKeyData, 0)
+	cloudStores := make([]string, 0)
 
 	requiredColumns := make(map[string]interface{})
 	defaltValues := make(map[string]interface{})
 	for _, col := range tableCrud.TableInfo().Columns {
-		if strings.Index(col.ColumnType, ".") > -1 && col.IsForeignKey && col.ForeignKeyData.DataSource == "cloud_store" {
-			cloudStores[col.ColumnName] = col.ForeignKeyData
+		if col.IsForeignKey && col.ForeignKeyData.DataSource == "cloud_store" {
+			cloudStores = append(cloudStores, col.ColumnName)
 		}
 		if col.DefaultValue != "" {
 			defaultValue := col.DefaultValue
@@ -64,64 +58,40 @@ func (d *importCloudStoreFilesPerformer) DoAction(request actionresponse.Outcome
 
 	countSuccess := 0
 	countFail := 0
-	for colName, colFkdata := range cloudStores {
+	for _, colName := range cloudStores {
 
 		cacheFolder := d.cruds[tableName].AssetFolderCache[tableName][colName]
+		if cacheFolder == nil {
+			return nil, nil, []error{fmt.Errorf("cloud store is not configured for [%s][%s]", tableName, colName)}
+		}
 
 		defaltValues["version"] = 1
 		defaltValues["created_at"] = time.Now()
 		defaltValues["permission"] = cacheFolder.CloudStore.Permission.Permission.String()
 		userId, err := d.cruds[resource.USER_ACCOUNT_TABLE_NAME].GetReferenceIdToId(resource.USER_ACCOUNT_TABLE_NAME, cacheFolder.CloudStore.UserId, transaction)
-		resource.CheckErr(err, "Failed to get id from reference id: %v", userId)
-		defaltValues["user_account_id"] = userId
-
-		if err := resource.ConfigureCloudStoreCredential(d.cruds["credential"], cacheFolder.CloudStore.CredentialName, cacheFolder.CloudStore.RootPath, cacheFolder.CloudStore.StoreType != "local", transaction); err != nil {
+		if err != nil {
 			return nil, nil, []error{err}
 		}
+		defaltValues["user_account_id"] = userId
 
-		fsrc := cmd.NewFsDir([]string{cacheFolder.CloudStore.RootPath + "/" + colFkdata.KeyName})
-		cobraCommand := &cobra.Command{
-			Use: fmt.Sprintf("list files from from [%v] %v", cacheFolder.CloudStore.Name, fsrc),
+		files, err := cacheFolder.ListStoredFiles(context.Background(), "")
+		if err != nil {
+			return nil, nil, []error{err}
 		}
-		defaultConfig := fs.GetConfig(nil)
-		defaultConfig.LogLevel = fs.LogLevelNotice
-
-		cmd.Run(true, false, cobraCommand, func() error {
-			if fsrc == nil {
-				log.Errorf("Source or destination is null")
-				return nil
+		for _, file := range files {
+			if file.IsDir() {
+				continue
 			}
-
-			ctx := context.Background()
-
-			err := operations.ListJSON(ctx, fsrc, "", &operations.ListJSONOpt{
-				ShowHash:  true,
-				FilesOnly: true,
-			}, func(item *operations.ListJSONItem) error {
-
-				log.Printf("Import file to table [%v] %v", tableName, item.Name)
-				fileData, _ := json.Marshal([]map[string]string{
-					{
-						"name": item.Name,
-					},
-				})
-				u, _ := uuid.NewV7()
-				defaltValues["reference_id"] = u[:]
-				defaltValues[colName] = string(fileData)
-
-				err = d.cruds[tableName].DirectInsert(tableName, defaltValues, transaction)
-				resource.CheckErr(err, "Failed to insert file record [%v]: %v", defaltValues, err)
-				if err != nil {
-					countFail += 1
-				} else {
-					countSuccess += 1
-				}
-				return nil
-			})
-
-			resource.InfoErr(err, "Failed to sync files for upload to cloud")
-			return err
-		})
+			fileData, _ := json.Marshal([]map[string]string{{"name": file.Name()}})
+			u, _ := uuid.NewV7()
+			defaltValues["reference_id"] = u[:]
+			defaltValues[colName] = string(fileData)
+			if err := d.cruds[tableName].DirectInsert(tableName, defaltValues, transaction); err != nil {
+				countFail++
+			} else {
+				countSuccess++
+			}
+		}
 	}
 
 	return nil, []actionresponse.ActionResponse{resource.NewActionResponse("client.notify", map[string]interface{}{

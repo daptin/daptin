@@ -180,7 +180,7 @@ func TestAssetUploadRealE2E(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
-		for _, key := range []string{"uploaded/multipart.txt", "uploaded/presigned.txt", "uploaded/large.txt", "uploaded/unattached.txt", "uploaded/a/shared.txt", "uploaded/b/shared.txt", "uploaded/extensionless"} {
+		for _, key := range []string{"uploaded/multipart.txt", "uploaded/presigned.txt", "uploaded/large.txt", "uploaded/unattached.txt", "uploaded/a/shared.txt", "uploaded/b/shared.txt", "uploaded/extensionless", "uploaded/import-only.txt"} {
 			_, _ = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: aws.String(bucket), Key: aws.String(key)})
 		}
 		_, _ = s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{Bucket: aws.String(bucket)})
@@ -394,6 +394,36 @@ func TestAssetUploadRealE2E(t *testing.T) {
 		_, err := s3Client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: aws.String(bucket), Key: aws.String("uploaded/extensionless")})
 		return err != nil
 	})
+	if _, err := s3Client.PutObject(ctx, &s3.PutObjectInput{Bucket: aws.String(bucket), Key: aws.String("uploaded/import-only.txt"), Body: strings.NewReader("pre-existing content")}); err != nil {
+		t.Fatal(err)
+	}
+	worlds := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseURL+"/api/world?page%5Bsize%5D=200", token, nil, http.StatusOK)
+	worldID := ""
+	for _, entry := range accessGroupsE2EDataArray(t, worlds) {
+		world, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		attributes, _ := world["attributes"].(map[string]interface{})
+		if attributes["table_name"] == "asset_upload_probe" {
+			worldID, _ = world["id"].(string)
+			break
+		}
+	}
+	if worldID == "" {
+		t.Fatal("asset_upload_probe world row missing")
+	}
+	importResponse := accessGroupsE2ERequestJSON(t, client, http.MethodPost, baseURL+"/action/world/import_files_from_store", token,
+		map[string]interface{}{"attributes": map[string]interface{}{"world_id": worldID, "table_name": "asset_upload_probe"}}, http.StatusOK)
+	message, _ := accessGroupsE2EFindString(importResponse, "message")
+	if strings.Contains(message, "Imported success 0 files") {
+		t.Fatalf("existing object was not imported: %#v", importResponse)
+	}
+	rows := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseURL+"/api/asset_upload_probe?page%5Bsize%5D=200", token, nil, http.StatusOK)
+	rowsJSON, _ := json.Marshal(rows)
+	if !strings.Contains(string(rowsJSON), "import-only.txt") {
+		t.Fatalf("imported object has no resource row: %s", rowsJSON)
+	}
 }
 
 func waitAssetE2E(t *testing.T, done func() bool) {
