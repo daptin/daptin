@@ -222,12 +222,18 @@ func (store olricCounterStore) Add(ctx context.Context, key string, amount int64
 		return 0, err
 	}
 	defer releaseOlricLock(ctx, lock)
-	return store.addLocked(ctx, key, amount, ttl)
+	_, found, err := store.Get(ctx, key)
+	if err != nil {
+		return 0, err
+	}
+	return store.addLocked(ctx, key, amount, ttl, found)
 }
 
-func (store olricCounterStore) addLocked(ctx context.Context, key string, amount int64, ttl time.Duration) (int64, error) {
-	if err := store.values.Put(ctx, key, 0, olric.EX(ttl), olric.NX()); err != nil && !errors.Is(err, olric.ErrKeyFound) {
-		return 0, err
+func (store olricCounterStore) addLocked(ctx context.Context, key string, amount int64, ttl time.Duration, found bool) (int64, error) {
+	if !found {
+		if err := store.values.Put(ctx, key, 0, olric.EX(ttl)); err != nil {
+			return 0, err
+		}
 	}
 	value, err := store.values.Incr(ctx, key, int(amount))
 	return int64(value), err
@@ -254,14 +260,14 @@ func (store olricCounterStore) Acquire(ctx context.Context, key string, maximum 
 		return "", err
 	}
 	defer releaseOlricLock(ctx, lock)
-	value, _, err := store.Get(ctx, key)
+	value, found, err := store.Get(ctx, key)
 	if err != nil {
 		return "", err
 	}
 	if value >= maximum {
 		return "", gateway.ErrCounterLimit
 	}
-	value, err = store.addLocked(ctx, key, 1, ttl)
+	value, err = store.addLocked(ctx, key, 1, ttl, found)
 	if err != nil {
 		return "", err
 	}
@@ -270,7 +276,7 @@ func (store olricCounterStore) Acquire(ctx context.Context, key string, maximum 
 		return "", err
 	}
 	token := uuid.NewString()
-	if err := store.leases.Put(ctx, token, key, olric.EX(ttl), olric.NX()); err != nil {
+	if err := store.leases.Put(ctx, token, key, olric.EX(ttl)); err != nil {
 		store.rollbackIncrement(ctx, key, value)
 		return "", err
 	}

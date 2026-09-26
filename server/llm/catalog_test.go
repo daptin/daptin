@@ -166,11 +166,12 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		t.Fatalf("catalog reload = revision %d deployment %#v", reloaded.Revision, reloaded.Deployments[0])
 	}
 
-	hostA, err := NewGateway(context.Background(), cruds, olricClient)
+	clusterClient := newCatalogClusterClient(t, olricClient)
+	hostA, err := NewGateway(context.Background(), cruds, clusterClient)
 	if err != nil {
 		t.Fatal(err)
 	}
-	hostB, err := NewGateway(context.Background(), cruds, olricClient)
+	hostB, err := NewGateway(context.Background(), cruds, clusterClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -707,6 +708,26 @@ func newCatalogTestResources(t *testing.T) (*sqlx.DB, map[string]*resource.DbRes
 		}
 	})
 	return database, cruds, client, userReference
+}
+
+func newCatalogClusterClient(t *testing.T, embedded *olric.EmbeddedClient) *olric.ClusterClient {
+	t.Helper()
+	members, err := embedded.Members(context.Background())
+	if err != nil || len(members) != 1 {
+		t.Fatalf("resolve local Olric member: members=%v err=%v", members, err)
+	}
+	client, err := olric.NewClusterClient([]string{members[0].Name})
+	if err != nil {
+		t.Fatalf("connect to local Olric member: %v", err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := client.Close(ctx); err != nil {
+			t.Errorf("close Olric cluster client: %v", err)
+		}
+	})
+	return client
 }
 
 func waitForCatalogSubscribers(t *testing.T, pubsub *olric.PubSub, expected int64) {

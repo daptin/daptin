@@ -231,7 +231,8 @@ func TestDaptinMeteringRecordsGuestEmbedding(t *testing.T) {
 }
 
 func TestDaptinOlricPortsImplementGatewayContract(t *testing.T) {
-	_, _, client, _ := newCatalogTestResources(t)
+	_, _, embedded, _ := newCatalogTestResources(t)
+	client := newCatalogClusterClient(t, embedded)
 	values, err := client.NewDMap("llmgateway-port-values-" + uuid.NewString())
 	if err != nil {
 		t.Fatal(err)

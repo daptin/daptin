@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -63,13 +65,27 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 		databaseType: "postgres", connectionString: dsn, olricPort: olricPortA,
 	})
 	defer processA.stopProcess()
+	client := &http.Client{Timeout: 20 * time.Second}
+	statsA := transportE2EGetJSON(t, client, baseA+"/statistics", "")
+	memberA, ok := transportE2EPath(statsA, "olric.member")
+	if !ok {
+		t.Fatalf("first server has no Olric member: %#v", statsA)
+	}
+	host, port, err := net.SplitHostPort(memberA.(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	membershipPort, err := strconv.Atoi(port)
+	if err != nil {
+		t.Fatal(err)
+	}
 	processB := startTransportE2EDaptin(t, portB, httpsPortB, baseB, transportE2EDaptinOptions{
 		databaseType: "postgres", connectionString: dsn, olricPort: olricPortB,
-		olricPeers: net.JoinHostPort("127.0.0.1", fmt.Sprint(olricPortA+1)),
+		olricPeers: net.JoinHostPort(host, strconv.Itoa(membershipPort+1)),
 	})
 	defer processB.stopProcess()
 
-	client := &http.Client{Timeout: 20 * time.Second}
+	waitForLLME2ECluster(t, client, baseA, baseB)
 	token := transportE2ESignupSigninAdmin(t, client, baseA)
 	credentialReference := createLLME2ECatalog(t, client, baseA, token, llmE2ECatalog{
 		name: "llm-multinode-e2e", upstreamURL: upstream.URL, apiKey: "multinode-initial-key",
@@ -80,6 +96,7 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 
 	assertTransportE2EString(t, invokeLLMMultinodeChat(t, client, baseA, token), "choices.0.message.content", "multinode-ok")
 	assertTransportE2EString(t, invokeLLMMultinodeChat(t, client, baseB, token), "choices.0.message.content", "multinode-ok")
+	assertTransportE2EString(t, invokeLLMMultinodeChat(t, client, baseA, token), "choices.0.message.content", "multinode-ok")
 
 	rotatedKey := "multinode-rotated-key"
 	patchBody, err := json.Marshal(map[string]interface{}{
@@ -111,6 +128,28 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 			t.Fatalf("second Daptin process did not converge after credential rotation: status=%d response=%#v", status, response)
 		}
 		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func waitForLLME2ECluster(t *testing.T, client *http.Client, baseA, baseB string) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		statsA := transportE2EGetJSON(t, client, baseA+"/statistics", "")
+		statsB := transportE2EGetJSON(t, client, baseB+"/statistics", "")
+		memberA, _ := transportE2EPath(statsA, "olric.member")
+		memberB, _ := transportE2EPath(statsB, "olric.member")
+		countA, _ := transportE2EPath(statsA, "olric.member_count")
+		countB, _ := transportE2EPath(statsB, "olric.member_count")
+		membersA, _ := transportE2EPath(statsA, "olric.members")
+		membersB, _ := transportE2EPath(statsB, "olric.members")
+		if memberA != memberB && countA == float64(2) && countB == float64(2) && reflect.DeepEqual(membersA, membersB) {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("Daptin servers did not join one Olric cluster: A=%#v B=%#v", statsA, statsB)
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 

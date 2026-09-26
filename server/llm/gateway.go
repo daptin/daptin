@@ -42,7 +42,7 @@ type Gateway struct {
 	drainErr           error
 }
 
-func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olricClient *olric.EmbeddedClient) (*Gateway, error) {
+func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olricClient *olric.ClusterClient) (*Gateway, error) {
 	if ctx == nil {
 		return nil, errors.New("LLM gateway requires a lifecycle context")
 	}

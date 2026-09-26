@@ -267,7 +267,7 @@ func createServer() {
 	configStore.SetConfigValueFor("limit.rate", `{"version":"1","limits":{"/live":5000}}`, "backend", transaction)
 	transaction.Commit()
 
-	runtimeInstance, runtimeErr := server.NewRuntime(context.Background(), boxRoot, db, tempDir, olricDb, "")
+	runtimeInstance, runtimeErr := server.NewRuntime(context.Background(), boxRoot, db, tempDir, olricDb, olricConfig1.MemberlistConfig.Name)
 	if runtimeErr != nil {
 		panic(runtimeErr)
 	}

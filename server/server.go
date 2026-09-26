@@ -566,7 +566,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	hostSwitch.HandlerMap["api"] = defaultRouter
 	hostSwitch.HandlerMap["dashboard"] = defaultRouter
 
-	llmGateway, err := llm.NewGateway(ctx, cruds, olricDb)
+	llmGateway, err := llm.NewGateway(ctx, cruds, rateLimitClient)
 	if err != nil {
 		return nil, fmt.Errorf("initialize LLM gateway: %w", err)
 	}
