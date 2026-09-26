@@ -757,7 +757,7 @@ var SystemActions = []actionresponse.Action{
 			{
 				Name:       "Import file",
 				ColumnName: "dump_file",
-				ColumnType: "file.json|yaml|toml|hcl|csv|docx|xlsx|pdf|html",
+				ColumnType: "file.json|csv|xlsx",
 				IsNullable: false,
 			},
 			{
@@ -781,7 +781,6 @@ var SystemActions = []actionresponse.Action{
 					"dump_file":              "~dump_file",
 					"table_name":             "$.table_name",
 					"batch_size":             "~batch_size",
-					"user":                   "~user",
 				},
 			},
 		},

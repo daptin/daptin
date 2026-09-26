@@ -51,7 +51,7 @@ type StreamingJSONParser struct {
 func (p *StreamingJSONParser) Initialize(fileContent []byte, tableName string) error {
 	log.Debugf("Initializing JSON parser with %d bytes", len(fileContent))
 	// Parse the JSON content
-	var jsonData map[string]interface{}
+	var jsonData interface{}
 	err := json.Unmarshal(fileContent, &jsonData)
 	if err != nil {
 		return fmt.Errorf("failed to parse JSON: %w", err)
@@ -60,28 +60,33 @@ func (p *StreamingJSONParser) Initialize(fileContent []byte, tableName string) e
 	// Initialize data map
 	p.data = make(map[string][]map[string]interface{})
 	p.tableNames = make([]string, 0)
-
-	// Process each table in the JSON
-	for tableName, tableData := range jsonData {
-		// Each table should contain an array of objects
-		tableArray, ok := tableData.([]interface{})
+	var tableArray []interface{}
+	switch value := jsonData.(type) {
+	case []interface{}:
+		tableArray = value
+	case map[string]interface{}:
+		if len(value) != 1 {
+			return fmt.Errorf("JSON import must contain only table %q", tableName)
+		}
+		var ok bool
+		tableArray, ok = value[tableName].([]interface{})
 		if !ok {
-			return fmt.Errorf("invalid JSON format for table '%s': expected array", tableName)
+			return fmt.Errorf("JSON import must contain an array for table %q", tableName)
 		}
-
-		// Convert each row to a map
-		tableRows := make([]map[string]interface{}, 0, len(tableArray))
-		for _, rowData := range tableArray {
-			row, ok := rowData.(map[string]interface{})
-			if !ok {
-				return fmt.Errorf("invalid JSON format for table '%s': expected object in array", tableName)
-			}
-			tableRows = append(tableRows, row)
-		}
-
-		p.data[tableName] = tableRows
-		p.tableNames = append(p.tableNames, tableName)
+	default:
+		return fmt.Errorf("JSON import must contain an array for table %q", tableName)
 	}
+
+	tableRows := make([]map[string]interface{}, 0, len(tableArray))
+	for _, rowData := range tableArray {
+		row, ok := rowData.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("invalid JSON row for table %q: expected object", tableName)
+		}
+		tableRows = append(tableRows, row)
+	}
+	p.data[tableName] = tableRows
+	p.tableNames = append(p.tableNames, tableName)
 
 	return nil
 }
@@ -141,12 +146,8 @@ func (p *StreamingJSONParser) GetFormat() ImportFormat {
 
 // StreamingCSVParser implements CSV import parsing
 type StreamingCSVParser struct {
-	content        []byte
-	headers        []string
-	rows           [][]string
-	hasTableHeader bool
-	tableName      string
-	tableMap       map[string][][]string // Maps table names to their rows
+	tableName string
+	rows      [][]string
 }
 
 // Initialize prepares the CSV parser
@@ -166,39 +167,6 @@ func (p *StreamingCSVParser) Initialize(fileContent []byte, tableName string) er
 	}
 
 	p.rows = records
-	p.tableMap = make(map[string][][]string)
-
-	// Check if the first row is a table header (starts with "Table:" or similar)
-	p.hasTableHeader = false
-	currentTable := tableName
-	tableRows := make([][]string, 0)
-
-	for i, row := range records {
-		if len(row) > 0 && strings.HasPrefix(strings.ToLower(row[0]), "table:") {
-			// This is a table header row
-			if i > 0 && len(tableRows) > 0 {
-				// Save the previous table's rows
-				p.tableMap[currentTable] = tableRows
-			}
-
-			// Extract the new table name
-			currentTable = tableName
-			p.hasTableHeader = true
-			tableRows = make([][]string, 0)
-		} else if i == 0 && !p.hasTableHeader {
-			// First row is headers if no table markers
-			p.headers = row
-			tableRows = append(tableRows, row) // Include headers in the rows
-		} else {
-			// Regular data row
-			tableRows = append(tableRows, row)
-		}
-	}
-
-	// Save the last table
-	if len(tableRows) > 0 {
-		p.tableMap[currentTable] = tableRows
-	}
 
 	return nil
 }
@@ -210,29 +178,27 @@ func (p *StreamingCSVParser) GetTableNames() ([]string, error) {
 
 // GetColumnsForTable returns the column names for a specific table
 func (p *StreamingCSVParser) GetColumnsForTable(tableName string) ([]string, error) {
-	tableRows, ok := p.tableMap[tableName]
-	if !ok || len(tableRows) == 0 {
+	if tableName != p.tableName {
 		return nil, fmt.Errorf("[231] table '%s' not found or empty", tableName)
 	}
 
 	// First row contains headers
-	return tableRows[0], nil
+	return p.rows[0], nil
 }
 
 // ParseRows processes rows for a specific table
 func (p *StreamingCSVParser) ParseRows(tableName string, batchSize int, handler func(rows []map[string]interface{}) error) error {
-	tableRows, ok := p.tableMap[tableName]
-	if !ok {
+	if tableName != p.tableName {
 		return fmt.Errorf("[242] table '%s' not found", tableName)
 	}
 
-	if len(tableRows) <= 1 {
+	if len(p.rows) <= 1 {
 		// Only headers, no data
 		return nil
 	}
 
-	headers := tableRows[0]
-	dataRows := tableRows[1:] // Skip headers
+	headers := p.rows[0]
+	dataRows := p.rows[1:] // Skip headers
 
 	// Process in batches
 	for i := 0; i < len(dataRows); i += batchSize {
@@ -410,7 +376,7 @@ func DetectFileFormat(fileContent []byte, fileName string) ImportFormat {
 		return ImportFormatJSON
 	} else if strings.HasSuffix(lowerFileName, ".csv") {
 		return ImportFormatCSV
-	} else if strings.HasSuffix(lowerFileName, ".xlsx") || strings.HasSuffix(lowerFileName, ".xls") {
+	} else if strings.HasSuffix(lowerFileName, ".xlsx") {
 		return ImportFormatXLSX
 	}
 

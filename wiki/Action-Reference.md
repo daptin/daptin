@@ -437,7 +437,7 @@ Import data from dump file.
 **Input Fields:**
 | Field | Type | Required |
 |-------|------|----------|
-| dump_file | file.json\|yaml\|toml\|hcl\|csv\|docx\|xlsx\|pdf\|html | Yes |
+| dump_file | file.json\|csv\|xlsx | Yes |
 | truncate_before_insert | truefalse | No |
 | batch_size | measurement | No |
 
@@ -450,7 +450,7 @@ curl -X POST http://localhost:6336/action/world/import_data \
   -d '{"attributes":{"world_id":"WORLD_REFERENCE_ID","dump_file":[{"name":"data.json","file":"data:application/json;base64,BASE64_CONTENT"}],"truncate_before_insert":false}}'
 ```
 
-See [Data Actions](Data-Actions.md#import_data) for import behavior and known limitations.
+See [Data Actions](Data-Actions.md#import_data) for import behavior and file formats.
 
 ### export_data
 

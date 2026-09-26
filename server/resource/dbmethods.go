@@ -2427,8 +2427,9 @@ func (dbResource *DbResource) TruncateTable(typeName string, skipRelations bool,
 				}
 			}
 
-			CheckErr(err, "Failed to truncate related table before truncate table [%v] [%v]", typeName, rel)
-			err = nil
+			if err != nil {
+				return fmt.Errorf("failed to truncate related table for %s: %w", typeName, err)
+			}
 		}
 	}
 
@@ -2443,37 +2444,60 @@ func (dbResource *DbResource) TruncateTable(typeName string, skipRelations bool,
 
 }
 
-// Update the data and set the values using the data map without an validation or transformations
-// Invoked by data import action
+// DirectInsert imports supplied columns without the normal create lifecycle.
 func (dbResource *DbResource) DirectInsert(typeName string, data map[string]interface{}, transaction *sqlx.Tx) error {
-	var err error
-
 	columnMap := dbResource.Cruds[typeName].model.GetColumnMap()
 
 	cols := make([]interface{}, 0)
 	vals := make([]interface{}, 0)
 
-	for columnName := range columnMap {
-		colInfo, ok := dbResource.tableInfo.GetColumnByName(columnName)
-		if !ok {
-			log.Printf("No column named [%v]", columnName)
+	for columnName, value := range data {
+		if columnName == "id" {
 			continue
 		}
-		value := data[columnName]
+		if columnName == "__type" {
+			if value != typeName {
+				return fmt.Errorf("import row type %q does not match table %q", value, typeName)
+			}
+			continue
+		}
+		if _, ok := columnMap[columnName]; !ok {
+			return fmt.Errorf("unknown import column %q in table %q", columnName, typeName)
+		}
+		colInfo, ok := dbResource.tableInfo.GetColumnByName(columnName)
+		if !ok {
+			return fmt.Errorf("unknown import column %q in table %q", columnName, typeName)
+		}
 		switch colInfo.ColumnType {
 		case "datetime":
 			if value != nil {
 				valStr, ok := value.(string)
-				if !ok {
-
-				} else {
-
+				if ok {
+					var err error
 					value, err = dateparse.ParseLocal(valStr)
 					if err != nil {
-						log.Errorf("Failed to parse value as time, insert will fail [%v][%v]: %v", columnName, value, err)
-						continue
+						return fmt.Errorf("invalid datetime for %s: %w", columnName, err)
 					}
 				}
+			}
+		}
+		if columnName == "reference_id" {
+			if value == nil {
+				continue
+			}
+			switch reference := value.(type) {
+			case string:
+				id, err := uuid.Parse(reference)
+				if err != nil {
+					return fmt.Errorf("invalid reference_id %q: %w", reference, err)
+				}
+				value = id[:]
+			case []byte:
+				if len(reference) != 16 {
+					return fmt.Errorf("invalid reference_id length %d", len(reference))
+				}
+			default:
+				return fmt.Errorf("invalid reference_id type %T", value)
 			}
 		}
 
@@ -2484,6 +2508,18 @@ func (dbResource *DbResource) DirectInsert(typeName string, data map[string]inte
 		cols = append(cols, columnName)
 		vals = append(vals, value)
 
+	}
+	if data["reference_id"] == nil {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		cols = append(cols, "reference_id")
+		vals = append(vals, id[:])
+	}
+	if _, ok := data["permission"]; !ok {
+		cols = append(cols, "permission")
+		vals = append(vals, dbResource.tableInfo.DefaultPermission)
 	}
 
 	sqlString, args, err := statementbuilder.Squirrel.Insert(typeName).Prepared(true).Cols(cols...).Vals(vals).ToSQL()

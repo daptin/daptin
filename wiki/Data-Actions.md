@@ -103,9 +103,10 @@ curl -X POST http://localhost:6336/action/world/export_csv_data \
 
 Import data from files into a table.
 
-> The import summary counts failed row inserts under `failed_tables` and can
-> count a table as successful even when some of its rows failed. Check
-> `rows_imported` and read back the imported records before relying on the result.
+The action handler checks execute permission on the selected `world` record,
+the `world` resource, and the `import_data` action, using its normal
+administrator rules. Importing a file with an invalid row fails the action and
+rolls back all files in that request, including any requested truncation.
 
 **Action**: `import_data`
 **OnType**: `world`
@@ -140,7 +141,7 @@ curl -X POST "http://localhost:6336/action/world/import_data" \
 |-----------|------|-------------|
 | `dump_file` | array | Files to import (base64-encoded with name) |
 | `truncate_before_insert` | bool | Clear table before import (default: false) |
-| `batch_size` | int | Records per insert batch (default: 100) |
+| `batch_size` | int | Rows passed to the importer at a time (default: 100) |
 
 **File format**: Each file in `dump_file` array:
 ```json
@@ -157,13 +158,7 @@ default, maximum, and HTTP 413 behavior.
 **Supported file formats**:
 - CSV (`.csv`)
 - JSON (`.json`)
-- YAML (`.yaml`, `.yml`)
-- TOML (`.toml`)
-- HCL (`.hcl`)
 - Excel (`.xlsx`)
-- PDF (`.pdf`) - text extraction
-- HTML (`.html`) - table extraction
-- Word (`.docx`) - table extraction
 
 **Example response**:
 ```json
@@ -171,7 +166,7 @@ default, maximum, and HTTP 413 behavior.
   {
     "ResponseType": "client.notify",
     "Attributes": {
-      "message": "Import completed in 123ms. 50 rows imported successfully across 1 tables.",
+      "message": "Import completed in 123ms. 50 rows imported successfully across 1 table.",
       "rows_imported": 50,
       "successful_tables": 1,
       "failed_tables": 0
@@ -179,6 +174,10 @@ default, maximum, and HTTP 413 behavior.
   }
 ]
 ```
+
+JSON exported by `export_data` can also be imported as a single table-keyed
+object, such as `{"todo":[{"title":"Task 1"}]}`. The table name must match
+the selected `world` record.
 
 ### JSON Import Format
 
@@ -334,7 +333,8 @@ curl -X POST "http://localhost:6336/action/world/import_data" \
   }'
 ```
 
-Records are inserted in batches for better performance.
+The parser passes up to `batch_size` rows at a time to the importer. Each row is
+inserted separately in the action's transaction.
 
 ---
 
@@ -343,11 +343,11 @@ Records are inserted in batches for better performance.
 ### Export Data for Backup
 
 ```bash
-# Export all tables as JSON
+# Export the selected table as JSON
 curl -X POST http://localhost:6336/action/world/export_data \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes": {"format": "json"}}'
+  -d '{"attributes": {"table_name": "todo", "format": "json"}}'
 
 # Export specific table as CSV
 curl -X POST http://localhost:6336/action/world/export_data \
