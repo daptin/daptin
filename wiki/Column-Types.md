@@ -84,7 +84,7 @@ Start here if you're unsure which type to use:
 |------------|----------|-------------|
 | `email` | varchar(200) | Email address |
 | `url` | varchar(500) | Web URL |
-| `image` | varchar(500) | Image URL |
+| `image` | blob | Binary image asset column; file type is not checked |
 | `id` | varchar(40) | UUID reference |
 | `alias` | varchar(200) | URL-safe slug |
 
@@ -108,13 +108,15 @@ Start here if you're unsure which type to use:
 
 | ColumnType | DataType | Description |
 |------------|----------|-------------|
-| `file.*` | text | Files with any extension |
-| `file.jpg|jpeg|png|gif` | text | Files with one of the listed image extensions |
-| `file.mp4|webm` | text | Files with one of the listed video extensions |
-| `file.mp3|wav` | text | Files with one of the listed audio extensions |
-| `file.pdf|doc|docx` | text | Files with one of the listed document extensions |
-| `file.csv|xls|xlsx` | text | Files with one of the listed spreadsheet extensions |
-| `file.pdf` | text | PDF files only |
+| `file.*` | text | File column with a wildcard suffix |
+| `file.jpg|jpeg|png|gif` | text | File column with image-related suffixes |
+| `file.mp4|webm` | text | File column with video-related suffixes |
+| `file.mp3|wav` | text | File column with audio-related suffixes |
+| `file.pdf|doc|docx` | text | File column with document-related suffixes |
+| `file.csv|xls|xlsx` | text | File column with spreadsheet-related suffixes |
+| `file.pdf` | text | File column with a `pdf` suffix |
+
+These suffixes do not validate uploaded filenames, MIME types, or file contents.
 
 File columns support:
 - Base64 encoding

@@ -16,11 +16,13 @@ Daptin supports two ways to store files:
 | Type | Description | Storage |
 |------|-------------|---------|
 | `file` | General file upload | Inline base64 |
-| `image` | Image files | Inline base64 |
-| `video` | Video files | Inline base64 |
+| `image` | Image asset storage | Inline base64 |
+| `video` | Video asset storage | Inline base64 |
 | `blob` | Binary data | Inline base64 |
 
 **Note:** For large files, use Cloud Storage instead of inline storage.
+Asset column types do not validate the uploaded file's extension, declared MIME
+type, or contents.
 
 ## Defining Asset Columns
 

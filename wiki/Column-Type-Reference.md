@@ -554,7 +554,7 @@ Generic file storage.
 | Validation | Base64 encoded |
 | Storage | Base64 in database or cloud storage |
 
-Supports file type restrictions:
+File column types may include an extension suffix:
 
 ```yaml
 Columns:
@@ -564,7 +564,8 @@ Columns:
 
 ### image
 
-Image file storage.
+Binary storage for image assets. The column type does not verify that the
+uploaded file is an image.
 
 | Property | Value |
 |----------|-------|
@@ -580,7 +581,8 @@ Columns:
 
 ### video
 
-Video file storage.
+Binary storage for video assets. The column type does not verify that the
+uploaded file is a video.
 
 | Property | Value |
 |----------|-------|
@@ -600,17 +602,19 @@ Gzip compressed data.
 
 ## File Type Patterns
 
-File columns support extension filtering:
+File column suffixes do not enforce extensions or MIME types on resource writes
+or direct asset uploads. The following are column type examples, not accepted
+file lists:
 
 | Pattern | Description |
 |---------|-------------|
-| `file.*` | Any file type |
-| `file.pdf` | PDF only |
-| `file.csv` | CSV only |
-| `file.json\|yaml\|toml` | JSON, YAML, or TOML |
-| `file.xls\|xlsx` | Excel files |
-| `image` | Image files |
-| `video` | Video files |
+| `file.*` | File column with a wildcard suffix |
+| `file.pdf` | File column with a `pdf` suffix |
+| `file.csv` | File column with a `csv` suffix |
+| `file.json\|yaml\|toml` | File column with several suffixes |
+| `file.xls\|xlsx` | File column with spreadsheet suffixes |
+| `image` | Binary image asset column; file type is not checked |
+| `video` | Binary video asset column; file type is not checked |
 
 ## Column Properties
 

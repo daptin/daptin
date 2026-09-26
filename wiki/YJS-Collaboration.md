@@ -16,10 +16,9 @@ Restart Daptin after changing this startup setting.
 
 ## Resource-backed collaboration
 
-Declare a file column with its extension filter. `file.*` declares any
-extension; `file.md|txt` declares `.md` and `.txt`. Labels such as
-`file.document` and `file.markdown` are not semantic editor types: they mean
-the literal extensions `.document` and `.markdown`.
+Declare a `file.` column for a resource-backed room. Suffixes such as
+`file.md|txt` do not enforce uploaded file extensions or select an editor.
+Editor selection belongs to the YJS client.
 
 ```yaml
 Tables:

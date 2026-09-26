@@ -3,6 +3,6 @@
 The maintained setup, schema, permission behavior, endpoint forms, and client
 example are in [YJS Collaboration](YJS-Collaboration.md).
 
-That guide is the canonical workflow. In particular, declare file columns with
-extension filters such as `file.md|txt` or `file.*`; editor selection belongs
-to the YJS client and is not encoded as a Daptin column type.
+That guide is the canonical workflow. In particular, declare a `file.` column
+such as `file.md|txt` or `file.*`; suffixes do not enforce extensions or select
+an editor. Editor selection belongs to the YJS client.
