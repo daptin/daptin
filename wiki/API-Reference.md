@@ -238,8 +238,10 @@ curl 'http://localhost:6336/api/order?include=customer' \
 
 ```
 POST /action/{entity}/{action_name}
-POST /action/{entity}/{action_name}/{reference_id}
 ```
+
+Instance actions use the same endpoint. Include the record reference ID as
+`attributes.{entity}_id` in the request body.
 
 **Body:**
 

@@ -1324,7 +1324,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 ### 6.5 Test the Action
 
-**Important**: Instance actions (InstanceOptional: false) require the record ID in URL attributes.
+**Important**: Instance actions (InstanceOptional: false) require the record reference ID in `attributes.{entity}_id`.
 
 ```bash
 TOKEN=$(cat /tmp/daptin-token.txt)

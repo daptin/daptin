@@ -296,11 +296,11 @@ Retrieve decrypted OAuth access and refresh tokens for a stored oauth_token reco
 |----------|-------|
 | Entity | `oauth_token` |
 | Instance Required | Yes |
-| Endpoint | `/action/oauth_token/{referenceId}/get_token` |
+| Endpoint | `/action/oauth_token/get_token` |
 
 **Action Performer:** `oauth.token`
 
-**Input Fields:** None (uses the instance reference_id)
+**Input Fields:** `attributes.oauth_token_id` (the token record reference ID)
 
 **Example:**
 ```bash
@@ -308,17 +308,17 @@ Retrieve decrypted OAuth access and refresh tokens for a stored oauth_token reco
 TOKEN_REF=$(curl -s -H "Authorization: Bearer $TOKEN" \
   http://localhost:6336/api/oauth_token | jq -r '.data[0].id')
 
-curl -X POST "http://localhost:6336/action/oauth_token/$TOKEN_REF/get_token" \
+curl -X POST "http://localhost:6336/action/oauth_token/get_token" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes": {}}'
+  -d "{\"attributes\": {\"oauth_token_id\": \"$TOKEN_REF\"}}"
 ```
 
 **Success Response:**
 ```json
 [
   {
-    "ResponseType": "client.notify",
+    "ResponseType": "oauth_token",
     "Attributes": {
       "access_token": "ya29.a0AfH6SM...",
       "refresh_token": "1//0dx...",
@@ -328,12 +328,8 @@ curl -X POST "http://localhost:6336/action/oauth_token/$TOKEN_REF/get_token" \
 ]
 ```
 
-**Error Response (Missing Reference ID):**
-```json
-{
-  "errors": [{"title": "Token Reference id missing"}]
-}
-```
+Omitting `oauth_token_id` fails with HTTP 400 because this action requires an
+existing `oauth_token` record.
 
 ## Admin Actions
 
@@ -448,11 +444,13 @@ Import data from dump file.
 **Action Performer:** `__data_import`
 
 ```bash
-curl -X POST http://localhost:6336/action/world/import_data/WORLD_REFERENCE_ID \
+curl -X POST http://localhost:6336/action/world/import_data \
   -H "Authorization: Bearer $TOKEN" \
-  -F "dump_file=@data.json" \
-  -F "truncate_before_insert=false"
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"world_id":"WORLD_REFERENCE_ID","dump_file":[{"name":"data.json","file":"data:application/json;base64,BASE64_CONTENT"}],"truncate_before_insert":false}}'
 ```
+
+See [Data Actions](Data-Actions.md#import_data) for import behavior and known limitations.
 
 ### export_data
 
@@ -1101,7 +1099,7 @@ These are the internal action executors:
 All actions follow this request format:
 
 ```bash
-curl -X POST http://localhost:6336/action/{entity}/{action_name}[/{reference_id}] \
+curl -X POST http://localhost:6336/action/{entity}/{action_name} \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1114,7 +1112,7 @@ curl -X POST http://localhost:6336/action/{entity}/{action_name}[/{reference_id}
 
 - `{entity}` - Target entity name (e.g., `user_account`, `world`)
 - `{action_name}` - Action name as defined
-- `{reference_id}` - Required if `InstanceOptional: false`
+- `attributes.{entity}_id` - Record reference ID required if `InstanceOptional: false`
 
 ## Action Response Types
 

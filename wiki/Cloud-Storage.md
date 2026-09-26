@@ -9,7 +9,7 @@ subject to the credential and completion-semantics warnings below.
 - ⚠️ **move_path** - Dispatch works, but provider failure may still return HTTP 200
 - ⚠️ **delete_path** - Dispatch works, but provider failure may still return HTTP 200
 
-**Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The correct path format is `/action/{type}/{action_name}`, NOT `/action/{type}/{id}/{action_name}`. Pass `{type}_id` in request attributes; query parameters are accepted for backwards compatibility because Daptin merges them into action attributes.
+**Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The action path is `/action/{type}/{action_name}`. Pass `{type}_id` in request attributes.
 
 Integrate with cloud storage providers via rclone.
 
@@ -274,7 +274,7 @@ A leading `/` means that virtual root. Paths that resolve above the root,
 volume-qualified paths, and local symbolic links that escape the root are
 rejected. `delete_path` and `move_path` cannot target the storage root itself.
 
-**CRITICAL**: All cloud store actions require the `cloud_store_id` in action attributes. Prefer the request body form below; URL query parameters are accepted but are legacy. Do not put the ID in the URL path:
+**CRITICAL**: All cloud store actions require `cloud_store_id` in action attributes. Pass it in the request body:
 
 ```bash
 /action/cloud_store/{action_name}

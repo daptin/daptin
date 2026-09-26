@@ -692,7 +692,7 @@ Use the `get_token` action to retrieve decrypted OAuth tokens for API calls:
 
 **Action:** `get_token`
 **On Type:** `oauth_token`
-**Endpoint:** `/action/oauth_token/{referenceId}/get_token`
+**Endpoint:** `/action/oauth_token/get_token`
 **Instance Required:** Yes (must specify the oauth_token record)
 
 ```bash
@@ -701,17 +701,17 @@ TOKEN_REF=$(curl -s -H "Authorization: Bearer $TOKEN" \
   http://localhost:6336/api/oauth_token | jq -r '.data[0].id')
 
 # Retrieve the decrypted token
-curl -X POST "http://localhost:6336/action/oauth_token/$TOKEN_REF/get_token" \
+curl -X POST "http://localhost:6336/action/oauth_token/get_token" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes": {}}'
+  -d "{\"attributes\": {\"oauth_token_id\": \"$TOKEN_REF\"}}"
 ```
 
 **Response:**
 ```json
 [
   {
-    "ResponseType": "client.notify",
+    "ResponseType": "oauth_token",
     "Attributes": {
       "access_token": "ya29.a0AfH6SM...",
       "refresh_token": "1//0dx...",

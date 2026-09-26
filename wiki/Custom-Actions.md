@@ -702,10 +702,11 @@ POST /action/user_account/signup
 
 ### Instance Action (InstanceOptional: false)
 
-Requires a specific record ID in the URL.
+Requires the record's reference ID in `attributes.{entity}_id`.
 
 ```bash
-POST /action/order/abc-123-def/mark_shipped
+POST /action/order/mark_shipped
+{"attributes": {"order_id": "abc-123-def"}}
 ```
 
 The target record is available via `$.column_name` in OutFields.
@@ -839,10 +840,8 @@ Key points:
 
 ### "required reference id not provided"
 
-**Cause:** Action has `InstanceOptional: false` but no record ID in URL.
-**Solutions:**
-1. Call with record ID: `/action/entity/{record_id}/action_name`
-2. Set `instance_optional: 1` via PATCH and restart
+**Cause:** An instance action was called without `attributes.{entity}_id`.
+**Solution:** Send the record's reference ID in the request body, for example `POST /action/order/mark_shipped` with `{"attributes": {"order_id": "ORDER_REFERENCE_ID"}}`.
 
 ### Input field substitution (~field) not working
 

@@ -18,10 +18,10 @@ curl -X POST http://localhost:6336/action/{entity}/{action_name} \
   -d '{"attributes": {...}}'
 
 # Instance action (operates on a specific record)
-curl -X POST http://localhost:6336/action/{entity}/{record_id}/{action_name} \
+curl -X POST http://localhost:6336/action/{entity}/{action_name} \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"attributes": {...}}'
+  -d '{"attributes": {"<entity>_id": "RECORD_REFERENCE_ID", ...}}'
 ```
 
 ### Example: Download System Schema
@@ -290,8 +290,8 @@ Response includes:
 
 **Instance Actions** (instance_optional=0):
 - Called on a specific record
-- Requires record ID in URL
-- Example: `POST /action/user_account/{user_id}/generate_jwt_token`
+- Require the record reference ID in `attributes.{entity}_id`
+- Example: `POST /action/user_account/generate_jwt_token` with `attributes.user_account_id`
 
 ### Subject Row Authorization
 

@@ -414,17 +414,21 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 ### Download Certificate PEM
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/action/certificate/{cert_id}/download_certificate" \
-  -o certificate.pem
+curl -s -X POST http://localhost:6336/action/certificate/download_certificate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"attributes\": {\"certificate_id\": \"$CERT_ID\"}}" | \
+  jq -r '.[0].Attributes.content' | openssl base64 -d -A > certificate.pem
 ```
 
 ### Download Public Key PEM
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/action/certificate/{cert_id}/download_public_key" \
-  -o public_key.pem
+curl -s -X POST http://localhost:6336/action/certificate/download_public_key \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"attributes\": {\"certificate_id\": \"$CERT_ID\"}}" | \
+  jq -r '.[0].Attributes.content' | openssl base64 -d -A > public_key.pem
 ```
 
 ### Download via API

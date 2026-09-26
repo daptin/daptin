@@ -103,10 +103,9 @@ curl -X POST http://localhost:6336/action/world/export_csv_data \
 
 Import data from files into a table.
 
-> **Known broken/contradictory in v0.13.14:** the documented instance route was
-> observed returning `no reference id`, while the world-scoped route returned
-> HTTP 200 with the same table in both successful and failed lists and imported
-> zero rows when a required standard `version` value was absent. The response
+> **Known broken/contradictory in v0.13.14:** an import returned HTTP 200 with
+> the same table in both successful and failed lists and imported zero rows
+> when a required standard `version` value was absent. The response
 > envelope does not currently provide reliable transaction or partial-success
 > semantics. Do not use `import_data` for production restore/migration. Verify
 > row counts and required standard columns through the normal resource API and
@@ -115,8 +114,7 @@ Import data from files into a table.
 **Action**: `import_data`
 **OnType**: `world`
 **Declared shape**: instance action requiring the table's `world` reference ID.
-The route below reflects the definition, but is affected by the limitation
-above.
+The action remains affected by the limitation above.
 
 ```bash
 # First get the table's reference_id from the world table
@@ -125,11 +123,12 @@ TABLE_REF=$(curl -s "http://localhost:6336/api/world?page%5Bsize%5D=100" \
   jq -r '.data[] | select(.attributes.table_name == "todo") | .id')
 
 # Then import data
-curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
+curl -X POST "http://localhost:6336/action/world/import_data" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "world_id": "'"$TABLE_REF"'",
       "dump_file": [{
         "name": "todos.csv",
         "file": "data:text/csv;base64,dGl0bGUsY29tcGxldGVkClRhc2sgMSxmYWxzZQpUYXNrIDIsdHJ1ZQ=="
@@ -214,11 +213,12 @@ Import files from cloud storage into a table.
 **InstanceOptional**: false (requires table's world reference_id)
 
 ```bash
-curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_files_from_store" \
+curl -X POST "http://localhost:6336/action/world/import_files_from_store" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "world_id": "'"$TABLE_REF"'",
       "table_name": "todo"
     }
   }'
@@ -275,11 +275,12 @@ Upload file to cloud storage.
 **InstanceOptional**: false (requires cloud_store reference_id)
 
 ```bash
-curl -X POST "http://localhost:6336/action/cloud_store/$CLOUDSTORE_REF/upload_file" \
+curl -X POST "http://localhost:6336/action/cloud_store/upload_file" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "cloud_store_id": "'"$CLOUDSTORE_REF"'",
       "file": [{
         "name": "document.pdf",
         "file": "data:application/pdf;base64,BASE64_CONTENT"
@@ -326,11 +327,12 @@ Data is streamed in chunks to avoid memory issues.
 For large imports, adjust batch_size:
 
 ```bash
-curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
+curl -X POST "http://localhost:6336/action/world/import_data" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "world_id": "'"$TABLE_REF"'",
       "dump_file": [...],
       "batch_size": 1000
     }
@@ -368,11 +370,12 @@ TABLE_REF=$(curl -s "http://localhost:6336/api/world?page%5Bsize%5D=100" \
   jq -r '.data[] | select(.attributes.table_name == "todo") | .id')
 
 # Import (truncate first for clean restore)
-curl -X POST "http://localhost:6336/action/world/$TABLE_REF/import_data" \
+curl -X POST "http://localhost:6336/action/world/import_data" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
+      "world_id": "'"$TABLE_REF"'",
       "dump_file": [{"name": "backup.json", "file": "..."}],
       "truncate_before_insert": true
     }
