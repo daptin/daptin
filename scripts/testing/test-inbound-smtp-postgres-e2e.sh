@@ -246,7 +246,7 @@ if ! docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" -d "$PG_DATABASE" >/de
 fi
 
 log "building Daptin"
-(cd "$PROJECT_ROOT" && go build -o "$BIN_PATH" .)
+(cd "$PROJECT_ROOT" && go build -o "$BIN_PATH" ./cmd/daptin)
 
 log "starting fresh Daptin bootstrap server on $BASE_URL"
 start_server "$FIRST_LOG"

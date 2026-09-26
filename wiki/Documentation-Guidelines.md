@@ -14,7 +14,7 @@ Guidelines for documenting Daptin features accurately.
 rm daptin.db
 
 # 3. Restart Daptin
-go run main.go
+go run ./cmd/daptin
 ```
 
 This is mandatory because:
@@ -86,7 +86,7 @@ Common mistakes that look like broken features:
 3. **Check server logs** - See what's actually happening
    ```bash
    # Start server with logs visible
-   go run main.go 2>&1 | tee /tmp/daptin.log
+   go run ./cmd/daptin 2>&1 | tee /tmp/daptin.log
 
    # In another terminal, watch logs
    tail -f /tmp/daptin.log
@@ -189,7 +189,7 @@ Before testing any protected features, you MUST set up admin access.
 
 ```bash
 # 1. Start fresh Daptin instance
-go run main.go
+go run ./cmd/daptin
 
 # 2. Sign up a test user
 curl -X POST http://localhost:6336/action/user_account/signup \
@@ -261,13 +261,13 @@ WHERE ug.name = 'administrators';
 
 ```bash
 # Option 1: Direct to terminal
-go run main.go
+go run ./cmd/daptin
 
 # Option 2: Tee to file and terminal
-go run main.go 2>&1 | tee /tmp/daptin.log
+go run ./cmd/daptin 2>&1 | tee /tmp/daptin.log
 
 # Option 3: Background with log file
-nohup go run main.go > /tmp/daptin.log 2>&1 &
+nohup go run ./cmd/daptin > /tmp/daptin.log 2>&1 &
 ```
 
 **Filter logs for your feature:**

@@ -251,7 +251,7 @@ sleep 2
 rm -f daptin.db
 
 # Start server
-nohup go run main.go > /tmp/daptin.log 2>&1 &
+nohup go run ./cmd/daptin > /tmp/daptin.log 2>&1 &
 sleep 20
 
 # Create admin

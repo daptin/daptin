@@ -35,9 +35,7 @@ Tables:
 `
 
 func TestFeedFormatsRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run the feed e2e")
-	}
+	requireRealE2E(t)
 	usedPorts := map[int]bool{}
 	databasePath := filepath.Join(t.TempDir(), "feeds.db")
 	databaseType, connectionString := "sqlite3", databasePath

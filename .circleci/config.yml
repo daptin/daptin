@@ -9,8 +9,8 @@ test_with_go_modules: &test_with_go_modules
   - run: export PATH=$GOROOT/bin:$PATH
   - checkout
   - run: export GO111MODULE=on
-  - run: go get
-  - run: go build  -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main
+  - run: go mod download
+  - run: go build -ldflags='-extldflags "-static"' -a -installsuffix cgo -o main ./cmd/daptin
   - run: cd ..
   - store_artifacts:
       path: main
@@ -23,7 +23,7 @@ test_without_go_modules: &test_without_go_modules
   - run: go get -v -t -d ./...
   - run: go test ./...
   - run: go vet ./...
-  - run: go build
+  - run: go build -o main ./cmd/daptin
   - store_artifacts:
       path: /go/src/github.com/daptin/daptin/main
       destination: daptin
@@ -40,7 +40,7 @@ jobs:
   coveralls:
     steps:
     - checkout
-    - run: go get github.com/daptin/daptin
+    - run: go get ./...
     - run: go test ./... -coverpkg github.com/daptin/daptin/... -v -cover -coverprofile=coverage.out
     docker:
     - image: cimg/go:1.25.0

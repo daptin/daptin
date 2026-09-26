@@ -22,9 +22,7 @@ import (
 )
 
 func TestFTPStorageS3RealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1")
-	}
+	requireRealE2E(t)
 	endpoint := os.Getenv("DAPTIN_ASSET_E2E_S3_ENDPOINT")
 	accessKey := os.Getenv("DAPTIN_ASSET_E2E_S3_ACCESS_KEY")
 	secretKey := os.Getenv("DAPTIN_ASSET_E2E_S3_SECRET_KEY")
@@ -194,9 +192,7 @@ func TestFTPStorageS3RealE2E(t *testing.T) {
 }
 
 func TestFTPStorageLocalRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1")
-	}
+	requireRealE2E(t)
 	used := map[int]bool{}
 	databasePath := filepath.Join(t.TempDir(), "ftp.db")
 	storageRoot := t.TempDir()

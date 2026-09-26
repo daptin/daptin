@@ -797,7 +797,7 @@ creation, authenticated `/v1` request path, deterministic upstream, PostgreSQL
 ```sh
 DAPTIN_LLM_CAPACITY=1 \
 DAPTIN_TEST_POSTGRES_DSN='postgres://user:password@host/database?sslmode=require' \
-go test . -run '^TestLLMGatewayCapacityPostgres$' -count=1 -v -timeout 20m
+go test ./cmd/daptin -run '^TestLLMGatewayCapacityPostgres$' -count=1 -v -timeout 20m
 ```
 
 `DAPTIN_LLM_CAPACITY_DURATION` and `DAPTIN_LLM_CAPACITY_RPS` may raise the

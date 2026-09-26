@@ -3,11 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -74,24 +71,10 @@ Actions:
 `
 
 func TestDeclaredConformationsRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run the declared-conformation e2e")
-	}
-
-	usedPorts := make(map[int]bool, 2)
-	port := freeTransportE2EPort(t, usedPorts)
-	httpsPort := freeTransportE2EPort(t, usedPorts)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	databasePath := filepath.Join(t.TempDir(), "declared-conformations.db")
-	options := transportE2EDaptinOptions{
-		databaseType: "sqlite3", connectionString: databasePath, schema: conformationRealE2ESchema,
-	}
-	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, options)
-	defer func() { daptinProcess.stopProcess() }()
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: conformationRealE2ESchema})
+	baseURL, client, daptinProcess := fixture.URL, fixture.Client, fixture.Process
 	waitForConformationE2EResource(t, baseURL, daptinProcess)
-
-	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	adminToken := fixture.SignupAdmin(t)
 	assertConformationE2EWorldRegistered(t, client, baseURL, adminToken, daptinProcess)
 
 	created := conformationE2EPostResource(t, client, baseURL+"/api/conformation_probe", adminToken,

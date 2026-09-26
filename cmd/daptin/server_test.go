@@ -214,7 +214,7 @@ func createServer() {
 	stream.AddSink(&health.WriterSink{
 		Writer: os.Stdout,
 	})
-	boxRoot1, err := rice.FindBox("daptinweb/dist/spa/")
+	boxRoot1, err := rice.FindBox("../../daptinweb/dist/spa/")
 
 	var boxRoot http.FileSystem
 	if err != nil {

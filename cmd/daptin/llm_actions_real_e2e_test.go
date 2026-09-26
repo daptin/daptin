@@ -3,10 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -16,21 +14,14 @@ import (
 )
 
 func TestLLMDeclarativeActionsRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run the declarative LLM action e2e")
-	}
+	requireRealE2E(t)
 
 	upstream := startLLME2EUpstream(t, "declarative-action-key", "declarative-upstream", "declarative-chat-ok", nil)
 	defer upstream.Close()
 
-	usedPorts := make(map[int]bool, 2)
-	port := freeTransportE2EPort(t, usedPorts)
-	httpsPort := freeTransportE2EPort(t, usedPorts)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
-	defer daptinProcess.stopProcess()
-	client := &http.Client{Timeout: 20 * time.Second}
-	token := transportE2ESignupSigninAdmin(t, client, baseURL)
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
+	baseURL, client := fixture.URL, fixture.Client
+	token := fixture.SignupAdmin(t)
 	createLLME2ECatalog(t, client, baseURL, token, llmE2ECatalog{
 		name: "llm-declarative-e2e", upstreamURL: upstream.URL, apiKey: "declarative-action-key",
 		upstreamModel: "declarative-upstream", operations: []string{"chat", "embeddings"}, maxConcurrency: 2,
@@ -64,9 +55,7 @@ func TestLLMDeclarativeActionsRealE2E(t *testing.T) {
 }
 
 func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run the LLM authorization e2e")
-	}
+	requireRealE2E(t)
 
 	var upstreamRequests atomic.Int64
 	upstream := startLLME2EUpstream(t, "authorization-key", "authorization-upstream", "authorized", func() bool {
@@ -75,14 +64,9 @@ func TestLLMModelAuthorizationAndMeteringRealE2E(t *testing.T) {
 	})
 	defer upstream.Close()
 
-	usedPorts := make(map[int]bool, 2)
-	port := freeTransportE2EPort(t, usedPorts)
-	httpsPort := freeTransportE2EPort(t, usedPorts)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
-	defer daptinProcess.stopProcess()
-	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: llmE2EActionsSchema})
+	baseURL, client := fixture.URL, fixture.Client
+	adminToken := fixture.SignupAdmin(t)
 	callerToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "llm-caller")
 	serviceToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "llm-service")
 	callerReference := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "user_account", "email", "llm-caller@test.local")

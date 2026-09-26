@@ -295,7 +295,7 @@ After addressing gaps: **~95%** coverage
 
 Per Documentation-TODO.md guidelines:
 
-1. **Start with fresh database**: `rm daptin.db && go run main.go`
+1. **Start with fresh database**: `rm daptin.db && go run ./cmd/daptin`
 2. **Test each validation tag**: Create schema with tag, verify behavior
 3. **Test each conformation tag**: Verify transformation before validation
 4. **Test each performer type**: Create action using performer, execute, verify result

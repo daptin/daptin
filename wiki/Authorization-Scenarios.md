@@ -204,7 +204,7 @@ The permission scenario guides are exercised against an independent Daptin
 process by `TestAccessGroupsRealAuthorizationScenariosE2E`:
 
 ```bash
-DAPTIN_REAL_E2E=1 go test . -run TestAccessGroupsRealAuthorizationScenariosE2E -count=1 -v
+DAPTIN_REAL_E2E=1 go test ./cmd/daptin -run TestAccessGroupsRealAuthorizationScenariosE2E -count=1 -v
 ```
 
 The equivalent shell/curl suite is:

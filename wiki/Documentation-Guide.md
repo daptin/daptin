@@ -10,7 +10,7 @@ This guide captures the documentation process itself - challenges, techniques, a
 
 ```bash
 # Stop Daptin, delete db, restart
-rm daptin.db && go run main.go
+rm daptin.db && go run ./cmd/daptin
 ```
 
 Why:

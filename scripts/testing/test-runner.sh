@@ -62,13 +62,13 @@ start_server() {
     lsof -ti:5336 | xargs kill -9 2>/dev/null || true
 
     # Kill by process name
-    pkill -9 -f "go run main.go" 2>/dev/null || true
+    pkill -9 -f "go run ./cmd/daptin" 2>/dev/null || true
     pkill -9 -f daptin 2>/dev/null || true
     sleep 2
 
     echo "Starting server..."
     cd /Users/artpar/workspace/code/github.com/daptin/daptin
-    nohup go run main.go > "$DAPTIN_LOG" 2>&1 &
+    nohup go run ./cmd/daptin > "$DAPTIN_LOG" 2>&1 &
     echo "PID: $!"
 
     echo "Waiting for server..."
@@ -102,7 +102,7 @@ case "$1" in
         lsof -ti:5336 | xargs kill -9 2>/dev/null || true
 
         # Kill by process name as fallback
-        pkill -9 -f "go run main.go" 2>/dev/null || true
+        pkill -9 -f "go run ./cmd/daptin" 2>/dev/null || true
         pkill -9 -f daptin 2>/dev/null || true
 
         sleep 2

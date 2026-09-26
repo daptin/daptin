@@ -9,7 +9,7 @@
 ## Environment Setup
 
 ```bash
-go run main.go -port 7337 -db_type sqlite3 -db_connection_string "/tmp/daptin-test-audit.db"
+go run ./cmd/daptin -port 7337 -db_type sqlite3 -db_connection_string "/tmp/daptin-test-audit.db"
 ```
 
 **Result:** Server started successfully on port 7337.

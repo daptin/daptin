@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -24,22 +21,10 @@ Tables:
 `
 
 func TestQueryFilterValidationRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run the query-filter validation e2e")
-	}
-
-	usedPorts := make(map[int]bool, 2)
-	port := freeTransportE2EPort(t, usedPorts)
-	httpsPort := freeTransportE2EPort(t, usedPorts)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	process := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{
-		databaseType: "sqlite3", connectionString: filepath.Join(t.TempDir(), "query-filter-validation.db"), schema: queryFilterValidationRealE2ESchema,
-	})
-	defer process.stopProcess()
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: queryFilterValidationRealE2ESchema})
+	baseURL, client, process := fixture.URL, fixture.Client, fixture.Process
 	waitForQueryFilterE2EResource(t, baseURL, process)
-
-	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	adminToken := fixture.SignupAdmin(t)
 	resourceURL := baseURL + "/api/filter_probe"
 
 	validQuery := `[{"column":"name","operator":"is","value":"value"}]`

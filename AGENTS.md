@@ -257,6 +257,9 @@ git diff --check
 Real E2E suites are opt-in; follow the existing environment variable and helper
 patterns in the neighboring tests.
 
+For executable-package HTTP tests, use the shared harness and commands in
+`scripts/testing/GO_TESTS.md`.
+
 ## Documentation
 
 - Teach users how to achieve the outcome with Daptin schema, JSON:API resources,

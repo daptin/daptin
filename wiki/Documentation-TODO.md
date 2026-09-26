@@ -20,7 +20,7 @@ Track what's documented and what users still need.
 rm daptin.db
 
 # 3. Restart Daptin
-go run main.go
+go run ./cmd/daptin
 ```
 
 This gives you a clean system where:

@@ -544,7 +544,7 @@ main() {
 		-e GOTMPDIR=/work/gotmp \
 		-e TMPDIR=/work/gotmp \
 		golang:1.25-bookworm \
-		sh -lc 'mkdir -p /work/gotmp && cd /src && /usr/local/go/bin/go build -o /work/daptin .' >/dev/null
+		sh -lc 'mkdir -p /work/gotmp && cd /src && /usr/local/go/bin/go build -o /work/daptin ./cmd/daptin' >/dev/null
 
 	log "Creating Docker network ${NETWORK}..."
 	docker network create "$NETWORK" >/dev/null

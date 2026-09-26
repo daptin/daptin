@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -15,9 +14,7 @@ import (
 )
 
 func TestSchemaEventHandlersRealE2E(t *testing.T) {
-	if !strings.EqualFold(os.Getenv("DAPTIN_REAL_E2E"), "1") {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run schema event handler e2e")
-	}
+	requireRealE2E(t)
 	t.Setenv("DAPTIN_EVENT_SECRET", "event-e2e-$secret")
 	called := make(chan map[string]interface{}, 4)
 	release := make(chan struct{})

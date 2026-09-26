@@ -9,11 +9,11 @@ cd ..
 export GOPATH=/Users/artpar/workspace/gocode
 rm -rf rice-box.go
 
-#go build  -ldflags '-linkmode external -extldflags -static -w' main.go
+#go build -ldflags '-linkmode external -extldflags -static -w' ./cmd/daptin
 
 docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.8 go get
 docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.8 rice embed-go
-docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.8 go build -v -ldflags '-linkmode external -extldflags -static -w'
+docker run --rm -v "$PWD":/usr/src/myapp -w /usr/src/myapp golang:1.8 go build -v -ldflags '-linkmode external -extldflags -static -w' ./cmd/daptin
 
 rice append --exec main
 

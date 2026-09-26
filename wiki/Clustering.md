@@ -54,7 +54,7 @@ Daptin supports clustering for:
 ### Node 1 (creates schema on first start)
 
 ```bash
-go run main.go \
+go run ./cmd/daptin \
   -port :6336 \
   -db_type postgres \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
@@ -66,7 +66,7 @@ go run main.go \
 ### Node 2
 
 ```bash
-go run main.go \
+go run ./cmd/daptin \
   -port :6338 \
   -db_type postgres \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
@@ -78,7 +78,7 @@ go run main.go \
 ### Node 3
 
 ```bash
-go run main.go \
+go run ./cmd/daptin \
   -port :6340 \
   -db_type postgres \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
@@ -370,6 +370,9 @@ cd scripts/testing
 # Start PostgreSQL + 3 local Daptin nodes + admin bootstrap
 ./cluster-test-runner.sh bootstrap
 
+# Or run the three-node readiness and shared-account smoke test with teardown
+./cluster-test-runner.sh smoke
+
 # Test 1: Outbox NX claim deduplication across nodes
 ./cluster-test-outbox-dedup.sh
 
@@ -382,6 +385,9 @@ cd scripts/testing
 # Tear down
 ./cluster-test-runner.sh stop
 ```
+
+The local test nodes use HTTP ports 16336, 16338, and 16340. The runner uses
+PostgreSQL on port 15433 and connects the nodes as Olric peers.
 
 **Prerequisites:** `docker`, `jq`, `websocat`, `swaks`, `psql`, Go toolchain.
 

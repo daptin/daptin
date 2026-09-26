@@ -64,9 +64,7 @@ Tables:
 `
 
 func TestAssetUploadLocalRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1")
-	}
+	requireRealE2E(t)
 	usedPorts := map[int]bool{}
 	port := freeTransportE2EPort(t, usedPorts)
 	httpsPort := freeTransportE2EPort(t, usedPorts)
@@ -153,9 +151,7 @@ func TestAssetUploadLocalRealE2E(t *testing.T) {
 }
 
 func TestAssetUploadRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1")
-	}
+	requireRealE2E(t)
 	endpoint := os.Getenv("DAPTIN_ASSET_E2E_S3_ENDPOINT")
 	if endpoint == "" {
 		t.Skip("set DAPTIN_ASSET_E2E_S3_ENDPOINT to an isolated S3-compatible store")

@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -51,9 +49,7 @@ Tables:
 `
 
 func TestMailUnpackActionCompositionRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run the mail.unpack action composition e2e")
-	}
+	requireRealE2E(t)
 	t.Run("database-backed mail", func(t *testing.T) {
 		testMailUnpackActionCompositionRealE2E(t, mailUnpackE2ESchema, false, true)
 	})
@@ -64,15 +60,9 @@ func TestMailUnpackActionCompositionRealE2E(t *testing.T) {
 
 func testMailUnpackActionCompositionRealE2E(t *testing.T, schema string, cloudStore bool, verifyDenial bool) {
 	t.Helper()
-	usedPorts := make(map[int]bool, 2)
-	port := freeTransportE2EPort(t, usedPorts)
-	httpsPort := freeTransportE2EPort(t, usedPorts)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: schema})
-	defer daptinProcess.stopProcess()
-
-	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: schema})
+	baseURL, client := fixture.URL, fixture.Client
+	adminToken := fixture.SignupAdmin(t)
 	var otherToken string
 	if verifyDenial {
 		otherToken = accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "mail-unpack-other")

@@ -142,7 +142,7 @@ Actions:
 YAML
 
 echo "Building Daptin binary..."
-(cd "$PROJECT_ROOT" && go build -o "$BIN_PATH" .)
+(cd "$PROJECT_ROOT" && go build -o "$BIN_PATH" ./cmd/daptin)
 
 mkdir -p "$TMP_DIR/storage"
 echo "Starting isolated Daptin on ${BASE_URL}..."

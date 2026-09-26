@@ -282,7 +282,7 @@ func main() {
 		Writer: os.Stdout,
 	})
 
-	boxRoot1, err := rice.FindBox("daptinweb")
+	boxRoot1, err := rice.FindBox("../../daptinweb")
 
 	var boxRoot http.FileSystem
 	if err != nil || (webDashboardSource != nil && *webDashboardSource != "daptinweb") {

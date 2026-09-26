@@ -41,12 +41,12 @@ BUILDTAGS=-tags "$(GOTAGS)"
 LINTTAGS=--build-tags "$(GOTAGS)"
 endif
 
-.PHONY: daptin test_all vars version
+.PHONY: daptin test_all vars version test-e2e test-e2e-smoke
 
 #Binary was compiled with 'CGO_ENABLED=0', go-sqlite3 requires cgo to work. This is a stub
 daptin:
-	go get
-	CGO_ENABLED=1 go build -v --ldflags "-s $(govvv -flags) -X github.com/daptin/daptin.Version=$(TAG)" $(BUILDTAGS)
+	go mod download
+	CGO_ENABLED=1 go build -v --ldflags "-s $(govvv -flags) -X github.com/daptin/daptin/cmd/daptin.Version=$(TAG)" $(BUILDTAGS) ./cmd/daptin
 	mkdir -p `go env GOPATH`/bin/
 	cp -av daptin`go env GOEXE` `go env GOPATH`/bin/daptin`go env GOEXE`.new
 	mv -v `go env GOPATH`/bin/daptin`go env GOEXE`.new `go env GOPATH`/bin/daptin`go env GOEXE`
@@ -74,6 +74,13 @@ test:	daptin test_all
 # Quick test
 quicktest:
 	DAPTIN_CONFIG="/notfound" go test $(BUILDTAGS) $(GO_FILES)
+
+# Executable-package HTTP tests use the isolated Daptin E2E harness.
+test-e2e:
+	DAPTIN_REAL_E2E=1 go test $(BUILDTAGS) -count=1 -timeout=60m -run 'E2E' ./cmd/daptin
+
+test-e2e-smoke:
+	scripts/testing/cluster-test-runner.sh smoke
 
 racequicktest:
 	DAPTIN_CONFIG="/notfound" go test $(BUILDTAGS) -cpu=2 -race $(GO_FILES)

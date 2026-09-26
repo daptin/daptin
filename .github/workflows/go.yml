@@ -55,5 +55,8 @@ jobs:
           make
           make quicktest
 
+      - name: Run three-node cluster smoke test
+        run: make test-e2e-smoke
+
       - name: Compile live provider certification
         run: go test -tags 'cmount live' -run '^$' ./...

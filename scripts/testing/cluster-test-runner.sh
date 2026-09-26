@@ -5,6 +5,7 @@
 #   ./cluster-test-runner.sh start       # Start PG + all 3 nodes
 #   ./cluster-test-runner.sh stop        # Tear down everything
 #   ./cluster-test-runner.sh bootstrap   # start + signup admin + become_an_administrator
+#   ./cluster-test-runner.sh smoke       # bootstrap + verify 3 nodes + tear down
 #   ./cluster-test-runner.sh status      # Show status of PG + nodes
 #
 # When sourced by other scripts, provides helper functions:
@@ -21,9 +22,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DAPTIN_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # ── Port layout ─────────────────────────────────────────────────────────────
-NODE1_HTTP=6336; NODE1_OLRIC=5336; NODE1_MEMBER=5337
-NODE2_HTTP=6338; NODE2_OLRIC=5338; NODE2_MEMBER=5339
-NODE3_HTTP=6340; NODE3_OLRIC=5340; NODE3_MEMBER=5341
+NODE1_HTTP=16336; NODE1_OLRIC=15336; NODE1_MEMBER=15337
+NODE2_HTTP=16338; NODE2_OLRIC=15338; NODE2_MEMBER=15339
+NODE3_HTTP=16340; NODE3_OLRIC=15340; NODE3_MEMBER=15341
 
 ALL_HTTP_PORTS="$NODE1_HTTP $NODE2_HTTP $NODE3_HTTP"
 ALL_OLRIC_PORTS="$NODE1_OLRIC $NODE2_OLRIC $NODE3_OLRIC"
@@ -31,7 +32,7 @@ ALL_MEMBER_PORTS="$NODE1_MEMBER $NODE2_MEMBER $NODE3_MEMBER"
 
 # ── PostgreSQL ──────────────────────────────────────────────────────────────
 PG_CONTAINER="daptin-cluster-pg"
-PG_PORT=5433
+PG_PORT=15433
 PG_USER="daptin"
 PG_PASS="daptin"
 PG_DB="daptin"
@@ -43,6 +44,7 @@ NODE2_LOG="/tmp/daptin-node2.log"
 NODE3_LOG="/tmp/daptin-node3.log"
 PID_FILE="/tmp/daptin-cluster-pids.txt"
 TOKEN_FILE="/tmp/daptin-cluster-token.txt"
+CLUSTER_BIN="/tmp/daptin-cluster-test-bin"
 
 # Peers must use MEMBERSHIP ports (not bind ports) — memberlist.Join() connects to these.
 # Olric's SetupNetworkConfig() resolves BindAddr to the primary interface IP (not 127.0.0.1),
@@ -70,7 +72,7 @@ wait_for_port() {
 wait_for_http() {
     local port="$1" label="$2" max="${3:-60}"
     for i in $(seq 1 "$max"); do
-        if curl -s --max-time 2 --connect-timeout 2 "http://localhost:$port/api/world" > /dev/null 2>&1; then
+        if curl -fsS --max-time 2 --connect-timeout 2 "http://127.0.0.1:$port/ready" > /dev/null 2>&1; then
             return 0
         fi
         sleep 1
@@ -124,27 +126,37 @@ pg_exec() {
 # ── Kill cluster processes ──────────────────────────────────────────────────
 
 kill_cluster() {
-    log "Killing cluster processes..."
+    log "Stopping cluster processes..."
 
-    # Kill by PID file
     if [ -f "$PID_FILE" ]; then
         while read -r pid; do
-            kill -9 "$pid" 2>/dev/null || true
+            if ps -p "$pid" -o command= 2>/dev/null | grep -Fq "$CLUSTER_BIN"; then
+                kill -TERM "$pid" 2>/dev/null || true
+            fi
+        done < "$PID_FILE"
+
+        for _ in $(seq 1 35); do
+            local running=0
+            while read -r pid; do
+                if ps -p "$pid" -o command= 2>/dev/null | grep -Fq "$CLUSTER_BIN"; then
+                    running=1
+                    break
+                fi
+            done < "$PID_FILE"
+            if [ "$running" -eq 0 ]; then
+                break
+            fi
+            sleep 1
+        done
+
+        while read -r pid; do
+            if ps -p "$pid" -o command= 2>/dev/null | grep -Fq "$CLUSTER_BIN"; then
+                kill -KILL "$pid" 2>/dev/null || true
+            fi
         done < "$PID_FILE"
         rm -f "$PID_FILE"
     fi
-
-    # Kill by ports
-    for port in $ALL_HTTP_PORTS $ALL_OLRIC_PORTS $ALL_MEMBER_PORTS; do
-        lsof -ti:"$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
-    done
-
-    # Kill by process name (cluster nodes use specific port flags)
-    pkill -9 -f "go run main.go.*-port :$NODE1_HTTP" 2>/dev/null || true
-    pkill -9 -f "go run main.go.*-port :$NODE2_HTTP" 2>/dev/null || true
-    pkill -9 -f "go run main.go.*-port :$NODE3_HTTP" 2>/dev/null || true
-
-    sleep 2
+    rm -f "$CLUSTER_BIN"
 }
 
 # ── PostgreSQL management ───────────────────────────────────────────────────
@@ -186,17 +198,23 @@ start_node() {
 
     log "Starting Node $node_num (HTTP=$http_port, Olric=$olric_port, Member=$member_port)..."
 
-    cd "$DAPTIN_DIR"
-    nohup go run main.go \
-        -port ":$http_port" \
-        -db_type postgres \
-        -db_connection_string "$PG_CONN" \
-        -olric_peers "$OLRIC_PEERS" \
-        -olric_port "$olric_port" \
-        -olric_env local \
-        > "$logfile" 2>&1 &
+    local pid
+    pid=$(python3 - "$DAPTIN_DIR" "$CLUSTER_BIN" "$http_port" "$olric_port" "$PG_CONN" "$OLRIC_PEERS" "$logfile" <<'PY'
+import subprocess
+import sys
 
-    local pid=$!
+root, binary, http_port, olric_port, database, peers, logfile = sys.argv[1:]
+with open(logfile, "wb") as output:
+    process = subprocess.Popen(
+        [binary, "-port", ":" + http_port, "-db_type", "postgres",
+         "-db_connection_string", database, "-olric_peers", peers,
+         "-olric_port", olric_port, "-olric_env", "local"],
+        cwd=root, stdin=subprocess.DEVNULL, stdout=output,
+        stderr=subprocess.STDOUT, start_new_session=True,
+    )
+print(process.pid)
+PY
+)
     echo "$pid" >> "$PID_FILE"
     log "Node $node_num PID: $pid"
 }
@@ -205,7 +223,17 @@ start_node() {
 
 start_cluster() {
     kill_cluster
+    stop_postgres
     rm -f "$PID_FILE"
+
+    for port in $ALL_HTTP_PORTS $ALL_OLRIC_PORTS $ALL_MEMBER_PORTS "$PG_PORT"; do
+        if lsof -tiTCP:"$port" -sTCP:LISTEN > /dev/null 2>&1; then
+            log "ERROR: cluster port $port is already in use"
+            return 1
+        fi
+    done
+
+    (cd "$DAPTIN_DIR" && go build -o "$CLUSTER_BIN" ./cmd/daptin)
 
     start_postgres
 
@@ -235,7 +263,7 @@ start_cluster() {
         return 1
     fi
 
-    # Verify Olric cluster
+    # Inspect Olric peer joins after all nodes are ready.
     local peer_msgs=0
     for logf in "$NODE1_LOG" "$NODE2_LOG" "$NODE3_LOG"; do
         local count
@@ -280,6 +308,7 @@ bootstrap_cluster() {
         return 1
     fi
     echo "$token" > "$TOKEN_FILE"
+    chmod 600 "$TOKEN_FILE"
     log "Token acquired"
 
     log "Becoming administrator..."
@@ -289,9 +318,21 @@ bootstrap_cluster() {
         -H "Content-Type: application/json" \
         -d '{"attributes":{}}' > /dev/null
 
-    # Wait for restart after become_an_administrator
-    sleep 5
-    wait_for_http "$NODE1_HTTP" "Node 1 (post-admin)" 30 || true
+    for port in $ALL_HTTP_PORTS; do
+        if ! wait_for_http "$port" "Node on $port (post-admin)" 30; then
+            return 1
+        fi
+        local node_token
+        node_token=$(curl -fsS --max-time "$TIMEOUT" \
+            -X POST "http://127.0.0.1:$port/action/user_account/signin" \
+            -H "Content-Type: application/json" \
+            -d '{"attributes":{"email":"admin@admin.com","password":"adminadmin"}}' \
+            | jq -r '.[] | select(.ResponseType == "client.store.set") | .Attributes.value // empty')
+        if [ -z "$node_token" ]; then
+            log "ERROR: admin account is not available on node $port"
+            return 1
+        fi
+    done
 
     log "=== Bootstrap complete ==="
     log "Token file: $TOKEN_FILE"
@@ -315,7 +356,7 @@ show_status() {
 
     # Nodes
     for port in $NODE1_HTTP $NODE2_HTTP $NODE3_HTTP; do
-        if curl -s --max-time 2 --connect-timeout 2 "http://localhost:$port/api/world" > /dev/null 2>&1; then
+        if curl -fsS --max-time 2 --connect-timeout 2 "http://127.0.0.1:$port/ready" > /dev/null 2>&1; then
             echo "Node (port $port): running"
         else
             echo "Node (port $port): not responding"
@@ -324,7 +365,7 @@ show_status() {
 
     # Token
     if [ -f "$TOKEN_FILE" ]; then
-        echo "Token: $(cat "$TOKEN_FILE" | head -c 30)..."
+        echo "Token: present"
     else
         echo "Token: not set"
     fi
@@ -357,15 +398,20 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         bootstrap)
             bootstrap_cluster
             ;;
+        smoke)
+            trap stop_cluster EXIT
+            bootstrap_cluster
+            ;;
         status)
             show_status
             ;;
         *)
-            echo "Usage: $0 {start|stop|bootstrap|status}"
+            echo "Usage: $0 {start|stop|bootstrap|smoke|status}"
             echo ""
             echo "  start      - Start PG + 3 Daptin nodes"
             echo "  stop       - Tear down everything"
             echo "  bootstrap  - start + signup admin + become_an_administrator"
+            echo "  smoke      - bootstrap and verify all 3 nodes, then stop"
             echo "  status     - Show status of PG + nodes"
             ;;
     esac

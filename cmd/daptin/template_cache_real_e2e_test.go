@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,9 +13,7 @@ import (
 )
 
 func TestRoutedTemplateCacheHeadersRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1")
-	}
+	requireRealE2E(t)
 	usedPorts := map[int]bool{}
 	databasePath := filepath.Join(t.TempDir(), "template-cache.db")
 	firstPort := freeTransportE2EPort(t, usedPorts)

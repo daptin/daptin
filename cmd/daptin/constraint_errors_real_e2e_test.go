@@ -2,10 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -66,22 +63,10 @@ Actions:
 `
 
 func TestConstraintErrorsRealE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run the constraint-error e2e")
-	}
-
-	usedPorts := make(map[int]bool, 2)
-	port := freeTransportE2EPort(t, usedPorts)
-	httpsPort := freeTransportE2EPort(t, usedPorts)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	process := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{
-		databaseType: "sqlite3", connectionString: filepath.Join(t.TempDir(), "constraint-errors.db"), schema: constraintErrorsRealE2ESchema,
-	})
-	defer process.stopProcess()
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: constraintErrorsRealE2ESchema})
+	baseURL, client, process := fixture.URL, fixture.Client, fixture.Process
 	waitForConstraintE2EResource(t, baseURL, process)
-
-	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	adminToken := fixture.SignupAdmin(t)
 	resourceURL := baseURL + "/api/constraint_probe"
 
 	missingRequired := accessGroupsE2ERequestJSON(t, client, http.MethodPost, resourceURL, adminToken,

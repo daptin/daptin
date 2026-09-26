@@ -27,10 +27,11 @@ daptin.log
 .DS_Store
 *.log
 daptin_test.db
+/token.txt
 bin/
 github.com
 daptin.exe
-daptin
+/daptin
 .env
 node_modules/
 *.prof

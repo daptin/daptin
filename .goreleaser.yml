@@ -20,7 +20,7 @@ builds:
       - CGO_ENABLED=1
       - CC=o64-clang
       - CXX=o64-clang++
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - darwin
     goarch:
@@ -30,7 +30,7 @@ builds:
     binary: daptin
     env:
       - CGO_ENABLED=1
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - linux
     goarch:
@@ -42,7 +42,7 @@ builds:
       - CGO_ENABLED=1
       - CC=x86_64-w64-mingw32-gcc
       - CXX=x86_64-w64-mingw32-g++
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - windows
     goarch:
@@ -54,7 +54,7 @@ builds:
       - CGO_ENABLED=1
       - CC=i686-w64-mingw32-gcc-posix
       - CXX=i686-w64-mingw32-g++-posix
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - windows
     goarch:
@@ -68,7 +68,7 @@ builds:
       - CGO_ENABLED=1
       - CC=arm-linux-gnueabihf-gcc
       - CXX=arm-linux-gnueabihf-g++
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - linux
     goarch:
@@ -86,7 +86,7 @@ builds:
       - CGO_ENABLED=1
       - CC=o64-clang
       - CXX=o64-clang++
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - darwin
     goarch:
@@ -98,7 +98,7 @@ builds:
     binary: daptine
     env:
       - CGO_ENABLED=1
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - linux
     goarch:
@@ -112,7 +112,7 @@ builds:
       - CGO_ENABLED=1
       - CC=x86_64-w64-mingw32-gcc
       - CXX=x86_64-w64-mingw32-g++
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - windows
     goarch:
@@ -127,7 +127,7 @@ builds:
       - CGO_ENABLED=1
       - CC=arm-linux-gnueabihf-gcc
       - CXX=arm-linux-gnueabihf-g++
-    main: ./main.go
+    main: ./cmd/daptin
     goos:
       - linux
     goarch:

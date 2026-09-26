@@ -61,7 +61,7 @@ rm -f daptin.db
 ./scripts/testing/test-runner.sh start
 
 # OR manual
-go run main.go > /tmp/daptin.log 2>&1 &
+go run ./cmd/daptin > /tmp/daptin.log 2>&1 &
 sleep 10
 ```
 

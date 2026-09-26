@@ -189,7 +189,7 @@ spec:
 ```bash
 git clone https://github.com/daptin/daptin.git
 cd daptin
-go build -o daptin main.go
+go build -o daptin ./cmd/daptin
 
 # Create storage directories (required for YJS and file uploads)
 mkdir -p ./storage/yjs-documents

@@ -9,10 +9,10 @@ echo "start go get"
 echo "finish go get"
 go get github.com/artpar/goagain
 export GOPATH=/media/artpar/ddrive/workspace/newgocode
-rm -rf rice-box.go
-rice embed-go
+rm -f cmd/daptin/rice-box.go
+(cd cmd/daptin && rice embed-go)
 CGO_ENABLED=1
-go build  -ldflags '-linkmode external -extldflags -static -w' main.go
+go build -o main -ldflags '-linkmode external -extldflags -static -w' ./cmd/daptin
 rice append --exec main
 
 rm -rf docker_dir

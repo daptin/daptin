@@ -58,7 +58,7 @@ jobs:
       - name: Build Linux binary and container image
         run: |
           mkdir -p build
-          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o build/daptin-linux-amd64 .
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o build/daptin-linux-amd64 ./cmd/daptin
           docker build --platform linux/amd64 --tag daptin/daptin:ci .
 
       - name: Smoke-test container health

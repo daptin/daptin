@@ -119,7 +119,7 @@ stale values, so stop it before starting a fresh instance.
 ```bash
 # Fresh database, old process on 5336
 rm daptin.db
-go run main.go &
+go run ./cmd/daptin &
 curl -X POST .../signup  # Works
 curl -X POST .../become_an_administrator
 # Returns: {"message": "Unauthorized"}

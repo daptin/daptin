@@ -136,7 +136,7 @@ The primary suites are:
 ```bash
 go test ./server/resource -run Metering
 go test ./server/llm
-go test . -run 'LLM.*E2E|Metering' -count=1
+go test ./cmd/daptin -run 'LLM.*E2E|Metering' -count=1
 ```
 
 Database-matrix tests exercise concurrent hard admission and terminalization on

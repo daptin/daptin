@@ -3,14 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 const accessGroupsE2ESchema = `
@@ -109,19 +106,9 @@ Actions:
 `
 
 func TestAccessGroupsRealAuthorizationScenariosE2E(t *testing.T) {
-	if os.Getenv("DAPTIN_REAL_E2E") != "1" {
-		t.Skip("set DAPTIN_REAL_E2E=1 to run real access-group authorization e2e")
-	}
-
-	usedPorts := make(map[int]bool, 2)
-	port := freeTransportE2EPort(t, usedPorts)
-	httpsPort := freeTransportE2EPort(t, usedPorts)
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
-	daptinProcess := startTransportE2EDaptin(t, port, httpsPort, baseURL, transportE2EDaptinOptions{schema: accessGroupsE2ESchema})
-	defer daptinProcess.stopProcess()
-
-	client := &http.Client{Timeout: 20 * time.Second}
-	adminToken := accessGroupsE2ESignupSigninAdmin(t, client, baseURL)
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: accessGroupsE2ESchema})
+	baseURL, client := fixture.URL, fixture.Client
+	adminToken := fixture.SignupAdmin(t)
 	userToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "user")
 	otherUserToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "other")
 	editorToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "editor")

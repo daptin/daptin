@@ -74,7 +74,7 @@ lsof -i :5336 || echo "✓ Port 5336 is free"
 sleep 2
 
 # Now restart and try again
-go run main.go > /tmp/daptin.log 2>&1 &
+go run ./cmd/daptin > /tmp/daptin.log 2>&1 &
 ```
 
 ### Prevention
@@ -410,7 +410,7 @@ pkill -9 -f "go run main" 2>/dev/null || true
 lsof -i :6336 -t | xargs kill -9 2>/dev/null || true
 lsof -i :5336 -t | xargs kill -9 2>/dev/null || true
 sleep 2
-go run main.go > /tmp/daptin.log 2>&1 &
+go run ./cmd/daptin > /tmp/daptin.log 2>&1 &
 ```
 
 ### Verification
