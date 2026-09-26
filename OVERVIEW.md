@@ -340,8 +340,8 @@ files loaded at runtime. Deployment configurations are provided for Heroku, Dock
 
 ### Runtime Configuration (`server/config.go`, `main.go`)
 
-- **Loading**: Configuration files named `schemadaptin.(json|yaml|toml|hcl)` are loaded on startup from the current
-  directory and optionally from a path specified by the `DAPTINSCHEMAFOLDER` environment variable. These files define
+- **Loading**: Configuration files named `schema_*.json`, `schema_*.yaml`, or `schema_*.yml` are loaded on startup from the current
+  directory and optionally from a path specified by the `DAPTIN_SCHEMA_FOLDER` environment variable. These files define
   tables, relations, actions, state machines, etc. (`resource.CmsConfig`).
 
 - **Commandline Flags**: `main.go` defines flags to override settings:

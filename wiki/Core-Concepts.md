@@ -104,7 +104,7 @@ See: [[Column-Types|Column Types]] for detailed usage.
 
 ## Schema Definition
 
-Define your data model in JSON, YAML, or TOML:
+Define your data model in JSON or YAML:
 
 ```yaml
 Tables:

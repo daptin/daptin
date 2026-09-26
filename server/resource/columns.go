@@ -1044,7 +1044,7 @@ var SystemActions = []actionresponse.Action{
 			{
 				Name:       "Schema file",
 				ColumnName: "schema_file",
-				ColumnType: "file.json|yaml|toml|hcl",
+				ColumnType: "file.json|yaml|yml",
 				IsNullable: false,
 			},
 		},

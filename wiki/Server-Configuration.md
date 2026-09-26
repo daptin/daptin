@@ -227,7 +227,7 @@ Process restarts are managed externally through Kubernetes, Docker, systemd, or 
 
 - Enabling/disabling GraphQL (`graphql.enable`)
 - Any route-level changes
-- New schema files (schema_*.yaml/json/toml)
+- New schema files (`schema_*.json`, `schema_*.yaml`, or `schema_*.yml`)
 - Port changes
 - Database connection changes
 - HTTP header and idle timeout changes (`http.read_header_timeout_seconds`, `http.idle_timeout_seconds`)
@@ -365,7 +365,7 @@ DAPTIN_SCHEMA_FOLDER=/path/to/schemas ./daptin
    # Returns: created record with id, reference_id, timestamps
    ```
 
-**Schema file naming:** Must match pattern `schema_*.yaml`, `schema_*.json`, or `schema_*.toml`
+**Schema file naming:** Must match pattern `schema_*.json`, `schema_*.yaml`, or `schema_*.yml`
 
 ### DAPTIN_GOMAXPROCS
 

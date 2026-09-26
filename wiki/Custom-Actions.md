@@ -63,7 +63,7 @@ curl -X POST http://localhost:6336/action/user_account/greet_user \
 
 ### 1. Schema Files (Recommended for Production)
 
-Place `schema_*.yaml`, `schema_*.json`, or `schema_*.toml` files in your Daptin directory. Actions are loaded on startup.
+Place `schema_*.yaml`, `schema_*.yml`, or `schema_*.json` files in your Daptin directory. Actions are loaded on startup.
 
 **Set schema folder:**
 ```bash

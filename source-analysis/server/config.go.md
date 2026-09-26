@@ -5,7 +5,7 @@
 **Lines of Code:** 191  
 
 ## Overview
-This file handles loading and parsing of schema configuration files for the Daptin CMS system. It searches for files matching the pattern `schema_*.*` and supports JSON, YAML, and TOML formats. The configuration includes table definitions, relations, imports, actions, state machines, and other system components.
+This file handles loading and parsing of schema configuration files for the Daptin CMS system. It searches for files matching the pattern `schema_*.*` and supports JSON and YAML formats. The configuration includes table definitions, relations, imports, actions, state machines, and other system components.
 
 ## Key Components
 

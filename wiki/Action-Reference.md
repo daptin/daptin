@@ -374,7 +374,7 @@ Upload schema file to update system configuration.
 **Input Fields:**
 | Field | Type | Required |
 |-------|------|----------|
-| schema_file | file.json\|yaml\|toml\|hcl | Yes |
+| schema_file | file.json\|yaml\|yml | Yes |
 
 ## Table Management Actions
 
