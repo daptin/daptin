@@ -33,12 +33,16 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 	}
 
 	sessionUser := inFields["sessionUser"]
+	sourceRequest, ok := inFields["httpRequest"].(*http.Request)
+	if !ok || sourceRequest == nil {
+		return nil, nil, []error{fmt.Errorf("action request is missing")}
+	}
 
 	httpReq := &http.Request{
 		Method: "GET",
 	}
 
-	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+	httpReq = httpReq.WithContext(context.WithValue(sourceRequest.Context(), "user", sessionUser))
 	req := &api2go.Request{
 		PlainRequest: httpReq,
 	}
@@ -64,7 +68,6 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 	relations := tableSchema.Relations
 
 	var tablesToRemove []daptinid.DaptinReferenceId
-	errorsList := make([]error, 0)
 
 	for _, relation := range relations {
 		switch relation.Relation {
@@ -74,9 +77,9 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 				// nothing to do
 			} else {
 				// we can delete just the index or the index and the referencing column as well
-				_, err = transaction.Exec("alter table " + relation.Subject + " drop column " + relation.ObjectName)
+				_, err = transaction.ExecContext(sourceRequest.Context(), "alter table "+relation.Subject+" drop column "+relation.ObjectName)
 				if err != nil {
-					errorsList = append(errorsList, err)
+					return nil, nil, []error{err}
 				}
 			}
 		case "has_one":
@@ -84,26 +87,26 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 				// nothing to do
 			} else {
 				// we can delete just the index or the index and the referencing column as well
-				_, err = transaction.Exec("alter table " + relation.Subject + " drop column " + relation.ObjectName)
+				_, err = transaction.ExecContext(sourceRequest.Context(), "alter table "+relation.Subject+" drop column "+relation.ObjectName)
 				if err != nil {
-					errorsList = append(errorsList, err)
+					return nil, nil, []error{err}
 				}
 			}
 
 		case "has_many_and_belongs_to_many":
 		case "has_many":
-			_, err = transaction.Exec("drop table " + relation.GetJoinTableName())
+			_, err = transaction.ExecContext(sourceRequest.Context(), "drop table "+relation.GetJoinTableName())
 			if err != nil {
-				errorsList = append(errorsList, err)
+				return nil, nil, []error{err}
 			}
 			refId, err := resource.GetReferenceIdByWhereClauseWithTransaction("world", transaction, goqu.Ex{"table_name": relation.GetJoinTableName()})
+			if err != nil {
+				return nil, nil, []error{err}
+			}
 			if len(refId) < 1 {
-				errorsList = append(errorsList, fmt.Errorf("failed to find reference id of the join table '%s' when deleting table '%s'", relation.GetJoinTableName(), tableSchema.TableName))
+				return nil, nil, []error{fmt.Errorf("failed to find reference id of the join table '%s' when deleting table '%s'", relation.GetJoinTableName(), tableSchema.TableName)}
 			}
 			tablesToRemove = append(tablesToRemove, refId[0])
-			if err != nil {
-				errorsList = append(errorsList, err)
-			}
 
 		}
 
@@ -114,15 +117,13 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 
 		otherTableData, err := d.cruds["world"].GetObjectByWhereClauseWithTransaction("world", "table_name", otherTable, transaction)
 		if err != nil {
-			errorsList = append(errorsList, err)
-			continue
+			return nil, nil, []error{err}
 		}
 
 		var otherTableSchema table_info.TableInfo
 		err = json.Unmarshal([]byte(otherTableData["world_schema_json"].(string)), &otherTableSchema)
 		if err != nil {
-			errorsList = append(errorsList, err)
-			continue
+			return nil, nil, []error{err}
 		}
 		updatedRelations := make([]api2go.TableRelation, 0)
 
@@ -137,8 +138,7 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 		otherTableSchema.Relations = updatedRelations
 		updatedSchema, err := json.Marshal(otherTableSchema)
 		if err != nil {
-			errorsList = append(errorsList, err)
-			continue
+			return nil, nil, []error{err}
 		}
 
 		updatedObject := api2go.NewApi2GoModelWithData("world", nil, 0, nil, otherTableData)
@@ -148,8 +148,7 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 
 		_, err = d.cruds["world"].UpdateWithoutFilters(updatedObject, *req, transaction)
 		if err != nil {
-			errorsList = append(errorsList, err)
-			return nil, nil, errorsList
+			return nil, nil, []error{err}
 		}
 
 	}
@@ -157,23 +156,22 @@ func (d *deleteWorldPerformer) DoAction(request actionresponse.Outcome, inFields
 	uuidVal := uuid.MustParse(tableData.GetID())
 	tablesToRemove = append(tablesToRemove, daptinid.DaptinReferenceId(uuidVal))
 
-	_, err = transaction.Exec("drop table " + tableData.GetAttributes()["table_name"].(string))
+	_, err = transaction.ExecContext(sourceRequest.Context(), "drop table "+tableData.GetAttributes()["table_name"].(string))
 	if err != nil {
-		errorsList = append(errorsList, err)
-		return nil, nil, errorsList
+		return nil, nil, []error{err}
 	}
 
 	for _, table := range tablesToRemove {
 		err = d.cruds["world"].DeleteWithoutFilters(table, *req, transaction)
 		if err != nil {
-			errorsList = append(errorsList, err)
+			return nil, nil, []error{err}
 		}
 	}
 
 	//Restart()
 
 	return nil, []actionresponse.ActionResponse{resource.NewActionResponse("client.notify",
-		resource.NewClientNotification("message", "Table deleted", "Success"))}, errorsList
+		resource.NewClientNotification("message", "Table deleted", "Success"))}, nil
 }
 
 func NewDeleteWorldPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) (actionresponse.ActionPerformerInterface, error) {

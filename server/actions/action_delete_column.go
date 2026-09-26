@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/table_info"
 	"github.com/jmoiron/sqlx"
@@ -23,12 +24,22 @@ func (d *deleteWorldColumnPerformer) Name() string {
 
 func (d *deleteWorldColumnPerformer) DoAction(request actionresponse.Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
-	worldName := inFields["world_name"].(string)
-	columnToDelete := inFields["column_name"].(string)
+	worldID := daptinid.InterfaceToDIR(inFields["world_id"])
+	if worldID == daptinid.NullReferenceId {
+		return nil, nil, []error{errors.New("world id is a null reference")}
+	}
+	columnToDelete, ok := inFields["column_name"].(string)
+	if !ok || columnToDelete == "" {
+		return nil, nil, []error{errors.New("column name is required")}
+	}
+	sourceRequest, ok := inFields["httpRequest"].(*http.Request)
+	if !ok || sourceRequest == nil {
+		return nil, nil, []error{errors.New("action request is missing")}
+	}
 
 	sessionUser := inFields["sessionUser"]
 
-	table, err := d.cruds["world"].GetObjectByWhereClauseWithTransaction("world", "table_name", worldName, transaction)
+	table, err := d.cruds["world"].GetReferenceIdToObjectWithTransaction("world", worldID, transaction)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -50,7 +61,7 @@ func (d *deleteWorldColumnPerformer) DoAction(request actionresponse.Outcome, in
 		URL:    ur,
 	}
 
-	httpReq = httpReq.WithContext(context.WithValue(context.Background(), "user", sessionUser))
+	httpReq = httpReq.WithContext(context.WithValue(sourceRequest.Context(), "user", sessionUser))
 	req := &api2go.Request{
 		PlainRequest: httpReq,
 	}
@@ -71,13 +82,16 @@ func (d *deleteWorldColumnPerformer) DoAction(request actionresponse.Outcome, in
 	tableSchema.Columns = newColumns
 
 	schemaJson, err = json.Marshal(tableSchema)
-
-	_, err = transaction.Exec("alter table " + tableSchema.TableName + " drop column " + columnToDelete)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
 
-	updateObj := api2go.NewApi2GoModelWithData(tableSchema.TableName, nil, 0, nil, tableData)
+	_, err = transaction.ExecContext(sourceRequest.Context(), "alter table "+tableSchema.TableName+" drop column "+columnToDelete)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+
+	updateObj := api2go.NewApi2GoModelWithData("world", nil, 0, nil, tableData)
 	updateObj.SetAttributes(map[string]interface{}{
 		"world_schema_json": schemaJson,
 	})

@@ -129,6 +129,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 			})
 			return
 		}
+		defer transaction.Rollback()
 
 		responses, err := actionCrudResource.HandleActionRequest(actionRequest, req, transaction)
 		if err != nil {
