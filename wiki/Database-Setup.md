@@ -160,17 +160,25 @@ it with authenticated resource and relationship reads.
 
 ## Connection Pool
 
-Daptin manages connection pooling automatically.
+Daptin manages connection pooling automatically. Pool settings are read when
+the process starts; restart Daptin after changing them.
 
 ### Pool Settings
 
 Configure via environment:
 
 ```bash
-DAPTIN_DB_MAX_OPEN_CONNECTIONS=100
-DAPTIN_DB_MAX_IDLE_CONNECTIONS=10
-DAPTIN_DB_CONNECTION_MAX_LIFETIME=3600
+export DAPTIN_MAX_OPEN_CONNECTIONS=100
+export DAPTIN_MAX_IDLE_CONNECTIONS=10
+export DAPTIN_MAX_CONNECTIONS_LIFETIME=60  # minutes
+export DAPTIN_MAX_IDLE_CONNECTIONS_TIME=1  # minutes
 ```
+
+Defaults are 50 open connections, 10 idle connections, and one minute each for
+maximum connection lifetime and idle time. SQLite always uses one maximum open
+connection. The `db` section of `/statistics` reports the pool's live counts
+and maximum open connections. The backend setting `limit.max_connections`
+controls concurrent HTTP requests, not database connections.
 
 ## Database Migrations
 

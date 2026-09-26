@@ -335,10 +335,12 @@ See: [[Database-Setup]] for backup commands
 
 ```bash
 # Set based on expected concurrency
-export DAPTIN_DB_MAX_OPEN_CONNECTIONS=100
-export DAPTIN_DB_MAX_IDLE_CONNECTIONS=10
-export DAPTIN_DB_CONNECTION_MAX_LIFETIME=3600  # seconds
+export DAPTIN_MAX_OPEN_CONNECTIONS=100
+export DAPTIN_MAX_IDLE_CONNECTIONS=10
+export DAPTIN_MAX_CONNECTIONS_LIFETIME=60  # minutes
 ```
+
+See [[Database-Setup#connection-pool]] for pool defaults and idle-time settings.
 
 #### Enable Caching
 
@@ -436,7 +438,7 @@ services:
     environment:
       DAPTIN_DB_TYPE: postgres
       DAPTIN_DB_CONNECTION_STRING: "host=postgres port=5432 user=daptin password_file=/run/secrets/db_password dbname=daptin sslmode=require"
-      DAPTIN_DB_MAX_OPEN_CONNECTIONS: 100
+      DAPTIN_MAX_OPEN_CONNECTIONS: 100
       DAPTIN_LOG_LOCATION: /var/log/daptin/daptin.log
       DAPTIN_LOG_LEVEL: info
       TZ: UTC
@@ -561,7 +563,7 @@ curl http://localhost:6336/statistics | jq '.'
 psql daptin -c "SELECT query, calls, total_time, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;"
 
 # Connection pool exhausted
-# Increase DAPTIN_DB_MAX_OPEN_CONNECTIONS
+# Increase DAPTIN_MAX_OPEN_CONNECTIONS and restart Daptin
 ```
 
 ---

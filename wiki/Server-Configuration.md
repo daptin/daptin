@@ -230,12 +230,13 @@ Process restarts are managed externally through Kubernetes, Docker, systemd, or 
 - New schema files (`schema_*.json`, `schema_*.yaml`, or `schema_*.yml`)
 - Port changes
 - Database connection changes
+- Database pool environment variables (see [[Database-Setup#connection-pool]])
+- `limit.max_connections` (maximum concurrent HTTP requests across this server process)
 - HTTP header and idle timeout changes (`http.read_header_timeout_seconds`, `http.idle_timeout_seconds`)
 
 ### Takes Effect Immediately
 
 - `jwt.token.life.hours` - New tokens use new value
-- `limit.max_connections` - Connection limit
 - `gzip.enable` - Compression
 - Custom config values you create
 
