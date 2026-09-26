@@ -103,18 +103,13 @@ curl -X POST http://localhost:6336/action/world/export_csv_data \
 
 Import data from files into a table.
 
-> **Known broken/contradictory in v0.13.14:** an import returned HTTP 200 with
-> the same table in both successful and failed lists and imported zero rows
-> when a required standard `version` value was absent. The response
-> envelope does not currently provide reliable transaction or partial-success
-> semantics. Do not use `import_data` for production restore/migration. Verify
-> row counts and required standard columns through the normal resource API and
-> keep the source file until independently reconciled.
+> The import summary counts failed row inserts under `failed_tables` and can
+> count a table as successful even when some of its rows failed. Check
+> `rows_imported` and read back the imported records before relying on the result.
 
 **Action**: `import_data`
 **OnType**: `world`
-**Declared shape**: instance action requiring the table's `world` reference ID.
-The action remains affected by the limitation above.
+**Instance action**: requires the table's `world` reference ID.
 
 ```bash
 # First get the table's reference_id from the world table
@@ -170,7 +165,7 @@ default, maximum, and HTTP 413 behavior.
 - HTML (`.html`) - table extraction
 - Word (`.docx`) - table extraction
 
-**Intended response (not a reliable v0.13.14 completion signal)**:
+**Example response**:
 ```json
 [
   {
