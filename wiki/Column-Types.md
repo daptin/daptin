@@ -84,7 +84,7 @@ Start here if you're unsure which type to use:
 |------------|----------|-------------|
 | `email` | varchar(200) | Email address |
 | `url` | varchar(500) | Web URL |
-| `image` | blob | Binary image asset column; file type is not checked |
+| `image` | blob | Image extension and matching declared MIME type required |
 | `id` | varchar(40) | UUID reference |
 | `alias` | varchar(200) | URL-safe slug |
 
@@ -116,7 +116,9 @@ Start here if you're unsure which type to use:
 | `file.csv|xls|xlsx` | text | File column with spreadsheet-related suffixes |
 | `file.pdf` | text | File column with a `pdf` suffix |
 
-These suffixes do not validate uploaded filenames, MIME types, or file contents.
+These suffixes restrict uploaded filenames and require a declared MIME type.
+Daptin checks the MIME type against known extensions but does not inspect file
+contents to verify their format. See [Asset Columns](Asset-Columns.md).
 
 File columns support:
 - Base64 encoding

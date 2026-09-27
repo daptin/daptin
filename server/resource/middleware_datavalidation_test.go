@@ -103,3 +103,49 @@ func TestDataValidationMiddlewareRejectsMissingRequiredFieldOnlyOnCreate(t *test
 		t.Fatalf("partial update rejected omitted required field: %v", err)
 	}
 }
+
+func TestDataValidationMiddlewareAssetTypes(t *testing.T) {
+	config := &CmsConfig{Tables: []table_info.TableInfo{{
+		TableName: "asset_probe",
+		Columns: []api2go.ColumnInfo{
+			{ColumnName: "photo", ColumnType: "image"},
+			{ColumnName: "document", ColumnType: "file.pdf"},
+			{ColumnName: "collaborative", ColumnType: "file.md|txt"},
+		},
+	}}}
+	middleware := NewDataValidationMiddleware(config, nil)
+	crud := &DbResource{model: api2go.NewApi2GoModel("asset_probe", nil, 0, nil)}
+	request := &api2go.Request{PlainRequest: &http.Request{Method: http.MethodPost}}
+
+	for _, test := range []struct {
+		name  string
+		value interface{}
+		bad   bool
+	}{
+		{"image", []interface{}{map[string]interface{}{"name": "photo.png", "type": "image/png", "file": "data:image/png;base64,AA=="}}, false},
+		{"wrong extension", []interface{}{map[string]interface{}{"name": "photo.txt", "type": "text/plain"}}, true},
+		{"wrong MIME", []interface{}{map[string]interface{}{"name": "photo.png", "type": "text/plain"}}, true},
+		{"conflicting data URL", []interface{}{map[string]interface{}{"name": "photo.png", "type": "image/png", "file": "data:text/plain;base64,AA=="}}, true},
+		{"inline binary", "AA==", false},
+		{"missing metadata", []interface{}{map[string]interface{}{"name": "photo.png", "file": "AA=="}}, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := middleware.InterceptBefore(crud, request, []map[string]interface{}{{"photo": test.value}}, nil)
+			if (err != nil) != test.bad {
+				t.Fatalf("error = %v, want rejection %v", err, test.bad)
+			}
+		})
+	}
+	_, err := middleware.InterceptBefore(crud, request, []map[string]interface{}{{"document": `[{"name":"brief.pdf","type":"application/pdf"}]`}}, nil)
+	if err != nil {
+		t.Fatalf("PDF rejected: %v", err)
+	}
+	_, err = middleware.InterceptBefore(crud, request, []map[string]interface{}{{
+		"collaborative": []interface{}{map[string]interface{}{
+			"name": "collaborative.yjs", "type": YjsStateMediaType, "contents": "AA==",
+		}},
+	}}, nil)
+	if err != nil {
+		t.Fatalf("internal YJS state rejected: %v", err)
+	}
+}

@@ -49,6 +49,13 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 		//log.Printf("We have %d objects to validate", len(objects))
 
 		for i, obj := range objects {
+			for _, column := range dvm.tableInfoMap[dr.model.GetName()].Columns {
+				if value, ok := obj[column.ColumnName]; ok {
+					if err := validateAssetColumnValue(strings.ToLower(column.ColumnType), value); err != nil {
+						return nil, api2go.NewHTTPError(err, fmt.Sprintf("invalid asset for %s: %v", column.ColumnName, err), 400)
+					}
+				}
+			}
 			for _, conformation := range conformations {
 				colValue, ok := obj[conformation.ColumnName]
 				if !ok {

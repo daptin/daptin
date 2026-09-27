@@ -154,6 +154,10 @@ func AssetUploadHandler(cruds map[string]*resource.DbResource) func(c *gin.Conte
 			if fileType == "" {
 				fileType = "application/octet-stream"
 			}
+			if err := resource.ValidateAssetType(colInfo.ColumnType, fileName, fileType, ""); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 			size, err := writeAsset(c, fileName, reader, assetCache)
 			if err != nil {
 				log.Errorf("asset upload failed: %v", err)
@@ -221,6 +225,11 @@ func handleUploadInit(c *gin.Context, cruds map[string]*resource.DbResource, typ
 	fileType := c.GetHeader("X-File-Type")
 	if fileType == "" {
 		fileType = "application/octet-stream"
+	}
+	column, _ := cruds[typeName].TableInfo().GetColumnByName(columnName)
+	if err := resource.ValidateAssetType(column.ColumnType, fileName, fileType, ""); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	// Generate upload ID

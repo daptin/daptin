@@ -21,8 +21,18 @@ Daptin supports two ways to store files:
 | `blob` | Binary data | Inline base64 |
 
 **Note:** For large files, use Cloud Storage instead of inline storage.
-Asset column types do not validate the uploaded file's extension, declared MIME
-type, or contents.
+`image`, `video`, and restricted `file.<extension>` columns require a filename
+and declared MIME type. Daptin checks the allowed extension and compares its
+MIME type when the server knows that extension's MIME mapping, before storing
+a resource or accepting a direct upload. Image and video extensions require a
+known matching media MIME type.
+If a file object uses a data URL, its MIME type must also agree. A mismatch or
+missing metadata returns HTTP 400. Plain `file` and `file.*` columns are
+unrestricted. These checks use metadata; they do not verify the file's bytes.
+Presigned uploads check metadata when the upload is initialized; completing the
+upload does not inspect the stored object to confirm its format.
+Inline binary values have no file metadata and keep their existing behavior;
+these checks apply to file-object arrays and direct uploads.
 
 ## Defining Asset Columns
 
@@ -49,7 +59,7 @@ Asset columns expect an **array of file objects**, each containing:
 |-------|----------|-------------|
 | `name` | Yes | Filename with extension |
 | `file` | Yes | Data URL: `data:mimetype;base64,CONTENT` |
-| `type` | Optional | MIME type (e.g., `image/png`) |
+| `type` | For restricted columns | MIME type (e.g., `image/png`) |
 
 ### Upload Example
 
@@ -250,7 +260,7 @@ Example with `root_path="/tmp/storage"` and `KeyName="photo"`:
 | `name` | Yes | Filename with extension (e.g., `"image.png"`) |
 | `file` | Yes | Data URL containing base64 content: `data:mimetype;base64,CONTENT` |
 | `contents` | Alt | Alternative to `file` - just the base64 content without data URL prefix |
-| `type` | No | MIME type (e.g., `"image/png"`). Optional but recommended. |
+| `type` | For restricted columns | MIME type (e.g., `"image/png"`). |
 | `path` | No | Subdirectory within cloud storage. Allows organizing files in folders. |
 
 #### Output Fields (in API response)
@@ -265,7 +275,7 @@ Example with `root_path="/tmp/storage"` and `KeyName="photo"`:
 | `src` | Same as `name` - used by frontend for display |
 
 **Note:** The `file`/`contents` fields are **removed** from the stored data. Only metadata is kept in the database.
-Malformed base64 is rejected with HTTP 400; it does not create an asset. A valid empty payload creates a zero-byte file. MIME metadata is optional, both in the data URL and in the separate `type` field.
+Malformed base64 is rejected with HTTP 400; it does not create an asset. A valid empty payload creates a zero-byte file. MIME metadata is optional for unrestricted `file` columns. Restricted columns require a separate `type` field; if a data URL supplies a MIME type, it must match.
 
 ### Upload Example
 

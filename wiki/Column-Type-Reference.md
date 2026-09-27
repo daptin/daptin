@@ -564,8 +564,8 @@ Columns:
 
 ### image
 
-Binary storage for image assets. The column type does not verify that the
-uploaded file is an image.
+Binary storage for image assets. Filenames must have an image extension and a
+matching declared `image/*` MIME type. File bytes are not inspected.
 
 | Property | Value |
 |----------|-------|
@@ -581,8 +581,8 @@ Columns:
 
 ### video
 
-Binary storage for video assets. The column type does not verify that the
-uploaded file is a video.
+Binary storage for video assets. Filenames must have a video extension and a
+matching declared `video/*` MIME type. File bytes are not inspected.
 
 | Property | Value |
 |----------|-------|
@@ -602,9 +602,11 @@ Gzip compressed data.
 
 ## File Type Patterns
 
-File column suffixes do not enforce extensions or MIME types on resource writes
-or direct asset uploads. The following are column type examples, not accepted
-file lists:
+File column suffixes restrict filenames on resource writes and direct asset
+uploads. Restricted columns require a declared MIME type, checked against the
+extension when the server knows its MIME mapping; data URL MIME types must
+agree. The file bytes are not inspected.
+The following are column type examples:
 
 | Pattern | Description |
 |---------|-------------|
@@ -613,8 +615,8 @@ file lists:
 | `file.csv` | File column with a `csv` suffix |
 | `file.json\|yaml\|toml` | File column with several suffixes |
 | `file.xls\|xlsx` | File column with spreadsheet suffixes |
-| `image` | Binary image asset column; file type is not checked |
-| `video` | Binary video asset column; file type is not checked |
+| `image` | Accepts known image extensions with matching image MIME types |
+| `video` | Accepts known video extensions with matching video MIME types |
 
 ## Column Properties
 

@@ -61,6 +61,23 @@ Tables:
           DataSource: cloud_store
           Namespace: asset-upload-local-e2e-store
           KeyName: uploaded
+      - Name: photo
+        DataType: text
+        ColumnType: image
+        IsNullable: true
+      - Name: video
+        DataType: text
+        ColumnType: video
+        IsNullable: true
+      - Name: document
+        DataType: text
+        ColumnType: file.pdf
+        IsNullable: true
+        IsForeignKey: true
+        ForeignKeyData:
+          DataSource: cloud_store
+          Namespace: asset-upload-local-e2e-store
+          KeyName: documents
 `
 
 func TestAssetUploadLocalRealE2E(t *testing.T) {
@@ -118,6 +135,40 @@ func TestAssetUploadLocalRealE2E(t *testing.T) {
 		return err == nil && string(content) == "hello"
 	})
 	rowID := accessGroupsE2ECreateRecord(t, client, baseURL, token, "asset_upload_probe", map[string]interface{}{"title": "local asset"})
+	accessGroupsE2ECreateRecord(t, client, baseURL, token, "asset_upload_probe", map[string]interface{}{
+		"title": "valid media",
+		"photo": []map[string]interface{}{{"name": "photo.png", "type": "image/png", "file": "data:image/png;base64,AA=="}},
+		"video": []map[string]interface{}{{"name": "clip.mp4", "type": "video/mp4", "file": "data:video/mp4;base64,AA=="}},
+	})
+	for _, value := range []map[string]interface{}{
+		{"name": "photo.txt", "type": "text/plain", "file": "data:text/plain;base64,AA=="},
+		{"name": "photo.png", "type": "image/png", "file": "data:text/plain;base64,AA=="},
+		{"name": "photo.png", "file": "AA=="},
+	} {
+		accessGroupsE2ERequestJSON(t, client, http.MethodPost, baseURL+"/api/asset_upload_probe", token,
+			accessGroupsE2ERecordPayload("asset_upload_probe", "", map[string]interface{}{"title": "invalid typed asset", "photo": []map[string]interface{}{value}}), http.StatusBadRequest)
+	}
+	accessGroupsE2ERequestJSON(t, client, http.MethodPost, baseURL+"/api/asset_upload_probe", token,
+		accessGroupsE2ERecordPayload("asset_upload_probe", "", map[string]interface{}{
+			"title": "invalid video", "video": []map[string]interface{}{{"name": "clip.txt", "type": "text/plain", "file": "data:text/plain;base64,AA=="}},
+		}), http.StatusBadRequest)
+	accessGroupsE2ERequestJSON(t, client, http.MethodPatch, baseURL+"/api/asset_upload_probe/"+rowID, token,
+		accessGroupsE2ERecordPayload("asset_upload_probe", rowID, map[string]interface{}{"document": []map[string]interface{}{{"name": "bad.txt", "type": "text/plain", "file": "data:text/plain;base64,AA=="}}}), http.StatusBadRequest)
+	documentURL := baseURL + "/asset/asset_upload_probe/" + rowID + "/document"
+	requestAssetE2E(t, client, http.MethodPost, documentURL+"/upload?operation=init&filename=bad.txt", token, nil, "", http.StatusBadRequest)
+	requestAssetE2E(t, client, http.MethodPost, documentURL+"/upload?operation=stream&filename=bad.txt", token,
+		strings.NewReader("bad"), "text/plain", http.StatusBadRequest)
+	requestAssetE2E(t, client, http.MethodPost, documentURL+"/upload?operation=stream&filename=good.pdf", token,
+		strings.NewReader("%PDF-good"), "application/pdf", http.StatusOK)
+	if _, err := os.Stat(filepath.Join(root, "documents", "bad.txt")); !os.IsNotExist(err) {
+		t.Fatalf("rejected typed upload wrote an object: %v", err)
+	}
+	if rows := requestAssetE2E(t, client, http.MethodGet, baseURL+"/api/asset_upload_probe", token, nil, "", http.StatusOK); strings.Contains(string(rows), "invalid typed asset") || strings.Contains(string(rows), "invalid video") || strings.Contains(string(rows), "bad.txt") {
+		t.Fatalf("rejected typed write committed metadata: %s", rows)
+	}
+	if got := requestAssetE2E(t, client, http.MethodGet, documentURL+"?file=good.pdf", token, nil, "", http.StatusOK); string(got) != "%PDF-good" {
+		t.Fatalf("accepted PDF content = %q", got)
+	}
 	invalidUpdate, _ := json.Marshal(map[string]interface{}{"data": map[string]interface{}{
 		"type": "asset_upload_probe", "id": rowID, "attributes": map[string]interface{}{
 			"attachment": []map[string]interface{}{{"name": "invalid.txt", "file": "data:text/plain;base64,@@@not-base64@@@"}},

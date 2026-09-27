@@ -17,8 +17,9 @@ Restart Daptin after changing this startup setting.
 ## Resource-backed collaboration
 
 Declare a `file.` column for a resource-backed room. Suffixes such as
-`file.md|txt` do not enforce uploaded file extensions or select an editor.
-Editor selection belongs to the YJS client.
+`file.md|txt` restrict uploaded files to those extensions and require declared
+MIME types. They do not select an editor; editor selection belongs to the YJS
+client. Daptin's internal YJS state entry is separate from uploaded files.
 
 ```yaml
 Tables:
