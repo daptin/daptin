@@ -115,7 +115,7 @@ Queue DKIM-signed email for direct delivery to each recipient's MX server.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `from` | string | Yes | Sender email address; must match a `mail_account.username` owned by the active account |
+| `from` | string | Yes | Sender email address; must match a configured `mail_account.username` |
 | `to` | array of strings | Yes | Recipient email addresses |
 | `subject` | string | Yes | Email subject line |
 | `body` | string | Yes | Email body (plain text) |
@@ -142,8 +142,7 @@ OutFields:
 
 **Prerequisites:**
 - The sender's mail account must be related to a Daptin mail server
-- Sender address in `from` must exist as a Daptin `mail_account.username` owned by the active account
-- Shared service senders require a trusted action to `SWITCH_USER` to the sender account before `mail.send`
+- Sender address in `from` must exist as a Daptin `mail_account.username`; the action's permission controls who can invoke the workflow
 - See [[SMTP-Server|SMTP Server Guide]] for setup
 - For production DNS, DKIM, and retry behavior, see [[Production-Mail-Delivery]]
 
@@ -153,7 +152,8 @@ from the `from` address. For example, `from: "login@example.com"` signs with
 `example.com` while the related server may be `mail.example.com`.
 
 When the message is queued, Daptin also appends one copy to the sender's
-`Sent` mailbox. Outbox retries do not create additional `Sent` copies.
+`Sent` mailbox under the mail account owner's identity. Outbox retries do not
+create additional `Sent` copies.
 
 ### Multiple Recipients
 

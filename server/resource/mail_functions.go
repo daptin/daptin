@@ -192,32 +192,8 @@ func (dbResource *DbResource) CreateMailAccountBox(mailAccountId string,
 
 }
 
-// ResolveMailSenderAccount returns the mail account selected by the From
-// address after verifying that it belongs to the active Daptin identity.
-func (dbResource *DbResource) ResolveMailSenderAccount(fromAddress string, sessionUser *auth.SessionUser, transaction *sqlx.Tx) (map[string]interface{}, error) {
-	if transaction == nil {
-		return nil, errors.New("mail sender authorization requires a transaction")
-	}
-	if sessionUser == nil || sessionUser.UserReferenceId == daptinid.NullReferenceId {
-		return nil, errors.New("mail sender has no authenticated resource identity")
-	}
-
-	senderAddress, err := normalizedMailAddress(fromAddress)
-	if err != nil {
-		return nil, err
-	}
-	mailAccount, err := dbResource.GetUserMailAccountRowByEmail(senderAddress, transaction)
-	if err != nil {
-		return nil, fmt.Errorf("sender mail account not found [%s]: %w", senderAddress, err)
-	}
-	if daptinid.InterfaceToDIR(mailAccount[USER_ACCOUNT_ID_COLUMN]) != sessionUser.UserReferenceId {
-		return nil, errors.New("authenticated user does not own sender mail account")
-	}
-	return mailAccount, nil
-}
-
-// MailAccountSessionUser resolves the Daptin identity established by a
-// successfully authenticated protocol account.
+// MailAccountSessionUser resolves the persisted owner of a mail account for
+// mail resource writes.
 func (dbResource *DbResource) MailAccountSessionUser(mailAccount map[string]interface{}, transaction *sqlx.Tx) (*auth.SessionUser, error) {
 	userCrud := dbResource.Cruds[USER_ACCOUNT_TABLE_NAME]
 	if userCrud == nil {
@@ -281,7 +257,7 @@ func (dbResource *DbResource) CreateInboundMailWithTransaction(obj interface{}, 
 	return dbResource.createAfterAuthorizationWithTransaction(obj, req, transaction)
 }
 
-func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, sessionUser *auth.SessionUser, messageBytes []byte, transaction *sqlx.Tx) (map[string]interface{}, error) {
+func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, messageBytes []byte, transaction *sqlx.Tx) (map[string]interface{}, error) {
 	if transaction == nil {
 		return nil, errors.New("sent mailbox append requires a transaction")
 	}
@@ -291,7 +267,11 @@ func (dbResource *DbResource) AppendSentMailForSender(fromAddress string, sessio
 		return nil, err
 	}
 
-	mailAccount, err := dbResource.ResolveMailSenderAccount(senderAddress, sessionUser, transaction)
+	mailAccount, err := dbResource.GetUserMailAccountRowByEmail(senderAddress, transaction)
+	if err != nil {
+		return nil, err
+	}
+	sessionUser, err := dbResource.MailAccountSessionUser(mailAccount, transaction)
 	if err != nil {
 		return nil, err
 	}

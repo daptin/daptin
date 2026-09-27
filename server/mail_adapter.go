@@ -294,12 +294,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							if err != nil || authorizedAddress.User != e.MailFrom.User || !strings.EqualFold(authorizedAddress.Host, e.MailFrom.Host) {
 								return nil, errors.New("authenticated SMTP account does not match envelope sender")
 							}
-							authorizedMailAccount, err := dbResource.GetUserMailAccountRowByEmail(authorizedAddress.String(), transaction)
-							if err != nil {
-								return nil, err
-							}
-							sessionUser, err := dbResource.MailAccountSessionUser(authorizedMailAccount, transaction)
-							if err != nil {
+							if _, err := dbResource.GetUserMailAccountRowByEmail(authorizedAddress.String(), transaction); err != nil {
 								return nil, err
 							}
 
@@ -368,7 +363,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							log.Printf("Final Mail: From [%v] to [%v]", e.MailFrom.String(), rcpt.String())
 
 							if !sentCopyAppended {
-								if _, err := dbResource.AppendSentMailForSender(e.MailFrom.String(), sessionUser, mailBytes, transaction); err != nil {
+								if _, err := dbResource.AppendSentMailForSender(e.MailFrom.String(), mailBytes, transaction); err != nil {
 									log.Errorf("Failed to append outbound relay mail to Sent for [%v]: %v", e.MailFrom.String(), err)
 									return nil, err
 								}

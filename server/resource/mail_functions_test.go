@@ -114,7 +114,7 @@ func TestAppendSentMailForSenderCreatesSentMailboxAndMailRow(t *testing.T) {
 	env := newSentMailTestEnv(t, false)
 	tx := env.db.MustBegin()
 
-	_, err := env.root.AppendSentMailForSender("sender@example.test", env.sessionUser, sentMailTestMessage(), tx)
+	_, err := env.root.AppendSentMailForSender("sender@example.test", sentMailTestMessage(), tx)
 	if err != nil {
 		t.Fatalf("AppendSentMailForSender returned error: %v", err)
 	}
@@ -130,14 +130,17 @@ func TestAppendSentMailForSenderCreatesSentMailboxAndMailRow(t *testing.T) {
 		t.Fatalf("sent mailbox count = %d, want 1", sentCount)
 	}
 
-	var uid int64
+	var uid, ownerID int64
 	var seen, recent bool
 	var flags, subject string
-	if err := env.db.QueryRowx(`select uid, seen, recent, flags, subject from mail`).Scan(&uid, &seen, &recent, &flags, &subject); err != nil {
+	if err := env.db.QueryRowx(`select uid, user_account_id, seen, recent, flags, subject from mail`).Scan(&uid, &ownerID, &seen, &recent, &flags, &subject); err != nil {
 		t.Fatalf("select sent mail: %v", err)
 	}
 	if uid != 1 {
 		t.Fatalf("uid = %d, want 1", uid)
+	}
+	if ownerID != 1 {
+		t.Fatalf("Sent copy owner = %d, want sender mail account owner 1", ownerID)
 	}
 	if !seen || recent {
 		t.Fatalf("seen/recent = %v/%v, want true/false", seen, recent)
@@ -154,7 +157,7 @@ func TestAppendSentMailForSenderReusesExistingSentMailbox(t *testing.T) {
 	env := newSentMailTestEnv(t, true)
 	tx := env.db.MustBegin()
 
-	_, err := env.root.AppendSentMailForSender("Sender <sender@example.test>", env.sessionUser, sentMailTestMessage(), tx)
+	_, err := env.root.AppendSentMailForSender("Sender <sender@example.test>", sentMailTestMessage(), tx)
 	if err != nil {
 		t.Fatalf("AppendSentMailForSender returned error: %v", err)
 	}
@@ -185,7 +188,7 @@ func TestAppendSentMailForSenderRequiresSenderMailAccount(t *testing.T) {
 	tx := env.db.MustBegin()
 	defer tx.Rollback()
 
-	if _, err := env.root.AppendSentMailForSender("missing@example.test", env.sessionUser, sentMailTestMessage(), tx); err == nil {
+	if _, err := env.root.AppendSentMailForSender("missing@example.test", sentMailTestMessage(), tx); err == nil {
 		t.Fatalf("expected missing sender account error")
 	}
 
@@ -198,35 +201,9 @@ func TestAppendSentMailForSenderRequiresSenderMailAccount(t *testing.T) {
 	}
 }
 
-func TestAppendSentMailForSenderRejectsDifferentAuthenticatedUser(t *testing.T) {
-	env := newSentMailTestEnv(t, false)
-	tx := env.db.MustBegin()
-	defer tx.Rollback()
-
-	otherUser := &auth.SessionUser{
-		UserId:          2,
-		UserReferenceId: daptinid.DaptinReferenceId(uuid.New()),
-	}
-	if _, err := env.root.AppendSentMailForSender("sender@example.test", otherUser, sentMailTestMessage(), tx); err == nil {
-		t.Fatal("expected cross-account sender authorization to fail")
-	}
-
-	var mailboxCount, mailCount int
-	if err := tx.QueryRowx(`select count(*) from mail_box`).Scan(&mailboxCount); err != nil {
-		t.Fatalf("count mailboxes: %v", err)
-	}
-	if err := tx.QueryRowx(`select count(*) from mail`).Scan(&mailCount); err != nil {
-		t.Fatalf("count mail: %v", err)
-	}
-	if mailboxCount != 0 || mailCount != 0 {
-		t.Fatalf("authorization failure created mailbox/mail rows: %d/%d", mailboxCount, mailCount)
-	}
-}
-
 type sentMailTestEnv struct {
-	db          *sqlx.DB
-	root        *DbResource
-	sessionUser *auth.SessionUser
+	db   *sqlx.DB
+	root *DbResource
 }
 
 func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
@@ -364,14 +341,7 @@ func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
 	}
 
 	root := newSentMailTestCrudGraph(t, db, adminGroupRef)
-	return sentMailTestEnv{
-		db:   db,
-		root: root,
-		sessionUser: &auth.SessionUser{
-			UserId:          1,
-			UserReferenceId: userRef,
-		},
-	}
+	return sentMailTestEnv{db: db, root: root}
 }
 
 func newSentMailTestCrudGraph(t *testing.T, db *sqlx.DB, adminGroupRef daptinid.DaptinReferenceId) *DbResource {
