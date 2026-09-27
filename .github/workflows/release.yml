@@ -84,16 +84,16 @@ jobs:
           wget -q https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
           unzip -q shadcn-admin.zip -d daptinweb
           rm shadcn-admin.zip
-          "$(go env GOPATH)/bin/rice" embed-go
+          (cd cmd/daptin && "$(go env GOPATH)/bin/rice" embed-go)
 
       - name: Cross-compile daptin
         shell: bash
         run: |
           release_ldflags="-linkmode external -s -w $("$(go env GOPATH)/bin/govvv" -flags -version "${RELEASE_TAG}")"
           "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets=linux/amd64,linux/arm64,linux/arm-7 \
-            --tags netgo -ldflags "${release_ldflags}" -dest build .
+            --tags netgo -ldflags "${release_ldflags}" -dest build -pkg cmd/daptin -out daptin .
           "$(go env GOPATH)/bin/xgo" -go 1.25.x -targets=darwin/amd64,darwin/arm64,windows/amd64 \
-            --tags netgo -ldflags "${release_ldflags}" -dest build .
+            --tags netgo -ldflags "${release_ldflags}" -dest build -pkg cmd/daptin -out daptin .
 
       - name: Verify binaries
         run: |
