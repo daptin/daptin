@@ -39,7 +39,7 @@ EXPOSE 8080 5336 5337
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
-    CMD ["curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/ping"]
+    CMD ["curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/ready"]
 
 ENTRYPOINT ["/usr/local/bin/daptin"]
 CMD []

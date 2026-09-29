@@ -453,7 +453,7 @@ services:
       - internal
       - web
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6336/ping"]
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:8080/ready"]
       interval: 30s
       timeout: 5s
       retries: 3
