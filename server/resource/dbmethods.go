@@ -2480,6 +2480,15 @@ func (dbResource *DbResource) DirectInsert(typeName string, data map[string]inte
 					}
 				}
 			}
+		case "truefalse":
+			if text, ok := value.(string); ok {
+				switch text {
+				case "true":
+					value = true
+				case "false":
+					value = false
+				}
+			}
 		}
 		if columnName == "reference_id" {
 			if value == nil {
