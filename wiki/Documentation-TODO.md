@@ -1,8 +1,8 @@
 # Documentation Status
 
-> Historical testing notes below are not current release claims. MariaDB,
-> clustering, health/readiness, and protocol conclusions from January 2026 are
-> superseded by [[Release-v0.13.14-Feature-Status]].
+> Historical testing notes below are not current product claims. For current
+> setup and operating guidance, use [[Installation]], [[Database-Setup]], and
+> [[Production-Deployment]].
 
 Track what's documented and what users still need.
 
@@ -97,7 +97,7 @@ If you find a feature that doesn't work as expected:
 
 | Guide | Status | Notes |
 |-------|--------|-------|
-| Installation | ✅ | THOROUGHLY TESTED 2026-01-27: Build from source (197MB binary), all command flags, SQLite/MySQL/PostgreSQL, Docker (SQLite/persistent/MySQL/PostgreSQL), Docker Compose, environment variables (PORT, LOG_LEVEL, TZ, DB_TYPE, DB_CONNECTION_STRING). Fixed: Docker port mapping (6336:8080 not 6336:6336), persistent storage path (/data not /opt/daptin), health endpoint docs, added image tag requirement (v0.9.82), MySQL 8.0 issues (use MariaDB 10.11) |
+| Installation | ✅ | Historical setup testing covered source builds, SQLite, MariaDB, PostgreSQL, Docker, and Docker Compose. Use [[Installation]] for current commands and image tags. |
 | First Admin Setup | ✅ | In Getting-Started-Guide.md |
 | Create Your First Table | ✅ | In Getting-Started-Guide.md |
 | CRUD Operations | ✅ | Rewritten, removed false claims (transactions, wrong action names) |
@@ -296,7 +296,7 @@ Based on systematic analysis of `server/resource/columns.go`:
 
 | What | When | Key Learnings |
 |------|------|---------------|
-| Installation (comprehensive testing and documentation) | 2026-01-27 | **Docker Port Mapping Critical**: Container listens on 8080 internally, must map `6336:8080` NOT `6336:6336` or API won't be accessible. **Docker Image Tag Required**: No `latest` tag exists, must use `daptin/daptin:v0.9.82` explicitly. **Persistent Storage Path Wrong**: Docs showed `-v /path:/opt/daptin` which overwrites binary and fails. Correct: `-v /path:/data` with `DAPTIN_DB_CONNECTION_STRING=/data/daptin.db`. **MySQL 8.0 Fails**: OOM errors during container init. Use MariaDB 10.11 instead (fully compatible). **All Databases Work**: SQLite, MySQL/MariaDB, PostgreSQL all tested successfully with Docker. **Docker Compose Works**: Tested with corrected port mapping and volume path. **Build from Source**: Binary ~200MB, Go 1.24.3, no errors. **Storage Directory Required**: Must create `./storage/yjs-documents` before first run. **Health Endpoint Misleading**: `/health` returns HTML dashboard not health check - use `/statistics` for monitoring. **Olric Port 5336**: Must be free or fatal "failed to create olric topic" error. **Environment Variables**: DAPTIN_PORT, LOG_LEVEL, TZ, DB_TYPE, DB_CONNECTION_STRING all verified working. |
+| Installation (comprehensive testing and documentation) | 2026-01-27 | Historical observations on container ports, data mounts, database setup, and health checks. Use [[Installation]] and [[Monitoring]] for current commands and endpoints. |
 | Cloud Storage Actions (create_folder, upload_file, move/delete) | 2026-01-27 | **URL Format Critical**: GitHub #166 was about documentation error, not broken code. Actions use `/action/{type}/{action_name}` with `{type}_id` in request attributes. **Async Operations**: create_folder and upload_file execute asynchronously in goroutines. **Bugs Found**: delete_path returns success but doesn't delete; move_path creates directory instead of renaming file. **Testing Confirms Code Works**: All performers execute correctly when called with proper URL format. |
 | CalDAV/CardDAV | 2026-09-21 | Standards-based principal and home-set discovery, separate calendar and address-book resources, REPORT queries, ETags and conditional writes are implemented through Daptin's authenticated resource lifecycle. Data is user-isolated and SQL-backed; local DAV directories are not required. COPY, MOVE, property mutation, scheduling, and sync tokens remain unsupported and are documented explicitly. |
 | FTP Server (site-based file access with FTPS/TLS) | 2026-07-12 | **Conditional Startup**: FTP server starts only when `ftp.enable=true` and at least one site has `ftp_enabled=true`. **Authorization**: Existing site owner, related-usergroup, and administrator permissions control discovery and every file operation. **Containment**: Parent traversal, symlink escape, cross-site rename, and site-root mutation are rejected. **Directory listings**: LIST/NLST return actual authorized entries. **FTPS/TLS**: Automatic using site certificates. **Port**: Default 2121. **Restart Required**: After FTP configuration, site permission, or site-usergroup relationship changes. **Dependencies**: Requires cloud_store → site → ftp_enabled chain. |

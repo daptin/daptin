@@ -23,12 +23,10 @@ curl -X POST http://localhost:6336/action/user_account/signup \
   }'
 ```
 
-> **Production requirement:** do not assume that claiming the first
-> administrator has closed public signup. A v0.13.14 audit observed a second
-> unauthenticated signup succeeding after bootstrap. Explicitly set the
-> `signup` action permission to `2085120`, wait for the authorization cache
-> window, and run the rejection check in [[First-Admin-Setup]]. Create later
-> users through an administrator-controlled resource/action or OAuth flow.
+> **Production requirement:** claiming the first administrator transitions
+> bootstrap permissions and closes public signup. Run the rejection check in
+> [[First-Admin-Setup]] before exposing the service. Create later users through
+> an administrator-controlled resource/action or OAuth flow.
 
 ### Sign In
 

@@ -89,7 +89,7 @@ FROM credential;
 
 Run database inspection only as an operator diagnostic. Credential creation,
 updates, ownership, and relationships must continue through Daptin resources.
-There is no verified online bulk key-rotation workflow in v0.13.14.
+There is no verified online bulk key-rotation workflow.
 
 ---
 

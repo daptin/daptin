@@ -30,8 +30,6 @@ Before using FTP, you must have:
 2. **At least one site with FTP enabled** - See [[Subsites|Subsites]]
 3. **FTP enabled in configuration** - Set `ftp.enable` to `true`
 
-> Security notice: Daptin versions through `0.12.29` do not enforce site authorization in FTP. Keep FTP disabled or network-restricted until upgrading to a release containing the FTP authorization fix.
-
 ## Quick Start
 
 ### Step 1: Enable FTP Server
@@ -172,8 +170,8 @@ curl -X POST http://localhost:6336/_config/backend/ftp.listen_interface \
   --data-binary '0.0.0.0:2121'
 ```
 
-Posting `"0.0.0.0:2121"` as a JSON string stores the quote characters in
-v0.13.14 and can make startup fail with an invalid-port lookup. Restart Daptin
+Posting `"0.0.0.0:2121"` as a JSON string stores the quote characters and
+can make startup fail with an invalid-port lookup. Restart Daptin
 with its process supervisor after changing listener configuration.
 
 ### Site Configuration

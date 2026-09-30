@@ -32,7 +32,7 @@ Daptin supports clustering for:
 
 ## Requirements
 
-1. **Shared Database** — All nodes connect to the same PostgreSQL database; MySQL/MariaDB is not production-safe in v0.13.14
+1. **Shared Database** — All nodes connect to the same database; the documented cluster setup uses PostgreSQL
 2. **Load Balancer** — Distribute HTTP traffic across nodes
 3. **Shared Storage** — For file assets (use cloud storage)
 4. **Network** — Olric ports (olric_port and olric_port+1 for membership) must be reachable between all nodes

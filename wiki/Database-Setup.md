@@ -10,9 +10,6 @@ Supported databases and configuration.
 | MySQL/MariaDB | mysql | MariaDB 10.11 clean initialization and restart verified |
 | PostgreSQL 15 | postgres | Verified for persistence and two-node shared-database use |
 
-The published v0.13.14 release predates the MariaDB schema corrections. See
-[[Release-v0.13.14-Feature-Status]] when operating that release.
-
 ## SQLite (Default)
 
 No configuration needed. Creates `daptin.db` in working directory.
@@ -84,9 +81,8 @@ innodb_buffer_pool_size=1G
 
 ## PostgreSQL
 
-PostgreSQL 15 is the production database path validated for v0.13.14. The
-audit covered restart persistence, database stop/recovery, two Daptin nodes
-sharing one database, and a 50-concurrent-create smoke test.
+PostgreSQL 15 was validated for restart persistence, database stop/recovery,
+two Daptin nodes sharing one database, and a 50-concurrent-create smoke test.
 
 ### Connection String
 

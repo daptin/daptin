@@ -25,7 +25,7 @@ Creates a foreign key column on the **Subject** table pointing to the **Object**
 
 For `belongs_to`, set only `ObjectName` when you need a custom foreign-key
 column and omit `SubjectName`. Supplying names for both sides can be interpreted
-as a second required column in v0.13.14. For example, the definition below
+as a second required column. For example, the definition below
 creates exactly `post.author_id`; it must not create a `reviews` or other
 reverse-name column.
 

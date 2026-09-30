@@ -27,9 +27,8 @@ curl http://localhost:6336/ready
 
 `/ready` checks the runtime gate and database connectivity and returns HTTP 503
 while starting, draining, or unable to ping the database. Load balancers and
-Kubernetes readiness probes should use it, but v0.13.14 does **not** include
-required-schema/migration success in this check. It returned 200 on an observed
-MariaDB instance that lacked required built-in tables. Gate first rollout on a
+Kubernetes readiness probes should use it, but it does **not** include
+required-schema/migration success in this check. Gate first rollout on a
 separate schema/resource preflight; `/ready` alone is insufficient.
 
 ### /health - Admin Dashboard
@@ -173,19 +172,11 @@ is absent.
 
 ## Meta Endpoint
 
-**Status:** ⚠️ Currently returns empty response
-
 ```bash
-curl http://localhost:6336/meta
+curl 'http://localhost:6336/meta?query=column_types'
 ```
 
-**Response:**
-- HTTP 200 OK
-- Empty body
-
-**Purpose:** Intended to return API metadata and schema information for all entities.
-
-**Current Status:** May require specific schema setup or is partially implemented. For entity information, use `/api/world` instead.
+Returns the available column types. Plain `/meta` returns HTTP 200 with an empty body. Use `/api/world` for entity definitions and `/openapi.yaml` for the generated API specification.
 
 ## OpenAPI Documentation
 

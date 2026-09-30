@@ -180,7 +180,7 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
 - Valid DNS pointing to server
 - Email for Let's Encrypt notifications
 - Existing `certificate` row whose hostname is the requested DNS name
-- Awareness that v0.13.14 has no staging/custom ACME directory
+- Awareness that the ACME action uses Let's Encrypt's production directory
 
 ## download_certificate
 

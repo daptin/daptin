@@ -49,7 +49,7 @@ curl -X POST http://localhost:6336/action/cloud_store/delete_path \
   --data-binary '{"attributes":{"cloud_store_id":"CLOUD_STORE_REFERENCE_ID","path":"/uploads/old-file.pdf"}}'
 ```
 
-The response is a queue/dispatch acknowledgement in v0.13.14. Verify that the
+The response is a queue/dispatch acknowledgement. Verify that the
 object is absent.
 
 ### create_folder
@@ -105,8 +105,8 @@ curl -X POST http://localhost:6336/action/site/sync_site_storage \
   --data-binary '{"attributes":{"site_id":"SITE_REFERENCE_ID"}}'
 ```
 
-In v0.13.14 site sync copies the backing store to the site's temporary local
-directory. It does not persist FTP edits back to the store; see [[FTP-Server]].
+Site sync copies the backing store into the site's local cache. FTP edits use
+the configured backing store; see [[FTP-Server]].
 
 ## Credential configuration
 

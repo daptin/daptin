@@ -113,7 +113,7 @@ AES256:iv:ciphertext:tag
 
 ## Key Rotation
 
-v0.13.14 does not provide a verified online bulk re-encryption action. Do not
+Daptin does not provide a verified online bulk re-encryption action. Do not
 change the encryption secret in place: existing encrypted credentials, private
 keys, OTP secrets, and encrypted columns may become unreadable.
 

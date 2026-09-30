@@ -19,7 +19,6 @@ stack as a sidecar for the backend features you are missing.
 - **[[Getting-Started-Guide]]** — one localhost-to-authenticated-API path
 - **[[Installation]]** — containers, binaries, databases, and storage
 - **[[Production-Deployment]]** — move the local setup onto durable infrastructure
-- **[[Release-v0.13.14-Feature-Status]]** — verified, experimental, known-broken, and unexercised release behavior
 
 ### Building Apps And Filling Backend Gaps
 
@@ -57,7 +56,7 @@ stack as a sidecar for the backend features you are missing.
 - Schema-defined entities with standard columns, relations, validations, and metadata.
 - JSON:API CRUD under `/api/{entity}`.
 - Optional GraphQL under `/graphql`.
-- OpenAPI and metadata through `/openapi.yaml`, `/meta`, and `/jsmodel/{typename}`.
+- Entity definitions through `/api/world`, OpenAPI through `/openapi.yaml`, and column types through `/meta?query=column_types`.
 - Filtering, pagination, aggregation, import, export, and generated data.
 
 ### Identity And Permissions
@@ -88,7 +87,6 @@ stack as a sidecar for the backend features you are missing.
 
 ### LLM, Integrations, And Product Runtime
 
-- The normalized LLM gateway described here is available from Daptin `v0.13.0`.
 - OpenAI-compatible `/v1` endpoints for chat, stateless Responses, embeddings,
   image generation, and model discovery.
 - Priority/weighted and fallback routing through `llm_provider`, `llm_model`,
@@ -109,8 +107,8 @@ stack as a sidecar for the backend features you are missing.
 
 Before deploying production apps:
 
-- Use PostgreSQL 15 for v0.13.14 production deployments. MySQL/MariaDB fresh
-  initialization is known broken in this release.
+- Use a validated production database and verify the schema and resource routes
+  after initialization.
 - Set stable JWT and encryption secrets.
 - Enable HTTPS/TLS.
 - Configure backups and restore tests.
@@ -119,8 +117,7 @@ Before deploying production apps:
 - Configure monitoring, metering, rate limits, and audit behavior.
 
 See **[[Production-Deployment]]**, **[[Database-Setup]]**, and
-**[[TLS-Certificates]]**. Read **[[Release-v0.13.14-Feature-Status]]** before
-making a production claim. For outbound email, see
+**[[TLS-Certificates]]**. For outbound email, see
 **[[Production-Mail-Delivery]]**.
 
 ## Documentation Sections

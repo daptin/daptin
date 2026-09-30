@@ -4,7 +4,7 @@
 
 Secure your Daptin instance with TLS/SSL certificates. Supports both self-signed certificates (development) and ACME/Let's Encrypt certificates (production).
 
-> **v0.13.14 ACME limitation:** Daptin hardcodes Let's Encrypt's production
+> **ACME limitation:** Daptin hardcodes Let's Encrypt's production
 > directory. There is no supported staging or custom ACME directory for Pebble,
 > step-ca, or another CA. Each attempt can therefore consume production rate
 > limits. Use the self-signed flow for local verification, and invoke ACME only

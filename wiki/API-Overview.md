@@ -132,20 +132,20 @@ curl http://localhost:6336/api/todo \
 
 | Endpoint | Description |
 |----------|-------------|
-| `/api/world` | List all entities |
+| `/api/world` | List entity definitions visible to the caller |
 | `/api/action` | List all actions |
-| `/meta` | API metadata |
+| `/meta?query=column_types` | Available column types |
 | `/openapi.yaml` | OpenAPI specification |
 | `/health` | Health check |
 | `/statistics` | System statistics |
 
-## Meta Endpoint
+## Column Types
 
 ```bash
-curl http://localhost:6336/meta
+curl 'http://localhost:6336/meta?query=column_types'
 ```
 
-Returns schema information for all entities.
+Returns the available column types. Use `/api/world` for entity definitions.
 
 ## OpenAPI Documentation
 

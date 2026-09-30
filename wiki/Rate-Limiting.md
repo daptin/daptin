@@ -1,6 +1,6 @@
 # Rate Limiting
 
-Daptin v0.13.14 has two independent request-limiting mechanisms:
+Daptin has two independent request-limiting mechanisms:
 
 1. A global fixed-window limiter keyed by client IP and route.
 2. Plan limits enforced by the API metering service for the active account,

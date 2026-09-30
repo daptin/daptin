@@ -20,8 +20,7 @@ On a fresh install, the system is **wide open** - anyone can do anything. This l
 ### After Admin Setup
 
 Once an admin exists:
-- Bootstrap permissions are transitioned, but v0.13.14 operators must
-  explicitly remove guest execute from `signup` and verify rejection
+- Bootstrap permissions are transitioned; verify that guest signup is rejected
 - Guests can only view public data
 - Only admins can create new users
 

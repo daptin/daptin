@@ -5,14 +5,11 @@
 
 This page documents actual errors encountered during testing with verified solutions.
 
-## Unique constraint returns a raw HTTP 500
+## Unique constraint violation
 
-In v0.13.14 a duplicate value for an `IsUnique` column can produce HTTP 500
-with a SQLite, PostgreSQL, or MariaDB error string. Do not depend on that text:
-it varies by backend and may reveal schema details. The intended future
-contract is a backend-neutral client error such as 409 or 422. Until fixed,
-validate known uniqueness requirements before submission where practical,
-handle 500 generically, and do not expose its body to untrusted clients.
+A duplicate value for an `IsUnique` column returns a backend-neutral conflict
+error. Handle the HTTP status and error title rather than matching
+database-specific text.
 
 ---
 

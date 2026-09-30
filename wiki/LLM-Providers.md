@@ -1,11 +1,10 @@
 # LLM Gateway
 
-> **Availability:** This guide describes the normalized LLM gateway introduced
-> in Daptin `v0.13.0`. Use that release or a newer pinned image. The gateway is
-> configured with `llm_provider`, `llm_model`, and `llm_deployment` resources;
+> **Configuration:** The gateway uses `llm_provider`, `llm_model`, and
+> `llm_deployment` resources;
 > provider rows alone do not expose models.
 > Responses file inputs can be enabled with the `files` model capability in
-> Daptin `v0.13.7` and newer.
+> `llm_model`.
 
 Daptin exposes one OpenAI-compatible gateway backed by the reusable
 `github.com/daptin/llmgateway` engine. HTTP requests and the built-in LLM
@@ -26,7 +25,7 @@ fingerprint polling as recovery; a server restart is not required.
 
 ## Supported provider adapters
 
-The initial `v0.13.0` release uses the strict OpenAI-compatible adapter.
+The gateway uses the strict OpenAI-compatible adapter.
 
 | `provider_type` | Default base URL |
 |---|---|
@@ -82,7 +81,7 @@ Link a credential containing a non-empty placeholder API key, for example
 model name to one already pulled by Ollama.
 
 > **Compatibility caveat:** OpenAI-compatible does not mean every request
-> field has identical semantics. In the v0.13.14 audit, `max_tokens: 32` was
+> field has identical semantics. In the audit, `max_tokens: 32` was
 > accepted but Ollama reported 124 output tokens. Treat adapter fields not
 > explicitly verified by the upstream as unsupported/ignored, and test limits
 > using the returned usage before relying on them for cost or safety. Durable

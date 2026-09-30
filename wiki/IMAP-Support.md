@@ -386,7 +386,7 @@ IMAP requires a valid TLS certificate for the hostname:
 Create a `certificate` row for `imap.example.com`, then invoke
 `POST /action/certificate/generate_acme_certificate` with that row's public
 reference ID as `certificate_id`. See [[Certificate-Actions]] for the complete
-request and the v0.13.14 production-only ACME limitation.
+request and the production-only ACME limitation.
 
 ## Troubleshooting
 

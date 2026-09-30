@@ -6,10 +6,8 @@
 **Status:** Historical audit; superseded for release claims
 
 > This 2026-01 report is preserved as history. Its conclusion that all critical
-> issues were resolved is superseded by the 2026-09-16 v0.13.14 runtime audit,
-> which found schema-initialization, signup, FTP durability, false-success,
-> audit-read, and protocol defects. Use
-> [[Release-v0.13.14-Feature-Status]] for current release status.
+> issues were resolved does not describe current behavior. Use current feature
+> and operations guides for supported workflows and limitations.
 
 ---
 

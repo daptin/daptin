@@ -111,11 +111,12 @@ the same resources and actions.
 Useful discovery endpoints:
 
 ```text
-GET /openapi.yaml       OpenAPI description
-GET /meta               Runtime metadata
-GET /jsmodel/{typename} Generated JavaScript model
-GET /statistics         Operational statistics
-GET /ping               Lightweight liveness response
+GET /openapi.yaml             OpenAPI description
+GET /api/world                Entity definitions visible to the caller
+GET /meta?query=column_types  Available column types
+GET /jsmodel/{typename}       Generated JavaScript model
+GET /statistics               Operational statistics
+GET /ping                     Lightweight liveness response
 ```
 
 ## 4. Add your first application resource
@@ -179,7 +180,7 @@ TLS, backups, monitoring, and only the protocols the application needs. The
 
 ## If something fails
 
-v0.13.14 can log a recovered duplicate route registration involving the
+Daptin can log a recovered duplicate route registration involving the
 `llm_file` relationship and `llm_batch_id` during restart. A recovered panic is
 not a successful route check. Inspect the routes/resources needed by your
 application and fail deployment if one is absent; the duplicate registration

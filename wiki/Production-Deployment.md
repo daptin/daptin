@@ -27,13 +27,11 @@ export DAPTIN_DB_CONNECTION_STRING="host=localhost port=5432 user=daptin passwor
 ./daptin
 ```
 
-#### MySQL/MariaDB in v0.13.14
+#### MySQL/MariaDB
 
-Do not select MySQL/MariaDB for a v0.13.14 production deployment. MariaDB
-10.11 was observed accepting startup while required tables were absent because
-of over-sized `document` columns and relationship identifiers. `/ready` still
-returned 200. PostgreSQL 15 is the validated production path; see
-[[Database-Setup]] and [[Release-v0.13.14-Feature-Status]].
+MariaDB 10.11 clean initialization and restart were exercised. Validate all
+required application tables and relationship routes before routing traffic:
+`/ready` does not prove schema completeness. See [[Database-Setup]].
 
 **Why?** SQLite is single-file, not suitable for high-traffic or multi-server deployments.
 
@@ -219,7 +217,7 @@ Use `/ready` for load-balancer and Kubernetes readiness checks. It returns HTTP 
 
 #### Statistics Monitoring
 
-`/statistics` is unauthenticated in the v0.13.14 default and exposes host,
+`/statistics` is unauthenticated by default and exposes host,
 process, disk, CPU, web, and database-pool details. Put it on a private
 monitoring route or require authentication at the ingress before using it.
 
@@ -507,7 +505,7 @@ See: [[Installation]] for Kubernetes manifests
 
 After deployment, verify:
 
-- [ ] Database is PostgreSQL 15 (MySQL/MariaDB v0.13.14 initialization is not production-safe)
+- [ ] The selected database passed initialization, restart, and schema/resource checks
 - [ ] HTTPS is enabled and working
 - [ ] Health check (`/ping`) returns "pong"
 - [ ] Monitoring is configured
@@ -622,6 +620,3 @@ If compromised:
 - **Security Issues:** security@daptin.org (if available)
 
 ---
-
-**Last Updated:** 2026-01-26
-**Tested With:** Daptin v0.9.7

@@ -1,7 +1,7 @@
 # API Metering Technical KT
 
-This page describes the metering implementation introduced with Daptin
-`v0.13.0`. For operator setup, see [[API-Metering]].
+This page describes the metering implementation. For operator setup, see
+[[API-Metering]].
 
 ## Ownership and files
 

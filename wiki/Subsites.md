@@ -14,11 +14,9 @@ Daptin subsites allow you to:
 - Compress eligible responses with GZIP by default
 - Enable FTP access for file management (optional)
 
-> **FTP durability limitation (v0.13.14):** site sync is one-way from the
-> configured cloud store to a temporary local directory. FTP/FTPS edits are
-> made only in that directory and can be overwritten by a sync or lost on
-> restart. Upload durable site content through the backing store, then sync it
-> into Daptin. See [[FTP-Server]].
+> FTP/FTPS edits use the site's configured cloud store. A successful upload
+> persists through that store; a rejected write returns an FTP error. See
+> [[FTP-Server]].
 
 ## Quick Start
 

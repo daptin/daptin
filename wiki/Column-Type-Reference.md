@@ -14,8 +14,8 @@ Column types define data storage, validation, and GraphQL type mapping. Each typ
 - **Validations**: Automatic validation rules
 - **Conformations**: Automatic data transformations
 
-The table below describes the intended registry mapping. In v0.13.14, a live
-`float` field was observed as GraphQL `Int`; introspect and test the generated
+The table below describes the intended registry mapping. A live `float` field
+was observed as GraphQL `Int`; introspect and test the generated
 field before sending decimals. This is a known defect, not a supported
 conversion of fractional values to integers.
 

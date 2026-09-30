@@ -14,7 +14,7 @@ Most endpoints require JWT authentication:
 -H "Authorization: Bearer $TOKEN"
 ```
 
-## Error contract and v0.13.14 limitation
+## Error contract
 
 Clients should consume JSON:API-style errors by HTTP status and stable
 application code, not by database text. The intended categories are validation
@@ -22,13 +22,11 @@ application code, not by database text. The intended categories are validation
 (409/422), quota (402/429), dependency unavailable (502/503), and internal
 failure (500), with a correlation/request ID suitable for log lookup.
 
-v0.13.14 does not consistently meet that contract. Unique violations can
-return HTTP 500 containing raw SQLite/PostgreSQL/MariaDB messages, and some
-actions return HTTP 200 for queued, partial, or later-failed work. Treat these
-as known defects: do not parse or expose backend strings, inspect action
-response/durable execution state, and verify external side effects. Individual
-action pages state whether their response means queued, attempted, or
-completed.
+Database uniqueness violations return a backend-neutral client error. Some
+actions return HTTP 200 for queued or asynchronous work; inspect the action
+response and durable execution state, and verify external side effects.
+Individual action pages state whether their response means queued, attempted,
+or completed.
 
 ## JSON:API Endpoints
 
@@ -454,13 +452,21 @@ POST /track/event/{entity}/{object_state_id}/{event_name}
 
 ## Metadata Endpoints
 
-### Get Schema Metadata
+### Get Entity Definitions
 
 ```
-GET /meta
+GET /api/world
 ```
 
-Returns all table definitions and relationships.
+Returns entity definitions visible to the caller.
+
+### Get Column Types
+
+```
+GET /meta?query=column_types
+```
+
+Returns the available column types. A request to `/meta` without this query returns an empty body.
 
 ### Get OpenAPI Specification
 

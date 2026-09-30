@@ -155,7 +155,7 @@ Relations:
 ```
 
 For `belongs_to`, omit `SubjectName`; defining both naming sides can create an
-unwanted required column in v0.13.14. Both names are meaningful for join-table
+unwanted required column. Both names are meaningful for join-table
 relations. See [[Relationships]].
 
 See [[Relationships|Relationships]] for complete relationship documentation.

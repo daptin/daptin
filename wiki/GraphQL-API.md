@@ -4,7 +4,7 @@
 
 Complete GraphQL API for querying and mutating your Daptin data with full introspection support.
 
-> **v0.13.14 numeric limitation:** a schema field declared with Daptin
+> **Numeric limitation:** a schema field declared with Daptin
 > `ColumnType: float` was observed as GraphQL `Int`, and `55.5` was rejected.
 > Although the column registry declares `float` as `Float`, do not assume the
 > generated schema preserves fractions. Inspect the live schema and round-trip

@@ -7,7 +7,7 @@
 Before installing Daptin:
 - **Go 1.19+** (for building from source)
 - **SQLite3** (built-in, no external setup needed)
-- **PostgreSQL 15** (recommended production database for v0.13.14)
+- **PostgreSQL 15** (recommended production database)
 - **Docker** (optional, for containerized deployment)
 
 ## Native Binary
@@ -79,8 +79,6 @@ docker run --pull=always -p 6336:8080 -p 6443:6443 \
 - Use `daptin/daptin:latest` with `--pull=always` to fetch the newest image
 - Port mapping is `6336:8080` (host:container), not `6336:6336`
 - For persistent storage, mount to `/data` and set `DAPTIN_DB_CONNECTION_STRING=/data/daptin.db`
-- The published v0.13.14 image predates the MariaDB schema corrections. See
-  [[Release-v0.13.14-Feature-Status]] when operating that release.
 
 ## Docker Compose
 
@@ -240,9 +238,7 @@ Run `./daptin -h` to see all available flags.
   -db_connection_string="user:password@tcp(localhost:3306)/daptin?charset=utf8mb4&parseTime=True"
 ```
 
-Current source is tested with a complete clean initialization and restart on
-MariaDB 10.11. The published v0.13.14 image predates these schema corrections;
-see [[Release-v0.13.14-Feature-Status]] when operating that release.
+MariaDB 10.11 was tested with a complete clean initialization and restart.
 
 ### PostgreSQL - TESTED ✅
 

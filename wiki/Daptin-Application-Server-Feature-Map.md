@@ -47,8 +47,8 @@ Core capabilities:
 - Relations through schema definitions plus built-in standard relations.
 - REST JSON:API CRUD under `/api/{entity}`.
 - Optional GraphQL under `/graphql`.
-- API discovery through `/meta`, `/jsmodel/{typename}`, `/openapi.yaml`, and
-  generated OpenAPI paths.
+- API discovery through `/api/world`, `/jsmodel/{typename}`, `/openapi.yaml`,
+  and `/meta?query=column_types` for available column types.
 - Import/export and schema/data actions such as random data generation,
   CSV/XLS import, and data export.
 

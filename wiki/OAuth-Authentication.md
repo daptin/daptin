@@ -738,8 +738,8 @@ Always use HTTPS in production for OAuth:
 
 Create a `certificate` row for the public OAuth hostname and invoke the
 certificate instance action `generate_acme_certificate`. See
-[[Certificate-Actions]] for the exact request and the v0.13.14 production-only
-ACME limitation.
+[[Certificate-Actions]] for the exact request and the production-only ACME
+limitation.
 
 Update oauth_connect `redirect_uri` to use HTTPS on the browser-facing client origin:
 ```

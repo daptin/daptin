@@ -12,10 +12,9 @@ This guide covers the critical first 5 minutes with a fresh Daptin installation.
 **On a fresh install, Daptin is WIDE OPEN** - anyone can do anything.
 
 The first person to claim admin becomes the system administrator and transitions
-bootstrap permissions. Do not treat that transition alone as proof that public
-signup is closed: a v0.13.14 audit observed another unauthenticated signup
-succeeding after bootstrap. Production setup must explicitly lock and test the
-`signup` action as described below.
+bootstrap permissions, including closing public signup. Verify that an
+unauthenticated signup is rejected before exposing the service, as described
+below.
 
 **You must do this immediately** or anyone else can claim admin first. Keep the
 service behind a private ingress until the final signup-rejection test passes.
@@ -310,10 +309,11 @@ echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .
 - ✅ System tables locked down
 - ✅ Default permissions enforced
 
-### Explicitly close and test public signup
+### Verify public signup is closed
 
-Find the `signup` action and set the post-bootstrap permission profile, which
-does not contain `GuestExecute`:
+Bootstrap sets the `signup` action to a permission profile without
+`GuestExecute`. Read its permission through the resource API and verify it is
+`2085120`:
 
 ```bash
 SIGNUP_ACTION_ID=$(curl -sS --get \
@@ -321,10 +321,8 @@ SIGNUP_ACTION_ID=$(curl -sS --get \
   -H "Authorization: Bearer $TOKEN" \
   http://localhost:6336/api/action | jq -r '.data[0].id')
 
-curl -sS -X PATCH "http://localhost:6336/api/action/$SIGNUP_ACTION_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{"data":{"type":"action","id":"'"$SIGNUP_ACTION_ID"'","attributes":{"permission":2085120}}}'
+curl -sS -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:6336/api/action/$SIGNUP_ACTION_ID" | jq '.data.attributes.permission'
 ```
 
 Authorization decisions may remain cached for up to 10 seconds. After that

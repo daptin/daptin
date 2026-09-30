@@ -217,8 +217,8 @@ durable Daptin authority used by metering.
 
 ## Operational Checklist
 
-- Use PostgreSQL 15 for v0.13.14 production. MySQL/MariaDB initialization is a
-  known release blocker; see [[Release-v0.13.14-Feature-Status]].
+- Use a validated production database and check required tables and resource
+  routes after initialization; see [[Database-Setup]].
 - Pin Daptin and the provider API contract.
 - Protect and rotate the Daptin encryption secret and Stripe key.
 - Use provider-restricted credentials where available.

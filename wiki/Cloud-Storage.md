@@ -1,22 +1,22 @@
 # Cloud Storage
 
-**v0.13.14 status:** local operations and MinIO upload/delete were exercised,
-subject to the credential and completion-semantics warnings below.
+Local operations and MinIO upload/delete were exercised, subject to the
+credential and completion-semantics warnings below.
 
 **Actions Status:**
 - ✅ **create_folder** - Working (correct URL format documented below)
 - ✅ **upload_file** - Working (correct URL format documented below)
-- ⚠️ **move_path** - Dispatch works, but provider failure may still return HTTP 200
+- ✅ **move_path** - Checks source and destination; reports provider failures
 - ⚠️ **delete_path** - Dispatch works, but provider failure may still return HTTP 200
 
 **Critical**: GitHub Issue #166 was about wrong URL format in documentation, not broken actions. The action path is `/action/{type}/{action_name}`. Pass `{type}_id` in request attributes.
 
 Integrate with cloud storage providers via rclone.
 
-> **Do not use HTTP 200 as object-level confirmation in v0.13.14.** Several
-> performers run rclone work asynchronously, and `move_path`/`delete_path` can
-> return a success notification before a missing-object or provider error is
-> known. Verify the expected source and destination objects through `list_files`
+> **Do not use HTTP 200 as object-level confirmation.** Several
+> performers run rclone work asynchronously, and `delete_path` returns a
+> dispatch acknowledgement before a provider error is known. Verify the
+> expected source and destination objects through `list_files`
 > or the provider API. Logs are diagnostic, but the isolated line
 > `rclone session exitcode - 1` is not sufficient on its own to determine the
 > operation result; inspect surrounding errors and object state.
