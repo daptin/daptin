@@ -2,15 +2,17 @@ package server
 
 import (
 	"fmt"
-	"github.com/daptin/daptin/server/resource"
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/daptin/daptin/server/constants"
+	"github.com/daptin/daptin/server/resource"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
@@ -41,6 +43,13 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 
 	defaultRouter.NoRoute(func(c *gin.Context) {
 		filePath := strings.TrimLeft(c.Request.URL.Path, "/")
+		rootPath, _, _ := strings.Cut(filePath, "/")
+		if constants.WellDefinedApiPaths[rootPath] {
+			c.JSON(http.StatusNotFound, gin.H{"errors": []gin.H{{
+				"status": "404", "title": "Not Found", "detail": "Route not found",
+			}}})
+			return
+		}
 
 		// Check if we have the file in our cache first
 		if cached, found := diskFileCache.Get(filePath); found {
@@ -131,7 +140,12 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 			return
 		}
 
-		// Fallback to serving index.html
+		if rootPath == "assets" || rootPath == "images" {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		// Fallback to serving index.html for dashboard routes
 		if len(indexFileContents) > 0 {
 			// Set minimal caching for index.html
 			c.Header("Cache-Control", "public, max-age=60") // Short cache time for index.html
