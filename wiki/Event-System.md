@@ -59,6 +59,9 @@ Tables:
           EntityName: order
 ```
 
+The `after:create` webhook uses the bounded delivery and administrator retry
+process described in [After Events](#after-events).
+
 ## Handler Types
 
 ### HTTP Webhook
@@ -76,6 +79,9 @@ EventHandlers:
         event: created
         data: "{{.}}"
 ```
+
+See [After Events](#after-events) for the synchronous wait, attempt limit, and
+recovery procedure for this webhook.
 
 ### Execute Action
 
@@ -202,14 +208,32 @@ EventHandlers:
 ### After Events
 
 After handlers are queued in the write transaction and run after commit. Failed
-delivery is logged and retried; it does not undo the write. A delete handler
-receives the deleted record as it was at the time of deletion. The writer must
-be able to read the source record when the handler is queued and delivered.
+delivery does not undo the write. A delete handler receives the deleted record
+as it was at the time of deletion. The writer must be able to read the source
+record when the handler is queued and delivered.
 
-`http.post` waits for delivery after commit before its HTTP request completes.
-The wait is bounded; if delivery remains unavailable, the write still succeeds
-and the queued delivery continues retrying. `async.http.post` returns as soon
-as delivery has been durably queued.
+`http.post` waits up to 35 seconds after commit for delivery before its HTTP
+request completes. The write still succeeds if delivery fails or the wait
+expires. `async.http.post` returns as soon as delivery has been durably queued.
+Both use an `exchange_run` with five attempts by default. Failures are retried
+with backoff until the attempt limit is reached; then the run becomes
+`terminal_failed` and will not retry automatically, even if the receiver
+recovers. A wait timeout does not cancel a run that is still eligible for retry.
+
+Administrators should monitor `exchange_run` for `terminal_failed` and alert on
+those rows. After resolving the delivery failure, retry a terminal run with
+its reference ID:
+
+```bash
+curl -X POST http://localhost:6336/action/exchange_run/retry_data_exchange_execution \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"exchange_run_id":"EXECUTION_REFERENCE_ID"}}'
+```
+
+The action grants five more attempts through the scheduled processor; it does
+not deliver inline. See [[Data-Exchange|Data Exchange]] for the durable delivery
+contract and [[Action-Reference|Action Reference]] for the action definition.
 
 ## Async Handlers
 
@@ -222,6 +246,9 @@ EventHandlers:
     Attributes:
       Url: https://slow-api.example.com/process
 ```
+
+This handler uses the same bounded `exchange_run` delivery and recovery process
+described in [After Events](#after-events), without waiting in the write request.
 
 ## Event Payload
 
