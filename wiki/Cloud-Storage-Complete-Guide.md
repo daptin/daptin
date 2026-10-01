@@ -158,14 +158,14 @@ pkill -f daptin && sleep 2 && ./daptin
 Upload a schema that references your cloud store:
 
 ```bash
-curl -X POST "http://localhost:6336/api/world/action/upload_system_schema" \
+cat > product-schema.json <<'JSON'
+{"Tables":[{"TableName":"product","Columns":[{"Name":"name","DataType":"varchar(500)","ColumnType":"name"},{"Name":"photo","DataType":"text","ColumnType":"file","IsForeignKey":true,"ForeignKeyData":{"DataSource":"cloud_store","Namespace":"my-store","KeyName":"products"}}]}]}
+JSON
+SCHEMA_BASE64=$(base64 < product-schema.json | tr -d '\n')
+curl -X POST "http://localhost:6336/action/world/upload_system_schema" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "schema_json": "{\"Tables\":[{\"TableName\":\"product\",\"Columns\":[{\"Name\":\"name\",\"DataType\":\"varchar(500)\",\"ColumnType\":\"name\"},{\"Name\":\"photo\",\"DataType\":\"text\",\"ColumnType\":\"file\",\"IsForeignKey\":true,\"ForeignKeyData\":{\"DataSource\":\"cloud_store\",\"Namespace\":\"my-store\",\"KeyName\":\"products\"}}]}]}"
-    }
-  }'
+  -d "{\"attributes\":{\"schema_file\":[{\"name\":\"product-schema.json\",\"file\":\"data:application/json;base64,$SCHEMA_BASE64\"}]}}"
 ```
 
 ### Step 5: Restart Again
@@ -488,14 +488,14 @@ TOKEN=$(cat /tmp/daptin-token.txt)
 # Daptin includes a default "localstore" cloud_store at ./storage
 # Just create a table that references it:
 
-curl -X POST "http://localhost:6336/api/world/action/upload_system_schema" \
+cat > local-product-schema.json <<'JSON'
+{"Tables":[{"TableName":"local_product","Columns":[{"Name":"name","DataType":"varchar(500)","ColumnType":"name"},{"Name":"document","DataType":"text","ColumnType":"file","IsForeignKey":true,"ForeignKeyData":{"DataSource":"cloud_store","Namespace":"localstore","KeyName":"documents"}}]}]}
+JSON
+SCHEMA_BASE64=$(base64 < local-product-schema.json | tr -d '\n')
+curl -X POST "http://localhost:6336/action/world/upload_system_schema" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "schema_json": "{\"Tables\":[{\"TableName\":\"local_product\",\"Columns\":[{\"Name\":\"name\",\"DataType\":\"varchar(500)\",\"ColumnType\":\"name\"},{\"Name\":\"document\",\"DataType\":\"text\",\"ColumnType\":\"file\",\"IsForeignKey\":true,\"ForeignKeyData\":{\"DataSource\":\"cloud_store\",\"Namespace\":\"localstore\",\"KeyName\":\"documents\"}}]}]}"
-    }
-  }'
+  -d "{\"attributes\":{\"schema_file\":[{\"name\":\"local-product-schema.json\",\"file\":\"data:application/json;base64,$SCHEMA_BASE64\"}]}}"
 
 # Restart server
 ./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
@@ -575,14 +575,14 @@ curl -X POST http://localhost:6336/api/cloud_store \
 
 # 4. Create table
 TOKEN=$(cat /tmp/daptin-token.txt)
-curl -X POST "http://localhost:6336/api/world/action/upload_system_schema" \
+cat > minio-product-schema.json <<'JSON'
+{"Tables":[{"TableName":"minio_product","Columns":[{"Name":"name","DataType":"varchar(500)","ColumnType":"name"},{"Name":"photo","DataType":"text","ColumnType":"file","IsForeignKey":true,"ForeignKeyData":{"DataSource":"cloud_store","Namespace":"minio-store","KeyName":"photos"}}]}]}
+JSON
+SCHEMA_BASE64=$(base64 < minio-product-schema.json | tr -d '\n')
+curl -X POST "http://localhost:6336/action/world/upload_system_schema" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "schema_json": "{\"Tables\":[{\"TableName\":\"minio_product\",\"Columns\":[{\"Name\":\"name\",\"DataType\":\"varchar(500)\",\"ColumnType\":\"name\"},{\"Name\":\"photo\",\"DataType\":\"text\",\"ColumnType\":\"file\",\"IsForeignKey\":true,\"ForeignKeyData\":{\"DataSource\":\"cloud_store\",\"Namespace\":\"minio-store\",\"KeyName\":\"photos\"}}]}]}"
-    }
-  }'
+  -d "{\"attributes\":{\"schema_file\":[{\"name\":\"minio-product-schema.json\",\"file\":\"data:application/json;base64,$SCHEMA_BASE64\"}]}}"
 
 # 6. Restart again
 ./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
@@ -631,7 +631,7 @@ Before reporting an issue, verify:
 | Create credential | POST | `/api/credential` |
 | Create cloud_store | POST | `/api/cloud_store` |
 | Link credential | PATCH | `/api/cloud_store/{id}` |
-| Upload schema | POST | `/api/world/action/upload_system_schema` |
+| Upload schema | POST | `/action/world/upload_system_schema` (`attributes.schema_file`) |
 | Upload file | POST | `/api/{table_name}` |
 | List cloud_stores | GET | `/api/cloud_store` |
 | List credentials | GET | `/api/credential` |

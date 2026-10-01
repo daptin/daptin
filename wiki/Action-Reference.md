@@ -2,6 +2,10 @@
 
 Complete reference of all built-in actions in Daptin.
 
+Call actions at `/action/{entity}/{action_name}`. "Instance Required" means
+the action needs an existing record's public reference ID in
+`attributes.{entity}_id`; the record ID is not part of the URL.
+
 ## User Account Actions
 
 ### signup
@@ -388,6 +392,17 @@ Delete a table from the system.
 | Instance Required | Yes |
 
 **Action Performer:** `world.delete`
+
+Use the target table's `world` reference ID (from `/api/world`):
+
+```bash
+curl -X POST http://localhost:6336/action/world/remove_table \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{"world_id":"WORLD_REFERENCE_ID"}}'
+```
+
+This permanently removes the table and its data.
 
 ### remove_column
 

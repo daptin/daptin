@@ -88,17 +88,18 @@ Exports:
 - State machines
 - Integrations
 
-## delete_table
+## remove_table
 
-Drop a table from the database.
+Remove a table and its data. Get the table's `world` reference ID from
+`/api/world`.
 
 ```bash
-curl -X POST http://localhost:6336/action/world/delete_table \
+curl -X POST http://localhost:6336/action/world/remove_table \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "table_name": "old_table"
+      "world_id": "WORLD_REFERENCE_ID"
     }
   }'
 ```
@@ -116,7 +117,7 @@ curl -X POST http://localhost:6336/action/world/rename_column \
   -d '{
     "attributes": {
       "table_name": "product",
-      "old_column_name": "price",
+      "column_name": "price",
       "new_column_name": "unit_price"
     }
   }'
@@ -124,17 +125,17 @@ curl -X POST http://localhost:6336/action/world/rename_column \
 
 Requires server restart to fully apply.
 
-## delete_column
+## remove_column
 
-Remove a column from a table.
+Remove a column from a table using its `world` reference ID.
 
 ```bash
-curl -X POST http://localhost:6336/action/world/delete_column \
+curl -X POST http://localhost:6336/action/world/remove_column \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "attributes": {
-      "table_name": "product",
+      "world_id": "WORLD_REFERENCE_ID",
       "column_name": "deprecated_field"
     }
   }'
@@ -196,45 +197,6 @@ curl -X POST http://localhost:6336/action/certificate/download_certificate \
     }
   }'
 ```
-
-## transaction
-
-Control database transactions.
-
-```bash
-# Begin transaction
-curl -X POST http://localhost:6336/action/world/transaction \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"action": "begin"}}'
-
-# Commit transaction
-curl -X POST http://localhost:6336/action/world/transaction \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"action": "commit"}}'
-
-# Rollback transaction
-curl -X POST http://localhost:6336/action/world/transaction \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"attributes": {"action": "rollback"}}'
-```
-
-## execute_process
-
-Run external process (dangerous - use carefully).
-
-```bash
-curl -X POST http://localhost:6336/action/world/execute_process \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "attributes": {
-      "command": "ls",
-      "args": ["-la", "/var/log"]
-    }
-  }'
-```
-
-**Security:** Only available to administrators.
 
 ## Adding Admin Users
 
