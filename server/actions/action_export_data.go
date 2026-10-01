@@ -46,20 +46,37 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 	responses := make([]actionresponse.ActionResponse, 0)
 
 	// Get export format, default to JSON if not specified
-	formatStr, formatOk := inFields["format"]
 	format := FormatJSON
-	if formatOk && formatStr != nil {
-		format = ExportFormat(strings.ToLower(formatStr.(string)))
+	if rawFormat := inFields["format"]; rawFormat != nil {
+		formatStr, ok := rawFormat.(string)
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("format must be a string")}
+		}
+		if formatStr != "" {
+			format = ExportFormat(strings.ToLower(formatStr))
+		}
 	}
 
 	// Get table name if specified
-	tableName, tableOk := inFields["table_name"]
+	tableName := ""
+	if rawTableName := inFields["table_name"]; rawTableName != nil {
+		var ok bool
+		tableName, ok = rawTableName.(string)
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("table_name must be a string")}
+		}
+	}
+	tableOk := tableName != ""
 	finalName := "complete"
 
 	// Get additional export options
 	includeHeaders := true
-	if includeHeadersVal, ok := inFields["include_headers"]; ok && includeHeadersVal != nil {
-		includeHeaders, _ = includeHeadersVal.(bool)
+	if rawIncludeHeaders := inFields["include_headers"]; rawIncludeHeaders != nil && rawIncludeHeaders != "" {
+		var ok bool
+		includeHeaders, ok = rawIncludeHeaders.(bool)
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("include_headers must be a boolean")}
+		}
 	}
 
 	// Get page size for pagination
@@ -95,9 +112,8 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 		}
 
 		// If we're exporting a specific table, store its columns
-		if tableOk && tableName != nil {
-			tableNameStr := tableName.(string)
-			selectedColumnsMap[tableNameStr] = selectedColumns
+		if tableOk {
+			selectedColumnsMap[tableName] = selectedColumns
 		} else {
 			// For all tables, we'll set the columns later
 			for _, tableInfo := range d.cmsConfig.Tables {
@@ -115,10 +131,9 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 
 	// Determine tables to export
 	var tablesToExport []string
-	if tableOk && tableName != nil {
-		tableNameStr := tableName.(string)
-		tablesToExport = []string{tableNameStr}
-		finalName = tableNameStr
+	if tableOk {
+		tablesToExport = []string{tableName}
+		finalName = tableName
 	} else {
 		for _, tableInfo := range d.cmsConfig.Tables {
 			tablesToExport = append(tablesToExport, tableInfo.TableName)
@@ -135,17 +150,15 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 
 	// Process each table
 	for _, currentTable := range tablesToExport {
-		// Skip if we don't have access to this table
+		// Every requested table must be available for a complete export.
 		if _, ok := d.cruds[currentTable]; !ok {
-			log.Warnf("Skipping table [%s]: not accessible", currentTable)
-			continue
+			return nil, nil, []error{fmt.Errorf("table [%s] is not available for export", currentTable)}
 		}
 
 		// Notify writer of new table
 		err = writer.WriteTable(currentTable)
 		if err != nil {
-			log.Errorf("Failed to write table header for [%s]: %v", currentTable, err)
-			continue
+			return nil, nil, []error{err}
 		}
 
 		// Determine columns for this table
@@ -166,8 +179,7 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 			)
 
 			if err != nil {
-				log.Errorf("Failed to get column names for [%s]: %v", currentTable, err)
-				continue
+				return nil, nil, []error{err}
 			}
 
 			if len(firstRowResult) > 0 {
@@ -184,8 +196,7 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 		if len(columns) > 0 {
 			err = writer.WriteHeaders(currentTable, columns)
 			if err != nil {
-				log.Errorf("Failed to write headers for [%s]: %v", currentTable, err)
-				continue
+				return nil, nil, []error{err}
 			}
 		} else {
 			log.Warnf("No columns found for table [%s], skipping", currentTable)
@@ -203,17 +214,14 @@ func (d *exportDataPerformer) DoAction(request actionresponse.Outcome, inFields 
 		)
 
 		if err != nil {
-			log.Errorf("Error streaming data for table [%s]: %v", currentTable, err)
-			continue
+			return nil, nil, []error{err}
 		}
 	}
 
 	// Finalize the export
 	content, err := writer.Finalize()
 	if err != nil {
-		log.Errorf("Failed to finalize export: %v", err)
-		// Fallback to empty content
-		content = []byte{}
+		return nil, nil, []error{err}
 	}
 
 	// Determine content type and file extension

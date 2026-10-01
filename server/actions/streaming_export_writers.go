@@ -34,7 +34,7 @@ func (w *StreamingJSONWriter) Initialize(tableNames []string, includeHeaders boo
 // WriteTable writes a table name header
 func (w *StreamingJSONWriter) WriteTable(tableName string) error {
 	if !w.isFirstTable {
-		w.buffer.WriteString(",")
+		w.buffer.WriteString("\n],")
 	}
 	w.isFirstTable = false
 	w.isFirstRow = true
@@ -73,8 +73,10 @@ func (w *StreamingJSONWriter) WriteRows(tableName string, rows []map[string]inte
 
 // Finalize completes the JSON export
 func (w *StreamingJSONWriter) Finalize() ([]byte, error) {
-	// Close the array and object
-	w.buffer.WriteString("\n]}")
+	if !w.isFirstTable {
+		w.buffer.WriteString("\n]")
+	}
+	w.buffer.WriteString("}")
 	return w.buffer.Bytes(), nil
 }
 

@@ -51,6 +51,8 @@ curl -X POST http://localhost:6336/action/world/export_data \
 ]
 ```
 
+If a requested table cannot be exported, the action returns an error instead of an incomplete download.
+
 ### Export Formats
 
 | Format | Content-Type | Extension |
@@ -81,6 +83,7 @@ curl -X POST http://localhost:6336/action/world/export_data \
 ## export_csv_data
 
 Export specifically as CSV (shortcut for export_data with format=csv).
+For a nonempty table, the download includes column headers and data rows.
 
 **Action**: `export_csv_data`
 **OnType**: `world`
