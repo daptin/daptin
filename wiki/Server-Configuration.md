@@ -29,6 +29,7 @@ canonical encoding table in [[Configuration]].
 | `-database_url_variable` | `DAPTIN_DB_CONNECTION_STRING` | Env var name to read DB connection from |
 | `-olric_peers` | `""` | Comma-separated list of cluster peers |
 | `-olric_port` | `5336` | Olric port (membership is automatically olric_port+1) |
+| `-olric_bind_addr` | auto-detected | IP address for Olric and membership listeners |
 | `-olric_seed` | `""` | DNS hostname for peer discovery (resolves A records) |
 | `-olric_env` | `local` | Cluster environment: `local`, `lan`, `wan` |
 
@@ -581,6 +582,16 @@ Daptin uses Olric for distributed caching. These flags configure clustering acro
 **Default:** `5336`
 
 **Purpose:** Port for Olric cluster communication. The membership/gossip port is automatically derived as `olric_port + 1` (e.g., 5336 gives membership port 5337).
+
+### olric_bind_addr
+
+```bash
+./daptin -port 127.0.0.1:6336 -olric_bind_addr 127.0.0.1
+```
+
+**Default:** Auto-detect an interface address.
+
+**Purpose:** Bind both the embedded Olric TCP listener and its membership listener to the given IP address. Use `127.0.0.1` with a loopback HTTP address for a local-only deployment. For a cluster, use each node's reachable interface address; peers must be able to reach its Olric and membership ports.
 
 ### olric_seed
 

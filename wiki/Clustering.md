@@ -46,6 +46,7 @@ Daptin supports clustering for:
 | `-db_connection_string` | Database DSN | `host=... port=5432 ...` |
 | `-olric_peers` | Comma-separated peer list (ip:membership_port) | `10.0.0.1:5337,10.0.0.2:5339` |
 | `-olric_port` | Olric port (membership is automatically olric_port+1) | `5336` |
+| `-olric_bind_addr` | Bind Olric and membership listeners to this node's reachable IP; see [[Server-Configuration|Server-Configuration.md]] | auto-detected |
 | `-olric_seed` | DNS hostname for peer discovery | `daptin-headless.default.svc.cluster.local` |
 | `-olric_env` | Discovery mode: `local`, `lan`, `wan` | `local` |
 

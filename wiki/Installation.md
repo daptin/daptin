@@ -216,6 +216,7 @@ Run `./daptin -h` to see all available flags.
 | `-profile_dump_period` | 5 | Profile dump interval (minutes) |
 | `-olric_peers` | (empty) | Cluster peers (IP:port list) |
 | `-olric_port` | 5336* | Olric port (membership is olric_port+1) |
+| `-olric_bind_addr` | auto-detected | IP address for Olric and membership listeners; see [[Server-Configuration|Server-Configuration.md]] |
 | `-olric_seed` | (empty) | DNS hostname for peer discovery |
 | `-olric_env` | local | Environment: local, lan, wan |
 
@@ -263,6 +264,7 @@ All command-line flags can be set via environment variables (see `-h` for full l
 | `DAPTIN_RUNTIME` | | Runtime mode | `release`, `debug`, `test`, `profile` |
 | `DAPTIN_LOCAL_STORAGE_PATH` | | File storage path | `./storage` |
 | `DAPTIN_OLRIC_PORT` | | Olric port (membership is olric_port+1) | `5336` |
+| `DAPTIN_OLRIC_BIND_ADDR` | | IP address for Olric and membership listeners | `127.0.0.1` |
 | `DAPTIN_OLRIC_PEERS` | | Cluster peers | `ip1:port1,ip2:port2` |
 | `DAPTIN_OLRIC_SEED` | | DNS hostname for peer discovery | `daptin-headless` |
 | `TZ` | ✅ | Timezone | `America/Los_Angeles`, `UTC` |

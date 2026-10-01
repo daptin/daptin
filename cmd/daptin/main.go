@@ -231,6 +231,7 @@ func main() {
 	var profileDumpPeriod = flag.Int("profile_dump_period", 5, "time period in minutes for triggering profile dump")
 	var olricPeers = flag.String("olric_peers", "", "list of olric peers, comma separated in ip:membership_port")
 	var olricPort = flag.Int("olric_port", 0, "base port for olric cache (membership = olric_port+1). Default: auto-derived from HTTP port")
+	var olricBindAddr = flag.String("olric_bind_addr", "", "IP address for embedded Olric and membership listeners. Default: auto-detected interface")
 	var olricSeed = flag.String("olric_seed", "", "hostname to resolve for cluster peer discovery (e.g., daptin-headless.default.svc.cluster.local)")
 	var olricConfigEnv = flag.String("olric_env", "local", "env value for olric: local/lan/wan, default: lan")
 	var shutdownTimeout = flag.Duration("shutdown_timeout", 30*time.Second, "maximum time allowed for graceful shutdown")
@@ -387,13 +388,21 @@ func main() {
 	olricConfigEnvValue := *olricConfigEnv
 
 	olricConfig1 := olricConfig.New(olricConfigEnvValue)
-	err = olricConfig1.SetupNetworkConfig()
+	if *olricBindAddr != "" {
+		if net.ParseIP(*olricBindAddr) == nil {
+			log.Fatalf("olric_bind_addr must be an IP address: %q", *olricBindAddr)
+		}
+		olricConfig1.BindAddr = *olricBindAddr
+		olricConfig1.MemberlistConfig.BindAddr = *olricBindAddr
+	}
+	if err := olricConfig1.SetupNetworkConfig(); err != nil {
+		log.Fatalf("failed to configure Olric network: %v", err)
+	}
 
 	olricConfig1.BindPort = olricPortValue
 
 	// MemberlistConfig is already set by olricConfig.New(env) with the correct
 	// local/lan/wan settings. Do NOT overwrite it with memberlist.DefaultLocalConfig().
-	olricConfig1.MemberlistConfig.Name = fmt.Sprintf("%v:%v", olricConfig1.MemberlistConfig.BindAddr, olricConfig1.BindPort)
 
 	olricConfig1.ReplicaCount = 1
 	olricConfig1.WriteQuorum = 1
