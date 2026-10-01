@@ -76,6 +76,11 @@ whole request with HTTP `400` and the JSON:API error title
 `invalid query filter column`. It does not ignore the invalid condition or run
 the remaining filters.
 
+For a `has_many` relation, use `<relation_name>=<reference_id>@(<join_column>:<value>)`
+to filter on a column of that relation's join table. The column must exist in
+the join table schema. Daptin returns HTTP `400` for an unknown column or a
+malformed relation filter.
+
 ### Query Structure
 
 ```json

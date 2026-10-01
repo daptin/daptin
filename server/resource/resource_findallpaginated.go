@@ -641,19 +641,35 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			joinTableFilters := make(map[daptinid.DaptinReferenceId]goqu.Ex)
 
 			for i, query := range uuidStringQueries {
-				if strings.Index(query, "@") > -1 {
-					queryParts := strings.Split(query, "@")
-					joinId := queryParts[0]
-					joinQuery := strings.Join(queryParts[1:], "@")
-					joinQuery = joinQuery[1 : len(joinQuery)-1]
-					joinQueryParts := strings.Split(joinQuery, "&")
+				if joinId, joinQuery, hasFilter := strings.Cut(query, "@"); hasFilter {
+					if len(joinQuery) < 3 || joinQuery[0] != '(' || joinQuery[len(joinQuery)-1] != ')' {
+						return nil, nil, nil, false, invalidRelationFilterError(rel.GetObjectName())
+					}
+					joinQueryParts := strings.Split(joinQuery[1:len(joinQuery)-1], "&")
 					joinWhere := goqu.Ex{}
 					for _, joinQueryPart := range joinQueryParts {
-						parts := strings.Split(joinQueryPart, ":")
-						joinWhere[parts[0]] = strings.Split(parts[1], "|")
+						key, value, hasValue := strings.Cut(joinQueryPart, ":")
+						if !hasValue || key == "" {
+							return nil, nil, nil, false, invalidRelationFilterError(rel.GetObjectName())
+						}
+						if rel.Relation == "has_many" {
+							joinTable := dbResource.Cruds[rel.GetJoinTableName()]
+							if joinTable == nil || joinTable.TableInfo() == nil {
+								return nil, nil, nil, false, fmt.Errorf("missing relation table metadata for %s", rel.GetJoinTableName())
+							}
+							column, ok := joinTable.TableInfo().GetColumnByName(key)
+							if !ok {
+								return nil, nil, nil, false, invalidQueryFilterError(rel.GetJoinTableName(), key)
+							}
+							key = column.ColumnName
+						}
+						joinWhere[key] = strings.Split(value, "|")
 					}
-					//matches := joinTableFilterRegex.FindAllStringSubmatch(joinQuery, -1)
-					joinTableFilters[daptinid.DaptinReferenceId(uuid.MustParse(joinId))] = joinWhere
+					referenceID, err := uuid.Parse(joinId)
+					if err != nil {
+						return nil, nil, nil, false, invalidRelationFilterError(rel.GetObjectName())
+					}
+					joinTableFilters[daptinid.DaptinReferenceId(referenceID)] = joinWhere
 					uuidStringQueries[i] = joinId
 				}
 			}
@@ -1389,6 +1405,10 @@ var OperatorMap = map[string]string{
 }
 
 const invalidQueryFilterMessage = "invalid query filter column"
+
+func invalidRelationFilterError(relationName string) error {
+	return api2go.NewHTTPError(fmt.Errorf("invalid relation filter for %s", relationName), "invalid relation filter", http.StatusBadRequest)
+}
 
 func invalidQueryFilterError(tableName, columnName string) error {
 	detail := fmt.Errorf("table [%v] invalid column query [%v]", tableName, columnName)
