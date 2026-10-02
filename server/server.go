@@ -558,6 +558,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		log.Printf("[CALDAV INIT] CalDAV NOT enabled (value: '%s')", enableCaldav)
 	}
 	log.Tracef("Completed process caldav")
+	RegisterOfficeDriveConnector(defaultRouter, cruds["document"])
 
 	for k := range cruds {
 		cruds[k].SetSubsitesFolderCache(subsiteCacheFolders)
