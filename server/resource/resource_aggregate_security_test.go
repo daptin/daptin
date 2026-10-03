@@ -10,20 +10,97 @@ import (
 
 func aggregateSecurityTestResource() *DbResource {
 	rootColumns := []api2go.ColumnInfo{
-		{Name: "id", ColumnName: "id"},
+		{Name: "id", ColumnName: "id", ColumnType: "id", ExcludeFromApi: true},
 		{Name: "email", ColumnName: "email"},
 		{Name: "total", ColumnName: "total"},
 		{Name: "customer_id", ColumnName: "customer_id"},
+		{Name: "password", ColumnName: "password", ColumnType: "password"},
+		{Name: "notes", ColumnName: "notes", ColumnType: "content"},
+		{Name: "auth_version", ColumnName: "auth_version", ColumnType: "measurement", ExcludeFromApi: true},
+		{Name: "shared", ColumnName: "shared", ColumnType: "label"},
 	}
 	joinedColumns := []api2go.ColumnInfo{
-		{Name: "id", ColumnName: "id"},
+		{Name: "id", ColumnName: "id", ColumnType: "id", ExcludeFromApi: true},
 		{Name: "name", ColumnName: "name"},
+		{Name: "secret", ColumnName: "secret", ColumnType: "encrypted"},
+		{Name: "shared", ColumnName: "shared", ColumnType: "password"},
 	}
 	root := &DbResource{tableInfo: &table_info.TableInfo{TableName: "orders", Columns: rootColumns}}
 	joined := &DbResource{tableInfo: &table_info.TableInfo{TableName: "customer", Columns: joinedColumns}}
 	root.Cruds = map[string]*DbResource{"orders": root, "customer": joined}
 	joined.Cruds = root.Cruds
 	return root
+}
+
+func TestAggregateRejectsRestrictedColumnTypes(t *testing.T) {
+	resource := aggregateSecurityTestResource()
+	blockedTypes := []string{
+		"password", "bcrypt", "md5", "md5-bcrypt", "encrypted", "hidden",
+		"content", "html", "markdown", "json", "gzip", "file", "file.csv", "image", "video",
+	}
+	for _, columnType := range blockedTypes {
+		resource.tableInfo.Columns = append(resource.tableInfo.Columns, api2go.ColumnInfo{
+			Name: "restricted", ColumnName: "restricted", ColumnType: columnType,
+		})
+		for _, ref := range []string{"restricted", "orders.restricted"} {
+			if err := resource.validateColumnRef(ref, []string{"orders"}); err == nil {
+				t.Errorf("%s column %q was accepted", columnType, ref)
+			}
+		}
+		resource.tableInfo.Columns = resource.tableInfo.Columns[:len(resource.tableInfo.Columns)-1]
+	}
+	for _, ref := range []string{"id", "customer.id", "auth_version", "orders.auth_version", "customer.secret", "shared"} {
+		if err := resource.validateColumnRef(ref, []string{"orders", "customer"}); err == nil {
+			t.Errorf("restricted column %q was accepted", ref)
+		}
+	}
+	for _, ref := range []string{"orders.id", "customer.id"} {
+		if err := resource.validateJoinColumnRef(ref, []string{"orders", "customer"}); err != nil {
+			t.Errorf("join key %q was rejected: %v", ref, err)
+		}
+	}
+	for _, ref := range []string{"customer.secret", "orders.auth_version"} {
+		if err := resource.validateJoinColumnRef(ref, []string{"orders", "customer"}); err == nil {
+			t.Errorf("restricted join column %q was accepted", ref)
+		}
+	}
+	for _, ref := range []string{"email", "total", "customer.name", "orders.shared"} {
+		if err := resource.validateColumnRef(ref, []string{"orders", "customer"}); err != nil {
+			t.Errorf("ordinary column %q was rejected: %v", ref, err)
+		}
+	}
+}
+
+func TestAggregateRejectsRestrictedColumnsInEveryClause(t *testing.T) {
+	resource := aggregateSecurityTestResource()
+	requests := []struct {
+		name string
+		req  AggregationRequest
+	}{
+		{"column", AggregationRequest{ProjectColumn: []string{"password"}}},
+		{"aggregate function", AggregationRequest{ProjectColumn: []string{"max(password)"}}},
+		{"scalar function", AggregationRequest{ProjectColumn: []string{"upper(password) as secret"}}},
+		{"group", AggregationRequest{GroupBy: []string{"password"}}},
+		{"order", AggregationRequest{ProjectColumn: []string{"count"}, Order: []string{"password"}}},
+		{"filter", AggregationRequest{ProjectColumn: []string{"count"}, Filter: []string{"eq(password,guess)"}}},
+		{"having", AggregationRequest{ProjectColumn: []string{"count"}, Having: []string{"gt(max(password),guess)"}}},
+		{"joined column", AggregationRequest{Join: []string{"customer@eq(customer_id,customer.id)"}, ProjectColumn: []string{"customer.secret"}}},
+		{"join left", AggregationRequest{ProjectColumn: []string{"count"}, Join: []string{"customer@eq(customer.secret,customer_id)"}}},
+		{"join right", AggregationRequest{ProjectColumn: []string{"count"}, Join: []string{"customer@eq(customer_id,customer.secret)"}}},
+	}
+	for _, test := range requests {
+		t.Run(test.name, func(t *testing.T) {
+			test.req.RootEntity = "orders"
+			_, err := resource.DataStats(test.req, nil)
+			var validationError *AggregationValidationError
+			if !errors.As(err, &validationError) {
+				t.Fatalf("restricted aggregate returned %v, want validation error", err)
+			}
+		})
+	}
+	if _, err := resource.parseAggExpr("count(*)", []string{"orders"}, true); err != nil {
+		t.Fatalf("count(*) was rejected: %v", err)
+	}
 }
 
 func TestParseAggregateConditionRejectsPartialAndInjectedInput(t *testing.T) {
@@ -72,7 +149,7 @@ func TestAggregateConditionSupportedGrammar(t *testing.T) {
 func TestAggregateOrderValidatesIdentifiersAndAliases(t *testing.T) {
 	resource := aggregateSecurityTestResource()
 	tables := []string{"orders", "customer"}
-	valid := [][]string{{"id"}, {"-customer.name"}, {"-total_sum"}, {"sum(total)"}}
+	valid := [][]string{{"email"}, {"-customer.name"}, {"-total_sum"}, {"sum(total)"}}
 	for _, order := range valid {
 		if _, err := resource.buildAggregateOrder(order, []string{"sum(total) as total_sum"}, tables); err != nil {
 			t.Errorf("valid order %q rejected: %v", order, err)

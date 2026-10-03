@@ -281,11 +281,28 @@ func splitFuncArgs(argsStr string) []string {
 	return append(args, strings.TrimSpace(argsStr[start:]))
 }
 
-// validateColumnRef checks that col (a simple identifier or "table.col") exists in the schema
-// of one of the listed tables. It accepts only plain identifiers — no expressions, no operators.
+// aggregateColumnAllowed follows the public column metadata for aggregate inputs.
+func aggregateColumnAllowed(col *api2go.ColumnInfo) bool {
+	if col.ExcludeFromApi {
+		return false
+	}
+	columnType := strings.ToLower(col.ColumnType)
+	if strings.HasPrefix(columnType, "file.") {
+		return false
+	}
+	switch columnType {
+	case "password", "bcrypt", "md5", "md5-bcrypt", "encrypted", "hidden",
+		"content", "html", "markdown", "json", "gzip", "file", "image", "video":
+		return false
+	}
+	return true
+}
+
+// aggregateColumnsForRef resolves col (a simple identifier or "table.col")
+// against the in-scope schema. It accepts only plain identifiers.
 // For qualified names (table.col), the table must be in the tables allowlist (root entity or
 // an explicitly joined table) — not just any entity in the system.
-func (dbResource *DbResource) validateColumnRef(col string, tables []string) error {
+func (dbResource *DbResource) aggregateColumnsForRef(col string, tables []string) ([]*api2go.ColumnInfo, error) {
 	if strings.Contains(col, ".") {
 		parts := strings.SplitN(col, ".", 2)
 		tbl, field := parts[0], parts[1]
@@ -297,25 +314,61 @@ func (dbResource *DbResource) validateColumnRef(col string, tables []string) err
 			}
 		}
 		if !inScope {
-			return fmt.Errorf("table %q is not in scope (must be the root entity or a joined table)", tbl)
+			return nil, fmt.Errorf("table %q is not in scope (must be the root entity or a joined table)", tbl)
 		}
 		crud := dbResource.Cruds[tbl]
 		if crud == nil {
-			return fmt.Errorf("unknown table %q", tbl)
+			return nil, fmt.Errorf("unknown table %q", tbl)
 		}
-		if _, ok := crud.TableInfo().GetColumnByName(field); !ok {
-			return fmt.Errorf("unknown column %q in table %q", field, tbl)
+		column, ok := crud.TableInfo().GetColumnByName(field)
+		if !ok {
+			return nil, fmt.Errorf("unknown column %q in table %q", field, tbl)
 		}
-		return nil
+		return []*api2go.ColumnInfo{column}, nil
 	}
+	columns := make([]*api2go.ColumnInfo, 0, len(tables))
 	for _, tbl := range tables {
 		if crud := dbResource.Cruds[tbl]; crud != nil {
-			if _, ok := crud.TableInfo().GetColumnByName(col); ok {
-				return nil
+			if column, ok := crud.TableInfo().GetColumnByName(col); ok {
+				columns = append(columns, column)
 			}
 		}
 	}
-	return fmt.Errorf("unknown column: %q", col)
+	if len(columns) == 0 {
+		return nil, fmt.Errorf("unknown column: %q", col)
+	}
+	return columns, nil
+}
+
+func (dbResource *DbResource) validateColumnRef(col string, tables []string) error {
+	columns, err := dbResource.aggregateColumnsForRef(col, tables)
+	if err != nil {
+		return err
+	}
+	for _, column := range columns {
+		if !aggregateColumnAllowed(column) {
+			return fmt.Errorf("column %q is not available for aggregation", col)
+		}
+	}
+	return nil
+}
+
+// validateJoinColumnRef permits the internal id only as a join key. Other
+// excluded or restricted columns remain unavailable in join conditions.
+func (dbResource *DbResource) validateJoinColumnRef(col string, tables []string) error {
+	columns, err := dbResource.aggregateColumnsForRef(col, tables)
+	if err != nil {
+		return err
+	}
+	for _, column := range columns {
+		if column.ColumnName == "id" && column.ColumnType == "id" {
+			continue
+		}
+		if !aggregateColumnAllowed(column) {
+			return fmt.Errorf("column %q is not available for aggregation", col)
+		}
+	}
+	return nil
 }
 
 // buildFuncArgs converts raw argument strings into safe goqu expressions.
@@ -707,7 +760,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 			if condition.Operator == "in" || condition.Operator == "notin" || condition.Operator == "is" {
 				return nil, invalidAggregation("join", "operator %q is not supported for joins", condition.Operator)
 			}
-			if err := dbResource.validateColumnRef(condition.Left, allowedTables); err != nil {
+			if err := dbResource.validateJoinColumnRef(condition.Left, allowedTables); err != nil {
 				return nil, invalidAggregation("join", "%v", err)
 			}
 
@@ -734,7 +787,7 @@ func (dbResource *DbResource) DataStats(req AggregationRequest, transaction *sql
 				}
 				rightValue = entityID
 			} else {
-				if err := dbResource.validateColumnRef(rightRaw, allowedTables); err != nil {
+				if err := dbResource.validateJoinColumnRef(rightRaw, allowedTables); err != nil {
 					return nil, invalidAggregation("join", "%v", err)
 				}
 				rightValue = goqu.I(rightRaw)

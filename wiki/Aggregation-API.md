@@ -132,6 +132,10 @@ The `column` and `group` parameters accept a strict, validated set of expression
 
 Same forms as `column`, except aggregate functions (`sum`, `avg`, etc.) are not permitted in GROUP BY.
 
+### Restricted columns
+
+Columns marked `ExcludeFromApi` cannot be projected, grouped, ordered, filtered, or used in `having` in an aggregate. The following column types are also unavailable: `password`, `bcrypt`, `md5`, `md5-bcrypt`, `encrypted`, `hidden`, `content`, `html`, `markdown`, `json`, `gzip`, file types, `image`, and `video`. These restrictions also apply inside functions such as `max(password)` and to join conditions. The internal `id` column remains usable only as a join key, as in `join=customer@eq(customer_id,customer.id)`. A request using a restricted column returns an invalid aggregation query. `count` and `count(*)` remain available without a column argument.
+
 ## Aggregate Functions
 
 | Function | Syntax | Description |
