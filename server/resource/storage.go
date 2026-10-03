@@ -44,7 +44,7 @@ func CreateDefaultLocalStorage(transaction *sqlx.Tx, localStoragePath string) er
 			newUuid, _ := uuid.NewV7()
 			query, vars, err = statementbuilder.Squirrel.Insert("cloud_store").Prepared(true).
 				Cols("reference_id", "name", "store_type", "store_provider", "root_path", "store_parameters", "user_account_id", "permission").
-				Vals([]interface{}{newUuid[:], "localstore", "local", "local", localStoragePath, "", adminUserId, auth.DEFAULT_PERMISSION}).ToSQL()
+				Vals([]interface{}{newUuid[:], "localstore", "local", "local", localStoragePath, "{}", adminUserId, auth.DEFAULT_PERMISSION}).ToSQL()
 
 			if err != nil {
 				return err

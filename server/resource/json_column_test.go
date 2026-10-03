@@ -33,9 +33,35 @@ func TestJSONColumnStorageValueCanonicalizesObjectsAndArrays(t *testing.T) {
 }
 
 func TestJSONColumnStorageValueRejectsInvalidAndScalarValues(t *testing.T) {
-	for _, value := range []interface{}{`{"unterminated":`, `"scalar"`, 42, true} {
+	for _, value := range []interface{}{"", " \n\t", `{"unterminated":`, `"scalar"`, 42, true} {
 		if _, err := jsonColumnStorageValue(value); err == nil {
 			t.Fatalf("jsonColumnStorageValue(%#v) succeeded, want error", value)
+		}
+	}
+}
+
+func TestPublicJSONColumnDataEmptyStoredTextIsNull(t *testing.T) {
+	columns := []api2go.ColumnInfo{{ColumnName: "metadata", ColumnType: "json"}}
+	for _, value := range []interface{}{"", " \n\t", []byte{}, []byte(" \n\t")} {
+		row := map[string]interface{}{"metadata": value}
+		got, err := publicJSONColumnData(row, columns)
+		if err != nil {
+			t.Fatalf("publicJSONColumnData(%#v): %v", value, err)
+		}
+		if got["metadata"] != nil {
+			t.Fatalf("publicJSONColumnData(%#v) metadata = %#v, want nil", value, got["metadata"])
+		}
+		if !reflect.DeepEqual(row["metadata"], value) {
+			t.Fatalf("database row was mutated: %#v", row)
+		}
+	}
+}
+
+func TestPublicJSONColumnDataRejectsMalformedNonemptyText(t *testing.T) {
+	columns := []api2go.ColumnInfo{{ColumnName: "metadata", ColumnType: "json"}}
+	for _, value := range []interface{}{`{"unterminated":`, []byte(`{"unterminated":`)} {
+		if _, err := publicJSONColumnData(map[string]interface{}{"metadata": value}, columns); err == nil {
+			t.Fatalf("publicJSONColumnData(%#v) succeeded, want error", value)
 		}
 	}
 }

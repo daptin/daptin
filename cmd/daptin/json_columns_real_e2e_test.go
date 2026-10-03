@@ -57,6 +57,21 @@ func TestJSONColumnsRealE2E(t *testing.T) {
 	waitForJSONColumnE2EResource(t, baseURL, process)
 	adminToken := fixture.SignupAdmin(t)
 	resourceURL := baseURL + "/api/json_probe"
+	localStoreID := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "cloud_store", "name", "localstore")
+	localStore := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseURL+"/api/cloud_store/"+localStoreID,
+		adminToken, nil, http.StatusOK)
+	localStoreDocument, ok := localStore.(map[string]interface{})
+	if !ok {
+		t.Fatalf("local store response is not an object: %#v", localStore)
+	}
+	localStoreData, ok := localStoreDocument["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("local store response has invalid data: %#v", localStore)
+	}
+	localStoreAttributes, ok := localStoreData["attributes"].(map[string]interface{})
+	if !ok || !reflect.DeepEqual(localStoreAttributes["store_parameters"], map[string]interface{}{}) {
+		t.Fatalf("local store parameters = %#v, want empty object", localStoreAttributes["store_parameters"])
+	}
 
 	object := map[string]interface{}{"source": "rest", "rank": float64(1)}
 	created := accessGroupsE2ERequestJSON(t, client, http.MethodPost, resourceURL, adminToken,

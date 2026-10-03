@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"bytes"
 	stdjson "encoding/json"
 	"fmt"
 	"net/http"
@@ -65,8 +66,8 @@ func invalidJSONColumnError(columnName string, err error) api2go.HTTPError {
 }
 
 // publicJSONColumnData copies a resource row and decodes JSON columns for
-// public REST, GraphQL, and action responses. Internal database consumers keep
-// using the encoded durable representation.
+// public REST, GraphQL, and action responses. Blank stored values become null.
+// Internal database consumers keep using the encoded durable representation.
 func publicJSONColumnData(data map[string]interface{}, columns []api2go.ColumnInfo) (map[string]interface{}, error) {
 	if data == nil {
 		return nil, nil
@@ -86,20 +87,25 @@ func publicJSONColumnData(data map[string]interface{}, columns []api2go.ColumnIn
 			continue
 		}
 
+		var encoded []byte
 		switch typed := value.(type) {
 		case string:
-			var decoded interface{}
-			if err := stdjson.Unmarshal([]byte(typed), &decoded); err != nil {
-				return nil, fmt.Errorf("decode stored JSON column %s: %w", column.ColumnName, err)
-			}
-			result[column.ColumnName] = decoded
+			encoded = []byte(typed)
 		case []byte:
-			var decoded interface{}
-			if err := stdjson.Unmarshal(typed, &decoded); err != nil {
-				return nil, fmt.Errorf("decode stored JSON column %s: %w", column.ColumnName, err)
-			}
-			result[column.ColumnName] = decoded
+			encoded = typed
+		default:
+			continue
 		}
+		if len(bytes.TrimSpace(encoded)) == 0 {
+			result[column.ColumnName] = nil
+			continue
+		}
+
+		var decoded interface{}
+		if err := stdjson.Unmarshal(encoded, &decoded); err != nil {
+			return nil, fmt.Errorf("decode stored JSON column %s: %w", column.ColumnName, err)
+		}
+		result[column.ColumnName] = decoded
 	}
 
 	return result, nil
