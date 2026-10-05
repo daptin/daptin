@@ -379,7 +379,7 @@ func (b *DaptinDAVBackend) ListCalendars(context.Context) ([]caldav.Calendar, er
 	result := make([]caldav.Calendar, 0, len(rows))
 	for _, row := range rows {
 		name := fmt.Sprint(row["name"])
-		result = append(result, caldav.Calendar{Path: b.homePath() + url.PathEscape(name) + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}})
+		result = append(result, caldav.Calendar{Path: b.homePath() + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}})
 	}
 	return result, nil
 }
@@ -393,7 +393,7 @@ func (b *DaptinDAVBackend) GetCalendar(_ context.Context, requestPath string) (*
 	if err != nil {
 		return nil, err
 	}
-	return &caldav.Calendar{Path: b.homePath() + url.PathEscape(name) + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}, nil
+	return &caldav.Calendar{Path: b.homePath() + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}, nil
 }
 
 func (b *DaptinDAVBackend) calendarObject(row map[string]interface{}) (caldav.CalendarObject, error) {
@@ -539,7 +539,7 @@ func (b *DaptinDAVBackend) ListAddressBooks(context.Context) ([]carddav.AddressB
 	result := make([]carddav.AddressBook, 0, len(rows))
 	for _, row := range rows {
 		name := fmt.Sprint(row["name"])
-		result = append(result, carddav.AddressBook{Path: b.homePath() + url.PathEscape(name) + "/", Name: name, Description: fmt.Sprint(row["description"])})
+		result = append(result, carddav.AddressBook{Path: b.homePath() + name + "/", Name: name, Description: fmt.Sprint(row["description"])})
 	}
 	return result, nil
 }
@@ -553,7 +553,7 @@ func (b *DaptinDAVBackend) GetAddressBook(_ context.Context, requestPath string)
 	if err != nil {
 		return nil, err
 	}
-	return &carddav.AddressBook{Path: b.homePath() + url.PathEscape(name) + "/", Name: name, Description: fmt.Sprint(row["description"])}, nil
+	return &carddav.AddressBook{Path: b.homePath() + name + "/", Name: name, Description: fmt.Sprint(row["description"])}, nil
 }
 
 func (b *DaptinDAVBackend) DeleteAddressBook(_ context.Context, requestPath string) error {
