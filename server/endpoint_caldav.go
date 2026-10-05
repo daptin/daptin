@@ -44,9 +44,9 @@ func InitializeCaldavResources(
 			modifiedRequest := c.Request.WithContext(authenticatedRequest.Context())
 
 			if protocol == "caldav" {
-				(&caldav.Handler{Backend: resource.NewCalDAVBackend(cruds, sessionUser), Prefix: "/caldav"}).ServeHTTP(c.Writer, modifiedRequest)
+				(&caldav.Handler{Backend: resource.NewCalDAVBackend(cruds, sessionUser, modifiedRequest.Header), Prefix: "/caldav"}).ServeHTTP(c.Writer, modifiedRequest)
 			} else {
-				(&carddav.Handler{Backend: resource.NewCardDAVBackend(cruds, sessionUser), Prefix: "/carddav"}).ServeHTTP(c.Writer, modifiedRequest)
+				(&carddav.Handler{Backend: resource.NewCardDAVBackend(cruds, sessionUser, modifiedRequest.Header), Prefix: "/carddav"}).ServeHTTP(c.Writer, modifiedRequest)
 			}
 		}
 	}

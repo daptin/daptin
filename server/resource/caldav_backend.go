@@ -20,6 +20,7 @@ import (
 	"github.com/emersion/go-webdav"
 	"github.com/emersion/go-webdav/caldav"
 	"github.com/emersion/go-webdav/carddav"
+	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -43,14 +44,15 @@ type DaptinDAVBackend struct {
 	sessionUser *auth.SessionUser
 	prefix      string
 	home        string
+	headers     http.Header
 }
 
-func NewCalDAVBackend(cruds map[string]*DbResource, user *auth.SessionUser) *DaptinDAVBackend {
-	return &DaptinDAVBackend{cruds: cruds, sessionUser: user, prefix: "/caldav", home: "calendars"}
+func NewCalDAVBackend(cruds map[string]*DbResource, user *auth.SessionUser, headers http.Header) *DaptinDAVBackend {
+	return &DaptinDAVBackend{cruds: cruds, sessionUser: user, prefix: "/caldav", home: "calendars", headers: headers}
 }
 
-func NewCardDAVBackend(cruds map[string]*DbResource, user *auth.SessionUser) *DaptinDAVBackend {
-	return &DaptinDAVBackend{cruds: cruds, sessionUser: user, prefix: "/carddav", home: "addressbooks"}
+func NewCardDAVBackend(cruds map[string]*DbResource, user *auth.SessionUser, headers http.Header) *DaptinDAVBackend {
+	return &DaptinDAVBackend{cruds: cruds, sessionUser: user, prefix: "/carddav", home: "addressbooks", headers: headers}
 }
 
 func (b *DaptinDAVBackend) CurrentUserPrincipal(context.Context) (string, error) {
@@ -104,6 +106,21 @@ func (b *DaptinDAVBackend) rows(table string, where ...goqu.Ex) ([]map[string]in
 		return nil, err
 	}
 	defer tx.Rollback()
+	rows, err := b.rowsWithTransaction(table, tx, where...)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (b *DaptinDAVBackend) rowsWithTransaction(table string, tx *sqlx.Tx, where ...goqu.Ex) ([]map[string]interface{}, error) {
+	crud := b.cruds[table]
+	if crud == nil {
+		return nil, fmt.Errorf("DAV resource %s is not configured", table)
+	}
 	referenceIDs, err := GetReferenceIdByWhereClauseWithTransaction(table, tx, where...)
 	if err != nil {
 		return nil, err
@@ -115,9 +132,6 @@ func (b *DaptinDAVBackend) rows(table string, where ...goqu.Ex) ([]map[string]in
 	rows, err := crud.readByReferenceIDsAfterAuthorizationWithTransaction(
 		referenceIDs, includedRelations, b.request(http.MethodGet, b.prefix+"/"), tx)
 	if err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return rows, nil
@@ -232,6 +246,81 @@ func checkDAVConditions(exists bool, etag string, ifMatch, ifNoneMatch webdav.Co
 	return nil
 }
 
+func (b *DaptinDAVBackend) putFailure(table, requestPath string, ifMatch, ifNoneMatch webdav.ConditionalMatch, writeErr error) error {
+	if !ifMatch.IsSet() && !ifNoneMatch.IsSet() {
+		return writeErr
+	}
+	if !errors.Is(writeErr, ErrVersionConflict) {
+		var constraint api2go.HTTPError
+		if !errors.As(writeErr, &constraint) || constraint.Status() != http.StatusConflict {
+			return writeErr
+		}
+	}
+	row, err := b.objectRow(table, requestPath)
+	if errors.Is(err, errDAVNotFound) {
+		if ifMatch.IsSet() {
+			return webdav.NewHTTPError(http.StatusPreconditionFailed, errors.New("If-Match precondition failed"))
+		}
+		return writeErr
+	}
+	if err != nil {
+		return writeErr
+	}
+	current, err := b.contentBytes(table, row)
+	if err != nil {
+		return writeErr
+	}
+	if conditionErr := checkDAVConditions(true, GetMD5Hash(current), ifMatch, ifNoneMatch); conditionErr != nil {
+		return conditionErr
+	}
+	return writeErr
+}
+
+func (b *DaptinDAVBackend) deleteObject(table, requestPath string) error {
+	crud := b.cruds[table]
+	if crud == nil {
+		return fmt.Errorf("DAV resource %s is not configured", table)
+	}
+	tx, err := crud.Connection().Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	ifMatch := webdav.ConditionalMatch(b.headers.Get("If-Match"))
+	ifNoneMatch := webdav.ConditionalMatch(b.headers.Get("If-None-Match"))
+	conditional := ifMatch.IsSet() || ifNoneMatch.IsSet()
+	if conditional {
+		if err := crud.lockRowByWhereWithTransaction(tx, goqu.Ex{
+			"rpath": path.Clean(requestPath), "user_account_id": b.sessionUser.UserId,
+		}); err != nil {
+			return err
+		}
+	}
+	row, err := b.objectRowWithTransaction(table, requestPath, tx)
+	if err != nil {
+		if errors.Is(err, errDAVNotFound) {
+			if conditionErr := checkDAVConditions(false, "", ifMatch, ifNoneMatch); conditionErr != nil {
+				return conditionErr
+			}
+		}
+		return err
+	}
+	if conditional {
+		current, err := b.contentBytes(table, row)
+		if err != nil {
+			return err
+		}
+		if err := checkDAVConditions(true, GetMD5Hash(current), ifMatch, ifNoneMatch); err != nil {
+			return err
+		}
+	}
+	_, err = crud.deleteAfterAuthorizationWithTransaction(daptinid.InterfaceToDIR(row["reference_id"]), b.request(http.MethodDelete, requestPath), tx)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func (b *DaptinDAVBackend) objectRows(table, relationColumn string, collection map[string]interface{}) ([]map[string]interface{}, error) {
 	collectionID, ok := collection["id"]
 	if !ok {
@@ -242,6 +331,15 @@ func (b *DaptinDAVBackend) objectRows(table, relationColumn string, collection m
 
 func (b *DaptinDAVBackend) objectRow(table, requestPath string) (map[string]interface{}, error) {
 	rows, err := b.rows(table, goqu.Ex{"rpath": path.Clean(requestPath), "user_account_id": b.sessionUser.UserId})
+	return firstDAVObjectRow(rows, err)
+}
+
+func (b *DaptinDAVBackend) objectRowWithTransaction(table, requestPath string, tx *sqlx.Tx) (map[string]interface{}, error) {
+	rows, err := b.rowsWithTransaction(table, tx, goqu.Ex{"rpath": path.Clean(requestPath), "user_account_id": b.sessionUser.UserId})
+	return firstDAVObjectRow(rows, err)
+}
+
+func firstDAVObjectRow(rows []map[string]interface{}, err error) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +489,7 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 		_, err = b.create(calendarObjectTable, requestPath, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "collection_id": daptinid.InterfaceToDIR(collection["reference_id"]).String()})
 	}
 	if err != nil {
-		return nil, err
+		return nil, b.putFailure(calendarObjectTable, requestPath, opts.IfMatch, opts.IfNoneMatch, err)
 	}
 	return &caldav.CalendarObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Data: calendar}, nil
 }
@@ -416,11 +514,7 @@ func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath s
 	if _, err := b.collectionName(requestPath, true); err != nil {
 		return err
 	}
-	row, err := b.objectRow(calendarObjectTable, requestPath)
-	if err != nil {
-		return err
-	}
-	return b.delete(calendarObjectTable, requestPath, row)
+	return b.deleteObject(calendarObjectTable, requestPath)
 }
 
 func (b *DaptinDAVBackend) CreateAddressBook(_ context.Context, addressBook *carddav.AddressBook) error {
@@ -576,7 +670,7 @@ func (b *DaptinDAVBackend) PutAddressObject(_ context.Context, requestPath strin
 		_, err = b.create(addressObjectTable, requestPath, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "address_book_id": daptinid.InterfaceToDIR(collection["reference_id"]).String()})
 	}
 	if err != nil {
-		return nil, err
+		return nil, b.putFailure(addressObjectTable, requestPath, opts.IfMatch, opts.IfNoneMatch, err)
 	}
 	return &carddav.AddressObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Card: card}, nil
 }
@@ -585,9 +679,5 @@ func (b *DaptinDAVBackend) DeleteAddressObject(_ context.Context, requestPath st
 	if _, err := b.collectionName(requestPath, true); err != nil {
 		return err
 	}
-	row, err := b.objectRow(addressObjectTable, requestPath)
-	if err != nil {
-		return err
-	}
-	return b.delete(addressObjectTable, requestPath, row)
+	return b.deleteObject(addressObjectTable, requestPath)
 }

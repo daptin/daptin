@@ -10,7 +10,7 @@ import (
 
 func TestDAVPathsAreScopedToAuthenticatedPrincipal(t *testing.T) {
 	referenceID := daptinid.DaptinReferenceId(uuid.MustParse("11111111-1111-1111-1111-111111111111"))
-	backend := NewCalDAVBackend(nil, &auth.SessionUser{UserReferenceId: referenceID})
+	backend := NewCalDAVBackend(nil, &auth.SessionUser{UserReferenceId: referenceID}, nil)
 
 	name, err := backend.collectionName("/caldav/11111111-1111-1111-1111-111111111111/calendars/personal/", false)
 	if err != nil || name != "personal" {

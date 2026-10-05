@@ -163,6 +163,38 @@ curl -X PUT "$CALENDAR_HOME/personal/event.ics" \
 
 A stale or incorrect `If-Match`, or a matching `If-None-Match`, returns HTTP
 412 without overwriting the stored object.
+Use `If-None-Match: *` when creating an object; if another client creates the
+same path first, the request returns HTTP 412.
+
+Conditional object DELETE also checks `If-Match` and `If-None-Match` against
+the current content ETag. A failed condition returns HTTP 412 and leaves the
+object in place.
+
+## Collection metadata
+
+DAV `PROPPATCH` is unsupported: CalDAV returns HTTP 501, while CardDAV reports
+HTTP 405 for the property in a 207 response. Clients that need to change a
+calendar or address-book description use the normal JSON:API resource:
+`collection` for a calendar and `address_book` for an address book. After
+obtaining a calendar's public `reference_id` from `/api/collection`:
+
+```bash
+curl -X PATCH "http://localhost:6336/api/collection/COLLECTION_REFERENCE_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data '{"data":{"type":"collection","id":"COLLECTION_REFERENCE_ID","attributes":{"description":"Work calendar"}}}'
+```
+
+The caller needs update permission on both the `collection` table and that
+collection row. The default permissions do not grant ordinary users this
+update; grant access explicitly with schema `AccessGroups` and row permission
+as described in [[Permissions]]. The updated description is returned by DAV
+`PROPFIND`. CardDAV uses the same contract with `address_book` in place of
+`collection`.
+
+The `name` field is the collection's URL segment. Do not change it to rename
+the displayed calendar: existing object paths contain that segment. DAV
+display-name mutation and collection renaming are unsupported.
 
 ## Supported behavior
 
@@ -170,7 +202,7 @@ A stale or incorrect `If-Match`, or a matching `If-None-Match`, returns HTTP
 - separate CalDAV calendars and CardDAV address books;
 - `OPTIONS`, `PROPFIND`, `REPORT`, `MKCOL`, `GET`, `HEAD`, `PUT`, and `DELETE`;
 - calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
-- stable content ETags and conditional PUT protection;
+- stable content ETags and conditional object PUT/DELETE protection;
 - per-user ownership and HTTP 403 cross-principal denial;
 - durable SQL-backed storage through Daptin resources.
 

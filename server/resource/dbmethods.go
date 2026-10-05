@@ -2895,6 +2895,34 @@ func (dbResource *DbResource) GetReferenceIdToObjectColumnWithTransaction(typeNa
 	return results[0][columnToSelect], err
 }
 
+// lockRowByWhereWithTransaction keeps a resource row stable until its mutation
+// completes. SQLite needs a write to acquire its transaction-wide writer lock.
+func (dbResource *DbResource) lockRowByWhereWithTransaction(transaction *sqlx.Tx, where goqu.Ex) error {
+	table := dbResource.model.GetTableName()
+	if isSQLiteDriver(transaction.DriverName()) {
+		query, args, err := statementbuilder.Squirrel.Update(table).Prepared(true).
+			Set(goqu.Record{"version": goqu.C("version")}).Where(where).ToSQL()
+		if err != nil {
+			return err
+		}
+		_, err = transaction.Exec(query, args...)
+		return err
+	}
+	query, args, err := statementbuilder.Squirrel.Select("reference_id").Prepared(true).
+		From(table).Where(where).ForUpdate(goqu.Wait).ToSQL()
+	if err != nil {
+		return err
+	}
+	rows, err := transaction.Queryx(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+	}
+	return rows.Err()
+}
+
 // Load rows from the database of `typeName` with a where clause to filter rows
 // Converts the queries to sql and run query with where clause
 // Returns list of reference_ids
