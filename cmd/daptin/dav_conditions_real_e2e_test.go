@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 
 const davE2ECalendarA = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:dav-condition-test\r\nDTSTAMP:20261005T120000Z\r\nDTSTART:20261006T120000Z\r\nDTEND:20261006T130000Z\r\nSUMMARY:First\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 const davE2ECalendarB = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:dav-condition-test\r\nDTSTAMP:20261005T120000Z\r\nDTSTART:20261006T120000Z\r\nDTEND:20261006T130000Z\r\nSUMMARY:Second\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+const davE2ERecurringCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:long-recurring\r\nDTSTAMP:20261005T000000Z\r\nDTSTART:20261001T000000Z\r\nDTEND:20261004T000000Z\r\nRRULE:FREQ=WEEKLY;COUNT=4\r\nSUMMARY:Long event\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 const davE2ECardA = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:dav-condition-test\r\nFN:First\r\nEND:VCARD\r\n"
 const davE2ECardB = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:dav-condition-test\r\nFN:Second\r\nEND:VCARD\r\n"
 
@@ -191,6 +193,23 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 				t.Fatalf("unsupported PROPPATCH changed the description: %s", properties.body)
 			}
 			objectURL := test.collectionURL + test.objectName
+			if test.name == "calendar" {
+				recurringURL := test.collectionURL + "recurring.ics"
+				recurring := davE2EExpect(t, davE2ERequest(client, http.MethodPut, recurringURL, token,
+					"text/calendar", davE2ERecurringCalendar, nil), http.StatusCreated)
+				etag := recurring.header.Get("ETag")
+				if etag == "" {
+					t.Fatal("recurring object has no ETag")
+				}
+				query := `<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><D:getetag/><C:calendar-data/></D:prop><C:filter><C:comp-filter name="VCALENDAR"><C:comp-filter name="VEVENT"><C:time-range start="20261002T000000Z" end="20261003T000000Z"/></C:comp-filter></C:comp-filter></C:filter></C:calendar-query>`
+				report := davE2EExpect(t, davE2ERequest(client, "REPORT", test.collectionURL, token,
+					"application/xml", query, nil), http.StatusMultiStatus)
+				if !strings.Contains(report.body, "recurring.ics") || !strings.Contains(report.body, "RRULE:FREQ=WEEKLY;COUNT=4") || !strings.Contains(report.body, html.EscapeString(etag)) {
+					t.Fatalf("overlapping recurrence missing full data or ETag: %s", report.body)
+				}
+				davE2EExpect(t, davE2ERequest(client, "REPORT", test.collectionURL, otherToken,
+					"application/xml", query, nil), http.StatusForbidden)
+			}
 			created := davE2EExpect(t, davE2ERequest(client, http.MethodPut, objectURL, token, test.contentType, test.first, nil), http.StatusCreated)
 			firstETag := created.header.Get("ETag")
 			if firstETag == "" {

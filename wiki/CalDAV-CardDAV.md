@@ -122,7 +122,10 @@ curl "$CALENDAR_HOME/personal/event.ics" \
 ```
 
 Calendar collections support `calendar-query` and `calendar-multiget` REPORT
-requests. Calendar data is parsed and validated before it is stored.
+requests. A time-range query returns a recurring event when any occurrence
+overlaps the range, including one that began before it. The response retains
+the complete iCalendar object and its ETag. Calendar data is parsed and
+validated before it is stored.
 
 ## Address-book example
 

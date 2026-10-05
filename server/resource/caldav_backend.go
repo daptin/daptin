@@ -14,12 +14,12 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/go-webdav"
+	"github.com/daptin/go-webdav/caldav"
+	"github.com/daptin/go-webdav/carddav"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/emersion/go-ical"
 	"github.com/emersion/go-vcard"
-	"github.com/emersion/go-webdav"
-	"github.com/emersion/go-webdav/caldav"
-	"github.com/emersion/go-webdav/carddav"
 	"github.com/jmoiron/sqlx"
 )
 

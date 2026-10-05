@@ -5,8 +5,8 @@ import (
 
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/resource"
-	"github.com/emersion/go-webdav/caldav"
-	"github.com/emersion/go-webdav/carddav"
+	"github.com/daptin/go-webdav/caldav"
+	"github.com/daptin/go-webdav/carddav"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )

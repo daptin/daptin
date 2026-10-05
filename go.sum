@@ -482,6 +482,8 @@ github.com/cronokirby/saferith v0.33.0 h1:TgoQlfsD4LIwx71+ChfRcIpjkw+RPOapDEVxa+
 github.com/cronokirby/saferith v0.33.0/go.mod h1:QKJhjoqUtBsXCAVEjw38mFqoi7DebT7kthcD7UzbnoA=
 github.com/daaku/go.zipexe v1.0.2 h1:Zg55YLYTr7M9wjKn8SY/WcpuuEi+kR2u4E8RhvpyXmk=
 github.com/daaku/go.zipexe v1.0.2/go.mod h1:5xWogtqlYnfBXkSB1o9xysukNP9GTvaNkqzUZbt3Bw8=
+github.com/daptin/go-webdav v0.7.1-daptin.1 h1:TEMUfvWC6TQiH5HZmyKS1USfuBvSs/CpstJTfoK+8Uw=
+github.com/daptin/go-webdav v0.7.1-daptin.1/go.mod h1:Bz2Nl0plUNTeGRYZ5OUKaA0ZmMwDcAmVJUflMdKKUjU=
 github.com/daptin/llmgateway v0.1.0-dev.35 h1:OAdPhGdLpz8bXcaC4/euhbeD/yaribjNBBjGDXO/Shs=
 github.com/daptin/llmgateway v0.1.0-dev.35/go.mod h1:6ZzDyGrqvA5TLHQnDVvr/WI8UBha8+4qeWGbUbbp1T8=
 github.com/daptin/olric v0.5.7-daptin.1 h1:9x8uoZt6313CkcQHL4f2mLD3LMGhIekaF7OuBkzhqpc=
@@ -545,8 +547,6 @@ github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594/go.mod h1:
 github.com/emersion/go-vcard v0.0.0-20230815062825-8fda7d206ec9/go.mod h1:HMJKR5wlh/ziNp+sHEDV2ltblO4JD2+IdDOWtGcQBTM=
 github.com/emersion/go-vcard v0.0.0-20241024213814-c9703dde27ff h1:4N8wnS3f1hNHSmFD5zgFkWCyA4L1kCDkImPAtK7D6tg=
 github.com/emersion/go-vcard v0.0.0-20241024213814-c9703dde27ff/go.mod h1:HMJKR5wlh/ziNp+sHEDV2ltblO4JD2+IdDOWtGcQBTM=
-github.com/emersion/go-webdav v0.7.0 h1:cp6aBWXBf8Sjzguka9VJarr4XTkGc2IHxXI1Gq3TKpA=
-github.com/emersion/go-webdav v0.7.0/go.mod h1:mI8iBx3RAODwX7PJJ7qzsKAKs/vY429YfS2/9wKnDbQ=
 github.com/envoyproxy/go-control-plane v0.6.9/go.mod h1:SBwIajubJHhxtWwsL9s8ss4safvEdbitLhGGK48rN6g=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=

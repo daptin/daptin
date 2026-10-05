@@ -32,6 +32,7 @@ require (
 	github.com/bep/gowebp v0.2.0
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.5.7
+	github.com/daptin/go-webdav v0.7.1-daptin.1
 	github.com/daptin/llmgateway v0.1.0-dev.35
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
@@ -41,7 +42,6 @@ require (
 	github.com/emersion/go-msgauth v0.4.0
 	github.com/emersion/go-smtp v0.12.1
 	github.com/emersion/go-vcard v0.0.0-20241024213814-c9703dde27ff
-	github.com/emersion/go-webdav v0.7.0
 	github.com/flysnow-org/soha v0.0.0-20191204153003-307ff1f8b4d8
 	github.com/getkin/kin-openapi v0.110.0
 	github.com/ghodss/yaml v1.0.0
