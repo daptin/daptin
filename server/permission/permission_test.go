@@ -2,10 +2,11 @@ package permission
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/google/uuid"
-	"testing"
 )
 
 func TestPermissionValues(t *testing.T) {
@@ -68,5 +69,112 @@ func TestAuthenticatedExecuteExcludesGuestsAndAllowsAuthenticatedUsers(t *testin
 	userID := daptinid.DaptinReferenceId(uuid.New())
 	if !permission.CanExecute(userID, nil, daptinid.NullReferenceId) {
 		t.Fatal("authenticated user should satisfy AuthenticatedExecute")
+	}
+}
+
+func TestCalendarSharingUsesExistingPermissionOperations(t *testing.T) {
+	owner := daptinid.DaptinReferenceId(uuid.New())
+	delegate := daptinid.DaptinReferenceId(uuid.New())
+	readerGroup := daptinid.DaptinReferenceId(uuid.New())
+	editorGroup := daptinid.DaptinReferenceId(uuid.New())
+	managerGroup := daptinid.DaptinReferenceId(uuid.New())
+	freebusyGroup := daptinid.DaptinReferenceId(uuid.New())
+	adminGroup := daptinid.DaptinReferenceId(uuid.New())
+	unrelatedGroup := daptinid.DaptinReferenceId(uuid.New())
+
+	grant := func(group daptinid.DaptinReferenceId, rights auth.AuthPermission) auth.GroupPermission {
+		return auth.GroupPermission{GroupReferenceId: group, RelationReferenceId: daptinid.DaptinReferenceId(uuid.New()), Permission: rights}
+	}
+	membership := func(group daptinid.DaptinReferenceId) auth.GroupPermissionList {
+		return auth.GroupPermissionList{grant(group, 0)}
+	}
+
+	collection := PermissionInstance{
+		UserId:     owner,
+		Permission: auth.UserCRUD | auth.UserExecute,
+		UserGroupId: auth.GroupPermissionList{
+			grant(readerGroup, auth.GroupPeek|auth.GroupRead),
+			grant(editorGroup, auth.GroupPeek|auth.GroupRead|auth.GroupCreate|auth.GroupUpdate|auth.GroupDelete|auth.GroupRefer),
+			grant(managerGroup, auth.GroupPeek|auth.GroupRead|auth.GroupExecute),
+			grant(freebusyGroup, auth.GroupPeek),
+		},
+	}
+	event := PermissionInstance{
+		UserId:     owner,
+		Permission: auth.UserCRUD,
+		UserGroupId: auth.GroupPermissionList{
+			grant(readerGroup, auth.GroupPeek|auth.GroupRead),
+			grant(editorGroup, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate|auth.GroupDelete|auth.GroupRefer),
+			grant(managerGroup, auth.GroupPeek|auth.GroupRead),
+			grant(freebusyGroup, auth.GroupPeek),
+		},
+	}
+	checks := map[string]func(daptinid.DaptinReferenceId, auth.GroupPermissionList) bool{
+		"collection.peek": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return collection.CanPeek(user, groups, adminGroup)
+		},
+		"collection.read": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return collection.CanRead(user, groups, adminGroup)
+		},
+		"collection.create": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return collection.CanCreate(user, groups, adminGroup)
+		},
+		"collection.update": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return collection.CanUpdate(user, groups, adminGroup)
+		},
+		"collection.refer": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return collection.CanRefer(user, groups, adminGroup)
+		},
+		"event.peek": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return event.CanPeek(user, groups, adminGroup)
+		},
+		"event.read": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return event.CanRead(user, groups, adminGroup)
+		},
+		"event.update": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return event.CanUpdate(user, groups, adminGroup)
+		},
+		"event.delete": func(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList) bool {
+			return event.CanDelete(user, groups, adminGroup)
+		},
+	}
+
+	for _, tc := range []struct {
+		name   string
+		user   daptinid.DaptinReferenceId
+		groups auth.GroupPermissionList
+		allow  map[string]bool
+	}{
+		{name: "owner", user: owner, allow: map[string]bool{
+			"collection.peek": true, "collection.read": true, "collection.create": true, "collection.update": true, "collection.refer": true,
+			"event.peek": true, "event.read": true, "event.update": true, "event.delete": true,
+		}},
+		{name: "reader", user: delegate, groups: membership(readerGroup), allow: map[string]bool{
+			"collection.peek": true, "collection.read": true, "event.peek": true, "event.read": true,
+		}},
+		{name: "editor", user: delegate, groups: membership(editorGroup), allow: map[string]bool{
+			"collection.peek": true, "collection.read": true, "collection.create": true, "collection.update": true, "collection.refer": true,
+			"event.peek": true, "event.read": true, "event.update": true, "event.delete": true,
+		}},
+		{name: "manager", user: delegate, groups: membership(managerGroup), allow: map[string]bool{
+			"collection.peek": true, "collection.read": true, "event.peek": true, "event.read": true,
+		}},
+		{name: "freebusy only", user: delegate, groups: membership(freebusyGroup), allow: map[string]bool{
+			"collection.peek": true, "event.peek": true,
+		}},
+		{name: "unrelated", user: delegate, groups: membership(unrelatedGroup)},
+		{name: "revoked", user: delegate},
+		{name: "administrator", user: delegate, groups: membership(adminGroup), allow: map[string]bool{
+			"collection.peek": true, "collection.read": true, "collection.create": true, "collection.update": true, "collection.refer": true,
+			"event.peek": true, "event.read": true, "event.update": true, "event.delete": true,
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for name, check := range checks {
+				if got, want := check(tc.user, tc.groups), tc.allow[name]; got != want {
+					t.Errorf("%s = %t, want %t", name, got, want)
+				}
+			}
+		})
 	}
 }

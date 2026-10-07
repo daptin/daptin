@@ -1,11 +1,14 @@
 # CalDAV and CardDAV
 
-Daptin exposes authenticated, user-isolated CalDAV and CardDAV services backed
-by normal Daptin resources.
+Daptin exposes authenticated CalDAV and CardDAV services backed by normal
+Daptin resources. CalDAV access follows resource permissions; CardDAV remains
+scoped to the authenticated account.
 
 - CalDAV stores collections in `collection` and objects in `calendar`.
 - CardDAV stores collections in `address_book` and objects in `contact`.
-- The authenticated `user_account` owns every collection and object.
+- A CalDAV URL identifies the calendar collection's owner, while the
+  authenticated account supplies the permissions for each request. Each event
+  belongs to the account that created it.
 - The SQL database is durable authority. No `./storage/caldav` or
   `./storage/carddav` directories are required.
 - Writes use the normal resource lifecycle. If an administrator configures a
@@ -26,7 +29,33 @@ curl -X POST "http://localhost:6336/_config/backend/caldav.enable" \
   --data 'true'
 ```
 
-Both CalDAV and CardDAV endpoints are enabled by this setting.
+Both CalDAV and CardDAV endpoints are enabled by this setting. Enabling an
+endpoint does not grant CRUD access to its backing resource tables.
+
+CalDAV does not change the built-in permissions of `collection` or `calendar`.
+A calendar owner is not automatically a Daptin administrator. An administrator,
+or another account with schema-management permission, grants table access and
+chooses row defaults through the normal Daptin schema. For example, this setup
+lets members of `users` create calendars and gives creators control of their
+own rows:
+
+```yaml
+Tables:
+  - TableName: collection
+    DefaultPermission: 16256 # User CRUD and Execute
+    AccessGroups:
+      - Name: users
+        Permission: 2080768 # Group CRUD and Execute
+  - TableName: calendar
+    DefaultPermission: 12160 # User CRUD
+    AccessGroups:
+      - Name: users
+        Permission: 1556480 # Group CRUD
+```
+
+Choose the table group and rights for your installation. Row defaults apply
+to newly created rows; an administrator sets permissions on existing rows
+through the normal resources. See [[Permissions]] for the schema workflow.
 
 ## Client endpoints
 
@@ -56,9 +85,11 @@ The discovery chain is:
   -> /carddav/{user-reference-id}/addressbooks/{address-book}/
 ```
 
-These are protocol URLs, not authorization input. Daptin derives the permitted
-principal from the authenticated `SessionUser`. Requesting another user's URL
-returns HTTP 403.
+These are protocol URLs, not authorization input. Daptin derives the caller
+from the authenticated `SessionUser`. A CalDAV request to another account's
+calendar uses that calendar's canonical owner URL and succeeds only when the
+caller has the required resource grants. CardDAV still rejects another
+account's path.
 
 ## Verify discovery
 
@@ -189,11 +220,100 @@ curl -X PATCH "http://localhost:6336/api/collection/COLLECTION_REFERENCE_ID" \
 ```
 
 The caller needs update permission on both the `collection` table and that
-collection row. The default permissions do not grant ordinary users this
-update; grant access explicitly with schema `AccessGroups` and row permission
-as described in [[Permissions]]. The updated description is returned by DAV
-`PROPFIND`. CardDAV uses the same contract with `address_book` in place of
-`collection`.
+collection row. The schema chosen by the administrator determines whether an
+owner receives it.
+The updated description is returned by DAV `PROPFIND`. CardDAV uses the same
+contract with `address_book` in place of `collection`; its owner does not
+receive update permission by default.
+
+## Share a CalDAV calendar
+
+CalDAV evaluates the authenticated account's Daptin permissions on the
+collection and each event at the calendar owner's canonical URL. A collection
+read grant alone does not grant event content. Free/busy uses peek permission
+on the collection and contributing events, without returning event details.
+
+Administrators choose table access, row defaults, and group membership. After
+creating a `usergroup` and adding the delegate through the `user_account`
+relationship, the calendar owner with `Execute`, an administrator, or a member
+with `Execute` on the collection can set that group's access using the
+`collection/share` action. The action uses the existing Daptin group permission
+bits. For example, `32768` is `GroupRead`, `16384` is `GroupPeek`, and `1556480`
+is `GroupCRUD`.
+`GroupExecute` (`524288`) on the collection grants the ability to manage its
+group shares. The configured table and action permissions also apply.
+Granting access also requires `Refer` permission on the target `usergroup`
+table and row; removing an existing grant does not.
+
+```bash
+curl -X POST "http://localhost:6336/action/collection/share" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID","usergroup_id":"GROUP_REFERENCE_ID","permission":32768}}'
+```
+
+The action sets that group's permission on the collection and every event
+currently in it in one transaction. `GroupExecute` applies only to the
+collection; the other group bits apply to its current events. CalDAV `PUT`
+also copies the collection's current group links to each new event in the same
+transaction, including events created by a delegate. The signed-in account
+remains the event row's owner. The action replaces any
+existing links for the same group on those rows and leaves other groups' links
+alone. Send `"permission":0` to remove those links; subsequent CalDAV and JSON:API
+requests then use the remaining row permissions. Other grants may still allow
+access.
+
+For revocation to cover direct JSON:API access to delegate-created events,
+configure the `calendar` row default without `UserRead` or other owner rights.
+For example, `DefaultPermission: 16384` uses the existing `GroupPeek` bit and
+adds no owner access. Keep table access for the intended users as shown above.
+Create a separate private `usergroup` containing the calendar owner, then grant
+that group `GroupCRUD` on the collection through `collection/share` before
+creating events. CalDAV copies this owner group grant to new events alongside
+delegate grants. Removing only the delegate group's share then leaves owner
+access intact and removes the delegate's direct row access. Do not use a group
+that also contains delegates as the owner group.
+
+Changing the row default affects new events only. For existing events, first
+grant the private owner group through `collection/share`, then have an
+administrator update each existing `calendar` row's `permission` through the
+normal resource API to remove owner bits. For example, after identifying an
+event's reference ID, patch its row with
+`{"data":{"type":"calendar","id":"EVENT_REFERENCE_ID","attributes":{"permission":16384}}}`.
+Check owner access before revoking delegate groups. Rows with other grants may
+still be accessible through those
+grants. Table-level denial cannot replace this row policy: it also denies
+authorized owners and delegates at the table boundary.
+
+A `GroupPeek` grant exposes free/busy intervals without event details.
+`GroupRead` permits details;
+`GroupCRUD` permits edits when the corresponding table permissions allow them.
+Free/busy reports accept a range of at most one year and examine at most 1,000
+event objects in a collection; larger collections receive HTTP 507.
+
+CalDAV-created events inherit collection links; events created or moved through
+the JSON:API resource path follow their configured row defaults and relations.
+`DefaultGroups` can grant the same group rights to all qualifying new rows,
+independent of a particular calendar. The generated `usergroup_id` parent
+relationship uses its configured link default and does not accept a per-link
+permission.
+If an event is later moved to another collection through the resource API, its
+event link remains on that row; revoking the original collection's current
+events will not find it.
+`CLASS:PRIVATE` is iCalendar classification data; it does not change Daptin
+permissions. Configure the event's row grants to keep its details private.
+
+The delegate uses the calendar owner's canonical CalDAV URL. The delegate's
+own `calendar-home-set` continues to describe calendars owned by that
+delegate; it does not list other owners' calendars. A delegate can discover
+readable shared collections through the normal `GET /api/collection` resource.
+Each returned row includes `name` and `user_account_id`; its CalDAV URL is
+`/caldav/{user_account_id}/calendars/{name}/`. A group with only peek
+rights can obtain free/busy intervals through `free-busy-query` but cannot
+read event content or list it through `/api/calendar`. Sharing with an
+individual account requires placing that account in an appropriate persisted
+`usergroup`; the action accepts a group reference ID. See [[Permissions]] and
+[[Relationships]] for the general resource and relationship workflow.
 
 The `name` field is the collection's URL segment. Do not change it to rename
 the displayed calendar: existing object paths contain that segment. DAV
@@ -205,14 +325,17 @@ display-name mutation and collection renaming are unsupported.
 - separate CalDAV calendars and CardDAV address books;
 - `OPTIONS`, `PROPFIND`, `REPORT`, `MKCOL`, `GET`, `HEAD`, `PUT`, and `DELETE`;
 - calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
+- calendar free-busy-query REPORT with a bounded time range;
 - stable content ETags and conditional object PUT/DELETE protection;
-- per-user ownership and HTTP 403 cross-principal denial;
+- per-row Daptin permissions for CalDAV, including direct access at an owner's
+  URL when collection and event grants permit it;
 - durable SQL-backed storage through Daptin resources.
 
 `COPY`, `MOVE`, and collection property mutation are not currently implemented
-and return an explicit unsupported response. Scheduling, free/busy,
-CalDAV/CardDAV sync tokens, and shared-calendar delegation are also not
-implemented.
+and return an explicit unsupported response. Scheduling and CalDAV/CardDAV sync
+tokens are not implemented. Collection grants do not propagate to events
+created or moved through JSON:API. The endpoint does not implement the RFC 3744 ACL method or claim
+full WebDAV ACL conformance.
 
 ## Troubleshooting
 
@@ -223,9 +346,10 @@ account's email and password with Basic authentication.
 
 ### HTTP 403 on a principal path
 
-The URL belongs to another Daptin account. Start discovery at `/caldav/` or
-`/carddav/` while authenticated as the intended user; do not copy another
-user's discovered URL.
+For CalDAV, the caller lacks a required grant on the collection or event at
+that owner URL. For CardDAV, the URL belongs to another account. Start
+discovery at `/caldav/` or `/carddav/` for the authenticated account's own
+collections.
 
 ### HTTP 404 on a collection or object
 

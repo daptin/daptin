@@ -66,6 +66,31 @@ func TestReferenceIDInFilter(t *testing.T) {
 	}
 }
 
+func TestLimitedReferenceIDLookupBoundsMatchingRows(t *testing.T) {
+	statementbuilder.InitialiseStatementBuilder("sqlite3")
+	db := sqlx.MustOpen("sqlite3", ":memory:")
+	defer db.Close()
+	db.MustExec(`create table item (id integer primary key, reference_id blob not null unique, collection_id integer not null)`)
+	for index := 0; index < 5; index++ {
+		reference := daptinid.DaptinReferenceId(uuid.New())
+		collectionID := 7
+		if index == 4 {
+			collectionID = 8
+		}
+		db.MustExec(`insert into item (reference_id, collection_id) values (?, ?)`, reference[:], collectionID)
+	}
+	tx := db.MustBegin()
+	defer tx.Rollback()
+	rows, err := GetLimitedReferenceIdByWhereClauseWithTransaction("item", tx, 3, goqu.Ex{"collection_id": 7})
+	if err != nil || len(rows) != 3 {
+		t.Fatalf("limited matching IDs = %d, %v; want 3", len(rows), err)
+	}
+	rows, err = GetReferenceIdByWhereClauseWithTransaction("item", tx, goqu.Ex{"collection_id": 7})
+	if err != nil || len(rows) != 4 {
+		t.Fatalf("unlimited matching IDs = %d, %v; want 4", len(rows), err)
+	}
+}
+
 func TestGetReferenceIdListToIdListWithTransactionMissingReference(t *testing.T) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {

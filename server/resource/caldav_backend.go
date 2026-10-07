@@ -3,6 +3,7 @@ package resource
 import (
 	"bytes"
 	"context"
+	encodingjson "encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
 	"github.com/daptin/go-webdav"
 	"github.com/daptin/go-webdav/caldav"
 	"github.com/daptin/go-webdav/carddav"
@@ -38,7 +40,7 @@ var (
 )
 
 // DaptinDAVBackend adapts the protocol backends to canonical Daptin resources.
-// The endpoint authenticates first; every lookup is then scoped to that owner.
+// The endpoint authenticates first; CalDAV paths identify the calendar owner.
 type DaptinDAVBackend struct {
 	cruds       map[string]*DbResource
 	sessionUser *auth.SessionUser
@@ -66,8 +68,36 @@ func (b *DaptinDAVBackend) homePath() string {
 	return b.prefix + "/" + b.sessionUser.UserReferenceId.String() + "/" + b.home + "/"
 }
 
-func (b *DaptinDAVBackend) CalendarHomeSetPath(context.Context) (string, error) {
-	return b.homePath(), nil
+func (b *DaptinDAVBackend) calendarHomeOwner(requestPath string) (daptinid.DaptinReferenceId, error) {
+	parts := strings.Split(strings.Trim(path.Clean(requestPath), "/"), "/")
+	if (len(parts) != 2 && len(parts) != 3) || parts[0] != "caldav" || (len(parts) == 3 && parts[2] != "calendars") {
+		return daptinid.NullReferenceId, webdav.NewHTTPError(http.StatusNotFound, errors.New("invalid calendar home path"))
+	}
+	owner := daptinid.InterfaceToDIR(parts[1])
+	if owner == daptinid.NullReferenceId {
+		return daptinid.NullReferenceId, webdav.NewHTTPError(http.StatusNotFound, errors.New("invalid calendar principal"))
+	}
+	return owner, nil
+}
+
+func (b *DaptinDAVBackend) CalendarHomeSetPath(ctx context.Context, requestedPath string) (string, error) {
+	if b.sessionUser == nil || b.sessionUser.UserReferenceId == daptinid.NullReferenceId {
+		return "", webdav.NewHTTPError(http.StatusUnauthorized, errors.New("DAV authentication required"))
+	}
+	owner, err := b.calendarHomeOwner(requestedPath)
+	if err != nil {
+		return "", err
+	}
+	if owner != b.sessionUser.UserReferenceId {
+		visible, err := b.ListCalendars(ctx, requestedPath)
+		if err != nil {
+			return "", err
+		}
+		if len(visible) == 0 {
+			return "", webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar home access denied"))
+		}
+	}
+	return b.prefix + "/" + owner.String() + "/calendars/", nil
 }
 func (b *DaptinDAVBackend) AddressBookHomeSetPath(context.Context) (string, error) {
 	return b.homePath(), nil
@@ -88,6 +118,234 @@ func (b *DaptinDAVBackend) collectionName(requestPath string, object bool) (stri
 		return "", webdav.NewHTTPError(http.StatusNotFound, errors.New("invalid DAV resource path"))
 	}
 	return parts[0], nil
+}
+
+func (b *DaptinDAVBackend) calendarPath(requestPath string, object bool) (daptinid.DaptinReferenceId, string, error) {
+	if b.sessionUser == nil || b.sessionUser.UserReferenceId == daptinid.NullReferenceId {
+		return daptinid.NullReferenceId, "", webdav.NewHTTPError(http.StatusUnauthorized, errors.New("DAV authentication required"))
+	}
+	parts := strings.Split(strings.Trim(path.Clean(requestPath), "/"), "/")
+	want := 4
+	if object {
+		want = 5
+	}
+	if len(parts) != want || parts[0] != "caldav" || parts[2] != "calendars" || parts[3] == "" || (object && parts[4] == "") {
+		return daptinid.NullReferenceId, "", webdav.NewHTTPError(http.StatusNotFound, errors.New("invalid CalDAV resource path"))
+	}
+	owner := daptinid.InterfaceToDIR(parts[1])
+	if owner == daptinid.NullReferenceId {
+		return daptinid.NullReferenceId, "", webdav.NewHTTPError(http.StatusNotFound, errors.New("invalid CalDAV principal"))
+	}
+	return owner, parts[3], nil
+}
+
+// calendarRows enters the same list path as JSON:API, including its SQL read
+// filter, table checks, row checks, conversion, and metering.
+func (b *DaptinDAVBackend) calendarRows(table, requestPath string, filters ...Query) ([]map[string]interface{}, error) {
+	crud := b.cruds[table]
+	if crud == nil {
+		return nil, fmt.Errorf("DAV resource %s is not configured", table)
+	}
+	tx, err := crud.Connection().Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	rows, err := b.calendarRowsWithTransaction(table, requestPath, tx, filters...)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (b *DaptinDAVBackend) calendarRowsWithTransaction(table, requestPath string, tx *sqlx.Tx, filters ...Query) ([]map[string]interface{}, error) {
+	crud := b.cruds[table]
+	if crud == nil {
+		return nil, fmt.Errorf("DAV resource %s is not configured", table)
+	}
+	query, err := encodingjson.Marshal(filters)
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]map[string]interface{}, 0)
+	for page := 1; ; page++ {
+		req := b.request(http.MethodGet, requestPath)
+		req.QueryParams = map[string][]string{
+			"query":        {string(query)},
+			"page[size]":   {"1000"},
+			"page[number]": {fmt.Sprint(page)},
+		}
+		if table == calendarObjectTable {
+			req.QueryParams["included_relations"] = []string{"content"}
+		}
+		_, response, err := crud.PaginatedFindAllWithTransaction(req, tx)
+		if err != nil {
+			return nil, davResourceError(err)
+		}
+		models, ok := response.Result().([]api2go.Api2GoModel)
+		if !ok {
+			return nil, errors.New("DAV resource list returned an invalid result")
+		}
+		for _, model := range models {
+			row := model.GetAttributes()
+			row["reference_id"] = model.GetID()
+			rows = append(rows, row)
+		}
+		if len(models) < 1000 {
+			return rows, nil
+		}
+	}
+}
+
+func (b *DaptinDAVBackend) calendarCollection(owner daptinid.DaptinReferenceId, name, requestPath string, tx *sqlx.Tx) (map[string]interface{}, error) {
+	filters := []Query{{ColumnName: "user_account_id", Operator: "=", Value: owner.String()}, {ColumnName: "name", Operator: "=", Value: name}}
+	var rows []map[string]interface{}
+	var err error
+	if tx == nil {
+		rows, err = b.calendarRows(calendarCollectionTable, requestPath, filters...)
+	} else {
+		rows, err = b.calendarRowsWithTransaction(calendarCollectionTable, requestPath, tx, filters...)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		if owner != b.sessionUser.UserReferenceId {
+			return nil, webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar access denied"))
+		}
+		return nil, webdav.NewHTTPError(http.StatusNotFound, errDAVNotFound)
+	}
+	return rows[0], nil
+}
+
+func (b *DaptinDAVBackend) calendarObjectRow(requestPath string, collection map[string]interface{}, tx *sqlx.Tx) (map[string]interface{}, error) {
+	filters := []Query{{ColumnName: "rpath", Operator: "=", Value: path.Clean(requestPath)},
+		{ColumnName: "collection_id", Operator: "=", Value: fmt.Sprint(collection["reference_id"])}}
+	var rows []map[string]interface{}
+	var err error
+	if tx == nil {
+		rows, err = b.calendarRows(calendarObjectTable, requestPath, filters...)
+	} else {
+		rows, err = b.calendarRowsWithTransaction(calendarObjectTable, requestPath, tx, filters...)
+	}
+	return firstDAVObjectRow(rows, err)
+}
+
+func (b *DaptinDAVBackend) calendarEditAllowed(collection map[string]interface{}, tx *sqlx.Tx, create bool) bool {
+	if b.sessionUser == nil {
+		return false
+	}
+	crud := b.cruds[calendarCollectionTable]
+	permission := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable,
+		daptinid.InterfaceToDIR(collection["reference_id"]), tx)
+	user, groups, admin := b.sessionUser.UserReferenceId, b.sessionUser.Groups, crud.AdministratorGroupId
+	if create {
+		return permission.CanCreate(user, groups, admin) && permission.CanRefer(user, groups, admin)
+	}
+	return permission.CanUpdate(user, groups, admin)
+}
+
+func (b *DaptinDAVBackend) lockCalendarCollection(collection map[string]interface{}, tx *sqlx.Tx) error {
+	referenceID := daptinid.InterfaceToDIR(collection["reference_id"])
+	return b.cruds[calendarCollectionTable].lockRowByWhereWithTransaction(tx, goqu.Ex{"reference_id": referenceID[:]})
+}
+
+func (b *DaptinDAVBackend) calendarCreate(table, requestPath string, attrs map[string]interface{}, tx *sqlx.Tx) error {
+	crud := b.cruds[table]
+	_, err := crud.CreateWithTransaction(
+		api2go.NewApi2GoModelWithData(table, nil, int64(crud.TableInfo().DefaultPermission), nil, attrs),
+		b.request(http.MethodPost, requestPath), tx)
+	return davResourceError(err)
+}
+
+// A DAV event inherits the collection's persisted group links while the
+// collection row is locked. The active account still owns the event row.
+func (b *DaptinDAVBackend) calendarCreateEvent(requestPath string, collection map[string]interface{}, attrs map[string]interface{}, tx *sqlx.Tx) error {
+	crud := b.cruds[calendarObjectTable]
+	if !IsAdminWithTransaction(b.sessionUser, tx) {
+		tablePermission := crud.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
+		if !tablePermission.CanCreate(b.sessionUser.UserReferenceId, b.sessionUser.Groups, crud.AdministratorGroupId) {
+			return webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar table create access denied"))
+		}
+	}
+	response, err := crud.createAfterAuthorizationWithTransaction(
+		api2go.NewApi2GoModelWithData(calendarObjectTable, nil, int64(crud.TableInfo().DefaultPermission), nil, attrs),
+		b.request(http.MethodPost, requestPath), tx)
+	if err != nil {
+		return davResourceError(err)
+	}
+	model, ok := response.Result().(api2go.Api2GoModel)
+	if !ok {
+		return errors.New("calendar create returned an invalid resource")
+	}
+	eventRef := daptinid.InterfaceToDIR(model.GetID())
+	if eventRef == daptinid.NullReferenceId {
+		return errors.New("calendar create returned no reference ID")
+	}
+	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, daptinid.InterfaceToDIR(collection["reference_id"]), tx)
+	if err != nil {
+		return err
+	}
+	joinTable := calendarCollectionTable + "_" + calendarCollectionTable + "_id_has_usergroup_usergroup_id"
+	links, err := GetObjectByWhereClauseWithTransaction(joinTable, tx, goqu.Ex{"collection_id": collectionID})
+	if err != nil {
+		return err
+	}
+	share := calendarShareAction{cruds: b.cruds}
+	for _, link := range links {
+		groupID, err := ResourceRowInt64(link["usergroup_id"])
+		if err != nil {
+			return err
+		}
+		groupRef, err := GetIdToReferenceIdWithTransaction("usergroup", groupID, tx)
+		if err != nil {
+			return err
+		}
+		linkPermission, err := ResourceRowInt64(link["permission"])
+		if err != nil || linkPermission < 0 {
+			if err == nil {
+				err = errors.New("invalid collection group link permission")
+			}
+			return err
+		}
+		grant := auth.AuthPermission(linkPermission) & (auth.GroupPeek | auth.GroupRead | auth.GroupCreate | auth.GroupUpdate | auth.GroupDelete | auth.GroupRefer)
+		if grant == 0 {
+			continue
+		}
+		if err := share.setLink(calendarObjectTable, eventRef, groupRef, grant, requestPath, b.sessionUser, tx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *DaptinDAVBackend) calendarUpdate(table, requestPath string, row, attrs map[string]interface{}, tx *sqlx.Tx) error {
+	updated := make(map[string]interface{}, len(row)+len(attrs))
+	for key, value := range row {
+		updated[key] = value
+	}
+	for key, value := range attrs {
+		updated[key] = value
+	}
+	model := api2go.NewApi2GoModelWithData(table, nil, 0, nil, updated)
+	_, err := b.cruds[table].UpdateWithTransaction(model, b.request(http.MethodPatch, requestPath), tx)
+	return davResourceError(err)
+}
+
+func (b *DaptinDAVBackend) calendarDelete(table, requestPath string, row map[string]interface{}, tx *sqlx.Tx) error {
+	_, err := b.cruds[table].DeleteWithTransaction(daptinid.InterfaceToDIR(row["reference_id"]), b.request(http.MethodDelete, requestPath), tx)
+	return davResourceError(err)
+}
+
+func davResourceError(err error) error {
+	var resourceError api2go.HTTPError
+	if errors.As(err, &resourceError) {
+		return webdav.NewHTTPError(resourceError.Status(), err)
+	}
+	return err
 }
 
 func (b *DaptinDAVBackend) request(method, requestPath string) api2go.Request {
@@ -358,42 +616,102 @@ func (b *DaptinDAVBackend) contentValue(table, name, contentType string, data []
 }
 
 func (b *DaptinDAVBackend) CreateCalendar(_ context.Context, calendar *caldav.Calendar) error {
-	name, err := b.collectionName(calendar.Path, false)
+	owner, name, err := b.calendarPath(calendar.Path, false)
 	if err != nil {
 		return err
 	}
-	if _, err := b.ownedCollection(calendarCollectionTable, name); err == nil {
+	if owner != b.sessionUser.UserReferenceId {
+		return webdav.NewHTTPError(http.StatusForbidden, errors.New("cannot create another principal's calendar"))
+	}
+	crud := b.cruds[calendarCollectionTable]
+	tx, err := crud.Connection().Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := b.calendarCollection(owner, name, calendar.Path, tx); err == nil {
 		return webdav.NewHTTPError(http.StatusMethodNotAllowed, errors.New("calendar already exists"))
 	} else if !errors.Is(err, errDAVNotFound) {
 		return err
 	}
-	_, err = b.create(calendarCollectionTable, calendar.Path, map[string]interface{}{"name": name, "description": calendar.Description})
-	return err
+	if err := b.calendarCreate(calendarCollectionTable, calendar.Path, map[string]interface{}{"name": name, "description": calendar.Description}, tx); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
-func (b *DaptinDAVBackend) ListCalendars(context.Context) ([]caldav.Calendar, error) {
-	rows, err := b.rows(calendarCollectionTable, goqu.Ex{"user_account_id": b.sessionUser.UserId})
+func (b *DaptinDAVBackend) ListCalendars(_ context.Context, requestedPath string) ([]caldav.Calendar, error) {
+	owner, err := b.calendarHomeOwner(requestedPath)
+	if err != nil {
+		return nil, err
+	}
+	home := b.prefix + "/" + owner.String() + "/calendars/"
+	rows, err := b.calendarRows(calendarCollectionTable, home, Query{ColumnName: "user_account_id", Operator: "=", Value: owner.String()})
 	if err != nil {
 		return nil, err
 	}
 	result := make([]caldav.Calendar, 0, len(rows))
+	tx, err := b.cruds[calendarCollectionTable].Connection().Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	collectionTable, eventTable := b.calendarTablePermissions(tx)
 	for _, row := range rows {
 		name := fmt.Sprint(row["name"])
-		result = append(result, caldav.Calendar{Path: b.homePath() + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}})
+		calendar := caldav.Calendar{Path: home + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
+		b.calendarPrivileges(&calendar, row, collectionTable, eventTable, tx)
+		result = append(result, calendar)
 	}
 	return result, nil
 }
 
 func (b *DaptinDAVBackend) GetCalendar(_ context.Context, requestPath string) (*caldav.Calendar, error) {
-	name, err := b.collectionName(requestPath, false)
+	owner, name, err := b.calendarPath(requestPath, false)
 	if err != nil {
 		return nil, err
 	}
-	row, err := b.ownedCollection(calendarCollectionTable, name)
+	row, err := b.calendarCollection(owner, name, requestPath, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &caldav.Calendar{Path: b.homePath() + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}, nil
+	calendar := &caldav.Calendar{Path: b.prefix + "/" + owner.String() + "/calendars/" + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
+	tx, err := b.cruds[calendarCollectionTable].Connection().Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	collectionTable, eventTable := b.calendarTablePermissions(tx)
+	b.calendarPrivileges(calendar, row, collectionTable, eventTable, tx)
+	return calendar, nil
+}
+
+func (b *DaptinDAVBackend) calendarTablePermissions(tx *sqlx.Tx) (permission.PermissionInstance, permission.PermissionInstance) {
+	collectionTable := b.cruds[calendarCollectionTable].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarCollectionTable, tx)
+	eventTable := b.cruds[calendarObjectTable].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
+	return collectionTable, eventTable
+}
+
+func (b *DaptinDAVBackend) calendarPrivileges(calendar *caldav.Calendar, row map[string]interface{}, collectionTable, eventTable permission.PermissionInstance, tx *sqlx.Tx) {
+	ref := daptinid.InterfaceToDIR(row["reference_id"])
+	collection := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, ref, tx)
+	admin := b.cruds[calendarCollectionTable].AdministratorGroupId
+	user, groups := b.sessionUser.UserReferenceId, b.sessionUser.Groups
+	calendar.Read = collectionTable.CanRead(user, groups, admin) && collection.CanRead(user, groups, admin)
+	calendar.ReadFreeBusy = (collectionTable.CanPeek(user, groups, admin) || collectionTable.CanRead(user, groups, admin)) &&
+		(collection.CanPeek(user, groups, admin) || collection.CanRead(user, groups, admin)) &&
+		(eventTable.CanPeek(user, groups, admin) || eventTable.CanRead(user, groups, admin))
+	calendar.Bind = calendar.Read && collection.CanCreate(user, groups, admin) && collection.CanRefer(user, groups, admin) &&
+		eventTable.CanCreate(user, groups, admin)
+	// Deleting an event also checks that event row's Delete grant. Only an
+	// administrator can be certain of that grant for every child row here.
+	for _, group := range groups {
+		if group.GroupReferenceId == admin {
+			calendar.Unbind = calendar.Read && collection.CanUpdate(user, groups, admin) &&
+				eventTable.CanDelete(user, groups, admin)
+			break
+		}
+	}
 }
 
 func (b *DaptinDAVBackend) calendarObject(row map[string]interface{}) (caldav.CalendarObject, error) {
@@ -409,10 +727,15 @@ func (b *DaptinDAVBackend) calendarObject(row map[string]interface{}) (caldav.Ca
 }
 
 func (b *DaptinDAVBackend) GetCalendarObject(_ context.Context, requestPath string, _ *caldav.CalendarCompRequest) (*caldav.CalendarObject, error) {
-	if _, err := b.collectionName(requestPath, true); err != nil {
+	owner, name, err := b.calendarPath(requestPath, true)
+	if err != nil {
 		return nil, err
 	}
-	row, err := b.objectRow(calendarObjectTable, requestPath)
+	collection, err := b.calendarCollection(owner, name, requestPath, nil)
+	if err != nil {
+		return nil, err
+	}
+	row, err := b.calendarObjectRow(requestPath, collection, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -421,15 +744,16 @@ func (b *DaptinDAVBackend) GetCalendarObject(_ context.Context, requestPath stri
 }
 
 func (b *DaptinDAVBackend) ListCalendarObjects(_ context.Context, requestPath string, _ *caldav.CalendarCompRequest) ([]caldav.CalendarObject, error) {
-	name, err := b.collectionName(requestPath, false)
+	owner, name, err := b.calendarPath(requestPath, false)
 	if err != nil {
 		return nil, err
 	}
-	collection, err := b.ownedCollection(calendarCollectionTable, name)
+	collection, err := b.calendarCollection(owner, name, requestPath, nil)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := b.objectRows(calendarObjectTable, "collection_id", collection)
+	rows, err := b.calendarRows(calendarObjectTable, requestPath,
+		Query{ColumnName: "collection_id", Operator: "=", Value: fmt.Sprint(collection["reference_id"])})
 	if err != nil {
 		return nil, err
 	}
@@ -453,12 +777,24 @@ func (b *DaptinDAVBackend) QueryCalendarObjects(ctx context.Context, requestPath
 }
 
 func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath string, calendar *ical.Calendar, opts *caldav.PutCalendarObjectOptions) (*caldav.CalendarObject, error) {
-	name, err := b.collectionName(requestPath, true)
+	owner, name, err := b.calendarPath(requestPath, true)
 	if err != nil {
 		return nil, err
 	}
-	collection, err := b.ownedCollection(calendarCollectionTable, name)
+	crud := b.cruds[calendarObjectTable]
+	tx, err := crud.Connection().Beginx()
 	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	collection, err := b.calendarCollection(owner, name, requestPath, tx)
+	if err != nil {
+		return nil, err
+	}
+	if !b.calendarEditAllowed(collection, tx, true) && !b.calendarEditAllowed(collection, tx, false) {
+		return nil, webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar edit access denied"))
+	}
+	if err := b.lockCalendarCollection(collection, tx); err != nil {
 		return nil, err
 	}
 	var encoded bytes.Buffer
@@ -466,10 +802,13 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 		return nil, err
 	}
 	data := encoded.Bytes()
-	existing, findErr := b.objectRow(calendarObjectTable, requestPath)
+	existing, findErr := b.calendarObjectRow(requestPath, collection, tx)
 	exists := findErr == nil
 	if findErr != nil && !errors.Is(findErr, errDAVNotFound) {
 		return nil, findErr
+	}
+	if !b.calendarEditAllowed(collection, tx, !exists) {
+		return nil, webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar edit access denied"))
 	}
 	etag := ""
 	if exists {
@@ -484,37 +823,74 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	}
 	value := b.contentValue(calendarObjectTable, requestPath, ical.MIMEType, data)
 	if exists {
-		err = b.update(calendarObjectTable, requestPath, existing, map[string]interface{}{"content": value})
+		err = b.calendarUpdate(calendarObjectTable, requestPath, existing, map[string]interface{}{"content": value}, tx)
 	} else {
-		_, err = b.create(calendarObjectTable, requestPath, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "collection_id": daptinid.InterfaceToDIR(collection["reference_id"]).String()})
+		err = b.calendarCreateEvent(requestPath, collection, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "collection_id": fmt.Sprint(collection["reference_id"])}, tx)
 	}
 	if err != nil {
-		return nil, b.putFailure(calendarObjectTable, requestPath, opts.IfMatch, opts.IfNoneMatch, err)
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 	return &caldav.CalendarObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Data: calendar}, nil
 }
 
 func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath string) error {
-	if name, err := b.collectionName(requestPath, false); err == nil {
-		collection, err := b.ownedCollection(calendarCollectionTable, name)
-		if err != nil {
-			return err
-		}
-		objects, err := b.objectRows(calendarObjectTable, "collection_id", collection)
-		if err != nil {
-			return err
-		}
-		for _, object := range objects {
-			if err := b.delete(calendarObjectTable, fmt.Sprint(object["rpath"]), object); err != nil {
-				return err
-			}
-		}
-		return b.delete(calendarCollectionTable, requestPath, collection)
-	}
-	if _, err := b.collectionName(requestPath, true); err != nil {
+	crud := b.cruds[calendarObjectTable]
+	tx, err := crud.Connection().Beginx()
+	if err != nil {
 		return err
 	}
-	return b.deleteObject(calendarObjectTable, requestPath)
+	defer tx.Rollback()
+	if owner, name, err := b.calendarPath(requestPath, false); err == nil {
+		collection, err := b.calendarCollection(owner, name, requestPath, tx)
+		if err != nil {
+			return err
+		}
+		if err := b.calendarDelete(calendarCollectionTable, requestPath, collection, tx); err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
+	owner, name, err := b.calendarPath(requestPath, true)
+	if err != nil {
+		return err
+	}
+	collection, err := b.calendarCollection(owner, name, requestPath, tx)
+	if err != nil {
+		return err
+	}
+	if !b.calendarEditAllowed(collection, tx, false) {
+		return webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar edit access denied"))
+	}
+	if err := b.lockCalendarCollection(collection, tx); err != nil {
+		return err
+	}
+	row, err := b.calendarObjectRow(requestPath, collection, tx)
+	if err != nil {
+		if errors.Is(err, errDAVNotFound) {
+			if conditionErr := checkDAVConditions(false, "", webdav.ConditionalMatch(b.headers.Get("If-Match")), webdav.ConditionalMatch(b.headers.Get("If-None-Match"))); conditionErr != nil {
+				return conditionErr
+			}
+		}
+		return err
+	}
+	ifMatch := webdav.ConditionalMatch(b.headers.Get("If-Match"))
+	ifNoneMatch := webdav.ConditionalMatch(b.headers.Get("If-None-Match"))
+	if ifMatch.IsSet() || ifNoneMatch.IsSet() {
+		content, err := b.contentBytes(calendarObjectTable, row)
+		if err != nil {
+			return err
+		}
+		if err := checkDAVConditions(true, GetMD5Hash(content), ifMatch, ifNoneMatch); err != nil {
+			return err
+		}
+	}
+	if err := b.calendarDelete(calendarObjectTable, requestPath, row, tx); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (b *DaptinDAVBackend) CreateAddressBook(_ context.Context, addressBook *carddav.AddressBook) error {

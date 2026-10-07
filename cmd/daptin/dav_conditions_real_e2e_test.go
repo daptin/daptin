@@ -11,6 +11,30 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/daptin/daptin/server/auth"
+)
+
+var davE2EAccessSchema = fmt.Sprintf(`Tables:
+  - TableName: calendar
+    DefaultPermission: %d
+    AccessGroups:
+      - Name: users
+        Permission: %d
+    Metering:
+      Enabled: true
+      MeterType: requests
+      CostExpr: "1"
+  - TableName: collection
+    DefaultPermission: %d
+    AccessGroups:
+      - Name: users
+        Permission: %d
+  - TableName: usergroup
+    Permission: %d
+    DefaultPermission: %d
+`, auth.UserCRUD, auth.GroupCRUD, auth.UserCRUD|auth.UserExecute, auth.GroupCRUD|auth.GroupExecute,
+	auth.GuestRefer, auth.GuestRefer,
 )
 
 const davE2ECalendarA = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:dav-condition-test\r\nDTSTAMP:20261005T120000Z\r\nDTSTART:20261006T120000Z\r\nDTEND:20261006T130000Z\r\nSUMMARY:First\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
@@ -18,6 +42,38 @@ const davE2ECalendarB = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\
 const davE2ERecurringCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:long-recurring\r\nDTSTAMP:20261005T000000Z\r\nDTSTART:20261001T000000Z\r\nDTEND:20261004T000000Z\r\nRRULE:FREQ=WEEKLY;COUNT=4\r\nSUMMARY:Long event\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 const davE2ECardA = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:dav-condition-test\r\nFN:First\r\nEND:VCARD\r\n"
 const davE2ECardB = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:dav-condition-test\r\nFN:Second\r\nEND:VCARD\r\n"
+
+func TestDAVRequiresConfiguredAccessRealE2E(t *testing.T) {
+	requireRealE2E(t)
+	usedPorts := make(map[int]bool)
+	databasePath := filepath.Join(t.TempDir(), "dav-unconfigured.db")
+	client := &http.Client{Timeout: 20 * time.Second}
+	start := func() (string, *transportE2EDaptinProcess) {
+		port := freeTransportE2EPort(t, usedPorts)
+		httpsPort := freeTransportE2EPort(t, usedPorts)
+		olricPort := freeTransportE2EPortPair(t, usedPorts)
+		base := fmt.Sprintf("http://127.0.0.1:%d", port)
+		process := startTransportE2EDaptin(t, port, httpsPort, base, transportE2EDaptinOptions{
+			databaseType: "sqlite3", connectionString: databasePath, olricPort: olricPort,
+		})
+		return base, process
+	}
+	firstURL, first := start()
+	adminToken := transportE2ESignupSigninAdmin(t, client, firstURL)
+	ftpE2ESetConfig(t, client, firstURL, adminToken, "caldav.enable", "true")
+	first.stopProcess()
+	base, second := start()
+	defer second.stopProcess()
+	token := accessGroupsE2ESignupSigninUser(t, client, base, adminToken, "dav-unconfigured")
+	principal := davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+"/caldav/", token,
+		"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:current-user-principal/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
+	match := regexp.MustCompile(`/caldav/([0-9a-f-]{36})/`).FindStringSubmatch(principal.body)
+	if len(match) != 2 {
+		t.Fatalf("principal reference ID missing: %s", principal.body)
+	}
+	davE2EExpect(t, davE2ERequest(client, "MKCOL", base+"/caldav/"+match[1]+"/calendars/personal/", token,
+		"", "", nil), http.StatusForbidden)
+}
 
 type davE2EResponse struct {
 	status int
@@ -100,7 +156,7 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 		olricPort := freeTransportE2EPortPair(t, usedPorts)
 		base := fmt.Sprintf("http://127.0.0.1:%d", port)
 		process := startTransportE2EDaptin(t, port, httpsPort, base, transportE2EDaptinOptions{
-			databaseType: "sqlite3", connectionString: databasePath, olricPort: olricPort,
+			databaseType: "sqlite3", connectionString: databasePath, olricPort: olricPort, schema: davE2EAccessSchema,
 		})
 		return base, process
 	}
@@ -164,15 +220,22 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 				test.collectionTable, referenceID)
 			davE2EExpect(t, davE2ERequest(client, http.MethodPatch, patchURL, adminToken,
 				"application/vnd.api+json", payload, nil), http.StatusOK)
-			deniedPayload := fmt.Sprintf(`{"data":{"type":"%s","id":"%s","attributes":{"description":"Unauthorized change"}}}`,
+			ownerPayload := fmt.Sprintf(`{"data":{"type":"%s","id":"%s","attributes":{"description":"Owner change"}}}`,
 				test.collectionTable, referenceID)
-			davE2EExpect(t, davE2ERequest(client, http.MethodPatch, patchURL, token,
-				"application/vnd.api+json", deniedPayload, nil), http.StatusForbidden)
+			expectedDescription := "Work collection"
+			if test.name == "calendar" {
+				expectedDescription = "Owner change"
+				davE2EExpect(t, davE2ERequest(client, http.MethodPatch, patchURL, token,
+					"application/vnd.api+json", ownerPayload, nil), http.StatusOK)
+			} else {
+				davE2EExpect(t, davE2ERequest(client, http.MethodPatch, patchURL, token,
+					"application/vnd.api+json", ownerPayload, nil), http.StatusForbidden)
+			}
 			propertyRequest := fmt.Sprintf(`<D:propfind xmlns:D="DAV:" xmlns:C="%s"><D:prop><C:%s/></D:prop></D:propfind>`,
 				test.descriptionNamespace, test.descriptionProperty)
 			properties := davE2EExpect(t, davE2ERequest(client, "PROPFIND", test.collectionURL, token,
 				"application/xml", propertyRequest, nil), http.StatusMultiStatus)
-			if !strings.Contains(properties.body, "Work collection") {
+			if !strings.Contains(properties.body, expectedDescription) {
 				t.Fatalf("DAV did not read the resource description: %s", properties.body)
 			}
 			propertyUpdate := fmt.Sprintf(`<D:propertyupdate xmlns:D="DAV:" xmlns:C="%s"><D:set><D:prop><C:%s>Changed through DAV</C:%s></D:prop></D:set></D:propertyupdate>`,
@@ -189,7 +252,7 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 			}
 			properties = davE2EExpect(t, davE2ERequest(client, "PROPFIND", test.collectionURL, token,
 				"application/xml", propertyRequest, nil), http.StatusMultiStatus)
-			if !strings.Contains(properties.body, "Work collection") {
+			if !strings.Contains(properties.body, expectedDescription) {
 				t.Fatalf("unsupported PROPPATCH changed the description: %s", properties.body)
 			}
 			objectURL := test.collectionURL + test.objectName
@@ -223,8 +286,12 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 			}
 			davE2EExpect(t, davE2ERequest(client, http.MethodDelete, objectURL, otherToken, "", "",
 				http.Header{"If-Match": {secondETag}}), http.StatusForbidden)
-			davE2EExpect(t, davE2ERequest(client, http.MethodDelete, objectURL, adminToken, "", "",
-				http.Header{"If-Match": {secondETag}}), http.StatusForbidden)
+			if test.name == "calendar" {
+				davE2EExpect(t, davE2ERequest(client, http.MethodGet, objectURL, adminToken, "", "", nil), http.StatusOK)
+			} else {
+				davE2EExpect(t, davE2ERequest(client, http.MethodDelete, objectURL, adminToken, "", "",
+					http.Header{"If-Match": {secondETag}}), http.StatusForbidden)
+			}
 			davE2EExpect(t, davE2ERequest(client, http.MethodPut, objectURL, token, test.contentType, test.first,
 				http.Header{"If-Match": {firstETag}}), http.StatusPreconditionFailed)
 			davE2EExpect(t, davE2ERequest(client, http.MethodDelete, objectURL, token, "", "",

@@ -23,6 +23,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	defer transaction.Commit()
 
 	performers := make([]actionresponse.ActionPerformerInterface, 0)
+	performers = append(performers, resource.NewCalendarShareAction(cruds))
 
 	becomeAdminPerformer, err := actions.NewBecomeAdminPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create become admin performer")

@@ -138,6 +138,27 @@ var SystemExchanges []ExchangeContract
 
 var SystemActions = []actionresponse.Action{
 	{
+		Name:             "share",
+		Label:            "Set calendar group access",
+		OnType:           "collection",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "calendar_reference_id", ColumnName: "calendar_reference_id", ColumnType: "alias"},
+			{Name: "usergroup_id", ColumnName: "usergroup_id", ColumnType: "alias"},
+			{Name: "permission", ColumnName: "permission", ColumnType: "value"},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type:   "calendar.share",
+			Method: "EXECUTE",
+			Attributes: map[string]interface{}{
+				"collection_id": "~calendar_reference_id",
+				"usergroup_id":  "~usergroup_id",
+				"permission":    "~permission",
+			},
+		}},
+	},
+	{
 		Name:             "import_files_from_store",
 		Label:            "Import files data to a table",
 		OnType:           "world",

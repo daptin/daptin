@@ -51,7 +51,7 @@ func TestDAVCollectionHrefsRealE2E(t *testing.T) {
 		olricPort := freeTransportE2EPortPair(t, usedPorts)
 		base := fmt.Sprintf("http://127.0.0.1:%d", port)
 		process := startTransportE2EDaptin(t, port, httpsPort, base, transportE2EDaptinOptions{
-			databaseType: "sqlite3", connectionString: databasePath, olricPort: olricPort,
+			databaseType: "sqlite3", connectionString: databasePath, olricPort: olricPort, schema: davE2EAccessSchema,
 		})
 		return base, process
 	}

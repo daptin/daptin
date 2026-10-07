@@ -2983,10 +2983,27 @@ func (dbResource *DbResource) GetReferenceIdByWhereClause(typeName string, queri
 // Converts the queries to sql and run query with where clause
 // Returns list of reference_ids
 func GetReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sqlx.Tx, queries ...goqu.Ex) ([]daptinid.DaptinReferenceId, error) {
+	return getReferenceIdByWhereClauseWithTransaction(typeName, transaction, 0, queries...)
+}
+
+// GetLimitedReferenceIdByWhereClauseWithTransaction returns at most limit IDs.
+// Callers can request one more than their processing cap to detect overflow
+// without materializing every matching row.
+func GetLimitedReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sqlx.Tx, limit uint, queries ...goqu.Ex) ([]daptinid.DaptinReferenceId, error) {
+	if limit == 0 {
+		return nil, errors.New("reference ID lookup limit must be positive")
+	}
+	return getReferenceIdByWhereClauseWithTransaction(typeName, transaction, limit, queries...)
+}
+
+func getReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sqlx.Tx, limit uint, queries ...goqu.Ex) ([]daptinid.DaptinReferenceId, error) {
 	builder := statementbuilder.Squirrel.Select("reference_id").Prepared(true).From(typeName)
 
 	for _, qu := range queries {
 		builder = builder.Where(qu)
+	}
+	if limit > 0 {
+		builder = builder.Limit(limit)
 	}
 
 	s, q, err := builder.ToSQL()
@@ -3031,7 +3048,7 @@ func GetReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sq
 		ret = append(ret, sRef)
 	}
 
-	return ret, err
+	return ret, res.Err()
 
 }
 
