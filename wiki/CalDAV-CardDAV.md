@@ -252,9 +252,66 @@ curl -X POST "http://localhost:6336/action/collection/share" \
   --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID","usergroup_id":"GROUP_REFERENCE_ID","permission":32768}}'
 ```
 
-The action sets that group's permission on the collection and every event
-currently in it in one transaction. `GroupExecute` applies only to the
-collection; the other group bits apply to its current events. CalDAV `PUT`
+To share with one identified account, use `collection/share_user` with that
+account's public reference ID. A calendar manager needs `Refer` access to the
+target `user_account` table and row. The action creates a group for this
+calendar and account, adds the account through the ordinary membership
+relationship, and applies the same collection and event grants. The response
+includes the group's reference ID as the share handle.
+
+```bash
+curl -X POST "http://localhost:6336/action/collection/share_user" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID","user_account_id":"ACCOUNT_REFERENCE_ID","permission":32768}}'
+```
+
+Call `share_user` again with another permission value to change that account's
+rights. Send `"permission":0` to revoke the share. Repeated calls for the same
+calendar and account reuse its group. The group membership and row links are
+the access authority; administrators can inspect or change them using normal
+relationship resources. If membership changes, `share_user` refuses to alter
+that group; use its returned group reference ID with `collection/share` to
+revoke the links. Changing membership changes who receives the grant.
+
+To decide whether to show sharing controls for a selected calendar, call the
+read-only `collection/share_capabilities` action:
+
+```bash
+curl -X POST "http://localhost:6336/action/collection/share_capabilities" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID"}}'
+```
+
+Its `can_share_group` and `can_share_user` results reflect the caller's
+persisted collection management grant and the two action permissions. HTTP
+403 means the caller cannot use this capability query; hide the sharing
+controls. A true result does not bypass the target group or account `Refer`
+check when a share is submitted. These results do not describe edit rights on
+individual events, which retain their own row permissions.
+
+For an event the caller can read, query its current edit rights with
+`collection/event_capabilities`:
+
+```bash
+curl -X POST "http://localhost:6336/action/collection/event_capabilities" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID","event_reference_id":"EVENT_REFERENCE_ID"}}'
+```
+
+`can_update` and `can_delete` reflect the collection update grant and the
+`calendar` table and event row grants for those operations. They can differ
+between events in one collection. HTTP 403 means the caller cannot query that
+event's edit rights; it does not disclose event details to a free/busy-only
+viewer. These flags describe authorization at query time; a later write still
+checks the current grants and its ETag condition.
+
+The `share` and `share_user` actions set that group's permission on the
+collection and every event currently in it in one transaction. `GroupExecute`
+applies only to the collection; the other group bits apply to its current
+events. CalDAV `PUT`
 also copies the collection's current group links to each new event in the same
 transaction, including events created by a delegate. The signed-in account
 remains the event row's owner. The action replaces any
@@ -311,9 +368,9 @@ Each returned row includes `name` and `user_account_id`; its CalDAV URL is
 `/caldav/{user_account_id}/calendars/{name}/`. A group with only peek
 rights can obtain free/busy intervals through `free-busy-query` but cannot
 read event content or list it through `/api/calendar`. Sharing with an
-individual account requires placing that account in an appropriate persisted
-`usergroup`; the action accepts a group reference ID. See [[Permissions]] and
-[[Relationships]] for the general resource and relationship workflow.
+individual account uses `collection/share_user` as described above. Group
+sharing uses `collection/share` and persisted membership relationships. See
+[[Permissions]] and [[Relationships]] for the general resource workflow.
 
 The `name` field is the collection's URL segment. Do not change it to rename
 the displayed calendar: existing object paths contain that segment. DAV

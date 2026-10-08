@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -15,7 +16,16 @@ import (
 	"github.com/daptin/daptin/server/auth"
 )
 
-const davE2EPrivateCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:dav-private-test\r\nDTSTAMP:20261005T120000Z\r\nDTSTART:20261006T140000Z\r\nDTEND:20261006T150000Z\r\nCLASS:PRIVATE\r\nSUMMARY:Private appointment\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+const davE2EPrivateCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:dav-private-test\r\nDTSTAMP:20261005T120000Z\r\nDTSTART:20261006T140000Z\r\nDTEND:20261006T150000Z\r\nCLASS:PRIVATE\r\nSUMMARY:Private appointment\r\nDESCRIPTION:Private description\r\nATTENDEE:mailto:private@example.invalid\r\nATTACH:https://example.invalid/private.pdf\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+
+func davE2EContainsPrivateEventDetail(body string) bool {
+	for _, detail := range []string{"Private appointment", "Private description", "private@example.invalid", "private.pdf"} {
+		if strings.Contains(body, detail) {
+			return true
+		}
+	}
+	return false
+}
 
 // Event owners in this schema receive access through a private group link,
 // rather than an irrevocable UserRead bit on every event they create.
@@ -37,8 +47,15 @@ var davE2EShareSchema = fmt.Sprintf(`Tables:
   - TableName: usergroup
     Permission: %d
     DefaultPermission: %d
+  - TableName: user_account
+    AccessGroups:
+      - Name: users
+        Permission: %d
+    DefaultGroups:
+      - Name: users
+        Permission: %d
 `, auth.GroupPeek, auth.GroupCRUD, auth.UserCRUD|auth.UserExecute, auth.GroupCRUD|auth.GroupExecute,
-	auth.GuestRefer, auth.GuestRefer)
+	auth.GuestRefer, auth.GuestRefer, auth.GroupRefer, auth.GroupRefer)
 
 // The administrator chooses both table access and the rights attached to new
 // collection and event rows. DAV only consumes those ordinary resource grants.
@@ -183,11 +200,29 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 				if response := davE2ERequest(client, http.MethodGet, privateURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 					t.Fatalf("delegate read private content: %+v", response)
 				}
+				privateQuery := `<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><C:calendar-data/></D:prop><C:filter><C:comp-filter name="VCALENDAR"><C:comp-filter name="VEVENT"/></C:comp-filter></C:filter></C:calendar-query>`
+				privateQueryResult := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+					"application/xml", privateQuery, nil), http.StatusMultiStatus)
+				if davE2EContainsPrivateEventDetail(privateQueryResult.body) || !strings.Contains(privateQueryResult.body, "SUMMARY:First") {
+					t.Fatalf("private calendar-query exposed details or omitted public event: %s", privateQueryResult.body)
+				}
+				privateMultiget := fmt.Sprintf(`<C:calendar-multiget xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><C:calendar-data/></D:prop><D:href>%s</D:href></C:calendar-multiget>`,
+					"/caldav/"+match[1]+"/calendars/team/private.ics")
+				privateMultigetResult := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+					"application/xml", privateMultiget, nil), http.StatusMultiStatus)
+				if davE2EContainsPrivateEventDetail(privateMultigetResult.body) {
+					t.Fatalf("private calendar-multiget exposed details: %s", privateMultigetResult.body)
+				}
+				privateID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
+					"/caldav/"+match[1]+"/calendars/team/private.ics")
+				if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+privateID, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+					t.Fatalf("delegate read private event through JSON:API: %+v", response)
+				}
 				accessGroupsE2EAssertListCount(t, client, base, delegateToken, "calendar", 1)
 				freeBusy = davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
 					"application/xml", `<C:free-busy-query xmlns:C="urn:ietf:params:xml:ns:caldav"><C:time-range start="20261006T000000Z" end="20261007T000000Z"/></C:free-busy-query>`,
 					http.Header{"Depth": {"1"}}), http.StatusOK)
-				if !strings.Contains(freeBusy.body, "20261006T140000Z/20261006T150000Z") || strings.Contains(freeBusy.body, "Private appointment") {
+				if !strings.Contains(freeBusy.body, "20261006T140000Z/20261006T150000Z") || davE2EContainsPrivateEventDetail(freeBusy.body) {
 					t.Fatalf("private event free/busy was not isolated: %s", freeBusy.body)
 				}
 			}
@@ -259,15 +294,81 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		return davE2ERequest(client, http.MethodPost, shareURL, token, "application/json",
 			fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"usergroup_id":%q,"permission":%d}}`, collectionID, group, grant), nil)
 	}
+	capabilities := func(token string) davE2EResponse {
+		return davE2ERequest(client, http.MethodPost, base+"/action/collection/share_capabilities", token, "application/json",
+			fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q}}`, collectionID), nil)
+	}
+	assertCapabilities := func(token string, group, account bool) {
+		t.Helper()
+		response := davE2EExpect(t, capabilities(token), http.StatusOK)
+		var rows []struct {
+			Attributes map[string]interface{} `json:"Attributes"`
+		}
+		if err := json.Unmarshal([]byte(response.body), &rows); err != nil || len(rows) != 1 {
+			t.Fatalf("decode calendar capabilities: %v: %s", err, response.body)
+		}
+		groupValue, groupOK := rows[0].Attributes["can_share_group"].(bool)
+		accountValue, accountOK := rows[0].Attributes["can_share_user"].(bool)
+		if !groupOK || !accountOK || groupValue != group || accountValue != account {
+			t.Fatalf("calendar capabilities = %#v, want group=%t account=%t", rows[0].Attributes, group, account)
+		}
+	}
+	eventCapabilities := func(token, event string) davE2EResponse {
+		return davE2ERequest(client, http.MethodPost, base+"/action/collection/event_capabilities", token, "application/json",
+			fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"event_reference_id":%q}}`, collectionID, event), nil)
+	}
+	assertEventCapabilities := func(token, event string, update, delete bool) {
+		t.Helper()
+		response := davE2EExpect(t, eventCapabilities(token, event), http.StatusOK)
+		var rows []struct {
+			Attributes map[string]interface{} `json:"Attributes"`
+		}
+		if err := json.Unmarshal([]byte(response.body), &rows); err != nil || len(rows) != 1 {
+			t.Fatalf("decode event capabilities: %v: %s", err, response.body)
+		}
+		updateValue, updateOK := rows[0].Attributes["can_update"].(bool)
+		deleteValue, deleteOK := rows[0].Attributes["can_delete"].(bool)
+		if !updateOK || !deleteOK || updateValue != update || deleteValue != delete {
+			t.Fatalf("event capabilities = %#v, want update=%t delete=%t", rows[0].Attributes, update, delete)
+		}
+	}
 	davE2EExpect(t, shareGroup(ownerGroupID, auth.GroupCRUD, adminToken), http.StatusOK)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, eventURL, ownerToken,
 		"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, ownerToken, "", "", nil), http.StatusOK)
+	groupCount := func() int {
+		response := transportE2EGetJSON(t, client, base+"/api/usergroup?page%5Bsize%5D=100", adminToken)
+		return len(accessGroupsE2EDataArray(t, response))
+	}
+	beforeCapabilities := groupCount()
+	assertCapabilities(ownerToken, true, true)
+	if response := capabilities(unrelatedToken); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("unrelated account queried calendar capabilities: %+v", response)
+	}
+	if response := capabilities(delegateToken); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("unshared delegate queried calendar capabilities: %+v", response)
+	}
+	if afterCapabilities := groupCount(); afterCapabilities != beforeCapabilities {
+		t.Fatalf("capability queries created a usergroup: before=%d after=%d", beforeCapabilities, afterCapabilities)
+	}
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.status == http.StatusOK || response.err != nil {
 		t.Fatalf("delegate read before grant: %+v", response)
 	}
 	eventID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath", "/caldav/"+match[1]+"/calendars/team/event.ics")
+	assertEventCapabilities(ownerToken, eventID, true, true)
+	if response := davE2ERequest(client, http.MethodGet, eventURL, unrelatedToken, "", "", nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("ungranted direct event href did not return 403: %+v", response)
+	}
+	if response := davE2ERequest(client, "PROPFIND", collectionURL, unrelatedToken,
+		"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:displayname/></D:prop></D:propfind>`, nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("ungranted direct collection href did not return 403: %+v", response)
+	}
+	if response := eventCapabilities(unrelatedToken, eventID); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("ungranted account queried event capabilities: %+v", response)
+	}
 	davE2EExpect(t, shareGroup(groupID, auth.GroupRead, adminToken), http.StatusOK)
+	assertCapabilities(delegateToken, false, false)
+	assertEventCapabilities(delegateToken, eventID, false, false)
 	content := davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil), http.StatusOK)
 	if !strings.Contains(content.body, "SUMMARY:First") {
 		t.Fatalf("delegate did not read the related event: %s", content.body)
@@ -311,6 +412,9 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		}
 	}
 	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "calendar", 0)
+	if response := eventCapabilities(delegateToken, eventID); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("revoked event link retained capability discovery: %+v", response)
+	}
 
 	share := func(permission auth.AuthPermission, token string) davE2EResponse {
 		return shareGroup(groupID, permission, token)
@@ -372,6 +476,9 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 
 	davE2EExpect(t, share(auth.GroupPeek, ownerToken), http.StatusOK)
+	if response := eventCapabilities(delegateToken, eventID); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("peek-only delegate queried event capabilities: %+v", response)
+	}
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("peek-only delegate read event details: %+v", response)
 	}
@@ -381,8 +488,50 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	if !strings.Contains(busy.body, "20261006T120000Z/20261006T130000Z") || strings.Contains(busy.body, "SUMMARY") {
 		t.Fatalf("peek-only share exposed event details: %s", busy.body)
 	}
+	privateURL := collectionURL + "private.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, privateURL, ownerToken,
+		"text/calendar", davE2EPrivateCalendar, nil), http.StatusCreated)
+	privateID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
+		"/caldav/"+match[1]+"/calendars/team/private.ics")
+	if response := davE2ERequest(client, http.MethodGet, privateURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("peek-only share exposed private event through DAV: %+v", response)
+	}
+	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+privateID, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("peek-only share exposed private event through JSON:API: %+v", response)
+	}
+	queryResult = davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+		"application/xml", query, nil), http.StatusForbidden)
+	if davE2EContainsPrivateEventDetail(queryResult.body) {
+		t.Fatalf("peek-only calendar-query exposed private event details: %s", queryResult.body)
+	}
+	privateMultiget := fmt.Sprintf(`<C:calendar-multiget xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><C:calendar-data/></D:prop><D:href>%s</D:href></C:calendar-multiget>`,
+		"/caldav/"+match[1]+"/calendars/team/private.ics")
+	privateMultigetResult := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+		"application/xml", privateMultiget, nil), http.StatusMultiStatus)
+	if !strings.Contains(privateMultigetResult.body, "403 Forbidden") || davE2EContainsPrivateEventDetail(privateMultigetResult.body) {
+		t.Fatalf("peek-only calendar-multiget exposed private event details: %s", privateMultigetResult.body)
+	}
+	busy = davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+		"application/xml", `<C:free-busy-query xmlns:C="urn:ietf:params:xml:ns:caldav"><C:time-range start="20261006T000000Z" end="20261007T000000Z"/></C:free-busy-query>`,
+		http.Header{"Depth": {"1"}}), http.StatusOK)
+	if !strings.Contains(busy.body, "20261006T140000Z/20261006T150000Z") || davE2EContainsPrivateEventDetail(busy.body) {
+		t.Fatalf("peek-only free/busy omitted private event or exposed details: %s", busy.body)
+	}
 
+	davE2EExpect(t, share(auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, ownerToken), http.StatusOK)
+	assertEventCapabilities(delegateToken, eventID, true, false)
+	if response := davE2ERequest(client, http.MethodDelete, eventURL, delegateToken, "", "", nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("update-only delegate deleted event: %+v", response)
+	}
 	davE2EExpect(t, share(auth.GroupCRUD, ownerToken), http.StatusOK)
+	assertEventCapabilities(delegateToken, eventID, true, true)
+	deletableURL := collectionURL + "deletable.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, deletableURL, ownerToken,
+		"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
+	deletableID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
+		"/caldav/"+match[1]+"/calendars/team/deletable.ics")
+	assertEventCapabilities(delegateToken, deletableID, true, true)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, deletableURL, delegateToken, "", "", nil), http.StatusNoContent)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, eventURL, delegateToken,
 		"text/calendar", davE2ECalendarB, nil), http.StatusCreated)
 	changed := davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, ownerToken, "", "", nil), http.StatusOK)
@@ -441,13 +590,95 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, directURL, ownerToken, "", "", nil), http.StatusOK)
 
 	davE2EExpect(t, share(auth.GroupExecute, ownerToken), http.StatusOK)
+	assertCapabilities(delegateToken, true, true)
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("manage-only delegate read event details: %+v", response)
 	}
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, groupURL, adminToken,
 		accessGroupsE2ERecordPayload("usergroup", groupID, map[string]interface{}{"permission": 0}), http.StatusOK)
 	davE2EExpect(t, share(0, delegateToken), http.StatusOK)
+	if response := capabilities(delegateToken); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("revoked manager retained capability discovery: %+v", response)
+	}
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("delegate retained access after managing their own share: %+v", response)
+	}
+
+	shareUser := func(account string, grant auth.AuthPermission, token string) davE2EResponse {
+		return davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", token, "application/json",
+			fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"user_account_id":%q,"permission":%d}}`, collectionID, account, grant), nil)
+	}
+	if response := shareUser(delegateID, auth.GroupRead, unrelatedToken); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("unrelated account created a user share: %+v", response)
+	}
+	userShare := davE2EExpect(t, shareUser(delegateID, auth.GroupRead, ownerToken), http.StatusOK)
+	var userShareBody interface{}
+	if err := json.Unmarshal([]byte(userShare.body), &userShareBody); err != nil {
+		t.Fatalf("decode account share response: %v: %s", err, userShare.body)
+	}
+	userShareGroup, ok := accessGroupsE2EFindString(userShareBody, "usergroup_id")
+	if !ok || userShareGroup == "" {
+		t.Fatalf("account share did not return group handle: %s", userShare.body)
+	}
+	for i := 0; i < 2; i++ {
+		repeated := davE2EExpect(t, shareUser(delegateID, auth.GroupRead, ownerToken), http.StatusOK)
+		var repeatedBody interface{}
+		if err := json.Unmarshal([]byte(repeated.body), &repeatedBody); err != nil {
+			t.Fatalf("decode repeated share response: %v", err)
+		}
+		if id, _ := accessGroupsE2EFindString(repeatedBody, "usergroup_id"); id != userShareGroup {
+			t.Fatalf("account share retry created another group: %s", repeated.body)
+		}
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, eventURL, unrelatedToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("account share exposed event to an unrelated account: %+v", response)
+	}
+	davE2EExpect(t, shareUser(delegateID, 0, ownerToken), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("account share revocation left event readable: %+v", response)
+	}
+	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "calendar", 0)
+	davE2EExpect(t, shareUser(delegateID, auth.GroupPeek, ownerToken), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("peek-only account share exposed event content: %+v", response)
+	}
+	davE2EExpect(t, shareUser(delegateID, auth.GroupCRUD, ownerToken), http.StatusOK)
+	accountCreatedURL := collectionURL + "account-share-created.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, accountCreatedURL, delegateToken,
+		"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, accountCreatedURL, ownerToken, "", "", nil), http.StatusOK)
+	accountCreatedID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
+		"/caldav/"+match[1]+"/calendars/team/account-share-created.ics")
+	davE2EExpect(t, shareUser(delegateID, 0, ownerToken), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, accountCreatedURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("revoked account read its created event through DAV: %+v", response)
+	}
+	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+accountCreatedID, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("revoked account read its created event through JSON:API: %+v", response)
+	}
+	unrelatedID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email", "dav-share-unrelated@test.local")
+	davE2EExpect(t, shareUser(delegateID, auth.GroupExecute, ownerToken), http.StatusOK)
+	assertCapabilities(delegateToken, true, true)
+	davE2EExpect(t, shareUser(unrelatedID, auth.GroupRead, delegateToken), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, unrelatedToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, shareUser(unrelatedID, 0, ownerToken), http.StatusOK)
+	davE2EExpect(t, shareUser(delegateID, 0, ownerToken), http.StatusOK)
+	shareUserActionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "action", "action_name", "share_user")
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareUserActionID, adminToken,
+		accessGroupsE2ERecordPayload("action", shareUserActionID, map[string]interface{}{"permission": 0}), http.StatusOK)
+	assertCapabilities(ownerToken, true, false)
+	if response := shareUser(delegateID, auth.GroupRead, ownerToken); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("account sharing bypassed action permission: %+v", response)
+	}
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareUserActionID, adminToken,
+		accessGroupsE2ERecordPayload("action", shareUserActionID, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
+	assertCapabilities(ownerToken, true, true)
+	shareActionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "action", "action_name", "share")
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareActionID, adminToken,
+		accessGroupsE2ERecordPayload("action", shareActionID, map[string]interface{}{"permission": 0}), http.StatusOK)
+	assertCapabilities(ownerToken, false, true)
+	if response := shareGroup(ownerGroupID, auth.GroupRead, ownerToken); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("group sharing bypassed action permission: %+v", response)
 	}
 }

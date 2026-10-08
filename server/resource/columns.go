@@ -159,6 +159,63 @@ var SystemActions = []actionresponse.Action{
 		}},
 	},
 	{
+		Name:             "share_user",
+		Label:            "Set calendar access for an account",
+		OnType:           "collection",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "calendar_reference_id", ColumnName: "calendar_reference_id", ColumnType: "alias"},
+			{Name: "user_account_id", ColumnName: "user_account_id", ColumnType: "alias"},
+			{Name: "permission", ColumnName: "permission", ColumnType: "value"},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type:   "calendar.share",
+			Method: "EXECUTE",
+			Attributes: map[string]interface{}{
+				"collection_id":  "~calendar_reference_id",
+				"target_user_id": "~user_account_id",
+				"permission":     "~permission",
+			},
+		}},
+	},
+	{
+		Name:             "share_capabilities",
+		Label:            "Get calendar sharing capabilities",
+		OnType:           "collection",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "calendar_reference_id", ColumnName: "calendar_reference_id", ColumnType: "alias"},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type:   "calendar.share_capabilities",
+			Method: "EXECUTE",
+			Attributes: map[string]interface{}{
+				"collection_id": "~calendar_reference_id",
+			},
+		}},
+	},
+	{
+		Name:             "event_capabilities",
+		Label:            "Get calendar event capabilities",
+		OnType:           "collection",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "calendar_reference_id", ColumnName: "calendar_reference_id", ColumnType: "alias"},
+			{Name: "event_reference_id", ColumnName: "event_reference_id", ColumnType: "alias"},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type:   "calendar.event_capabilities",
+			Method: "EXECUTE",
+			Attributes: map[string]interface{}{
+				"collection_id": "~calendar_reference_id",
+				"event_id":      "~event_reference_id",
+			},
+		}},
+	},
+	{
 		Name:             "import_files_from_store",
 		Label:            "Import files data to a table",
 		OnType:           "world",

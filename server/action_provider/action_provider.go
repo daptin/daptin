@@ -24,6 +24,8 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 
 	performers := make([]actionresponse.ActionPerformerInterface, 0)
 	performers = append(performers, resource.NewCalendarShareAction(cruds))
+	performers = append(performers, resource.NewCalendarShareCapabilitiesAction(cruds))
+	performers = append(performers, resource.NewCalendarEventCapabilitiesAction(cruds))
 
 	becomeAdminPerformer, err := actions.NewBecomeAdminPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create become admin performer")
