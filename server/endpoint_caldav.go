@@ -63,12 +63,14 @@ func InitializeCaldavResources(
 
 	// Well-known URIs for service discovery (RFC 6764)
 	// Allows clients to auto-discover CalDAV/CardDAV endpoints
-	defaultRouter.GET("/.well-known/caldav", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/caldav/")
-	})
-	defaultRouter.GET("/.well-known/carddav", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/carddav/")
-	})
+	for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodOptions, "PROPFIND"} {
+		defaultRouter.Handle(method, "/.well-known/caldav", func(c *gin.Context) {
+			c.Redirect(http.StatusMovedPermanently, "/caldav/")
+		})
+		defaultRouter.Handle(method, "/.well-known/carddav", func(c *gin.Context) {
+			c.Redirect(http.StatusMovedPermanently, "/carddav/")
+		})
+	}
 
 	logrus.Printf("[CALDAV ENDPOINT] CalDAV/CardDAV routes registered")
 	logrus.Tracef("CalDAV/CardDAV resources initialized")

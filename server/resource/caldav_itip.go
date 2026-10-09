@@ -60,7 +60,7 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 		if now, present := newEvents[key]; present {
 			if itipAddress(old.Props.Get("ORGANIZER")) == sender {
 				for recipient := range itipAttendees(old) {
-					if _, retained := itipAttendees(now)[recipient]; !retained && itipServerSchedules(old, recipient) {
+					if _, retained := itipAttendees(now)[recipient]; recipient != sender && !retained && itipServerSchedules(old, recipient) {
 						if err := b.queueITIP(collection, account, eventRef, sender, recipient, "CANCEL", previous, old, false, tx); err != nil {
 							return err
 						}
@@ -71,7 +71,7 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 		}
 		if itipAddress(old.Props.Get("ORGANIZER")) == sender {
 			for recipient := range itipAttendees(old) {
-				if !itipServerSchedules(old, recipient) {
+				if recipient == sender || !itipServerSchedules(old, recipient) {
 					continue
 				}
 				if err := b.queueITIP(collection, account, eventRef, sender, recipient, "CANCEL", previous, old, true, tx); err != nil {

@@ -186,7 +186,9 @@ func (b *DaptinDAVBackend) validateSchedulingWrite(collection map[string]interfa
 			}
 			continue
 		}
-		if itipAddress(old.Props.Get("ORGANIZER")) != itipAddress(now.Props.Get("ORGANIZER")) {
+		oldOrganizer := itipAddress(old.Props.Get("ORGANIZER"))
+		newOrganizer := itipAddress(now.Props.Get("ORGANIZER"))
+		if oldOrganizer != newOrganizer && !(oldOrganizer == "" && newOrganizer == sender) {
 			return webdav.NewHTTPError(http.StatusForbidden, errors.New("scheduling organizer cannot change"))
 		}
 		if organizer != "" && organizer != sender {

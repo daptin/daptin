@@ -218,6 +218,16 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	if err != nil || len(clientCalendars) != 2 {
 		t.Fatalf("CalDAV client could not list calendars: %d, %v", len(clientCalendars), err)
 	}
+	ordinary := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:itip-later-invite-e2e\r\nDTSTAMP:20261008T000000Z\r\nDTSTART:20261011T120000Z\r\nDTEND:20261011T130000Z\r\nSUMMARY:Ordinary meeting\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+	ordinaryURL := base + calendarPath + "later-invite.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, ordinaryURL, token, "text/calendar", ordinary, nil), http.StatusCreated)
+	invited := strings.Replace(ordinary, "SUMMARY:Ordinary meeting\r\n", "SUMMARY:Ordinary meeting\r\nORGANIZER:mailto:organizer@localhost\r\nATTENDEE;SCHEDULE-AGENT=NONE:mailto:guest@example.test\r\n", 1)
+	forgedInvite := strings.Replace(invited, "ORGANIZER:mailto:organizer@localhost", "ORGANIZER:mailto:forged@example.test", 1)
+	forgedInvite = strings.Replace(forgedInvite, "ATTENDEE;SCHEDULE-AGENT=NONE:mailto:guest@example.test", "ATTENDEE:mailto:organizer@localhost\r\nATTENDEE;SCHEDULE-AGENT=NONE:mailto:guest@example.test", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, ordinaryURL, token, "text/calendar", forgedInvite, nil), http.StatusForbidden)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, ordinaryURL, token, "text/calendar", invited, nil), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, ordinaryURL, token, "text/calendar", forgedInvite, nil), http.StatusForbidden)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, ordinaryURL, token, "", "", nil), http.StatusNoContent)
 	create := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:itip-outbound-e2e\r\nDTSTAMP:20261008T000000Z\r\nDTSTART:20261012T120000Z\r\nDTEND:20261012T130000Z\r\nSEQUENCE:0\r\nSUMMARY:Meeting\r\nORGANIZER:mailto:organizer@localhost\r\nATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:guest@example.test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 	objectURL := base + calendarPath + "meeting.ics"
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+unconnectedPath+"meeting.ics", token, "text/calendar", create, nil), http.StatusCreated)
@@ -277,6 +287,19 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 		davE2EExpect(t, davE2ERequest(client, http.MethodDelete, managedURL, token, "", "", nil), http.StatusNoContent)
 		assertMessages(1, "REQUEST")
 	}
+	selfAttendee := strings.Replace(create, "UID:itip-outbound-e2e", "UID:itip-self-attendee-e2e", 1)
+	selfAttendee = strings.Replace(selfAttendee, "ATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:guest@example.test",
+		"ATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:organizer@localhost\r\nATTENDEE;PARTSTAT=NEEDS-ACTION;SCHEDULE-AGENT=NONE:mailto:guest@example.test", 1)
+	selfURL := base + calendarPath + "self-attendee.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, selfURL, token, "text/calendar", selfAttendee, nil), http.StatusCreated)
+	assertMessages(1, "REQUEST")
+	withoutSelf := strings.Replace(selfAttendee, "ATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:organizer@localhost\r\n", "", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, selfURL, token, "text/calendar", withoutSelf, nil), http.StatusCreated)
+	assertMessages(1, "REQUEST")
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, selfURL, token, "text/calendar", selfAttendee, nil), http.StatusCreated)
+	assertMessages(1, "REQUEST")
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, selfURL, token, "", "", nil), http.StatusNoContent)
+	assertMessages(1, "REQUEST")
 	initialMessages := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
 		base+"/api/cal_mail?page%5Bsize%5D=100", token, nil, http.StatusOK))
 	if len(initialMessages) != 1 {
