@@ -461,8 +461,14 @@ connected account, a previously queued invitation, its UID, recurrence ID,
 sequence, and attendee address before it changes the event's `PARTSTAT`.
 Reprocessing the same iTIP content, even in another mail row, has no further
 effect. Stale replies do not change the event. Incoming `REQUEST` and
-`CANCEL` messages are recorded as `pending` in the recipient's scheduling
-inbox. Ordinary non-calendar mail remains ordinary mail.
+`CANCEL` messages create, update, or cancel the attendee's event when the
+receiving mail account is connected to one calendar, or when the administrator
+supplies that calendar's `collection_id`. Daptin writes the event as the
+calendar owner through the normal resource path. When an account is connected
+to several calendars and no calendar is selected, the message remains
+`pending` in the recipient's scheduling inbox. A mail account shared by
+different principals still needs an explicit `collection_id` to identify the
+recipient. Ordinary non-calendar mail remains ordinary mail.
 
 For a calendar owner with a connected mail account, a CalDAV `PROPFIND` on
 `/caldav/OWNER_REFERENCE_ID/` returns `calendar-user-address-set`,
@@ -485,12 +491,13 @@ The inbox URL is `/caldav/OWNER_REFERENCE_ID/schedule-inbox/`. After
 `process_itip` succeeds, the owner can list incoming iTIP messages with
 `PROPFIND` or `REPORT` and read each `.ics` message with `GET`. The inbox
 contains the iCalendar part, not the raw mailbox message. Only the principal
-owner can access it. The attendee reads a REQUEST, chooses a calendar, and
-PUTs an event there with the connected address as ATTENDEE. Changing its
-PARTSTAT through CalDAV PUT queues the REPLY. For a later REQUEST or CANCEL,
-the client updates or removes its matching event. After handling a message,
-DELETE its inbox `.ics` URL to acknowledge it; the stored message remains for
-deduplication.
+owner can access it. An applied REQUEST appears as an event in the selected
+calendar with the attendee awaiting a response. The attendee changes its
+PARTSTAT through CalDAV PUT to queue a REPLY. Later REQUEST and CANCEL mail
+updates the same event or affected recurring occurrence. A pending message
+without a selected calendar can be processed again with `collection_id`;
+the owner may also handle it manually. DELETE its inbox `.ics` URL after
+handling it; the stored message remains for deduplication.
 
 The outbox URL is `/caldav/OWNER_REFERENCE_ID/schedule-outbox/`. It accepts
 `POST` of a `METHOD:REQUEST` `VFREEBUSY` message when its organizer matches
@@ -501,8 +508,9 @@ continue to be queued by CalDAV event `PUT` and `DELETE`, not outbox `POST`.
 
 This is a client-visible iMIP bridge, not a claim of full RFC 6638 automatic
 scheduling. The server does not advertise `calendar-auto-schedule`. Clients
-that require that capability may leave invitation controls disabled until
-server-side placement of incoming REQUEST and CANCEL messages is implemented.
+that require that capability may leave invitation controls disabled because
+the wider RFC 6638 scheduling privileges, schedule tags, and outbox contract
+are not implemented.
 
 ## Supported behavior
 

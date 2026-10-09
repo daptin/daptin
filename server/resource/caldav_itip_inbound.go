@@ -119,6 +119,12 @@ func (a *itipProcessMailAction) DoAction(_ actionresponse.Outcome, fields map[st
 	if ambiguousRecipient {
 		recipientID = 0
 	}
+	applyCollection := selectedCollection
+	if applyCollection == daptinid.NullReferenceId && recipientID != 0 {
+		if len(connected) == 1 {
+			applyCollection = connected[0]
+		}
+	}
 	accountAddress := strings.ToLower(strings.TrimSpace(fmt.Sprint(account["username"])))
 	from, err := mail.ParseAddress(fmt.Sprint(row["from_address"]))
 	if err != nil {
@@ -170,7 +176,7 @@ func (a *itipProcessMailAction) DoAction(_ actionresponse.Outcome, fields map[st
 			return nil, nil, []error{errors.New("unsupported iTIP method")}
 		}
 		for _, event := range calendar.Events() {
-			if err := a.processEvent(mailRef, accountRef, accountAddress, sender, method, data, event, caller, recipientID, selectedCollection, tx); err != nil {
+			if err := a.processEvent(mailRef, accountRef, accountAddress, sender, method, data, event, caller, recipientID, selectedCollection, applyCollection, tx); err != nil {
 				return nil, nil, []error{err}
 			}
 			processed++
@@ -179,7 +185,7 @@ func (a *itipProcessMailAction) DoAction(_ actionresponse.Outcome, fields map[st
 	return nil, []actionresponse.ActionResponse{NewActionResponse("itip.process_mail", map[string]interface{}{"mail_id": mailRef.String(), "events": processed})}, nil
 }
 
-func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.DaptinReferenceId, accountAddress, sender, method string, data []byte, incoming ical.Event, caller *auth.SessionUser, recipientID int64, selectedCollection daptinid.DaptinReferenceId, tx *sqlx.Tx) error {
+func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.DaptinReferenceId, accountAddress, sender, method string, data []byte, incoming ical.Event, caller *auth.SessionUser, recipientID int64, selectedCollection, applyCollection daptinid.DaptinReferenceId, tx *sqlx.Tx) error {
 	uid := itipProp(incoming.Props.Get("UID"))
 	if uid == "" {
 		return errors.New("iTIP event has no UID")
@@ -200,8 +206,16 @@ func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.Daptin
 	if err != nil {
 		return err
 	}
+	var pendingRef daptinid.DaptinReferenceId
 	if len(previous) != 0 {
-		return nil
+		pendingRef = previous[0]
+		prior, _, err := a.cruds["cal_mail"].GetSingleRowByReferenceIdWithTransaction("cal_mail", pendingRef, nil, tx)
+		if err != nil {
+			return err
+		}
+		if prior["state"] != "pending" || method == "REPLY" {
+			return nil
+		}
 	}
 	state := "pending"
 	var collectionRef, eventRef daptinid.DaptinReferenceId
@@ -247,6 +261,13 @@ func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.Daptin
 		if _, invited := itipAttendees(incoming)[accountAddress]; !invited {
 			return errors.New("invitation does not name the addressed account")
 		}
+		if applyCollection != daptinid.NullReferenceId {
+			collectionRef = applyCollection
+			eventRef, state, err = a.applyInvitation(collectionRef, accountRef, accountAddress, sender, method, uid, recurrence, data, incoming, recipientID, tx)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	recipient, err := exchangeSessionUser(a.cruds, recipientID, tx)
 	if err != nil {
@@ -262,10 +283,27 @@ func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.Daptin
 		attrs["collection_id"] = collectionRef.String()
 		attrs["event_reference"] = eventRef.String()
 	}
-	model := api2go.NewApi2GoModelWithData("cal_mail", nil, int64(a.cruds["cal_mail"].TableInfo().DefaultPermission), nil, attrs)
 	b := NewCalDAVBackend(a.cruds, recipient, nil)
-	_, err = a.cruds["cal_mail"].createWithoutFilterAfterAuthorization(model, b.request(http.MethodPost, "/api/cal_mail"), tx)
-	return err
+	if pendingRef != daptinid.NullReferenceId {
+		model := api2go.NewApi2GoModelWithData("cal_mail", nil, 0, nil, map[string]interface{}{
+			"reference_id": pendingRef.String(), "state": state, "collection_id": attrs["collection_id"],
+			"event_reference": attrs["event_reference"],
+		})
+		_, err = a.cruds["cal_mail"].updateAfterAuthorizationWithTransaction(model, b.request(http.MethodPatch, "/api/cal_mail/"+pendingRef.String()), tx)
+		if err != nil {
+			return err
+		}
+	} else {
+		model := api2go.NewApi2GoModelWithData("cal_mail", nil, int64(a.cruds["cal_mail"].TableInfo().DefaultPermission), nil, attrs)
+		_, err = a.cruds["cal_mail"].createWithoutFilterAfterAuthorization(model, b.request(http.MethodPost, "/api/cal_mail"), tx)
+		if err != nil {
+			return err
+		}
+	}
+	if method == "REQUEST" && collectionRef != daptinid.NullReferenceId && state != "pending" {
+		return a.applyPendingCancellations(collectionRef, accountRef, accountAddress, sender, uid, recipientID, tx)
+	}
+	return nil
 }
 
 func (a *itipProcessMailAction) matchInvitation(accountRef daptinid.DaptinReferenceId, uid, recurrence string, sequence int, sender string, tx *sqlx.Tx) (daptinid.DaptinReferenceId, daptinid.DaptinReferenceId, error) {

@@ -1996,6 +1996,8 @@ var StandardTables = []table_info.TableInfo{
 				IsNullable:        false,
 				ColumnDescription: "The canonical CalDAV resource path for this calendar item.",
 			},
+			{Name: "uid", ColumnName: "uid", ColumnType: "label", DataType: "varchar(500)", IsIndexed: true, IsNullable: true},
+			{Name: "organizer_address", ColumnName: "organizer_address", ColumnType: "label", DataType: "varchar(200)", IsIndexed: true, IsNullable: true},
 			{
 				ColumnName:        "content",
 				Name:              "content",

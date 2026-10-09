@@ -802,6 +802,7 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 		return nil, err
 	}
 	data := encoded.Bytes()
+	uid, organizer := itipCalendarIdentity(calendar)
 	existing, findErr := b.calendarObjectRow(requestPath, collection, tx)
 	exists := findErr == nil
 	if findErr != nil && !errors.Is(findErr, errDAVNotFound) {
@@ -825,9 +826,9 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	}
 	value := b.contentValue(calendarObjectTable, requestPath, ical.MIMEType, data)
 	if exists {
-		err = b.calendarUpdate(calendarObjectTable, requestPath, existing, map[string]interface{}{"content": value}, tx)
+		err = b.calendarUpdate(calendarObjectTable, requestPath, existing, map[string]interface{}{"content": value, "uid": uid, "organizer_address": organizer}, tx)
 	} else {
-		err = b.calendarCreateEvent(requestPath, collection, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "collection_id": fmt.Sprint(collection["reference_id"])}, tx)
+		err = b.calendarCreateEvent(requestPath, collection, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "uid": uid, "organizer_address": organizer, "collection_id": fmt.Sprint(collection["reference_id"])}, tx)
 	}
 	if err != nil {
 		return nil, err
