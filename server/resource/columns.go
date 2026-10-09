@@ -2092,6 +2092,14 @@ var StandardTables = []table_info.TableInfo{
 		Icon:          "fa-folder-open",
 		Columns: []api2go.ColumnInfo{
 			{
+				ColumnName:        "display_name",
+				Name:              "display_name",
+				ColumnType:        "label",
+				DataType:          "varchar(500)",
+				IsNullable:        true,
+				ColumnDescription: "The display name of the calendar, independent of its URL name.",
+			},
+			{
 				ColumnName:        "name",
 				Name:              "name",
 				ColumnType:        "label",

@@ -243,7 +243,11 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 			propertyUpdateResponse := davE2ERequest(client, "PROPPATCH", test.collectionURL, token,
 				"application/xml", propertyUpdate, nil)
 			if test.name == "calendar" {
-				davE2EExpect(t, propertyUpdateResponse, http.StatusNotImplemented)
+				davE2EExpect(t, propertyUpdateResponse, http.StatusMultiStatus)
+				if !strings.Contains(propertyUpdateResponse.body, "200 OK") {
+					t.Fatalf("CalDAV PROPPATCH did not update the property: %s", propertyUpdateResponse.body)
+				}
+				expectedDescription = "Changed through DAV"
 			} else {
 				davE2EExpect(t, propertyUpdateResponse, http.StatusMultiStatus)
 				if !strings.Contains(propertyUpdateResponse.body, "405 Method Not Allowed") {
@@ -253,7 +257,7 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 			properties = davE2EExpect(t, davE2ERequest(client, "PROPFIND", test.collectionURL, token,
 				"application/xml", propertyRequest, nil), http.StatusMultiStatus)
 			if !strings.Contains(properties.body, expectedDescription) {
-				t.Fatalf("unsupported PROPPATCH changed the description: %s", properties.body)
+				t.Fatalf("PROPPATCH left an unexpected description: %s", properties.body)
 			}
 			objectURL := test.collectionURL + test.objectName
 			if test.name == "calendar" {

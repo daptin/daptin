@@ -373,6 +373,15 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 		}
 	}
 	assertMessages(1, "REQUEST")
+	transferPath := "/caldav/" + owner[1] + "/calendars/transfer/"
+	davE2EExpect(t, davE2ERequest(client, "MKCOL", base+transferPath, token, "", "", nil), http.StatusCreated)
+	transferredURL := base + transferPath + "transferred.ics"
+	davE2EExpect(t, davE2ERequest(client, "COPY", objectURL, token, "", "",
+		http.Header{"Destination": {transferredURL}}), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, "MOVE", transferredURL, token, "", "",
+		http.Header{"Destination": {base + transferPath + "renamed.ics"}}), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+transferPath+"renamed.ics", token, "", "", nil), http.StatusNoContent)
+	assertMessages(1, "REQUEST")
 	serverStatus := davE2EExpect(t, davE2ERequest(client, http.MethodGet, objectURL, token, "", "", nil), http.StatusOK)
 	forgedStatus := strings.Replace(serverStatus.body, "SCHEDULE-STATUS=1.0", "SCHEDULE-STATUS=1.2", 1)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, objectURL, token, "text/calendar", forgedStatus, nil), http.StatusCreated)

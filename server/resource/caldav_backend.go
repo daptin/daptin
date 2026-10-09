@@ -36,8 +36,10 @@ const (
 var errDAVNotFound = errors.New("DAV resource not found")
 
 var (
-	_ caldav.Backend  = (*DaptinDAVBackend)(nil)
-	_ carddav.Backend = (*DaptinDAVBackend)(nil)
+	_ caldav.Backend                       = (*DaptinDAVBackend)(nil)
+	_ caldav.CalendarPropertyBackend       = (*DaptinDAVBackend)(nil)
+	_ caldav.CalendarObjectTransferBackend = (*DaptinDAVBackend)(nil)
+	_ carddav.Backend                      = (*DaptinDAVBackend)(nil)
 )
 
 // DaptinDAVBackend adapts the protocol backends to canonical Daptin resources.
@@ -286,36 +288,12 @@ func (b *DaptinDAVBackend) calendarCreateEvent(requestPath string, collection ma
 	if eventRef == daptinid.NullReferenceId {
 		return errors.New("calendar create returned no reference ID")
 	}
-	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, daptinid.InterfaceToDIR(collection["reference_id"]), tx)
-	if err != nil {
-		return err
-	}
-	joinTable := calendarCollectionTable + "_" + calendarCollectionTable + "_id_has_usergroup_usergroup_id"
-	links, err := GetObjectByWhereClauseWithTransaction(joinTable, tx, goqu.Ex{"collection_id": collectionID})
+	grants, err := b.calendarCollectionGroupGrants(collection, tx)
 	if err != nil {
 		return err
 	}
 	share := calendarShareAction{cruds: b.cruds}
-	for _, link := range links {
-		groupID, err := ResourceRowInt64(link["usergroup_id"])
-		if err != nil {
-			return err
-		}
-		groupRef, err := GetIdToReferenceIdWithTransaction("usergroup", groupID, tx)
-		if err != nil {
-			return err
-		}
-		linkPermission, err := ResourceRowInt64(link["permission"])
-		if err != nil || linkPermission < 0 {
-			if err == nil {
-				err = errors.New("invalid collection group link permission")
-			}
-			return err
-		}
-		grant := auth.AuthPermission(linkPermission) & (auth.GroupPeek | auth.GroupRead | auth.GroupCreate | auth.GroupUpdate | auth.GroupDelete | auth.GroupRefer)
-		if grant == 0 {
-			continue
-		}
+	for groupRef, grant := range grants {
 		if err := share.setLink(calendarObjectTable, eventRef, groupRef, grant, requestPath, b.sessionUser, tx); err != nil {
 			return err
 		}
@@ -660,7 +638,7 @@ func (b *DaptinDAVBackend) ListCalendars(_ context.Context, requestedPath string
 	collectionTable, eventTable := b.calendarTablePermissions(tx)
 	for _, row := range rows {
 		name := fmt.Sprint(row["name"])
-		calendar := caldav.Calendar{Path: home + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
+		calendar := caldav.Calendar{Path: home + name + "/", Name: name, DisplayName: StringOrEmpty(row["display_name"]), Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
 		b.calendarPrivileges(&calendar, row, collectionTable, eventTable, tx)
 		result = append(result, calendar)
 	}
@@ -676,7 +654,7 @@ func (b *DaptinDAVBackend) GetCalendar(_ context.Context, requestPath string) (*
 	if err != nil {
 		return nil, err
 	}
-	calendar := &caldav.Calendar{Path: b.prefix + "/" + owner.String() + "/calendars/" + name + "/", Name: name, Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
+	calendar := &caldav.Calendar{Path: b.prefix + "/" + owner.String() + "/calendars/" + name + "/", Name: name, DisplayName: StringOrEmpty(row["display_name"]), Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
 	tx, err := b.cruds[calendarCollectionTable].Connection().Beginx()
 	if err != nil {
 		return nil, err

@@ -206,11 +206,24 @@ object in place.
 
 ## Collection metadata
 
-DAV `PROPPATCH` is unsupported: CalDAV returns HTTP 501, while CardDAV reports
-HTTP 405 for the property in a 207 response. Clients that need to change a
-calendar or address-book description use the normal JSON:API resource:
-`collection` for a calendar and `address_book` for an address book. After
-obtaining a calendar's public `reference_id` from `/api/collection`:
+CalDAV `PROPPATCH` updates `DAV:displayname` and
+`CALDAV:calendar-description` on a calendar collection. Both use the normal
+`collection` resource update and its table and row permissions. The display
+name is separate from the collection's URL name; removing it restores the URL
+name as the displayed value. A request containing a protected property changes
+nothing and reports its failure in the DAV 207 response. For example:
+
+```bash
+curl -X PROPPATCH "$CALENDAR_HOME/personal/" \
+  -u "user@example.com:password" \
+  -H "Content-Type: application/xml" \
+  --data '<D:propertyupdate xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:set><D:prop><D:displayname>Personal</D:displayname><C:calendar-description>My calendar</C:calendar-description></D:prop></D:set></D:propertyupdate>'
+```
+
+CardDAV does not implement property mutation. Clients can update an
+address-book description through the normal `address_book` JSON:API resource.
+The same JSON:API route remains available for calendars. After obtaining a
+calendar's public `reference_id` from `/api/collection`:
 
 ```bash
 curl -X PATCH "http://localhost:6336/api/collection/COLLECTION_REFERENCE_ID" \
@@ -553,20 +566,25 @@ RFC 3744 ACL conformance.
 - standards-based current-user-principal and home-set discovery;
 - separate CalDAV calendars and CardDAV address books;
 - `OPTIONS`, `PROPFIND`, `REPORT`, `MKCOL`, `GET`, `HEAD`, `PUT`, and `DELETE`;
+- calendar collection `PROPPATCH` for display name and description;
+- calendar object `COPY` and `MOVE`, with `Destination` and `Overwrite`
+  conditions, UID conflict checks, and Daptin resource permissions;
 - calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
 - calendar free-busy-query REPORT with a bounded time range;
 - stable content ETags and conditional object PUT/DELETE protection;
 - per-row Daptin permissions for CalDAV, including direct access at an owner's
   URL when collection and event grants permit it;
-- durable SQL-backed storage through Daptin resources.
+- durable SQL-backed storage through Daptin resources;
 - optional iCalendar email delivery through a collection's mail account;
 - conditional automatic scheduling discovery for a principal with one connected calendar.
 
-`COPY`, `MOVE`, and collection property mutation are not currently implemented
-and return an explicit unsupported response. CalDAV/CardDAV sync tokens are not
-implemented. Collection grants do not propagate to events
-created or moved through JSON:API. The endpoint does not implement the RFC 3744 ACL method or claim
-full WebDAV ACL conformance.
+Calendar collection `COPY` and `MOVE` remain unsupported. Moving an object
+between calendars carries its resource identity and uses the destination
+calendar's group grants. The move does not send new invitations: it changes
+which calendar contains the object, not the meeting itself. CalDAV/CardDAV
+sync tokens are not implemented. Collection grants do not propagate to events
+created or moved through JSON:API. The endpoint does not implement the RFC 3744
+ACL method or claim full WebDAV ACL conformance.
 
 ## Troubleshooting
 
