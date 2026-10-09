@@ -219,7 +219,11 @@ func (cm *CorsMiddleware) CorsMiddlewareFunc(c *gin.Context) {
 		return
 	}
 
-	isPreflight := c.Request.Method == http.MethodOptions
+	// OPTIONS with Origin is also used by DAV clients for capability discovery.
+	// Only an OPTIONS request carrying the preflight method header is a CORS
+	// preflight; an ordinary OPTIONS request must reach its route handler.
+	_, hasPreflightMethod := c.Request.Header["Access-Control-Request-Method"]
+	isPreflight := c.Request.Method == http.MethodOptions && hasPreflightMethod
 	if isPreflight {
 		addVary(c.Writer.Header(), "Access-Control-Request-Method")
 		addVary(c.Writer.Header(), "Access-Control-Request-Headers")

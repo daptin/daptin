@@ -55,6 +55,11 @@ func TestSchedulingHTTPXMLContract(t *testing.T) {
 			t.Fatalf("invalid DAV multistatus XML: %v", err)
 		}
 	}
+	missingResponse := httptest.NewRecorder()
+	writeSchedulingMultistatus(missingResponse, []schedulingXMLResource{{href: "/caldav/owner/schedule-inbox/missing.ics", status: http.StatusNotFound}}, wanted)
+	if missingResponse.Code != http.StatusMultiStatus || !strings.Contains(missingResponse.Body.String(), "<D:status>HTTP/1.1 404 Not Found</D:status>") {
+		t.Fatalf("missing multiget item must have a per-resource 404: %d %s", missingResponse.Code, missingResponse.Body.String())
+	}
 
 	query := `<C:calendar-query xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:D="DAV:"><D:prop><C:calendar-data/></D:prop><C:filter><C:comp-filter name="VCALENDAR"><C:comp-filter name="VEVENT"><C:time-range start="20300101T000000Z" end="20300102T000000Z"/></C:comp-filter></C:comp-filter></C:filter></C:calendar-query>`
 	var report schedulingXMLReport

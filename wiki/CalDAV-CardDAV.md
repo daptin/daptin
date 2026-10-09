@@ -497,6 +497,17 @@ message in their scheduling inbox. Scheduling discovery remains unavailable
 for an address shared across principals because it does not identify one
 principal. Unconnected principals receive a missing-property response.
 
+When a principal owns exactly one calendar and it has one connected mail
+account, DAV `OPTIONS` advertises `calendar-auto-schedule`. This tells CalDAV
+clients that Daptin sends invitations from event writes, so the client need
+not send a second email. Configure the incoming `mail.process_itip` exchange
+above to apply received requests, replies, and cancellations automatically.
+With multiple calendars, an incoming request has no unique destination, so
+the principal-wide automatic scheduling capability is absent; each connected
+calendar can still queue mail through its own account. In Thunderbird, assign
+the corresponding email identity to each subscribed calendar so an attendee
+reply identifies that attendee.
+
 The inbox URL is `/caldav/OWNER_REFERENCE_ID/schedule-inbox/`. After
 `process_itip` succeeds, the owner can list incoming iTIP messages with
 `PROPFIND` or `REPORT` and read each `.ics` message with `GET`. The inbox
@@ -516,12 +527,11 @@ intervals from calendars for which the requester has peek or read access;
 unavailable or denied recipients receive no calendar data. Meeting invitations
 continue to be queued by CalDAV event `PUT` and `DELETE`, not outbox `POST`.
 
-This is a client-visible iMIP bridge, not a claim of full RFC 6638 automatic
-scheduling. The server does not advertise `calendar-auto-schedule`. Clients
-that require that capability may leave invitation controls disabled because
-the wider RFC 6638 scheduling privileges and outbox contract are not
-implemented. Schedule tags are available on connected events as described
-above.
+The `calendar-auto-schedule` advertisement covers event writes and incoming
+mail processing in the connected setup described above. Daptin also exposes
+Schedule-Tag and a free/busy scheduling outbox. Other RFC 6638 outbox message
+types and scheduling privileges are not implemented; meeting invitations use
+CalDAV event writes rather than outbox `POST`.
 
 ## Supported behavior
 
@@ -534,11 +544,12 @@ above.
 - per-row Daptin permissions for CalDAV, including direct access at an owner's
   URL when collection and event grants permit it;
 - durable SQL-backed storage through Daptin resources.
-- optional iCalendar email delivery through a collection's mail account.
+- optional iCalendar email delivery through a collection's mail account;
+- conditional automatic scheduling discovery for a principal with one connected calendar.
 
 `COPY`, `MOVE`, and collection property mutation are not currently implemented
-and return an explicit unsupported response. Automatic RFC 6638 scheduling and
-CalDAV/CardDAV sync tokens are not implemented. Collection grants do not propagate to events
+and return an explicit unsupported response. CalDAV/CardDAV sync tokens are not
+implemented. Collection grants do not propagate to events
 created or moved through JSON:API. The endpoint does not implement the RFC 3744 ACL method or claim
 full WebDAV ACL conformance.
 

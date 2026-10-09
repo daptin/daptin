@@ -77,6 +77,33 @@ func (b *DaptinDAVBackend) ServeScheduling(w http.ResponseWriter, r *http.Reques
 		return false
 	}
 	principalPath := "/caldav/" + b.sessionUser.UserReferenceId.String() + "/"
+	if r.Method == http.MethodOptions {
+		parts := strings.Split(strings.Trim(path.Clean(r.URL.Path), "/"), "/")
+		if len(parts) >= 2 && len(parts) <= 4 && parts[0] == "caldav" && parts[1] == b.sessionUser.UserReferenceId.String() {
+			allow := ""
+			switch {
+			case len(parts) == 2:
+				allow = "OPTIONS, PROPFIND"
+			case len(parts) == 3 && parts[2] == "calendars":
+				allow = "OPTIONS, PROPFIND, MKCOL"
+			case len(parts) == 4 && parts[2] == "calendars":
+				if _, err := b.GetCalendar(r.Context(), r.URL.Path); err == nil {
+					allow = "OPTIONS, PROPFIND, REPORT, DELETE"
+				}
+			}
+			if allow != "" {
+				active, err := b.autoSchedulingEnabled(r.Context(), principalPath)
+				if err != nil {
+					writeSchedulingError(w, err, http.StatusInternalServerError)
+					return true
+				}
+				if active {
+					writeSchedulingOptions(w, allow, true)
+					return true
+				}
+			}
+		}
+	}
 	if r.Method == "PROPFIND" && path.Clean(r.URL.Path) == path.Clean(principalPath) {
 		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, schedulingXMLLimit))
 		if err != nil {
@@ -177,7 +204,12 @@ func (b *DaptinDAVBackend) serveSchedulingInbox(w http.ResponseWriter, r *http.R
 		if objectPath {
 			allow = "OPTIONS, HEAD, GET, DELETE, PROPFIND"
 		}
-		writeSchedulingOptions(w, allow)
+		active, err := b.autoSchedulingEnabled(r.Context(), "/caldav/"+b.sessionUser.UserReferenceId.String()+"/")
+		if err != nil {
+			writeSchedulingError(w, err, http.StatusInternalServerError)
+			return
+		}
+		writeSchedulingOptions(w, allow, active)
 		return
 	}
 	if objectPath {
@@ -257,7 +289,12 @@ func (b *DaptinDAVBackend) serveSchedulingInbox(w http.ResponseWriter, r *http.R
 func (b *DaptinDAVBackend) serveSchedulingOutbox(w http.ResponseWriter, r *http.Request, principal *schedulingPrincipal) {
 	switch r.Method {
 	case http.MethodOptions:
-		writeSchedulingOptions(w, "OPTIONS, PROPFIND, POST")
+		active, err := b.autoSchedulingEnabled(r.Context(), "/caldav/"+b.sessionUser.UserReferenceId.String()+"/")
+		if err != nil {
+			writeSchedulingError(w, err, http.StatusInternalServerError)
+			return
+		}
+		writeSchedulingOptions(w, "OPTIONS, PROPFIND, POST", active)
 	case "PROPFIND":
 		requested, err := readSchedulingProperties(r)
 		if err != nil {
@@ -318,6 +355,7 @@ func (b *DaptinDAVBackend) serveSchedulingReport(w http.ResponseWriter, r *http.
 		return
 	}
 	var objects []caldav.CalendarObject
+	var missingHrefs []string
 	switch report.XMLName {
 	case xml.Name{Space: caldavXMLNamespace, Local: "calendar-multiget"}:
 		if len(report.Hrefs) > schedulingMaxMultiget {
@@ -332,7 +370,12 @@ func (b *DaptinDAVBackend) serveSchedulingReport(w http.ResponseWriter, r *http.
 			}
 			object, err := b.getSchedulingInboxObject(r.Context(), location.Path)
 			if err != nil {
-				writeSchedulingError(w, err, http.StatusNotFound)
+				var missing *schedulingHTTPError
+				if errors.As(err, &missing) && missing.status == http.StatusNotFound {
+					missingHrefs = append(missingHrefs, location.Path)
+					continue
+				}
+				writeSchedulingError(w, err, http.StatusInternalServerError)
 				return
 			}
 			objects = append(objects, *object)
@@ -352,7 +395,10 @@ func (b *DaptinDAVBackend) serveSchedulingReport(w http.ResponseWriter, r *http.
 		http.Error(w, "unsupported scheduling report", http.StatusBadRequest)
 		return
 	}
-	resources := make([]schedulingXMLResource, 0, len(objects))
+	resources := make([]schedulingXMLResource, 0, len(objects)+len(missingHrefs))
+	for _, href := range missingHrefs {
+		resources = append(resources, schedulingXMLResource{href: href, status: http.StatusNotFound})
+	}
 	for i := range objects {
 		resource, err := schedulingObjectResource(&objects[i])
 		if err != nil {
@@ -454,6 +500,7 @@ func schedulingTimeRange(input *schedulingXMLTimeRange) (time.Time, time.Time, e
 
 type schedulingXMLResource struct {
 	href       string
+	status     int
 	properties map[xml.Name]string
 }
 
@@ -536,6 +583,10 @@ func writeSchedulingMultistatus(w http.ResponseWriter, resources []schedulingXML
 	response.WriteString(`<D:multistatus xmlns:D="DAV:" xmlns:C="` + caldavXMLNamespace + `">`)
 	for _, resource := range resources {
 		response.WriteString("<D:response>" + schedulingHref(resource.href))
+		if resource.status != 0 {
+			response.WriteString("<D:status>HTTP/1.1 " + strconv.Itoa(resource.status) + " " + http.StatusText(resource.status) + "</D:status></D:response>")
+			continue
+		}
 		var found, missing strings.Builder
 		if len(requested) == 0 {
 			for name, value := range resource.properties {
@@ -586,8 +637,12 @@ func schedulingEscape(value string) string {
 	return escaped.String()
 }
 
-func writeSchedulingOptions(w http.ResponseWriter, allow string) {
-	w.Header().Set("DAV", "1, 3, calendar-access")
+func writeSchedulingOptions(w http.ResponseWriter, allow string, auto bool) {
+	dav := "1, 3, calendar-access"
+	if auto {
+		dav += ", calendar-auto-schedule"
+	}
+	w.Header().Set("DAV", dav)
 	w.Header().Set("Allow", allow)
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -92,6 +92,10 @@ func TestDAVSchedulingExternalFailureRealE2E(t *testing.T) {
 	davE2EExpect(t, davE2ERequest(client, http.MethodPatch,
 		base+"/api/collection/"+collectionID+"/relationships/scheduling_mail_account_id", adminToken,
 		"application/vnd.api+json", fmt.Sprintf(`{"data":{"type":"mail_account","id":"%s"}}`, mailAccount), nil), http.StatusNoContent)
+	autoOptions := davE2EExpect(t, davE2ERequest(client, http.MethodOptions, base+calendarPath, ownerToken, "", "", http.Header{"Origin": {"http://localhost"}}), http.StatusNoContent)
+	if !strings.Contains(autoOptions.header.Get("DAV"), "calendar-auto-schedule") {
+		t.Fatalf("single connected calendar did not advertise automatic scheduling: %s", autoOptions.header.Get("DAV"))
+	}
 	event := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:itip-external-failure\r\nDTSTAMP:20261008T000000Z\r\nDTSTART:20261017T120000Z\r\nDTEND:20261017T130000Z\r\nSEQUENCE:0\r\nSUMMARY:External failure\r\nORGANIZER:mailto:sender@localhost\r\nATTENDEE:mailto:nobody@nonexistent.invalid\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+calendarPath+"event.ics", ownerToken,
 		"text/calendar", event, nil), http.StatusCreated)
@@ -377,6 +381,10 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	}
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+inboxObject, adminToken, "", "", nil), http.StatusForbidden)
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+inboxObject, token, "", "", nil), http.StatusNoContent)
+	missingReport := davE2EExpect(t, davE2ERequest(client, "REPORT", inboxPath, token, "application/xml", multiget, nil), http.StatusMultiStatus)
+	if !strings.Contains(missingReport.body, inboxObject) || !strings.Contains(missingReport.body, "<D:status>HTTP/1.1 404 Not Found</D:status>") {
+		t.Fatalf("acknowledged multiget item needs a per-resource 404: %s", missingReport.body)
+	}
 	afterAcknowledge := davE2EExpect(t, davE2ERequest(client, "PROPFIND", inboxPath, token, "application/xml",
 		`<D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/></D:prop></D:propfind>`, http.Header{"Depth": {"1"}}), http.StatusMultiStatus)
 	if strings.Contains(afterAcknowledge.body, inboxObject) {
@@ -477,6 +485,10 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	sharedWithinPrincipal := davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+"/caldav/"+owner[1]+"/", token, "application/xml", scheduleProperties, nil), http.StatusMultiStatus)
 	if strings.Count(sharedWithinPrincipal.body, "mailto:organizer@localhost") != 1 {
 		t.Fatalf("one account linked to two calendars produced duplicate addresses: %s", sharedWithinPrincipal.body)
+	}
+	autoOptions := davE2EExpect(t, davE2ERequest(client, http.MethodOptions, base+calendarPath, token, "", "", http.Header{"Origin": {"http://localhost"}}), http.StatusNoContent)
+	if strings.Contains(autoOptions.header.Get("DAV"), "calendar-auto-schedule") {
+		t.Fatalf("ambiguous incoming calendar advertised automatic scheduling: %s", autoOptions.header.Get("DAV"))
 	}
 	pendingRequest := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nPRODID:-//Guest//EN\r\nBEGIN:VEVENT\r\nUID:itip-pending-e2e\r\nDTSTAMP:20261008T010000Z\r\nDTSTART:20261021T120000Z\r\nDTEND:20261021T130000Z\r\nSEQUENCE:0\r\nSUMMARY:Pending invitation\r\nORGANIZER:mailto:guest@example.test\r\nATTENDEE:mailto:organizer@localhost\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 	pendingRaw := "From: guest@example.test\r\nTo: organizer@localhost\r\nSubject: Pending invitation\r\nMIME-Version: 1.0\r\nContent-Type: text/calendar; method=REQUEST\r\nContent-Transfer-Encoding: base64\r\n\r\n" + base64.StdEncoding.EncodeToString([]byte(pendingRequest)) + "\r\n"

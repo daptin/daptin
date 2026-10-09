@@ -30,6 +30,29 @@ type schedulingPrincipal struct {
 	OutboxPath string
 }
 
+// Automatic scheduling needs one unambiguous incoming calendar for the
+// principal's connected mail account. With multiple calendars, a REQUEST can
+// remain pending until an administrator chooses its destination.
+func (b *DaptinDAVBackend) autoSchedulingEnabled(ctx context.Context, principalPath string) (bool, error) {
+	principal, err := b.schedulingPrincipal(ctx, principalPath)
+	if err != nil || principal == nil || len(principal.Addresses) != 1 {
+		return false, err
+	}
+	owner, err := b.schedulingOwner(principalPath)
+	if err != nil {
+		return false, err
+	}
+	collections, err := b.calendarRows(calendarCollectionTable, principalPath,
+		Query{ColumnName: "user_account_id", Operator: "=", Value: owner.String()})
+	if err != nil {
+		return false, err
+	}
+	if len(collections) != 1 {
+		return false, nil
+	}
+	return daptinid.InterfaceToDIR(collections[0]["scheduling_mail_account_id"]) != daptinid.NullReferenceId, nil
+}
+
 type schedulingResponse struct {
 	Recipient     string
 	RequestStatus string

@@ -287,7 +287,7 @@ func itipAllowedAttendeeChange(old, incoming ical.Event, attendeeAddress string)
 			return nil, errors.New("invalid scheduling event")
 		}
 		component := copy.Events()[0].Component
-		for _, name := range []string{"TRANSP", "PERCENT-COMPLETE", "COMPLETED", "CREATED", "DTSTAMP", "LAST-MODIFIED", "EXDATE"} {
+		for _, name := range []string{"TRANSP", "PERCENT-COMPLETE", "COMPLETED", "CREATED", "DTSTAMP", "LAST-MODIFIED", "EXDATE", "X-MOZ-GENERATION"} {
 			component.Props.Del(name)
 		}
 		for i := range component.Props["ATTENDEE"] {

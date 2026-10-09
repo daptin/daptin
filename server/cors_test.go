@@ -236,15 +236,17 @@ func TestCorsMiddlewareNormalizesDefaultOriginPorts(t *testing.T) {
 	}
 }
 
-func TestCorsMiddlewareOptionsWithoutRequestedMethodIsRejected(t *testing.T) {
+func TestCorsMiddlewarePlainOptionsWithOriginReachesHandler(t *testing.T) {
 	config := mustParseCorsConfig(t, `{"version":"1","allowed_origins":["https://app.example.com"],"allowed_methods":["GET"]}`)
-	router, calls := newCorsTestRouter(config, "")
-	request := httptest.NewRequest(http.MethodOptions, "/resource", nil)
-	request.Header.Set("Origin", "https://app.example.com")
-	response := httptest.NewRecorder()
-	router.ServeHTTP(response, request)
-	if *calls != 0 || response.Code != http.StatusForbidden {
-		t.Fatalf("plain OPTIONS status/calls = %d/%d, want 403/0", response.Code, *calls)
+	for _, origin := range []string{"https://app.example.com", "http://127.0.0.1:16636"} {
+		router, calls := newCorsTestRouter(config, "")
+		request := httptest.NewRequest(http.MethodOptions, "/resource", nil)
+		request.Header.Set("Origin", origin)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		if *calls != 1 || response.Code != http.StatusNoContent {
+			t.Fatalf("plain OPTIONS with Origin %q: status/calls = %d/%d, want 204/1", origin, response.Code, *calls)
+		}
 	}
 }
 

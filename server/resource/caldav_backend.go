@@ -704,6 +704,8 @@ func (b *DaptinDAVBackend) calendarPrivileges(calendar *caldav.Calendar, row map
 		(eventTable.CanPeek(user, groups, admin) || eventTable.CanRead(user, groups, admin))
 	calendar.Bind = calendar.Read && collection.CanCreate(user, groups, admin) && collection.CanRefer(user, groups, admin) &&
 		eventTable.CanCreate(user, groups, admin)
+	calendar.WriteContent = calendar.Read && collection.CanUpdate(user, groups, admin) &&
+		eventTable.CanUpdate(user, groups, admin)
 	// Deleting an event also checks that event row's Delete grant. Only an
 	// administrator can be certain of that grant for every child row here.
 	for _, group := range groups {
