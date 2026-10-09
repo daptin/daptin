@@ -407,6 +407,16 @@ that attendee, so a client that sends its own invitations does not also get
 a Daptin-generated copy. Unconnected calendars continue ordinary CalDAV
 operations without sending mail.
 
+Connected scheduling events return a `Schedule-Tag` header on `GET` and `PUT`
+and a `schedule-tag` property in DAV object queries. A client may send
+`If-Schedule-Tag-Match` on `PUT` or `DELETE`. A matching tag preserves other
+attendees' response states when the client's ETag is stale; a stale schedule
+tag fails with HTTP 412. An attendee may change their own response and local
+event presentation, but cannot change organizer-controlled meeting fields.
+Deleting an attendee copy sends a declined reply unless the request includes
+`Schedule-Reply: F`. The normal Daptin table, collection, and event grants
+still govern the write.
+
 `cal_mail` records each inbound or outbound calendar scheduling message and
 links it to the ordinary received `mail` or queued `outbox` record. The event
 write, outbound `cal_mail` record, Sent copy, and `outbox` row commit
@@ -509,8 +519,9 @@ continue to be queued by CalDAV event `PUT` and `DELETE`, not outbox `POST`.
 This is a client-visible iMIP bridge, not a claim of full RFC 6638 automatic
 scheduling. The server does not advertise `calendar-auto-schedule`. Clients
 that require that capability may leave invitation controls disabled because
-the wider RFC 6638 scheduling privileges, schedule tags, and outbox contract
-are not implemented.
+the wider RFC 6638 scheduling privileges and outbox contract are not
+implemented. Schedule tags are available on connected events as described
+above.
 
 ## Supported behavior
 

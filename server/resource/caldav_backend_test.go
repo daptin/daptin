@@ -1,12 +1,25 @@
 package resource
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/google/uuid"
 )
+
+func TestLegacyScheduleTagIgnoresServerRSVPUpdates(t *testing.T) {
+	before := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:legacy-meeting\r\nORGANIZER:mailto:owner@example.test\r\nATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:guest@example.test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+	after := strings.Replace(before, "PARTSTAT=NEEDS-ACTION", "PARTSTAT=ACCEPTED", 1)
+	tag := calendarScheduleTag(nil, []byte(before))
+	if tag != calendarScheduleTag(nil, []byte(after)) {
+		t.Fatal("server RSVP changed the fallback tag of a preexisting event")
+	}
+	if err := checkScheduleTagCondition(`"`+tag+`"`, true, nil, []byte(after)); err != nil {
+		t.Fatalf("unchanged schedule tag rejected a client update: %v", err)
+	}
+}
 
 func TestCalDAVPathIdentifiesOwnerWithoutGrantingAccess(t *testing.T) {
 	referenceID := daptinid.DaptinReferenceId(uuid.MustParse("11111111-1111-1111-1111-111111111111"))

@@ -277,6 +277,16 @@ func (a *itipProcessMailAction) applyInvitation(collectionRef, accountRef daptin
 		"uid":     uid, "organizer_address": sender,
 	}
 	if row != nil {
+		changeTag := method == "CANCEL" || previous == nil
+		if previous != nil && !changeTag {
+			changeTag, err = itipMaterialChange(*previous, incoming)
+			if err != nil {
+				return daptinid.NullReferenceId, "", err
+			}
+		}
+		if changeTag {
+			attrs["schedule_tag"] = uuid.NewString()
+		}
 		delete(row, "version")
 		if err := b.calendarUpdate(calendarObjectTable, requestPath, row, attrs, tx); err != nil {
 			return daptinid.NullReferenceId, "", err
@@ -285,6 +295,7 @@ func (a *itipProcessMailAction) applyInvitation(collectionRef, accountRef daptin
 	}
 	attrs["rpath"] = requestPath
 	attrs["collection_id"] = collectionRef.String()
+	attrs["schedule_tag"] = uuid.NewString()
 	if err := b.calendarCreateEvent(requestPath, collection, attrs, tx); err != nil {
 		return daptinid.NullReferenceId, "", err
 	}

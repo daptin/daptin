@@ -22,6 +22,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/emersion/go-ical"
 	"github.com/emersion/go-vcard"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -714,7 +715,7 @@ func (b *DaptinDAVBackend) calendarPrivileges(calendar *caldav.Calendar, row map
 	}
 }
 
-func (b *DaptinDAVBackend) calendarObject(row map[string]interface{}) (caldav.CalendarObject, error) {
+func (b *DaptinDAVBackend) calendarObject(row, collection map[string]interface{}) (caldav.CalendarObject, error) {
 	data, err := b.contentBytes(calendarObjectTable, row)
 	if err != nil {
 		return caldav.CalendarObject{}, err
@@ -723,7 +724,11 @@ func (b *DaptinDAVBackend) calendarObject(row map[string]interface{}) (caldav.Ca
 	if err != nil {
 		return caldav.CalendarObject{}, err
 	}
-	return caldav.CalendarObject{Path: fmt.Sprint(row["rpath"]), ModTime: davTime(row), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Data: calendar}, nil
+	object := caldav.CalendarObject{Path: fmt.Sprint(row["rpath"]), ModTime: davTime(row), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Data: calendar}
+	if daptinid.InterfaceToDIR(collection["scheduling_mail_account_id"]) != daptinid.NullReferenceId && StringOrEmpty(row["organizer_address"]) != "" {
+		object.ScheduleTag = calendarScheduleTag(row, data)
+	}
+	return object, nil
 }
 
 func (b *DaptinDAVBackend) GetCalendarObject(_ context.Context, requestPath string, _ *caldav.CalendarCompRequest) (*caldav.CalendarObject, error) {
@@ -739,7 +744,7 @@ func (b *DaptinDAVBackend) GetCalendarObject(_ context.Context, requestPath stri
 	if err != nil {
 		return nil, err
 	}
-	object, err := b.calendarObject(row)
+	object, err := b.calendarObject(row, collection)
 	return &object, err
 }
 
@@ -759,7 +764,7 @@ func (b *DaptinDAVBackend) ListCalendarObjects(_ context.Context, requestPath st
 	}
 	result := make([]caldav.CalendarObject, 0, len(rows))
 	for _, row := range rows {
-		object, err := b.calendarObject(row)
+		object, err := b.calendarObject(row, collection)
 		if err != nil {
 			return nil, err
 		}
@@ -821,14 +826,38 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 		previous = current
 		etag = GetMD5Hash(current)
 	}
+	if err := checkScheduleTagCondition(b.headers.Get("If-Schedule-Tag-Match"), exists, existing, previous); err != nil {
+		return nil, err
+	}
 	if err := checkDAVConditions(exists, etag, opts.IfMatch, opts.IfNoneMatch); err != nil {
 		return nil, err
 	}
+	if exists && b.headers.Get("If-Schedule-Tag-Match") != "" {
+		collectionAccount := daptinid.InterfaceToDIR(collection["scheduling_mail_account_id"])
+		if collectionAccount != daptinid.NullReferenceId {
+			account, _, err := b.cruds["mail_account"].GetSingleRowByReferenceIdWithTransaction("mail_account", collectionAccount, nil, tx)
+			if err != nil {
+				return nil, err
+			}
+			if err := mergeScheduleAttendees(previous, calendar, strings.ToLower(strings.TrimSpace(StringOrEmpty(account["username"])))); err != nil {
+				return nil, err
+			}
+			encoded.Reset()
+			if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
+				return nil, err
+			}
+			data = encoded.Bytes()
+		}
+	}
 	value := b.contentValue(calendarObjectTable, requestPath, ical.MIMEType, data)
+	tag := ""
+	if uid != "" && organizer != "" && daptinid.InterfaceToDIR(collection["scheduling_mail_account_id"]) != daptinid.NullReferenceId {
+		tag = uuid.NewString()
+	}
 	if exists {
-		err = b.calendarUpdate(calendarObjectTable, requestPath, existing, map[string]interface{}{"content": value, "uid": uid, "organizer_address": organizer}, tx)
+		err = b.calendarUpdate(calendarObjectTable, requestPath, existing, map[string]interface{}{"content": value, "uid": uid, "organizer_address": organizer, "schedule_tag": tag}, tx)
 	} else {
-		err = b.calendarCreateEvent(requestPath, collection, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "uid": uid, "organizer_address": organizer, "collection_id": fmt.Sprint(collection["reference_id"])}, tx)
+		err = b.calendarCreateEvent(requestPath, collection, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "uid": uid, "organizer_address": organizer, "schedule_tag": tag, "collection_id": fmt.Sprint(collection["reference_id"])}, tx)
 	}
 	if err != nil {
 		return nil, err
@@ -843,7 +872,7 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &caldav.CalendarObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Data: calendar}, nil
+	return &caldav.CalendarObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), ScheduleTag: tag, Data: calendar}, nil
 }
 
 func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath string) error {
@@ -890,6 +919,9 @@ func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath s
 	ifNoneMatch := webdav.ConditionalMatch(b.headers.Get("If-None-Match"))
 	previous, err := b.contentBytes(calendarObjectTable, row)
 	if err != nil {
+		return err
+	}
+	if err := checkScheduleTagCondition(b.headers.Get("If-Schedule-Tag-Match"), true, row, previous); err != nil {
 		return err
 	}
 	if ifMatch.IsSet() || ifNoneMatch.IsSet() {

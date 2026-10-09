@@ -53,6 +53,9 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 	if err != nil {
 		return err
 	}
+	if err := b.validateSchedulingWrite(collection, eventRef, sender, previous, current, tx); err != nil {
+		return err
+	}
 	for key, old := range oldEvents {
 		if now, present := newEvents[key]; present {
 			if itipAddress(old.Props.Get("ORGANIZER")) == sender {
@@ -75,6 +78,17 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 					return err
 				}
 			}
+		} else if len(current) == 0 && strings.ToUpper(b.headers.Get("Schedule-Reply")) != "F" && itipOrganizerServerSchedules(old) {
+			if _, invited := itipAttendees(old)[sender]; !invited {
+				continue
+			}
+			declined, err := itipDeclinedReply(previous, key, sender)
+			if err != nil {
+				return err
+			}
+			if err := b.queueITIP(collection, account, eventRef, sender, itipAddress(old.Props.Get("ORGANIZER")), "REPLY", declined, old, false, tx); err != nil {
+				return err
+			}
 		}
 	}
 	for key, now := range newEvents {
@@ -94,7 +108,7 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 			}
 		} else if organizer != "" {
 			status := itipAttendees(now)[sender]
-			if status != "" && status != "NEEDS-ACTION" && itipServerSchedules(now, sender) && (!existed || itipAttendees(old)[sender] != status) {
+			if status != "" && status != "NEEDS-ACTION" && itipOrganizerServerSchedules(now) && (!existed || itipAttendees(old)[sender] != status) {
 				if err := b.queueITIP(collection, account, eventRef, sender, organizer, "REPLY", current, now, false, tx); err != nil {
 					return err
 				}
@@ -102,6 +116,31 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 		}
 	}
 	return nil
+}
+
+func itipDeclinedReply(previous []byte, key, address string) ([]byte, error) {
+	calendar, err := ical.NewDecoder(bytes.NewReader(previous)).Decode()
+	if err != nil {
+		return nil, err
+	}
+	for _, event := range calendar.Events() {
+		if itipProp(event.Props.Get("UID"))+"\x00"+itipProp(event.Props.Get("RECURRENCE-ID")) != key {
+			continue
+		}
+		for i := range event.Props["ATTENDEE"] {
+			if itipAddress(&event.Props["ATTENDEE"][i]) == address {
+				if event.Props["ATTENDEE"][i].Params == nil {
+					event.Props["ATTENDEE"][i].Params = ical.Params{}
+				}
+				event.Props["ATTENDEE"][i].Params.Set("PARTSTAT", "DECLINED")
+			}
+		}
+	}
+	var encoded bytes.Buffer
+	if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
+		return nil, err
+	}
+	return encoded.Bytes(), nil
 }
 
 func itipEvents(data []byte) (map[string]ical.Event, error) {
@@ -157,6 +196,15 @@ func itipServerSchedules(event ical.Event, address string) bool {
 		}
 	}
 	return false
+}
+
+func itipOrganizerServerSchedules(event ical.Event) bool {
+	organizer := event.Props.Get("ORGANIZER")
+	if organizer == nil {
+		return false
+	}
+	agent := strings.ToUpper(organizer.Params.Get("SCHEDULE-AGENT"))
+	return agent == "" || agent == "SERVER"
 }
 
 func (b *DaptinDAVBackend) queueITIP(collection, account map[string]interface{}, eventRef daptinid.DaptinReferenceId, sender, recipient, method string, source []byte, event ical.Event, cancelEntire bool, tx *sqlx.Tx) error {

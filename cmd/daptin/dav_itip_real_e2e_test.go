@@ -217,6 +217,10 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	create := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VEVENT\r\nUID:itip-outbound-e2e\r\nDTSTAMP:20261008T000000Z\r\nDTSTART:20261012T120000Z\r\nDTEND:20261012T130000Z\r\nSEQUENCE:0\r\nSUMMARY:Meeting\r\nORGANIZER:mailto:organizer@localhost\r\nATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:guest@example.test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 	objectURL := base + calendarPath + "meeting.ics"
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+unconnectedPath+"meeting.ics", token, "text/calendar", create, nil), http.StatusCreated)
+	unconnectedEvent := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+unconnectedPath+"meeting.ics", token, "", "", nil), http.StatusOK)
+	if unconnectedEvent.header.Get("Schedule-Tag") != "" {
+		t.Fatalf("unconnected event advertises scheduling: %s", unconnectedEvent.header.Get("Schedule-Tag"))
+	}
 	emptyMessages := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK)
 	if rows := accessGroupsE2EDataArray(t, emptyMessages); len(rows) != 0 {
 		t.Fatalf("unconnected calendar queued invitations: %#v", rows)
@@ -466,6 +470,10 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	davE2EExpect(t, davE2ERequest(client, http.MethodPatch,
 		base+"/api/collection/"+unconnectedID+"/relationships/scheduling_mail_account_id", adminToken,
 		"application/vnd.api+json", relation, nil), http.StatusNoContent)
+	legacyEvent := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+unconnectedPath+"meeting.ics", token, "", "", nil), http.StatusOK)
+	if legacyEvent.header.Get("Schedule-Tag") == "" {
+		t.Fatal("event created before connecting its calendar has no schedule tag")
+	}
 	sharedWithinPrincipal := davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+"/caldav/"+owner[1]+"/", token, "application/xml", scheduleProperties, nil), http.StatusMultiStatus)
 	if strings.Count(sharedWithinPrincipal.body, "mailto:organizer@localhost") != 1 {
 		t.Fatalf("one account linked to two calendars produced duplicate addresses: %s", sharedWithinPrincipal.body)
@@ -758,6 +766,8 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 		}
 	}
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, organizerURL, token, "text/calendar", meeting, nil), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, activeBase+calendarPath+"duplicate-uid.ics", token,
+		"text/calendar", meeting, nil), http.StatusConflict)
 	sendLatest("attendee@localhost")
 	attendeeInbox := activeBase + "/caldav/" + attendeeOwner[1] + "/schedule-inbox/"
 	requestInbox := davE2EExpect(t, davE2ERequest(client, "PROPFIND", attendeeInbox, attendeeToken,
@@ -768,9 +778,24 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	}
 	attendeeURL := findAttendeeEvent()
 	createdAttendee := davE2EExpect(t, davE2ERequest(client, http.MethodGet, attendeeURL, attendeeToken, "", "", nil), http.StatusOK)
+	initialAttendeeTag := createdAttendee.header.Get("Schedule-Tag")
+	if initialAttendeeTag == "" {
+		t.Fatal("scheduled attendee event has no Schedule-Tag")
+	}
+	tagProperty := davE2EExpect(t, davE2ERequest(client, "PROPFIND", attendeeURL, attendeeToken,
+		"application/xml", `<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><C:schedule-tag/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
+	if !strings.Contains(tagProperty.body, "schedule-tag") || !strings.Contains(tagProperty.body, strings.Trim(initialAttendeeTag, `"`)) {
+		t.Fatalf("scheduled attendee event has no matching schedule-tag property: %s", tagProperty.body)
+	}
 	if !strings.Contains(createdAttendee.body, "UID:itip-two-users-e2e") || !strings.Contains(createdAttendee.body, "PARTSTAT=NEEDS-ACTION") {
 		t.Fatalf("incoming invitation did not create attendee event: %s", createdAttendee.body)
 	}
+	forgedSummary := strings.Replace(createdAttendee.body, "SUMMARY:Two user meeting", "SUMMARY:Forged by attendee", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeURL, attendeeToken,
+		"text/calendar", forgedSummary, http.Header{"If-Schedule-Tag-Match": {initialAttendeeTag}}), http.StatusForbidden)
+	forgedEnvelope := strings.Replace(createdAttendee.body, "END:VCALENDAR", "X-OWNER:forged\r\nEND:VCALENDAR", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeURL, attendeeToken,
+		"text/calendar", forgedEnvelope, http.Header{"If-Schedule-Tag-Match": {initialAttendeeTag}}), http.StatusForbidden)
 	autoEventID := accessGroupsE2EFindResourceID(t, client, activeBase, adminToken, "calendar", "rpath",
 		strings.TrimPrefix(attendeeURL, activeBase))
 	autoRecord := accessGroupsE2ERequestJSON(t, client, http.MethodGet, activeBase+"/api/calendar/"+autoEventID,
@@ -789,11 +814,22 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 		t.Fatalf("duplicate invitation changed attendee event count or path: %v, original %s", repeatedPaths, attendeeURL)
 	}
 	accepted := strings.Replace(createdAttendee.body, "PARTSTAT=NEEDS-ACTION", "PARTSTAT=ACCEPTED", 1)
+	organizerBeforeReply := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerURL, token, "", "", nil), http.StatusOK)
+	organizerTag := organizerBeforeReply.header.Get("Schedule-Tag")
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeURL, attendeeToken, "text/calendar", accepted, nil), http.StatusCreated)
 	sendLatest("organizer@localhost")
 	organizerAccepted := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerURL, token, "", "", nil), http.StatusOK)
+	if organizerTag == "" || organizerAccepted.header.Get("Schedule-Tag") != organizerTag || organizerAccepted.header.Get("ETag") == organizerBeforeReply.header.Get("ETag") {
+		t.Fatalf("RSVP must change organizer ETag but retain schedule tag: before=%q/%q after=%q/%q", organizerBeforeReply.header.Get("ETag"), organizerTag, organizerAccepted.header.Get("ETag"), organizerAccepted.header.Get("Schedule-Tag"))
+	}
 	if !strings.Contains(organizerAccepted.body, "PARTSTAT=ACCEPTED") {
 		t.Fatalf("organizer did not receive acceptance: %s", organizerAccepted.body)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, organizerURL, token, "text/calendar",
+		organizerBeforeReply.body, http.Header{"If-Schedule-Tag-Match": {organizerTag}}), http.StatusCreated)
+	mergedOrganizer := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerURL, token, "", "", nil), http.StatusOK)
+	if !strings.Contains(mergedOrganizer.body, "PARTSTAT=ACCEPTED") || mergedOrganizer.header.Get("Schedule-Tag") == organizerTag {
+		t.Fatalf("schedule-tag PUT did not retain server RSVP and advance tag: %s", mergedOrganizer.body)
 	}
 	declined := strings.Replace(accepted, "PARTSTAT=ACCEPTED", "PARTSTAT=DECLINED", 1)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeURL, attendeeToken, "text/calendar", declined, nil), http.StatusCreated)
@@ -808,6 +844,11 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, organizerURL, token, "text/calendar", rescheduled, nil), http.StatusCreated)
 	sendLatest("attendee@localhost")
 	autoRescheduled := davE2EExpect(t, davE2ERequest(client, http.MethodGet, attendeeURL, attendeeToken, "", "", nil), http.StatusOK)
+	if autoRescheduled.header.Get("Schedule-Tag") == initialAttendeeTag {
+		t.Fatal("organizer reschedule did not change attendee schedule tag")
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeURL, attendeeToken, "text/calendar", accepted,
+		http.Header{"If-Schedule-Tag-Match": {initialAttendeeTag}}), http.StatusPreconditionFailed)
 	if !strings.Contains(autoRescheduled.body, "20261016T140000Z") || !strings.Contains(autoRescheduled.body, "PARTSTAT=NEEDS-ACTION") {
 		t.Fatalf("reschedule was not applied to attendee event: %s", autoRescheduled.body)
 	}
@@ -823,6 +864,12 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	organizerRescheduled := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerURL, token, "", "", nil), http.StatusOK)
 	if !strings.Contains(organizerRescheduled.body, "PARTSTAT=ACCEPTED") || !strings.Contains(organizerRescheduled.body, "SEQUENCE:1") {
 		t.Fatalf("rescheduled response did not arrive: %s", organizerRescheduled.body)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, attendeeURL, attendeeToken, "", "", nil), http.StatusNoContent)
+	sendLatest("organizer@localhost")
+	organizerDeclineOnDelete := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerURL, token, "", "", nil), http.StatusOK)
+	if !strings.Contains(organizerDeclineOnDelete.body, "PARTSTAT=DECLINED") {
+		t.Fatalf("attendee deletion did not send a declined reply: %s", organizerDeclineOnDelete.body)
 	}
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, organizerURL, token, "", "", nil), http.StatusNoContent)
 	sendLatest("attendee@localhost")
@@ -880,5 +927,14 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	if !strings.Contains(earlyEvent.body, "STATUS:CANCELLED") || !strings.Contains(earlyEvent.body, "RECURRENCE-ID:20261024T120000Z") ||
 		!strings.Contains(earlyEvent.body, "RRULE:FREQ=DAILY;COUNT=2") {
 		t.Fatalf("pending occurrence cancellation was not applied after request: %s", earlyEvent.body)
+	}
+	outboxBeforeSuppressedDelete := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		activeBase+"/api/outbox?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, activeBase+earlyEventPath, attendeeToken, "", "",
+		http.Header{"Schedule-Reply": {"F"}}), http.StatusNoContent)
+	outboxAfterSuppressedDelete := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		activeBase+"/api/outbox?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	if len(outboxAfterSuppressedDelete) != len(outboxBeforeSuppressedDelete) {
+		t.Fatalf("Schedule-Reply: F queued an attendee reply: before=%d after=%d", len(outboxBeforeSuppressedDelete), len(outboxAfterSuppressedDelete))
 	}
 }

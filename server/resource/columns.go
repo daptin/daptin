@@ -1998,6 +1998,7 @@ var StandardTables = []table_info.TableInfo{
 			},
 			{Name: "uid", ColumnName: "uid", ColumnType: "label", DataType: "varchar(500)", IsIndexed: true, IsNullable: true},
 			{Name: "organizer_address", ColumnName: "organizer_address", ColumnType: "label", DataType: "varchar(200)", IsIndexed: true, IsNullable: true},
+			{Name: "schedule_tag", ColumnName: "schedule_tag", ColumnType: "label", DataType: "varchar(100)", IsNullable: true},
 			{
 				ColumnName:        "content",
 				Name:              "content",
