@@ -164,6 +164,36 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 						t.Fatalf("read-only delegate changed an event: %+v", response)
 					}
 				}
+				if grant.name == "read" || grant.name == "edit" {
+					mailServer := accessGroupsE2ECreateRecord(t, client, base, adminToken, "mail_server", map[string]interface{}{
+						"hostname": "localhost", "is_enabled": false, "listen_interface": "127.0.0.1:0",
+						"max_size": 10000, "max_clients": 1, "xclient_on": false,
+						"always_on_tls": false, "authentication_required": false,
+					})
+					mailAccount := accessGroupsE2ECreateRecord(t, client, base, adminToken, "mail_account", map[string]interface{}{
+						"username": "calendar-" + grant.name + "@localhost", "password": "testpass123",
+						"password_md5": "testpass123", "mail_server_id": mailServer,
+					})
+					collectionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "team")
+					davE2EExpect(t, davE2ERequest(client, http.MethodPatch,
+						base+"/api/collection/"+collectionID+"/relationships/scheduling_mail_account_id", adminToken,
+						"application/vnd.api+json", fmt.Sprintf(`{"data":{"type":"mail_account","id":"%s"}}`, mailAccount), nil), http.StatusNoContent)
+					outboxURL := base + "/caldav/" + match[1] + "/schedule-outbox/"
+					privileges := davE2ERequest(client, "PROPFIND", outboxURL, delegateToken,
+						"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:current-user-privilege-set/></D:prop></D:propfind>`,
+						http.Header{"Depth": {"0"}})
+					if privileges.err != nil {
+						t.Fatal(privileges.err)
+					}
+					if grant.canWrite {
+						if privileges.status != http.StatusMultiStatus || !strings.Contains(privileges.body, "schedule-send-invite") ||
+							!strings.Contains(privileges.body, "schedule-send-reply") || strings.Contains(privileges.body, "schedule-send-freebusy") {
+							t.Fatalf("edit delegate has wrong outbox privileges: %+v", privileges)
+						}
+					} else if privileges.status != http.StatusForbidden {
+						t.Fatalf("read-only delegate reached owner's scheduling outbox: %+v", privileges)
+					}
+				}
 			} else {
 				response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil)
 				if response.err != nil || response.status == http.StatusOK {

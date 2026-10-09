@@ -806,7 +806,7 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	}
 	var encoded bytes.Buffer
 	if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
-		return nil, err
+		return nil, webdav.NewHTTPError(http.StatusBadRequest, err)
 	}
 	data := encoded.Bytes()
 	uid, organizer := itipCalendarIdentity(calendar)
@@ -834,22 +834,31 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	if err := checkDAVConditions(exists, etag, opts.IfMatch, opts.IfNoneMatch); err != nil {
 		return nil, err
 	}
-	if exists && b.headers.Get("If-Schedule-Tag-Match") != "" {
-		collectionAccount := daptinid.InterfaceToDIR(collection["scheduling_mail_account_id"])
-		if collectionAccount != daptinid.NullReferenceId {
-			account, _, err := b.cruds["mail_account"].GetSingleRowByReferenceIdWithTransaction("mail_account", collectionAccount, nil, tx)
-			if err != nil {
-				return nil, err
-			}
-			if err := mergeScheduleAttendees(previous, calendar, strings.ToLower(strings.TrimSpace(StringOrEmpty(account["username"])))); err != nil {
-				return nil, err
-			}
-			encoded.Reset()
-			if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
-				return nil, err
-			}
-			data = encoded.Bytes()
+	collectionAccount := daptinid.InterfaceToDIR(collection["scheduling_mail_account_id"])
+	if exists && collectionAccount != daptinid.NullReferenceId {
+		account, _, err := b.cruds["mail_account"].GetSingleRowByReferenceIdWithTransaction("mail_account", collectionAccount, nil, tx)
+		if err != nil {
+			return nil, err
 		}
+		sender := strings.ToLower(strings.TrimSpace(StringOrEmpty(account["username"])))
+		if b.headers.Get("If-Schedule-Tag-Match") != "" {
+			if err := mergeScheduleAttendees(previous, calendar, sender); err != nil {
+				return nil, err
+			}
+		}
+		if err := resetRescheduledAttendees(previous, calendar, sender); err != nil {
+			return nil, err
+		}
+	}
+	if collectionAccount != daptinid.NullReferenceId {
+		if err := preserveServerScheduleStatus(previous, calendar); err != nil {
+			return nil, err
+		}
+		encoded.Reset()
+		if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
+			return nil, err
+		}
+		data = encoded.Bytes()
 	}
 	value := b.contentValue(calendarObjectTable, requestPath, ical.MIMEType, data)
 	tag := ""
@@ -868,8 +877,22 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	if err != nil {
 		return nil, err
 	}
-	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(event["reference_id"]), previous, data, tx); err != nil {
+	statuses := make(map[string]map[string]string)
+	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(event["reference_id"]), previous, data, statuses, tx); err != nil {
 		return nil, err
+	}
+	if setOutgoingScheduleStatus(calendar, statuses) {
+		encoded.Reset()
+		if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
+			return nil, err
+		}
+		data = encoded.Bytes()
+		delete(event, "version")
+		if err := b.calendarUpdate(calendarObjectTable, requestPath, event, map[string]interface{}{
+			"content": b.contentValue(calendarObjectTable, requestPath, ical.MIMEType, data),
+		}, tx); err != nil {
+			return nil, err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -934,7 +957,7 @@ func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath s
 	if err := b.calendarDelete(calendarObjectTable, requestPath, row, tx); err != nil {
 		return err
 	}
-	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(row["reference_id"]), previous, nil, tx); err != nil {
+	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(row["reference_id"]), previous, nil, nil, tx); err != nil {
 		return err
 	}
 	return tx.Commit()

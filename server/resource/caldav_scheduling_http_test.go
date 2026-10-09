@@ -13,6 +13,35 @@ import (
 	"github.com/emersion/go-ical"
 )
 
+func TestSchedulingSupportedPrivilegesXML(t *testing.T) {
+	type privilegeNode struct {
+		Description string          `xml:"DAV: description"`
+		Children    []privilegeNode `xml:"DAV: supported-privilege"`
+	}
+	for _, outbox := range []bool{false, true} {
+		data := `<D:supported-privilege-set xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">` + schedulingSupportedPrivileges(outbox) + `</D:supported-privilege-set>`
+		var tree struct {
+			Roots []privilegeNode `xml:"DAV: supported-privilege"`
+		}
+		if err := xml.Unmarshal([]byte(data), &tree); err != nil {
+			t.Fatalf("invalid supported privileges XML: %v", err)
+		}
+		var check func(privilegeNode)
+		check = func(node privilegeNode) {
+			if node.Description == "" {
+				t.Fatal("supported privilege is missing its required description")
+			}
+			for _, child := range node.Children {
+				check(child)
+			}
+		}
+		if len(tree.Roots) != 1 {
+			t.Fatalf("expected one aggregate privilege, got %d", len(tree.Roots))
+		}
+		check(tree.Roots[0])
+	}
+}
+
 func TestSchedulingHTTPXMLContract(t *testing.T) {
 	propfind := `<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><D:resourcetype/><C:schedule-inbox-URL/><C:schedule-outbox-URL/></D:prop></D:propfind>`
 	if !schedulingPrincipalRequested([]byte(propfind)) || schedulingPrincipalRequested([]byte(`<D:propfind xmlns:D="DAV:"><D:propname/></D:propfind>`)) {

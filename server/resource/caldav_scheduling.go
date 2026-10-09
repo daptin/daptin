@@ -74,9 +74,13 @@ func (b *DaptinDAVBackend) schedulingOwner(requestPath string) (daptinid.DaptinR
 }
 
 func (b *DaptinDAVBackend) schedulingPrincipal(_ context.Context, principalPath string) (*schedulingPrincipal, error) {
-	owner, err := b.schedulingOwner(principalPath)
-	if err != nil {
-		return nil, err
+	parts := strings.Split(strings.Trim(path.Clean(principalPath), "/"), "/")
+	if len(parts) != 2 || parts[0] != "caldav" || b.sessionUser == nil {
+		return nil, newSchedulingHTTPError(http.StatusNotFound, errDAVNotFound)
+	}
+	owner := daptinid.InterfaceToDIR(parts[1])
+	if owner == daptinid.NullReferenceId {
+		return nil, newSchedulingHTTPError(http.StatusNotFound, errDAVNotFound)
 	}
 	if path.Clean(principalPath) != path.Clean("/caldav/"+owner.String()+"/") {
 		return nil, newSchedulingHTTPError(http.StatusNotFound, errDAVNotFound)
@@ -142,6 +146,37 @@ func (b *DaptinDAVBackend) schedulingPrincipal(_ context.Context, principalPath 
 	}
 	sort.Strings(result.Addresses)
 	return result, nil
+}
+
+// Sending privileges are a view of the existing calendar grants. They add
+// no new permission bit: a caller who can create or edit a connected event
+// may cause the corresponding invitation or reply to be queued.
+func (b *DaptinDAVBackend) schedulingSendPrivileges(_ context.Context, owner daptinid.DaptinReferenceId) (bool, bool, bool, error) {
+	principalPath := "/caldav/" + owner.String() + "/"
+	collections, err := b.calendarRows(calendarCollectionTable, principalPath,
+		Query{ColumnName: "user_account_id", Operator: "=", Value: owner.String()})
+	if err != nil {
+		return false, false, false, err
+	}
+	tx, err := b.cruds[calendarCollectionTable].Connection().Beginx()
+	if err != nil {
+		return false, false, false, err
+	}
+	defer tx.Rollback()
+	collectionTable, eventTable := b.calendarTablePermissions(tx)
+	canSend := false
+	for _, row := range collections {
+		if daptinid.InterfaceToDIR(row["scheduling_mail_account_id"]) == daptinid.NullReferenceId {
+			continue
+		}
+		calendar := &caldav.Calendar{}
+		b.calendarPrivileges(calendar, row, collectionTable, eventTable, tx)
+		if calendar.Bind || calendar.WriteContent {
+			canSend = true
+			break
+		}
+	}
+	return canSend, canSend, owner == b.sessionUser.UserReferenceId, nil
 }
 
 func (b *DaptinDAVBackend) schedulingInboxRows(ctx context.Context, requestPath string) ([]map[string]interface{}, error) {

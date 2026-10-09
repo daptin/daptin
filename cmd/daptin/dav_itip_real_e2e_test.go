@@ -107,6 +107,17 @@ func TestDAVSchedulingExternalFailureRealE2E(t *testing.T) {
 	messageID := messages[0].(map[string]interface{})["id"].(string)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/outbox/process_outbox",
 		adminToken, "application/json", `{"attributes":{}}`, nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/cal_mail/reconcile_delivery",
+		adminToken, "application/json", `{"attributes":{}}`, nil), http.StatusOK)
+	pending := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+calendarPath+"event.ics", ownerToken, "", "", nil), http.StatusOK)
+	if !strings.Contains(pending.body, "SCHEDULE-STATUS=1.0") {
+		t.Fatalf("retryable SMTP failure changed pending delivery state: %s", pending.body)
+	}
+	deniedReconcile := davE2ERequest(client, http.MethodPost, base+"/action/cal_mail/reconcile_delivery",
+		ownerToken, "application/json", `{"attributes":{}}`, nil)
+	if deniedReconcile.err != nil || deniedReconcile.status == http.StatusOK {
+		t.Fatalf("calendar owner ran system delivery reconciliation: %+v", deniedReconcile)
+	}
 	statusBody := fmt.Sprintf(`{"attributes":{"collection_id":"%s","message_id":"%s"}}`, collectionID, messageID)
 	status := davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/scheduling_status",
 		ownerToken, "application/json", statusBody, nil), http.StatusOK)
@@ -120,6 +131,52 @@ func TestDAVSchedulingExternalFailureRealE2E(t *testing.T) {
 	}
 	if denied.status == http.StatusOK {
 		t.Fatalf("other user read calendar delivery status: %s", denied.body)
+	}
+	outboxRows := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		base+"/api/outbox?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	if len(outboxRows) != 1 {
+		t.Fatalf("expected one failed outbox attempt, got %d", len(outboxRows))
+	}
+	outboxID := outboxRows[0].(map[string]interface{})["id"].(string)
+	rescheduled := strings.Replace(event, "SEQUENCE:0", "SEQUENCE:1", 1)
+	rescheduled = strings.Replace(rescheduled, "SUMMARY:External failure", "SUMMARY:External failure updated", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+calendarPath+"event.ics", ownerToken,
+		"text/calendar", rescheduled, nil), http.StatusCreated)
+	newPending := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+calendarPath+"event.ics", ownerToken, "", "", nil), http.StatusOK)
+	outboxRows = accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		base+"/api/outbox?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	if len(outboxRows) != 2 {
+		t.Fatalf("rescheduling did not queue a new attempt: %#v", outboxRows)
+	}
+	newOutboxID := outboxRows[0].(map[string]interface{})["id"].(string)
+	if newOutboxID == outboxID {
+		newOutboxID = outboxRows[1].(map[string]interface{})["id"].(string)
+	}
+	// The first SMTP attempt has failed. Set the worker's terminal retry
+	// state through the resource API to exercise reconciliation without
+	// waiting for the production backoff schedule.
+	accessGroupsE2ERequestJSON(t, client, http.MethodPatch, base+"/api/outbox/"+outboxID,
+		adminToken, accessGroupsE2ERecordPayload("outbox", outboxID, map[string]interface{}{"retry_count": 5}), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/cal_mail/reconcile_delivery",
+		adminToken, "application/json", `{"attributes":{}}`, nil), http.StatusOK)
+	stale := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+calendarPath+"event.ics", ownerToken, "", "", nil), http.StatusOK)
+	if !strings.Contains(stale.body, "SCHEDULE-STATUS=1.0") || stale.header.Get("ETag") != newPending.header.Get("ETag") {
+		t.Fatalf("older delivery attempt replaced newer pending state: %s", stale.body)
+	}
+	accessGroupsE2ERequestJSON(t, client, http.MethodPatch, base+"/api/outbox/"+newOutboxID,
+		adminToken, accessGroupsE2ERecordPayload("outbox", newOutboxID, map[string]interface{}{"retry_count": 5}), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/cal_mail/reconcile_delivery",
+		adminToken, "application/json", `{"attributes":{}}`, nil), http.StatusOK)
+	failed := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+calendarPath+"event.ics", ownerToken, "", "", nil), http.StatusOK)
+	if !strings.Contains(failed.body, "SCHEDULE-STATUS=5.1") || failed.header.Get("ETag") == newPending.header.Get("ETag") ||
+		failed.header.Get("Schedule-Tag") != newPending.header.Get("Schedule-Tag") {
+		t.Fatalf("terminal SMTP failure did not update only delivery status: %s", failed.body)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/cal_mail/reconcile_delivery",
+		adminToken, "application/json", `{"attributes":{}}`, nil), http.StatusOK)
+	failedAgain := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+calendarPath+"event.ics", ownerToken, "", "", nil), http.StatusOK)
+	if failedAgain.header.Get("ETag") != failed.header.Get("ETag") {
+		t.Fatalf("delivery reconciliation was not idempotent: %s", failedAgain.body)
 	}
 }
 
@@ -239,6 +296,15 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	if rows := accessGroupsE2EDataArray(t, emptyMessages); len(rows) != 0 {
 		t.Fatalf("unconnected calendar queued invitations: %#v", rows)
 	}
+	invalidURL := base + calendarPath + "invalid.ics"
+	missingProductID := strings.Replace(create, "PRODID:-//Daptin//EN\r\n", "", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, invalidURL, token,
+		"text/calendar", missingProductID, nil), http.StatusBadRequest)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, invalidURL, token, "", "", nil), http.StatusNotFound)
+	if rows := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK)); len(rows) != 0 {
+		t.Fatalf("invalid calendar queued invitations: %#v", rows)
+	}
 	clientEvent, err := ical.NewDecoder(strings.NewReader(create)).Decode()
 	if err != nil {
 		t.Fatal(err)
@@ -248,11 +314,35 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	}
 	if stored, err := calendarClient.GetCalendarObject(context.Background(), calendarPath+"meeting.ics"); err != nil || stored.Data == nil {
 		t.Fatalf("CalDAV client could not read scheduled event: %v", err)
+	} else if status := stored.Data.Events()[0].Props.Values("ATTENDEE")[0].Params.Get("SCHEDULE-STATUS"); status != "1.0" {
+		t.Fatalf("queued invitation status = %q, want pending 1.0", status)
 	}
 	freeBusyRequest := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nBEGIN:VFREEBUSY\r\nUID:itip-freebusy-e2e\r\nDTSTAMP:20261008T000000Z\r\nDTSTART:20261012T000000Z\r\nDTEND:20261013T000000Z\r\nORGANIZER:mailto:organizer@localhost\r\nATTENDEE:mailto:organizer@localhost\r\nEND:VFREEBUSY\r\nEND:VCALENDAR\r\n"
 	freeBusy := davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/caldav/"+owner[1]+"/schedule-outbox/", token, "text/calendar", freeBusyRequest, nil), http.StatusOK)
 	if !strings.Contains(freeBusy.body, "20261012T120000Z/20261012T130000Z") || strings.Contains(freeBusy.body, "SUMMARY:Meeting") {
 		t.Fatalf("scheduling outbox did not return private-safe busy time: %s", freeBusy.body)
+	}
+	outboxPrivileges := davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+"/caldav/"+owner[1]+"/schedule-outbox/", token,
+		"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:supported-privilege-set/><D:current-user-privilege-set/></D:prop></D:propfind>`,
+		http.Header{"Depth": {"0"}}), http.StatusMultiStatus)
+	currentStart := strings.Index(outboxPrivileges.body, "<D:current-user-privilege-set>")
+	currentEnd := strings.Index(outboxPrivileges.body, "</D:current-user-privilege-set>")
+	if currentStart < 0 || currentEnd <= currentStart {
+		t.Fatalf("outbox has no current privilege set: %s", outboxPrivileges.body)
+	}
+	currentPrivileges := outboxPrivileges.body[currentStart:currentEnd]
+	for _, privilege := range []string{"schedule-send-invite", "schedule-send-reply", "schedule-send-freebusy"} {
+		if !strings.Contains(outboxPrivileges.body, privilege) || !strings.Contains(currentPrivileges, privilege) {
+			t.Fatalf("outbox does not grant %s: %s", privilege, outboxPrivileges.body)
+		}
+	}
+	inboxPrivileges := davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+"/caldav/"+owner[1]+"/schedule-inbox/", token,
+		"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:supported-privilege-set/><D:current-user-privilege-set/></D:prop></D:propfind>`,
+		http.Header{"Depth": {"0"}}), http.StatusMultiStatus)
+	for _, privilege := range []string{"schedule-deliver-invite", "schedule-deliver-reply", "schedule-query-freebusy"} {
+		if !strings.Contains(inboxPrivileges.body, privilege) {
+			t.Fatalf("inbox does not support %s: %s", privilege, inboxPrivileges.body)
+		}
 	}
 	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/caldav/"+owner[1]+"/schedule-outbox/", token, "text/calendar", strings.Replace(freeBusyRequest, "ORGANIZER:mailto:organizer@localhost", "ORGANIZER:mailto:forged@example.test", 1), nil), http.StatusForbidden)
 	assertMessages := func(want int, method string) {
@@ -270,12 +360,25 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 		for _, item := range rows {
 			attrs := item.(map[string]interface{})["attributes"].(map[string]interface{})
 			if attrs["method"] == method && attrs["recipient_address"] == recipient && strings.Contains(fmt.Sprint(attrs["icalendar"]), "METHOD:"+method) {
+				for _, parameter := range []string{"SCHEDULE-STATUS", "SCHEDULE-AGENT", "SCHEDULE-FORCE-SEND"} {
+					if strings.Contains(fmt.Sprint(attrs["icalendar"]), parameter) {
+						t.Fatalf("outbound %s exposes server-only %s: %#v", method, parameter, attrs)
+					}
+				}
 				found = true
 			}
 		}
 		if !found {
 			t.Fatalf("missing %s iTIP message: %#v", method, rows)
 		}
+	}
+	assertMessages(1, "REQUEST")
+	serverStatus := davE2EExpect(t, davE2ERequest(client, http.MethodGet, objectURL, token, "", "", nil), http.StatusOK)
+	forgedStatus := strings.Replace(serverStatus.body, "SCHEDULE-STATUS=1.0", "SCHEDULE-STATUS=1.2", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, objectURL, token, "text/calendar", forgedStatus, nil), http.StatusCreated)
+	retainedStatus := davE2EExpect(t, davE2ERequest(client, http.MethodGet, objectURL, token, "", "", nil), http.StatusOK)
+	if !strings.Contains(retainedStatus.body, "SCHEDULE-STATUS=1.0") || strings.Contains(retainedStatus.body, "SCHEDULE-STATUS=1.2") {
+		t.Fatalf("client changed server-managed delivery status: %s", retainedStatus.body)
 	}
 	assertMessages(1, "REQUEST")
 	for _, agent := range []string{"CLIENT", "NONE"} {
@@ -415,7 +518,7 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	}
 	davE2EExpect(t, davE2ERequest(client, "PROPFIND", inboxPath, adminToken, "application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/></D:prop></D:propfind>`, nil), http.StatusForbidden)
 	read := davE2EExpect(t, davE2ERequest(client, http.MethodGet, objectURL, token, "", "", nil), http.StatusOK)
-	if !strings.Contains(read.body, "PARTSTAT=ACCEPTED") {
+	if !strings.Contains(read.body, "PARTSTAT=ACCEPTED") || !strings.Contains(read.body, "SCHEDULE-STATUS=2.0") {
 		messages := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK)
 		t.Fatalf("reply did not update attendee status: %s; action: %s; messages: %#v", read.body, processed.body, messages)
 	}
@@ -513,7 +616,7 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	if strings.Contains(autoOptions.header.Get("DAV"), "calendar-auto-schedule") {
 		t.Fatalf("ambiguous incoming calendar advertised automatic scheduling: %s", autoOptions.header.Get("DAV"))
 	}
-	pendingRequest := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nPRODID:-//Guest//EN\r\nBEGIN:VEVENT\r\nUID:itip-pending-e2e\r\nDTSTAMP:20261008T010000Z\r\nDTSTART:20261021T120000Z\r\nDTEND:20261021T130000Z\r\nSEQUENCE:0\r\nSUMMARY:Pending invitation\r\nORGANIZER:mailto:guest@example.test\r\nATTENDEE:mailto:organizer@localhost\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+	pendingRequest := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nPRODID:-//Guest//EN\r\nBEGIN:VEVENT\r\nUID:itip-pending-e2e\r\nDTSTAMP:20261008T010000Z\r\nDTSTART:20261021T120000Z\r\nDTEND:20261021T130000Z\r\nSEQUENCE:0\r\nSUMMARY:Pending invitation\r\nORGANIZER;SCHEDULE-STATUS=1.2:mailto:guest@example.test\r\nATTENDEE;SCHEDULE-AGENT=CLIENT;SCHEDULE-STATUS=1.2:mailto:organizer@localhost\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 	pendingRaw := "From: guest@example.test\r\nTo: organizer@localhost\r\nSubject: Pending invitation\r\nMIME-Version: 1.0\r\nContent-Type: text/calendar; method=REQUEST\r\nContent-Transfer-Encoding: base64\r\n\r\n" + base64.StdEncoding.EncodeToString([]byte(pendingRequest)) + "\r\n"
 	pendingAttrs := make(map[string]interface{}, len(mailAttrs))
 	for key, value := range mailAttrs {
@@ -539,6 +642,11 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 		http.Header{"Depth": {"1"}}), http.StatusMultiStatus)
 	if !pendingGeneratedPath.MatchString(appliedList.body) {
 		t.Fatalf("reprocessing pending invitation did not create event: %s", appliedList.body)
+	}
+	pendingStored := davE2EExpect(t, davE2ERequest(client, http.MethodGet,
+		base+pendingGeneratedPath.FindString(appliedList.body), token, "", "", nil), http.StatusOK)
+	if strings.Contains(pendingStored.body, "SCHEDULE-STATUS") || strings.Contains(pendingStored.body, "SCHEDULE-AGENT") {
+		t.Fatalf("incoming mail planted scheduling state in attendee calendar: %s", pendingStored.body)
 	}
 	secondToken := accessGroupsE2ESignupSigninUser(t, client, base, adminToken, "itip-second-owner")
 	secondPrincipal := davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+"/caldav/", secondToken,
@@ -731,6 +839,14 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 				t.Fatalf("outbox worker did not deliver %s to local SMTP: sent=%v error=%v retries=%v",
 					recipient, outboxData["sent"], outboxData["last_error"], outboxData["retry_count"])
 			}
+			davE2EExpect(t, davE2ERequest(client, http.MethodPost, activeBase+"/action/cal_mail/reconcile_delivery",
+				adminToken, "application/json", `{"attributes":{}}`, nil), http.StatusOK)
+			if recipient == "attendee@localhost" {
+				sentEvent := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerURL, token, "", "", nil), http.StatusOK)
+				if !strings.Contains(sentEvent.body, "SCHEDULE-STATUS=1.1") {
+					t.Fatalf("SMTP acceptance was not reflected in organizer event: %s", sentEvent.body)
+				}
+			}
 			for attempt := 0; attempt < 4; attempt++ {
 				davE2EExpect(t, davE2ERequest(client, http.MethodPost, processExchangeURL, adminToken,
 					"application/json", `{"attributes":{}}`, nil), http.StatusOK)
@@ -857,7 +973,7 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	if organizerTag == "" || organizerAccepted.header.Get("Schedule-Tag") != organizerTag || organizerAccepted.header.Get("ETag") == organizerBeforeReply.header.Get("ETag") {
 		t.Fatalf("RSVP must change organizer ETag but retain schedule tag: before=%q/%q after=%q/%q", organizerBeforeReply.header.Get("ETag"), organizerTag, organizerAccepted.header.Get("ETag"), organizerAccepted.header.Get("Schedule-Tag"))
 	}
-	if !strings.Contains(organizerAccepted.body, "PARTSTAT=ACCEPTED") {
+	if !strings.Contains(organizerAccepted.body, "PARTSTAT=ACCEPTED") || !strings.Contains(organizerAccepted.body, "SCHEDULE-STATUS=2.0") {
 		t.Fatalf("organizer did not receive acceptance: %s", organizerAccepted.body)
 	}
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, organizerURL, token, "text/calendar",
@@ -876,7 +992,12 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	rescheduled := strings.Replace(meeting, "SEQUENCE:0", "SEQUENCE:1", 1)
 	rescheduled = strings.Replace(rescheduled, "20261016T120000Z", "20261016T140000Z", 1)
 	rescheduled = strings.Replace(rescheduled, "20261016T130000Z", "20261016T150000Z", 1)
+	rescheduled = strings.Replace(rescheduled, "PARTSTAT=NEEDS-ACTION", "PARTSTAT=ACCEPTED", 1)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, organizerURL, token, "text/calendar", rescheduled, nil), http.StatusCreated)
+	organizerAfterReschedule := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerURL, token, "", "", nil), http.StatusOK)
+	if !strings.Contains(organizerAfterReschedule.body, "PARTSTAT=NEEDS-ACTION") {
+		t.Fatalf("rescheduling retained an earlier RSVP: %s", organizerAfterReschedule.body)
+	}
 	sendLatest("attendee@localhost")
 	autoRescheduled := davE2EExpect(t, davE2ERequest(client, http.MethodGet, attendeeURL, attendeeToken, "", "", nil), http.StatusOK)
 	if autoRescheduled.header.Get("Schedule-Tag") == initialAttendeeTag {
@@ -971,5 +1092,103 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 		activeBase+"/api/outbox?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
 	if len(outboxAfterSuppressedDelete) != len(outboxBeforeSuppressedDelete) {
 		t.Fatalf("Schedule-Reply: F queued an attendee reply: before=%d after=%d", len(outboxBeforeSuppressedDelete), len(outboxAfterSuppressedDelete))
+	}
+	task := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Daptin//EN\r\nBEGIN:VTODO\r\nUID:itip-two-users-task\r\nDTSTAMP:20261008T000000Z\r\nDTSTART:20261025T120000Z\r\nDUE:20261026T120000Z\r\nSEQUENCE:0\r\nSUMMARY:Shared task\r\nORGANIZER:mailto:organizer@localhost\r\nATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:attendee@localhost\r\nEND:VTODO\r\nEND:VCALENDAR\r\n"
+	taskURL := activeBase + calendarPath + "two-users-task.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, taskURL, token, "text/calendar", task, nil), http.StatusCreated)
+	taskMessages := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		activeBase+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	queuedTask := false
+	for _, item := range taskMessages {
+		attrs := item.(map[string]interface{})["attributes"].(map[string]interface{})
+		queuedTask = queuedTask || attrs["uid"] == "itip-two-users-task" && attrs["method"] == "REQUEST" &&
+			strings.Contains(fmt.Sprint(attrs["icalendar"]), "BEGIN:VTODO")
+	}
+	if !queuedTask {
+		t.Fatalf("VTODO invitation did not queue an iTIP task: %#v", taskMessages)
+	}
+	requestTask := strings.Replace(task, "VERSION:2.0\r\n", "VERSION:2.0\r\nMETHOD:REQUEST\r\n", 1)
+	deliverCalendarMail("organizer@localhost", "attendee@localhost", "REQUEST", requestTask)
+	taskRows := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		activeBase+"/api/calendar?page%5Bsize%5D=100", attendeeToken, nil, http.StatusOK))
+	var attendeeTaskPath string
+	for _, item := range taskRows {
+		attrs := item.(map[string]interface{})["attributes"].(map[string]interface{})
+		if attrs["uid"] == "itip-two-users-task" {
+			attendeeTaskPath, _ = attrs["rpath"].(string)
+		}
+	}
+	if attendeeTaskPath == "" {
+		t.Fatalf("VTODO invitation did not create attendee task: %#v", taskRows)
+	}
+	attendeeTaskURL := activeBase + attendeeTaskPath
+	attendeeTask := davE2EExpect(t, davE2ERequest(client, http.MethodGet, attendeeTaskURL, attendeeToken, "", "", nil), http.StatusOK)
+	if !strings.Contains(attendeeTask.body, "BEGIN:VTODO") || !strings.Contains(attendeeTask.body, "PARTSTAT=NEEDS-ACTION") {
+		t.Fatalf("VTODO invitation stored incorrect task: %s", attendeeTask.body)
+	}
+	acceptedTask := strings.Replace(attendeeTask.body, "PARTSTAT=NEEDS-ACTION", "PARTSTAT=ACCEPTED", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeTaskURL, attendeeToken, "text/calendar", acceptedTask, nil), http.StatusCreated)
+	replyTask := strings.Replace(requestTask, "METHOD:REQUEST", "METHOD:REPLY", 1)
+	replyTask = strings.Replace(replyTask, "PARTSTAT=NEEDS-ACTION", "PARTSTAT=ACCEPTED", 1)
+	replyTask = strings.Replace(replyTask, "END:VTODO", "REQUEST-STATUS:2.0;Success\r\nREQUEST-STATUS:2.4;Success\r\nEND:VTODO", 1)
+	deliverCalendarMail("attendee@localhost", "organizer@localhost", "REPLY", replyTask)
+	organizerTask := davE2EExpect(t, davE2ERequest(client, http.MethodGet, taskURL, token, "", "", nil), http.StatusOK)
+	decodedTask, err := ical.NewDecoder(strings.NewReader(organizerTask.body)).Decode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	taskStatus := decodedTask.Children[0].Props.Values("ATTENDEE")[0].Params.Get("SCHEDULE-STATUS")
+	if !strings.Contains(organizerTask.body, "PARTSTAT=ACCEPTED") || taskStatus != "2.0,2.4" {
+		t.Fatalf("VTODO reply was not applied: %s", organizerTask.body)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, taskURL, token, "", "", nil), http.StatusNoContent)
+	cancelTask := strings.Replace(requestTask, "METHOD:REQUEST", "METHOD:CANCEL", 1)
+	cancelTask = strings.Replace(cancelTask, "SEQUENCE:0", "SEQUENCE:1", 1)
+	deliverCalendarMail("organizer@localhost", "attendee@localhost", "CANCEL", cancelTask)
+	for attempt := 0; attempt < 20; attempt++ {
+		result := davE2ERequest(client, http.MethodGet, attendeeTaskURL, attendeeToken, "", "", nil)
+		if result.err != nil {
+			t.Fatal(result.err)
+		}
+		if result.status == http.StatusNotFound {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+		davE2EExpect(t, davE2ERequest(client, http.MethodPost, processExchangeURL, adminToken,
+			"application/json", `{"attributes":{}}`, nil), http.StatusOK)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, attendeeTaskURL, attendeeToken, "", "", nil), http.StatusNotFound)
+	forceBase := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerSeriesURL, token, "", "", nil), http.StatusOK)
+	forced := strings.Replace(forceBase.body, "ATTENDEE;", "ATTENDEE;SCHEDULE-FORCE-SEND=REQUEST;", 1)
+	messageCount := len(accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		activeBase+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK)))
+	for attempt := 1; attempt <= 2; attempt++ {
+		davE2EExpect(t, davE2ERequest(client, http.MethodPut, organizerSeriesURL, token, "text/calendar", forced, nil), http.StatusCreated)
+		stored := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerSeriesURL, token, "", "", nil), http.StatusOK)
+		if strings.Contains(stored.body, "SCHEDULE-FORCE-SEND") {
+			t.Fatalf("force-send leaked into stored event: %s", stored.body)
+		}
+		messages := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+			activeBase+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+		if len(messages) != messageCount+attempt {
+			t.Fatalf("force-send attempt %d queued %d messages, want %d", attempt, len(messages), messageCount+attempt)
+		}
+	}
+	agentEvent := strings.Replace(create, "UID:itip-outbound-e2e", "UID:itip-agent-transition", 1)
+	agentURL := activeBase + calendarPath + "agent-transition.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, agentURL, token, "text/calendar", agentEvent, nil), http.StatusCreated)
+	clientAgent := strings.Replace(agentEvent, "ATTENDEE;PARTSTAT=NEEDS-ACTION:", "ATTENDEE;PARTSTAT=NEEDS-ACTION;SCHEDULE-AGENT=CLIENT:", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, agentURL, token, "text/calendar", clientAgent, nil), http.StatusCreated)
+	agentMessages := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		activeBase+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	methods := make(map[string]int)
+	for _, item := range agentMessages {
+		attrs := item.(map[string]interface{})["attributes"].(map[string]interface{})
+		if attrs["uid"] == "itip-agent-transition" {
+			methods[fmt.Sprint(attrs["method"])]++
+		}
+	}
+	if methods["REQUEST"] != 1 || methods["CANCEL"] != 1 {
+		t.Fatalf("SERVER to CLIENT transition did not cancel the prior invitation: %v", methods)
 	}
 }

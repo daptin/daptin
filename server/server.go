@@ -611,6 +611,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		runtimeTasks = append(runtimeTasks,
 			task.Task{Name: "__daptin_mail_server_sync", EntityName: "mail_server", ActionName: "sync_mail_servers", Attributes: map[string]interface{}{}, AsUserReferenceId: adminTaskUserReferenceId, Schedule: "@every 1h", Active: true, JobType: "system"},
 			task.Task{Name: "__daptin_outbox_process", EntityName: "outbox", ActionName: "process_outbox", Attributes: map[string]interface{}{}, AsUserReferenceId: adminTaskUserReferenceId, Schedule: "@every 5m", Active: true, JobType: "system"},
+			task.Task{Name: "__daptin_calendar_delivery", EntityName: "cal_mail", ActionName: "reconcile_delivery", Attributes: map[string]interface{}{}, AsUserReferenceId: adminTaskUserReferenceId, Schedule: "@every 5m", Active: true, JobType: "system"},
 			task.Task{Name: "process-data-exchange-executions", EntityName: resource.EXCHANGE_RUN_TABLE_NAME, ActionName: "process_data_exchange_executions", Attributes: map[string]interface{}{}, AsUserReferenceId: adminTaskUserReferenceId, Schedule: "@every 1s", Active: true, JobType: "action"},
 		)
 	}

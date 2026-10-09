@@ -499,7 +499,7 @@ principal. Unconnected principals receive a missing-property response.
 
 When a principal owns exactly one calendar and it has one connected mail
 account, DAV `OPTIONS` advertises `calendar-auto-schedule`. This tells CalDAV
-clients that Daptin sends invitations from event writes, so the client need
+clients that Daptin sends invitations from event and task writes, so the client need
 not send a second email. Configure the incoming `mail.process_itip` exchange
 above to apply received requests, replies, and cancellations automatically.
 With multiple calendars, an incoming request has no unique destination, so
@@ -512,10 +512,11 @@ The inbox URL is `/caldav/OWNER_REFERENCE_ID/schedule-inbox/`. After
 `process_itip` succeeds, the owner can list incoming iTIP messages with
 `PROPFIND` or `REPORT` and read each `.ics` message with `GET`. The inbox
 contains the iCalendar part, not the raw mailbox message. Only the principal
-owner can access it. An applied REQUEST appears as an event in the selected
-calendar with the attendee awaiting a response. The attendee changes its
-PARTSTAT through CalDAV PUT to queue a REPLY. Later REQUEST and CANCEL mail
-updates the same event or affected recurring occurrence. A pending message
+owner can access it. An applied REQUEST appears as an event or task in the
+selected calendar with the attendee awaiting a response. The attendee changes
+its PARTSTAT through CalDAV PUT to queue a REPLY. Incoming replies update the
+organizer's PARTSTAT and SCHEDULE-STATUS; later REQUEST and CANCEL mail updates
+the same object or affected recurring occurrence. A pending message
 without a selected calendar can be processed again with `collection_id`;
 the owner may also handle it manually. DELETE its inbox `.ics` URL after
 handling it; the stored message remains for deduplication.
@@ -524,14 +525,28 @@ The outbox URL is `/caldav/OWNER_REFERENCE_ID/schedule-outbox/`. It accepts
 `POST` of a `METHOD:REQUEST` `VFREEBUSY` message when its organizer matches
 the connected address. For a local recipient, the response contains busy
 intervals from calendars for which the requester has peek or read access;
-unavailable or denied recipients receive no calendar data. Meeting invitations
-continue to be queued by CalDAV event `PUT` and `DELETE`, not outbox `POST`.
+unavailable or denied recipients receive no calendar data. Invitations and
+replies are queued by CalDAV `VEVENT` or `VTODO` `PUT` and `DELETE`, not outbox
+`POST`. A client can use `SCHEDULE-FORCE-SEND` on an attendee or organizer to
+request a fresh invitation or reply; Daptin removes that one-shot parameter
+from the stored object and outgoing message. Queued mail sets
+`SCHEDULE-STATUS=1.0` on the stored object. The
+`collection.scheduling_status` action reports the outbox's sent and retry
+state for a message. The five-minute `cal_mail.reconcile_delivery` task follows
+completed outbox attempts: SMTP acceptance changes the stored status to `1.1`,
+and an exhausted delivery failure changes it to `5.1`. Retries remain pending. The
+content ETag changes when this status changes; the Schedule-Tag does not.
 
-The `calendar-auto-schedule` advertisement covers event writes and incoming
-mail processing in the connected setup described above. Daptin also exposes
-Schedule-Tag and a free/busy scheduling outbox. Other RFC 6638 outbox message
-types and scheduling privileges are not implemented; meeting invitations use
-CalDAV event writes rather than outbox `POST`.
+The `calendar-auto-schedule` advertisement covers event and task writes and
+incoming mail processing in the connected setup described above. Daptin also
+exposes Schedule-Tag and a free/busy scheduling outbox. RFC 6638 uses outbox
+`POST` for free/busy requests; scheduling messages follow calendar object
+changes. Scheduling inbox and outbox PROPFIND responses expose the supported
+privileges and the current user's rights; sending rights follow the existing
+calendar create and edit grants. Daptin's access decisions remain its table
+and row grants. It does not offer a writable WebDAV ACL or separate
+administrator controls for each scheduling privilege, and does not claim full
+RFC 3744 ACL conformance.
 
 ## Supported behavior
 

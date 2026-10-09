@@ -727,6 +727,11 @@ var SystemActions = []actionresponse.Action{
 			Attributes: map[string]interface{}{"collection_id": "~collection_id", "message_id": "~message_id"}}},
 	},
 	{
+		Name: "reconcile_delivery", Label: "Reconcile calendar delivery", OnType: "cal_mail",
+		InstanceOptional: true, Permission: &adminOnlyActionPermission, AccessGroups: adminOnlyActionAccessGroups,
+		OutFields: []actionresponse.Outcome{{Type: "itip.reconcile_delivery", Method: "EXECUTE", Attributes: map[string]interface{}{}}},
+	},
+	{
 		Name:             "process_data_exchange_executions",
 		Label:            "Process Data Exchange Executions",
 		OnType:           EXCHANGE_RUN_TABLE_NAME,

@@ -27,14 +27,14 @@ func itipCalendarIdentity(calendar *ical.Calendar) (string, string) {
 	if calendar == nil {
 		return "", ""
 	}
-	var uid, organizer string
-	for _, event := range calendar.Events() {
+	var uid, organizer, kind string
+	for _, event := range itipComponents(calendar) {
 		candidateUID := itipProp(event.Props.Get("UID"))
 		candidateOrganizer := itipAddress(event.Props.Get("ORGANIZER"))
-		if candidateUID == "" || (uid != "" && (uid != candidateUID || organizer != candidateOrganizer)) {
+		if candidateUID == "" || (uid != "" && (uid != candidateUID || organizer != candidateOrganizer || kind != event.Component.Name)) {
 			return "", ""
 		}
-		uid, organizer = candidateUID, candidateOrganizer
+		uid, organizer, kind = candidateUID, candidateOrganizer, event.Component.Name
 	}
 	return uid, organizer
 }
@@ -82,7 +82,7 @@ func itipNewer(incoming, stored ical.Event) (bool, error) {
 }
 
 func itipScheduleChanged(old, incoming ical.Event) bool {
-	for _, name := range []string{"DTSTART", "DTEND", "DURATION", "RRULE", "RDATE", "EXDATE"} {
+	for _, name := range []string{"DTSTART", "DTEND", "DURATION", "DUE", "RRULE", "RDATE", "EXDATE"} {
 		if fmt.Sprint(old.Props[name]) != fmt.Sprint(incoming.Props[name]) {
 			return true
 		}
@@ -197,12 +197,15 @@ func (a *itipProcessMailAction) applyInvitation(collectionRef, accountRef daptin
 		requestPath = path.Join(collectionPath, uuid.NewString()+".ics")
 	}
 	var previous *ical.Event
-	for _, event := range stored.Events() {
+	for _, event := range itipComponents(stored) {
 		if itipProp(event.Props.Get("UID")) == uid && itipProp(event.Props.Get("RECURRENCE-ID")) == recurrence {
 			copy := event
 			previous = &copy
 			break
 		}
+	}
+	if previous != nil && previous.Component.Name != incoming.Component.Name {
+		return daptinid.NullReferenceId, "", errors.New("invitation component type changed")
 	}
 	if previous != nil && latest == nil {
 		newer, err := itipNewer(incoming, *previous)
@@ -226,7 +229,7 @@ func (a *itipProcessMailAction) applyInvitation(collectionRef, accountRef daptin
 	if method == "CANCEL" && previous == nil {
 		// An instance cancellation needs a master or an existing instance.
 		master := false
-		for _, event := range stored.Events() {
+		for _, event := range itipComponents(stored) {
 			master = master || itipProp(event.Props.Get("RECURRENCE-ID")) == ""
 		}
 		if !master {
@@ -236,7 +239,7 @@ func (a *itipProcessMailAction) applyInvitation(collectionRef, accountRef daptin
 	if previous != nil {
 		children := stored.Children[:0]
 		for _, child := range stored.Children {
-			if child.Name != ical.CompEvent || itipProp(child.Props.Get("UID")) != uid || itipProp(child.Props.Get("RECURRENCE-ID")) != recurrence {
+			if child.Name != incoming.Component.Name || itipProp(child.Props.Get("UID")) != uid || itipProp(child.Props.Get("RECURRENCE-ID")) != recurrence {
 				children = append(children, child)
 			}
 		}
@@ -402,7 +405,7 @@ func (a *itipProcessMailAction) latestInvitationVersion(collectionRef daptinid.D
 		if err != nil {
 			return nil, err
 		}
-		for _, event := range calendar.Events() {
+		for _, event := range itipComponents(calendar) {
 			if itipProp(event.Props.Get("UID")) != uid ||
 				(itipProp(event.Props.Get("RECURRENCE-ID")) != recurrence &&
 					!(recurrence != "" && row["method"] == "CANCEL" && itipProp(event.Props.Get("RECURRENCE-ID")) == "")) {
@@ -451,7 +454,7 @@ func (a *itipProcessMailAction) applyPendingCancellations(collectionRef, account
 			return err
 		}
 		recurrence := StringOrEmpty(row["recurrence_id"])
-		for _, event := range calendar.Events() {
+		for _, event := range itipComponents(calendar) {
 			if itipProp(event.Props.Get("UID")) != uid || itipProp(event.Props.Get("RECURRENCE-ID")) != recurrence {
 				continue
 			}

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/artpar/api2go/v2"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/go-webdav/caldav"
 	"github.com/emersion/go-ical"
 )
@@ -125,6 +126,10 @@ func (b *DaptinDAVBackend) ServeScheduling(w http.ResponseWriter, r *http.Reques
 	if parts[2] == "schedule-outbox" && len(parts) != 3 ||
 		parts[2] == "schedule-inbox" && len(parts) == 4 && !strings.HasSuffix(parts[3], ".ics") {
 		http.Error(w, "invalid scheduling path", http.StatusNotFound)
+		return true
+	}
+	if parts[2] == "schedule-inbox" && parts[1] != b.sessionUser.UserReferenceId.String() {
+		writeSchedulingError(w, newSchedulingHTTPError(http.StatusForbidden, errors.New("scheduling inbox access denied")), http.StatusForbidden)
 		return true
 	}
 	principal, err := b.schedulingPrincipal(r.Context(), "/caldav/"+parts[1]+"/")
@@ -261,6 +266,7 @@ func (b *DaptinDAVBackend) serveSchedulingInbox(w http.ResponseWriter, r *http.R
 		resources := []schedulingXMLResource{{href: principal.InboxPath, properties: map[xml.Name]string{
 			{Space: davXMLNamespace, Local: "resourcetype"}:               "<D:collection/><C:schedule-inbox/>",
 			{Space: davXMLNamespace, Local: "current-user-privilege-set"}: "<D:privilege><D:read/></D:privilege><D:privilege><D:unbind/></D:privilege>",
+			{Space: davXMLNamespace, Local: "supported-privilege-set"}:    schedulingSupportedPrivileges(false),
 		}}}
 		if r.Header.Get("Depth") != "0" {
 			objects, err := b.listSchedulingInbox(r.Context(), r.URL.Path)
@@ -287,14 +293,33 @@ func (b *DaptinDAVBackend) serveSchedulingInbox(w http.ResponseWriter, r *http.R
 }
 
 func (b *DaptinDAVBackend) serveSchedulingOutbox(w http.ResponseWriter, r *http.Request, principal *schedulingPrincipal) {
+	parts := strings.Split(strings.Trim(path.Clean(r.URL.Path), "/"), "/")
+	owner := daptinid.InterfaceToDIR(parts[1])
+	invite, reply, freebusy, err := b.schedulingSendPrivileges(r.Context(), owner)
+	if err != nil {
+		writeSchedulingError(w, err, http.StatusForbidden)
+		return
+	}
+	if owner != b.sessionUser.UserReferenceId && !invite && !reply {
+		writeSchedulingError(w, newSchedulingHTTPError(http.StatusForbidden, errors.New("scheduling outbox access denied")), http.StatusForbidden)
+		return
+	}
+	var current strings.Builder
+	current.WriteString("<D:privilege><D:read/></D:privilege>")
+	for _, privilege := range []struct {
+		name    string
+		granted bool
+	}{{"schedule-send-invite", invite}, {"schedule-send-reply", reply}, {"schedule-send-freebusy", freebusy}} {
+		if privilege.granted {
+			current.WriteString("<D:privilege><C:" + privilege.name + "/></D:privilege>")
+		}
+	}
+	if invite && reply && freebusy {
+		current.WriteString("<D:privilege><C:schedule-send/></D:privilege>")
+	}
 	switch r.Method {
 	case http.MethodOptions:
-		active, err := b.autoSchedulingEnabled(r.Context(), "/caldav/"+b.sessionUser.UserReferenceId.String()+"/")
-		if err != nil {
-			writeSchedulingError(w, err, http.StatusInternalServerError)
-			return
-		}
-		writeSchedulingOptions(w, "OPTIONS, PROPFIND, POST", active)
+		writeSchedulingOptions(w, "OPTIONS, PROPFIND, POST", true)
 	case "PROPFIND":
 		requested, err := readSchedulingProperties(r)
 		if err != nil {
@@ -303,7 +328,8 @@ func (b *DaptinDAVBackend) serveSchedulingOutbox(w http.ResponseWriter, r *http.
 		}
 		writeSchedulingMultistatus(w, []schedulingXMLResource{{href: principal.OutboxPath, properties: map[xml.Name]string{
 			{Space: davXMLNamespace, Local: "resourcetype"}:               "<D:collection/><C:schedule-outbox/>",
-			{Space: davXMLNamespace, Local: "current-user-privilege-set"}: "<D:privilege><C:schedule-send-freebusy/></D:privilege>",
+			{Space: davXMLNamespace, Local: "current-user-privilege-set"}: current.String(),
+			{Space: davXMLNamespace, Local: "supported-privilege-set"}:    schedulingSupportedPrivileges(true),
 		}}}, requested)
 	case http.MethodPost:
 		if !strings.HasPrefix(strings.ToLower(r.Header.Get("Content-Type")), "text/calendar") {
@@ -627,6 +653,26 @@ func writeSchedulingProperty(out *strings.Builder, name xml.Name, value string) 
 	}
 	tag := prefix + name.Local
 	out.WriteString("<" + tag + ">" + value + "</" + tag + ">")
+}
+
+func schedulingSupportedPrivileges(outbox bool) string {
+	var result strings.Builder
+	result.WriteString("<D:supported-privilege><D:privilege><D:all/></D:privilege><D:abstract/><D:description xml:lang=\"en\">All operations</D:description>")
+	for _, name := range []string{"read", "unbind"} {
+		if !outbox || name == "read" {
+			result.WriteString("<D:supported-privilege><D:privilege><D:" + name + "/></D:privilege><D:description xml:lang=\"en\">" + name + "</D:description></D:supported-privilege>")
+		}
+	}
+	parent, leaves := "schedule-deliver", []string{"schedule-deliver-invite", "schedule-deliver-reply", "schedule-query-freebusy"}
+	if outbox {
+		parent, leaves = "schedule-send", []string{"schedule-send-invite", "schedule-send-reply", "schedule-send-freebusy"}
+	}
+	result.WriteString("<D:supported-privilege><D:privilege><C:" + parent + "/></D:privilege><D:description xml:lang=\"en\">" + parent + "</D:description>")
+	for _, name := range leaves {
+		result.WriteString("<D:supported-privilege><D:privilege><C:" + name + "/></D:privilege><D:description xml:lang=\"en\">" + name + "</D:description></D:supported-privilege>")
+	}
+	result.WriteString("</D:supported-privilege></D:supported-privilege>")
+	return result.String()
 }
 
 func schedulingHref(value string) string { return "<D:href>" + schedulingEscape(value) + "</D:href>" }

@@ -175,7 +175,7 @@ func (a *itipProcessMailAction) DoAction(_ actionresponse.Outcome, fields map[st
 		if method != "REQUEST" && method != "REPLY" && method != "CANCEL" {
 			return nil, nil, []error{errors.New("unsupported iTIP method")}
 		}
-		for _, event := range calendar.Events() {
+		for _, event := range itipComponents(calendar) {
 			if err := a.processEvent(mailRef, accountRef, accountAddress, sender, method, data, event, caller, recipientID, selectedCollection, applyCollection, tx); err != nil {
 				return nil, nil, []error{err}
 			}
@@ -189,6 +189,13 @@ func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.Daptin
 	uid := itipProp(incoming.Props.Get("UID"))
 	if uid == "" {
 		return errors.New("iTIP event has no UID")
+	}
+	for _, name := range []string{"ATTENDEE", "ORGANIZER"} {
+		for i := range incoming.Props[name] {
+			for _, parameter := range []string{"SCHEDULE-AGENT", "SCHEDULE-FORCE-SEND", "SCHEDULE-STATUS"} {
+				incoming.Props[name][i].Params.Del(parameter)
+			}
+		}
 	}
 	recurrence := itipProp(incoming.Props.Get("RECURRENCE-ID"))
 	sequence := 0
@@ -227,6 +234,10 @@ func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.Daptin
 		if !present || (partstat != "ACCEPTED" && partstat != "DECLINED" && partstat != "TENTATIVE") {
 			return errors.New("reply attendee or PARTSTAT is invalid")
 		}
+		status, err := itipReplyStatus(incoming)
+		if err != nil {
+			return err
+		}
 		collectionRef, eventRef, err = a.matchInvitation(accountRef, uid, recurrence, sequence, sender, tx)
 		if err != nil {
 			return err
@@ -243,7 +254,7 @@ func (a *itipProcessMailAction) processEvent(mailRef, accountRef daptinid.Daptin
 		if err != nil || recipientID == 0 {
 			return errors.New("invitation collection has no owner")
 		}
-		if err := a.applyReply(collectionRef, eventRef, uid, recurrence, sequence, sender, partstat, caller, tx); err != nil {
+		if err := a.applyReply(collectionRef, eventRef, uid, recurrence, sequence, sender, partstat, status, caller, tx); err != nil {
 			if !errors.Is(err, errITIPStaleReply) {
 				return err
 			}
@@ -336,7 +347,32 @@ func (a *itipProcessMailAction) matchInvitation(accountRef daptinid.DaptinRefere
 	return collectionRef, eventRef, nil
 }
 
-func (a *itipProcessMailAction) applyReply(collectionRef, eventRef daptinid.DaptinReferenceId, uid, recurrence string, sequence int, sender, partstat string, caller *auth.SessionUser, tx *sqlx.Tx) error {
+func itipReplyStatus(event ical.Event) (string, error) {
+	properties := event.Props.Values("REQUEST-STATUS")
+	if len(properties) == 0 {
+		return "2.0", nil
+	}
+	if len(properties) > 16 {
+		return "", errors.New("reply has too many REQUEST-STATUS values")
+	}
+	codes := make([]string, 0, len(properties))
+	for _, property := range properties {
+		code := strings.TrimSpace(strings.SplitN(property.Value, ";", 2)[0])
+		parts := strings.Split(code, ".")
+		if len(parts) != 2 || len(parts[0]) != 1 || len(parts[1]) == 0 {
+			return "", errors.New("reply has invalid REQUEST-STATUS")
+		}
+		for _, digit := range parts[0] + parts[1] {
+			if digit < '0' || digit > '9' {
+				return "", errors.New("reply has invalid REQUEST-STATUS")
+			}
+		}
+		codes = append(codes, code)
+	}
+	return strings.Join(codes, ","), nil
+}
+
+func (a *itipProcessMailAction) applyReply(collectionRef, eventRef daptinid.DaptinReferenceId, uid, recurrence string, sequence int, sender, partstat, status string, caller *auth.SessionUser, tx *sqlx.Tx) error {
 	row, _, err := a.cruds["calendar"].GetSingleRowByReferenceIdWithTransaction("calendar", eventRef, nil, tx)
 	if err != nil {
 		return err
@@ -354,7 +390,7 @@ func (a *itipProcessMailAction) applyReply(collectionRef, eventRef daptinid.Dapt
 		return err
 	}
 	changed := false
-	for _, event := range calendar.Events() {
+	for _, event := range itipComponents(calendar) {
 		if itipProp(event.Props.Get("UID")) != uid || itipProp(event.Props.Get("RECURRENCE-ID")) != recurrence {
 			continue
 		}
@@ -374,6 +410,7 @@ func (a *itipProcessMailAction) applyReply(collectionRef, eventRef daptinid.Dapt
 					event.Props["ATTENDEE"][i].Params = ical.Params{}
 				}
 				event.Props["ATTENDEE"][i].Params.Set("PARTSTAT", partstat)
+				event.Props["ATTENDEE"][i].Params.Set("SCHEDULE-STATUS", status)
 				changed = true
 			}
 		}

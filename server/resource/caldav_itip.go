@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +30,7 @@ import (
 
 // scheduleCalendarChange queues iMIP through the configured mail account. The
 // calendar write, outbox row, and message record share the DAV transaction.
-func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interface{}, eventRef daptinid.DaptinReferenceId, previous, current []byte, tx *sqlx.Tx) error {
+func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interface{}, eventRef daptinid.DaptinReferenceId, previous, current []byte, statuses map[string]map[string]string, tx *sqlx.Tx) error {
 	accountRef := daptinid.InterfaceToDIR(collection["scheduling_mail_account_id"])
 	if accountRef == daptinid.NullReferenceId {
 		return nil
@@ -60,8 +59,9 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 		if now, present := newEvents[key]; present {
 			if itipAddress(old.Props.Get("ORGANIZER")) == sender {
 				for recipient := range itipAttendees(old) {
-					if _, retained := itipAttendees(now)[recipient]; recipient != sender && !retained && itipServerSchedules(old, recipient) {
-						if err := b.queueITIP(collection, account, eventRef, sender, recipient, "CANCEL", previous, old, false, tx); err != nil {
+					_, retained := itipAttendees(now)[recipient]
+					if recipient != sender && itipServerSchedules(old, recipient) && (!retained || !itipServerSchedules(now, recipient)) {
+						if err := b.queueITIP(collection, account, eventRef, sender, recipient, "CANCEL", previous, old, false, false, tx); err != nil {
 							return err
 						}
 					}
@@ -74,7 +74,7 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 				if recipient == sender || !itipServerSchedules(old, recipient) {
 					continue
 				}
-				if err := b.queueITIP(collection, account, eventRef, sender, recipient, "CANCEL", previous, old, true, tx); err != nil {
+				if err := b.queueITIP(collection, account, eventRef, sender, recipient, "CANCEL", previous, old, true, false, tx); err != nil {
 					return err
 				}
 			}
@@ -86,36 +86,66 @@ func (b *DaptinDAVBackend) scheduleCalendarChange(collection map[string]interfac
 			if err != nil {
 				return err
 			}
-			if err := b.queueITIP(collection, account, eventRef, sender, itipAddress(old.Props.Get("ORGANIZER")), "REPLY", declined, old, false, tx); err != nil {
+			if err := b.queueITIP(collection, account, eventRef, sender, itipAddress(old.Props.Get("ORGANIZER")), "REPLY", declined, old, false, false, tx); err != nil {
 				return err
 			}
 		}
 	}
 	for key, now := range newEvents {
 		old, existed := oldEvents[key]
-		if existed && reflect.DeepEqual(old.Component, now.Component) {
-			continue
-		}
 		organizer := itipAddress(now.Props.Get("ORGANIZER"))
 		if organizer == sender {
+			material := !existed
+			if existed {
+				material, err = itipMaterialChange(old, now)
+				if err != nil {
+					return err
+				}
+			}
 			for recipient := range itipAttendees(now) {
 				if recipient == sender || !itipServerSchedules(now, recipient) {
 					continue
 				}
-				if err := b.queueITIP(collection, account, eventRef, sender, recipient, "REQUEST", current, now, false, tx); err != nil {
+				force := itipForceSend(now, "ATTENDEE", recipient, "REQUEST")
+				if !material && !force {
+					continue
+				}
+				if err := b.queueITIP(collection, account, eventRef, sender, recipient, "REQUEST", current, now, false, force, tx); err != nil {
 					return err
 				}
+				markITIPStatus(statuses, key, recipient, "1.0")
 			}
 		} else if organizer != "" {
 			status := itipAttendees(now)[sender]
-			if status != "" && status != "NEEDS-ACTION" && itipOrganizerServerSchedules(now) && (!existed || itipAttendees(old)[sender] != status) {
-				if err := b.queueITIP(collection, account, eventRef, sender, organizer, "REPLY", current, now, false, tx); err != nil {
+			force := itipForceSend(now, "ORGANIZER", organizer, "REPLY")
+			if status != "" && status != "NEEDS-ACTION" && itipOrganizerServerSchedules(now) && (!existed || itipAttendees(old)[sender] != status || force) {
+				if err := b.queueITIP(collection, account, eventRef, sender, organizer, "REPLY", current, now, false, force, tx); err != nil {
 					return err
 				}
+				markITIPStatus(statuses, key, organizer, "1.0")
 			}
 		}
 	}
 	return nil
+}
+
+func itipForceSend(event ical.Event, property, address, method string) bool {
+	for _, candidate := range event.Props.Values(property) {
+		if itipAddress(&candidate) == address && strings.EqualFold(candidate.Params.Get("SCHEDULE-FORCE-SEND"), method) {
+			return true
+		}
+	}
+	return false
+}
+
+func markITIPStatus(statuses map[string]map[string]string, key, address, status string) {
+	if statuses == nil {
+		return
+	}
+	if statuses[key] == nil {
+		statuses[key] = make(map[string]string)
+	}
+	statuses[key][address] = status
 }
 
 func itipDeclinedReply(previous []byte, key, address string) ([]byte, error) {
@@ -123,7 +153,7 @@ func itipDeclinedReply(previous []byte, key, address string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, event := range calendar.Events() {
+	for _, event := range itipComponents(calendar) {
 		if itipProp(event.Props.Get("UID"))+"\x00"+itipProp(event.Props.Get("RECURRENCE-ID")) != key {
 			continue
 		}
@@ -152,7 +182,7 @@ func itipEvents(data []byte) (map[string]ical.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, event := range cal.Events() {
+	for _, event := range itipComponents(cal) {
 		uid := itipProp(event.Props.Get("UID"))
 		if uid == "" {
 			return nil, errors.New("scheduled event requires UID")
@@ -164,6 +194,19 @@ func itipEvents(data []byte) (map[string]ical.Event, error) {
 		events[key] = event
 	}
 	return events, nil
+}
+
+func itipComponents(calendar *ical.Calendar) []ical.Event {
+	if calendar == nil {
+		return nil
+	}
+	components := make([]ical.Event, 0, len(calendar.Children))
+	for _, child := range calendar.Children {
+		if child.Name == ical.CompEvent || child.Name == ical.CompToDo {
+			components = append(components, ical.Event{Component: child})
+		}
+	}
+	return components
 }
 
 func itipProp(prop *ical.Prop) string {
@@ -207,7 +250,7 @@ func itipOrganizerServerSchedules(event ical.Event) bool {
 	return agent == "" || agent == "SERVER"
 }
 
-func (b *DaptinDAVBackend) queueITIP(collection, account map[string]interface{}, eventRef daptinid.DaptinReferenceId, sender, recipient, method string, source []byte, event ical.Event, cancelEntire bool, tx *sqlx.Tx) error {
+func (b *DaptinDAVBackend) queueITIP(collection, account map[string]interface{}, eventRef daptinid.DaptinReferenceId, sender, recipient, method string, source []byte, event ical.Event, cancelEntire, force bool, tx *sqlx.Tx) error {
 	cal, err := ical.NewDecoder(bytes.NewReader(source)).Decode()
 	if err != nil {
 		return err
@@ -216,9 +259,20 @@ func (b *DaptinDAVBackend) queueITIP(collection, account map[string]interface{},
 	// definitions, but do not cancel or request unrelated instances.
 	children := cal.Children[:0]
 	for _, child := range cal.Children {
-		if child.Name != ical.CompEvent || (itipProp(child.Props.Get("UID")) == itipProp(event.Props.Get("UID")) &&
+		if child.Name == "VTIMEZONE" || (child.Name == event.Component.Name &&
+			itipProp(child.Props.Get("UID")) == itipProp(event.Props.Get("UID")) &&
 			itipProp(child.Props.Get("RECURRENCE-ID")) == itipProp(event.Props.Get("RECURRENCE-ID"))) {
-			if child.Name == ical.CompEvent && (method == "CANCEL" || method == "REPLY") {
+			if child.Name == event.Component.Name {
+				child.Props.SetDateTime(ical.PropDateTimeStamp, time.Now().UTC())
+				for _, name := range []string{"ATTENDEE", "ORGANIZER"} {
+					for i := range child.Props[name] {
+						for _, parameter := range []string{"SCHEDULE-AGENT", "SCHEDULE-FORCE-SEND", "SCHEDULE-STATUS"} {
+							child.Props[name][i].Params.Del(parameter)
+						}
+					}
+				}
+			}
+			if child.Name == event.Component.Name && (method == "CANCEL" || method == "REPLY") {
 				attendees := child.Props["ATTENDEE"][:0]
 				for _, attendee := range child.Props["ATTENDEE"] {
 					if (method == "CANCEL" && itipAddress(&attendee) == recipient) ||
@@ -259,7 +313,11 @@ func (b *DaptinDAVBackend) queueITIP(collection, account map[string]interface{},
 	if method == "CANCEL" {
 		sequence++
 	}
-	keyBytes := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s\x00%s", collection["reference_id"], eventRef, method, sender, recipient, body)))
+	forceNonce := ""
+	if force {
+		forceNonce = uuid.NewString()
+	}
+	keyBytes := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s", collection["reference_id"], eventRef, method, sender, recipient, body, forceNonce)))
 	key := hex.EncodeToString(keyBytes[:])
 	existing, err := GetReferenceIdByWhereClauseWithTransaction("cal_mail", tx, goqu.Ex{"message_key": key})
 	if err != nil {

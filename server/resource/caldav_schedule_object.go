@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -27,7 +28,7 @@ func calendarScheduleTag(row map[string]interface{}, content []byte) string {
 	if err != nil {
 		return GetMD5Hash(content)
 	}
-	for _, event := range calendar.Events() {
+	for _, event := range itipComponents(calendar) {
 		for i := range event.Props["ATTENDEE"] {
 			event.Props["ATTENDEE"][i].Params.Del("PARTSTAT")
 			event.Props["ATTENDEE"][i].Params.Del("SCHEDULE-STATUS")
@@ -64,16 +65,21 @@ func itipMaterialChange(old, incoming ical.Event) (bool, error) {
 			return nil, err
 		}
 		copy, err := ical.NewDecoder(&encoded).Decode()
-		if err != nil || len(copy.Events()) != 1 {
+		if err != nil || len(itipComponents(copy)) != 1 {
 			return nil, errors.New("invalid scheduling event")
 		}
-		component := copy.Events()[0].Component
+		component := itipComponents(copy)[0].Component
+		for _, name := range []string{"CREATED", "DTSTAMP", "LAST-MODIFIED"} {
+			component.Props.Del(name)
+		}
 		for i := range component.Props["ATTENDEE"] {
 			component.Props["ATTENDEE"][i].Params.Del("PARTSTAT")
 			component.Props["ATTENDEE"][i].Params.Del("SCHEDULE-STATUS")
+			component.Props["ATTENDEE"][i].Params.Del("SCHEDULE-FORCE-SEND")
 		}
 		for i := range component.Props["ORGANIZER"] {
 			component.Props["ORGANIZER"][i].Params.Del("SCHEDULE-STATUS")
+			component.Props["ORGANIZER"][i].Params.Del("SCHEDULE-FORCE-SEND")
 		}
 		return component, nil
 	}
@@ -95,7 +101,7 @@ func mergeScheduleAttendees(current []byte, incoming *ical.Calendar, ownerAddres
 	if err != nil {
 		return err
 	}
-	for _, event := range incoming.Events() {
+	for _, event := range itipComponents(incoming) {
 		key := itipProp(event.Props.Get("UID")) + "\x00" + itipProp(event.Props.Get("RECURRENCE-ID"))
 		old, ok := oldEvents[key]
 		if !ok {
@@ -122,6 +128,130 @@ func mergeScheduleAttendees(current []byte, incoming *ical.Calendar, ownerAddres
 					}
 				}
 			}
+		}
+	}
+	return nil
+}
+
+func preserveServerScheduleStatus(previous []byte, incoming *ical.Calendar) error {
+	oldEvents, err := itipEvents(previous)
+	if err != nil {
+		return err
+	}
+	for _, event := range itipComponents(incoming) {
+		key := itipProp(event.Props.Get("UID")) + "\x00" + itipProp(event.Props.Get("RECURRENCE-ID"))
+		old := oldEvents[key]
+		for _, name := range []string{"ATTENDEE", "ORGANIZER"} {
+			oldStatuses := make(map[string]string)
+			if old.Component != nil {
+				for _, property := range old.Props.Values(name) {
+					oldStatuses[itipAddress(&property)] = property.Params.Get("SCHEDULE-STATUS")
+				}
+			}
+			for i := range event.Props[name] {
+				property := &event.Props[name][i]
+				if strings.EqualFold(property.Params.Get("SCHEDULE-AGENT"), "CLIENT") {
+					continue
+				}
+				if status := oldStatuses[itipAddress(property)]; status != "" {
+					if property.Params == nil {
+						property.Params = ical.Params{}
+					}
+					property.Params.Set("SCHEDULE-STATUS", status)
+				} else {
+					property.Params.Del("SCHEDULE-STATUS")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// The queue is durable at this point, but SMTP delivery is still pending.
+// Reflect only recipients for whom this write actually queued a message.
+func setOutgoingScheduleStatus(calendar *ical.Calendar, statuses map[string]map[string]string) bool {
+	changed := false
+	for _, event := range itipComponents(calendar) {
+		key := itipProp(event.Props.Get("UID")) + "\x00" + itipProp(event.Props.Get("RECURRENCE-ID"))
+		for i := range event.Props["ATTENDEE"] {
+			attendee := &event.Props["ATTENDEE"][i]
+			if force := attendee.Params.Get("SCHEDULE-FORCE-SEND"); force != "" {
+				if !strings.EqualFold(force, "REQUEST") && !strings.EqualFold(force, "REPLY") && statuses[key][itipAddress(attendee)] == "" {
+					attendee.Params.Set("SCHEDULE-STATUS", "2.3")
+				}
+				attendee.Params.Del("SCHEDULE-FORCE-SEND")
+				changed = true
+			}
+			if status := statuses[key][itipAddress(attendee)]; status != "" {
+				if attendee.Params == nil {
+					attendee.Params = ical.Params{}
+				}
+				if attendee.Params.Get("SCHEDULE-STATUS") != status {
+					attendee.Params.Set("SCHEDULE-STATUS", status)
+					changed = true
+				}
+			}
+		}
+		for i := range event.Props["ORGANIZER"] {
+			organizer := &event.Props["ORGANIZER"][i]
+			if force := organizer.Params.Get("SCHEDULE-FORCE-SEND"); force != "" {
+				if !strings.EqualFold(force, "REQUEST") && !strings.EqualFold(force, "REPLY") && statuses[key][itipAddress(organizer)] == "" {
+					organizer.Params.Set("SCHEDULE-STATUS", "2.3")
+				}
+				organizer.Params.Del("SCHEDULE-FORCE-SEND")
+				changed = true
+			}
+			if status := statuses[key][itipAddress(organizer)]; status != "" {
+				if organizer.Params == nil {
+					organizer.Params = ical.Params{}
+				}
+				if organizer.Params.Get("SCHEDULE-STATUS") != status {
+					organizer.Params.Set("SCHEDULE-STATUS", status)
+					changed = true
+				}
+			}
+		}
+	}
+	return changed
+}
+
+// A changed time or recurrence invalidates earlier participation decisions.
+func resetRescheduledAttendees(previous []byte, incoming *ical.Calendar, organizerAddress string) error {
+	if len(previous) == 0 {
+		return nil
+	}
+	oldEvents, err := itipEvents(previous)
+	if err != nil {
+		return err
+	}
+	for _, event := range itipComponents(incoming) {
+		if itipAddress(event.Props.Get("ORGANIZER")) != organizerAddress {
+			continue
+		}
+		key := itipProp(event.Props.Get("UID")) + "\x00" + itipProp(event.Props.Get("RECURRENCE-ID"))
+		old, ok := oldEvents[key]
+		if !ok {
+			continue
+		}
+		rescheduled := false
+		for _, name := range []string{"DTSTART", "DTEND", "DURATION", "DUE", "RRULE", "RDATE", "EXDATE"} {
+			if !reflect.DeepEqual(old.Props[name], event.Props[name]) {
+				rescheduled = true
+				break
+			}
+		}
+		if !rescheduled {
+			continue
+		}
+		for i := range event.Props["ATTENDEE"] {
+			attendee := &event.Props["ATTENDEE"][i]
+			if itipAddress(attendee) == organizerAddress || !itipServerSchedules(event, itipAddress(attendee)) {
+				continue
+			}
+			if attendee.Params == nil {
+				attendee.Params = ical.Params{}
+			}
+			attendee.Params.Set("PARTSTAT", "NEEDS-ACTION")
 		}
 	}
 	return nil
@@ -155,14 +285,14 @@ func (b *DaptinDAVBackend) validateSchedulingWrite(collection map[string]interfa
 			}
 		}
 	}
-	var uid, organizer string
+	var uid, organizer, kind string
 	for _, event := range newEvents {
 		candidateUID := itipProp(event.Props.Get("UID"))
 		candidateOrganizer := itipAddress(event.Props.Get("ORGANIZER"))
-		if uid != "" && (candidateUID != uid || candidateOrganizer != organizer) {
+		if uid != "" && (candidateUID != uid || candidateOrganizer != organizer || event.Component.Name != kind) {
 			return webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar object has conflicting scheduling identities"))
 		}
-		uid, organizer = candidateUID, candidateOrganizer
+		uid, organizer, kind = candidateUID, candidateOrganizer, event.Component.Name
 		if organizer == "" {
 			if len(itipAttendees(event)) != 0 {
 				return webdav.NewHTTPError(http.StatusForbidden, errors.New("attendee event has no organizer"))
@@ -185,6 +315,9 @@ func (b *DaptinDAVBackend) validateSchedulingWrite(collection map[string]interfa
 				return webdav.NewHTTPError(http.StatusForbidden, errors.New("scheduling organizer cannot change"))
 			}
 			continue
+		}
+		if old.Component.Name != now.Component.Name {
+			return webdav.NewHTTPError(http.StatusForbidden, errors.New("scheduling component type cannot change"))
 		}
 		oldOrganizer := itipAddress(old.Props.Get("ORGANIZER"))
 		newOrganizer := itipAddress(now.Props.Get("ORGANIZER"))
@@ -250,7 +383,7 @@ func itipAllowedCalendarEnvelopeChange(previous, current []byte) (bool, error) {
 	otherChildren := func(calendar *ical.Calendar) []*ical.Component {
 		children := make([]*ical.Component, 0)
 		for _, child := range calendar.Children {
-			if child.Name != "VEVENT" {
+			if child.Name != ical.CompEvent && child.Name != ical.CompToDo {
 				children = append(children, child)
 			}
 		}
@@ -285,10 +418,10 @@ func itipAllowedAttendeeChange(old, incoming ical.Event, attendeeAddress string)
 			return nil, err
 		}
 		copy, err := ical.NewDecoder(&encoded).Decode()
-		if err != nil || len(copy.Events()) != 1 {
+		if err != nil || len(itipComponents(copy)) != 1 {
 			return nil, errors.New("invalid scheduling event")
 		}
-		component := copy.Events()[0].Component
+		component := itipComponents(copy)[0].Component
 		for _, name := range []string{"TRANSP", "PERCENT-COMPLETE", "COMPLETED", "CREATED", "DTSTAMP", "LAST-MODIFIED", "EXDATE", "X-MOZ-GENERATION"} {
 			component.Props.Del(name)
 		}
@@ -296,9 +429,15 @@ func itipAllowedAttendeeChange(old, incoming ical.Event, attendeeAddress string)
 			if itipAddress(&component.Props["ATTENDEE"][i]) == attendeeAddress {
 				component.Props["ATTENDEE"][i].Params.Del("PARTSTAT")
 			}
-			if strings.ToUpper(component.Props["ATTENDEE"][i].Params.Get("SCHEDULE-AGENT")) == "CLIENT" {
-				component.Props["ATTENDEE"][i].Params.Del("SCHEDULE-STATUS")
-			}
+			component.Props["ATTENDEE"][i].Params.Del("SCHEDULE-STATUS")
+			component.Props["ATTENDEE"][i].Params.Del("SCHEDULE-FORCE-SEND")
+		}
+		sort.SliceStable(component.Props["ATTENDEE"], func(i, j int) bool {
+			return itipAddress(&component.Props["ATTENDEE"][i]) < itipAddress(&component.Props["ATTENDEE"][j])
+		})
+		for i := range component.Props["ORGANIZER"] {
+			component.Props["ORGANIZER"][i].Params.Del("SCHEDULE-STATUS")
+			component.Props["ORGANIZER"][i].Params.Del("SCHEDULE-FORCE-SEND")
 		}
 		children := component.Children[:0]
 		for _, child := range component.Children {
