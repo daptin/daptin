@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -1053,16 +1054,55 @@ func runDAVConnectedCalendarSchedulingRealE2E(t *testing.T, databaseType, connec
 	if !strings.Contains(autoSeries.body, "RECURRENCE-ID:20261013T120000Z") {
 		t.Fatalf("recurring request did not create attendee series: %s", autoSeries.body)
 	}
-	lastStatus := strings.LastIndex(autoSeries.body, "PARTSTAT=NEEDS-ACTION")
-	if lastStatus < 0 {
-		t.Fatalf("recurring attendee event has no pending response: %s", autoSeries.body)
+	attendeeSeries, err := ical.NewDecoder(strings.NewReader(autoSeries.body)).Decode()
+	if err != nil {
+		t.Fatal(err)
 	}
-	acceptedOccurrence := autoSeries.body[:lastStatus] + "PARTSTAT=ACCEPTED" + autoSeries.body[lastStatus+len("PARTSTAT=NEEDS-ACTION"):]
-	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeSeriesURL, attendeeToken, "text/calendar", acceptedOccurrence, nil), http.StatusCreated)
+	acceptedOccurrence := false
+	for _, event := range attendeeSeries.Events() {
+		if recurrence := event.Props.Get("RECURRENCE-ID"); recurrence == nil || recurrence.Value != "20261013T120000Z" {
+			continue
+		}
+		for i := range event.Props["ATTENDEE"] {
+			attendee := &event.Props["ATTENDEE"][i]
+			if attendee.Value == "mailto:attendee@localhost" && attendee.Params.Get("PARTSTAT") == "NEEDS-ACTION" {
+				attendee.Params.Set("PARTSTAT", "ACCEPTED")
+				acceptedOccurrence = true
+			}
+		}
+	}
+	if !acceptedOccurrence {
+		t.Fatalf("recurring occurrence has no pending response: %s", autoSeries.body)
+	}
+	var updatedSeries bytes.Buffer
+	if err := ical.NewEncoder(&updatedSeries).Encode(attendeeSeries); err != nil {
+		t.Fatal(err)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, attendeeSeriesURL, attendeeToken, "text/calendar", updatedSeries.String(), nil), http.StatusCreated)
 	sendLatest("organizer@localhost")
 	organizerSeries := davE2EExpect(t, davE2ERequest(client, http.MethodGet, organizerSeriesURL, token, "", "", nil), http.StatusOK)
-	if !strings.Contains(organizerSeries.body, "RECURRENCE-ID:20261013T120000Z") || !strings.Contains(organizerSeries.body, "PARTSTAT=ACCEPTED") {
-		t.Fatalf("recurring occurrence response was not applied: %s", organizerSeries.body)
+	organizerCalendar, err := ical.NewDecoder(strings.NewReader(organizerSeries.body)).Decode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	occurrenceApplied := false
+	masterPending := false
+	for _, event := range organizerCalendar.Events() {
+		recurrence := event.Props.Get("RECURRENCE-ID")
+		for _, attendee := range event.Props.Values("ATTENDEE") {
+			if attendee.Value != "mailto:attendee@localhost" {
+				continue
+			}
+			if recurrence != nil && recurrence.Value == "20261013T120000Z" && attendee.Params.Get("PARTSTAT") == "ACCEPTED" {
+				occurrenceApplied = true
+			}
+			if recurrence == nil && attendee.Params.Get("PARTSTAT") == "NEEDS-ACTION" {
+				masterPending = true
+			}
+		}
+	}
+	if !occurrenceApplied || !masterPending {
+		t.Fatalf("recurring occurrence response changed the wrong event: %s", organizerSeries.body)
 	}
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, organizerSeriesURL, token, "text/calendar", wrap(seriesMaster), nil), http.StatusCreated)
 	sendLatest("attendee@localhost")
