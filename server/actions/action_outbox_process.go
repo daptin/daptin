@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -28,6 +29,11 @@ import (
 type outboxProcessActionPerformer struct {
 	cruds map[string]*resource.DbResource
 }
+
+type outboxUncertainError struct{ err error }
+
+func (e *outboxUncertainError) Error() string { return "SMTP delivery uncertain: " + e.err.Error() }
+func (e *outboxUncertainError) Unwrap() error { return e.err }
 
 func (d *outboxProcessActionPerformer) Name() string {
 	return "outbox.process"
@@ -235,7 +241,7 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 	select {
 	case err = <-sendDone:
 	case <-sendCtx.Done():
-		err = fmt.Errorf("send timed out after 30s for [%v]", toAddress)
+		err = &outboxUncertainError{err: fmt.Errorf("send timed out after 30s for [%v]", toAddress)}
 	}
 	sendCancel()
 
@@ -252,7 +258,12 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 
 	if err != nil {
 		log.Errorf("Failed to send outbox mail [%v] to [%v]: %v", mailId, toAddress, err)
-		d.markFailed(mailId, err.Error(), pendingMail, transaction)
+		var uncertain *outboxUncertainError
+		if errors.As(err, &uncertain) {
+			d.markUncertain(mailId, err.Error(), transaction)
+		} else {
+			d.markFailed(mailId, err.Error(), pendingMail, transaction)
+		}
 		if commitErr := transaction.Commit(); commitErr != nil {
 			log.Errorf("Failed to commit retry state for outbox mail [%v]: %v", mailId, commitErr)
 			return false
@@ -414,8 +425,41 @@ func (d *outboxProcessActionPerformer) markFailed(mailId int64, lastError string
 	}
 }
 
+func (d *outboxProcessActionPerformer) markUncertain(mailId int64, lastError string, transaction *sqlx.Tx) {
+	query, args, err := statementbuilder.Squirrel.Update("outbox").Prepared(true).
+		Set(goqu.Record{"retry_count": 5, "last_error": lastError, "next_retry_at": nil}).
+		Where(goqu.Ex{"id": mailId}).ToSQL()
+	if err == nil {
+		_, err = transaction.Exec(query, args...)
+	}
+	if err != nil {
+		log.Errorf("Failed to record uncertain outbox delivery [%v]: %v", mailId, err)
+	}
+}
+
 func sendOutboxMail(ehloHostname, from string, to []string, message []byte) error {
-	return sendOutboxMailWith(ehloHostname, from, to, message, net.LookupMX, sendOutboxSMTPData)
+	return sendOutboxMailWith(ehloHostname, from, to, message, lookupOutboxMX, sendOutboxSMTPData)
+}
+
+func lookupOutboxMX(domain string) ([]*net.MX, error) {
+	mxs, err := net.LookupMX(domain)
+	if err == nil && len(mxs) != 0 {
+		return mxs, nil
+	}
+	if err != nil {
+		var dnsError *net.DNSError
+		if !errors.As(err, &dnsError) || !dnsError.IsNotFound {
+			return nil, err
+		}
+	}
+	// An address record without MX records is an implicit MX for the host.
+	// This also permits delivery between mail accounts on the same instance.
+	if _, hostErr := net.LookupHost(domain); hostErr == nil {
+		return []*net.MX{{Host: domain}}, nil
+	} else if err == nil {
+		return nil, hostErr
+	}
+	return nil, err
 }
 
 func sendOutboxMailWith(
@@ -443,6 +487,10 @@ func sendOutboxMailWith(
 		delivered := false
 		for _, mx := range mxs {
 			if err := send(mx.Host, ehloHostname, from, []string{addr}, message); err != nil {
+				var uncertain *outboxUncertainError
+				if errors.As(err, &uncertain) {
+					return err
+				}
 				lastErr = err
 				continue
 			}
@@ -496,13 +544,14 @@ func sendOutboxSMTPData(mxHost, ehloHostname, from string, to []string, message 
 	}
 	if _, err := io.Copy(wc, bytes.NewReader(message)); err != nil {
 		_ = wc.Close()
-		return err
+		return &outboxUncertainError{err: err}
 	}
 	if err := wc.Close(); err != nil {
-		return err
+		return &outboxUncertainError{err: err}
 	}
 
-	return c.Quit()
+	// DATA was accepted. Closing the connection cannot make it retryable.
+	return nil
 }
 
 func splitOutboxAddress(addr string) (local, domain string, err error) {

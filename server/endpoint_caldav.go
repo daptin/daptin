@@ -44,7 +44,10 @@ func InitializeCaldavResources(
 			modifiedRequest := c.Request.WithContext(authenticatedRequest.Context())
 
 			if protocol == "caldav" {
-				(&caldav.Handler{Backend: resource.NewCalDAVBackend(cruds, sessionUser, modifiedRequest.Header), Prefix: "/caldav"}).ServeHTTP(c.Writer, modifiedRequest)
+				backend := resource.NewCalDAVBackend(cruds, sessionUser, modifiedRequest.Header)
+				if !backend.ServeScheduling(c.Writer, modifiedRequest) {
+					(&caldav.Handler{Backend: backend, Prefix: "/caldav"}).ServeHTTP(c.Writer, modifiedRequest)
+				}
 			} else {
 				(&carddav.Handler{Backend: resource.NewCardDAVBackend(cruds, sessionUser, modifiedRequest.Header), Prefix: "/carddav"}).ServeHTTP(c.Writer, modifiedRequest)
 			}
@@ -56,6 +59,7 @@ func InitializeCaldavResources(
 		defaultRouter.Handle(method, "/caldav/*path", davHandler("caldav"))
 		defaultRouter.Handle(method, "/carddav/*path", davHandler("carddav"))
 	}
+	defaultRouter.POST("/caldav/*path", davHandler("caldav"))
 
 	// Well-known URIs for service discovery (RFC 6764)
 	// Allows clients to auto-discover CalDAV/CardDAV endpoints

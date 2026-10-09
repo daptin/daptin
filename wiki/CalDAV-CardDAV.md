@@ -376,6 +376,134 @@ The `name` field is the collection's URL segment. Do not change it to rename
 the displayed calendar: existing object paths contain that segment. DAV
 display-name mutation and collection renaming are unsupported.
 
+## Send invitations through a mail account
+
+A calendar can use a Daptin `mail_account` for iCalendar email. Create the
+mail account and its `mail_server` as usual, configure a signing certificate
+for its domain, then set the calendar collection's optional
+`scheduling_mail_account_id` relationship. The mail account remains a
+standalone mail resource and may be connected to more than one calendar.
+Its owner need not be the calendar owner. Editing the relationship uses the
+normal collection and mail account relationship permissions.
+
+```bash
+curl -X PATCH \
+  "http://localhost:6336/api/collection/COLLECTION_REFERENCE_ID/relationships/scheduling_mail_account_id" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  --data '{"data":{"type":"mail_account","id":"MAIL_ACCOUNT_REFERENCE_ID"}}'
+```
+
+On CalDAV event `PUT`, Daptin compares the event with its previous version.
+When `ORGANIZER` is the connected mail account's address, it queues an iMIP
+`REQUEST` for attendees. Removing an attendee or deleting an event queues
+`CANCEL`. When the connected address is an attendee of an event organized
+elsewhere, changing that attendee's `PARTSTAT` to `ACCEPTED`, `DECLINED`, or
+`TENTATIVE` queues `REPLY` to the organizer. Each message retains the event
+UID, sequence, and recurrence ID. A full cancellation carries
+`STATUS:CANCELLED` and the next sequence number. `SCHEDULE-AGENT=CLIENT` or
+`SCHEDULE-AGENT=NONE` on an attendee suppresses server-generated mail for
+that attendee, so a client that sends its own invitations does not also get
+a Daptin-generated copy. Unconnected calendars continue ordinary CalDAV
+operations without sending mail.
+
+`cal_mail` records each inbound or outbound calendar scheduling message and
+links it to the ordinary received `mail` or queued `outbox` record. The event
+write, outbound `cal_mail` record, Sent copy, and `outbox` row commit
+together. An identical event write does not queue another invitation. Mail
+delivery happens later through Daptin's existing outbox worker. An outbound
+`cal_mail` state of `submitted` means mail was queued. The outbox row is
+the delivery authority. A calendar user can call
+`POST /action/collection/scheduling_status` with `collection_id` and
+`message_id` reference IDs to read `sent`, `retry_count`, `next_retry_at`,
+and `last_error` without access to the sender's mailbox. A failed mail setup
+causes the CalDAV write to fail before it commits. The worker retries failures
+before SMTP DATA acceptance. An uncertain result during DATA stops automatic
+retries; inspect the recipient before manually sending again. Successful DATA
+acceptance is not undone by a failed SMTP QUIT. The worker delivers to the
+recipient domain's MX host, or to that domain's address host when it has no MX
+record. If the receiving server offers STARTTLS, its certificate must be
+trusted by the Daptin server; a self-signed certificate needs an installed
+trust root. Outbound delivery uses SMTP port 25.
+
+Incoming iCalendar mail is stored in the ordinary `mail` resource. To process
+new mail automatically, an administrator creates a durable data exchange with
+source `mail` creation, target action `mail.process_itip`, and `as_user_id`
+linked to an administrator account:
+
+```json
+{
+  "name": "process calendar mail",
+  "source_type": "self",
+  "source_attributes": "{\"name\":\"mail\"}",
+  "target_type": "action",
+  "target_attributes": "{\"type\":\"mail\",\"action\":\"process_itip\",\"attributes\":{}}",
+  "attributes": "{\"name\":\"mail\",\"hook\":\"after\",\"methods\":[\"post\"]}",
+  "options": "{}"
+}
+```
+
+Create these as attributes of `POST /api/data_exchange`, set the
+`as_user_id` relationship through JSON:API, then reload the server's exchange
+configuration. The normal exchange execution worker processes queued mail;
+its `exchange_run` rows report retries and failures. The same administrator
+action can process one stored message explicitly:
+
+```bash
+curl -X POST "http://localhost:6336/action/mail/process_itip" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{"mail_id":"MAIL_REFERENCE_ID"}}'
+```
+
+The processor uses the existing bounded MIME parser. A `REPLY` must match a
+connected account, a previously queued invitation, its UID, recurrence ID,
+sequence, and attendee address before it changes the event's `PARTSTAT`.
+Reprocessing the same iTIP content, even in another mail row, has no further
+effect. Stale replies do not change the event. Incoming `REQUEST` and
+`CANCEL` messages are recorded as `pending` in the recipient's scheduling
+inbox. Ordinary non-calendar mail remains ordinary mail.
+
+For a calendar owner with a connected mail account, a CalDAV `PROPFIND` on
+`/caldav/OWNER_REFERENCE_ID/` returns `calendar-user-address-set`,
+`schedule-inbox-URL`, and `schedule-outbox-URL`. The address is the connected
+mail account's `username`, expressed as a `mailto:` URI. The mailbox may be
+owned by another Daptin account; that does not change the calendar principal.
+One mail account may serve multiple calendars of the same principal. A shared
+sender serving different principals can still send invitations and route
+replies by the matching outbound invitation. Its address cannot identify the
+principal for a new incoming REQUEST or CANCEL; that mail remains in the
+mailbox until an administrator calls `mail.process_itip` with the `mail_id`
+and an explicit `collection_id`, or configures that field in a mailbox-specific
+data exchange action. The action verifies that the selected collection is
+linked to the receiving mail account. The selected owner can then read the
+message in their scheduling inbox. Scheduling discovery remains unavailable
+for an address shared across principals because it does not identify one
+principal. Unconnected principals receive a missing-property response.
+
+The inbox URL is `/caldav/OWNER_REFERENCE_ID/schedule-inbox/`. After
+`process_itip` succeeds, the owner can list incoming iTIP messages with
+`PROPFIND` or `REPORT` and read each `.ics` message with `GET`. The inbox
+contains the iCalendar part, not the raw mailbox message. Only the principal
+owner can access it. The attendee reads a REQUEST, chooses a calendar, and
+PUTs an event there with the connected address as ATTENDEE. Changing its
+PARTSTAT through CalDAV PUT queues the REPLY. For a later REQUEST or CANCEL,
+the client updates or removes its matching event. After handling a message,
+DELETE its inbox `.ics` URL to acknowledge it; the stored message remains for
+deduplication.
+
+The outbox URL is `/caldav/OWNER_REFERENCE_ID/schedule-outbox/`. It accepts
+`POST` of a `METHOD:REQUEST` `VFREEBUSY` message when its organizer matches
+the connected address. For a local recipient, the response contains busy
+intervals from calendars for which the requester has peek or read access;
+unavailable or denied recipients receive no calendar data. Meeting invitations
+continue to be queued by CalDAV event `PUT` and `DELETE`, not outbox `POST`.
+
+This is a client-visible iMIP bridge, not a claim of full RFC 6638 automatic
+scheduling. The server does not advertise `calendar-auto-schedule`. Clients
+that require that capability may leave invitation controls disabled until
+server-side placement of incoming REQUEST and CANCEL messages is implemented.
+
 ## Supported behavior
 
 - standards-based current-user-principal and home-set discovery;
@@ -387,10 +515,11 @@ display-name mutation and collection renaming are unsupported.
 - per-row Daptin permissions for CalDAV, including direct access at an owner's
   URL when collection and event grants permit it;
 - durable SQL-backed storage through Daptin resources.
+- optional iCalendar email delivery through a collection's mail account.
 
 `COPY`, `MOVE`, and collection property mutation are not currently implemented
-and return an explicit unsupported response. Scheduling and CalDAV/CardDAV sync
-tokens are not implemented. Collection grants do not propagate to events
+and return an explicit unsupported response. Automatic RFC 6638 scheduling and
+CalDAV/CardDAV sync tokens are not implemented. Collection grants do not propagate to events
 created or moved through JSON:API. The endpoint does not implement the RFC 3744 ACL method or claim
 full WebDAV ACL conformance.
 

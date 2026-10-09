@@ -71,3 +71,25 @@ func TestSendOutboxMailWithDoesNotUseRecipientDomainAsEHLO(t *testing.T) {
 		t.Fatalf("sendOutboxMailWith returned error: %v", err)
 	}
 }
+
+func TestSendOutboxMailWithStopsAfterUncertainDelivery(t *testing.T) {
+	attempts := 0
+	err := sendOutboxMailWith("mail.example.test", "sender@example.test", []string{"guest@example.test"},
+		[]byte("message"), func(string) ([]*net.MX, error) {
+			return []*net.MX{{Host: "primary.example.test"}, {Host: "backup.example.test"}}, nil
+		}, func(string, string, string, []string, []byte) error {
+			attempts++
+			return &outboxUncertainError{err: errors.New("DATA response lost")}
+		})
+	var uncertain *outboxUncertainError
+	if !errors.As(err, &uncertain) || attempts != 1 {
+		t.Fatalf("uncertain delivery was retried at another MX: attempts=%d error=%v", attempts, err)
+	}
+}
+
+func TestLookupOutboxMXUsesImplicitHostForLocalDelivery(t *testing.T) {
+	mxs, err := lookupOutboxMX("localhost")
+	if err != nil || len(mxs) == 0 || mxs[0].Host != "localhost" {
+		t.Fatalf("localhost without MX was not resolved as an implicit MX: %v, %#v", err, mxs)
+	}
+}

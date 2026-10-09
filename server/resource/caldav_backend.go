@@ -811,11 +811,13 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 		return nil, webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar edit access denied"))
 	}
 	etag := ""
+	var previous []byte
 	if exists {
 		current, err := b.contentBytes(calendarObjectTable, existing)
 		if err != nil {
 			return nil, err
 		}
+		previous = current
 		etag = GetMD5Hash(current)
 	}
 	if err := checkDAVConditions(exists, etag, opts.IfMatch, opts.IfNoneMatch); err != nil {
@@ -828,6 +830,13 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 		err = b.calendarCreateEvent(requestPath, collection, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "collection_id": fmt.Sprint(collection["reference_id"])}, tx)
 	}
 	if err != nil {
+		return nil, err
+	}
+	event, err := b.calendarObjectRow(requestPath, collection, tx)
+	if err != nil {
+		return nil, err
+	}
+	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(event["reference_id"]), previous, data, tx); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -878,16 +887,19 @@ func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath s
 	}
 	ifMatch := webdav.ConditionalMatch(b.headers.Get("If-Match"))
 	ifNoneMatch := webdav.ConditionalMatch(b.headers.Get("If-None-Match"))
+	previous, err := b.contentBytes(calendarObjectTable, row)
+	if err != nil {
+		return err
+	}
 	if ifMatch.IsSet() || ifNoneMatch.IsSet() {
-		content, err := b.contentBytes(calendarObjectTable, row)
-		if err != nil {
-			return err
-		}
-		if err := checkDAVConditions(true, GetMD5Hash(content), ifMatch, ifNoneMatch); err != nil {
+		if err := checkDAVConditions(true, GetMD5Hash(previous), ifMatch, ifNoneMatch); err != nil {
 			return err
 		}
 	}
 	if err := b.calendarDelete(calendarObjectTable, requestPath, row, tx); err != nil {
+		return err
+	}
+	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(row["reference_id"]), previous, nil, tx); err != nil {
 		return err
 	}
 	return tx.Commit()
