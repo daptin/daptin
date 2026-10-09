@@ -138,6 +138,83 @@ func runDAVCalendarCollectionDeletionRealE2E(t *testing.T, databaseType, connect
 	if attendeeReplies != 1 {
 		t.Fatalf("attendee calendar deletion did not queue one declined reply: %d", attendeeReplies)
 	}
+	moveSource := "/caldav/" + owner[1] + "/calendars/move-source/"
+	davE2EExpect(t, davE2ERequest(client, "MKCOL", base+moveSource, ownerToken, "", "", nil), http.StatusCreated)
+	moveSourceID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "move-source")
+	davE2EExpect(t, davE2ERequest(client, http.MethodPatch,
+		base+"/api/collection/"+moveSourceID+"/relationships/scheduling_mail_account_id", adminToken,
+		"application/vnd.api+json", fmt.Sprintf(`{"data":{"type":"mail_account","id":"%s"}}`, mailAccount), nil), http.StatusNoContent)
+	moveMeeting := strings.Replace(meeting, "UID:delete-calendar-e2e", "UID:move-connected-e2e", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+moveSource+"event.ics", ownerToken,
+		"text/calendar", moveMeeting, nil), http.StatusCreated)
+	sourceEvent := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+moveSource+"event.ics", ownerToken,
+		"", "", nil), http.StatusOK)
+	if !strings.Contains(sourceEvent.body, "SCHEDULE-STATUS") {
+		t.Fatalf("connected source event has no delivery status to clear: %s", sourceEvent.body)
+	}
+	beforeCopy := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	copyPath := "/caldav/" + owner[1] + "/calendars/move-copy/"
+	davE2EExpect(t, davE2ERequest(client, "COPY", base+moveSource, ownerToken, "", "",
+		http.Header{"Destination": {base + copyPath}}), http.StatusCreated)
+	copiedEvent := davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+copyPath+"event.ics", ownerToken,
+		"", "", nil), http.StatusOK)
+	if strings.Contains(copiedEvent.body, "SCHEDULE-STATUS") {
+		t.Fatalf("copied calendar retained delivery state from another calendar: %s", copiedEvent.body)
+	}
+	afterCopy := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	if len(afterCopy) != len(beforeCopy) {
+		t.Fatalf("copying a connected calendar queued mail: before=%d after=%d", len(beforeCopy), len(afterCopy))
+	}
+	moveDestination := "/caldav/" + owner[1] + "/calendars/move-destination/"
+	davE2EExpect(t, davE2ERequest(client, "MOVE", base+moveSource, ownerToken, "", "",
+		http.Header{"Destination": {base + moveDestination}}), http.StatusCreated)
+	if movedID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "move-destination"); movedID != moveSourceID {
+		t.Fatalf("connected calendar MOVE changed its identity: before=%s after=%s", moveSourceID, movedID)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+moveDestination+"event.ics", ownerToken,
+		"", "", nil), http.StatusOK)
+	nextMeeting := strings.Replace(meeting, "UID:delete-calendar-e2e", "UID:moved-connected-new-e2e", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+moveDestination+"new.ics", ownerToken,
+		"text/calendar", nextMeeting, nil), http.StatusCreated)
+	afterMove := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	requestsAfterMove := 0
+	for _, item := range afterMove {
+		attrs := item.(map[string]interface{})["attributes"].(map[string]interface{})
+		if attrs["uid"] == "moved-connected-new-e2e" && attrs["method"] == "REQUEST" {
+			requestsAfterMove++
+		}
+	}
+	if requestsAfterMove != 2 {
+		t.Fatalf("moved calendar lost its mail connection: requests=%d", requestsAfterMove)
+	}
+	overwritePath := "/caldav/" + owner[1] + "/calendars/overwrite-connected/"
+	davE2EExpect(t, davE2ERequest(client, "MKCOL", base+overwritePath, ownerToken, "", "", nil), http.StatusCreated)
+	overwriteID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "overwrite-connected")
+	davE2EExpect(t, davE2ERequest(client, http.MethodPatch,
+		base+"/api/collection/"+overwriteID+"/relationships/scheduling_mail_account_id", adminToken,
+		"application/vnd.api+json", fmt.Sprintf(`{"data":{"type":"mail_account","id":"%s"}}`, mailAccount), nil), http.StatusNoContent)
+	overwriteMeeting := strings.Replace(meeting, "UID:delete-calendar-e2e", "UID:overwritten-connected-e2e", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+overwritePath+"old.ics", ownerToken,
+		"text/calendar", overwriteMeeting, nil), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, "COPY", base+moveDestination, ownerToken, "", "",
+		http.Header{"Destination": {base + overwritePath}}), http.StatusNoContent)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+overwritePath+"old.ics", ownerToken,
+		"", "", nil), http.StatusNotFound)
+	afterOverwrite := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
+	cancels := 0
+	for _, item := range afterOverwrite {
+		attrs := item.(map[string]interface{})["attributes"].(map[string]interface{})
+		if attrs["uid"] == "overwritten-connected-e2e" && attrs["method"] == "CANCEL" {
+			cancels++
+		}
+	}
+	if cancels != 2 {
+		t.Fatalf("overwriting a connected destination did not cancel its meeting: cancels=%d", cancels)
+	}
 	unconnectedPath := "/caldav/" + owner[1] + "/calendars/unconnected/"
 	davE2EExpect(t, davE2ERequest(client, "MKCOL", base+unconnectedPath, ownerToken, "", "", nil), http.StatusCreated)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, base+unconnectedPath+"ordinary.ics", ownerToken,
@@ -145,7 +222,7 @@ func runDAVCalendarCollectionDeletionRealE2E(t *testing.T, databaseType, connect
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+unconnectedPath, ownerToken, "", "", nil), http.StatusNoContent)
 	after := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet,
 		base+"/api/cal_mail?page%5Bsize%5D=100", adminToken, nil, http.StatusOK))
-	if len(after) != len(messages) {
-		t.Fatalf("unconnected calendar deletion queued scheduling mail: before=%d after=%d", len(messages), len(after))
+	if len(after) != len(afterOverwrite) {
+		t.Fatalf("unconnected calendar deletion queued scheduling mail: before=%d after=%d", len(afterOverwrite), len(after))
 	}
 }

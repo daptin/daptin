@@ -2016,6 +2016,17 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
+		TableName:     "cal_sync",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{Name: "collection_reference", ColumnName: "collection_reference", ColumnType: "label", DataType: "varchar(36)", IsIndexed: true, IsNullable: false},
+			{Name: "token", ColumnName: "token", ColumnType: "label", DataType: "varchar(100)", IsIndexed: true, IsNullable: false},
+			{Name: "state", ColumnName: "state", ColumnType: "content", DataType: "longtext", IsNullable: false},
+			{Name: "expires_at", ColumnName: "expires_at", ColumnType: "value", DataType: "bigint", IsIndexed: true, IsNullable: false},
+		},
+	},
+	{
 		TableName:     "cal_mail",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,

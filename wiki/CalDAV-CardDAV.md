@@ -573,6 +573,11 @@ RFC 3744 ACL conformance.
 - calendar collection `PROPPATCH` for display name and description;
 - calendar object `COPY` and `MOVE`, with `Destination` and `Overwrite`
   conditions, UID conflict checks, and Daptin resource permissions;
+- calendar collection `COPY` with `Depth: 0` or `infinity`, and collection
+  `MOVE` within the same principal; replacing a connected destination queues
+  cancellations for its former events;
+- `DAV:sync-token` discovery and `DAV:sync-collection` REPORT on calendar
+  collections, including changed and removed objects;
 - calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
 - calendar free-busy-query REPORT with a bounded time range;
 - stable content ETags and conditional object PUT/DELETE protection;
@@ -582,11 +587,29 @@ RFC 3744 ACL conformance.
 - optional iCalendar email delivery through a collection's mail account;
 - conditional automatic scheduling discovery for a principal with one connected calendar.
 
-Calendar collection `COPY` and `MOVE` remain unsupported. Moving an object
-between calendars carries its resource identity and uses the destination
-calendar's group grants. The move does not send new invitations: it changes
-which calendar contains the object, not the meeting itself. CalDAV/CardDAV
-sync tokens are not implemented. Collection grants do not propagate to events
+Collection `COPY` creates a new calendar in the active account's home. A
+depth-zero copy includes only its display name and description; an infinite
+copy includes its objects. The copy has its own resource identities and is
+unconnected to mail until an administrator links a mail account. A collection
+`MOVE` preserves the collection, object identities, sharing, and mail
+connection while changing their URLs; it does not send new invitations.
+Overwriting an existing destination replaces its membership rather than
+merging it. Moving an individual object between calendars carries its resource
+identity and uses the destination calendar's group grants. That move does not
+send new invitations because it does not change the meeting itself.
+
+Calendar sync tokens are scoped to the authenticated account and calendar.
+An empty token returns currently readable objects; subsequent reports return
+changed objects and a `404` entry for objects removed or no longer readable.
+This also detects changes made through JSON:API. Responses are limited to
+1,000 changes by default; a `507` entry for the calendar and the returned
+token indicate that the client should request the next page. Checkpoints
+expire after 30 days, at which point the client must start with an empty
+token. Sync compares saved and current membership, so an object created and
+deleted entirely between reports does not produce a deletion entry. Calendars
+with more than 10,000 objects require ordinary full listing; the sync endpoint
+rejects them. CardDAV sync tokens are not
+implemented. Collection grants do not propagate to events
 created or moved through JSON:API. The endpoint does not implement the RFC 3744
 ACL method or claim full WebDAV ACL conformance.
 

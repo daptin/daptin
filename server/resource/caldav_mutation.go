@@ -139,6 +139,9 @@ func (b *DaptinDAVBackend) deleteCalendarCollection(requestPath string, collecti
 			}
 		}
 	}
+	if err := b.deleteCalendarSyncState(collection, tx); err != nil {
+		return err
+	}
 	return b.calendarDelete(calendarCollectionTable, requestPath, collection, tx)
 }
 

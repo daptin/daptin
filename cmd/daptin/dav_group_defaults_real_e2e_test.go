@@ -418,11 +418,27 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		t.Fatalf("unrelated user read the shared event: %+v", response)
 	}
 	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "calendar", 1)
+	syncBody := `<D:sync-collection xmlns:D="DAV:"><D:sync-token/><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`
+	syncInitial := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+		"application/xml", syncBody, nil), http.StatusMultiStatus)
+	if !strings.Contains(syncInitial.body, "event.ics") {
+		t.Fatalf("delegate sync omitted its readable event: %s", syncInitial.body)
+	}
+	syncToken := regexp.MustCompile(`<sync-token[^>]*>([^<]+)</sync-token>`).FindStringSubmatch(syncInitial.body)
+	if len(syncToken) != 2 {
+		t.Fatalf("delegate sync returned no token: %s", syncInitial.body)
+	}
 
 	// Removing the event relationship must revoke both DAV and JSON:API reads.
 	eventLink := base + "/api/calendar/" + eventID + "/relationships/usergroup_id"
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, eventLink, adminToken,
 		"application/vnd.api+json", fmt.Sprintf(`{"data":[{"type":"usergroup","id":%q}]}`, groupID), nil), http.StatusNoContent)
+	syncBody = fmt.Sprintf(`<D:sync-collection xmlns:D="DAV:"><D:sync-token>%s</D:sync-token><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, syncToken[1])
+	syncRevoked := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+		"application/xml", syncBody, nil), http.StatusMultiStatus)
+	if !strings.Contains(syncRevoked.body, "event.ics") || !strings.Contains(syncRevoked.body, "404 Not Found") {
+		t.Fatalf("delegate sync retained a revoked event: %s", syncRevoked.body)
+	}
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.status == http.StatusOK || response.err != nil {
 		t.Fatalf("delegate read after revocation: %+v", response)
 	}
