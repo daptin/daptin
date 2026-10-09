@@ -540,9 +540,13 @@ the connected address. For a local recipient, the response contains busy
 intervals from calendars for which the requester has peek or read access;
 unavailable or denied recipients receive no calendar data. Invitations and
 replies are queued by CalDAV `VEVENT` or `VTODO` `PUT` and `DELETE`, not outbox
-`POST`. A client can use `SCHEDULE-FORCE-SEND` on an attendee or organizer to
-request a fresh invitation or reply; Daptin removes that one-shot parameter
-from the stored object and outgoing message. Queued mail sets
+`POST`. Deleting a connected calendar through CalDAV removes its events and
+queues their cancellations or attendee replies before the calendar disappears.
+The operation fails without deleting anything if the caller cannot read and
+delete every event in that calendar. Deleting an unconnected calendar sends no
+scheduling mail. A client can use `SCHEDULE-FORCE-SEND` on an attendee or
+organizer to request a fresh invitation or reply; Daptin removes that one-shot
+parameter from the stored object and outgoing message. Queued mail sets
 `SCHEDULE-STATUS=1.0` on the stored object. The
 `collection.scheduling_status` action reports the outbox's sent and retry
 state for a message. The five-minute `cal_mail.reconcile_delivery` task follows

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/go-webdav"
@@ -62,6 +63,83 @@ func (b *DaptinDAVBackend) PatchCalendarProperties(_ context.Context, requestPat
 		return err
 	}
 	return tx.Commit()
+}
+
+// deleteCalendarCollection removes its objects and queues their scheduling
+// changes before the collection disappears. All writes share the DAV transaction.
+func (b *DaptinDAVBackend) deleteCalendarCollection(requestPath string, collection map[string]interface{}, tx *sqlx.Tx) error {
+	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
+	crud := b.cruds[calendarCollectionTable]
+	table := crud.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarCollectionTable, tx)
+	row := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, collectionRef, tx)
+	user, groups, admin := b.sessionUser.UserReferenceId, b.sessionUser.Groups, crud.AdministratorGroupId
+	if !table.CanDelete(user, groups, admin) || !row.CanDelete(user, groups, admin) {
+		return webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar deletion denied"))
+	}
+	if err := b.lockCalendarCollection(collection, tx); err != nil {
+		return err
+	}
+	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, collectionRef, tx)
+	if err != nil {
+		return err
+	}
+	eventCRUD := b.cruds[calendarObjectTable]
+	eventTable := eventCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
+	if !eventTable.CanRead(user, groups, admin) || !eventTable.CanDelete(user, groups, admin) {
+		return webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar object deletion denied"))
+	}
+	const batchSize = 100
+	for {
+		refs, err := GetLimitedReferenceIdByWhereClauseWithTransaction(calendarObjectTable, tx, batchSize, goqu.Ex{"collection_id": collectionID})
+		if err != nil {
+			return err
+		}
+		if len(refs) == 0 {
+			break
+		}
+		for _, ref := range refs {
+			eventPermission := GetObjectPermissionByReferenceIdWithTransaction(calendarObjectTable, ref, tx)
+			if !eventPermission.CanRead(user, groups, admin) || !eventPermission.CanDelete(user, groups, admin) {
+				return webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar object deletion denied"))
+			}
+			event, _, err := eventCRUD.GetSingleRowByReferenceIdWithTransaction(calendarObjectTable, ref, nil, tx)
+			if err != nil {
+				return err
+			}
+			previous, err := b.contentBytes(calendarObjectTable, event)
+			if err != nil {
+				return err
+			}
+			eventPath := StringOrEmpty(event["rpath"])
+			if err := b.calendarDelete(calendarObjectTable, eventPath, event, tx); err != nil {
+				return err
+			}
+			if err := b.scheduleCalendarChange(collection, ref, previous, nil, nil, tx); err != nil {
+				return err
+			}
+		}
+	}
+	// Calendar mail remains as delivery history. Its optional collection link
+	// must be cleared before deleting the collection on databases with FKs.
+	for {
+		refs, err := GetLimitedReferenceIdByWhereClauseWithTransaction("cal_mail", tx, batchSize, goqu.Ex{"collection_id": collectionID})
+		if err != nil {
+			return err
+		}
+		if len(refs) == 0 {
+			break
+		}
+		for _, ref := range refs {
+			model := api2go.NewApi2GoModelWithData("cal_mail", nil, 0, nil, map[string]interface{}{
+				"reference_id": ref.String(), "collection_id": nil,
+			})
+			if _, err := b.cruds["cal_mail"].updateAfterAuthorizationWithTransaction(model,
+				b.request(http.MethodPatch, "/api/cal_mail/"+ref.String()), tx); err != nil {
+				return davResourceError(err)
+			}
+		}
+	}
+	return b.calendarDelete(calendarCollectionTable, requestPath, collection, tx)
 }
 
 func (b *DaptinDAVBackend) CopyCalendarObject(_ context.Context, sourcePath, destinationPath string, overwrite bool) (bool, error) {

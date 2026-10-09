@@ -131,4 +131,18 @@ func TestDAVCalendarPropertiesAndTransfersRealE2E(t *testing.T) {
 	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+eventID, otherToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("old calendar share leaked through moved event: %+v", response)
 	}
+
+	locked := base + home + "locked/"
+	davE2EExpect(t, davE2ERequest(client, "MKCOL", locked, ownerToken, "", "", nil), http.StatusCreated)
+	lockedID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "locked")
+	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/share", ownerToken, "application/json",
+		fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"usergroup_id":%q,"permission":%d}}`,
+			lockedID, groupID, auth.GroupRead|auth.GroupCreate|auth.GroupRefer|auth.GroupUpdate), nil), http.StatusOK)
+	delegateEvent := strings.Replace(davE2ECalendarA, "UID:dav-condition-test", "UID:dav-delegate-owned-delete", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, locked+"delegate.ics", otherToken,
+		"text/calendar", delegateEvent, nil), http.StatusCreated)
+	if denied := davE2ERequest(client, http.MethodDelete, locked, ownerToken, "", "", nil); denied.err != nil || denied.status == http.StatusNoContent {
+		t.Fatalf("calendar deletion bypassed a child event's row permissions: %+v", denied)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, locked+"delegate.ics", otherToken, "", "", nil), http.StatusOK)
 }

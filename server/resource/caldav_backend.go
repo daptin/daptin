@@ -890,7 +890,7 @@ func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath s
 		if err != nil {
 			return err
 		}
-		if err := b.calendarDelete(calendarCollectionTable, requestPath, collection, tx); err != nil {
+		if err := b.deleteCalendarCollection(requestPath, collection, tx); err != nil {
 			return err
 		}
 		return tx.Commit()
