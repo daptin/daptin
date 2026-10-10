@@ -339,6 +339,32 @@ alone. Send `"permission":0` to remove those links; subsequent CalDAV and JSON:A
 requests then use the remaining row permissions. Other grants may still allow
 access.
 
+A CalDAV client may read `DAV:acl` and send `ACL` to a calendar collection.
+An `ACL` request replaces its editable shares in one transaction through the
+same collection and event relationships as `collection/share`. Account
+principals use `/caldav/{account_reference_id}/`; group principals use
+`/caldav/groups/{group_reference_id}/`. For example, the following grants
+calendar detail read access to one account:
+
+```bash
+curl -X ACL "$CALENDAR_URL" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/xml" \
+  --data '<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/caldav/ACCOUNT_REFERENCE_ID/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace></D:acl>'
+```
+
+Use `DAV:read`, `CALDAV:read-free-busy`, `DAV:write-content`, `DAV:bind`,
+`DAV:unbind`, and `DAV:write-acl` for the corresponding existing group rights.
+`DAV:read` sets both `GroupRead` and `GroupPeek`, so direct JSON:API row reads
+and DAV reads agree; free/busy alone sets only `GroupPeek`.
+Write grants require read; unbind also requires write-content. Deny and invert
+ACEs are unsupported. Owner, administrator, and grants that cannot be
+represented by these DAV privileges are protected; `ACL` preserves them.
+An account ACE also requires permission to run `collection/share_user`.
+Table grants remain an additional access check. CardDAV address books do not
+offer writable ACL; their contacts remain owner-only. This scoped collection
+operation does not claim general RFC 3744 ACL conformance.
+
 For revocation to cover direct JSON:API access to delegate-created events,
 configure the `calendar` row default without `UserRead` or other owner rights.
 For example, `DefaultPermission: 16384` uses the existing `GroupPeek` bit and
@@ -567,9 +593,9 @@ exposes Schedule-Tag and a free/busy scheduling outbox. RFC 6638 uses outbox
 changes. Scheduling inbox and outbox PROPFIND responses expose the supported
 privileges and the current user's rights; sending rights follow the existing
 calendar create and edit grants. Daptin's access decisions remain its table
-and row grants. It does not offer a writable WebDAV ACL or separate
-administrator controls for each scheduling privilege, and does not claim full
-RFC 3744 ACL conformance.
+and row grants. Calendar collection ACL uses those grants, but there are no
+separate administrator controls for each scheduling privilege and no claim of
+full RFC 3744 ACL conformance.
 
 ## Supported behavior
 
@@ -592,6 +618,8 @@ RFC 3744 ACL conformance.
 - stable content ETags and conditional object PUT/DELETE protection;
 - per-row Daptin permissions for CalDAV, including direct access at an owner's
   URL when collection and event grants permit it;
+- grant-only `ACL` on CalDAV calendar collections through the existing sharing
+  relationships;
 - durable SQL-backed storage through Daptin resources;
 - optional iCalendar email delivery through a collection's mail account;
 - conditional automatic scheduling discovery for a principal with one connected calendar.
@@ -619,12 +647,11 @@ DAV protocol history. Responses are limited to
 1,000 changes by default; a `507` entry for the collection and the returned
 token indicate that the client should request the next page. Checkpoints
 expire after 30 days, at which point the client must start with an empty
-token. A token with more than 10,000 recorded changes also requires a new
-initial sync. Calendars with more than 10,000 objects require ordinary full
-listing; the sync endpoint rejects them. The same limit applies to CardDAV
-address books. Collection grants do not propagate to events
-created or moved through JSON:API. The endpoint does not implement the RFC 3744
-ACL method or claim full WebDAV ACL conformance.
+token. Calendar and address-book sync have no fixed 10,000-object or
+10,000-change cutoff; each report still scans visible membership, so work
+grows with collection size. Collection grants do not propagate to events
+created or moved through JSON:API. Calendar collection `ACL` is scoped as
+described above and does not claim full WebDAV ACL conformance.
 
 ## Troubleshooting
 

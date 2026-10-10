@@ -719,6 +719,65 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+accountCreatedID, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("revoked account read its created event through JSON:API: %+v", response)
 	}
+	aclOptions := davE2EExpect(t, davE2ERequest(client, http.MethodOptions, collectionURL, ownerToken, "", "", nil), http.StatusNoContent)
+	if !strings.Contains(aclOptions.header.Get("Allow"), "ACL") {
+		t.Fatalf("calendar did not advertise ACL: %v", aclOptions.header)
+	}
+	aclBody := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>%s/caldav/%s/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace></D:acl>`, base, delegateID)
+	davE2EExpect(t, davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", aclBody, nil), http.StatusOK)
+	aclProps := davE2EExpect(t, davE2ERequest(client, "PROPFIND", collectionURL, ownerToken, "application/xml",
+		`<D:propfind xmlns:D="DAV:"><D:prop><D:acl/><D:owner/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
+	if !strings.Contains(aclProps.body, "/caldav/"+delegateID+"/") || !strings.Contains(aclProps.body, "read") {
+		t.Fatalf("calendar ACL did not show account grant: %s", aclProps.body)
+	}
+	aclRoundTrip := regexp.MustCompile(`(?s)<acl[^>]*>.*?</acl>`).FindString(aclProps.body)
+	if aclRoundTrip == "" {
+		t.Fatalf("calendar ACL property was not usable as an ACL request: %s", aclProps.body)
+	}
+	davE2EExpect(t, davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", aclRoundTrip, nil), http.StatusOK)
+	ownerGroupACL := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/caldav/groups/%s/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace></D:acl>`, ownerGroupID)
+	if response := davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", ownerGroupACL, nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("calendar ACL changed a protected owner group: %+v", response)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, accountCreatedURL, delegateToken, "", "", nil), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+accountCreatedID, delegateToken, "", "", nil); response.err != nil || response.status != http.StatusOK {
+		t.Fatalf("calendar ACL account grant did not allow JSON:API read: %+v", response)
+	}
+	if response := davE2ERequest(client, "ACL", collectionURL, unrelatedToken, "application/xml", `<D:acl xmlns:D="DAV:"/>`, nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("unrelated account changed calendar ACL: %+v", response)
+	}
+	davE2EExpect(t, davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", `<D:acl xmlns:D="DAV:"/>`, nil), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, accountCreatedURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("calendar ACL revocation left event readable: %+v", response)
+	}
+	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+accountCreatedID, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("calendar ACL revocation left event readable through JSON:API: %+v", response)
+	}
+	groupPrincipal := "/caldav/groups/" + groupID + "/"
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, groupURL, adminToken,
+		accessGroupsE2ERecordPayload("usergroup", groupID, map[string]interface{}{"permission": int64(auth.GuestRefer)}), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+groupPrincipal, ownerToken, "application/xml",
+		`<D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
+	groupACL := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>%s</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace></D:acl>`, groupPrincipal)
+	davE2EExpect(t, davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", groupACL, nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, accountCreatedURL, delegateToken, "", "", nil), http.StatusOK)
+	deniedACL := strings.Replace(groupACL, "<D:grant>", "<D:deny>", 1)
+	deniedACL = strings.Replace(deniedACL, "</D:grant>", "</D:deny>", 1)
+	if response := davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", deniedACL, nil); response.err != nil || response.status < 400 {
+		t.Fatalf("deny ACE unexpectedly replaced group ACL: %+v", response)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, accountCreatedURL, delegateToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", `<D:acl xmlns:D="DAV:"/>`, nil), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, accountCreatedURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("calendar group ACL revocation left event readable: %+v", response)
+	}
+	partialACL := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/caldav/%s/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace><D:ace><D:principal><D:href>/caldav/groups/%s/</D:href></D:principal><D:grant><D:privilege><D:unsupported/></D:privilege></D:grant></D:ace></D:acl>`, delegateID, groupID)
+	if response := davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", partialACL, nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("invalid ACL did not fail atomically: %+v", response)
+	}
+	if response := davE2ERequest(client, http.MethodGet, accountCreatedURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("failed ACL left partial account access: %+v", response)
+	}
 	unrelatedID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email", "dav-share-unrelated@test.local")
 	davE2EExpect(t, shareUser(delegateID, auth.GroupExecute, ownerToken), http.StatusOK)
 	assertCapabilities(delegateToken, true, true)
@@ -733,6 +792,9 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	if response := shareUser(delegateID, auth.GroupRead, ownerToken); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("account sharing bypassed action permission: %+v", response)
 	}
+	if response := davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", aclBody, nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("calendar ACL bypassed account sharing action permission: %+v", response)
+	}
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareUserActionID, adminToken,
 		accessGroupsE2ERecordPayload("action", shareUserActionID, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
 	assertCapabilities(ownerToken, true, true)
@@ -742,5 +804,8 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	assertCapabilities(ownerToken, false, true)
 	if response := shareGroup(ownerGroupID, auth.GroupRead, ownerToken); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("group sharing bypassed action permission: %+v", response)
+	}
+	if response := davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", `<D:acl xmlns:D="DAV:"/>`, nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("calendar ACL bypassed group sharing action permission: %+v", response)
 	}
 }

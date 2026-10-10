@@ -27,36 +27,48 @@ func (b *DaptinDAVBackend) lockAddressBook(book map[string]interface{}, tx *sqlx
 	return b.cruds[addressBookTable].lockRowByWhereWithTransaction(tx, goqu.Ex{"reference_id": ref[:]})
 }
 
-func (b *DaptinDAVBackend) addressSyncState(book map[string]interface{}, tx *sqlx.Tx) (map[string]string, map[string]carddav.AddressObject, error) {
+func (b *DaptinDAVBackend) addressSyncState(book map[string]interface{}, tx *sqlx.Tx) (map[string]string, error) {
 	bookRef := daptinid.InterfaceToDIR(book["reference_id"])
-	bookID, err := GetReferenceIdToIdWithTransaction(addressBookTable, bookRef, tx)
+	state := make(map[string]string)
+	err := b.eachDAVRowWithTransaction(addressObjectTable, b.prefix+"/", tx, func(row map[string]interface{}) error {
+		data, err := b.contentBytes(addressObjectTable, row)
+		if err != nil {
+			return err
+		}
+		state[StringOrEmpty(row["rpath"])] = GetMD5Hash(data)
+		return nil
+	}, Query{ColumnName: "address_book_id", Operator: "=", Value: bookRef.String()},
+		Query{ColumnName: "user_account_id", Operator: "=", Value: b.sessionUser.UserReferenceId.String()})
+	return state, err
+}
+
+func (b *DaptinDAVBackend) addressSyncObjects(book map[string]interface{}, paths []string, current map[string]string, tx *sqlx.Tx) (map[string]carddav.AddressObject, error) {
+	wanted := make([]string, 0, len(paths))
+	for _, member := range paths {
+		if _, present := current[member]; present {
+			wanted = append(wanted, member)
+		}
+	}
+	objects := make(map[string]carddav.AddressObject, len(wanted))
+	if len(wanted) == 0 {
+		return objects, nil
+	}
+	bookID, err := GetReferenceIdToIdWithTransaction(addressBookTable, daptinid.InterfaceToDIR(book["reference_id"]), tx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	refs, err := GetLimitedReferenceIdByWhereClauseWithTransaction(addressObjectTable, tx,
-		maxDAVSyncObjects+1, goqu.Ex{"address_book_id": bookID})
+	rows, err := b.rowsWithTransaction(addressObjectTable, tx, goqu.Ex{"address_book_id": bookID, "rpath": goqu.Op{"in": wanted}})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	if len(refs) > maxDAVSyncObjects {
-		return nil, nil, webdav.NewHTTPError(http.StatusInsufficientStorage, errors.New("address book has too many objects to sync"))
-	}
-	rows, err := b.rowsWithTransaction(addressObjectTable, tx,
-		goqu.Ex{"address_book_id": bookID, "user_account_id": b.sessionUser.UserId})
-	if err != nil {
-		return nil, nil, err
-	}
-	state := make(map[string]string, len(rows))
-	objects := make(map[string]carddav.AddressObject, len(rows))
 	for _, row := range rows {
 		object, err := b.addressObject(row)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		state[object.Path] = object.ETag
 		objects[object.Path] = object
 	}
-	return state, objects, nil
+	return objects, nil
 }
 
 func (b *DaptinDAVBackend) AddressBookSyncToken(_ context.Context, requestPath string) (string, error) {
@@ -72,7 +84,7 @@ func (b *DaptinDAVBackend) AddressBookSyncToken(_ context.Context, requestPath s
 	if err := b.lockAddressBook(book, tx); err != nil {
 		return "", err
 	}
-	state, _, err := b.addressSyncState(book, tx)
+	state, err := b.addressSyncState(book, tx)
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +134,7 @@ func (b *DaptinDAVBackend) SyncAddressObjects(_ context.Context, requestPath, pr
 	if previous.Members == nil {
 		previous.Members = make(map[string]string)
 	}
-	current, objects, err := b.addressSyncState(book, tx)
+	current, err := b.addressSyncState(book, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +152,10 @@ func (b *DaptinDAVBackend) SyncAddressObjects(_ context.Context, requestPath, pr
 	})
 	next := davNextCheckpoint(previous, current, logged, paths, head, more)
 	result := &carddav.AddressBookSyncResult{More: more, Changes: make([]carddav.AddressBookSyncChange, 0, len(paths))}
+	objects, err := b.addressSyncObjects(book, paths, current, tx)
+	if err != nil {
+		return nil, err
+	}
 	for _, member := range paths {
 		if object, present := objects[member]; present {
 			copy := object

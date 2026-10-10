@@ -31,7 +31,7 @@ func (b *DaptinDAVBackend) CalendarSyncToken(_ context.Context, requestPath stri
 	if err := b.lockCalendarCollection(collection, tx); err != nil {
 		return "", err
 	}
-	state, _, err := b.calendarSyncState(requestPath, collection, tx)
+	state, err := b.calendarSyncState(requestPath, collection, tx)
 	if err != nil {
 		return "", err
 	}
@@ -84,7 +84,7 @@ func (b *DaptinDAVBackend) SyncCalendarObjects(_ context.Context, requestPath, p
 	if previous.Members == nil {
 		previous.Members = make(map[string]string)
 	}
-	current, objects, err := b.calendarSyncState(requestPath, collection, tx)
+	current, err := b.calendarSyncState(requestPath, collection, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +104,10 @@ func (b *DaptinDAVBackend) SyncCalendarObjects(_ context.Context, requestPath, p
 	})
 	next := davNextCheckpoint(previous, current, logged, paths, head, more)
 	result := &caldav.CalendarSyncResult{More: more, Changes: make([]caldav.CalendarSyncChange, 0, len(paths))}
+	objects, err := b.calendarSyncObjects(collection, paths, current, tx)
+	if err != nil {
+		return nil, err
+	}
 	for _, member := range paths {
 		if object, present := objects[member]; present {
 			copy := object
@@ -122,34 +126,45 @@ func (b *DaptinDAVBackend) SyncCalendarObjects(_ context.Context, requestPath, p
 	return result, nil
 }
 
-func (b *DaptinDAVBackend) calendarSyncState(requestPath string, collection map[string]interface{}, tx *sqlx.Tx) (map[string]string, map[string]caldav.CalendarObject, error) {
+func (b *DaptinDAVBackend) calendarSyncState(requestPath string, collection map[string]interface{}, tx *sqlx.Tx) (map[string]string, error) {
 	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
-	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, collectionRef, tx)
+	state := make(map[string]string)
+	err := b.eachDAVRowWithTransaction(calendarObjectTable, requestPath, tx, func(row map[string]interface{}) error {
+		data, err := b.contentBytes(calendarObjectTable, row)
+		if err != nil {
+			return err
+		}
+		state[StringOrEmpty(row["rpath"])] = GetMD5Hash(data)
+		return nil
+	}, Query{ColumnName: "collection_id", Operator: "=", Value: collectionRef.String()})
+	return state, err
+}
+
+func (b *DaptinDAVBackend) calendarSyncObjects(collection map[string]interface{}, paths []string, current map[string]string, tx *sqlx.Tx) (map[string]caldav.CalendarObject, error) {
+	wanted := make([]string, 0, len(paths))
+	for _, member := range paths {
+		if _, present := current[member]; present {
+			wanted = append(wanted, member)
+		}
+	}
+	objects := make(map[string]caldav.CalendarObject, len(wanted))
+	if len(wanted) == 0 {
+		return objects, nil
+	}
+	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, daptinid.InterfaceToDIR(collection["reference_id"]), tx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	refs, err := GetLimitedReferenceIdByWhereClauseWithTransaction(calendarObjectTable, tx,
-		maxDAVSyncObjects+1, goqu.Ex{"collection_id": collectionID})
+	rows, err := b.rowsWithTransaction(calendarObjectTable, tx, goqu.Ex{"collection_id": collectionID, "rpath": goqu.Op{"in": wanted}})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	if len(refs) > maxDAVSyncObjects {
-		return nil, nil, webdav.NewHTTPError(http.StatusInsufficientStorage, errors.New("calendar has too many objects to sync"))
-	}
-	rows, err := b.calendarRowsWithTransaction(calendarObjectTable, requestPath, tx,
-		Query{ColumnName: "collection_id", Operator: "=", Value: collectionRef.String()})
-	if err != nil {
-		return nil, nil, err
-	}
-	state := make(map[string]string, len(rows))
-	objects := make(map[string]caldav.CalendarObject, len(rows))
 	for _, row := range rows {
 		object, err := b.calendarObject(row, collection)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		state[object.Path] = object.ETag
 		objects[object.Path] = object
 	}
-	return state, objects, nil
+	return objects, nil
 }

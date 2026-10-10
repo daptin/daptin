@@ -15,8 +15,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const maxDAVSyncChanges = 10000
-
 var errInvalidDAVSyncToken = errors.New("invalid DAV sync token")
 
 type davLogChange struct {
@@ -119,13 +117,6 @@ func (b *DaptinDAVBackend) davLogChanges(collectionRef daptinid.DaptinReferenceI
 		{"collection_reference": collectionRef.String()},
 		{"revision": goqu.Op{"gt": after}},
 		{"revision": goqu.Op{"lte": through}},
-	}
-	refs, err := GetLimitedReferenceIdByWhereClauseWithTransaction("dav_log", tx, maxDAVSyncChanges+1, filters...)
-	if err != nil {
-		return nil, err
-	}
-	if len(refs) > maxDAVSyncChanges {
-		return nil, errInvalidDAVSyncToken
 	}
 	rows, _, err := b.cruds["dav_log"].GetRowsByWhereClauseWithTransaction("dav_log", nil, tx, filters...)
 	if err != nil {

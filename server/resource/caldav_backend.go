@@ -165,15 +165,23 @@ func (b *DaptinDAVBackend) calendarRows(table, requestPath string, filters ...Qu
 }
 
 func (b *DaptinDAVBackend) calendarRowsWithTransaction(table, requestPath string, tx *sqlx.Tx, filters ...Query) ([]map[string]interface{}, error) {
+	rows := make([]map[string]interface{}, 0)
+	err := b.eachDAVRowWithTransaction(table, requestPath, tx, func(row map[string]interface{}) error {
+		rows = append(rows, row)
+		return nil
+	}, filters...)
+	return rows, err
+}
+
+func (b *DaptinDAVBackend) eachDAVRowWithTransaction(table, requestPath string, tx *sqlx.Tx, visit func(map[string]interface{}) error, filters ...Query) error {
 	crud := b.cruds[table]
 	if crud == nil {
-		return nil, fmt.Errorf("DAV resource %s is not configured", table)
+		return fmt.Errorf("DAV resource %s is not configured", table)
 	}
 	query, err := encodingjson.Marshal(filters)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	rows := make([]map[string]interface{}, 0)
 	for page := 1; ; page++ {
 		req := b.request(http.MethodGet, requestPath)
 		req.QueryParams = map[string][]string{
@@ -181,24 +189,27 @@ func (b *DaptinDAVBackend) calendarRowsWithTransaction(table, requestPath string
 			"page[size]":   {"1000"},
 			"page[number]": {fmt.Sprint(page)},
 		}
-		if table == calendarObjectTable {
+		if table == calendarObjectTable || table == addressObjectTable {
 			req.QueryParams["included_relations"] = []string{"content"}
+			req.QueryParams["sort"] = []string{"rpath"}
 		}
 		_, response, err := crud.PaginatedFindAllWithTransaction(req, tx)
 		if err != nil {
-			return nil, davResourceError(err)
+			return davResourceError(err)
 		}
 		models, ok := response.Result().([]api2go.Api2GoModel)
 		if !ok {
-			return nil, errors.New("DAV resource list returned an invalid result")
+			return errors.New("DAV resource list returned an invalid result")
 		}
 		for _, model := range models {
 			row := model.GetAttributes()
 			row["reference_id"] = model.GetID()
-			rows = append(rows, row)
+			if err := visit(row); err != nil {
+				return err
+			}
 		}
 		if len(models) < 1000 {
-			return rows, nil
+			return nil
 		}
 	}
 }

@@ -2022,6 +2022,7 @@ var StandardTables = []table_info.TableInfo{
 		Columns: []api2go.ColumnInfo{
 			{Name: "collection_reference", ColumnName: "collection_reference", ColumnType: "label", DataType: "varchar(36)", IsIndexed: true, IsNullable: false},
 			{Name: "token", ColumnName: "token", ColumnType: "label", DataType: "varchar(100)", IsIndexed: true, IsNullable: false},
+			{Name: "segment", ColumnName: "segment", ColumnType: "value", DataType: "int(11)", IsIndexed: true, IsNullable: false},
 			{Name: "state", ColumnName: "state", ColumnType: "content", DataType: "longtext", IsNullable: false},
 			{Name: "expires_at", ColumnName: "expires_at", ColumnType: "value", DataType: "bigint", IsIndexed: true, IsNullable: false},
 		},
@@ -2052,7 +2053,7 @@ var StandardTables = []table_info.TableInfo{
 		TableName:     "cal_mail",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
-		Icon:          "fa-envelope-open-text",
+		Icon:          "fa-envelope-open",
 		Columns: []api2go.ColumnInfo{
 			{Name: "message_key", ColumnName: "message_key", ColumnType: "label", DataType: "varchar(64)", IsUnique: true, IsIndexed: true, IsNullable: false},
 			{Name: "event_reference", ColumnName: "event_reference", ColumnType: "label", DataType: "varchar(36)", IsNullable: true},

@@ -1,12 +1,17 @@
 package resource
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	encodingjson "encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/artpar/api2go/v2"
@@ -16,8 +21,8 @@ import (
 )
 
 const (
-	maxDAVSyncObjects = 10000
-	davSyncLifetime   = 30 * 24 * time.Hour
+	davSyncLifetime    = 30 * 24 * time.Hour
+	davSyncSegmentSize = 32 * 1024
 )
 
 type davSyncCheckpoint struct {
@@ -91,15 +96,12 @@ func davNextCheckpoint(previous davSyncCheckpoint, current map[string]string,
 }
 
 func (b *DaptinDAVBackend) loadDAVSyncState(collectionRef daptinid.DaptinReferenceId, token string, tx *sqlx.Tx) (davSyncCheckpoint, error) {
-	refs, err := GetReferenceIdByWhereClauseWithTransaction("dav_sync", tx, goqu.Ex{"token": token})
+	rows, _, err := b.cruds["dav_sync"].GetRowsByWhereClauseWithTransaction("dav_sync", nil, tx, goqu.Ex{"token": token})
 	if err != nil {
 		return davSyncCheckpoint{}, err
 	}
-	for _, ref := range refs {
-		row, _, err := b.cruds["dav_sync"].GetSingleRowByReferenceIdWithTransaction("dav_sync", ref, nil, tx)
-		if err != nil {
-			return davSyncCheckpoint{}, err
-		}
+	segments := make(map[int64]string, len(rows))
+	for _, row := range rows {
 		expires, err := ResourceRowInt64(row["expires_at"])
 		if err != nil {
 			return davSyncCheckpoint{}, err
@@ -107,15 +109,46 @@ func (b *DaptinDAVBackend) loadDAVSyncState(collectionRef daptinid.DaptinReferen
 		if daptinid.InterfaceToDIR(row["collection_reference"]) != collectionRef ||
 			daptinid.InterfaceToDIR(row["user_account_id"]) != b.sessionUser.UserReferenceId ||
 			expires <= time.Now().Unix() {
-			continue
+			return davSyncCheckpoint{}, errInvalidDAVSyncToken
 		}
-		var state davSyncCheckpoint
-		if err := encodingjson.Unmarshal([]byte(StringOrEmpty(row["state"])), &state); err != nil {
-			return davSyncCheckpoint{}, err
+		segment, err := ResourceRowInt64(row["segment"])
+		if err != nil || segment < 0 {
+			return davSyncCheckpoint{}, errInvalidDAVSyncToken
 		}
-		return state, nil
+		if _, duplicate := segments[segment]; duplicate {
+			return davSyncCheckpoint{}, errInvalidDAVSyncToken
+		}
+		segments[segment] = StringOrEmpty(row["state"])
 	}
-	return davSyncCheckpoint{}, errInvalidDAVSyncToken
+	if len(segments) == 0 {
+		return davSyncCheckpoint{}, errInvalidDAVSyncToken
+	}
+	var packed strings.Builder
+	for i := range len(segments) {
+		part, present := segments[int64(i)]
+		if !present {
+			return davSyncCheckpoint{}, errInvalidDAVSyncToken
+		}
+		packed.WriteString(part)
+	}
+	compressed, err := base64.RawStdEncoding.DecodeString(packed.String())
+	if err != nil {
+		return davSyncCheckpoint{}, errInvalidDAVSyncToken
+	}
+	reader, err := gzip.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		return davSyncCheckpoint{}, errInvalidDAVSyncToken
+	}
+	encoded, err := io.ReadAll(reader)
+	closeErr := reader.Close()
+	if err != nil || closeErr != nil {
+		return davSyncCheckpoint{}, errInvalidDAVSyncToken
+	}
+	var state davSyncCheckpoint
+	if err := encodingjson.Unmarshal(encoded, &state); err != nil {
+		return davSyncCheckpoint{}, errInvalidDAVSyncToken
+	}
+	return state, nil
 }
 
 func (b *DaptinDAVBackend) saveDAVSyncState(collectionRef daptinid.DaptinReferenceId, state davSyncCheckpoint, tx *sqlx.Tx) (string, error) {
@@ -136,13 +169,42 @@ func (b *DaptinDAVBackend) saveDAVSyncState(collectionRef daptinid.DaptinReferen
 		return "", err
 	}
 	if len(refs) != 0 {
-		return token, nil
+		row, _, err := b.cruds["dav_sync"].GetSingleRowByReferenceIdWithTransaction("dav_sync", refs[0], nil, tx)
+		if err != nil {
+			return "", err
+		}
+		expires, err := ResourceRowInt64(row["expires_at"])
+		if err != nil {
+			return "", err
+		}
+		if expires > time.Now().Unix() {
+			return token, nil
+		}
+		for _, ref := range refs {
+			if _, err := b.cruds["dav_sync"].deleteAfterAuthorizationWithTransaction(ref,
+				b.request(http.MethodDelete, "/api/dav_sync/"+ref.String()), tx); err != nil {
+				return "", davResourceError(err)
+			}
+		}
 	}
-	model := api2go.NewApi2GoModelWithData("dav_sync", nil, int64(b.cruds["dav_sync"].TableInfo().DefaultPermission), nil,
-		map[string]interface{}{"token": token, "state": string(encoded), "expires_at": time.Now().Add(davSyncLifetime).Unix(), "collection_reference": collectionRef.String()})
-	if _, err := b.cruds["dav_sync"].createWithoutFilterAfterAuthorization(model,
-		b.request(http.MethodPost, "/api/dav_sync"), tx); err != nil {
-		return "", davResourceError(err)
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	if _, err := writer.Write(encoded); err != nil {
+		return "", err
+	}
+	if err := writer.Close(); err != nil {
+		return "", err
+	}
+	packed := base64.RawStdEncoding.EncodeToString(compressed.Bytes())
+	expires := time.Now().Add(davSyncLifetime).Unix()
+	for offset, segment := 0, 0; offset < len(packed); offset, segment = offset+davSyncSegmentSize, segment+1 {
+		end := min(offset+davSyncSegmentSize, len(packed))
+		model := api2go.NewApi2GoModelWithData("dav_sync", nil, int64(b.cruds["dav_sync"].TableInfo().DefaultPermission), nil,
+			map[string]interface{}{"token": token, "segment": segment, "state": packed[offset:end], "expires_at": expires, "collection_reference": collectionRef.String()})
+		if _, err := b.cruds["dav_sync"].createWithoutFilterAfterAuthorization(model,
+			b.request(http.MethodPost, "/api/dav_sync"), tx); err != nil {
+			return "", davResourceError(err)
+		}
 	}
 	return token, nil
 }

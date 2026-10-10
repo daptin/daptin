@@ -32,7 +32,7 @@ require (
 	github.com/bep/gowebp v0.2.0
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.5.7
-	github.com/daptin/go-webdav v0.7.3
+	github.com/daptin/go-webdav v0.7.5
 	github.com/daptin/llmgateway v0.1.0-dev.35
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c

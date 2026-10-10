@@ -494,6 +494,10 @@ github.com/daptin/go-webdav v0.7.2 h1:pnX6fe/MTLuNklwKO1qkWsE9OnArmtm9G+STLQ0NYa
 github.com/daptin/go-webdav v0.7.2/go.mod h1:Bz2Nl0plUNTeGRYZ5OUKaA0ZmMwDcAmVJUflMdKKUjU=
 github.com/daptin/go-webdav v0.7.3 h1:mzeKaI69NULPDQ2O9mDyIuBjeBFLc93QfvAWXXyKFiY=
 github.com/daptin/go-webdav v0.7.3/go.mod h1:Bz2Nl0plUNTeGRYZ5OUKaA0ZmMwDcAmVJUflMdKKUjU=
+github.com/daptin/go-webdav v0.7.4 h1:/kv3mET8qd341DxBwkU6TOzxdicigW5JNELeXC1ub6o=
+github.com/daptin/go-webdav v0.7.4/go.mod h1:Bz2Nl0plUNTeGRYZ5OUKaA0ZmMwDcAmVJUflMdKKUjU=
+github.com/daptin/go-webdav v0.7.5 h1:h/tSd06my0BTfQXkmhisuoThHe4KcRYn+1Kb9XY+OZo=
+github.com/daptin/go-webdav v0.7.5/go.mod h1:Bz2Nl0plUNTeGRYZ5OUKaA0ZmMwDcAmVJUflMdKKUjU=
 github.com/daptin/llmgateway v0.1.0-dev.35 h1:OAdPhGdLpz8bXcaC4/euhbeD/yaribjNBBjGDXO/Shs=
 github.com/daptin/llmgateway v0.1.0-dev.35/go.mod h1:6ZzDyGrqvA5TLHQnDVvr/WI8UBha8+4qeWGbUbbp1T8=
 github.com/daptin/olric v0.5.7-daptin.1 h1:9x8uoZt6313CkcQHL4f2mLD3LMGhIekaF7OuBkzhqpc=
