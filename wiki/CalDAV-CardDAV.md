@@ -160,9 +160,15 @@ curl "$CALENDAR_HOME/personal/event.ics" \
 
 Calendar collections support `calendar-query` and `calendar-multiget` REPORT
 requests. A time-range query returns a recurring event when any occurrence
-overlaps the range, including one that began before it. The response retains
-the complete iCalendar object and its ETag. Calendar data is parsed and
-validated before it is stored.
+overlaps the range, including one that began before it. Time-range filters
+also match tasks and journals. Text filters default to `i;ascii-casemap`;
+`i;octet` performs a case-sensitive match. REPORT requests can select
+components and properties within `calendar-data`, including `novalue="yes"`.
+An empty `calendar-data` selection returns the complete object. The ETag
+describes the stored object in either case. Calendar data is parsed and
+validated before it is stored. Recurrence expansion and recurrence-set limiting
+selectors in `calendar-data` produce a `501` property status until those
+transformations are implemented.
 
 ## Address-book example
 
