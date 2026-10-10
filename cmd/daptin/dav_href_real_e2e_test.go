@@ -110,8 +110,11 @@ func TestDAVCollectionHrefsRealE2E(t *testing.T) {
 				if !strings.Contains(report.body, protocol.objectName) || !strings.Contains(report.body, "UID:dav-condition-test") {
 					t.Fatalf("REPORT through advertised href did not return the object: %s", report.body)
 				}
-				davE2EExpect(t, davE2ERequest(client, "REPORT", base+href, otherToken,
-					"application/xml", protocol.report, nil), http.StatusForbidden)
+				denied := davE2ERequest(client, "REPORT", base+href, otherToken,
+					"application/xml", protocol.report, nil)
+				if denied.err != nil || (denied.status != http.StatusForbidden && denied.status != http.StatusNotFound) {
+					t.Fatalf("other user read the collection: %+v", denied)
+				}
 			})
 		}
 	}

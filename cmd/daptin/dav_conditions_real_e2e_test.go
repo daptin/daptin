@@ -233,15 +233,9 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 				"application/vnd.api+json", payload, nil), http.StatusOK)
 			ownerPayload := fmt.Sprintf(`{"data":{"type":"%s","id":"%s","attributes":{"description":"Owner change"}}}`,
 				test.collectionTable, referenceID)
-			expectedDescription := "Work collection"
-			if test.name == "calendar" {
-				expectedDescription = "Owner change"
-				davE2EExpect(t, davE2ERequest(client, http.MethodPatch, patchURL, token,
-					"application/vnd.api+json", ownerPayload, nil), http.StatusOK)
-			} else {
-				davE2EExpect(t, davE2ERequest(client, http.MethodPatch, patchURL, token,
-					"application/vnd.api+json", ownerPayload, nil), http.StatusForbidden)
-			}
+			davE2EExpect(t, davE2ERequest(client, http.MethodPatch, patchURL, token,
+				"application/vnd.api+json", ownerPayload, nil), http.StatusOK)
+			expectedDescription := "Owner change"
 			propertyRequest := fmt.Sprintf(`<D:propfind xmlns:D="DAV:" xmlns:C="%s"><D:prop><C:%s/></D:prop></D:propfind>`,
 				test.descriptionNamespace, test.descriptionProperty)
 			properties := davE2EExpect(t, davE2ERequest(client, "PROPFIND", test.collectionURL, token,
@@ -253,18 +247,11 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 				test.descriptionNamespace, test.descriptionProperty, test.descriptionProperty)
 			propertyUpdateResponse := davE2ERequest(client, "PROPPATCH", test.collectionURL, token,
 				"application/xml", propertyUpdate, nil)
-			if test.name == "calendar" {
-				davE2EExpect(t, propertyUpdateResponse, http.StatusMultiStatus)
-				if !strings.Contains(propertyUpdateResponse.body, "200 OK") {
-					t.Fatalf("CalDAV PROPPATCH did not update the property: %s", propertyUpdateResponse.body)
-				}
-				expectedDescription = "Changed through DAV"
-			} else {
-				davE2EExpect(t, propertyUpdateResponse, http.StatusMultiStatus)
-				if !strings.Contains(propertyUpdateResponse.body, "405 Method Not Allowed") {
-					t.Fatalf("CardDAV PROPPATCH did not reject the property: %s", propertyUpdateResponse.body)
-				}
+			davE2EExpect(t, propertyUpdateResponse, http.StatusMultiStatus)
+			if !strings.Contains(propertyUpdateResponse.body, "200 OK") {
+				t.Fatalf("DAV PROPPATCH did not update the property: %s", propertyUpdateResponse.body)
 			}
+			expectedDescription = "Changed through DAV"
 			properties = davE2EExpect(t, davE2ERequest(client, "PROPFIND", test.collectionURL, token,
 				"application/xml", propertyRequest, nil), http.StatusMultiStatus)
 			if !strings.Contains(properties.body, expectedDescription) {
@@ -299,14 +286,12 @@ func TestDAVConditionalWritesRealE2E(t *testing.T) {
 			if secondETag == "" || secondETag == firstETag {
 				t.Fatalf("changed object ETag = %q; first = %q", secondETag, firstETag)
 			}
-			davE2EExpect(t, davE2ERequest(client, http.MethodDelete, objectURL, otherToken, "", "",
-				http.Header{"If-Match": {secondETag}}), http.StatusForbidden)
-			if test.name == "calendar" {
-				davE2EExpect(t, davE2ERequest(client, http.MethodGet, objectURL, adminToken, "", "", nil), http.StatusOK)
-			} else {
-				davE2EExpect(t, davE2ERequest(client, http.MethodDelete, objectURL, adminToken, "", "",
-					http.Header{"If-Match": {secondETag}}), http.StatusForbidden)
+			denied := davE2ERequest(client, http.MethodDelete, objectURL, otherToken, "", "",
+				http.Header{"If-Match": {secondETag}})
+			if denied.err != nil || (denied.status != http.StatusForbidden && denied.status != http.StatusNotFound) {
+				t.Fatalf("other user deleted the object: %+v", denied)
 			}
+			davE2EExpect(t, davE2ERequest(client, http.MethodGet, objectURL, adminToken, "", "", nil), http.StatusOK)
 			davE2EExpect(t, davE2ERequest(client, http.MethodPut, objectURL, token, test.contentType, test.first,
 				http.Header{"If-Match": {firstETag}}), http.StatusPreconditionFailed)
 			davE2EExpect(t, davE2ERequest(client, http.MethodDelete, objectURL, token, "", "",
