@@ -1,14 +1,14 @@
 # CalDAV and CardDAV
 
 Daptin exposes authenticated CalDAV and CardDAV services backed by normal
-Daptin resources. CalDAV access follows resource permissions; CardDAV remains
-scoped to the authenticated account.
+Daptin resources. Both protocols use Daptin resource permissions for shared
+collections and their objects.
 
 - CalDAV stores collections in `collection` and objects in `calendar`.
 - CardDAV stores collections in `address_book` and objects in `contact`.
-- A CalDAV URL identifies the calendar collection's owner, while the
-  authenticated account supplies the permissions for each request. Each event
-  belongs to the account that created it.
+- A DAV collection URL identifies its owner, while the authenticated account
+  supplies the permissions for each request. Each object belongs to the
+  account that created it.
 - The SQL database is durable authority. No `./storage/caldav` or
   `./storage/carddav` directories are required.
 - Writes use the normal resource lifecycle. If an administrator configures a
@@ -86,10 +86,10 @@ The discovery chain is:
 ```
 
 These are protocol URLs, not authorization input. Daptin derives the caller
-from the authenticated `SessionUser`. A CalDAV request to another account's
-calendar uses that calendar's canonical owner URL and succeeds only when the
-caller has the required resource grants. CardDAV still rejects another
-account's path.
+from the authenticated `SessionUser`. A request to another account's
+collection uses that collection's canonical owner URL and succeeds only when
+the caller has the required collection and object grants. A delegate's own
+home does not gain the owner's collection.
 
 ## Verify discovery
 
@@ -226,9 +226,10 @@ curl -X PROPPATCH "$CALENDAR_HOME/personal/" \
   --data '<D:propertyupdate xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:set><D:prop><D:displayname>Personal</D:displayname><C:calendar-description>My calendar</C:calendar-description></D:prop></D:set></D:propertyupdate>'
 ```
 
-CardDAV does not implement property mutation. Clients can update an
-address-book description through the normal `address_book` JSON:API resource.
-The same JSON:API route remains available for calendars. After obtaining a
+CardDAV `PROPPATCH` likewise updates `DAV:displayname` and
+`CARDDAV:addressbook-description` through `address_book`. Its display name is
+separate from the URL name, and removal restores the URL name as the display
+fallback. The JSON:API route remains available for both resources. After obtaining a
 calendar's public `reference_id` from `/api/collection`:
 
 ```bash
@@ -353,17 +354,59 @@ curl -X ACL "$CALENDAR_URL" \
   --data '<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/caldav/ACCOUNT_REFERENCE_ID/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace></D:acl>'
 ```
 
-Use `DAV:read`, `CALDAV:read-free-busy`, `DAV:write-content`, `DAV:bind`,
+Use `DAV:read`, `CALDAV:read-free-busy`, `DAV:write-content`,
+`DAV:write-properties`, `DAV:bind`,
 `DAV:unbind`, and `DAV:write-acl` for the corresponding existing group rights.
 `DAV:read` sets both `GroupRead` and `GroupPeek`, so direct JSON:API row reads
 and DAV reads agree; free/busy alone sets only `GroupPeek`.
-Write grants require read; unbind also requires write-content. Deny and invert
+Content and property writes use the same Daptin update grant, so an ACL request
+must include both privileges together. Write grants require read; unbind also
+requires content and property writes. Deny and invert
 ACEs are unsupported. Owner, administrator, and grants that cannot be
 represented by these DAV privileges are protected; `ACL` preserves them.
 An account ACE also requires permission to run `collection/share_user`.
-Table grants remain an additional access check. CardDAV address books do not
-offer writable ACL; their contacts remain owner-only. This scoped collection
+Table grants remain an additional access check. This scoped collection
 operation does not claim general RFC 3744 ACL conformance.
+Referable account and group principals expose their display names, principal
+URLs, and permitted group membership. Calendar and address-book clients can
+use `acl-principal-prop-set`, `principal-match`, `principal-property-search`,
+`principal-search-property-set`, and `expand-property` reports for principal
+discovery. Search results follow Daptin's account and group reference grants.
+
+## Share a CardDAV address book
+
+CardDAV uses the same group-link authority for `address_book` and `contact`.
+Configure table access for both resources. The named
+`/action/address_book/share` and `/action/address_book/share_user` actions
+accept an `address_book_reference_id`, a group or account reference ID, and
+the existing group `permission` bits. They update the book and all current
+contacts in one transaction. A CardDAV `PUT` copies the book's current group
+grants to a new contact while leaving the signed-in creator as its owner.
+Setting `permission` to zero revokes those links.
+
+For example, after creating a `usergroup` and adding the delegate through the
+normal account relationship, grant that group read access:
+
+```bash
+curl -X POST "http://localhost:6336/action/address_book/share" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"attributes":{"address_book_reference_id":"BOOK_REFERENCE_ID","usergroup_id":"GROUP_REFERENCE_ID","permission":49152}}'
+```
+
+The `permission` value above combines the existing `GroupRead` and `GroupPeek`
+bits, matching `DAV:read`. The caller must
+be allowed to run the action and manage that address book; table grants for
+`address_book` and `contact` still apply to the delegate.
+
+CardDAV clients can use grant-only `ACL` on the owner's address-book URL.
+Account principals use `/carddav/{account_reference_id}/`, and group
+principals use `/carddav/groups/{group_reference_id}/`. The supported
+privileges are `DAV:read`, `DAV:write-content`, `DAV:write-properties`,
+`DAV:bind`, `DAV:unbind`, and `DAV:write-acl`. As with calendars, content and
+property writes share one Daptin update grant and must be requested together.
+Other table or row permissions can still deny a request or allow access after
+a share is revoked. To revoke a delegate's direct JSON:API access to contacts
+they created, configure the `contact` row default without owner read rights.
 
 For revocation to cover direct JSON:API access to delegate-created events,
 configure the `calendar` row default without `UserRead` or other owner rights.
@@ -417,9 +460,9 @@ individual account uses `collection/share_user` as described above. Group
 sharing uses `collection/share` and persisted membership relationships. See
 [[Permissions]] and [[Relationships]] for the general resource workflow.
 
-The `name` field is the collection's URL segment. Do not change it to rename
-the displayed calendar: existing object paths contain that segment. DAV
-display-name mutation and collection renaming are unsupported.
+The `name` field is the collection's URL segment. Change `DAV:displayname` to
+rename the displayed calendar or address book; the URL segment and object
+paths stay the same. Renaming the URL segment through DAV is unsupported.
 
 ## Send invitations through a mail account
 
@@ -605,7 +648,7 @@ full RFC 3744 ACL conformance.
   plus CalDAV `MKCALENDAR`;
 - CalDAV `MKCALENDAR` with optional display name and description, created
   atomically; unsupported creation properties are rejected;
-- calendar collection `PROPPATCH` for display name and description;
+- calendar and address-book `PROPPATCH` for display name and description;
 - calendar object `COPY` and `MOVE`, with `Destination` and `Overwrite`
   conditions, UID conflict checks, and Daptin resource permissions;
 - calendar collection `COPY` with `Depth: 0` or `infinity`, and collection
@@ -616,10 +659,10 @@ full RFC 3744 ACL conformance.
 - calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
 - calendar free-busy-query REPORT with a bounded time range;
 - stable content ETags and conditional object PUT/DELETE protection;
-- per-row Daptin permissions for CalDAV, including direct access at an owner's
-  URL when collection and event grants permit it;
-- grant-only `ACL` on CalDAV calendar collections through the existing sharing
-  relationships;
+- per-row Daptin permissions for CalDAV and CardDAV, including direct access
+  at an owner's URL when collection and object grants permit it;
+- grant-only `ACL` on calendar and address-book collections through existing
+  sharing relationships;
 - durable SQL-backed storage through Daptin resources;
 - optional iCalendar email delivery through a collection's mail account;
 - conditional automatic scheduling discovery for a principal with one connected calendar.
@@ -637,20 +680,22 @@ send new invitations because it does not change the meeting itself.
 
 DAV sync tokens are scoped to the authenticated account and collection.
 An empty token returns currently readable objects; subsequent reports return
-changed objects and a `404` entry for objects removed or no longer readable.
+objects changed by DAV operations and a `404` entry for objects removed by DAV.
 CalDAV and scheduling changes are recorded in the same transaction as the
 event, so a CalDAV object created and deleted between reports still yields a
 `404`. CardDAV contact PUT and DELETE use the same transaction-backed history,
-including a contact created and deleted between reports. Sync also detects
-surviving changes made through JSON:API; direct resource writes do not create
-DAV protocol history. Responses are limited to
+including a contact created and deleted between reports. DAV sync tracks
+protocol operations; direct JSON:API resource edits do not create DAV protocol
+history. Responses are limited to
 1,000 changes by default; a `507` entry for the collection and the returned
 token indicate that the client should request the next page. Checkpoints
 expire after 30 days, at which point the client must start with an empty
-token. Calendar and address-book sync have no fixed 10,000-object or
-10,000-change cutoff; each report still scans visible membership, so work
-grows with collection size. Collection grants do not propagate to events
-created or moved through JSON:API. Calendar collection `ACL` is scoped as
+token. Changing a collection grant or the account's group membership also
+invalidates an older token; the client must then start with an empty token.
+Calendar and address-book sync have no fixed 10,000-object or
+10,000-change cutoff. Each report reads a bounded batch of objects or DAV
+changes. Collection grants do not propagate to events
+created or moved through JSON:API. Collection `ACL` is scoped as
 described above and does not claim full WebDAV ACL conformance.
 
 ## Troubleshooting

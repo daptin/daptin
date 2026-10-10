@@ -107,47 +107,49 @@ func (b *DaptinDAVBackend) advanceDAVClock(collectionRef daptinid.DaptinReferenc
 	return previous + 1, davResourceError(err)
 }
 
-func (b *DaptinDAVBackend) davLogChanges(collectionRef daptinid.DaptinReferenceId, after, through int64,
-	tx *sqlx.Tx) (map[string]davLogChange, error) {
-	changes := make(map[string]davLogChange)
+func (b *DaptinDAVBackend) davLogBatch(collectionRef daptinid.DaptinReferenceId, after, through int64,
+	limit int, tx *sqlx.Tx) ([]davLogChange, bool, error) {
 	if after >= through {
-		return changes, nil
+		return nil, false, nil
 	}
 	filters := []goqu.Ex{
 		{"collection_reference": collectionRef.String()},
 		{"revision": goqu.Op{"gt": after}},
 		{"revision": goqu.Op{"lte": through}},
 	}
-	rows, _, err := b.cruds["dav_log"].GetRowsByWhereClauseWithTransaction("dav_log", nil, tx, filters...)
+	rows, err := GetLimitedOrderedRowsWithTransaction("dav_log", []string{"revision", "rpath", "removed", "read_grant"},
+		"revision", tx, uint(limit+1), filters...)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
+	more := len(rows) > limit
+	if more {
+		rows = rows[:limit]
+	}
+	changes := make([]davLogChange, 0, len(rows))
 	for _, row := range rows {
 		revision, err := ResourceRowInt64(row["revision"])
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		member := StringOrEmpty(row["rpath"])
-		if current, exists := changes[member]; exists && current.revision > revision {
-			continue
-		}
 		removed, err := ResourceRowInt64(row["removed"])
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		change := davLogChange{revision: revision, path: member, removed: removed != 0}
 		if change.removed {
 			encoded, err := base64.StdEncoding.DecodeString(StringOrEmpty(row["read_grant"]))
 			if err != nil || len(encoded) < 24 {
-				return nil, fmt.Errorf("invalid DAV change permission")
+				return nil, false, fmt.Errorf("invalid DAV change permission")
 			}
 			if err := change.readGrant.UnmarshalBinary(encoded); err != nil {
-				return nil, err
+				return nil, false, err
 			}
 		}
-		changes[member] = change
+		changes = append(changes, change)
 	}
-	return changes, nil
+	return changes, more, nil
 }
 
 func (b *DaptinDAVBackend) pruneDAVLog(collectionRef daptinid.DaptinReferenceId, tx *sqlx.Tx) error {

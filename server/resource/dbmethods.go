@@ -2996,6 +2996,40 @@ func GetLimitedReferenceIdByWhereClauseWithTransaction(typeName string, transact
 	return getReferenceIdByWhereClauseWithTransaction(typeName, transaction, limit, queries...)
 }
 
+// GetLimitedOrderedRowsWithTransaction reads a bounded, ordered set of resource
+// columns. Callers supply trusted table and column names; authorization of the
+// returned references remains with the resource read path.
+func GetLimitedOrderedRowsWithTransaction(typeName string, columns []string, orderColumn string, transaction *sqlx.Tx, limit uint, queries ...goqu.Ex) ([]map[string]interface{}, error) {
+	if limit == 0 || len(columns) == 0 || orderColumn == "" {
+		return nil, errors.New("ordered row lookup requires columns, order, and limit")
+	}
+	selected := make([]interface{}, len(columns))
+	for index, column := range columns {
+		selected[index] = column
+	}
+	builder := statementbuilder.Squirrel.Select(selected...).Prepared(true).From(typeName).Order(goqu.C(orderColumn).Asc()).Limit(limit)
+	for _, query := range queries {
+		builder = builder.Where(query)
+	}
+	statement, args, err := builder.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := transaction.Queryx(statement, args...)
+	if err != nil {
+		return nil, err
+	}
+	result, scanErr := RowsToMap(rows, typeName)
+	closeErr := rows.Close()
+	if scanErr != nil {
+		return nil, scanErr
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	return result, nil
+}
+
 func getReferenceIdByWhereClauseWithTransaction(typeName string, transaction *sqlx.Tx, limit uint, queries ...goqu.Ex) ([]daptinid.DaptinReferenceId, error) {
 	builder := statementbuilder.Squirrel.Select("reference_id").Prepared(true).From(typeName)
 

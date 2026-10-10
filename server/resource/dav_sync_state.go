@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/artpar/api2go/v2"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 )
@@ -26,73 +28,203 @@ const (
 )
 
 type davSyncCheckpoint struct {
-	Members  map[string]string `json:"members"`
-	Cursor   int64             `json:"cursor"`
-	Reported map[string]int64  `json:"reported,omitempty"`
+	Phase   string           `json:"phase"`
+	Path    string           `json:"path,omitempty"`
+	Cursor  int64            `json:"cursor"`
+	Base    int64            `json:"base,omitempty"`
+	Access  string           `json:"access"`
+	Pending []davSyncPending `json:"pending,omitempty"`
 }
 
-func davSyncPaths(previous davSyncCheckpoint, current map[string]string, logged map[string]davLogChange,
-	limit int, visibleTombstone func(davLogChange) bool) ([]string, bool) {
-	candidates := make(map[string]bool, len(previous.Members)+len(current)+len(logged))
-	for member := range current {
-		if previous.Members[member] != current[member] {
-			candidates[member] = true
+type davSyncPending struct {
+	Path      string                        `json:"path"`
+	Removed   bool                          `json:"removed,omitempty"`
+	ReadGrant permission.PermissionInstance `json:"read_grant,omitempty"`
+}
+
+func (b *DaptinDAVBackend) davSyncAccess(collectionTable, objectTable string, collectionRef daptinid.DaptinReferenceId, tx *sqlx.Tx) (string, error) {
+	accountGroups := GetObjectGroupsByObjectIdWithTransaction(USER_ACCOUNT_TABLE_NAME, b.sessionUser.UserId, tx)
+	collectionGrant := GetObjectPermissionByReferenceIdWithTransaction(collectionTable, collectionRef, tx)
+	collectionTableGrant := b.cruds[collectionTable].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", collectionTable, tx)
+	objectTableGrant := b.cruds[objectTable].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", objectTable, tx)
+	hash := sha256.New()
+	writeGroups := func(groups auth.GroupPermissionList) {
+		values := make([]string, 0, len(groups))
+		for _, group := range groups {
+			values = append(values, fmt.Sprintf("%s:%s:%s:%d", group.GroupReferenceId, group.ObjectReferenceId, group.RelationReferenceId, group.Permission))
+		}
+		sort.Strings(values)
+		for _, value := range values {
+			_, _ = hash.Write([]byte(value + "\n"))
 		}
 	}
-	for member := range previous.Members {
-		if _, present := current[member]; !present {
-			candidates[member] = true
-		}
+	writeGrant := func(grant permission.PermissionInstance) {
+		_, _ = fmt.Fprintf(hash, "%s:%d\n", grant.UserId, grant.Permission)
+		writeGroups(grant.UserGroupId)
 	}
-	for member, change := range logged {
-		if change.revision <= previous.Reported[member] {
-			continue
-		}
-		if _, present := current[member]; present {
-			candidates[member] = true
-			continue
-		}
-		if _, previouslyVisible := previous.Members[member]; previouslyVisible || visibleTombstone(change) {
-			candidates[member] = true
-		}
+	writeGroups(accountGroups)
+	writeGrant(collectionGrant)
+	writeGrant(collectionTableGrant)
+	writeGrant(objectTableGrant)
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// davSyncVisibleRows enters the ordinary permission-filtered resource list for
+// a bounded set of candidate references or paths.
+func (b *DaptinDAVBackend) davSyncVisibleRows(table, requestPath, collectionColumn string, collectionRef daptinid.DaptinReferenceId,
+	filter Query, limit int, tx *sqlx.Tx) (map[string]map[string]interface{}, error) {
+	query, err := encodingjson.Marshal([]Query{
+		{ColumnName: collectionColumn, Operator: "=", Value: collectionRef.String()}, filter,
+	})
+	if err != nil {
+		return nil, err
 	}
-	paths := make([]string, 0, len(candidates))
-	for member := range candidates {
-		paths = append(paths, member)
+	req := b.request(http.MethodGet, requestPath)
+	req.QueryParams = map[string][]string{
+		"query": {string(query)}, "page[size]": {fmt.Sprint(limit)},
+		"included_relations": {"content"}, "sort": {"rpath"},
 	}
-	sort.Strings(paths)
-	more := len(paths) > limit
+	_, response, err := b.cruds[table].PaginatedFindAllWithTransaction(req, tx)
+	if err != nil {
+		return nil, davResourceError(err)
+	}
+	models, ok := response.Result().([]api2go.Api2GoModel)
+	if !ok {
+		return nil, fmt.Errorf("DAV sync resource list returned an invalid result")
+	}
+	visible := make(map[string]map[string]interface{}, len(models))
+	for _, model := range models {
+		row := model.GetAttributes()
+		row["reference_id"] = model.GetID()
+		visible[StringOrEmpty(row["rpath"])] = row
+	}
+	return visible, nil
+}
+
+func (b *DaptinDAVBackend) davSyncInitialRows(table, collectionTable, requestPath, collectionColumn string, collectionRef daptinid.DaptinReferenceId,
+	after string, limit int, tx *sqlx.Tx) (map[string]map[string]interface{}, string, bool, error) {
+	collectionID, err := GetReferenceIdToIdWithTransaction(collectionTable, collectionRef, tx)
+	if err != nil {
+		return nil, "", false, err
+	}
+	filters := []goqu.Ex{{collectionColumn: collectionID}}
+	if after != "" {
+		filters = append(filters, goqu.Ex{"rpath": goqu.Op{"gt": after}})
+	}
+	candidates, err := GetLimitedOrderedRowsWithTransaction(table, []string{"reference_id", "rpath"}, "rpath", tx, uint(limit+1), filters...)
+	if err != nil {
+		return nil, "", false, err
+	}
+	more := len(candidates) > limit
 	if more {
-		paths = paths[:limit]
+		candidates = candidates[:limit]
 	}
-	return paths, more
+	if len(candidates) == 0 {
+		return map[string]map[string]interface{}{}, after, false, nil
+	}
+	refs := make([]interface{}, 0, len(candidates))
+	for _, candidate := range candidates {
+		ref := daptinid.InterfaceToDIR(candidate["reference_id"])
+		if ref == daptinid.NullReferenceId {
+			return nil, "", false, fmt.Errorf("invalid DAV sync candidate reference")
+		}
+		refs = append(refs, ref.String())
+	}
+	lastPath := StringOrEmpty(candidates[len(candidates)-1]["rpath"])
+	visible, err := b.davSyncVisibleRows(table, requestPath, collectionColumn, collectionRef,
+		Query{ColumnName: "reference_id", Operator: "in", Value: refs}, limit, tx)
+	return visible, lastPath, more, err
 }
 
-func davNextCheckpoint(previous davSyncCheckpoint, current map[string]string,
-	logged map[string]davLogChange, paths []string, head int64, more bool) davSyncCheckpoint {
-	next := davSyncCheckpoint{Members: make(map[string]string, len(previous.Members)+len(paths)),
-		Cursor: previous.Cursor, Reported: make(map[string]int64, len(previous.Reported)+len(paths))}
-	for member, etag := range previous.Members {
-		next.Members[member] = etag
+func (b *DaptinDAVBackend) davSyncPage(table, collectionTable, collectionColumn, requestPath string,
+	collectionRef daptinid.DaptinReferenceId, previous davSyncCheckpoint, head int64, limit int, tx *sqlx.Tx) (
+	map[string]map[string]interface{}, []string, davSyncCheckpoint, bool, error) {
+	if previous.Phase == "initial" {
+		visible, lastPath, more, err := b.davSyncInitialRows(table, collectionTable, requestPath, collectionColumn,
+			collectionRef, previous.Path, limit, tx)
+		if err != nil {
+			return nil, nil, davSyncCheckpoint{}, false, err
+		}
+		paths := make([]string, 0, len(visible))
+		for member := range visible {
+			paths = append(paths, member)
+		}
+		sort.Strings(paths)
+		next := previous
+		next.Path = lastPath
+		if !more {
+			next.Phase = "changes"
+			next.Path = ""
+			next.Cursor = previous.Base
+			more = head > previous.Base
+			if !more {
+				next.Phase = "steady"
+				next.Cursor = head
+			}
+		}
+		return visible, paths, next, more, nil
 	}
-	for member, revision := range previous.Reported {
-		next.Reported[member] = revision
-	}
-	for _, member := range paths {
-		if etag, present := current[member]; present {
-			next.Members[member] = etag
+	next := previous
+	if len(next.Pending) == 0 {
+		changes, _, err := b.davLogBatch(collectionRef, previous.Cursor, head, 1000, tx)
+		if err != nil {
+			return nil, nil, davSyncCheckpoint{}, false, err
+		}
+		latest := make(map[string]davLogChange, len(changes))
+		for _, change := range changes {
+			latest[change.path] = change
+		}
+		paths := make([]string, 0, len(latest))
+		for member := range latest {
+			paths = append(paths, member)
+		}
+		sort.Strings(paths)
+		for _, member := range paths {
+			change := latest[member]
+			next.Pending = append(next.Pending, davSyncPending{Path: member, Removed: change.removed, ReadGrant: change.readGrant})
+		}
+		if len(changes) != 0 {
+			next.Cursor = changes[len(changes)-1].revision
 		} else {
-			delete(next.Members, member)
-		}
-		if change, found := logged[member]; found {
-			next.Reported[member] = change.revision
+			next.Cursor = head
 		}
 	}
-	if !more {
-		next.Cursor = head
-		next.Reported = nil
+	page := next.Pending
+	if len(page) > limit {
+		page = page[:limit]
 	}
-	return next
+	next.Pending = next.Pending[len(page):]
+	paths := make([]string, 0, len(page))
+	for _, change := range page {
+		paths = append(paths, change.Path)
+	}
+	visible := make(map[string]map[string]interface{})
+	if len(paths) != 0 {
+		selected, err := b.davSyncVisibleRows(table, requestPath, collectionColumn, collectionRef,
+			Query{ColumnName: "rpath", Operator: "in", Value: paths}, limit, tx)
+		if err != nil {
+			return nil, nil, davSyncCheckpoint{}, false, err
+		}
+		visible = selected
+	}
+	objectCRUD := b.cruds[table]
+	tableGrant := objectCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", table, tx)
+	canReadTable := tableGrant.CanRead(b.sessionUser.UserReferenceId, b.sessionUser.Groups, objectCRUD.AdministratorGroupId)
+	filtered := paths[:0]
+	for _, change := range page {
+		member := change.Path
+		if _, ok := visible[member]; ok {
+			filtered = append(filtered, member)
+			continue
+		}
+		if canReadTable && change.Removed && change.ReadGrant.CanRead(b.sessionUser.UserReferenceId,
+			b.sessionUser.Groups, objectCRUD.AdministratorGroupId) {
+			filtered = append(filtered, member)
+		}
+	}
+	next.Phase = "steady"
+	more := len(next.Pending) != 0 || next.Cursor < head
+	return visible, filtered, next, more, nil
 }
 
 func (b *DaptinDAVBackend) loadDAVSyncState(collectionRef daptinid.DaptinReferenceId, token string, tx *sqlx.Tx) (davSyncCheckpoint, error) {
@@ -146,6 +278,10 @@ func (b *DaptinDAVBackend) loadDAVSyncState(collectionRef daptinid.DaptinReferen
 	}
 	var state davSyncCheckpoint
 	if err := encodingjson.Unmarshal(encoded, &state); err != nil {
+		return davSyncCheckpoint{}, errInvalidDAVSyncToken
+	}
+	if state.Access == "" || state.Cursor < 0 || state.Base < 0 ||
+		(state.Phase != "initial" && state.Phase != "changes" && state.Phase != "steady") {
 		return davSyncCheckpoint{}, errInvalidDAVSyncToken
 	}
 	return state, nil

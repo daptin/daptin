@@ -13,62 +13,19 @@ import (
 )
 
 func (b *DaptinDAVBackend) addressBookWithTransaction(requestPath string, object bool, tx *sqlx.Tx) (map[string]interface{}, error) {
-	name, err := b.collectionName(requestPath, object)
+	owner, name, err := b.addressBookPath(requestPath, object)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := b.rowsWithTransaction(addressBookTable, tx,
-		goqu.Ex{"name": name, "user_account_id": b.sessionUser.UserId})
+	rows, err := b.calendarRowsWithTransaction(addressBookTable, requestPath, tx,
+		Query{ColumnName: "name", Operator: "=", Value: name},
+		Query{ColumnName: "user_account_id", Operator: "=", Value: owner.String()})
 	return firstDAVObjectRow(rows, err)
 }
 
 func (b *DaptinDAVBackend) lockAddressBook(book map[string]interface{}, tx *sqlx.Tx) error {
 	ref := daptinid.InterfaceToDIR(book["reference_id"])
 	return b.cruds[addressBookTable].lockRowByWhereWithTransaction(tx, goqu.Ex{"reference_id": ref[:]})
-}
-
-func (b *DaptinDAVBackend) addressSyncState(book map[string]interface{}, tx *sqlx.Tx) (map[string]string, error) {
-	bookRef := daptinid.InterfaceToDIR(book["reference_id"])
-	state := make(map[string]string)
-	err := b.eachDAVRowWithTransaction(addressObjectTable, b.prefix+"/", tx, func(row map[string]interface{}) error {
-		data, err := b.contentBytes(addressObjectTable, row)
-		if err != nil {
-			return err
-		}
-		state[StringOrEmpty(row["rpath"])] = GetMD5Hash(data)
-		return nil
-	}, Query{ColumnName: "address_book_id", Operator: "=", Value: bookRef.String()},
-		Query{ColumnName: "user_account_id", Operator: "=", Value: b.sessionUser.UserReferenceId.String()})
-	return state, err
-}
-
-func (b *DaptinDAVBackend) addressSyncObjects(book map[string]interface{}, paths []string, current map[string]string, tx *sqlx.Tx) (map[string]carddav.AddressObject, error) {
-	wanted := make([]string, 0, len(paths))
-	for _, member := range paths {
-		if _, present := current[member]; present {
-			wanted = append(wanted, member)
-		}
-	}
-	objects := make(map[string]carddav.AddressObject, len(wanted))
-	if len(wanted) == 0 {
-		return objects, nil
-	}
-	bookID, err := GetReferenceIdToIdWithTransaction(addressBookTable, daptinid.InterfaceToDIR(book["reference_id"]), tx)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := b.rowsWithTransaction(addressObjectTable, tx, goqu.Ex{"address_book_id": bookID, "rpath": goqu.Op{"in": wanted}})
-	if err != nil {
-		return nil, err
-	}
-	for _, row := range rows {
-		object, err := b.addressObject(row)
-		if err != nil {
-			return nil, err
-		}
-		objects[object.Path] = object
-	}
-	return objects, nil
 }
 
 func (b *DaptinDAVBackend) AddressBookSyncToken(_ context.Context, requestPath string) (string, error) {
@@ -84,16 +41,16 @@ func (b *DaptinDAVBackend) AddressBookSyncToken(_ context.Context, requestPath s
 	if err := b.lockAddressBook(book, tx); err != nil {
 		return "", err
 	}
-	state, err := b.addressSyncState(book, tx)
-	if err != nil {
-		return "", err
-	}
 	bookRef := daptinid.InterfaceToDIR(book["reference_id"])
 	head, err := b.davLogHead(bookRef, tx)
 	if err != nil {
 		return "", err
 	}
-	token, err := b.saveDAVSyncState(bookRef, davSyncCheckpoint{Members: state, Cursor: head}, tx)
+	access, err := b.davSyncAccess(addressBookTable, addressObjectTable, bookRef, tx)
+	if err != nil {
+		return "", err
+	}
+	token, err := b.saveDAVSyncState(bookRef, davSyncCheckpoint{Phase: "steady", Cursor: head, Access: access}, tx)
 	if err != nil {
 		return "", err
 	}
@@ -121,7 +78,11 @@ func (b *DaptinDAVBackend) SyncAddressObjects(_ context.Context, requestPath, pr
 	if err != nil {
 		return nil, err
 	}
-	previous := davSyncCheckpoint{Members: make(map[string]string), Cursor: head}
+	access, err := b.davSyncAccess(addressBookTable, addressObjectTable, bookRef, tx)
+	if err != nil {
+		return nil, err
+	}
+	previous := davSyncCheckpoint{Phase: "initial", Cursor: head, Base: head, Access: access}
 	if previousToken != "" {
 		previous, err = b.loadDAVSyncState(bookRef, previousToken, tx)
 		if errors.Is(err, errInvalidDAVSyncToken) {
@@ -130,36 +91,23 @@ func (b *DaptinDAVBackend) SyncAddressObjects(_ context.Context, requestPath, pr
 		if err != nil {
 			return nil, err
 		}
+		if previous.Access != access || previous.Cursor > head {
+			return nil, carddav.ErrInvalidSyncToken
+		}
 	}
-	if previous.Members == nil {
-		previous.Members = make(map[string]string)
-	}
-	current, err := b.addressSyncState(book, tx)
+	visible, paths, next, more, err := b.davSyncPage(addressObjectTable, addressBookTable, "address_book_id",
+		requestPath, bookRef, previous, head, limit, tx)
 	if err != nil {
 		return nil, err
 	}
-	logged, err := b.davLogChanges(bookRef, previous.Cursor, head, tx)
-	if errors.Is(err, errInvalidDAVSyncToken) {
-		return nil, carddav.ErrInvalidSyncToken
-	}
-	if err != nil {
-		return nil, err
-	}
-	// CardDAV paths are restricted to this account's own address books.
-	// A removed object recorded by its DAV write remains visible as a tombstone.
-	paths, more := davSyncPaths(previous, current, logged, limit, func(change davLogChange) bool {
-		return change.removed
-	})
-	next := davNextCheckpoint(previous, current, logged, paths, head, more)
 	result := &carddav.AddressBookSyncResult{More: more, Changes: make([]carddav.AddressBookSyncChange, 0, len(paths))}
-	objects, err := b.addressSyncObjects(book, paths, current, tx)
-	if err != nil {
-		return nil, err
-	}
 	for _, member := range paths {
-		if object, present := objects[member]; present {
-			copy := object
-			result.Changes = append(result.Changes, carddav.AddressBookSyncChange{Path: member, Object: &copy})
+		if row, present := visible[member]; present {
+			object, err := b.addressObject(row)
+			if err != nil {
+				return nil, err
+			}
+			result.Changes = append(result.Changes, carddav.AddressBookSyncChange{Path: member, Object: &object})
 		} else {
 			result.Changes = append(result.Changes, carddav.AddressBookSyncChange{Path: member})
 		}

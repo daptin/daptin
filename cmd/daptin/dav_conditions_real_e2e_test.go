@@ -30,10 +30,21 @@ var davE2EAccessSchema = fmt.Sprintf(`Tables:
     AccessGroups:
       - Name: users
         Permission: %d
+  - TableName: address_book
+    DefaultPermission: %d
+    AccessGroups:
+      - Name: users
+        Permission: %d
+  - TableName: contact
+    DefaultPermission: %d
+    AccessGroups:
+      - Name: users
+        Permission: %d
   - TableName: usergroup
     Permission: %d
     DefaultPermission: %d
 `, auth.UserCRUD, auth.GroupCRUD, auth.UserCRUD|auth.UserExecute, auth.GroupCRUD|auth.GroupExecute,
+	auth.UserCRUD|auth.UserExecute, auth.GroupCRUD|auth.GroupExecute, auth.UserCRUD, auth.GroupCRUD,
 	auth.GuestRefer, auth.GuestRefer,
 )
 

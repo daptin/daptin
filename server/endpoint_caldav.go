@@ -61,6 +61,7 @@ func InitializeCaldavResources(
 	}
 	defaultRouter.Handle("MKCALENDAR", "/caldav/*path", davHandler("caldav"))
 	defaultRouter.Handle("ACL", "/caldav/*path", davHandler("caldav"))
+	defaultRouter.Handle("ACL", "/carddav/*path", davHandler("carddav"))
 	defaultRouter.POST("/caldav/*path", davHandler("caldav"))
 
 	// Well-known URIs for service discovery (RFC 6764)

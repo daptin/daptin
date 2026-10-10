@@ -1,19 +1,13 @@
 package resource
 
 import (
-	"context"
 	"errors"
-	"fmt"
-	"math"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
-	"github.com/daptin/daptin/server/permission"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 )
@@ -159,7 +153,7 @@ func (a *calendarShareAction) DoAction(_ actionresponse.Outcome, fields map[stri
 	if collectionRef == daptinid.NullReferenceId {
 		return nil, nil, []error{api2go.NewHTTPError(errors.New("invalid reference ID"), "invalid reference ID", http.StatusBadRequest)}
 	}
-	grant, err := calendarSharePermission(fields["permission"])
+	grant, err := davSharePermission(fields["permission"])
 	if err != nil {
 		return nil, nil, []error{api2go.NewHTTPError(err, "invalid group permission", http.StatusBadRequest)}
 	}
@@ -192,226 +186,34 @@ func (a *calendarShareAction) DoAction(_ actionresponse.Outcome, fields map[stri
 	})}, nil
 }
 
-func calendarSharePermission(value interface{}) (auth.AuthPermission, error) {
-	var bits int64
-	switch number := value.(type) {
-	case float64:
-		if number < 0 || number > math.MaxInt64 || number != math.Trunc(number) {
-			return 0, errors.New("permission must be a nonnegative integer")
-		}
-		bits = int64(number)
-	default:
-		var err error
-		bits, err = ResourceRowInt64(value)
-		if err != nil || bits < 0 {
-			return 0, errors.New("permission must be a nonnegative integer")
-		}
-	}
-	const allowed = auth.GroupPeek | auth.GroupRead | auth.GroupCreate | auth.GroupUpdate | auth.GroupDelete | auth.GroupExecute | auth.GroupRefer
-	grant := auth.AuthPermission(bits)
-	if grant & ^allowed != 0 {
-		return 0, errors.New("permission may contain only existing group rights")
-	}
-	return grant, nil
+func (a *calendarShareAction) base() *davShareAction {
+	return &davShareAction{cruds: a.cruds, collectionTable: calendarCollectionTable, objectTable: calendarObjectTable, groupPrefix: "calshare"}
 }
 
 func (a *calendarShareAction) apply(collectionRef, groupRef daptinid.DaptinReferenceId, grant auth.AuthPermission, caller *auth.SessionUser, tx *sqlx.Tx) error {
-	collectionID, active, err := a.authorizeCollection(collectionRef, caller, tx)
-	if err != nil {
-		return err
-	}
-	return a.applyAuthorized(collectionID, collectionRef, groupRef, grant, caller, active, tx)
+	return a.base().apply(collectionRef, groupRef, grant, caller, tx)
 }
 
 func (a *calendarShareAction) applyAuthorized(collectionID int64, collectionRef, groupRef daptinid.DaptinReferenceId, grant auth.AuthPermission, caller, active *auth.SessionUser, tx *sqlx.Tx) error {
-	if _, err := GetReferenceIdToIdWithTransaction("usergroup", groupRef, tx); err != nil {
-		return api2go.NewHTTPError(err, "usergroup not found", http.StatusNotFound)
-	}
-	admin := a.cruds[calendarCollectionTable].AdministratorGroupId
-	if grant != 0 && !IsAdminWithTransaction(active, tx) {
-		groupTable := a.cruds["usergroup"].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", "usergroup", tx)
-		groupRow := GetObjectPermissionByReferenceIdWithTransaction("usergroup", groupRef, tx)
-		if !groupTable.CanRefer(active.UserReferenceId, active.Groups, admin) ||
-			!groupRow.CanRefer(active.UserReferenceId, active.Groups, admin) {
-			return api2go.NewHTTPError(errors.New("usergroup reference denied"), "usergroup reference denied", http.StatusForbidden)
-		}
-	}
-
-	events, err := GetReferenceIdByWhereClauseWithTransaction(calendarObjectTable, tx, goqu.Ex{"collection_id": collectionID})
-	if err != nil {
-		return err
-	}
-	if err := a.setLink(calendarCollectionTable, collectionRef, groupRef, grant, "/action/collection/share", caller, tx); err != nil {
-		return err
-	}
-	for _, eventRef := range events {
-		if err := a.setLink(calendarObjectTable, eventRef, groupRef, grant&^auth.GroupExecute, "/action/collection/share", caller, tx); err != nil {
-			return fmt.Errorf("share event %s: %w", eventRef, err)
-		}
-	}
-	return nil
+	return a.base().applyAuthorized(collectionID, collectionRef, groupRef, grant, caller, active, tx)
 }
 
 func (a *calendarShareAction) authorizeCollection(collectionRef daptinid.DaptinReferenceId, caller *auth.SessionUser, tx *sqlx.Tx) (int64, *auth.SessionUser, error) {
-	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, collectionRef, tx)
-	if err != nil {
-		return 0, nil, api2go.NewHTTPError(err, "collection not found", http.StatusNotFound)
-	}
-	if err := a.cruds[calendarCollectionTable].lockRowByWhereWithTransaction(tx, goqu.Ex{"reference_id": collectionRef[:]}); err != nil {
-		return 0, nil, err
-	}
-	active, canManage := a.managementAccess(collectionRef, caller, tx)
-	if !canManage {
-		return 0, nil, api2go.NewHTTPError(errors.New("calendar sharing denied"), "calendar sharing denied", http.StatusForbidden)
-	}
-	return collectionID, active, nil
+	return a.base().authorizeCollection(collectionRef, caller, tx)
 }
 
 func (a *calendarShareAction) managementAccess(collectionRef daptinid.DaptinReferenceId, caller *auth.SessionUser, tx *sqlx.Tx) (*auth.SessionUser, bool) {
-	// Action outcomes receive a temporary administrator group. Use persisted
-	// membership for both the read-only query and the sharing operation.
-	groups := GetObjectGroupsByObjectIdWithTransaction(USER_ACCOUNT_TABLE_NAME, caller.UserId, tx)
-	active := &auth.SessionUser{UserId: caller.UserId, UserReferenceId: caller.UserReferenceId, Groups: groups}
-	collectionPermission := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, collectionRef, tx)
-	admin := a.cruds[calendarCollectionTable].AdministratorGroupId
-	groupOnly := permission.PermissionInstance{UserGroupId: collectionPermission.UserGroupId}
-	canManage := (collectionPermission.UserId == active.UserReferenceId && collectionPermission.CanExecute(active.UserReferenceId, nil, admin)) ||
-		groupOnly.CanExecute(active.UserReferenceId, active.Groups, admin) || IsAdminWithTransaction(active, tx)
-	return active, canManage
+	return a.base().managementAccess(collectionRef, caller, tx)
 }
 
-// A dedicated ordinary usergroup represents one account's access to one
-// calendar. Its membership and resource links, rather than its name, grant
-// access. The name only lets a repeated action find the same group.
 func (a *calendarShareAction) shareWithUser(collectionRef, targetRef daptinid.DaptinReferenceId, grant auth.AuthPermission, caller *auth.SessionUser, tx *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
-	collectionID, active, err := a.authorizeCollection(collectionRef, caller, tx)
-	if err != nil {
-		return daptinid.NullReferenceId, err
-	}
-	targetID, err := GetReferenceIdToIdWithTransaction(USER_ACCOUNT_TABLE_NAME, targetRef, tx)
-	if err != nil {
-		return daptinid.NullReferenceId, api2go.NewHTTPError(err, "account not found", http.StatusNotFound)
-	}
-	admin := a.cruds[calendarCollectionTable].AdministratorGroupId
-	if !IsAdminWithTransaction(active, tx) {
-		accountTable := a.cruds[USER_ACCOUNT_TABLE_NAME].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", USER_ACCOUNT_TABLE_NAME, tx)
-		accountRow := GetObjectPermissionByReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, targetRef, tx)
-		if !accountTable.CanRefer(active.UserReferenceId, active.Groups, admin) || !accountRow.CanRefer(active.UserReferenceId, active.Groups, admin) {
-			return daptinid.NullReferenceId, api2go.NewHTTPError(errors.New("account reference denied"), "account reference denied", http.StatusForbidden)
-		}
-	}
-	groupName := "calshare:" + strings.ReplaceAll(collectionRef.String(), "-", "") + ":" + strings.ReplaceAll(targetRef.String(), "-", "")
-	groups, err := GetObjectByWhereClauseWithTransaction("usergroup", tx, goqu.Ex{"name": groupName})
-	if err != nil {
-		return daptinid.NullReferenceId, err
-	}
-	if len(groups) == 0 {
-		if grant == 0 {
-			return daptinid.NullReferenceId, api2go.NewHTTPError(errors.New("account share not found"), "account share not found", http.StatusNotFound)
-		}
-		request := a.shareRequest(http.MethodPost, "/action/collection/share_user", caller)
-		group := api2go.NewApi2GoModelWithData("usergroup", nil, 0, nil, map[string]interface{}{"name": groupName})
-		if _, err := a.cruds["usergroup"].createAfterAuthorizationWithTransaction(group, request, tx); err != nil {
-			return daptinid.NullReferenceId, err
-		}
-		groups, err = GetObjectByWhereClauseWithTransaction("usergroup", tx, goqu.Ex{"name": groupName})
-		if err != nil {
-			return daptinid.NullReferenceId, err
-		}
-		if len(groups) != 1 {
-			return daptinid.NullReferenceId, errors.New("created calendar share group is unavailable")
-		}
-		groupRef := daptinid.InterfaceToDIR(groups[0]["reference_id"])
-		membership := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, 0, nil, map[string]interface{}{
-			"user_account_id": targetRef.String(), "usergroup_id": groupRef.String(),
-		})
-		if _, err := a.cruds["user_account_user_account_id_has_usergroup_usergroup_id"].createAfterAuthorizationWithTransaction(membership, request, tx); err != nil {
-			return daptinid.NullReferenceId, err
-		}
-	}
-	if len(groups) != 1 {
-		return daptinid.NullReferenceId, api2go.NewHTTPError(errors.New("ambiguous calendar share group"), "ambiguous calendar share group", http.StatusConflict)
-	}
-	groupID, ok := groups[0]["id"].(int64)
-	if !ok {
-		return daptinid.NullReferenceId, errors.New("calendar share group ID is invalid")
-	}
-	groupRef := daptinid.InterfaceToDIR(groups[0]["reference_id"])
-	members, err := GetObjectByWhereClauseWithTransaction("user_account_user_account_id_has_usergroup_usergroup_id", tx, goqu.Ex{"usergroup_id": groupID})
-	if err != nil {
-		return daptinid.NullReferenceId, err
-	}
-	if len(members) != 1 || members[0]["user_account_id"] != targetID {
-		return daptinid.NullReferenceId, api2go.NewHTTPError(errors.New("calendar share membership changed"), "calendar share membership changed", http.StatusConflict)
-	}
-	collectionLinks, err := GetObjectByWhereClauseWithTransaction("collection_collection_id_has_usergroup_usergroup_id", tx, goqu.Ex{"usergroup_id": groupID})
-	if err != nil {
-		return daptinid.NullReferenceId, err
-	}
-	for _, link := range collectionLinks {
-		if link["collection_id"] != collectionID {
-			return daptinid.NullReferenceId, api2go.NewHTTPError(errors.New("calendar share group belongs to another collection"), "calendar share group belongs to another collection", http.StatusConflict)
-		}
-	}
-	if err := a.applyAuthorized(collectionID, collectionRef, groupRef, grant, caller, active, tx); err != nil {
-		return daptinid.NullReferenceId, err
-	}
-	return groupRef, nil
+	return a.base().shareWithUser(collectionRef, targetRef, grant, caller, tx)
 }
 
 func (a *calendarShareAction) shareRequest(method, path string, user *auth.SessionUser) api2go.Request {
-	httpRequest := (&http.Request{Method: method, URL: &url.URL{Path: path}}).WithContext(context.WithValue(context.Background(), "user", user))
-	return api2go.Request{PlainRequest: httpRequest}
+	return a.base().shareRequest(method, path, user)
 }
 
 func (a *calendarShareAction) setLink(table string, rowRef, groupRef daptinid.DaptinReferenceId, grant auth.AuthPermission, requestPath string, user *auth.SessionUser, tx *sqlx.Tx) error {
-	rowID, err := GetReferenceIdToIdWithTransaction(table, rowRef, tx)
-	if err != nil {
-		return err
-	}
-	groupID, err := GetReferenceIdToIdWithTransaction("usergroup", groupRef, tx)
-	if err != nil {
-		return err
-	}
-	joinTable := table + "_" + table + "_id_has_usergroup_usergroup_id"
-	links, err := GetObjectByWhereClauseWithTransaction(joinTable, tx, goqu.Ex{table + "_id": rowID, "usergroup_id": groupID})
-	if err != nil {
-		return err
-	}
-	requestURL := &url.URL{Path: requestPath}
-	request := func(method string) api2go.Request {
-		httpRequest := (&http.Request{Method: method, URL: requestURL}).WithContext(context.WithValue(context.Background(), "user", user))
-		return api2go.Request{PlainRequest: httpRequest}
-	}
-	crud := a.cruds[joinTable]
-	if crud == nil {
-		return fmt.Errorf("calendar relationship resource %s is unavailable", joinTable)
-	}
-	if grant == 0 {
-		for _, link := range links {
-			if _, err := crud.deleteAfterAuthorizationWithTransaction(daptinid.InterfaceToDIR(link["reference_id"]), request(http.MethodDelete), tx); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if len(links) == 0 {
-		model := api2go.NewApi2GoModelWithData(joinTable, nil, 0, nil, map[string]interface{}{
-			table + "_id": rowRef.String(), "usergroup_id": groupRef.String(),
-		})
-		if _, err := crud.createAfterAuthorizationWithTransaction(model, request(http.MethodPost), tx); err != nil {
-			return err
-		}
-		links, err = GetObjectByWhereClauseWithTransaction(joinTable, tx, goqu.Ex{table + "_id": rowID, "usergroup_id": groupID})
-		if err != nil {
-			return err
-		}
-	}
-	if len(links) != 1 {
-		return fmt.Errorf("expected one calendar group link, found %d", len(links))
-	}
-	model := api2go.NewApi2GoModelWithData(joinTable, nil, 0, nil, links[0])
-	model.SetAttributes(map[string]interface{}{"permission": int64(grant)})
-	_, err = crud.updateAfterAuthorizationWithTransaction(model, request(http.MethodPatch), tx)
-	return err
+	return a.base().setLink(table, rowRef, groupRef, grant, requestPath, user, tx)
 }

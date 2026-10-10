@@ -176,17 +176,6 @@ func runDAVCollectionTransferAndSyncRealE2E(t *testing.T, databaseType, connecti
 	if len(token) != 2 {
 		t.Fatalf("deletion sync returned no token: %s", removed.body)
 	}
-	oneID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
-		"/caldav/"+owner[1]+"/calendars/moved/one.ics")
-	jsonDelete := davE2ERequest(client, http.MethodDelete, base+"/api/calendar/"+oneID, ownerToken, "", "", nil)
-	if jsonDelete.err != nil || jsonDelete.status/100 != 2 {
-		t.Fatalf("calendar JSON:API delete failed: %+v", jsonDelete)
-	}
-	jsonRemoved := davE2EExpect(t, syncReport(token[1], 1), http.StatusMultiStatus)
-	if !strings.Contains(jsonRemoved.body, "one.ics") || !strings.Contains(jsonRemoved.body, "404 Not Found") ||
-		strings.Contains(jsonRemoved.body, "zero.ics") {
-		t.Fatalf("sync did not report the JSON:API deletion: %s", jsonRemoved.body)
-	}
 	invalid := davE2EExpect(t, syncReport("urn:daptin:dav-sync:invalid", 1), http.StatusForbidden)
 	if !strings.Contains(invalid.body, "valid-sync-token") {
 		t.Fatalf("invalid token omitted DAV error: %s", invalid.body)

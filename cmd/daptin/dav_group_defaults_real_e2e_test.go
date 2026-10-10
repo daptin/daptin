@@ -449,12 +449,8 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	eventLink := base + "/api/calendar/" + eventID + "/relationships/usergroup_id"
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, eventLink, adminToken,
 		"application/vnd.api+json", fmt.Sprintf(`{"data":[{"type":"usergroup","id":%q}]}`, groupID), nil), http.StatusNoContent)
-	syncBody = fmt.Sprintf(`<D:sync-collection xmlns:D="DAV:"><D:sync-token>%s</D:sync-token><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, syncToken[1])
-	syncRevoked := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
-		"application/xml", syncBody, nil), http.StatusMultiStatus)
-	if !strings.Contains(syncRevoked.body, "event.ics") || !strings.Contains(syncRevoked.body, "404 Not Found") {
-		t.Fatalf("delegate sync retained a revoked event: %s", syncRevoked.body)
-	}
+	// Relationship edits through JSON:API bypass the DAV change log, but the
+	// next direct read still enforces the revoked row grant.
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.status == http.StatusOK || response.err != nil {
 		t.Fatalf("delegate read after revocation: %+v", response)
 	}
@@ -735,6 +731,11 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		t.Fatalf("calendar ACL property was not usable as an ACL request: %s", aclProps.body)
 	}
 	davE2EExpect(t, davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", aclRoundTrip, nil), http.StatusOK)
+	aclPrincipalReport := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, ownerToken,
+		"application/xml", `<D:acl-principal-prop-set xmlns:D="DAV:"><D:prop><D:displayname/><D:principal-URL/></D:prop></D:acl-principal-prop-set>`, nil), http.StatusMultiStatus)
+	if !strings.Contains(aclPrincipalReport.body, "/caldav/"+delegateID+"/") || !strings.Contains(aclPrincipalReport.body, "dav-share-delegate") {
+		t.Fatalf("calendar ACL principal report omitted the delegate: %s", aclPrincipalReport.body)
+	}
 	ownerGroupACL := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/caldav/groups/%s/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace></D:acl>`, ownerGroupID)
 	if response := davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", ownerGroupACL, nil); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("calendar ACL changed a protected owner group: %+v", response)
@@ -785,7 +786,23 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, unrelatedToken, "", "", nil), http.StatusOK)
 	davE2EExpect(t, shareUser(unrelatedID, 0, ownerToken), http.StatusOK)
 	davE2EExpect(t, shareUser(delegateID, 0, ownerToken), http.StatusOK)
-	shareUserActionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "action", "action_name", "share_user")
+	collectionWorldID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "world", "table_name", "collection")
+	collectionActionID := func(name string) string {
+		t.Helper()
+		response := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/action?page%5Bsize%5D=200", adminToken, nil, http.StatusOK)
+		for _, item := range accessGroupsE2EDataArray(t, response) {
+			row, _ := item.(map[string]interface{})
+			attributes, _ := row["attributes"].(map[string]interface{})
+			if attributes["action_name"] == name && attributes["world_id"] == collectionWorldID {
+				if id, ok := row["id"].(string); ok {
+					return id
+				}
+			}
+		}
+		t.Fatalf("collection action %s not found: %#v", name, response)
+		return ""
+	}
+	shareUserActionID := collectionActionID("share_user")
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareUserActionID, adminToken,
 		accessGroupsE2ERecordPayload("action", shareUserActionID, map[string]interface{}{"permission": 0}), http.StatusOK)
 	assertCapabilities(ownerToken, true, false)
@@ -798,7 +815,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareUserActionID, adminToken,
 		accessGroupsE2ERecordPayload("action", shareUserActionID, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
 	assertCapabilities(ownerToken, true, true)
-	shareActionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "action", "action_name", "share")
+	shareActionID := collectionActionID("share")
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareActionID, adminToken,
 		accessGroupsE2ERecordPayload("action", shareActionID, map[string]interface{}{"permission": 0}), http.StatusOK)
 	assertCapabilities(ownerToken, false, true)

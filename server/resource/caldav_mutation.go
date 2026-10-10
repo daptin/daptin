@@ -333,13 +333,17 @@ func (b *DaptinDAVBackend) moveCalendarGroupGrants(source, destination map[strin
 }
 
 func (b *DaptinDAVBackend) calendarCollectionGroupGrants(collection map[string]interface{}, tx *sqlx.Tx) (map[daptinid.DaptinReferenceId]auth.AuthPermission, error) {
+	return b.davCollectionGroupGrants(calendarCollectionTable, collection, tx)
+}
+
+func (b *DaptinDAVBackend) davCollectionGroupGrants(table string, collection map[string]interface{}, tx *sqlx.Tx) (map[daptinid.DaptinReferenceId]auth.AuthPermission, error) {
 	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
-	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, collectionRef, tx)
+	collectionID, err := GetReferenceIdToIdWithTransaction(table, collectionRef, tx)
 	if err != nil {
 		return nil, err
 	}
-	joinTable := calendarCollectionTable + "_" + calendarCollectionTable + "_id_has_usergroup_usergroup_id"
-	links, err := GetObjectByWhereClauseWithTransaction(joinTable, tx, goqu.Ex{"collection_id": collectionID})
+	joinTable := table + "_" + table + "_id_has_usergroup_usergroup_id"
+	links, err := GetObjectByWhereClauseWithTransaction(joinTable, tx, goqu.Ex{table + "_id": collectionID})
 	if err != nil {
 		return nil, err
 	}

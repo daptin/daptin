@@ -8,12 +8,10 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/go-webdav"
 	"github.com/daptin/go-webdav/caldav"
-	"github.com/doug-martin/goqu/v9"
-	"github.com/jmoiron/sqlx"
 )
 
-// The checkpoint is protocol history, not collection membership authority.
-// Each report obtains current membership through permission-filtered resources.
+// A sync token records the protocol revision and effective access without
+// walking or storing every object in the collection.
 func (b *DaptinDAVBackend) CalendarSyncToken(_ context.Context, requestPath string) (string, error) {
 	owner, name, err := b.calendarPath(requestPath, false)
 	if err != nil {
@@ -31,15 +29,16 @@ func (b *DaptinDAVBackend) CalendarSyncToken(_ context.Context, requestPath stri
 	if err := b.lockCalendarCollection(collection, tx); err != nil {
 		return "", err
 	}
-	state, err := b.calendarSyncState(requestPath, collection, tx)
+	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
+	head, err := b.davLogHead(collectionRef, tx)
 	if err != nil {
 		return "", err
 	}
-	head, err := b.davLogHead(daptinid.InterfaceToDIR(collection["reference_id"]), tx)
+	access, err := b.davSyncAccess(calendarCollectionTable, calendarObjectTable, collectionRef, tx)
 	if err != nil {
 		return "", err
 	}
-	token, err := b.saveDAVSyncState(daptinid.InterfaceToDIR(collection["reference_id"]), davSyncCheckpoint{Members: state, Cursor: head}, tx)
+	token, err := b.saveDAVSyncState(collectionRef, davSyncCheckpoint{Phase: "steady", Cursor: head, Access: access}, tx)
 	if err != nil {
 		return "", err
 	}
@@ -71,47 +70,36 @@ func (b *DaptinDAVBackend) SyncCalendarObjects(_ context.Context, requestPath, p
 	if err != nil {
 		return nil, err
 	}
-	previous := davSyncCheckpoint{Members: make(map[string]string), Cursor: head}
-	if previousToken != "" {
-		previous, err = b.loadDAVSyncState(collectionRef, previousToken, tx)
-		if err != nil {
-			if errors.Is(err, errInvalidDAVSyncToken) {
-				return nil, caldav.ErrInvalidSyncToken
-			}
-			return nil, err
-		}
-	}
-	if previous.Members == nil {
-		previous.Members = make(map[string]string)
-	}
-	current, err := b.calendarSyncState(requestPath, collection, tx)
+	access, err := b.davSyncAccess(calendarCollectionTable, calendarObjectTable, collectionRef, tx)
 	if err != nil {
 		return nil, err
 	}
-	logged, err := b.davLogChanges(collectionRef, previous.Cursor, head, tx)
-	if err != nil {
+	previous := davSyncCheckpoint{Phase: "initial", Cursor: head, Base: head, Access: access}
+	if previousToken != "" {
+		previous, err = b.loadDAVSyncState(collectionRef, previousToken, tx)
 		if errors.Is(err, errInvalidDAVSyncToken) {
 			return nil, caldav.ErrInvalidSyncToken
 		}
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		if previous.Access != access || previous.Cursor > head {
+			return nil, caldav.ErrInvalidSyncToken
+		}
 	}
-	eventCRUD := b.cruds[calendarObjectTable]
-	eventTable := eventCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
-	canReadEventTable := eventTable.CanRead(b.sessionUser.UserReferenceId, b.sessionUser.Groups, eventCRUD.AdministratorGroupId)
-	paths, more := davSyncPaths(previous, current, logged, limit, func(change davLogChange) bool {
-		return canReadEventTable && change.removed && change.readGrant.CanRead(b.sessionUser.UserReferenceId,
-			b.sessionUser.Groups, eventCRUD.AdministratorGroupId)
-	})
-	next := davNextCheckpoint(previous, current, logged, paths, head, more)
-	result := &caldav.CalendarSyncResult{More: more, Changes: make([]caldav.CalendarSyncChange, 0, len(paths))}
-	objects, err := b.calendarSyncObjects(collection, paths, current, tx)
+	visible, paths, next, more, err := b.davSyncPage(calendarObjectTable, calendarCollectionTable, "collection_id",
+		requestPath, collectionRef, previous, head, limit, tx)
 	if err != nil {
 		return nil, err
 	}
+	result := &caldav.CalendarSyncResult{More: more, Changes: make([]caldav.CalendarSyncChange, 0, len(paths))}
 	for _, member := range paths {
-		if object, present := objects[member]; present {
-			copy := object
-			result.Changes = append(result.Changes, caldav.CalendarSyncChange{Path: member, Object: &copy})
+		if row, present := visible[member]; present {
+			object, err := b.calendarObject(row, collection)
+			if err != nil {
+				return nil, err
+			}
+			result.Changes = append(result.Changes, caldav.CalendarSyncChange{Path: member, Object: &object})
 		} else {
 			result.Changes = append(result.Changes, caldav.CalendarSyncChange{Path: member})
 		}
@@ -124,47 +112,4 @@ func (b *DaptinDAVBackend) SyncCalendarObjects(_ context.Context, requestPath, p
 		return nil, err
 	}
 	return result, nil
-}
-
-func (b *DaptinDAVBackend) calendarSyncState(requestPath string, collection map[string]interface{}, tx *sqlx.Tx) (map[string]string, error) {
-	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
-	state := make(map[string]string)
-	err := b.eachDAVRowWithTransaction(calendarObjectTable, requestPath, tx, func(row map[string]interface{}) error {
-		data, err := b.contentBytes(calendarObjectTable, row)
-		if err != nil {
-			return err
-		}
-		state[StringOrEmpty(row["rpath"])] = GetMD5Hash(data)
-		return nil
-	}, Query{ColumnName: "collection_id", Operator: "=", Value: collectionRef.String()})
-	return state, err
-}
-
-func (b *DaptinDAVBackend) calendarSyncObjects(collection map[string]interface{}, paths []string, current map[string]string, tx *sqlx.Tx) (map[string]caldav.CalendarObject, error) {
-	wanted := make([]string, 0, len(paths))
-	for _, member := range paths {
-		if _, present := current[member]; present {
-			wanted = append(wanted, member)
-		}
-	}
-	objects := make(map[string]caldav.CalendarObject, len(wanted))
-	if len(wanted) == 0 {
-		return objects, nil
-	}
-	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, daptinid.InterfaceToDIR(collection["reference_id"]), tx)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := b.rowsWithTransaction(calendarObjectTable, tx, goqu.Ex{"collection_id": collectionID, "rpath": goqu.Op{"in": wanted}})
-	if err != nil {
-		return nil, err
-	}
-	for _, row := range rows {
-		object, err := b.calendarObject(row, collection)
-		if err != nil {
-			return nil, err
-		}
-		objects[object.Path] = object
-	}
-	return objects, nil
 }

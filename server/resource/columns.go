@@ -143,6 +143,42 @@ var SystemExchanges []ExchangeContract
 var SystemActions = []actionresponse.Action{
 	{
 		Name:             "share",
+		Label:            "Set address book group access",
+		OnType:           "address_book",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "address_book_reference_id", ColumnName: "address_book_reference_id", ColumnType: "alias"},
+			{Name: "usergroup_id", ColumnName: "usergroup_id", ColumnType: "alias"},
+			{Name: "permission", ColumnName: "permission", ColumnType: "value"},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type: "address_book.share", Method: "EXECUTE",
+			Attributes: map[string]interface{}{
+				"address_book_id": "~address_book_reference_id", "usergroup_id": "~usergroup_id", "permission": "~permission",
+			},
+		}},
+	},
+	{
+		Name:             "share_user",
+		Label:            "Set address book access for an account",
+		OnType:           "address_book",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "address_book_reference_id", ColumnName: "address_book_reference_id", ColumnType: "alias"},
+			{Name: "user_account_id", ColumnName: "user_account_id", ColumnType: "alias"},
+			{Name: "permission", ColumnName: "permission", ColumnType: "value"},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type: "address_book.share", Method: "EXECUTE",
+			Attributes: map[string]interface{}{
+				"address_book_id": "~address_book_reference_id", "target_user_id": "~user_account_id", "permission": "~permission",
+			},
+		}},
+	},
+	{
+		Name:             "share",
 		Label:            "Set calendar group access",
 		OnType:           "collection",
 		InstanceOptional: true,
@@ -1987,10 +2023,11 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "calendar",
-		IsHidden:      false,
-		DefaultGroups: adminsGroup,
-		Icon:          "fa-calendar-alt",
+		TableName:        "calendar",
+		IsHidden:         false,
+		DefaultGroups:    adminsGroup,
+		Icon:             "fa-calendar-alt",
+		CompositeIndexes: [][]string{{"collection_id", "rpath"}},
 		Columns: []api2go.ColumnInfo{
 			{
 				ColumnName:        "rpath",
@@ -2037,9 +2074,10 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "dav_log",
-		IsHidden:      true,
-		DefaultGroups: adminsGroup,
+		TableName:        "dav_log",
+		IsHidden:         true,
+		DefaultGroups:    adminsGroup,
+		CompositeIndexes: [][]string{{"collection_reference", "revision"}},
 		Columns: []api2go.ColumnInfo{
 			{Name: "collection_reference", ColumnName: "collection_reference", ColumnType: "label", DataType: "varchar(36)", IsIndexed: true, IsNullable: false},
 			{Name: "revision", ColumnName: "revision", ColumnType: "value", DataType: "bigint", IsIndexed: true, IsNullable: false},
@@ -2070,10 +2108,11 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "contact",
-		IsHidden:      false,
-		DefaultGroups: adminsGroup,
-		Icon:          "fa-address-card",
+		TableName:        "contact",
+		IsHidden:         false,
+		DefaultGroups:    adminsGroup,
+		Icon:             "fa-address-card",
+		CompositeIndexes: [][]string{{"address_book_id", "rpath"}},
 		Columns: []api2go.ColumnInfo{
 			{
 				ColumnName:        "rpath",
@@ -2100,6 +2139,14 @@ var StandardTables = []table_info.TableInfo{
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-address-book",
 		Columns: []api2go.ColumnInfo{
+			{
+				ColumnName:        "display_name",
+				Name:              "display_name",
+				ColumnType:        "label",
+				DataType:          "varchar(500)",
+				IsNullable:        true,
+				ColumnDescription: "The address book display name, independent of its URL name.",
+			},
 			{
 				ColumnName:        "name",
 				Name:              "name",
