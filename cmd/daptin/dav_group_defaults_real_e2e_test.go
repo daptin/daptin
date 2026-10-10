@@ -428,6 +428,22 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	if len(syncToken) != 2 {
 		t.Fatalf("delegate sync returned no token: %s", syncInitial.body)
 	}
+	transientURL := collectionURL + "transient.ics"
+	transient := strings.Replace(davE2ECalendarA, "UID:dav-condition-test", "UID:dav-shared-transient", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, transientURL, ownerToken,
+		"text/calendar", transient, nil), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, transientURL, ownerToken,
+		"", "", nil), http.StatusNoContent)
+	syncBody = fmt.Sprintf(`<D:sync-collection xmlns:D="DAV:"><D:sync-token>%s</D:sync-token><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, syncToken[1])
+	syncTransient := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
+		"application/xml", syncBody, nil), http.StatusMultiStatus)
+	if !strings.Contains(syncTransient.body, "transient.ics") || !strings.Contains(syncTransient.body, "404 Not Found") {
+		t.Fatalf("delegate sync lost a shared event created and deleted between reports: %s", syncTransient.body)
+	}
+	syncToken = regexp.MustCompile(`<sync-token[^>]*>([^<]+)</sync-token>`).FindStringSubmatch(syncTransient.body)
+	if len(syncToken) != 2 {
+		t.Fatalf("delegate transient sync returned no token: %s", syncTransient.body)
+	}
 
 	// Removing the event relationship must revoke both DAV and JSON:API reads.
 	eventLink := base + "/api/calendar/" + eventID + "/relationships/usergroup_id"

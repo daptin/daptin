@@ -142,6 +142,12 @@ func (b *DaptinDAVBackend) deleteCalendarCollection(requestPath string, collecti
 	if err := b.deleteCalendarSyncState(collection, tx); err != nil {
 		return err
 	}
+	if err := b.deleteCalendarLogState(collectionRef, tx); err != nil {
+		return err
+	}
+	if err := b.deleteCalendarClock(collectionRef, tx); err != nil {
+		return err
+	}
 	return b.calendarDelete(calendarCollectionTable, requestPath, collection, tx)
 }
 

@@ -373,6 +373,10 @@ func itipReplyStatus(event ical.Event) (string, error) {
 }
 
 func (a *itipProcessMailAction) applyReply(collectionRef, eventRef daptinid.DaptinReferenceId, uid, recurrence string, sequence int, sender, partstat, status string, caller *auth.SessionUser, tx *sqlx.Tx) error {
+	if err := a.cruds[calendarCollectionTable].lockRowByWhereWithTransaction(tx,
+		goqu.Ex{"reference_id": collectionRef[:]}); err != nil {
+		return err
+	}
 	row, _, err := a.cruds["calendar"].GetSingleRowByReferenceIdWithTransaction("calendar", eventRef, nil, tx)
 	if err != nil {
 		return err

@@ -298,10 +298,25 @@ func (b *DaptinDAVBackend) calendarCreateEvent(requestPath string, collection ma
 			return err
 		}
 	}
-	return nil
+	return b.appendCalendarChange(daptinid.InterfaceToDIR(collection["reference_id"]), path.Clean(requestPath), nil, tx)
 }
 
 func (b *DaptinDAVBackend) calendarUpdate(table, requestPath string, row, attrs map[string]interface{}, tx *sqlx.Tx) error {
+	oldPath := StringOrEmpty(row["rpath"])
+	oldCollection := daptinid.InterfaceToDIR(row["collection_id"])
+	newPath, newCollection := oldPath, oldCollection
+	if table == calendarObjectTable {
+		if value, ok := attrs["rpath"]; ok {
+			newPath = StringOrEmpty(value)
+		}
+		if value, ok := attrs["collection_id"]; ok {
+			newCollection = daptinid.InterfaceToDIR(value)
+		}
+	}
+	var oldPermission permission.PermissionInstance
+	if table == calendarObjectTable && (oldPath != newPath || oldCollection != newCollection) {
+		oldPermission = GetObjectPermissionByReferenceIdWithTransaction(table, daptinid.InterfaceToDIR(row["reference_id"]), tx)
+	}
 	updated := make(map[string]interface{}, len(row)+len(attrs))
 	for key, value := range row {
 		updated[key] = value
@@ -311,12 +326,33 @@ func (b *DaptinDAVBackend) calendarUpdate(table, requestPath string, row, attrs 
 	}
 	model := api2go.NewApi2GoModelWithData(table, nil, 0, nil, updated)
 	_, err := b.cruds[table].UpdateWithTransaction(model, b.request(http.MethodPatch, requestPath), tx)
-	return davResourceError(err)
+	if err != nil {
+		return davResourceError(err)
+	}
+	if table != calendarObjectTable {
+		return nil
+	}
+	if oldPath != newPath || oldCollection != newCollection {
+		if err := b.appendCalendarChange(oldCollection, oldPath, &oldPermission, tx); err != nil {
+			return err
+		}
+	}
+	return b.appendCalendarChange(newCollection, newPath, nil, tx)
 }
 
 func (b *DaptinDAVBackend) calendarDelete(table, requestPath string, row map[string]interface{}, tx *sqlx.Tx) error {
+	var oldPermission permission.PermissionInstance
+	if table == calendarObjectTable {
+		oldPermission = GetObjectPermissionByReferenceIdWithTransaction(table, daptinid.InterfaceToDIR(row["reference_id"]), tx)
+	}
 	_, err := b.cruds[table].DeleteWithTransaction(daptinid.InterfaceToDIR(row["reference_id"]), b.request(http.MethodDelete, requestPath), tx)
-	return davResourceError(err)
+	if err != nil {
+		return davResourceError(err)
+	}
+	if table != calendarObjectTable {
+		return nil
+	}
+	return b.appendCalendarChange(daptinid.InterfaceToDIR(row["collection_id"]), StringOrEmpty(row["rpath"]), &oldPermission, tx)
 }
 
 func davResourceError(err error) error {

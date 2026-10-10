@@ -115,6 +115,48 @@ func runDAVCollectionTransferAndSyncRealE2E(t *testing.T, databaseType, connecti
 	if len(token) != 2 {
 		t.Fatalf("continued sync returned no token: %s", continued.body)
 	}
+	beforeTransient := token[1]
+	for _, name := range []string{"flash-one", "flash-two"} {
+		transient := strings.Replace(event, "UID:dav-condition-test", "UID:dav-sync-"+name, 1)
+		davE2EExpect(t, davE2ERequest(client, http.MethodPut, moved+name+".ics", ownerToken,
+			"text/calendar", transient, nil), http.StatusCreated)
+		davE2EExpect(t, davE2ERequest(client, http.MethodDelete, moved+name+".ics", ownerToken,
+			"", "", nil), http.StatusNoContent)
+	}
+	transientPage := davE2EExpect(t, syncReport(token[1], 1), http.StatusMultiStatus)
+	if !strings.Contains(transientPage.body, "flash-one.ics") ||
+		!strings.Contains(transientPage.body, "404 Not Found") ||
+		!strings.Contains(transientPage.body, "507 Insufficient Storage") {
+		t.Fatalf("sync lost the first transient deletion: %s", transientPage.body)
+	}
+	token = regexp.MustCompile(`<sync-token[^>]*>([^<]+)</sync-token>`).FindStringSubmatch(transientPage.body)
+	if len(token) != 2 || token[1] == beforeTransient {
+		t.Fatalf("transient mutation did not advance the sync token: %s", transientPage.body)
+	}
+	transientEnd := davE2EExpect(t, syncReport(token[1], 1), http.StatusMultiStatus)
+	if !strings.Contains(transientEnd.body, "flash-two.ics") ||
+		strings.Contains(transientEnd.body, "flash-one.ics") ||
+		strings.Contains(transientEnd.body, "507 Insufficient Storage") {
+		t.Fatalf("sync did not finish transient deletions: %s", transientEnd.body)
+	}
+	token = regexp.MustCompile(`<sync-token[^>]*>([^<]+)</sync-token>`).FindStringSubmatch(transientEnd.body)
+	if len(token) != 2 {
+		t.Fatalf("transient continuation returned no token: %s", transientEnd.body)
+	}
+	// Replacing a member at the same href with identical content still changes
+	// its mapping and must be reported even though the ETag returns to its old value.
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, moved+"zero.ics", ownerToken,
+		"", "", nil), http.StatusNoContent)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, moved+"zero.ics", ownerToken,
+		"text/calendar", zero, nil), http.StatusCreated)
+	replaced := davE2EExpect(t, syncReport(token[1], 1), http.StatusMultiStatus)
+	if !strings.Contains(replaced.body, "zero.ics") || strings.Contains(replaced.body, "404 Not Found") {
+		t.Fatalf("sync lost the recreated member: %s", replaced.body)
+	}
+	token = regexp.MustCompile(`<sync-token[^>]*>([^<]+)</sync-token>`).FindStringSubmatch(replaced.body)
+	if len(token) != 2 {
+		t.Fatalf("recreated member returned no token: %s", replaced.body)
+	}
 	second := strings.Replace(event, "UID:dav-condition-test", "UID:dav-sync-second", 1)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, moved+"two.ics", ownerToken, "text/calendar", second, nil), http.StatusCreated)
 	changed := davE2EExpect(t, syncReport(token[1], 1), http.StatusMultiStatus)

@@ -2027,6 +2027,28 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
+		TableName:     "cal_clock",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{Name: "collection_reference", ColumnName: "collection_reference", ColumnType: "label", DataType: "varchar(36)", IsUnique: true, IsNullable: false},
+			{Name: "revision", ColumnName: "revision", ColumnType: "value", DataType: "bigint", IsNullable: false},
+		},
+	},
+	{
+		TableName:     "cal_log",
+		IsHidden:      true,
+		DefaultGroups: adminsGroup,
+		Columns: []api2go.ColumnInfo{
+			{Name: "collection_reference", ColumnName: "collection_reference", ColumnType: "label", DataType: "varchar(36)", IsIndexed: true, IsNullable: false},
+			{Name: "revision", ColumnName: "revision", ColumnType: "value", DataType: "bigint", IsIndexed: true, IsNullable: false},
+			{Name: "rpath", ColumnName: "rpath", ColumnType: "label", DataType: "varchar(500)", IsIndexed: true, IsNullable: false},
+			{Name: "removed", ColumnName: "removed", ColumnType: "value", DataType: "int(11)", IsNullable: false},
+			{Name: "read_grant", ColumnName: "read_grant", ColumnType: "content", DataType: "longtext", IsNullable: true},
+			{Name: "expires_at", ColumnName: "expires_at", ColumnType: "value", DataType: "bigint", IsIndexed: true, IsNullable: false},
+		},
+	},
+	{
 		TableName:     "cal_mail",
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,

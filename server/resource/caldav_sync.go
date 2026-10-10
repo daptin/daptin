@@ -24,6 +24,12 @@ const (
 	davSyncLifetime   = 30 * 24 * time.Hour
 )
 
+type davSyncCheckpoint struct {
+	Members  map[string]string `json:"members"`
+	Cursor   int64             `json:"cursor"`
+	Reported map[string]int64  `json:"reported,omitempty"`
+}
+
 // The checkpoint is protocol history, not calendar membership authority.
 // Each report obtains current membership through permission-filtered resources.
 func (b *DaptinDAVBackend) CalendarSyncToken(_ context.Context, requestPath string) (string, error) {
@@ -40,11 +46,18 @@ func (b *DaptinDAVBackend) CalendarSyncToken(_ context.Context, requestPath stri
 	if err != nil {
 		return "", err
 	}
+	if err := b.lockCalendarCollection(collection, tx); err != nil {
+		return "", err
+	}
 	state, _, err := b.calendarSyncState(requestPath, collection, tx)
 	if err != nil {
 		return "", err
 	}
-	token, err := b.saveCalendarSyncState(collection, state, tx)
+	head, err := b.calendarLogHead(daptinid.InterfaceToDIR(collection["reference_id"]), tx)
+	if err != nil {
+		return "", err
+	}
+	token, err := b.saveCalendarSyncState(collection, davSyncCheckpoint{Members: state, Cursor: head}, tx)
 	if err != nil {
 		return "", err
 	}
@@ -68,47 +81,94 @@ func (b *DaptinDAVBackend) SyncCalendarObjects(_ context.Context, requestPath, p
 	if err != nil {
 		return nil, err
 	}
-	previous := make(map[string]string)
+	if err := b.lockCalendarCollection(collection, tx); err != nil {
+		return nil, err
+	}
+	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
+	head, err := b.calendarLogHead(collectionRef, tx)
+	if err != nil {
+		return nil, err
+	}
+	previous := davSyncCheckpoint{Members: make(map[string]string), Cursor: head}
 	if previousToken != "" {
 		previous, err = b.loadCalendarSyncState(collection, previousToken, tx)
 		if err != nil {
 			return nil, err
 		}
 	}
+	if previous.Members == nil {
+		previous.Members = make(map[string]string)
+	}
 	current, objects, err := b.calendarSyncState(requestPath, collection, tx)
 	if err != nil {
 		return nil, err
 	}
-	paths := make([]string, 0, len(previous)+len(current))
+	logged, err := b.calendarLogChanges(collectionRef, previous.Cursor, head, tx)
+	if err != nil {
+		return nil, err
+	}
+	eventCRUD := b.cruds[calendarObjectTable]
+	eventTable := eventCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
+	canReadEventTable := eventTable.CanRead(b.sessionUser.UserReferenceId, b.sessionUser.Groups, eventCRUD.AdministratorGroupId)
+	candidates := make(map[string]bool, len(previous.Members)+len(current)+len(logged))
 	for member := range current {
-		if previous[member] != current[member] {
-			paths = append(paths, member)
+		if previous.Members[member] != current[member] {
+			candidates[member] = true
 		}
 	}
-	for member := range previous {
+	for member := range previous.Members {
 		if _, stillPresent := current[member]; !stillPresent {
-			paths = append(paths, member)
+			candidates[member] = true
 		}
+	}
+	for member, change := range logged {
+		if change.revision <= previous.Reported[member] {
+			continue
+		}
+		if _, present := current[member]; present {
+			candidates[member] = true
+			continue
+		}
+		if _, previouslyVisible := previous.Members[member]; previouslyVisible ||
+			canReadEventTable && change.removed && change.readGrant.CanRead(b.sessionUser.UserReferenceId, b.sessionUser.Groups,
+				b.cruds[calendarObjectTable].AdministratorGroupId) {
+			candidates[member] = true
+		}
+	}
+	paths := make([]string, 0, len(candidates))
+	for member := range candidates {
+		paths = append(paths, member)
 	}
 	sort.Strings(paths)
 	more := len(paths) > limit
 	if more {
 		paths = paths[:limit]
 	}
-	next := make(map[string]string, len(previous)+len(paths))
-	for member, etag := range previous {
-		next[member] = etag
+	next := davSyncCheckpoint{Members: make(map[string]string, len(previous.Members)+len(paths)),
+		Cursor: previous.Cursor, Reported: make(map[string]int64, len(previous.Reported)+len(paths))}
+	for member, etag := range previous.Members {
+		next.Members[member] = etag
+	}
+	for member, revision := range previous.Reported {
+		next.Reported[member] = revision
 	}
 	result := &caldav.CalendarSyncResult{More: more, Changes: make([]caldav.CalendarSyncChange, 0, len(paths))}
 	for _, member := range paths {
 		if object, present := objects[member]; present {
 			copy := object
 			result.Changes = append(result.Changes, caldav.CalendarSyncChange{Path: member, Object: &copy})
-			next[member] = current[member]
+			next.Members[member] = current[member]
 		} else {
 			result.Changes = append(result.Changes, caldav.CalendarSyncChange{Path: member})
-			delete(next, member)
+			delete(next.Members, member)
 		}
+		if change, found := logged[member]; found {
+			next.Reported[member] = change.revision
+		}
+	}
+	if !more {
+		next.Cursor = head
+		next.Reported = nil
 	}
 	result.Token, err = b.saveCalendarSyncState(collection, next, tx)
 	if err != nil {
@@ -152,38 +212,41 @@ func (b *DaptinDAVBackend) calendarSyncState(requestPath string, collection map[
 	return state, objects, nil
 }
 
-func (b *DaptinDAVBackend) loadCalendarSyncState(collection map[string]interface{}, token string, tx *sqlx.Tx) (map[string]string, error) {
+func (b *DaptinDAVBackend) loadCalendarSyncState(collection map[string]interface{}, token string, tx *sqlx.Tx) (davSyncCheckpoint, error) {
 	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
 	refs, err := GetReferenceIdByWhereClauseWithTransaction("cal_sync", tx, goqu.Ex{"token": token})
 	if err != nil {
-		return nil, err
+		return davSyncCheckpoint{}, err
 	}
 	for _, ref := range refs {
 		row, _, err := b.cruds["cal_sync"].GetSingleRowByReferenceIdWithTransaction("cal_sync", ref, nil, tx)
 		if err != nil {
-			return nil, err
+			return davSyncCheckpoint{}, err
 		}
 		expires, err := ResourceRowInt64(row["expires_at"])
 		if err != nil {
-			return nil, err
+			return davSyncCheckpoint{}, err
 		}
 		if daptinid.InterfaceToDIR(row["collection_reference"]) != collectionRef ||
 			daptinid.InterfaceToDIR(row["user_account_id"]) != b.sessionUser.UserReferenceId ||
 			expires <= time.Now().Unix() {
 			continue
 		}
-		var state map[string]string
+		var state davSyncCheckpoint
 		if err := encodingjson.Unmarshal([]byte(StringOrEmpty(row["state"])), &state); err != nil {
-			return nil, err
+			return davSyncCheckpoint{}, err
 		}
 		return state, nil
 	}
-	return nil, caldav.ErrInvalidSyncToken
+	return davSyncCheckpoint{}, caldav.ErrInvalidSyncToken
 }
 
-func (b *DaptinDAVBackend) saveCalendarSyncState(collection map[string]interface{}, state map[string]string, tx *sqlx.Tx) (string, error) {
+func (b *DaptinDAVBackend) saveCalendarSyncState(collection map[string]interface{}, state davSyncCheckpoint, tx *sqlx.Tx) (string, error) {
 	collectionRef := daptinid.InterfaceToDIR(collection["reference_id"])
 	if err := b.pruneCalendarSyncState(collectionRef, tx); err != nil {
+		return "", err
+	}
+	if err := b.pruneCalendarLog(collectionRef, tx); err != nil {
 		return "", err
 	}
 	encoded, err := encodingjson.Marshal(state)
@@ -196,19 +259,11 @@ func (b *DaptinDAVBackend) saveCalendarSyncState(collection map[string]interface
 	if err != nil {
 		return "", err
 	}
-	expires := time.Now().Add(davSyncLifetime).Unix()
 	if len(refs) != 0 {
-		model := api2go.NewApi2GoModelWithData("cal_sync", nil, 0, nil, map[string]interface{}{
-			"reference_id": refs[0].String(), "expires_at": expires,
-		})
-		if _, err := b.cruds["cal_sync"].updateAfterAuthorizationWithTransaction(model,
-			b.request(http.MethodPatch, "/api/cal_sync/"+refs[0].String()), tx); err != nil {
-			return "", davResourceError(err)
-		}
 		return token, nil
 	}
 	model := api2go.NewApi2GoModelWithData("cal_sync", nil, int64(b.cruds["cal_sync"].TableInfo().DefaultPermission), nil,
-		map[string]interface{}{"token": token, "state": string(encoded), "expires_at": expires, "collection_reference": collectionRef.String()})
+		map[string]interface{}{"token": token, "state": string(encoded), "expires_at": time.Now().Add(davSyncLifetime).Unix(), "collection_reference": collectionRef.String()})
 	if _, err := b.cruds["cal_sync"].createWithoutFilterAfterAuthorization(model,
 		b.request(http.MethodPost, "/api/cal_sync"), tx); err != nil {
 		return "", davResourceError(err)

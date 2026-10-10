@@ -601,14 +601,16 @@ send new invitations because it does not change the meeting itself.
 Calendar sync tokens are scoped to the authenticated account and calendar.
 An empty token returns currently readable objects; subsequent reports return
 changed objects and a `404` entry for objects removed or no longer readable.
-This also detects changes made through JSON:API. Responses are limited to
+CalDAV and scheduling changes are recorded in the same transaction as the
+event, so a CalDAV object created and deleted between reports still yields a
+`404`. Sync also detects surviving changes made through JSON:API; direct
+resource writes do not create CalDAV protocol history. Responses are limited to
 1,000 changes by default; a `507` entry for the calendar and the returned
 token indicate that the client should request the next page. Checkpoints
 expire after 30 days, at which point the client must start with an empty
-token. Sync compares saved and current membership, so an object created and
-deleted entirely between reports does not produce a deletion entry. Calendars
-with more than 10,000 objects require ordinary full listing; the sync endpoint
-rejects them. CardDAV sync tokens are not
+token. A token with more than 10,000 recorded changes also requires a new
+initial sync. Calendars with more than 10,000 objects require ordinary full
+listing; the sync endpoint rejects them. CardDAV sync tokens are not
 implemented. Collection grants do not propagate to events
 created or moved through JSON:API. The endpoint does not implement the RFC 3744
 ACL method or claim full WebDAV ACL conformance.
