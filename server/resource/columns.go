@@ -11,6 +11,7 @@ import (
 )
 
 var authenticatedOTPActionPermission = auth.AuthenticatedExecute
+var publicBookingActionPermission = auth.GuestExecute
 var adminOnlyActionPermission = auth.None
 var adminGroupExecutePermission = auth.GroupExecute
 var adminQueuePermission = auth.GroupCRUD | auth.GroupExecute
@@ -130,6 +131,10 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("mail", "belongs_to", "mail_box"),
 	api2go.NewTableRelationWithNames("task", "task_executed", "has_one", USER_ACCOUNT_TABLE_NAME, "as_user_id"),
 	api2go.NewTableRelation("calendar", "has_one", "collection"),
+	api2go.NewTableRelationWithNames("bookable", "destination_calendar", "belongs_to", "collection", "destination_collection_id"),
+	api2go.NewTableRelation("bookable", "has_many", "collection"),
+	api2go.NewTableRelation("booking", "belongs_to", "bookable"),
+	api2go.NewTableRelation("booking", "belongs_to", "calendar"),
 	api2go.NewTableRelation("cal_mail", "has_one", "collection"),
 	api2go.NewTableRelation("cal_mail", "has_one", "outbox"),
 	api2go.NewTableRelation("cal_mail", "has_one", "mail"),
@@ -141,6 +146,58 @@ var SystemSmds []fsm.LoopbookFsmDescription
 var SystemExchanges []ExchangeContract
 
 var SystemActions = []actionresponse.Action{
+	{
+		Name: "set_calendar", Label: "Set required booking calendar", OnType: "bookable", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "bookable_ref", ColumnName: "bookable_ref", ColumnType: "alias"}, {Name: "calendar_ref", ColumnName: "calendar_ref", ColumnType: "alias"}, {Name: "enabled", ColumnName: "enabled", ColumnType: "value"}},
+		OutFields:  []actionresponse.Outcome{{Type: "bookable.set_calendar", Method: "EXECUTE", Attributes: map[string]interface{}{"bookable_ref": "~bookable_ref", "calendar_ref": "~calendar_ref", "enabled": "~enabled"}}},
+	},
+	{
+		Name: "slots", Label: "Available appointment slots", OnType: "bookable", InstanceOptional: true,
+		Permission: &publicBookingActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "bookable_ref", ColumnName: "bookable_ref", ColumnType: "alias"}, {Name: "date", ColumnName: "date", ColumnType: "label"}},
+		OutFields: []actionresponse.Outcome{
+			{Type: "bookable.resolve", Method: "EXECUTE", Reference: "verified", SkipInResponse: true, Attributes: map[string]interface{}{"bookable_ref": "~bookable_ref"}},
+			{Type: "__as_user", Method: "SWITCH_USER", SkipInResponse: true, Attributes: map[string]interface{}{"user_reference_id": "~verified.owner_ref"}},
+			{Type: "bookable.slots", Method: "EXECUTE", Attributes: map[string]interface{}{"bookable_ref": "~bookable_ref", "date": "~date"}},
+		},
+	},
+	{
+		Name: "reserve", Label: "Reserve appointment", OnType: "bookable", InstanceOptional: true,
+		Permission: &publicBookingActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "bookable_ref", ColumnName: "bookable_ref", ColumnType: "alias"}, {Name: "start", ColumnName: "start", ColumnType: "label"}, {Name: "guest_name", ColumnName: "guest_name", ColumnType: "label"}, {Name: "guest_email", ColumnName: "guest_email", ColumnType: "label"}, {Name: "attempt_key", ColumnName: "attempt_key", ColumnType: "label"}, {Name: "answers", ColumnName: "answers", ColumnType: "json"}},
+		OutFields: []actionresponse.Outcome{
+			{Type: "bookable.resolve", Method: "EXECUTE", Reference: "verified", SkipInResponse: true, Attributes: map[string]interface{}{"bookable_ref": "~bookable_ref", "attempt_key": "~attempt_key"}},
+			{Type: "__as_user", Method: "SWITCH_USER", SkipInResponse: true, Attributes: map[string]interface{}{"user_reference_id": "~verified.owner_ref"}},
+			{Type: "bookable.reserve", Method: "EXECUTE", Attributes: map[string]interface{}{"bookable_ref": "~bookable_ref", "start": "~start", "guest_name": "~guest_name", "guest_email": "~guest_email", "attempt_key": "~attempt_key", "answers": "~answers"}},
+		},
+	},
+	{
+		Name: "status", Label: "Appointment status", OnType: "bookable", InstanceOptional: true,
+		Permission: &publicBookingActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "booking_ref", ColumnName: "booking_ref", ColumnType: "alias"}, {Name: "token", ColumnName: "token", ColumnType: "label"}},
+		OutFields:  []actionresponse.Outcome{{Type: "bookable.status", Method: "EXECUTE", Attributes: map[string]interface{}{"booking_ref": "~booking_ref", "token": "~token"}}},
+	},
+	{
+		Name: "cancel", Label: "Cancel appointment", OnType: "bookable", InstanceOptional: true,
+		Permission: &publicBookingActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "booking_ref", ColumnName: "booking_ref", ColumnType: "alias"}, {Name: "token", ColumnName: "token", ColumnType: "label"}},
+		OutFields: []actionresponse.Outcome{
+			{Type: "bookable.resolve_booking", Method: "EXECUTE", Reference: "verified", SkipInResponse: true, Attributes: map[string]interface{}{"booking_ref": "~booking_ref", "token": "~token"}},
+			{Type: "__as_user", Method: "SWITCH_USER", SkipInResponse: true, Attributes: map[string]interface{}{"user_reference_id": "~verified.owner_ref"}},
+			{Type: "bookable.cancel", Method: "EXECUTE", Attributes: map[string]interface{}{"booking_ref": "~booking_ref", "token": "~token"}},
+		},
+	},
+	{
+		Name: "reschedule", Label: "Reschedule appointment", OnType: "bookable", InstanceOptional: true,
+		Permission: &publicBookingActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "booking_ref", ColumnName: "booking_ref", ColumnType: "alias"}, {Name: "token", ColumnName: "token", ColumnType: "label"}, {Name: "start", ColumnName: "start", ColumnType: "label"}},
+		OutFields: []actionresponse.Outcome{
+			{Type: "bookable.resolve_booking", Method: "EXECUTE", Reference: "verified", SkipInResponse: true, Attributes: map[string]interface{}{"booking_ref": "~booking_ref", "token": "~token"}},
+			{Type: "__as_user", Method: "SWITCH_USER", SkipInResponse: true, Attributes: map[string]interface{}{"user_reference_id": "~verified.owner_ref"}},
+			{Type: "bookable.reschedule", Method: "EXECUTE", Attributes: map[string]interface{}{"booking_ref": "~booking_ref", "token": "~token", "start": "~start"}},
+		},
+	},
 	{
 		Name:             "share",
 		Label:            "Set address book group access",
@@ -1969,6 +2026,42 @@ var adminQueueGroup = table_info.DefaultGroupList{
 var StandardTasks []task.Task
 
 var StandardTables = []table_info.TableInfo{
+	{
+		TableName: "bookable", Icon: "fa-calendar-check", DefaultGroups: adminsGroup,
+		DefaultPermission: auth.GuestExecute | auth.UserCRUD | auth.UserExecute,
+		Columns: []api2go.ColumnInfo{
+			{Name: "title", ColumnName: "title", ColumnType: "label", DataType: "varchar(200)", IsNullable: false},
+			{Name: "published", ColumnName: "published", ColumnType: "value", DataType: "bool", IsNullable: false, DefaultValue: "false"},
+			{Name: "event_class", ColumnName: "event_class", ColumnType: "label", DataType: "varchar(20)", IsNullable: false, DefaultValue: "'PRIVATE'"},
+			{Name: "time_zone", ColumnName: "time_zone", ColumnType: "label", DataType: "varchar(100)", IsNullable: false},
+			{Name: "weekly_hours", ColumnName: "weekly_hours", ColumnType: "json", DataType: "text", IsNullable: false},
+			{Name: "duration_minutes", ColumnName: "duration_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false},
+			{Name: "increment_minutes", ColumnName: "increment_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false},
+			{Name: "buffer_before_minutes", ColumnName: "buffer_before_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
+			{Name: "buffer_after_minutes", ColumnName: "buffer_after_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
+			{Name: "minimum_notice_minutes", ColumnName: "minimum_notice_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
+			{Name: "horizon_days", ColumnName: "horizon_days", ColumnType: "value", DataType: "int(11)", IsNullable: false},
+			{Name: "capacity", ColumnName: "capacity", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "1"},
+			{Name: "daily_limit", ColumnName: "daily_limit", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
+			{Name: "weekly_limit", ColumnName: "weekly_limit", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
+			{Name: "questions", ColumnName: "questions", ColumnType: "json", DataType: "text", IsNullable: true},
+		},
+	},
+	{
+		TableName: "booking", Icon: "fa-calendar-check", DefaultGroups: adminsGroup,
+		DefaultPermission: auth.UserCRUD,
+		CompositeIndexes:  [][]string{{"bookable_id", "starts_at"}},
+		Columns: []api2go.ColumnInfo{
+			{Name: "starts_at", ColumnName: "starts_at", ColumnType: "datetime", DataType: "timestamp", IsNullable: false, IsIndexed: true},
+			{Name: "ends_at", ColumnName: "ends_at", ColumnType: "datetime", DataType: "timestamp", IsNullable: false},
+			{Name: "state", ColumnName: "state", ColumnType: "label", DataType: "varchar(20)", IsNullable: false},
+			{Name: "guest_name", ColumnName: "guest_name", ColumnType: "label", DataType: "varchar(200)", IsNullable: false},
+			{Name: "guest_email", ColumnName: "guest_email", ColumnType: "label", DataType: "varchar(200)", IsNullable: false},
+			{Name: "attempt_hash", ColumnName: "attempt_hash", ColumnType: "label", DataType: "varchar(64)", IsUnique: true, IsNullable: false},
+			{Name: "request_hash", ColumnName: "request_hash", ColumnType: "label", DataType: "varchar(64)", IsNullable: false},
+			{Name: "answers", ColumnName: "answers", ColumnType: "json", DataType: "text", IsNullable: true},
+		},
+	},
 	{
 		TableName:     "document",
 		IsHidden:      false,

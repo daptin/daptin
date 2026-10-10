@@ -867,6 +867,13 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	etag := ""
 	var previous []byte
 	if exists {
+		protected, err := b.bookingEventProtected(daptinid.InterfaceToDIR(existing["reference_id"]), tx)
+		if err != nil {
+			return nil, err
+		}
+		if protected {
+			return nil, webdav.NewHTTPError(http.StatusConflict, errors.New("booking events are managed through booking actions"))
+		}
 		current, err := b.contentBytes(calendarObjectTable, existing)
 		if err != nil {
 			return nil, err
@@ -923,27 +930,36 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	if err != nil {
 		return nil, err
 	}
-	statuses := make(map[string]map[string]string)
-	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(event["reference_id"]), previous, data, statuses, tx); err != nil {
+	data, err = b.scheduleAndStoreCalendarChange(collection, event, requestPath, calendar, previous, data, tx)
+	if err != nil {
 		return nil, err
-	}
-	if setOutgoingScheduleStatus(calendar, statuses) {
-		encoded.Reset()
-		if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
-			return nil, err
-		}
-		data = encoded.Bytes()
-		delete(event, "version")
-		if err := b.calendarUpdate(calendarObjectTable, requestPath, event, map[string]interface{}{
-			"content": b.contentValue(calendarObjectTable, requestPath, ical.MIMEType, data),
-		}, tx); err != nil {
-			return nil, err
-		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return &caldav.CalendarObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), ScheduleTag: tag, Data: calendar}, nil
+}
+
+func (b *DaptinDAVBackend) scheduleAndStoreCalendarChange(collection, event map[string]interface{}, requestPath string, calendar *ical.Calendar, previous, data []byte, tx *sqlx.Tx) ([]byte, error) {
+	statuses := make(map[string]map[string]string)
+	if err := b.scheduleCalendarChange(collection, daptinid.InterfaceToDIR(event["reference_id"]), previous, data, statuses, tx); err != nil {
+		return nil, err
+	}
+	if !setOutgoingScheduleStatus(calendar, statuses) {
+		return data, nil
+	}
+	var encoded bytes.Buffer
+	if err := ical.NewEncoder(&encoded).Encode(calendar); err != nil {
+		return nil, err
+	}
+	data = encoded.Bytes()
+	delete(event, "version")
+	if err := b.calendarUpdate(calendarObjectTable, requestPath, event, map[string]interface{}{
+		"content": b.contentValue(calendarObjectTable, requestPath, ical.MIMEType, data),
+	}, tx); err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath string) error {
@@ -985,6 +1001,13 @@ func (b *DaptinDAVBackend) DeleteCalendarObject(_ context.Context, requestPath s
 			}
 		}
 		return err
+	}
+	protected, err := b.bookingEventProtected(daptinid.InterfaceToDIR(row["reference_id"]), tx)
+	if err != nil {
+		return err
+	}
+	if protected {
+		return webdav.NewHTTPError(http.StatusConflict, errors.New("booking events are managed through booking actions"))
 	}
 	ifMatch := webdav.ConditionalMatch(b.headers.Get("If-Match"))
 	ifNoneMatch := webdav.ConditionalMatch(b.headers.Get("If-None-Match"))

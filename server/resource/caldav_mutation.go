@@ -98,6 +98,13 @@ func (b *DaptinDAVBackend) deleteCalendarCollection(requestPath string, collecti
 			break
 		}
 		for _, ref := range refs {
+			protected, err := b.bookingEventProtected(ref, tx)
+			if err != nil {
+				return err
+			}
+			if protected {
+				return webdav.NewHTTPError(http.StatusConflict, errors.New("calendar contains booking events"))
+			}
 			eventPermission := GetObjectPermissionByReferenceIdWithTransaction(calendarObjectTable, ref, tx)
 			if !eventPermission.CanRead(user, groups, admin) || !eventPermission.CanDelete(user, groups, admin) {
 				return webdav.NewHTTPError(http.StatusForbidden, errors.New("calendar object deletion denied"))
@@ -203,6 +210,13 @@ func (b *DaptinDAVBackend) transferCalendarObject(sourcePath, destinationPath st
 		return false, err
 	}
 	sourceRef := daptinid.InterfaceToDIR(source["reference_id"])
+	protected, err := b.bookingEventProtected(sourceRef, tx)
+	if err != nil {
+		return false, err
+	}
+	if protected {
+		return false, webdav.NewHTTPError(http.StatusConflict, errors.New("booking events are managed through booking actions"))
+	}
 	content, err := b.contentBytes(calendarObjectTable, source)
 	if err != nil {
 		return false, err
@@ -219,6 +233,15 @@ func (b *DaptinDAVBackend) transferCalendarObject(sourcePath, destinationPath st
 	}
 	if exists && !overwrite {
 		return false, webdav.NewHTTPError(http.StatusPreconditionFailed, errors.New("calendar destination exists"))
+	}
+	if exists {
+		protected, err := b.bookingEventProtected(daptinid.InterfaceToDIR(destination["reference_id"]), tx)
+		if err != nil {
+			return false, err
+		}
+		if protected {
+			return false, webdav.NewHTTPError(http.StatusConflict, errors.New("booking events are managed through booking actions"))
+		}
 	}
 	if !b.calendarEditAllowed(destinationCollection, tx, !exists) ||
 		move && (!b.calendarEditAllowed(destinationCollection, tx, true) || !b.calendarEditAllowed(sourceCollection, tx, false)) {

@@ -135,7 +135,10 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		if err != nil {
 			transaction.Rollback()
 		} else {
-			transaction.Commit()
+			if commitErr := transaction.Commit(); commitErr != nil && !errors.Is(commitErr, sql.ErrTxDone) {
+				err = fmt.Errorf("commit action transaction: %w", commitErr)
+				responses = nil
+			}
 		}
 
 		responseStatus := 200

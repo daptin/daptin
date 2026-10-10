@@ -254,6 +254,10 @@ receive update permission by default.
 
 ## Share a CalDAV calendar
 
+For anonymous appointment slots and atomic reservations across calendars, see
+[[Booking|Public appointment booking]]. The `bookable` resource and its actions
+use the existing calendar permissions and scheduling connection.
+
 CalDAV evaluates the authenticated account's Daptin permissions on the
 collection and each event at the calendar owner's canonical URL. A collection
 read grant alone does not grant event content. Free/busy uses peek permission
