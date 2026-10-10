@@ -113,6 +113,9 @@ func (a *davACLAdapter) getPrincipal(requestPath, expectedKind, tableName string
 	if _, err := GetReferenceIdToIdWithTransaction(tableName, ref, tx); err != nil {
 		return webdav.NewHTTPError(http.StatusNotFound, err)
 	}
+	if expectedKind == "account" && ref == a.b.sessionUser.UserReferenceId {
+		return tx.Commit()
+	}
 	admin := a.b.cruds[tableName].AdministratorGroupId
 	table := a.b.cruds[tableName].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", tableName, tx)
 	row := GetObjectPermissionByReferenceIdWithTransaction(tableName, ref, tx)
