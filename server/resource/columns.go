@@ -2016,7 +2016,7 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "cal_sync",
+		TableName:     "dav_sync",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
@@ -2027,7 +2027,7 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "cal_clock",
+		TableName:     "dav_clock",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{
@@ -2036,7 +2036,7 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "cal_log",
+		TableName:     "dav_log",
 		IsHidden:      true,
 		DefaultGroups: adminsGroup,
 		Columns: []api2go.ColumnInfo{

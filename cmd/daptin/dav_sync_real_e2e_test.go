@@ -92,7 +92,7 @@ func runDAVCollectionTransferAndSyncRealE2E(t *testing.T, databaseType, connecti
 	propfind := `<D:propfind xmlns:D="DAV:"><D:prop><D:sync-token/><D:supported-report-set/></D:prop></D:propfind>`
 	properties := davE2EExpect(t, davE2ERequest(client, "PROPFIND", moved, ownerToken,
 		"application/xml", propfind, http.Header{"Depth": {"0"}}), http.StatusMultiStatus)
-	if !strings.Contains(properties.body, "sync-collection") || !strings.Contains(properties.body, "urn:daptin:cal-sync:") {
+	if !strings.Contains(properties.body, "sync-collection") || !strings.Contains(properties.body, "urn:daptin:dav-sync:") {
 		t.Fatalf("calendar sync is not discoverable: %s", properties.body)
 	}
 	syncReport := func(token string, limit int) davE2EResponse {
@@ -187,7 +187,7 @@ func runDAVCollectionTransferAndSyncRealE2E(t *testing.T, databaseType, connecti
 		strings.Contains(jsonRemoved.body, "zero.ics") {
 		t.Fatalf("sync did not report the JSON:API deletion: %s", jsonRemoved.body)
 	}
-	invalid := davE2EExpect(t, syncReport("urn:daptin:cal-sync:invalid", 1), http.StatusForbidden)
+	invalid := davE2EExpect(t, syncReport("urn:daptin:dav-sync:invalid", 1), http.StatusForbidden)
 	if !strings.Contains(invalid.body, "valid-sync-token") {
 		t.Fatalf("invalid token omitted DAV error: %s", invalid.body)
 	}

@@ -143,6 +143,12 @@ CALENDAR_HOME="http://localhost:6336/caldav/USER_REFERENCE_ID/calendars"
 curl -X MKCOL "$CALENDAR_HOME/personal/" \
   -u "user@example.com:password"
 
+# A CalDAV client may use MKCALENDAR to set properties at creation time.
+curl -X MKCALENDAR "$CALENDAR_HOME/planning/" \
+  -u "user@example.com:password" \
+  -H "Content-Type: application/xml" \
+  --data '<C:mkcalendar xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:D="DAV:"><D:set><D:prop><D:displayname>Planning</D:displayname><C:calendar-description>Team plans</C:calendar-description></D:prop></D:set></C:mkcalendar>'
+
 curl -X PUT "$CALENDAR_HOME/personal/event.ics" \
   -u "user@example.com:password" \
   -H "Content-Type: text/calendar" \
@@ -569,15 +575,18 @@ RFC 3744 ACL conformance.
 
 - standards-based current-user-principal and home-set discovery;
 - separate CalDAV calendars and CardDAV address books;
-- `OPTIONS`, `PROPFIND`, `REPORT`, `MKCOL`, `GET`, `HEAD`, `PUT`, and `DELETE`;
+- `OPTIONS`, `PROPFIND`, `REPORT`, `MKCOL`, `GET`, `HEAD`, `PUT`, and `DELETE`,
+  plus CalDAV `MKCALENDAR`;
+- CalDAV `MKCALENDAR` with optional display name and description, created
+  atomically; unsupported creation properties are rejected;
 - calendar collection `PROPPATCH` for display name and description;
 - calendar object `COPY` and `MOVE`, with `Destination` and `Overwrite`
   conditions, UID conflict checks, and Daptin resource permissions;
 - calendar collection `COPY` with `Depth: 0` or `infinity`, and collection
   `MOVE` within the same principal; replacing a connected destination queues
   cancellations for its former events;
-- `DAV:sync-token` discovery and `DAV:sync-collection` REPORT on calendar
-  collections, including changed and removed objects;
+- `DAV:sync-token` discovery and `DAV:sync-collection` REPORT on calendar and
+  address-book collections, including changed and removed objects;
 - calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
 - calendar free-busy-query REPORT with a bounded time range;
 - stable content ETags and conditional object PUT/DELETE protection;
@@ -598,20 +607,22 @@ merging it. Moving an individual object between calendars carries its resource
 identity and uses the destination calendar's group grants. That move does not
 send new invitations because it does not change the meeting itself.
 
-Calendar sync tokens are scoped to the authenticated account and calendar.
+DAV sync tokens are scoped to the authenticated account and collection.
 An empty token returns currently readable objects; subsequent reports return
 changed objects and a `404` entry for objects removed or no longer readable.
 CalDAV and scheduling changes are recorded in the same transaction as the
 event, so a CalDAV object created and deleted between reports still yields a
-`404`. Sync also detects surviving changes made through JSON:API; direct
-resource writes do not create CalDAV protocol history. Responses are limited to
-1,000 changes by default; a `507` entry for the calendar and the returned
+`404`. CardDAV contact PUT and DELETE use the same transaction-backed history,
+including a contact created and deleted between reports. Sync also detects
+surviving changes made through JSON:API; direct resource writes do not create
+DAV protocol history. Responses are limited to
+1,000 changes by default; a `507` entry for the collection and the returned
 token indicate that the client should request the next page. Checkpoints
 expire after 30 days, at which point the client must start with an empty
 token. A token with more than 10,000 recorded changes also requires a new
 initial sync. Calendars with more than 10,000 objects require ordinary full
-listing; the sync endpoint rejects them. CardDAV sync tokens are not
-implemented. Collection grants do not propagate to events
+listing; the sync endpoint rejects them. The same limit applies to CardDAV
+address books. Collection grants do not propagate to events
 created or moved through JSON:API. The endpoint does not implement the RFC 3744
 ACL method or claim full WebDAV ACL conformance.
 

@@ -649,7 +649,7 @@ func (b *DaptinDAVBackend) CreateCalendar(_ context.Context, calendar *caldav.Ca
 	} else if !errors.Is(err, errDAVNotFound) {
 		return err
 	}
-	if err := b.calendarCreate(calendarCollectionTable, calendar.Path, map[string]interface{}{"name": name, "description": calendar.Description}, tx); err != nil {
+	if err := b.calendarCreate(calendarCollectionTable, calendar.Path, map[string]interface{}{"name": name, "display_name": calendar.DisplayName, "description": calendar.Description}, tx); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -1017,24 +1017,51 @@ func (b *DaptinDAVBackend) GetAddressBook(_ context.Context, requestPath string)
 }
 
 func (b *DaptinDAVBackend) DeleteAddressBook(_ context.Context, requestPath string) error {
-	name, err := b.collectionName(requestPath, false)
+	if _, err := b.collectionName(requestPath, false); err != nil {
+		return err
+	}
+	tx, err := b.cruds[addressBookTable].Connection().Beginx()
 	if err != nil {
 		return err
 	}
-	collection, err := b.ownedCollection(addressBookTable, name)
+	defer tx.Rollback()
+	collection, err := b.addressBookWithTransaction(requestPath, false, tx)
 	if err != nil {
 		return err
 	}
-	objects, err := b.objectRows(addressObjectTable, "address_book_id", collection)
+	if err := b.lockAddressBook(collection, tx); err != nil {
+		return err
+	}
+	bookRef := daptinid.InterfaceToDIR(collection["reference_id"])
+	bookID, err := GetReferenceIdToIdWithTransaction(addressBookTable, bookRef, tx)
+	if err != nil {
+		return err
+	}
+	objects, err := b.rowsWithTransaction(addressObjectTable, tx,
+		goqu.Ex{"address_book_id": bookID, "user_account_id": b.sessionUser.UserId})
 	if err != nil {
 		return err
 	}
 	for _, object := range objects {
-		if err := b.delete(addressObjectTable, fmt.Sprint(object["rpath"]), object); err != nil {
+		if _, err := b.cruds[addressObjectTable].deleteAfterAuthorizationWithTransaction(
+			daptinid.InterfaceToDIR(object["reference_id"]), b.request(http.MethodDelete, fmt.Sprint(object["rpath"])), tx); err != nil {
 			return err
 		}
 	}
-	return b.delete(addressBookTable, requestPath, collection)
+	if err := b.deleteDAVSyncState(bookRef, tx); err != nil {
+		return err
+	}
+	if err := b.deleteDAVLogState(bookRef, tx); err != nil {
+		return err
+	}
+	if err := b.deleteDAVClock(bookRef, tx); err != nil {
+		return err
+	}
+	if _, err := b.cruds[addressBookTable].deleteAfterAuthorizationWithTransaction(bookRef,
+		b.request(http.MethodDelete, requestPath), tx); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (b *DaptinDAVBackend) addressObject(row map[string]interface{}) (carddav.AddressObject, error) {
@@ -1094,12 +1121,7 @@ func (b *DaptinDAVBackend) QueryAddressObjects(ctx context.Context, requestPath 
 }
 
 func (b *DaptinDAVBackend) PutAddressObject(_ context.Context, requestPath string, card vcard.Card, opts *carddav.PutAddressObjectOptions) (*carddav.AddressObject, error) {
-	name, err := b.collectionName(requestPath, true)
-	if err != nil {
-		return nil, err
-	}
-	collection, err := b.ownedCollection(addressBookTable, name)
-	if err != nil {
+	if _, err := b.collectionName(requestPath, true); err != nil {
 		return nil, err
 	}
 	var encoded bytes.Buffer
@@ -1107,7 +1129,20 @@ func (b *DaptinDAVBackend) PutAddressObject(_ context.Context, requestPath strin
 		return nil, err
 	}
 	data := encoded.Bytes()
-	existing, findErr := b.objectRow(addressObjectTable, requestPath)
+	crud := b.cruds[addressObjectTable]
+	tx, err := crud.Connection().Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	collection, err := b.addressBookWithTransaction(requestPath, true, tx)
+	if err != nil {
+		return nil, err
+	}
+	if err := b.lockAddressBook(collection, tx); err != nil {
+		return nil, err
+	}
+	existing, findErr := b.objectRowWithTransaction(addressObjectTable, requestPath, tx)
 	exists := findErr == nil
 	if findErr != nil && !errors.Is(findErr, errDAVNotFound) {
 		return nil, findErr
@@ -1125,12 +1160,29 @@ func (b *DaptinDAVBackend) PutAddressObject(_ context.Context, requestPath strin
 	}
 	value := b.contentValue(addressObjectTable, requestPath, vcard.MIMEType, data)
 	if exists {
-		err = b.update(addressObjectTable, requestPath, existing, map[string]interface{}{"content": value})
+		model := api2go.NewApi2GoModelWithData(addressObjectTable, nil, 0, nil, existing)
+		updated := make(map[string]interface{}, len(existing)+1)
+		for key, old := range existing {
+			updated[key] = old
+		}
+		updated["content"] = value
+		model.SetAttributes(updated)
+		_, err = crud.updateAfterAuthorizationWithTransaction(model, b.request(http.MethodPatch, requestPath), tx)
 	} else {
-		_, err = b.create(addressObjectTable, requestPath, map[string]interface{}{"rpath": path.Clean(requestPath), "content": value, "address_book_id": daptinid.InterfaceToDIR(collection["reference_id"]).String()})
+		model := api2go.NewApi2GoModelWithData(addressObjectTable, nil, int64(crud.TableInfo().DefaultPermission), nil,
+			map[string]interface{}{"rpath": path.Clean(requestPath), "content": value,
+				"address_book_id": daptinid.InterfaceToDIR(collection["reference_id"]).String()})
+		_, err = crud.createAfterAuthorizationWithTransaction(model, b.request(http.MethodPost, requestPath), tx)
 	}
 	if err != nil {
+		_ = tx.Rollback()
 		return nil, b.putFailure(addressObjectTable, requestPath, opts.IfMatch, opts.IfNoneMatch, err)
+	}
+	if err := b.appendDAVChange(addressBookTable, daptinid.InterfaceToDIR(collection["reference_id"]), requestPath, nil, tx); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 	return &carddav.AddressObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Card: card}, nil
 }
@@ -1139,5 +1191,45 @@ func (b *DaptinDAVBackend) DeleteAddressObject(_ context.Context, requestPath st
 	if _, err := b.collectionName(requestPath, true); err != nil {
 		return err
 	}
-	return b.deleteObject(addressObjectTable, requestPath)
+	crud := b.cruds[addressObjectTable]
+	tx, err := crud.Connection().Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	book, err := b.addressBookWithTransaction(requestPath, true, tx)
+	if err != nil {
+		return err
+	}
+	if err := b.lockAddressBook(book, tx); err != nil {
+		return err
+	}
+	ifMatch := webdav.ConditionalMatch(b.headers.Get("If-Match"))
+	ifNoneMatch := webdav.ConditionalMatch(b.headers.Get("If-None-Match"))
+	row, err := b.objectRowWithTransaction(addressObjectTable, requestPath, tx)
+	if err != nil {
+		if errors.Is(err, errDAVNotFound) {
+			if conditionErr := checkDAVConditions(false, "", ifMatch, ifNoneMatch); conditionErr != nil {
+				return conditionErr
+			}
+		}
+		return err
+	}
+	if ifMatch.IsSet() || ifNoneMatch.IsSet() {
+		current, err := b.contentBytes(addressObjectTable, row)
+		if err != nil {
+			return err
+		}
+		if err := checkDAVConditions(true, GetMD5Hash(current), ifMatch, ifNoneMatch); err != nil {
+			return err
+		}
+	}
+	grant := GetObjectPermissionByReferenceIdWithTransaction(addressObjectTable, daptinid.InterfaceToDIR(row["reference_id"]), tx)
+	if _, err := crud.deleteAfterAuthorizationWithTransaction(daptinid.InterfaceToDIR(row["reference_id"]), b.request(http.MethodDelete, requestPath), tx); err != nil {
+		return err
+	}
+	if err := b.appendDAVChange(addressBookTable, daptinid.InterfaceToDIR(book["reference_id"]), requestPath, &grant, tx); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

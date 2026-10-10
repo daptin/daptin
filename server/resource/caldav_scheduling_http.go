@@ -86,7 +86,7 @@ func (b *DaptinDAVBackend) ServeScheduling(w http.ResponseWriter, r *http.Reques
 			case len(parts) == 2:
 				allow = "OPTIONS, PROPFIND"
 			case len(parts) == 3 && parts[2] == "calendars":
-				allow = "OPTIONS, PROPFIND, MKCOL"
+				allow = "OPTIONS, PROPFIND, MKCOL, MKCALENDAR"
 			case len(parts) == 4 && parts[2] == "calendars":
 				if _, err := b.GetCalendar(r.Context(), r.URL.Path); err == nil {
 					allow = "OPTIONS, PROPFIND, REPORT, DELETE"
