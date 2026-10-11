@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	stdjson "encoding/json"
 	"errors"
@@ -2097,7 +2098,7 @@ func (dbResource *DbResource) GetSingleRowByReferenceIdWithTransaction(typeName 
 	}
 
 	if len(resultRows) < 1 {
-		return nil, nil, fmt.Errorf("[897] no such entity [%v][%v]", typeName, referenceId)
+		return nil, nil, fmt.Errorf("[897] no such entity [%v][%v]: %w", typeName, referenceId, sql.ErrNoRows)
 	}
 
 	m := resultRows[0]

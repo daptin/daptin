@@ -664,6 +664,8 @@ Signup is disabled after admin setup. Ask admin to create your account or enable
 ### Can't See Records
 
 The records exist but you don't have Peek permission. Contact the owner or admin.
+Direct `GET /api/{table}/{reference_id}` also requires Read on the row: a
+Peek-only grant does not expose its attributes, and the request returns 403.
 
 ---
 

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
@@ -74,7 +75,7 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 		if r == nil {
 			rollbackErr := transaction.Rollback()
 			CheckErr(rollbackErr, "Failed to rollback")
-			return nil, errors.New("Cannot find this object")
+			return nil, api2go.NewHTTPError(nil, "Cannot find this object", http.StatusNotFound)
 		}
 	}
 
@@ -108,6 +109,9 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 	if err != nil {
 		rollbackErr := transaction.Rollback()
 		CheckErr(rollbackErr, "Failed to rollback")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, api2go.NewHTTPError(nil, "Cannot find this object", http.StatusNotFound)
+		}
 		return nil, err
 	}
 	duration := time.Since(start)
@@ -188,7 +192,7 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 	log.Tracef("Completed all AfterFindOne middlewares")
 	if data == nil {
 		_ = transaction.Rollback()
-		return nil, errors.New("Cannot find this object")
+		return nil, api2go.NewHTTPError(nil, "Forbidden", http.StatusForbidden)
 	}
 
 	commitErr := transaction.Commit()
@@ -245,7 +249,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 			return nil, err
 		}
 		if r == nil {
-			return nil, errors.New("Cannot find this object")
+			return nil, api2go.NewHTTPError(nil, "Cannot find this object", http.StatusNotFound)
 		}
 	}
 
@@ -277,6 +281,9 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 	data, include, err := dbResource.GetSingleRowByReferenceIdWithTransaction(modelName, referenceId, includedRelations, transaction)
 	log.Tracef("Completed FindOneWithTransaction GetSingleRowByReferenceIdWithTransaction")
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, api2go.NewHTTPError(nil, "Cannot find this object", http.StatusNotFound)
+		}
 		return nil, err
 	}
 	duration := time.Since(start)
@@ -346,7 +353,7 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 		}
 	}
 	if data == nil {
-		return nil, errors.New("Cannot find this object")
+		return nil, api2go.NewHTTPError(nil, "Forbidden", http.StatusForbidden)
 	}
 
 	delete(data, "id")

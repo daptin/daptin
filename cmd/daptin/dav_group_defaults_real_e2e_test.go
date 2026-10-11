@@ -643,8 +643,15 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	assertDiscovered(delegateToken, false, "team")
 	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "collection", 0)
 	peekDirect := davE2ERequest(client, http.MethodGet, base+"/api/collection/"+collectionID, delegateToken, "", "", nil)
-	if peekDirect.err != nil || peekDirect.status == http.StatusOK {
-		t.Fatalf("peek-only delegate read the collection JSON:API row: %+v", peekDirect)
+	if peekDirect.err != nil || peekDirect.status != http.StatusForbidden {
+		t.Fatalf("peek-only collection GET status: %+v", peekDirect)
+	}
+	missingDirect := davE2EExpect(t, davE2ERequest(client, http.MethodGet,
+		base+"/api/collection/ffffffff-ffff-ffff-ffff-ffffffffffff", delegateToken, "", "", nil), http.StatusForbidden)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet,
+		base+"/api/collection/ffffffff-ffff-ffff-ffff-ffffffffffff", adminToken, "", "", nil), http.StatusNotFound)
+	if strings.Contains(peekDirect.body, "Owner private calendar metadata") || strings.Contains(missingDirect.body, "Owner private calendar metadata") {
+		t.Fatalf("denied collection GET disclosed data: %q, %q", peekDirect.body, missingDirect.body)
 	}
 	if response := eventCapabilities(delegateToken, eventID); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("peek-only delegate queried event capabilities: %+v", response)
@@ -666,8 +673,8 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	if response := davE2ERequest(client, http.MethodGet, privateURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("peek-only share exposed private event through DAV: %+v", response)
 	}
-	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+privateID, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
-		t.Fatalf("peek-only share exposed private event through JSON:API: %+v", response)
+	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+privateID, delegateToken, "", "", nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("peek-only event GET status: %+v", response)
 	}
 	queryResult = davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken,
 		"application/xml", query, nil), http.StatusForbidden)
