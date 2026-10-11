@@ -2069,6 +2069,7 @@ var StandardTables = []table_info.TableInfo{
 			{Name: "event_class", ColumnName: "event_class", ColumnType: "label", DataType: "varchar(20)", IsNullable: false, DefaultValue: "'PRIVATE'"},
 			{Name: "time_zone", ColumnName: "time_zone", ColumnType: "label", DataType: "varchar(100)", IsNullable: false},
 			{Name: "weekly_hours", ColumnName: "weekly_hours", ColumnType: "json", DataType: "text", IsNullable: false},
+			{Name: "date_overrides", ColumnName: "date_overrides", ColumnType: "json", DataType: "text", IsNullable: false, DefaultValue: "'{}'"},
 			{Name: "duration_minutes", ColumnName: "duration_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false},
 			{Name: "increment_minutes", ColumnName: "increment_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false},
 			{Name: "buffer_before_minutes", ColumnName: "buffer_before_minutes", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
@@ -2080,6 +2081,7 @@ var StandardTables = []table_info.TableInfo{
 			{Name: "weekly_limit", ColumnName: "weekly_limit", ColumnType: "value", DataType: "int(11)", IsNullable: false, DefaultValue: "0"},
 			{Name: "questions", ColumnName: "questions", ColumnType: "json", DataType: "text", IsNullable: true},
 		},
+		Validations: []columns.ColumnTag{{ColumnName: "date_overrides", Tags: "booking_date_overrides"}},
 	},
 	{
 		TableName: "booking", Icon: "fa-calendar-check", DefaultGroups: adminsGroup,

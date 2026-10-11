@@ -26,7 +26,25 @@ import (
 	"github.com/emersion/go-ical"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	validator "gopkg.in/go-playground/validator.v9"
 )
+
+func init() {
+	if err := ValidatorInstance.RegisterValidation("booking_date_overrides", func(field validator.FieldLevel) bool {
+		stored, err := jsonColumnStorageValue(field.Field().Interface())
+		if err != nil {
+			return false
+		}
+		value, ok := stored.(string)
+		if !ok {
+			return false
+		}
+		_, err = parseBookingDateOverrides(value)
+		return err == nil
+	}); err != nil {
+		panic(err)
+	}
+}
 
 type bookableAction struct {
 	cruds map[string]*DbResource
@@ -362,6 +380,7 @@ type bookingPolicy struct {
 	zone                                                                         *time.Location
 	duration, increment, before, after, notice, horizon, capacity, daily, weekly int
 	hours                                                                        map[string][]bookingWindow
+	overrides                                                                    map[string][]bookingWindow
 }
 
 type bookingQuestion struct {
@@ -492,24 +511,92 @@ func parseBookingPolicy(page map[string]interface{}) (*bookingPolicy, error) {
 		return nil, bookingHTTP(http.StatusConflict, "invalid weekly hours")
 	}
 	for day, windows := range p.hours {
-		if !validDays[day] || len(windows) > 8 {
+		if !validDays[day] || !validBookingWindows(windows) {
 			return nil, bookingHTTP(http.StatusConflict, "invalid weekly hours")
 		}
-		previousEnd := ""
-		for _, window := range windows {
-			if _, err := time.Parse("15:04", window.Start); err != nil {
-				return nil, bookingHTTP(http.StatusConflict, "invalid weekly hours")
-			}
-			if _, err := time.Parse("15:04", window.End); err != nil {
-				return nil, bookingHTTP(http.StatusConflict, "invalid weekly hours")
-			}
-			if window.Start >= window.End || window.Start < previousEnd {
-				return nil, bookingHTTP(http.StatusConflict, "invalid weekly hours")
-			}
-			previousEnd = window.End
-		}
+	}
+	p.overrides, err = parseBookingDateOverrides(StringOrEmpty(page["date_overrides"]))
+	if err != nil {
+		return nil, err
 	}
 	return p, nil
+}
+
+func parseBookingDateOverrides(value string) (map[string][]bookingWindow, error) {
+	raw := []byte(value)
+	if len(raw) == 0 {
+		raw = []byte("{}")
+	}
+	if len(raw) > 32768 {
+		return nil, bookingHTTP(http.StatusConflict, "date overrides are too large")
+	}
+	var entries map[string]encodingjson.RawMessage
+	if err := encodingjson.Unmarshal(raw, &entries); err != nil || entries == nil || len(entries) > 366 {
+		return nil, bookingHTTP(http.StatusConflict, "invalid date overrides")
+	}
+	overrides := make(map[string][]bookingWindow, len(entries))
+	for date, rawEntry := range entries {
+		parsed, err := time.Parse("2006-01-02", date)
+		if err != nil || parsed.Format("2006-01-02") != date {
+			return nil, bookingHTTP(http.StatusConflict, "invalid date override")
+		}
+		var entry map[string]encodingjson.RawMessage
+		if err := encodingjson.Unmarshal(rawEntry, &entry); err != nil || len(entry) != 1 {
+			return nil, bookingHTTP(http.StatusConflict, "invalid date override")
+		}
+		if closed, ok := entry["closed"]; ok {
+			var value bool
+			if err := encodingjson.Unmarshal(closed, &value); err != nil || !value {
+				return nil, bookingHTTP(http.StatusConflict, "invalid date override")
+			}
+			overrides[date] = nil
+			continue
+		}
+		hours, ok := entry["hours"]
+		if !ok {
+			return nil, bookingHTTP(http.StatusConflict, "invalid date override")
+		}
+		var windows []bookingWindow
+		decoder := encodingjson.NewDecoder(bytes.NewReader(hours))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&windows); err != nil || len(windows) == 0 || !validBookingWindows(windows) {
+			return nil, bookingHTTP(http.StatusConflict, "invalid date override hours")
+		}
+		for _, window := range windows {
+			if len(window.Start) != 5 || len(window.End) != 5 {
+				return nil, bookingHTTP(http.StatusConflict, "invalid date override hours")
+			}
+		}
+		overrides[date] = windows
+	}
+	return overrides, nil
+}
+
+func validBookingWindows(windows []bookingWindow) bool {
+	if len(windows) > 8 {
+		return false
+	}
+	previousEnd := ""
+	for _, window := range windows {
+		if _, err := time.Parse("15:04", window.Start); err != nil {
+			return false
+		}
+		if _, err := time.Parse("15:04", window.End); err != nil {
+			return false
+		}
+		if window.Start >= window.End || window.Start < previousEnd {
+			return false
+		}
+		previousEnd = window.End
+	}
+	return true
+}
+
+func (p *bookingPolicy) windows(day time.Time) []bookingWindow {
+	if windows, present := p.overrides[day.Format("2006-01-02")]; present {
+		return windows
+	}
+	return p.hours[strings.ToLower(day.Weekday().String()[:3])]
 }
 
 func bookingLocalTime(day time.Time, clock string, zone *time.Location) (time.Time, bool) {
@@ -735,8 +822,7 @@ func (a *bookableAction) available(page map[string]interface{}, calendars *booki
 		active = append(active, struct{ start, end time.Time }{start.In(p.zone), end.In(p.zone)})
 	}
 	result := make([]time.Time, 0)
-	key := strings.ToLower(day.Weekday().String()[:3])
-	for _, window := range p.hours[key] {
+	for _, window := range p.windows(day) {
 		for _, start := range bookingWindowStarts(day, window, p) {
 			local := start.In(p.zone)
 			if start.Before(now.Add(time.Duration(p.notice) * time.Minute)) {

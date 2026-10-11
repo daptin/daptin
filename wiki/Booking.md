@@ -16,6 +16,7 @@ Create a `bookable` through `/api/bookable` with these attributes:
   "destination_collection_id": "COLLECTION_REFERENCE_ID",
   "time_zone": "America/New_York",
   "weekly_hours": "{\"mon\":[{\"start\":\"09:00\",\"end\":\"17:00\"}]}",
+  "date_overrides": "{}",
   "duration_minutes": 30,
   "increment_minutes": 30,
   "buffer_before_minutes": 10,
@@ -28,7 +29,13 @@ Create a `bookable` through `/api/bookable` with these attributes:
 }
 ```
 
-`weekly_hours` is JSON keyed by lowercase three-letter weekday names. Each day contains one or more local start/end pairs. Times that do not exist or occur twice at a daylight-saving transition are not offered. Limits of zero mean no daily or weekly count limit. A bookable can include optional `questions` JSON for an external booking UI; Daptin does not render that UI.
+`weekly_hours` is JSON keyed by lowercase three-letter weekday names. Each day contains one or more local start/end pairs. `date_overrides` is optional JSON keyed by an offer-local `YYYY-MM-DD`. Each entry either closes that date or replaces its weekly opening windows. An absent date uses `weekly_hours`. For example, the owner can update the `bookable` through the normal JSON:API resource with:
+
+```json
+{"data":{"type":"bookable","id":"BOOKABLE_REFERENCE_ID","attributes":{"date_overrides":"{\"2026-12-25\":{\"closed\":true},\"2026-12-26\":{\"hours\":[{\"start\":\"10:00\",\"end\":\"14:00\"}]}}"}}}
+```
+
+The override JSON is limited to 32 KiB and 366 dates. Replacement hours contain one to eight ordered, nonoverlapping local `HH:MM` windows; `closed:true` has no hours. Invalid overrides are rejected on create or update. Availability and reservation also validate the stored policy and fail closed if it is invalid. Times that do not exist or occur twice at a daylight-saving transition are not offered. Limits of zero mean no daily or weekly count limit. A bookable can include optional `questions` JSON for an external booking UI; Daptin does not render that UI.
 
 `event_class` accepts `PRIVATE`, `PUBLIC`, or `CONFIDENTIAL` and sets the iCalendar `CLASS` property on new booking events. Calendar table and row permissions still control access. Optional questions use objects such as `{"id":"topic","label":"Topic","required":true}`; reservation sends `answers` as a map from question ID to text.
 
@@ -63,6 +70,8 @@ Content-Type: application/json
 ```
 
 The action locks the offer and all required collections, checks availability again, and writes one booking and its calendar event in the same database transaction. A taken slot returns HTTP 409. Repeating the same attempt key and details returns the same booking reference and guest token, including after a server restart or after the offer is unpublished. Reusing the key with different details returns HTTP 409. Two guests racing for the final place cannot both confirm.
+
+Changing `date_overrides` does not move or cancel confirmed bookings. Confirmed bookings continue to count toward capacity and daily or weekly limits, and their calendar events still block overlapping slots when that calendar is required. A closed date offers no new starts, including starts outside the old weekly hours. Reservation and rescheduling recheck the current policy; an existing booking remains available through status and cancellation.
 
 Use the returned `booking_ref` and `token` with `POST /action/bookable/status`, `/cancel`, or `/reschedule`. Reschedule also takes a new `start`. The offer owner may use these actions while signed in without the guest token. The token grants access to that booking only. Status reports the booking state, whether the event's collection currently has a mail account, and counts of the existing calendar-mail delivery states. Keep the token private.
 

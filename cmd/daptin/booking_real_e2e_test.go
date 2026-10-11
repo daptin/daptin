@@ -310,6 +310,115 @@ func runPublicBookingRealE2E(t *testing.T, databaseType, connectionString string
 	if !strings.Contains(fmt.Sprint(ownerCancelled), "cancelled") {
 		t.Fatalf("owner could not cancel booking: %#v", ownerCancelled)
 	}
+	setOverrides := func(value string, dailyLimit int) {
+		accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/bookable/"+bookableID, ownerToken,
+			accessGroupsE2ERecordPayload("bookable", bookableID, map[string]interface{}{
+				"date_overrides": value, "daily_limit": dailyLimit,
+			}), http.StatusOK)
+	}
+	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/bookable/"+bookableID, hostToken,
+		accessGroupsE2ERecordPayload("bookable", bookableID,
+			map[string]interface{}{"date_overrides": fmt.Sprintf(`{%q:{"closed":true}}`, day)}), http.StatusForbidden)
+	availability := func() []interface{} {
+		response := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/slots", "",
+			map[string]interface{}{"bookable_ref": bookableID, "date": day}, http.StatusOK)
+		return response.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})["slots"].([]interface{})
+	}
+	policyStart := day + "T15:00:00Z"
+	if !strings.Contains(fmt.Sprint(availability()), policyStart) {
+		t.Fatalf("weekly hours omitted existing booking start %s", policyStart)
+	}
+	existing := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reserve", "",
+		map[string]interface{}{"bookable_ref": bookableID, "start": policyStart, "guest_name": "Policy Guest",
+			"guest_email": "policy@example.net", "attempt_key": uuid.NewString()}, http.StatusOK)
+	existingAttrs := existing.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+	existingID := existingAttrs["booking_ref"].(string)
+	existingToken := existingAttrs["token"].(string)
+	setOverrides(fmt.Sprintf(`{%q:{"closed":true}}`, day), 0)
+	if got := availability(); len(got) != 0 {
+		t.Fatalf("closed date still offered slots: %#v", got)
+	}
+	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reserve", "",
+		map[string]interface{}{"bookable_ref": bookableID, "start": day + "T16:00:00Z", "guest_name": "Closed Guest",
+			"guest_email": "closed@example.net", "attempt_key": uuid.NewString()}, http.StatusConflict)
+	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reschedule", "",
+		map[string]interface{}{"booking_ref": existingID, "token": existingToken, "start": day + "T16:00:00Z"}, http.StatusConflict)
+	statusAfterClosure := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/status", "",
+		map[string]interface{}{"booking_ref": existingID, "token": existingToken}, http.StatusOK)
+	if !strings.Contains(fmt.Sprint(statusAfterClosure), policyStart) || !strings.Contains(fmt.Sprint(statusAfterClosure), "confirmed") {
+		t.Fatalf("closing the date changed an existing booking: %#v", statusAfterClosure)
+	}
+	extraHours := fmt.Sprintf(`{%q:{"hours":[{"start":"18:00","end":"19:00"}]}}`, day)
+	setOverrides(extraHours, 1)
+	if got := availability(); len(got) != 0 {
+		t.Fatalf("existing bookings did not count toward the daily limit after a policy change: %#v", got)
+	}
+	setOverrides(extraHours, 0)
+	extraStart := day + "T18:00:00Z"
+	if got := availability(); len(got) != 2 || got[0] != extraStart || got[1] != day+"T18:30:00Z" {
+		t.Fatalf("replacement hours returned the wrong slots: %#v", got)
+	}
+	requests = []string{
+		fmt.Sprintf(`{"bookable_ref":%q,"start":%q,"guest_name":"Extra One","guest_email":"extra1@example.net","attempt_key":%q}`, bookableID, extraStart, uuid.NewString()),
+		fmt.Sprintf(`{"bookable_ref":%q,"start":%q,"guest_name":"Extra Two","guest_email":"extra2@example.net","attempt_key":%q}`, bookableID, extraStart, uuid.NewString()),
+	}
+	results = make([]davE2EResponse, 2)
+	for i := range requests {
+		wait.Add(1)
+		go func(index int) {
+			defer wait.Done()
+			results[index] = davE2ERequest(fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reserve", "", "application/json", requests[index], nil)
+		}(i)
+	}
+	wait.Wait()
+	successes, conflicts = 0, 0
+	for _, result := range results {
+		if result.err != nil {
+			t.Fatal(result.err)
+		}
+		switch result.status {
+		case http.StatusOK:
+			successes++
+		case http.StatusConflict:
+			conflicts++
+		default:
+			t.Fatalf("concurrent override reservation returned %d: %s", result.status, result.body)
+		}
+	}
+	if successes != 1 || conflicts != 1 {
+		t.Fatalf("concurrent last override slot: %+v", results)
+	}
+	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/bookable/"+bookableID, ownerToken,
+		accessGroupsE2ERecordPayload("bookable", bookableID,
+			map[string]interface{}{"date_overrides": `{"2026-02-30":{"closed":true}}`}), http.StatusBadRequest)
+	if got := availability(); len(got) != 1 || got[0] != day+"T18:30:00Z" {
+		t.Fatalf("invalid policy update changed availability: %#v", got)
+	}
+	setOverrides(`{}`, 0)
+	if strings.Contains(fmt.Sprint(availability()), extraStart) {
+		t.Fatalf("removed replacement hours still offered %s", extraStart)
+	}
+	confirmedExtra := false
+	bookingRows := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet,
+		fixture.URL+"/api/booking?page%5Bsize%5D=100", admin, nil, http.StatusOK))
+	for _, item := range bookingRows {
+		attributes := item.(map[string]interface{})["attributes"].(map[string]interface{})
+		storedStart, err := time.Parse(time.RFC3339, attributes["starts_at"].(string))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if storedStart.Format(time.RFC3339) == extraStart && attributes["state"] == "confirmed" {
+			confirmedExtra = true
+		}
+	}
+	if !confirmedExtra {
+		t.Fatalf("removing replacement hours changed the confirmed extra-hours booking: %#v", bookingRows)
+	}
+	statusAfterReset := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/status", "",
+		map[string]interface{}{"booking_ref": existingID, "token": existingToken}, http.StatusOK)
+	if !strings.Contains(fmt.Sprint(statusAfterReset), policyStart) || !strings.Contains(fmt.Sprint(statusAfterReset), "confirmed") {
+		t.Fatalf("removing the date override changed an existing booking: %#v", statusAfterReset)
+	}
 	mailServer := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, "mail_server", map[string]interface{}{
 		"hostname": "localhost", "is_enabled": false, "listen_interface": "127.0.0.1:0",
 		"max_size": 10000, "max_clients": 1, "xclient_on": false,
