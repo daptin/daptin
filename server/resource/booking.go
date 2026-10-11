@@ -921,7 +921,7 @@ func (a *bookableAction) token(ref daptinid.DaptinReferenceId) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func (a *bookableAction) bookingResult(row map[string]interface{}, tx *sqlx.Tx) (map[string]interface{}, error) {
+func (a *bookableAction) bookingResult(row, page map[string]interface{}) (map[string]interface{}, error) {
 	ref := bookingRef(row["reference_id"])
 	token := a.token(ref)
 	if token == "" {
@@ -935,7 +935,7 @@ func (a *bookableAction) bookingResult(row map[string]interface{}, tx *sqlx.Tx) 
 	if err != nil {
 		return nil, err
 	}
-	return map[string]interface{}{"booking_ref": ref.String(), "state": row["state"], "start": start.Format(time.RFC3339), "end": end.Format(time.RFC3339), "token": token}, nil
+	return map[string]interface{}{"booking_ref": ref.String(), "bookable_ref": bookingRef(page["reference_id"]).String(), "time_zone": page["time_zone"], "state": row["state"], "start": start.Format(time.RFC3339), "end": end.Format(time.RFC3339), "token": token}, nil
 }
 
 func (a *bookableAction) request(method, route string, user *auth.SessionUser) api2go.Request {
@@ -1085,7 +1085,7 @@ func (a *bookableAction) reserve(fields map[string]interface{}, tx *sqlx.Tx) (ma
 		if StringOrEmpty(existing["request_hash"]) != requestHash {
 			return nil, bookingHTTP(http.StatusConflict, "attempt key was used for another request")
 		}
-		return a.bookingResult(existing, tx)
+		return a.bookingResult(existing, page)
 	}
 	p, err := parseBookingPolicy(page)
 	if err != nil {
@@ -1166,7 +1166,7 @@ func (a *bookableAction) reserve(fields map[string]interface{}, tx *sqlx.Tx) (ma
 	if err != nil {
 		return nil, err
 	}
-	return a.bookingResult(row, tx)
+	return a.bookingResult(row, page)
 }
 
 func (a *bookableAction) authorizedBooking(fields map[string]interface{}, lock bool, tx *sqlx.Tx) (map[string]interface{}, map[string]interface{}, *auth.SessionUser, error) {
@@ -1261,7 +1261,7 @@ func (a *bookableAction) manage(fields map[string]interface{}, tx *sqlx.Tx) (map
 		return nil, err
 	}
 	if !mutating {
-		result, err := a.bookingResult(row, tx)
+		result, err := a.bookingResult(row, page)
 		if err != nil {
 			return nil, err
 		}
@@ -1295,7 +1295,7 @@ func (a *bookableAction) manage(fields map[string]interface{}, tx *sqlx.Tx) (map
 	}
 	if StringOrEmpty(row["state"]) != "confirmed" {
 		if a.name == "cancel" {
-			return a.bookingResult(row, tx)
+			return a.bookingResult(row, page)
 		}
 		return nil, bookingHTTP(http.StatusConflict, "booking is not confirmed")
 	}
@@ -1368,7 +1368,7 @@ func (a *bookableAction) manage(fields map[string]interface{}, tx *sqlx.Tx) (map
 			return nil, err
 		}
 		if oldStart.Equal(start) {
-			return a.bookingResult(row, tx)
+			return a.bookingResult(row, page)
 		}
 		bookings, err := a.bookingRows(page, tx)
 		if err != nil {
@@ -1455,7 +1455,7 @@ func (a *bookableAction) manage(fields map[string]interface{}, tx *sqlx.Tx) (map
 	for key, value := range attrs {
 		row[key] = value
 	}
-	return a.bookingResult(row, tx)
+	return a.bookingResult(row, page)
 }
 
 func (b *DaptinDAVBackend) bookingEventProtected(ref daptinid.DaptinReferenceId, tx *sqlx.Tx) (bool, error) {

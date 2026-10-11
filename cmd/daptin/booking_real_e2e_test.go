@@ -463,6 +463,60 @@ func runPublicBookingRealE2E(t *testing.T, databaseType, connectionString string
 	if len(mailRows) < 3 {
 		t.Fatalf("booking invitation, reschedule, and cancellation were not queued: %#v", mailRows)
 	}
+	zone := "America/New_York"
+	zoneLocation, err := time.LoadLocation(zone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	zoneDay := time.Now().In(zoneLocation).AddDate(0, 0, 2).Format("2006-01-02")
+	zoneCollectionURL := fixture.URL + "/caldav/" + match[1] + "/calendars/zone-bookings/"
+	davE2EExpect(t, davE2ERequest(fixture.Client, "MKCOL", zoneCollectionURL, ownerToken, "", "", nil), http.StatusCreated)
+	zoneCollectionID := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "collection", "name", "zone-bookings")
+	zoneBookableID := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, ownerToken, "bookable", map[string]interface{}{
+		"title": "New York consultation", "published": true,
+		"destination_collection_id": zoneCollectionID, "time_zone": zone, "weekly_hours": hours,
+		"duration_minutes": 30, "increment_minutes": 30, "buffer_before_minutes": 0,
+		"buffer_after_minutes": 0, "minimum_notice_minutes": 0, "horizon_days": 30,
+		"capacity": 1, "daily_limit": 0, "weekly_limit": 0,
+	})
+	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/set_calendar", ownerToken,
+		map[string]interface{}{"bookable_ref": zoneBookableID, "calendar_ref": zoneCollectionID, "enabled": true}, http.StatusOK)
+	zoneSlotsResponse := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/slots", "",
+		map[string]interface{}{"bookable_ref": zoneBookableID, "date": zoneDay}, http.StatusOK)
+	zoneSlots := zoneSlotsResponse.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})["slots"].([]interface{})
+	if len(zoneSlots) < 2 {
+		t.Fatalf("New York offer has fewer than two slots: %#v", zoneSlotsResponse)
+	}
+	zoneInput := map[string]interface{}{"bookable_ref": zoneBookableID, "start": zoneSlots[0],
+		"guest_name": "Zone Guest", "guest_email": "zone@example.net", "attempt_key": uuid.NewString()}
+	zoneReceipt := func(response interface{}) map[string]interface{} {
+		attributes := response.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+		if attributes["bookable_ref"] != zoneBookableID || attributes["time_zone"] != zone {
+			t.Fatalf("booking receipt omitted the canonical offer and zone: %#v", response)
+		}
+		return attributes
+	}
+	zoneReserved := zoneReceipt(accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reserve", "", zoneInput, http.StatusOK))
+	zoneBookingID := zoneReserved["booking_ref"].(string)
+	zoneToken := zoneReserved["token"].(string)
+	zoneReceipt(accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reserve", "", zoneInput, http.StatusOK))
+	zoneStatus := zoneReceipt(accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/status", "",
+		map[string]interface{}{"booking_ref": zoneBookingID, "token": zoneToken}, http.StatusOK))
+	for _, privateField := range []string{"calendar_ref", "collection_id", "guest_email", "answers", "content"} {
+		if _, exposed := zoneStatus[privateField]; exposed {
+			t.Fatalf("booking status exposed %s: %#v", privateField, zoneStatus)
+		}
+	}
+	zoneReceipt(accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/status", ownerToken,
+		map[string]interface{}{"booking_ref": zoneBookingID}, http.StatusOK))
+	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/status", "",
+		map[string]interface{}{"booking_ref": zoneBookingID, "token": "wrong"}, http.StatusForbidden)
+	zoneReceipt(accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reschedule", "",
+		map[string]interface{}{"booking_ref": zoneBookingID, "token": zoneToken, "start": zoneSlots[1]}, http.StatusOK))
+	zoneReceipt(accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/cancel", "",
+		map[string]interface{}{"booking_ref": zoneBookingID, "token": zoneToken}, http.StatusOK))
+	zoneReceipt(accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/cancel", "",
+		map[string]interface{}{"booking_ref": zoneBookingID, "token": zoneToken}, http.StatusOK))
 	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/set_calendar", ownerToken,
 		map[string]interface{}{"bookable_ref": bookableID, "calendar_ref": hostCollectionID, "enabled": false}, http.StatusOK)
 	withoutHost := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/slots", "",
