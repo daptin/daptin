@@ -715,6 +715,62 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	if response := davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+accountCreatedID, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("revoked account read its created event through JSON:API: %+v", response)
 	}
+	// An administrator may leave the calendar owner without an event-row grant.
+	// Only the account share then grants the delegate access to this event.
+	noOwnerCollectionURL := base + "/caldav/" + match[1] + "/calendars/no-owner-grant/"
+	davE2EExpect(t, davE2ERequest(client, "MKCOL", noOwnerCollectionURL, ownerToken, "", "", nil), http.StatusCreated)
+	noOwnerCollectionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "no-owner-grant")
+	shareNoOwner := func(grant auth.AuthPermission) davE2EResponse {
+		return davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", ownerToken, "application/json",
+			fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"user_account_id":%q,"permission":%d}}`, noOwnerCollectionID, delegateID, grant), nil)
+	}
+	davE2EExpect(t, shareNoOwner(auth.GroupCRUD), http.StatusOK)
+	noOwnerEventURL := noOwnerCollectionURL + "delegate-created.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, noOwnerEventURL, delegateToken,
+		"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
+	noOwnerEventID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
+		"/caldav/"+match[1]+"/calendars/no-owner-grant/delegate-created.ics")
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, noOwnerEventURL, delegateToken, "", "", nil), http.StatusOK)
+	for _, requestURL := range []string{noOwnerEventURL, base + "/api/calendar/" + noOwnerEventID} {
+		if response := davE2ERequest(client, http.MethodGet, requestURL, ownerToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+			t.Fatalf("owner without an event grant read %s: %+v", requestURL, response)
+		}
+	}
+	davE2EExpect(t, shareNoOwner(0), http.StatusOK)
+	for _, requestURL := range []string{noOwnerEventURL, base + "/api/calendar/" + noOwnerEventID} {
+		if response := davE2ERequest(client, http.MethodGet, requestURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+			t.Fatalf("delegate retained revoked grant on %s: %+v", requestURL, response)
+		}
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+noOwnerEventID, adminToken, "", "", nil), http.StatusOK)
+
+	// An administrator can independently choose creator-owned row rights. A
+	// share revocation must not erase that ordinary calendar-row permission.
+	creatorCollectionURL := base + "/caldav/" + match[1] + "/calendars/creator-owned/"
+	davE2EExpect(t, davE2ERequest(client, "MKCOL", creatorCollectionURL, ownerToken, "", "", nil), http.StatusCreated)
+	creatorCollectionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "creator-owned")
+	shareCreator := func(grant auth.AuthPermission) davE2EResponse {
+		return davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", ownerToken, "application/json",
+			fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"user_account_id":%q,"permission":%d}}`, creatorCollectionID, delegateID, grant), nil)
+	}
+	davE2EExpect(t, shareCreator(auth.GroupCRUD), http.StatusOK)
+	creatorEventURL := creatorCollectionURL + "delegate-created.ics"
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, creatorEventURL, delegateToken,
+		"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
+	creatorEventPath := "/caldav/" + match[1] + "/calendars/creator-owned/delegate-created.ics"
+	creatorEventID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath", creatorEventPath)
+	creatorDirectURL := base + "/api/calendar/" + creatorEventID
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, creatorDirectURL, adminToken,
+		accessGroupsE2ERecordPayload("calendar", creatorEventID, map[string]interface{}{"permission": int64(auth.UserCRUD)}), http.StatusOK)
+	davE2EExpect(t, shareCreator(0), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodGet, creatorEventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
+		t.Fatalf("revoked creator read the collection through DAV: %+v", response)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, creatorDirectURL, delegateToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPatch, creatorDirectURL, delegateToken,
+		"application/vnd.api+json", fmt.Sprintf(`{"data":{"type":"calendar","id":%q,"attributes":{"rpath":%q}}}`, creatorEventID, creatorEventPath), nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, creatorDirectURL, delegateToken, "", "", nil), http.StatusOK)
+
 	aclOptions := davE2EExpect(t, davE2ERequest(client, http.MethodOptions, collectionURL, ownerToken, "", "", nil), http.StatusNoContent)
 	if !strings.Contains(aclOptions.header.Get("Allow"), "ACL") {
 		t.Fatalf("calendar did not advertise ACL: %v", aclOptions.header)

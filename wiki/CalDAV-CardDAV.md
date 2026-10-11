@@ -350,6 +350,18 @@ alone. Send `"permission":0` to remove those links; subsequent CalDAV and JSON:A
 requests then use the remaining row permissions. Other grants may still allow
 access.
 
+The administrator chooses the event-row policy independently of sharing:
+
+| Event-row policy | Result after revoking a delegate's share |
+| --- | --- |
+| No owner bits and no separate owner group grant | The delegate loses share-derived access; the calendar owner has no event content grant unless another permission supplies one. |
+| No owner bits with a private owner group granted on the collection | The delegate loses share-derived access; the owner keeps the group's event grant. |
+| `UserCRUD` for the event creator | A delegate who created the event retains direct JSON:API row access when the `calendar` table permits it, even though the revoked collection share no longer permits DAV access. |
+
+These are administrator choices, not a required owner-group setup. A table
+grant is checked in addition to each row grant; denying the `calendar` table
+also denies users who still have valid event-row grants.
+
 A CalDAV client may read `DAV:acl` and send `ACL` to a calendar collection.
 An `ACL` request replaces its editable shares in one transaction through the
 same collection and event relationships as `collection/share`. Account
@@ -418,7 +430,8 @@ Other table or row permissions can still deny a request or allow access after
 a share is revoked. To revoke a delegate's direct JSON:API access to contacts
 they created, configure the `contact` row default without owner read rights.
 
-For revocation to cover direct JSON:API access to delegate-created events,
+If an administrator wants revocation to cover direct JSON:API access to
+delegate-created events while retaining owner access,
 configure the `calendar` row default without `UserRead` or other owner rights.
 For example, `DefaultPermission: 16384` uses the existing `GroupPeek` bit and
 adds no owner access. Keep table access for the intended users as shown above.
