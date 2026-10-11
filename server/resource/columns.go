@@ -294,6 +294,20 @@ var SystemActions = []actionresponse.Action{
 		}},
 	},
 	{
+		Name:             "discover",
+		Label:            "Discover accessible calendars",
+		OnType:           "collection",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "cursor", ColumnName: "cursor", ColumnType: "alias", IsNullable: true},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type: "calendar.discover", Method: "EXECUTE",
+			Attributes: map[string]interface{}{"cursor": "~cursor"},
+		}},
+	},
+	{
 		Name:             "event_capabilities",
 		Label:            "Get calendar event capabilities",
 		OnType:           "collection",

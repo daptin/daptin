@@ -319,6 +319,53 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	eventURL := collectionURL + "event.ics"
 	davE2EExpect(t, davE2ERequest(client, "MKCOL", collectionURL, ownerToken, "", "", nil), http.StatusCreated)
 	collectionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "team")
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/collection/"+collectionID, adminToken,
+		accessGroupsE2ERecordPayload("collection", collectionID, map[string]interface{}{"display_name": "Owner private calendar metadata"}), http.StatusOK)
+	discover := func(token, cursor string) ([]map[string]interface{}, string) {
+		t.Helper()
+		attributes := map[string]interface{}{}
+		if cursor != "" {
+			attributes["cursor"] = cursor
+		}
+		payload, err := json.Marshal(map[string]interface{}{"attributes": attributes})
+		if err != nil {
+			t.Fatal(err)
+		}
+		response := davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/discover", token,
+			"application/json", string(payload), nil), http.StatusOK)
+		var results []struct {
+			Attributes struct {
+				Collections []map[string]interface{} `json:"collections"`
+				NextCursor  string                   `json:"next_cursor"`
+			} `json:"Attributes"`
+		}
+		if err := json.Unmarshal([]byte(response.body), &results); err != nil || len(results) != 1 {
+			t.Fatalf("decode calendar discovery: %v: %s", err, response.body)
+		}
+		return results[0].Attributes.Collections, results[0].Attributes.NextCursor
+	}
+	assertDiscovered := func(token string, canRead bool, label string) {
+		t.Helper()
+		rows, cursor := discover(token, "")
+		if len(rows) != 1 || cursor != "" {
+			t.Fatalf("calendar discovery = %#v, cursor %q", rows, cursor)
+		}
+		row := rows[0]
+		if len(row) != 5 || row["collection_id"] != collectionID || row["href"] != "/caldav/"+match[1]+"/calendars/team/" ||
+			row["display_name"] != label || row["can_read"] != canRead || row["can_free_busy"] != true {
+			t.Fatalf("calendar discovery exposed incorrect fields or privileges: %#v", row)
+		}
+	}
+	if rows, _ := discover(delegateToken, ""); len(rows) != 0 {
+		t.Fatalf("delegate discovered an unshared calendar: %#v", rows)
+	}
+	if rows, _ := discover(unrelatedToken, ""); len(rows) != 0 {
+		t.Fatalf("unrelated account discovered a private calendar: %#v", rows)
+	}
+	if response := davE2ERequest(client, http.MethodPost, base+"/action/collection/discover", delegateToken,
+		"application/json", `{"attributes":{"cursor":"invalid"}}`, nil); response.err != nil || response.status != http.StatusBadRequest {
+		t.Fatalf("invalid discovery cursor was accepted: %+v", response)
+	}
 	shareURL := base + "/action/collection/share"
 	shareGroup := func(group string, grant auth.AuthPermission, token string) davE2EResponse {
 		return davE2ERequest(client, http.MethodPost, shareURL, token, "application/json",
@@ -397,6 +444,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		t.Fatalf("ungranted account queried event capabilities: %+v", response)
 	}
 	davE2EExpect(t, shareGroup(groupID, auth.GroupRead, adminToken), http.StatusOK)
+	assertDiscovered(delegateToken, true, "Owner private calendar metadata")
 	assertCapabilities(delegateToken, false, false)
 	assertEventCapabilities(delegateToken, eventID, false, false)
 	content := davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil), http.StatusOK)
@@ -524,6 +572,9 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "calendar", 1)
 	davE2EExpect(t, share(0, ownerToken), http.StatusOK)
+	if rows, _ := discover(delegateToken, ""); len(rows) != 0 {
+		t.Fatalf("revoked calendar remained discoverable: %#v", rows)
+	}
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("delegate retained event access after calendar share revocation: %+v", response)
 	}
@@ -534,6 +585,12 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 
 	davE2EExpect(t, share(auth.GroupPeek, ownerToken), http.StatusOK)
+	assertDiscovered(delegateToken, false, "team")
+	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "collection", 0)
+	peekDirect := davE2ERequest(client, http.MethodGet, base+"/api/collection/"+collectionID, delegateToken, "", "", nil)
+	if peekDirect.err != nil || peekDirect.status == http.StatusOK {
+		t.Fatalf("peek-only delegate read the collection JSON:API row: %+v", peekDirect)
+	}
 	if response := eventCapabilities(delegateToken, eventID); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("peek-only delegate queried event capabilities: %+v", response)
 	}
@@ -577,6 +634,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 
 	davE2EExpect(t, share(auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, ownerToken), http.StatusOK)
+	assertDiscovered(delegateToken, true, "Owner private calendar metadata")
 	assertEventCapabilities(delegateToken, eventID, true, false)
 	if response := davE2ERequest(client, http.MethodDelete, eventURL, delegateToken, "", "", nil); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("update-only delegate deleted event: %+v", response)
@@ -693,11 +751,22 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		t.Fatalf("account share exposed event to an unrelated account: %+v", response)
 	}
 	davE2EExpect(t, shareUser(delegateID, 0, ownerToken), http.StatusOK)
+	if rows, _ := discover(delegateToken, ""); len(rows) != 0 {
+		t.Fatalf("revoked account share remained discoverable: %#v", rows)
+	}
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("account share revocation left event readable: %+v", response)
 	}
 	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "calendar", 0)
 	davE2EExpect(t, shareUser(delegateID, auth.GroupPeek, ownerToken), http.StatusOK)
+	assertDiscovered(delegateToken, false, "team")
+	accountPeekRows, _ := discover(delegateToken, "")
+	accountBusy := davE2EExpect(t, davE2ERequest(client, "REPORT", base+accountPeekRows[0]["href"].(string), delegateToken,
+		"application/xml", `<C:free-busy-query xmlns:C="urn:ietf:params:xml:ns:caldav"><C:time-range start="20261006T000000Z" end="20261007T000000Z"/></C:free-busy-query>`,
+		http.Header{"Depth": {"1"}}), http.StatusOK)
+	if !strings.Contains(accountBusy.body, "20261006T120000Z/20261006T130000Z") || davE2EContainsPrivateEventDetail(accountBusy.body) {
+		t.Fatalf("discovered free/busy calendar exposed event details: %s", accountBusy.body)
+	}
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("peek-only account share exposed event content: %+v", response)
 	}
@@ -880,5 +949,28 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 	if response := davE2ERequest(client, "ACL", collectionURL, ownerToken, "application/xml", `<D:acl xmlns:D="DAV:"/>`, nil); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("calendar ACL bypassed group sharing action permission: %+v", response)
+	}
+	for i := 0; i < 101; i++ {
+		calendarURL := fmt.Sprintf("%s/caldav/%s/calendars/discovery-page-%03d/", base, match[1], i)
+		davE2EExpect(t, davE2ERequest(client, "MKCOL", calendarURL, ownerToken, "", "", nil), http.StatusCreated)
+	}
+	firstPage, cursor := discover(ownerToken, "")
+	if len(firstPage) != 100 || cursor == "" {
+		t.Fatalf("calendar discovery did not bound the first page: rows=%d cursor=%q", len(firstPage), cursor)
+	}
+	secondPage, endCursor := discover(ownerToken, cursor)
+	if len(secondPage) != 4 || endCursor != "" || firstPage[99]["collection_id"] == secondPage[0]["collection_id"] {
+		t.Fatalf("calendar discovery did not advance to the last page: rows=%d cursor=%q", len(secondPage), endCursor)
+	}
+	if response := davE2ERequest(client, http.MethodPost, base+"/action/collection/discover", delegateToken,
+		"application/json", fmt.Sprintf(`{"attributes":{"cursor":%q}}`, cursor), nil); response.err != nil || response.status != http.StatusBadRequest {
+		t.Fatalf("calendar discovery accepted another account's cursor: %+v", response)
+	}
+	discoverActionID := collectionActionID("discover")
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+discoverActionID, adminToken,
+		accessGroupsE2ERecordPayload("action", discoverActionID, map[string]interface{}{"permission": 0}), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodPost, base+"/action/collection/discover", ownerToken,
+		"application/json", `{"attributes":{}}`, nil); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("calendar discovery bypassed action permission: %+v", response)
 	}
 }

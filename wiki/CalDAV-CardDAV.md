@@ -473,13 +473,38 @@ permissions. Configure the event's row grants to keep its details private.
 
 The delegate uses the calendar owner's canonical CalDAV URL. The delegate's
 own `calendar-home-set` continues to describe calendars owned by that
-delegate; it does not list other owners' calendars. A delegate can discover
-readable shared collections through the normal `GET /api/collection` resource.
-Each returned row includes `name` and `user_account_id`; its CalDAV URL is
-`/caldav/{user_account_id}/calendars/{name}/`. A group with only peek
-rights can obtain free/busy intervals through `free-busy-query` but cannot
-read event content or list it through `/api/calendar`. Sharing with an
-individual account uses `collection/share_user` as described above. Group
+delegate; it does not list other owners' calendars. To discover accessible
+calendars across owners, including free/busy-only shares, call the read-only
+`collection/discover` action as the signed-in account:
+
+```bash
+curl -X POST "http://localhost:6336/action/collection/discover" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{}}'
+```
+
+The action response's `Attributes` contains `collections` and `next_cursor`.
+A collection entry
+contains only `collection_id`, canonical `href`, `display_name`, `can_read`,
+and `can_free_busy`. A free/busy-only share has `can_read:false` and
+`can_free_busy:true`; use `free-busy-query` on its `href` instead of requesting
+event content. Its display name is the collection's URL name. A detail-readable
+entry may use the configured display name. Event rows still have their own
+permissions, so `can_read` does not promise access to every event. When
+`next_cursor` is nonempty, pass that opaque cursor to the action again with
+`{"attributes":{"cursor":"NEXT_CURSOR"}}`; a page may be empty while its
+cursor still points to more collections. The action checks current membership,
+table access, and collection access on each call, so revoked shares disappear
+from discovery. Administrators can configure its action execution permission
+independently.
+
+Readable shared collections also appear through the normal
+`GET /api/collection` resource, whose full row response requires `Read`.
+A group with only peek rights can obtain free/busy intervals through
+`free-busy-query` but cannot read event content or list it through
+`/api/calendar`. Sharing with an individual account uses
+`collection/share_user` as described above. Group
 sharing uses `collection/share` and persisted membership relationships. See
 [[Permissions]] and [[Relationships]] for the general resource workflow.
 

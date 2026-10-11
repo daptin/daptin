@@ -28,6 +28,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 		performers = append(performers, resource.NewBookableAction(cruds, name))
 	}
 	performers = append(performers, resource.NewAddressBookShareAction(cruds))
+	performers = append(performers, resource.NewCalendarDiscoverAction(cruds))
 	performers = append(performers, resource.NewCalendarShareCapabilitiesAction(cruds))
 	performers = append(performers, resource.NewCalendarEventCapabilitiesAction(cruds))
 	performers = append(performers, resource.NewITIPProcessMailAction(cruds))
