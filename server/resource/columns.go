@@ -15,6 +15,9 @@ var publicBookingActionPermission = auth.GuestExecute
 var adminOnlyActionPermission = auth.None
 var adminGroupExecutePermission = auth.GroupExecute
 var adminQueuePermission = auth.GroupCRUD | auth.GroupExecute
+
+const defaultCalendarColor = "#3B82F6"
+
 var adminOnlyActionAccessGroups = table_info.DefaultGroupList{
 	{Name: "administrators", Permission: &adminGroupExecutePermission},
 }
@@ -2278,7 +2281,22 @@ var StandardTables = []table_info.TableInfo{
 		IsHidden:      false,
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-folder-open",
+		Validations: []columns.ColumnTag{
+			{ColumnName: "color", Tags: "hexcolor,len=7"},
+		},
+		Conformations: []columns.ColumnTag{
+			{ColumnName: "color", Tags: "upper"},
+		},
 		Columns: []api2go.ColumnInfo{
+			{
+				ColumnName:        "color",
+				Name:              "color",
+				ColumnType:        "color",
+				DataType:          "varchar(7)",
+				IsNullable:        false,
+				DefaultValue:      "'" + defaultCalendarColor + "'",
+				ColumnDescription: "Calendar display color as #RRGGBB; defaults to #3B82F6.",
+			},
 			{
 				ColumnName:        "display_name",
 				Name:              "display_name",

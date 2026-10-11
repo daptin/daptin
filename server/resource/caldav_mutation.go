@@ -52,6 +52,11 @@ func (b *DaptinDAVBackend) PatchCalendarProperties(_ context.Context, requestPat
 			attrs["display_name"] = value
 		case change.Name.Space == "urn:ietf:params:xml:ns:caldav" && change.Name.Local == "calendar-description":
 			attrs["description"] = value
+		case change.Name.Space == "http://apple.com/ns/ical/" && change.Name.Local == "calendar-color":
+			if change.Remove {
+				value = defaultCalendarColor
+			}
+			attrs["color"] = value
 		default:
 			return webdav.NewHTTPError(http.StatusForbidden, errors.New("protected calendar property"))
 		}

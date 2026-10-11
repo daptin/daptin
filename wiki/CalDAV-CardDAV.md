@@ -218,18 +218,23 @@ object in place.
 
 ## Collection metadata
 
-CalDAV `PROPPATCH` updates `DAV:displayname` and
-`CALDAV:calendar-description` on a calendar collection. Both use the normal
+CalDAV `PROPPATCH` updates `DAV:displayname`,
+`CALDAV:calendar-description`, and the Apple `calendar-color` property
+(`http://apple.com/ns/ical/`) on a calendar collection. They use the normal
 `collection` resource update and its table and row permissions. The display
 name is separate from the collection's URL name; removing it restores the URL
-name as the displayed value. A request containing a protected property changes
+name as the displayed value. Color is stored on `collection` as `#RRGGBB`;
+lowercase hex digits are accepted and stored uppercase. A new calendar, or one
+whose color property is removed, uses `#3B82F6`. Color can also be supplied in
+`MKCALENDAR` and is returned by collection `PROPFIND` to callers who can read
+the collection. A request containing a protected or invalid property changes
 nothing and reports its failure in the DAV 207 response. For example:
 
 ```bash
 curl -X PROPPATCH "$CALENDAR_HOME/personal/" \
   -u "user@example.com:password" \
   -H "Content-Type: application/xml" \
-  --data '<D:propertyupdate xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:set><D:prop><D:displayname>Personal</D:displayname><C:calendar-description>My calendar</C:calendar-description></D:prop></D:set></D:propertyupdate>'
+  --data '<D:propertyupdate xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:A="http://apple.com/ns/ical/"><D:set><D:prop><D:displayname>Personal</D:displayname><C:calendar-description>My calendar</C:calendar-description><A:calendar-color>#3B82F6</A:calendar-color></D:prop></D:set></D:propertyupdate>'
 ```
 
 CardDAV `PROPPATCH` likewise updates `DAV:displayname` and
@@ -242,7 +247,7 @@ calendar's public `reference_id` from `/api/collection`:
 curl -X PATCH "http://localhost:6336/api/collection/COLLECTION_REFERENCE_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
-  --data '{"data":{"type":"collection","id":"COLLECTION_REFERENCE_ID","attributes":{"description":"Work calendar"}}}'
+  --data '{"data":{"type":"collection","id":"COLLECTION_REFERENCE_ID","attributes":{"description":"Work calendar","color":"#0EA5E9"}}}'
 ```
 
 The caller needs update permission on both the `collection` table and that
@@ -502,6 +507,8 @@ table and on the `discover` action; these checks do not grant row access.
 
 Readable shared collections also appear through the normal
 `GET /api/collection` resource, whose full row response requires `Read`.
+Their stored color is available there and through collection `PROPFIND`.
+The peek-only `collection/discover` response does not include color.
 A group with only peek rights can obtain free/busy intervals through
 `free-busy-query` but cannot read event content or list it through
 `/api/calendar`. Sharing with an individual account uses

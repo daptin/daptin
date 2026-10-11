@@ -139,7 +139,7 @@ func (b *DaptinDAVBackend) transferCalendarCollection(sourcePath, destinationPat
 			}
 		}
 	} else {
-		attrs := map[string]interface{}{"name": destinationName, "description": StringOrEmpty(source["description"])}
+		attrs := map[string]interface{}{"name": destinationName, "description": StringOrEmpty(source["description"]), "color": StringOrEmpty(source["color"])}
 		if displayName := StringOrEmpty(source["display_name"]); displayName != "" {
 			attrs["display_name"] = displayName
 		}

@@ -680,7 +680,11 @@ func (b *DaptinDAVBackend) CreateCalendar(_ context.Context, calendar *caldav.Ca
 	} else if !errors.Is(err, errDAVNotFound) {
 		return err
 	}
-	if err := b.calendarCreate(calendarCollectionTable, calendar.Path, map[string]interface{}{"name": name, "display_name": calendar.DisplayName, "description": calendar.Description}, tx); err != nil {
+	attrs := map[string]interface{}{"name": name, "display_name": calendar.DisplayName, "description": calendar.Description}
+	if calendar.Color != "" {
+		attrs["color"] = calendar.Color
+	}
+	if err := b.calendarCreate(calendarCollectionTable, calendar.Path, attrs, tx); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -705,7 +709,7 @@ func (b *DaptinDAVBackend) ListCalendars(_ context.Context, requestedPath string
 	collectionTable, eventTable := b.calendarTablePermissions(tx)
 	for _, row := range rows {
 		name := fmt.Sprint(row["name"])
-		calendar := caldav.Calendar{Path: home + name + "/", Name: name, DisplayName: StringOrEmpty(row["display_name"]), Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
+		calendar := caldav.Calendar{Path: home + name + "/", Name: name, DisplayName: StringOrEmpty(row["display_name"]), Description: fmt.Sprint(row["description"]), Color: StringOrEmpty(row["color"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
 		b.calendarPrivileges(&calendar, row, collectionTable, eventTable, tx)
 		result = append(result, calendar)
 	}
@@ -721,7 +725,7 @@ func (b *DaptinDAVBackend) GetCalendar(_ context.Context, requestPath string) (*
 	if err != nil {
 		return nil, err
 	}
-	calendar := &caldav.Calendar{Path: b.prefix + "/" + owner.String() + "/calendars/" + name + "/", Name: name, DisplayName: StringOrEmpty(row["display_name"]), Description: fmt.Sprint(row["description"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
+	calendar := &caldav.Calendar{Path: b.prefix + "/" + owner.String() + "/calendars/" + name + "/", Name: name, DisplayName: StringOrEmpty(row["display_name"]), Description: fmt.Sprint(row["description"]), Color: StringOrEmpty(row["color"]), SupportedComponentSet: []string{ical.CompEvent, ical.CompToDo, ical.CompJournal}}
 	tx, err := b.cruds[calendarCollectionTable].Connection().Beginx()
 	if err != nil {
 		return nil, err
