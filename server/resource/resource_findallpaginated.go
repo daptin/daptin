@@ -1,9 +1,7 @@
 package resource
 
 import (
-	"context"
 	"fmt"
-	"github.com/buraksezer/olric"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -103,36 +101,11 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 		return 0, nil
 	}
 
-	queryHash := GetMD5HashString(s + fmt.Sprintf("%v", v))
-	cacheKey := fmt.Sprintf("count-%v", queryHash)
-	if OlricCache != nil {
-		cachedCount, err := OlricCache.Get(context.Background(), cacheKey)
-		if err == nil {
-			return cachedCount.Uint64()
-		}
-	}
-
 	var count uint64
 
 	start := time.Now()
-	stmt1, err := transaction.Preparex(s)
+	err = transaction.QueryRowx(s, v...).Scan(&count)
 	duration := time.Since(start)
-	log.Tracef("[TIMING] GetTotalCountBySelectBuilder PrepareX: %v", duration)
-
-	if err != nil {
-		log.Errorf("[61] failed to prepare statment: %v", err)
-		return 0, err
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
-	start = time.Now()
-	err = stmt1.QueryRowx(v...).Scan(&count)
-	duration = time.Since(start)
 	log.Tracef("[TIMING] GetTotalCountBySelectBuilder QueryRowx: %v", duration)
 
 	if err != nil {
@@ -140,10 +113,6 @@ func GetTotalCountBySelectBuilderWithTransaction(builder *goqu.SelectDataset, tr
 		return 0, err
 	}
 	//log.Printf("Count: [%v] %v", dr.model.GetTableName(), count)
-
-	if OlricCache != nil {
-		OlricCache.Put(context.Background(), cacheKey, count, olric.EX(3*time.Second), olric.NX())
-	}
 
 	return count, nil
 }
@@ -346,6 +315,21 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			log.Errorf("Invalid parameter value: %v", req.QueryParams["page[size]"])
 		}
 	}
+	_, hasOffset := req.QueryParams["page[offset]"]
+	_, hasLimit := req.QueryParams["page[limit]"]
+	if hasOffset || hasLimit {
+		if !hasOffset || !hasLimit || len(req.QueryParams["page[offset]"]) == 0 || len(req.QueryParams["page[limit]"]) == 0 {
+			return nil, nil, nil, false, api2go.NewHTTPError(nil, "page[offset] and page[limit] must be used together", http.StatusBadRequest)
+		}
+		pageNumber, err = strconv.ParseUint(req.QueryParams["page[offset]"][0], 10, 32)
+		if err != nil {
+			return nil, nil, nil, false, api2go.NewHTTPError(err, "invalid page offset", http.StatusBadRequest)
+		}
+		pageSize, err = strconv.ParseUint(req.QueryParams["page[limit]"][0], 10, 32)
+		if err != nil || pageSize == 0 {
+			return nil, nil, nil, false, api2go.NewHTTPError(err, "invalid page limit", http.StatusBadRequest)
+		}
+	}
 
 	includedRelations := make(map[string]bool, 0)
 	if len(req.QueryParams["included_relations"]) > 0 {
@@ -402,7 +386,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	//	filters = req.QueryParams["filter"]
 	//}
 
-	if pageNumber > 0 {
+	if pageNumber > 0 && !hasOffset {
 		pageNumber = pageNumber * pageSize
 	}
 
@@ -691,6 +675,11 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 				}
 			}
 			if ok {
+				if len(objectNameList) > 0 {
+					if err := dbResource.authorizeRelatedParents(rel.GetObject(), uuidStringQueries, req, transaction); err != nil {
+						return nil, nil, nil, false, err
+					}
+				}
 
 				//ids, err := dbResource.GetSingleColumnValueByReferenceId(rel.GetObject(), []interface{}{"id"}, "reference_id", uuidStringQueries)
 
@@ -874,6 +863,9 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 			//log.Printf("%d Values as RefIds for relation [%v]", len(filters), rel.String())
 			if !ok || len(queries) < 1 || queries[0] == "" {
 				continue
+			}
+			if err := dbResource.authorizeRelatedParents(rel.GetSubject(), queries, req, transaction); err != nil {
+				return nil, nil, nil, false, err
 			}
 			ids, err := GetSingleColumnValueByReferenceIdWithTransaction(rel.GetSubject(), []interface{}{"id"},
 				"reference_id", queries, transaction)
@@ -1405,6 +1397,40 @@ var OperatorMap = map[string]string{
 }
 
 const invalidQueryFilterMessage = "invalid query filter column"
+
+func (dbResource *DbResource) authorizeRelatedParents(table string, references []string, req api2go.Request, tx *sqlx.Tx) error {
+	parent := dbResource.Cruds[table]
+	if parent == nil || req.PlainRequest == nil {
+		return fmt.Errorf("related parent resource %s unavailable", table)
+	}
+	parentRequest := req
+	parentRequest.QueryParams = nil
+	parentRequest.Pagination = nil
+	parentRequest.PlainRequest = req.PlainRequest.WithContext(WithMeteringInternal(req.PlainRequest.Context()))
+	seen := make(map[string]bool, len(references))
+	for index, reference := range references {
+		if reference == "mine" && table == USER_ACCOUNT_TABLE_NAME {
+			user, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+			if user == nil {
+				return api2go.NewHTTPError(nil, "Forbidden", http.StatusForbidden)
+			}
+			reference = user.UserReferenceId.String()
+			references[index] = reference
+		}
+		if seen[reference] {
+			continue
+		}
+		seen[reference] = true
+		id, err := uuid.Parse(reference)
+		if err != nil {
+			return invalidRelationFilterError(table)
+		}
+		if _, err = parent.FindOneWithTransaction(daptinid.DaptinReferenceId(id), parentRequest, tx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func invalidRelationFilterError(relationName string) error {
 	return api2go.NewHTTPError(fmt.Errorf("invalid relation filter for %s", relationName), "invalid relation filter", http.StatusBadRequest)
@@ -2014,6 +2040,18 @@ func (dbResource *DbResource) PaginatedFindAll(req api2go.Request) (totalCount u
 		includesNew = includesNewUpdated
 
 	}
+	checkIncludes := len(req.QueryParams["included_relations"]) > 0
+	for _, included := range includesNew {
+		checkIncludes = checkIncludes || len(included) > 0
+	}
+	if checkIncludes {
+		tableAccess := make(map[string]bool)
+		sessionUser, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+		isAdmin := IsAdminWithTransaction(sessionUser, transaction)
+		for i := range results {
+			includesNew[i] = dbResource.filterIncludedRelationLinkage(results[i], includesNew[i], sessionUser, isAdmin, transaction, tableAccess)
+		}
+	}
 
 	log.Tracef("Commit transaction in PaginatedFindAll")
 	commitErr := transaction.Commit()
@@ -2207,6 +2245,18 @@ func (dbResource *DbResource) paginatedFindAllWithTransaction(req api2go.Request
 		}
 		includesNew = includesNewUpdated
 
+	}
+	checkIncludes := len(req.QueryParams["included_relations"]) > 0
+	for _, included := range includesNew {
+		checkIncludes = checkIncludes || len(included) > 0
+	}
+	if checkIncludes {
+		tableAccess := make(map[string]bool)
+		sessionUser, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+		isAdmin := IsAdminWithTransaction(sessionUser, transaction)
+		for i := range results {
+			includesNew[i] = dbResource.filterIncludedRelationLinkage(results[i], includesNew[i], sessionUser, isAdmin, transaction, tableAccess)
+		}
 	}
 
 	result := make([]api2go.Api2GoModel, 0)

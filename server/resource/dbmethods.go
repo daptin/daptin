@@ -690,21 +690,11 @@ func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(ob
 		return perm
 	}
 
-	stmt, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[624] failed to prepare statment: %v", err)
-		return perm
-	}
-
 	m := make(map[string]interface{})
-	errScan := stmt.QueryRowx(q...).MapScan(m)
-	err = stmt.Close()
-	if err != nil {
-		log.Errorf("[632] failed to close prepared statement: %v", err)
-	}
+	errScan := transaction.QueryRowx(s, q...).MapScan(m)
 	if errScan != nil {
 
-		log.Errorf("[636] failed to scan permission: %v", err)
+		log.Errorf("[636] failed to scan permission: %v", errScan)
 		return perm
 	}
 
@@ -875,19 +865,7 @@ func (dbResource *DbResource) GetObjectUserGroupsByWhereWithTransaction(objectTy
 		return s
 	}
 
-	stmt, err := transaction.Preparex(sql)
-	if err != nil {
-		log.Errorf("[811] failed to prepare statment: %v", err)
-		return nil
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("[814] failed to close prepared statement: %v", err)
-		}
-	}(stmt)
-
-	res, err := stmt.Queryx(args...)
+	res, err := transaction.Queryx(sql, args...)
 	//log.Printf("Group select sql: %v", sql)
 	if err != nil {
 
@@ -3728,6 +3706,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					fallthrough
 				case "has_many_and_belongs_to_many":
+					row[relation.GetObjectName()] = make([]string, 0)
 					dir := daptinid.InterfaceToDIR(row["reference_id"])
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetObjectName()+".id")).Prepared(true).
@@ -3901,6 +3880,7 @@ func (dbResource *DbResource) ResultToArrayOfMapWithTransaction(
 
 					fallthrough
 				case "has_many_and_belongs_to_many":
+					row[relation.GetSubjectName()] = make([]string, 0)
 					asDir := daptinid.InterfaceToDIR(row["reference_id"])
 					query, args, err := statementbuilder.Squirrel.
 						Select(goqu.I(relation.GetSubjectName()+".id")).Prepared(true).

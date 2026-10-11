@@ -11,7 +11,7 @@ require (
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/artpar/api2go-adapter v1.0.2
-	github.com/artpar/api2go/v2 v2.7.3
+	github.com/artpar/api2go/v2 v2.7.4
 	github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81
 	github.com/artpar/ftpserver v0.0.4-daptin.2
 	github.com/artpar/go-guerrilla v1.5.2

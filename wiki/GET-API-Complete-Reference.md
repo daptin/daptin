@@ -286,6 +286,20 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 Use `included_relations` to load related records.
 
+To inspect a to-many relationship, use
+`GET /api/{table}/{id}/relationships/{relation}`. It returns related reference
+IDs visible to the caller. Use `page[number]` and `page[size]`, or
+`page[offset]` and `page[limit]`, to page through a large relationship; the
+default page contains 10 links. Use
+`GET /api/{table}/{id}/{relation}` to fetch the related records. Both routes
+require access to the parent and apply the related table and row permissions.
+The relationship response's `links.total` counts the related records visible
+to the current account; a later request reflects permission changes.
+An ordinary record response does not enumerate a to-many relationship unless
+it was loaded; use the relationship URL to read its current links.
+`included_relations` expands at most 50 related records per relation, so use
+the paginated relationship URL when all links are needed.
+
 **Parameter name**: `included_relations` (NOT `include`)
 
 ### Examples

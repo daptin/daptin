@@ -194,6 +194,10 @@ func (dbResource *DbResource) FindOne(referenceIdString string, req api2go.Reque
 		_ = transaction.Rollback()
 		return nil, api2go.NewHTTPError(nil, "Forbidden", http.StatusForbidden)
 	}
+	if len(include) > 0 || len(req.QueryParams["included_relations"]) > 0 {
+		sessionUser, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+		include = dbResource.filterIncludedRelationLinkage(data, include, sessionUser, IsAdminWithTransaction(sessionUser, transaction), transaction, make(map[string]bool))
+	}
 
 	commitErr := transaction.Commit()
 	CheckErr(commitErr, "failed to commit")
@@ -355,6 +359,10 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 	if data == nil {
 		return nil, api2go.NewHTTPError(nil, "Forbidden", http.StatusForbidden)
 	}
+	if len(include) > 0 || len(req.QueryParams["included_relations"]) > 0 {
+		sessionUser, _ := req.PlainRequest.Context().Value("user").(*auth.SessionUser)
+		include = dbResource.filterIncludedRelationLinkage(data, include, sessionUser, IsAdminWithTransaction(sessionUser, transaction), transaction, make(map[string]bool))
+	}
 
 	delete(data, "id")
 
@@ -369,6 +377,63 @@ func (dbResource *DbResource) FindOneWithTransaction(referenceId daptinid.Daptin
 	}
 
 	return NewResponse(nil, a, 200, nil), nil
+}
+
+// The include middleware has already applied row permissions. Reconcile loaded
+// linkage with those visible rows and the target table's read permission.
+func (dbResource *DbResource) filterIncludedRelationLinkage(row map[string]interface{}, includes []map[string]interface{}, user *auth.SessionUser, isAdmin bool, transaction *sqlx.Tx, tableAccess map[string]bool) []map[string]interface{} {
+	if user == nil {
+		user = &auth.SessionUser{}
+	}
+	if isAdmin {
+		return includes
+	}
+
+	visible := make(map[string]map[string]bool)
+	filteredIncludes := make([]map[string]interface{}, 0, len(includes))
+	for _, include := range includes {
+		name, _ := include["__type"].(string)
+		if strings.Contains(name, ".") {
+			filteredIncludes = append(filteredIncludes, include)
+			continue
+		}
+		if name == "" || dbResource.Cruds[name] == nil {
+			continue
+		}
+		allowed, checked := tableAccess[name]
+		if !checked {
+			permission := dbResource.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", name, transaction)
+			allowed = permission.CanPeek(user.UserReferenceId, user.Groups, dbResource.AdministratorGroupId)
+			tableAccess[name] = allowed
+		}
+		if !allowed {
+			continue
+		}
+		filteredIncludes = append(filteredIncludes, include)
+		if visible[name] == nil {
+			visible[name] = make(map[string]bool)
+		}
+		visible[name][daptinid.InterfaceToDIR(include["reference_id"]).String()] = true
+	}
+
+	for _, relation := range dbResource.model.GetRelations() {
+		name, target := relation.GetObjectName(), relation.GetObject()
+		if relation.GetSubject() != dbResource.model.GetName() {
+			name, target = relation.GetSubjectName(), relation.GetSubject()
+		}
+		ids, loaded := row[name].([]string)
+		if !loaded {
+			continue
+		}
+		readable := make([]string, 0, len(ids))
+		for _, id := range ids {
+			if visible[target][id] {
+				readable = append(readable, id)
+			}
+		}
+		row[name] = readable
+	}
+	return filteredIncludes
 }
 
 func (dbResource *DbResource) appendFindOneInclude(model *api2go.Api2GoModel, include map[string]interface{}) error {

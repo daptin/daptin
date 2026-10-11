@@ -259,6 +259,8 @@ github.com/artpar/api2go-adapter v1.0.2 h1:BVueeBZ5kPbmS7UXvi3vbLWgPwQFO43xP4SGk
 github.com/artpar/api2go-adapter v1.0.2/go.mod h1:I4kabmR6U2vt/C6LPHDZ7mKThBuN5XbV6zuiHv4hazA=
 github.com/artpar/api2go/v2 v2.7.3 h1:Va0AoVanwBxfGETLviVDgBzjOfOdX4UB5o3+mOhgH00=
 github.com/artpar/api2go/v2 v2.7.3/go.mod h1:Mk1Cov/Epc5E6mg/nHpw+ZQ1nK3+7ujFXg86yxBRs5k=
+github.com/artpar/api2go/v2 v2.7.4 h1:BgYzrrTJ4itYhdWz+InOy9t13z2jqR9qVKW2trov9B8=
+github.com/artpar/api2go/v2 v2.7.4/go.mod h1:Mk1Cov/Epc5E6mg/nHpw+ZQ1nK3+7ujFXg86yxBRs5k=
 github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81 h1:MLrwgsAnzSfOdTXNWYdOS2a3aRJk9uSyCarDMOW4S9U=
 github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81/go.mod h1:gTQE1bELgcZsb9xDvo0PSPOPGb5OQuhKRQ3zFZJDjLc=
 github.com/artpar/ftpserver v0.0.4-daptin.2 h1:bKtwuSSRLcZ508My5fk1GgP6hwjnMikQNDntM7BdBb8=
