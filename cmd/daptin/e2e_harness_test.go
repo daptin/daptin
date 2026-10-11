@@ -109,13 +109,17 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 
 	ctx, cancel := context.WithCancel(context.Background())
 	logs := &lockedTransportE2EBuffer{}
+	runtimeMode := os.Getenv("DAPTIN_E2E_RUNTIME")
+	if runtimeMode == "" {
+		runtimeMode = "test"
+	}
 	arguments := []string{"run", "./cmd/daptin",
 		"-port", fmt.Sprintf(":%d", port),
 		"-https_port", fmt.Sprintf(":%d", httpsPort),
 		"-db_type", options.databaseType,
 		"-db_connection_string", options.connectionString,
 		"-local_storage_path", filepath.Join(tmpDir, "storage"),
-		"-runtime", "test",
+		"-runtime", runtimeMode,
 		"-log_level", "error",
 	}
 	if options.olricPort > 0 {
@@ -124,7 +128,12 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 	if options.olricPeers != "" {
 		arguments = append(arguments, "-olric_peers", options.olricPeers)
 	}
-	cmd := exec.CommandContext(ctx, "go", arguments...)
+	command := "go"
+	if binary := os.Getenv("DAPTIN_E2E_BINARY"); binary != "" {
+		command = binary
+		arguments = arguments[2:]
+	}
+	cmd := exec.CommandContext(ctx, command, arguments...)
 	if options.schema != "" {
 		cmd.Env = transportE2EEnvironment("DAPTIN_SCHEMA_FOLDER", tmpDir)
 	}

@@ -163,15 +163,15 @@ func (b *DaptinDAVBackend) deleteCalendarCollection(requestPath string, collecti
 	return b.calendarDelete(calendarCollectionTable, requestPath, collection, tx)
 }
 
-func (b *DaptinDAVBackend) CopyCalendarObject(_ context.Context, sourcePath, destinationPath string, overwrite bool) (bool, error) {
-	return b.transferCalendarObject(sourcePath, destinationPath, overwrite, false)
+func (b *DaptinDAVBackend) CopyCalendarObject(ctx context.Context, sourcePath, destinationPath string, overwrite bool) (bool, error) {
+	return b.transferCalendarObject(ctx, sourcePath, destinationPath, overwrite, false)
 }
 
-func (b *DaptinDAVBackend) MoveCalendarObject(_ context.Context, sourcePath, destinationPath string, overwrite bool) (bool, error) {
-	return b.transferCalendarObject(sourcePath, destinationPath, overwrite, true)
+func (b *DaptinDAVBackend) MoveCalendarObject(ctx context.Context, sourcePath, destinationPath string, overwrite bool) (bool, error) {
+	return b.transferCalendarObject(ctx, sourcePath, destinationPath, overwrite, true)
 }
 
-func (b *DaptinDAVBackend) transferCalendarObject(sourcePath, destinationPath string, overwrite, move bool) (bool, error) {
+func (b *DaptinDAVBackend) transferCalendarObject(ctx context.Context, sourcePath, destinationPath string, overwrite, move bool) (bool, error) {
 	sourceOwner, sourceName, err := b.calendarPath(sourcePath, true)
 	if err != nil {
 		return false, err
@@ -229,6 +229,19 @@ func (b *DaptinDAVBackend) transferCalendarObject(sourcePath, destinationPath st
 	calendar, err := ical.NewDecoder(bytes.NewReader(content)).Decode()
 	if err != nil {
 		return false, err
+	}
+	if !move && len(managedAttachmentIDs(calendar)) != 0 {
+		return false, webdav.NewHTTPError(http.StatusConflict, errors.New("copying a managed attachment requires a new upload"))
+	}
+	if move && len(managedAttachmentIDs(calendar)) != 0 {
+		if err := rewriteManagedAttachmentURLs(calendar, destinationPath); err != nil {
+			return false, webdav.NewHTTPError(http.StatusConflict, err)
+		}
+		var updated bytes.Buffer
+		if err := ical.NewEncoder(&updated).Encode(calendar); err != nil {
+			return false, err
+		}
+		content = updated.Bytes()
 	}
 	uid, organizer := itipCalendarIdentity(calendar)
 	destination, findErr := b.calendarObjectRow(destinationPath, destinationCollection, tx)
@@ -297,6 +310,7 @@ func (b *DaptinDAVBackend) transferCalendarObject(sourcePath, destinationPath st
 		"content": b.contentValue(calendarObjectTable, destinationPath, ical.MIMEType, content),
 		"uid":     uid, "organizer_address": organizer, "schedule_tag": tag,
 	}
+	var removedAttachmentKeys []string
 	if move {
 		if exists {
 			if err := b.calendarDelete(calendarObjectTable, destinationPath, destination, tx); err != nil {
@@ -315,12 +329,22 @@ func (b *DaptinDAVBackend) transferCalendarObject(sourcePath, destinationPath st
 		if err := b.calendarUpdate(calendarObjectTable, destinationPath, destination, attrs, tx); err != nil {
 			return false, err
 		}
+		previous, err := b.contentBytes(calendarObjectTable, destination)
+		if err != nil {
+			return false, err
+		}
+		removed, err := b.removeUnreferencedAttachments(daptinid.InterfaceToDIR(destination["reference_id"]), previous, calendar, tx)
+		if err != nil {
+			return false, err
+		}
+		removedAttachmentKeys = removed
 	} else if err := b.calendarCreateEvent(destinationPath, destinationCollection, attrs, tx); err != nil {
 		return false, err
 	}
 	if err := tx.Commit(); err != nil {
 		return false, err
 	}
+	b.removeStoredAttachments(ctx, removedAttachmentKeys)
 	return !exists, nil
 }
 

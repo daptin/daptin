@@ -520,6 +520,57 @@ The `name` field is the collection's URL segment. Change `DAV:displayname` to
 rename the displayed calendar or address book; the URL segment and object
 paths stay the same. Renaming the URL segment through DAV is unsupported.
 
+## Attach files to calendar events
+
+An administrator can connect the built-in `calendar.attachments` asset column
+to a Daptin `cloud_store`. Create the store through the normal `cloud_store`
+resource, then configure the calendar column in the schema and restart Daptin:
+
+```yaml
+- TableName: calendar
+  Columns:
+    - Name: attachments
+      ColumnName: attachments
+      DataType: longblob
+      ColumnType: file.*
+      IsNullable: true
+      IsForeignKey: true
+      ForeignKeyData:
+        DataSource: cloud_store
+        Namespace: calendar-files
+        KeyName: events
+```
+
+`Namespace` names the configured store; `KeyName` selects its folder. See
+[[Asset-Columns]] for the storage setup. Without this connection, ordinary
+CalDAV events still work and the server does not advertise managed attachments.
+
+A client first creates an event with CalDAV `PUT`, then sends the file bytes to
+that event URL with `POST ?action=attachment-add`, `Content-Type`, and
+`Content-Disposition: attachment; filename="agenda.pdf"`. `If-Match` may carry
+the event's current ETag. The response supplies `Cal-Managed-ID` and a new
+ETag. The server adds an `ATTACH` property to the event and stores the bytes
+under that event's reference ID in the configured store. `GET` or `HEAD` on
+the `ATTACH` URL downloads the file only for an account allowed to read the
+collection and event. The event's normal edit grants govern uploads, updates,
+and removals.
+
+To replace a file, `POST ?action=attachment-update&managed-id=ID` with the new
+bytes and headers. To remove it, `POST ?action=attachment-remove&managed-id=ID`.
+Both accept `If-Match`; an ordinary event `PUT` that removes its managed
+`ATTACH` also removes the stored file. Event deletion uses normal asset cleanup.
+Event and calendar `MOVE` preserve attachment bytes and update their URLs.
+Copying an event or calendar containing managed attachments returns HTTP 409;
+upload the files to the new event instead. Each file and the total files sent
+with one invitation are limited to 10 MiB. Recurrence-instance attachment
+operations are unsupported, so the home advertises
+`calendar-managed-attachments-no-recurrence` when configured.
+
+When a connected calendar sends an invitation, Daptin includes the file bytes
+as MIME attachments in the email. Invitees outside the Daptin instance can
+open those email attachments without an account; the CalDAV download URL still
+requires Daptin access.
+
 ## Send invitations through a mail account
 
 A calendar can use a Daptin `mail_account` for iCalendar email. Create the

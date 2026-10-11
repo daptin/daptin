@@ -45,7 +45,7 @@ func InitializeCaldavResources(
 
 			if protocol == "caldav" {
 				backend := resource.NewCalDAVBackend(cruds, sessionUser, modifiedRequest.Header)
-				if !backend.ServeScheduling(c.Writer, modifiedRequest) {
+				if !backend.ServeManagedAttachment(c.Writer, modifiedRequest) && !backend.ServeScheduling(c.Writer, modifiedRequest) {
 					(&caldav.Handler{Backend: backend, Prefix: "/caldav"}).ServeHTTP(c.Writer, modifiedRequest)
 				}
 			} else {

@@ -1028,6 +1028,7 @@ func (dbResource *DbResource) UpdateAssetColumnWithFile(columnName,
 			// Update existing file
 			files[i] = map[string]interface{}{
 				"name":        fileName,
+				"path":        "",
 				"size":        fileSize,
 				"type":        fileType,
 				"status":      "completed",
@@ -1042,6 +1043,7 @@ func (dbResource *DbResource) UpdateAssetColumnWithFile(columnName,
 		// Add new file
 		files = append(files, map[string]interface{}{
 			"name":        fileName,
+			"path":        "",
 			"size":        fileSize,
 			"type":        fileType,
 			"status":      "completed",

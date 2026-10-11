@@ -46,11 +46,12 @@ var (
 // DaptinDAVBackend adapts the protocol backends to canonical Daptin resources.
 // The endpoint authenticates first; CalDAV paths identify the calendar owner.
 type DaptinDAVBackend struct {
-	cruds       map[string]*DbResource
-	sessionUser *auth.SessionUser
-	prefix      string
-	home        string
-	headers     http.Header
+	cruds           map[string]*DbResource
+	sessionUser     *auth.SessionUser
+	prefix          string
+	home            string
+	headers         http.Header
+	itipAttachments map[string]calendarMailAttachment
 }
 
 func NewCalDAVBackend(cruds map[string]*DbResource, user *auth.SessionUser, headers http.Header) *DaptinDAVBackend {
@@ -833,9 +834,12 @@ func (b *DaptinDAVBackend) QueryCalendarObjects(ctx context.Context, requestPath
 	return caldav.Filter(query, objects)
 }
 
-func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath string, calendar *ical.Calendar, opts *caldav.PutCalendarObjectOptions) (*caldav.CalendarObject, error) {
+func (b *DaptinDAVBackend) PutCalendarObject(ctx context.Context, requestPath string, calendar *ical.Calendar, opts *caldav.PutCalendarObjectOptions) (*caldav.CalendarObject, error) {
 	owner, name, err := b.calendarPath(requestPath, true)
 	if err != nil {
+		return nil, err
+	}
+	if err := b.prepareITIPAttachments(ctx, requestPath, calendar); err != nil {
 		return nil, err
 	}
 	crud := b.cruds[calendarObjectTable]
@@ -934,6 +938,10 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	if err != nil {
 		return nil, err
 	}
+	removedAttachments, err := b.removeUnreferencedAttachments(daptinid.InterfaceToDIR(event["reference_id"]), previous, calendar, tx)
+	if err != nil {
+		return nil, err
+	}
 	data, err = b.scheduleAndStoreCalendarChange(collection, event, requestPath, calendar, previous, data, tx)
 	if err != nil {
 		return nil, err
@@ -941,6 +949,7 @@ func (b *DaptinDAVBackend) PutCalendarObject(_ context.Context, requestPath stri
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	b.removeStoredAttachments(ctx, removedAttachments)
 	return &caldav.CalendarObject{Path: path.Clean(requestPath), ModTime: time.Now(), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), ScheduleTag: tag, Data: calendar}, nil
 }
 

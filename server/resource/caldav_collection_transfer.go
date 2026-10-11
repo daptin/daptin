@@ -132,6 +132,20 @@ func (b *DaptinDAVBackend) transferCalendarCollection(sourcePath, destinationPat
 			if err != nil {
 				return false, err
 			}
+			calendar, err := ical.NewDecoder(bytes.NewReader(content)).Decode()
+			if err != nil {
+				return false, err
+			}
+			if len(managedAttachmentIDs(calendar)) != 0 {
+				if err := rewriteManagedAttachmentURLs(calendar, newPath); err != nil {
+					return false, webdav.NewHTTPError(http.StatusConflict, err)
+				}
+				var updated bytes.Buffer
+				if err := ical.NewEncoder(&updated).Encode(calendar); err != nil {
+					return false, err
+				}
+				content = updated.Bytes()
+			}
 			if err := b.calendarUpdate(calendarObjectTable, oldPath, object, map[string]interface{}{
 				"rpath": newPath, "content": b.contentValue(calendarObjectTable, newPath, ical.MIMEType, content),
 			}, tx); err != nil {
@@ -159,6 +173,9 @@ func (b *DaptinDAVBackend) transferCalendarCollection(sourcePath, destinationPat
 			calendar, err := ical.NewDecoder(bytes.NewReader(content)).Decode()
 			if err != nil {
 				return false, err
+			}
+			if len(managedAttachmentIDs(calendar)) != 0 {
+				return false, webdav.NewHTTPError(http.StatusConflict, errors.New("copying a managed attachment requires a new upload"))
 			}
 			uid, organizer := itipCalendarIdentity(calendar)
 			for _, event := range itipComponents(calendar) {

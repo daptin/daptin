@@ -10,10 +10,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -330,7 +332,24 @@ func (b *DaptinDAVBackend) queueITIP(collection, account map[string]interface{},
 	if subject == "" {
 		subject = "Calendar event"
 	}
-	outboxRef, err := b.queueITIPMail(account, sender, recipient, method, subject, body, tx)
+	attachments := make([]calendarMailAttachment, 0)
+	if method == "REQUEST" {
+		seen := make(map[string]bool)
+		for _, attach := range event.Props.Values("ATTACH") {
+			id := attach.Params.Get("MANAGED-ID")
+			if id == "" || seen[id] {
+				continue
+			}
+			file, ok := b.itipAttachments[id]
+			if !ok {
+				return errors.New("managed calendar attachment is unavailable for invitation")
+			}
+			attachments = append(attachments, file)
+			seen[id] = true
+		}
+		sort.Slice(attachments, func(i, j int) bool { return attachments[i].id < attachments[j].id })
+	}
+	outboxRef, err := b.queueITIPMail(account, sender, recipient, method, subject, body, attachments, tx)
 	if err != nil {
 		return err
 	}
@@ -347,7 +366,7 @@ func (b *DaptinDAVBackend) queueITIP(collection, account map[string]interface{},
 // Calendar MIME composition stays in the CalDAV adapter. Mail accounts,
 // signing certificates, Sent mail, and delivery remain ordinary Daptin mail
 // resources; the shared mail.send performer has no calendar branches.
-func (b *DaptinDAVBackend) queueITIPMail(account map[string]interface{}, sender, recipient, method, subject, calendarBody string, tx *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
+func (b *DaptinDAVBackend) queueITIPMail(account map[string]interface{}, sender, recipient, method, subject, calendarBody string, attachments []calendarMailAttachment, tx *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
 	from, err := guerrillamail.NewAddress(sender)
 	if err != nil {
 		return daptinid.NullReferenceId, err
@@ -418,6 +437,22 @@ func (b *DaptinDAVBackend) queueITIPMail(account map[string]interface{}, sender,
 		encodedCalendar = encodedCalendar[76:]
 	}
 	_, _ = calendarPart.Write([]byte(encodedCalendar))
+	for _, attachment := range attachments {
+		part, err := outer.CreatePart(textproto.MIMEHeader{
+			"Content-Type":              {attachment.contentType},
+			"Content-Disposition":       {mime.FormatMediaType("attachment", map[string]string{"filename": attachment.filename})},
+			"Content-Transfer-Encoding": {"base64"},
+		})
+		if err != nil {
+			return daptinid.NullReferenceId, err
+		}
+		encoded := base64.StdEncoding.EncodeToString(attachment.data)
+		for len(encoded) > 76 {
+			_, _ = part.Write([]byte(encoded[:76] + "\r\n"))
+			encoded = encoded[76:]
+		}
+		_, _ = part.Write([]byte(encoded))
+	}
 	if err := outer.Close(); err != nil {
 		return daptinid.NullReferenceId, err
 	}

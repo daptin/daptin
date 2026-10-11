@@ -2160,6 +2160,8 @@ var StandardTables = []table_info.TableInfo{
 				IsForeignKey:      false,
 				ColumnDescription: "The iCalendar (RFC 5545) format content of the calendar entry, stored as a binary blob. This contains all event details including dates, recurrence rules, and attendees.",
 			},
+			{Name: "attachments", ColumnName: "attachments", ColumnType: "file.*", DataType: "longblob", IsNullable: true,
+				ColumnDescription: "Files attached to this calendar event. Configure this asset column with a cloud_store to enable CalDAV managed attachments."},
 		},
 	},
 	{
