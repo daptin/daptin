@@ -485,19 +485,20 @@ curl -X POST "http://localhost:6336/action/collection/discover" \
 ```
 
 The action response's `Attributes` contains `collections` and `next_cursor`.
-A collection entry
-contains only `collection_id`, canonical `href`, `display_name`, `can_read`,
-and `can_free_busy`. A free/busy-only share has `can_read:false` and
-`can_free_busy:true`; use `free-busy-query` on its `href` instead of requesting
-event content. Its display name is the collection's URL name. A detail-readable
-entry may use the configured display name. Event rows still have their own
-permissions, so `can_read` does not promise access to every event. When
-`next_cursor` is nonempty, pass that opaque cursor to the action again with
-`{"attributes":{"cursor":"NEXT_CURSOR"}}`; a page may be empty while its
+A collection entry contains only `collection_id`, canonical `href`,
+`display_name`, `can_read`, and `can_free_busy`. A free/busy-only share has
+`can_read:false` and `can_free_busy:true`; use `free-busy-query` on its `href`
+instead of requesting event content. Its display name is the collection's URL name. A detail-readable
+entry may use the configured display name. `can_read` means the collection row
+permits `Read` and both `collection` and `calendar` tables permit `Peek`, as
+required for calendar object GETs. Event rows still have their own permissions,
+so `can_read` does not
+promise access to every event. When `next_cursor` is nonempty, pass that opaque
+cursor to the action again with `{"attributes":{"cursor":"NEXT_CURSOR"}}`; a page may be empty while its
 cursor still points to more collections. The action checks current membership,
 table access, and collection access on each call, so revoked shares disappear
-from discovery. Administrators can configure its action execution permission
-independently.
+from discovery. Invoking the action also requires `Execute` on the `collection`
+table and on the `discover` action; these checks do not grant row access.
 
 Readable shared collections also appear through the normal
 `GET /api/collection` resource, whose full row response requires `Read`.

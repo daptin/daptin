@@ -69,7 +69,7 @@ func (a *calendarEventCapabilitiesAction) DoAction(_ actionresponse.Outcome, fie
 	user, groups := active.UserReferenceId, active.Groups
 	collectionTable := collectionCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarCollectionTable, tx)
 	collection := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, collectionRef, tx)
-	if !collectionTable.CanRead(user, groups, admin) || !collection.CanRead(user, groups, admin) {
+	if !collectionTable.CanPeek(user, groups, admin) || !collection.CanRead(user, groups, admin) {
 		return nil, nil, []error{api2go.NewHTTPError(errors.New("calendar access denied"), "calendar access denied", http.StatusForbidden)}
 	}
 	events, err := GetReferenceIdByWhereClauseWithTransaction(calendarObjectTable, tx,
@@ -82,7 +82,7 @@ func (a *calendarEventCapabilitiesAction) DoAction(_ actionresponse.Outcome, fie
 	}
 	eventTable := eventCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
 	event := GetObjectPermissionByReferenceIdWithTransaction(calendarObjectTable, eventRef, tx)
-	if !eventTable.CanRead(user, groups, admin) || !event.CanRead(user, groups, admin) {
+	if !eventTable.CanPeek(user, groups, admin) || !event.CanRead(user, groups, admin) {
 		return nil, nil, []error{api2go.NewHTTPError(errors.New("event detail access denied"), "event detail access denied", http.StatusForbidden)}
 	}
 	canEditCollection := collection.CanUpdate(user, groups, admin)

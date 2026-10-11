@@ -743,7 +743,7 @@ func (b *DaptinDAVBackend) calendarPrivileges(calendar *caldav.Calendar, row map
 	collection := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, ref, tx)
 	admin := b.cruds[calendarCollectionTable].AdministratorGroupId
 	user, groups := b.sessionUser.UserReferenceId, b.sessionUser.Groups
-	calendar.Read = collectionTable.CanRead(user, groups, admin) && collection.CanRead(user, groups, admin)
+	calendar.Read = collectionTable.CanPeek(user, groups, admin) && collection.CanRead(user, groups, admin)
 	calendar.ReadFreeBusy = (collectionTable.CanPeek(user, groups, admin) || collectionTable.CanRead(user, groups, admin)) &&
 		(collection.CanPeek(user, groups, admin) || collection.CanRead(user, groups, admin)) &&
 		(eventTable.CanPeek(user, groups, admin) || eventTable.CanRead(user, groups, admin))

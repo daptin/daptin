@@ -88,10 +88,10 @@ func (a *calendarDiscoverAction) DoAction(_ actionresponse.Outcome, fields map[s
 	eventTable := eventCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
 	admin := collectionCRUD.AdministratorGroupId
 	eventAdmin := eventCRUD.AdministratorGroupId
-	collectionTableRead := collectionTable.CanRead(user, groups, admin)
-	collectionTablePeek := collectionTable.CanPeek(user, groups, admin) || collectionTableRead
-	eventTableRead := eventTable.CanRead(user, groups, eventAdmin)
-	eventTablePeek := eventTable.CanPeek(user, groups, eventAdmin) || eventTableRead
+	collectionTablePeek := collectionTable.CanPeek(user, groups, admin)
+	eventTablePeek := eventTable.CanPeek(user, groups, eventAdmin)
+	collectionTableFreeBusy := collectionTablePeek || collectionTable.CanRead(user, groups, admin)
+	eventTableFreeBusy := eventTablePeek || eventTable.CanRead(user, groups, eventAdmin)
 
 	rows, err := GetLimitedOrderedRowsWithTransaction(calendarCollectionTable,
 		[]string{"reference_id", "user_account_id", "name", "display_name"}, "reference_id", tx,
@@ -118,8 +118,8 @@ func (a *calendarDiscoverAction) DoAction(_ actionresponse.Outcome, fields map[s
 		}
 		grant := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, ref, tx)
 		rowRead := grant.CanRead(user, groups, admin)
-		canRead := collectionTableRead && rowRead && eventTableRead
-		canFreeBusy := collectionTablePeek && (grant.CanPeek(user, groups, admin) || rowRead) && eventTablePeek
+		canRead := collectionTablePeek && rowRead && eventTablePeek
+		canFreeBusy := collectionTableFreeBusy && (grant.CanPeek(user, groups, admin) || rowRead) && eventTableFreeBusy
 		if !canRead && !canFreeBusy {
 			continue
 		}

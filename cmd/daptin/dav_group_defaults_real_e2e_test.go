@@ -68,12 +68,19 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 		canWrite   bool
 	}{
 		{name: "read", permission: auth.GroupRead, canRead: true},
+		{name: "read-without-table-read", permission: auth.GroupRead, canRead: true},
 		{name: "peek", permission: auth.GroupPeek},
 		{name: "edit", permission: auth.GroupCRUD, canRead: true, canWrite: true},
 	} {
 		t.Run(grant.name, func(t *testing.T) {
 			usedPorts := make(map[int]bool)
 			databasePath := filepath.Join(t.TempDir(), "dav-group-defaults.db")
+			collectionTableGrant := auth.GroupCRUD
+			eventTableGrant := auth.GroupCRUD
+			if grant.name == "read-without-table-read" {
+				collectionTableGrant = (auth.GroupCRUD | auth.GroupExecute) &^ auth.GroupRead
+				eventTableGrant &^= auth.GroupRead
+			}
 			schema := fmt.Sprintf(`Tables:
   - TableName: collection
     DefaultPermission: %d
@@ -91,8 +98,8 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
     DefaultGroups:
       - Name: users
         Permission: %d
-`, auth.UserCRUD|auth.UserExecute, auth.GroupCRUD, grant.permission,
-				auth.UserCRUD, auth.GroupCRUD, grant.permission)
+`, auth.UserCRUD|auth.UserExecute, collectionTableGrant, grant.permission,
+				auth.UserCRUD, eventTableGrant, grant.permission)
 			start := func() (string, *transportE2EDaptinProcess) {
 				port := freeTransportE2EPort(t, usedPorts)
 				httpsPort := freeTransportE2EPort(t, usedPorts)
@@ -136,6 +143,54 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 					t.Fatalf("delegate did not read the granted event: %s", content.body)
 				}
 				accessGroupsE2EAssertListCount(t, client, base, delegateToken, "calendar", 1)
+				if grant.name == "read-without-table-read" {
+					collectionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "team")
+					eventID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath", "/caldav/"+match[1]+"/calendars/team/event.ics")
+					query := davE2EExpect(t, davE2ERequest(client, "REPORT", collectionURL, delegateToken, "application/xml",
+						`<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:prop><C:calendar-data/></D:prop><C:filter><C:comp-filter name="VCALENDAR"><C:comp-filter name="VEVENT"/></C:comp-filter></C:filter></C:calendar-query>`, nil), http.StatusMultiStatus)
+					if !strings.Contains(query.body, "SUMMARY:First") {
+						t.Fatalf("calendar-query omitted a readable event: %s", query.body)
+					}
+					response := davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/discover", delegateToken,
+						"application/json", `{"attributes":{}}`, nil), http.StatusOK)
+					var discovered []struct {
+						Attributes struct {
+							Collections []struct {
+								ID      string `json:"collection_id"`
+								CanRead bool   `json:"can_read"`
+							} `json:"collections"`
+						} `json:"Attributes"`
+					}
+					if err := json.Unmarshal([]byte(response.body), &discovered); err != nil || len(discovered) != 1 ||
+						len(discovered[0].Attributes.Collections) != 1 || discovered[0].Attributes.Collections[0].ID != collectionID ||
+						!discovered[0].Attributes.Collections[0].CanRead {
+						t.Fatalf("discovery disagreed with a readable calendar: %s", response.body)
+					}
+					privileges := davE2EExpect(t, davE2ERequest(client, "PROPFIND", collectionURL, delegateToken,
+						"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:current-user-privilege-set/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
+					decoder := xml.NewDecoder(strings.NewReader(privileges.body))
+					canRead := false
+					for {
+						token, err := decoder.Token()
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							t.Fatal(err)
+						}
+						if start, ok := token.(xml.StartElement); ok && start.Name.Space == "DAV:" && start.Name.Local == "read" {
+							canRead = true
+						}
+					}
+					if !canRead {
+						t.Fatalf("DAV privileges omitted permitted read: %s", privileges.body)
+					}
+					capabilities := davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/event_capabilities", delegateToken,
+						"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"event_reference_id":%q}}`, collectionID, eventID), nil), http.StatusOK)
+					if !strings.Contains(capabilities.body, `"can_update":false`) || !strings.Contains(capabilities.body, `"can_delete":false`) {
+						t.Fatalf("calendar capabilities disagreed with the event row grant: %s", capabilities.body)
+					}
+				}
 				if grant.canWrite {
 					davE2EExpect(t, davE2ERequest(client, http.MethodPut, eventURL, delegateToken,
 						"text/calendar", davE2ECalendarB, nil), http.StatusCreated)
