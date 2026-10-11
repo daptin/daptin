@@ -297,6 +297,23 @@ var SystemActions = []actionresponse.Action{
 		}},
 	},
 	{
+		Name:             "list_shares",
+		Label:            "List calendar account shares",
+		OnType:           "collection",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "calendar_reference_id", ColumnName: "calendar_reference_id", ColumnType: "alias"},
+			{Name: "cursor", ColumnName: "cursor", ColumnType: "alias", IsNullable: true},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type: "calendar.list_shares", Method: "EXECUTE",
+			Attributes: map[string]interface{}{
+				"collection_id": "~calendar_reference_id", "cursor": "~cursor",
+			},
+		}},
+	},
+	{
 		Name:             "discover",
 		Label:            "Discover accessible calendars",
 		OnType:           "collection",

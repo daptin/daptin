@@ -326,6 +326,26 @@ controls. A true result does not bypass the target group or account `Refer`
 check when a share is submitted. These results do not describe edit rights on
 individual events, which retain their own row permissions.
 
+To show the current direct account shares for a calendar, call
+`collection/list_shares` with its public reference ID:
+
+```bash
+curl -X POST "http://localhost:6336/action/collection/list_shares" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID"}}'
+```
+
+The response contains `shares` and `next_cursor`. Each share has
+`user_account_id`, `permission`, `can_free_busy`, `can_read`, and `can_edit`.
+The booleans describe the direct share grant; table and individual event row
+permissions still determine whether a particular operation succeeds. The
+account's `name` and `email` appear only when the caller can read that account
+row. Use `next_cursor` in the same action's `cursor` input until it is empty.
+The action requires its own Execute permission and the caller's persisted
+management access to the collection. The list omits group shares and revoked
+account shares.
+
 For an event the caller can read, query its current edit rights with
 `collection/event_capabilities`:
 

@@ -207,7 +207,7 @@ func (a *davACLAdapter) linkPrincipal(collectionRef, groupRef daptinid.DaptinRef
 				if err != nil {
 					return "", err
 				}
-				if strings.ReplaceAll(userRef.String(), "-", "") == strings.TrimPrefix(StringOrEmpty(group["name"]), prefix) {
+				if davAccountShareTarget(a.groupPrefix, collectionRef, StringOrEmpty(group["name"]), []daptinid.DaptinReferenceId{userRef}) != daptinid.NullReferenceId {
 					return "/" + a.prefix + "/" + userRef.String() + "/", nil
 				}
 			}

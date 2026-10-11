@@ -49,6 +49,20 @@ func davSharePermission(value interface{}) (auth.AuthPermission, error) {
 	return grant, nil
 }
 
+func davAccountShareGroupName(prefix string, collectionRef, accountRef daptinid.DaptinReferenceId) string {
+	return prefix + ":" + strings.ReplaceAll(collectionRef.String(), "-", "") + ":" + strings.ReplaceAll(accountRef.String(), "-", "")
+}
+
+// The group name identifies a share_user group; the persisted membership and
+// collection link remain the access authority.
+func davAccountShareTarget(prefix string, collectionRef daptinid.DaptinReferenceId, groupName string, members []daptinid.DaptinReferenceId) daptinid.DaptinReferenceId {
+	if len(members) != 1 || members[0] == daptinid.NullReferenceId ||
+		groupName != davAccountShareGroupName(prefix, collectionRef, members[0]) {
+		return daptinid.NullReferenceId
+	}
+	return members[0]
+}
+
 func (a *davShareAction) apply(collectionRef, groupRef daptinid.DaptinReferenceId, grant auth.AuthPermission, caller *auth.SessionUser, tx *sqlx.Tx) error {
 	collectionID, active, err := a.authorizeCollection(collectionRef, caller, tx)
 	if err != nil {
@@ -134,7 +148,7 @@ func (a *davShareAction) shareWithUser(collectionRef, targetRef daptinid.DaptinR
 			return daptinid.NullReferenceId, api2go.NewHTTPError(errors.New("account reference denied"), "account reference denied", http.StatusForbidden)
 		}
 	}
-	groupName := a.groupPrefix + ":" + strings.ReplaceAll(collectionRef.String(), "-", "") + ":" + strings.ReplaceAll(targetRef.String(), "-", "")
+	groupName := davAccountShareGroupName(a.groupPrefix, collectionRef, targetRef)
 	groups, err := GetObjectByWhereClauseWithTransaction("usergroup", tx, goqu.Ex{"name": groupName})
 	if err != nil {
 		return daptinid.NullReferenceId, err
