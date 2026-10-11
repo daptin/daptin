@@ -743,6 +743,18 @@ func (b *DaptinDAVBackend) calendarTablePermissions(tx *sqlx.Tx) (permission.Per
 	return collectionTable, eventTable
 }
 
+func calendarWriteCapabilities(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList,
+	collectionTable, collection, eventTable permission.PermissionInstance,
+	collectionAdmin, eventAdmin daptinid.DaptinReferenceId) (bool, bool) {
+	readable := collectionTable.CanPeek(user, groups, collectionAdmin) && collection.CanRead(user, groups, collectionAdmin)
+	canCreate := readable && collection.CanCreate(user, groups, collectionAdmin) &&
+		collection.CanRefer(user, groups, collectionAdmin) &&
+		eventTable.CanPeek(user, groups, eventAdmin) && eventTable.CanCreate(user, groups, eventAdmin)
+	canUpdateMetadata := readable && collectionTable.CanUpdate(user, groups, collectionAdmin) &&
+		collection.CanUpdate(user, groups, collectionAdmin)
+	return canCreate, canUpdateMetadata
+}
+
 func (b *DaptinDAVBackend) calendarPrivileges(calendar *caldav.Calendar, row map[string]interface{}, collectionTable, eventTable permission.PermissionInstance, tx *sqlx.Tx) {
 	ref := daptinid.InterfaceToDIR(row["reference_id"])
 	collection := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, ref, tx)
@@ -752,11 +764,10 @@ func (b *DaptinDAVBackend) calendarPrivileges(calendar *caldav.Calendar, row map
 	calendar.ReadFreeBusy = (collectionTable.CanPeek(user, groups, admin) || collectionTable.CanRead(user, groups, admin)) &&
 		(collection.CanPeek(user, groups, admin) || collection.CanRead(user, groups, admin)) &&
 		(eventTable.CanPeek(user, groups, admin) || eventTable.CanRead(user, groups, admin))
-	calendar.Bind = calendar.Read && collection.CanCreate(user, groups, admin) && collection.CanRefer(user, groups, admin) &&
-		eventTable.CanCreate(user, groups, admin)
+	calendar.Bind, calendar.WriteProperties = calendarWriteCapabilities(user, groups, collectionTable, collection, eventTable,
+		admin, b.cruds[calendarObjectTable].AdministratorGroupId)
 	calendar.WriteContent = calendar.Read && collection.CanUpdate(user, groups, admin) &&
 		eventTable.CanUpdate(user, groups, admin)
-	calendar.WriteProperties = collectionTable.CanUpdate(user, groups, admin) && collection.CanUpdate(user, groups, admin)
 	// Deleting an event also checks that event row's Delete grant. Only an
 	// administrator can be certain of that grant for every child row here.
 	for _, group := range groups {

@@ -320,11 +320,17 @@ curl -X POST "http://localhost:6336/action/collection/share_capabilities" \
 ```
 
 Its `can_share_group` and `can_share_user` results reflect the caller's
-persisted collection management grant and the two action permissions. HTTP
-403 means the caller cannot use this capability query; hide the sharing
-controls. A true result does not bypass the target group or account `Refer`
-check when a share is submitted. These results do not describe edit rights on
-individual events, which retain their own row permissions.
+persisted collection management grant and the two action permissions.
+`can_create_event` reports whether the caller can create an event through
+CalDAV PUT: the collection must be readable and grant Create and Refer, and
+the calendar table must grant Peek and Create. `can_update_metadata` reports
+whether the collection table and row permit an update and the collection is
+readable. These write flags are independent of sharing rights and describe
+the current permissions, not a promise that an invalid write will succeed.
+HTTP 403 means the caller cannot use this capability query; hide the controls.
+A true sharing result does not bypass the target group or account `Refer`
+check when a share is submitted. Existing events retain their own row
+permissions; use `event_capabilities` for a specific event.
 
 To show the current direct account shares for a calendar, call
 `collection/list_shares` with its public reference ID:

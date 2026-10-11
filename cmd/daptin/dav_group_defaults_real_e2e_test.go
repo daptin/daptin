@@ -62,15 +62,19 @@ var davE2EShareSchema = fmt.Sprintf(`Tables:
 func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 	requireRealE2E(t)
 	for _, grant := range []struct {
-		name       string
-		permission auth.AuthPermission
-		canRead    bool
-		canWrite   bool
+		name        string
+		permission  auth.AuthPermission
+		canRead     bool
+		canWrite    bool
+		canCreate   bool
+		canMetadata bool
 	}{
 		{name: "read", permission: auth.GroupRead, canRead: true},
 		{name: "read-without-table-read", permission: auth.GroupRead, canRead: true},
 		{name: "peek", permission: auth.GroupPeek},
-		{name: "edit", permission: auth.GroupCRUD, canRead: true, canWrite: true},
+		{name: "edit", permission: auth.GroupCRUD, canRead: true, canWrite: true, canCreate: true, canMetadata: true},
+		{name: "edit-without-collection-table-update", permission: auth.GroupCRUD, canRead: true, canWrite: true, canCreate: true},
+		{name: "edit-without-event-table-create", permission: auth.GroupCRUD, canRead: true, canWrite: true, canMetadata: true},
 	} {
 		t.Run(grant.name, func(t *testing.T) {
 			usedPorts := make(map[int]bool)
@@ -80,6 +84,12 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 			if grant.name == "read-without-table-read" {
 				collectionTableGrant = (auth.GroupCRUD | auth.GroupExecute) &^ auth.GroupRead
 				eventTableGrant &^= auth.GroupRead
+			}
+			if grant.name == "edit-without-collection-table-update" {
+				collectionTableGrant &^= auth.GroupUpdate
+			}
+			if grant.name == "edit-without-event-table-create" {
+				eventTableGrant &^= auth.GroupCreate
 			}
 			schema := fmt.Sprintf(`Tables:
   - TableName: collection
@@ -129,8 +139,29 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 			collectionURL := base + "/caldav/" + match[1] + "/calendars/team/"
 			eventURL := collectionURL + "event.ics"
 			davE2EExpect(t, davE2ERequest(client, "MKCOL", collectionURL, ownerToken, "", "", nil), http.StatusCreated)
-			davE2EExpect(t, davE2ERequest(client, http.MethodPut, eventURL, ownerToken,
+			seedToken := ownerToken
+			if grant.name == "edit-without-event-table-create" {
+				seedToken = adminToken
+			}
+			davE2EExpect(t, davE2ERequest(client, http.MethodPut, eventURL, seedToken,
 				"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
+			collectionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "team")
+			capabilities := davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/share_capabilities", delegateToken,
+				"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q}}`, collectionID), nil), http.StatusOK)
+			if !strings.Contains(capabilities.body, fmt.Sprintf(`"can_create_event":%t`, grant.canCreate)) ||
+				!strings.Contains(capabilities.body, fmt.Sprintf(`"can_update_metadata":%t`, grant.canMetadata)) {
+				t.Fatalf("configured table and row grants produced wrong calendar capabilities: %s", capabilities.body)
+			}
+			if grant.name == "edit-without-collection-table-update" {
+				patch := `<D:propertyupdate xmlns:D="DAV:"><D:set><D:prop><D:displayname>Denied metadata</D:displayname></D:prop></D:set></D:propertyupdate>`
+				if response := davE2ERequest(client, "PROPPATCH", collectionURL, delegateToken, "application/xml", patch, nil); response.err != nil || strings.Contains(response.body, "200 OK") {
+					t.Fatalf("delegate updated metadata without collection-table Update: %+v", response)
+				}
+				if response := davE2ERequest(client, http.MethodPatch, base+"/api/collection/"+collectionID, delegateToken,
+					"application/vnd.api+json", fmt.Sprintf(`{"data":{"type":"collection","id":%q,"attributes":{"display_name":"Denied metadata"}}}`, collectionID), nil); response.err != nil || response.status == http.StatusOK {
+					t.Fatalf("delegate updated metadata through JSON:API without collection-table Update: %+v", response)
+				}
+			}
 
 			if grant.canRead {
 				listing := davE2EExpect(t, davE2ERequest(client, "PROPFIND", collectionURL, delegateToken,
@@ -199,18 +230,23 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 						t.Fatalf("owner did not see delegate's edit: %s", changed.body)
 					}
 					createdURL := collectionURL + "created-by-delegate.ics"
-					davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken,
-						"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
-					davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusOK)
-					createdID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
-						"/caldav/"+match[1]+"/calendars/team/created-by-delegate.ics")
-					delegateID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email",
-						"calendar-delegate-edit@test.local")
-					created := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/calendar/"+createdID,
-						adminToken, nil, http.StatusOK)
-					attributes := created.(map[string]interface{})["data"].(map[string]interface{})["attributes"].(map[string]interface{})
-					if attributes["user_account_id"] != delegateID {
-						t.Fatalf("delegate-created event owner = %v, want %s", attributes["user_account_id"], delegateID)
+					if grant.canCreate {
+						davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken,
+							"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
+						davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusOK)
+						createdID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
+							"/caldav/"+match[1]+"/calendars/team/created-by-delegate.ics")
+						delegateID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email",
+							"calendar-delegate-"+grant.name+"@test.local")
+						created := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/calendar/"+createdID,
+							adminToken, nil, http.StatusOK)
+						attributes := created.(map[string]interface{})["data"].(map[string]interface{})["attributes"].(map[string]interface{})
+						if attributes["user_account_id"] != delegateID {
+							t.Fatalf("delegate-created event owner = %v, want %s", attributes["user_account_id"], delegateID)
+						}
+					} else if response := davE2ERequest(client, http.MethodPut, createdURL, delegateToken,
+						"text/calendar", davE2ECalendarA, nil); response.err != nil || response.status < 400 {
+						t.Fatalf("delegate created an event without calendar-table Create: %+v", response)
 					}
 				} else {
 					response := davE2ERequest(client, http.MethodPut, eventURL, delegateToken,
@@ -430,7 +466,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		return davE2ERequest(client, http.MethodPost, base+"/action/collection/share_capabilities", token, "application/json",
 			fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q}}`, collectionID), nil)
 	}
-	assertCapabilities := func(token string, group, account bool) {
+	assertCapabilities := func(token string, group, account, createEvent, updateMetadata bool) {
 		t.Helper()
 		response := davE2EExpect(t, capabilities(token), http.StatusOK)
 		var rows []struct {
@@ -441,8 +477,12 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		}
 		groupValue, groupOK := rows[0].Attributes["can_share_group"].(bool)
 		accountValue, accountOK := rows[0].Attributes["can_share_user"].(bool)
-		if !groupOK || !accountOK || groupValue != group || accountValue != account {
-			t.Fatalf("calendar capabilities = %#v, want group=%t account=%t", rows[0].Attributes, group, account)
+		createValue, createOK := rows[0].Attributes["can_create_event"].(bool)
+		metadataValue, metadataOK := rows[0].Attributes["can_update_metadata"].(bool)
+		if !groupOK || !accountOK || !createOK || !metadataOK || groupValue != group || accountValue != account ||
+			createValue != createEvent || metadataValue != updateMetadata {
+			t.Fatalf("calendar capabilities = %#v, want group=%t account=%t create=%t metadata=%t",
+				rows[0].Attributes, group, account, createEvent, updateMetadata)
 		}
 	}
 	eventCapabilities := func(token, event string) davE2EResponse {
@@ -473,7 +513,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		return len(accessGroupsE2EDataArray(t, response))
 	}
 	beforeCapabilities := groupCount()
-	assertCapabilities(ownerToken, true, true)
+	assertCapabilities(ownerToken, true, true, true, true)
 	if response := capabilities(unrelatedToken); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("unrelated account queried calendar capabilities: %+v", response)
 	}
@@ -500,7 +540,15 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 	davE2EExpect(t, shareGroup(groupID, auth.GroupRead, adminToken), http.StatusOK)
 	assertDiscovered(delegateToken, true, "Owner private calendar metadata")
-	assertCapabilities(delegateToken, false, false)
+	assertCapabilities(delegateToken, false, false, false, false)
+	if response := davE2ERequest(client, http.MethodPut, collectionURL+"read-only.ics", delegateToken,
+		"text/calendar", davE2ECalendarA, nil); response.err != nil || response.status < 400 {
+		t.Fatalf("read-only delegate created an event: %+v", response)
+	}
+	if response := davE2ERequest(client, "PROPPATCH", collectionURL, delegateToken, "application/xml",
+		`<D:propertyupdate xmlns:D="DAV:"><D:set><D:prop><D:displayname>Denied</D:displayname></D:prop></D:set></D:propertyupdate>`, nil); response.err != nil || strings.Contains(response.body, "200 OK") {
+		t.Fatalf("read-only delegate updated calendar metadata: %+v", response)
+	}
 	assertEventCapabilities(delegateToken, eventID, false, false)
 	content := davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil), http.StatusOK)
 	if !strings.Contains(content.body, "SUMMARY:First") {
@@ -641,6 +689,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 
 	davE2EExpect(t, share(auth.GroupPeek, ownerToken), http.StatusOK)
 	assertDiscovered(delegateToken, false, "team")
+	assertCapabilities(delegateToken, false, false, false, false)
 	accessGroupsE2EAssertListCount(t, client, base, delegateToken, "collection", 0)
 	peekDirect := davE2ERequest(client, http.MethodGet, base+"/api/collection/"+collectionID, delegateToken, "", "", nil)
 	if peekDirect.err != nil || peekDirect.status != http.StatusForbidden {
@@ -697,11 +746,32 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 
 	davE2EExpect(t, share(auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, ownerToken), http.StatusOK)
 	assertDiscovered(delegateToken, true, "Owner private calendar metadata")
+	assertCapabilities(delegateToken, false, false, false, true)
 	assertEventCapabilities(delegateToken, eventID, true, false)
+	metadataPatch := `<D:propertyupdate xmlns:D="DAV:"><D:set><D:prop><D:displayname>Delegate metadata</D:displayname></D:prop></D:set></D:propertyupdate>`
+	metadataResponse := davE2EExpect(t, davE2ERequest(client, "PROPPATCH", collectionURL, delegateToken, "application/xml", metadataPatch, nil), http.StatusMultiStatus)
+	if !strings.Contains(metadataResponse.body, "200 OK") {
+		t.Fatalf("update-capable delegate could not update metadata: %s", metadataResponse.body)
+	}
+	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/collection/"+collectionID, delegateToken,
+		accessGroupsE2ERecordPayload("collection", collectionID, map[string]interface{}{"description": "Delegate description"}), http.StatusOK)
+	if response := davE2ERequest(client, http.MethodPut, collectionURL+"update-only.ics", delegateToken,
+		"text/calendar", davE2ECalendarA, nil); response.err != nil || response.status < 400 {
+		t.Fatalf("update-only delegate created an event: %+v", response)
+	}
 	if response := davE2ERequest(client, http.MethodDelete, eventURL, delegateToken, "", "", nil); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("update-only delegate deleted event: %+v", response)
 	}
+	davE2EExpect(t, share(auth.GroupPeek|auth.GroupRead|auth.GroupCreate|auth.GroupRefer, ownerToken), http.StatusOK)
+	assertCapabilities(delegateToken, false, false, true, false)
+	if response := davE2ERequest(client, "PROPPATCH", collectionURL, delegateToken,
+		"application/xml", metadataPatch, nil); response.err != nil || strings.Contains(response.body, "200 OK") {
+		t.Fatalf("create-only delegate updated calendar metadata: %+v", response)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, collectionURL+"create-only.ics", delegateToken,
+		"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
 	davE2EExpect(t, share(auth.GroupCRUD, ownerToken), http.StatusOK)
+	assertCapabilities(delegateToken, false, false, true, true)
 	assertEventCapabilities(delegateToken, eventID, true, true)
 	deletableURL := collectionURL + "deletable.ics"
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, deletableURL, ownerToken,
@@ -745,6 +815,9 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 		t.Fatal("delegate-created event was not metered to the active account")
 	}
 	davE2EExpect(t, share(0, ownerToken), http.StatusOK)
+	if response := capabilities(delegateToken); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("revoked delegate queried calendar capabilities: %+v", response)
+	}
 	if response := davE2ERequest(client, http.MethodGet, createdURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("delegate retained created event after calendar share revocation: %+v", response)
 	}
@@ -768,7 +841,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, directURL, ownerToken, "", "", nil), http.StatusOK)
 
 	davE2EExpect(t, share(auth.GroupExecute, ownerToken), http.StatusOK)
-	assertCapabilities(delegateToken, true, true)
+	assertCapabilities(delegateToken, true, true, false, false)
 	if response := davE2ERequest(client, http.MethodGet, eventURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("manage-only delegate read event details: %+v", response)
 	}
@@ -968,7 +1041,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 	unrelatedID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email", "dav-share-unrelated@test.local")
 	davE2EExpect(t, shareUser(delegateID, auth.GroupExecute, ownerToken), http.StatusOK)
-	assertCapabilities(delegateToken, true, true)
+	assertCapabilities(delegateToken, true, true, false, false)
 	davE2EExpect(t, shareUser(unrelatedID, auth.GroupRead, delegateToken), http.StatusOK)
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, eventURL, unrelatedToken, "", "", nil), http.StatusOK)
 	davE2EExpect(t, shareUser(unrelatedID, 0, ownerToken), http.StatusOK)
@@ -992,7 +1065,7 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	shareUserActionID := collectionActionID("share_user")
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareUserActionID, adminToken,
 		accessGroupsE2ERecordPayload("action", shareUserActionID, map[string]interface{}{"permission": 0}), http.StatusOK)
-	assertCapabilities(ownerToken, true, false)
+	assertCapabilities(ownerToken, true, false, true, true)
 	if response := shareUser(delegateID, auth.GroupRead, ownerToken); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("account sharing bypassed action permission: %+v", response)
 	}
@@ -1001,11 +1074,11 @@ func runDAVSharedThroughOrdinaryRelationshipsRealE2E(t *testing.T, databaseType,
 	}
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareUserActionID, adminToken,
 		accessGroupsE2ERecordPayload("action", shareUserActionID, map[string]interface{}{"permission": int64(auth.AuthenticatedExecute)}), http.StatusOK)
-	assertCapabilities(ownerToken, true, true)
+	assertCapabilities(ownerToken, true, true, true, true)
 	shareActionID := collectionActionID("share")
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, base+"/api/action/"+shareActionID, adminToken,
 		accessGroupsE2ERecordPayload("action", shareActionID, map[string]interface{}{"permission": 0}), http.StatusOK)
-	assertCapabilities(ownerToken, false, true)
+	assertCapabilities(ownerToken, false, true, true, true)
 	if response := shareGroup(ownerGroupID, auth.GroupRead, ownerToken); response.err != nil || response.status != http.StatusForbidden {
 		t.Fatalf("group sharing bypassed action permission: %+v", response)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 )
@@ -29,6 +30,19 @@ func NewCalendarDiscoverAction(cruds map[string]*DbResource) actionresponse.Acti
 }
 
 func (*calendarDiscoverAction) Name() string { return "calendar.discover" }
+
+func calendarDiscoveryAccess(user daptinid.DaptinReferenceId, groups auth.GroupPermissionList,
+	collectionTable, collection, eventTable permission.PermissionInstance,
+	collectionAdmin, eventAdmin daptinid.DaptinReferenceId) (bool, bool) {
+	rowRead := collection.CanRead(user, groups, collectionAdmin)
+	collectionPeek := collectionTable.CanPeek(user, groups, collectionAdmin)
+	eventPeek := eventTable.CanPeek(user, groups, eventAdmin)
+	canRead := collectionPeek && rowRead && eventPeek
+	canFreeBusy := (collectionPeek || collectionTable.CanRead(user, groups, collectionAdmin)) &&
+		(collection.CanPeek(user, groups, collectionAdmin) || rowRead) &&
+		(eventPeek || eventTable.CanRead(user, groups, eventAdmin))
+	return canRead, canFreeBusy
+}
 
 func (a *calendarDiscoverAction) decodeCursor(value interface{}, user daptinid.DaptinReferenceId) (daptinid.DaptinReferenceId, error) {
 	encoded, ok := value.(string)
@@ -88,10 +102,6 @@ func (a *calendarDiscoverAction) DoAction(_ actionresponse.Outcome, fields map[s
 	eventTable := eventCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
 	admin := collectionCRUD.AdministratorGroupId
 	eventAdmin := eventCRUD.AdministratorGroupId
-	collectionTablePeek := collectionTable.CanPeek(user, groups, admin)
-	eventTablePeek := eventTable.CanPeek(user, groups, eventAdmin)
-	collectionTableFreeBusy := collectionTablePeek || collectionTable.CanRead(user, groups, admin)
-	eventTableFreeBusy := eventTablePeek || eventTable.CanRead(user, groups, eventAdmin)
 
 	rows, err := GetLimitedOrderedRowsWithTransaction(calendarCollectionTable,
 		[]string{"reference_id", "user_account_id", "name", "display_name"}, "reference_id", tx,
@@ -117,9 +127,7 @@ func (a *calendarDiscoverAction) DoAction(_ actionresponse.Outcome, fields map[s
 			return nil, nil, []error{errors.New("calendar discovery found an invalid collection reference")}
 		}
 		grant := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, ref, tx)
-		rowRead := grant.CanRead(user, groups, admin)
-		canRead := collectionTablePeek && rowRead && eventTablePeek
-		canFreeBusy := collectionTableFreeBusy && (grant.CanPeek(user, groups, admin) || rowRead) && eventTableFreeBusy
+		canRead, canFreeBusy := calendarDiscoveryAccess(user, groups, collectionTable, grant, eventTable, admin, eventAdmin)
 		if !canRead && !canFreeBusy {
 			continue
 		}

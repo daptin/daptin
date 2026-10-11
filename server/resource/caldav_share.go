@@ -109,14 +109,20 @@ func (a *calendarShareCapabilitiesAction) DoAction(_ actionresponse.Outcome, fie
 		return nil, nil, []error{api2go.NewHTTPError(err, "collection not found", http.StatusNotFound)}
 	}
 	active, canManage := a.share.managementAccess(collectionRef, caller, tx)
-	admin := a.share.cruds[calendarCollectionTable].AdministratorGroupId
-	collectionTable := a.share.cruds[calendarCollectionTable].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarCollectionTable, tx)
+	collectionCRUD := a.share.cruds[calendarCollectionTable]
+	eventCRUD := a.share.cruds[calendarObjectTable]
+	admin := collectionCRUD.AdministratorGroupId
+	collectionTable := collectionCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarCollectionTable, tx)
 	collection := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, collectionRef, tx)
-	canDiscover := (collectionTable.CanRead(active.UserReferenceId, active.Groups, admin) || collectionTable.CanPeek(active.UserReferenceId, active.Groups, admin)) &&
-		(collection.CanRead(active.UserReferenceId, active.Groups, admin) || collection.CanPeek(active.UserReferenceId, active.Groups, admin))
+	eventTable := eventCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", calendarObjectTable, tx)
+	canRead, canFreeBusy := calendarDiscoveryAccess(active.UserReferenceId, active.Groups, collectionTable, collection,
+		eventTable, admin, eventCRUD.AdministratorGroupId)
+	canDiscover := canRead || canFreeBusy
 	if !canDiscover && !canManage {
 		return nil, nil, []error{api2go.NewHTTPError(errors.New("calendar access denied"), "calendar access denied", http.StatusForbidden)}
 	}
+	canCreateEvent, canUpdateMetadata := calendarWriteCapabilities(active.UserReferenceId, active.Groups,
+		collectionTable, collection, eventTable, admin, eventCRUD.AdministratorGroupId)
 	allowed := func(name string) (bool, error) {
 		if !canManage {
 			return false, nil
@@ -138,6 +144,7 @@ func (a *calendarShareCapabilitiesAction) DoAction(_ actionresponse.Outcome, fie
 	}
 	return nil, []actionresponse.ActionResponse{NewActionResponse("calendar.share_capabilities", map[string]interface{}{
 		"collection_id": collectionRef.String(), "can_share_group": canShareGroup, "can_share_user": canShareUser,
+		"can_create_event": canCreateEvent, "can_update_metadata": canUpdateMetadata,
 	})}, nil
 }
 
