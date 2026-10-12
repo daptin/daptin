@@ -559,9 +559,6 @@ func (dbResource *DbResource) deleteWithoutFiltersWithData(id daptinid.DaptinRef
 		log.Printf("Delete Sql: %v\n", sql1)
 
 		_, err = transaction.Exec(sql1, args...)
-		if err == nil {
-			InvalidateReferenceIDCache(m.GetName(), parentId, id)
-		}
 		return err
 	}
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -100,18 +101,18 @@ func makeRefId() daptinid.DaptinReferenceId {
 	return daptinid.DaptinReferenceId(uuid.New())
 }
 
-func TestReferenceIDCacheEvictionAllowsSQLiteIDReuse(t *testing.T) {
-	dm, cleanup := testOlric(t, "test-reference-id-reuse")
+func TestReferenceIDLookupsIgnoreConcurrentStaleCache(t *testing.T) {
+	dm, cleanup := testOlric(t, "test-reference-id-race")
 	defer cleanup()
 	restore := swapOlricCache(dm)
 	defer restore()
 
-	db, err := sqlx.Open("sqlite3", ":memory:")
+	db, err := sqlx.Open("sqlite3", "file:"+filepath.Join(t.TempDir(), "calendar.db")+"?_busy_timeout=5000&_journal_mode=WAL")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	db.SetMaxOpenConns(1)
+	db.SetMaxOpenConns(4)
 	if _, err := db.Exec("create table calendar (id integer primary key, reference_id blob not null unique)"); err != nil {
 		t.Fatal(err)
 	}
@@ -124,28 +125,36 @@ func TestReferenceIDCacheEvictionAllowsSQLiteIDReuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tx, err := db.Beginx()
+	reader, err := db.Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := GetIdToReferenceIdWithTransaction("calendar", oldID, tx); err != nil {
+	defer reader.Rollback()
+	if _, err := GetIdToReferenceIdWithTransaction("calendar", oldID, reader); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := GetReferenceIdToIdWithTransaction("calendar", oldRef, tx); err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Commit(); err != nil {
+	if _, err := GetReferenceIdToIdWithTransaction("calendar", oldRef, reader); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range []string{fmt.Sprintf("itr-calendar-%d", oldID), fmt.Sprintf("riti-calendar-%v", oldRef)} {
-		if _, err := dm.Get(context.Background(), key); err != nil {
-			t.Fatalf("lookup was not cached at %s: %v", key, err)
+		if _, err := dm.Get(context.Background(), key); err == nil {
+			t.Fatalf("transactional lookup published %s before commit", key)
 		}
 	}
 	if _, err := db.Exec("delete from calendar where reference_id = ?", oldRef[:]); err != nil {
 		t.Fatal(err)
 	}
-	InvalidateReferenceIDCache("calendar", oldID, oldRef)
+	// A read transaction started before the delete can still see the old row.
+	// The former lookup cache could publish that observation after the delete.
+	if got, err := GetIdToReferenceIdWithTransaction("calendar", oldID, reader); err != nil || got != oldRef {
+		t.Fatalf("reader snapshot = %v, %v; want old reference", got, err)
+	}
+	if err := dm.Put(context.Background(), fmt.Sprintf("itr-calendar-%d", oldID), oldRef[:]); err != nil {
+		t.Fatal(err)
+	}
+	if err := dm.Put(context.Background(), fmt.Sprintf("riti-calendar-%v", oldRef), oldID); err != nil {
+		t.Fatal(err)
+	}
 	inserted, err = db.Exec("insert into calendar (reference_id) values (?)", newRef[:])
 	if err != nil {
 		t.Fatal(err)
@@ -157,7 +166,7 @@ func TestReferenceIDCacheEvictionAllowsSQLiteIDReuse(t *testing.T) {
 	if newID != oldID {
 		t.Fatalf("SQLite did not reuse deleted ID: old=%d new=%d", oldID, newID)
 	}
-	tx, err = db.Beginx()
+	tx, err := db.Beginx()
 	if err != nil {
 		t.Fatal(err)
 	}

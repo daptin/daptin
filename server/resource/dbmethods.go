@@ -484,23 +484,6 @@ func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType 
 
 var OlricCache olric.DMap
 
-// InvalidateReferenceIDCache removes both lookup directions when a row is
-// deleted. SQLite can reuse an integer ID, so a retained reverse lookup can
-// otherwise identify a new row as the deleted one.
-func InvalidateReferenceIDCache(objectType string, numericID int64, referenceID daptinid.DaptinReferenceId) {
-	if OlricCache == nil {
-		return
-	}
-	for _, key := range []string{
-		fmt.Sprintf("itr-%v-%v", objectType, numericID),
-		fmt.Sprintf("riti-%v-%v", objectType, referenceID),
-	} {
-		if _, err := OlricCache.Delete(context.Background(), key); err != nil {
-			log.Warnf("failed to invalidate reference ID cache for %s: %v", key, err)
-		}
-	}
-}
-
 // InvalidateObjectPermissionCache removes the cached PermissionInstance for a specific object,
 // forcing the next access to re-fetch from the database.
 func InvalidateObjectPermissionCache(objectType string, referenceId daptinid.DaptinReferenceId) {
@@ -2258,13 +2241,6 @@ func (dbResource *DbResource) GetObjectByWhereClauseWithTransaction(
 }
 
 func (dbResource *DbResource) GetIdToObject(typeName string, id int64, transaction *sqlx.Tx) (map[string]interface{}, error) {
-	//key := fmt.Sprintf("ito-%v-%v", typeName, id)
-	//if OlricCache != nil {
-	//	val, err := OlricCache.Get(key)
-	//	if err == nil && val != nil {
-	//		return val.(map[string]interface{}), nil
-	//	}
-	//}
 	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return nil, err
@@ -2315,24 +2291,10 @@ func (dbResource *DbResource) GetIdToObject(typeName string, id int64, transacti
 		log.Printf("[2082] No result found for [%v][%v]", typeName, id)
 		return nil, err
 	}
-	//if OlricCache != nil {
-	//	err = OlricCache.Put(key, m[0], olric.EX(1*time.Minute), olric.NX())
-	//	CheckErr(err, "[2034[ Failed to set id to object in olric cache")
-	//}
-
 	return m[0], nil
 }
 
 func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id int64, transaction *sqlx.Tx) (map[string]interface{}, error) {
-	key := fmt.Sprintf("ito-%v-%v", typeName, id)
-	if OlricCache != nil {
-		val, err := OlricCache.Get(context.Background(), key)
-		if err == nil && val != nil {
-			var res map[string]interface{}
-			err = val.Scan(res)
-			return res, err
-		}
-	}
 	s, q, err := statementbuilder.Squirrel.Select(goqu.C("*")).Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return nil, err
@@ -2386,11 +2348,6 @@ func (dbResource *DbResource) GetIdToObjectWithTransaction(typeName string, id i
 		log.Printf("[2151] No result found for [%v][%v]", typeName, id)
 		return nil, fmt.Errorf("no such item %v-%v", typeName, id)
 	}
-	if OlricCache != nil {
-		err = OlricCache.Put(context.Background(), key, m[0], olric.EX(5*time.Minute), olric.NX())
-		//CheckErr(err, "[2099] Failed to set id to object in olric cache")
-	}
-
 	return m[0], nil
 }
 
@@ -3144,39 +3101,16 @@ func (dbResource *DbResource) GetIdToReferenceId(typeName string, id int64, tran
 }
 
 // GetIdToReferenceIdWithTransaction Looks up an integer id and return a string reference id of an object of type `typeName`
+// Resolve from the active transaction: a shared cache can retain rows deleted
+// after a concurrent reader's snapshot, or rows created in a rolled-back write.
 func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
-
-	k := fmt.Sprintf("itr-%v-%v", typeName, id)
-	if OlricCache != nil {
-		v, err := OlricCache.Get(context.Background(), k)
-		if err == nil {
-			var dri daptinid.DaptinReferenceId
-			if scanErr := v.Scan(&dri); scanErr == nil {
-				return dri, nil
-			}
-			_, _ = OlricCache.Delete(context.Background(), k)
-		}
-	}
-
 	s, q, err := statementbuilder.Squirrel.Select("reference_id").
 		Prepared(true).From(typeName).Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return [16]byte{}, err
 	}
-
-	stmt, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[1636] failed to prepare statment: %v", err)
-		return [16]byte{}, err
-	}
-	defer stmt.Close()
 	var str []byte
-	row := stmt.QueryRowx(q...)
-	err = row.Scan(&str)
-	if OlricCache != nil {
-		OlricCache.Put(context.Background(), k, str, olric.EX(30*time.Minute), olric.NX())
-		//CheckErr(cacheErr, "[2897] Failed to set id to reference id in olric cache")
-	}
+	err = transaction.QueryRowx(s, q...).Scan(&str)
 	if len(str) == 0 {
 		return daptinid.NullReferenceId, err
 	}
@@ -3186,86 +3120,19 @@ func GetIdToReferenceIdWithTransaction(typeName string, id int64, transaction *s
 
 // GetReferenceIdToId Lookup an string reference id and return a internal integer id of an object of type `typeName`
 func (dbResource *DbResource) GetReferenceIdToId(typeName string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) (int64, error) {
-
-	cacheKey := fmt.Sprintf("riti-%v-%v", typeName, referenceId)
-
-	if OlricCache != nil {
-
-		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
-		if err == nil {
-			return cachedValue.Int64()
-		}
-	}
-
-	var id int64
-	s, q, err := statementbuilder.Squirrel.Select("id").
-		Prepared(true).From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
-	if err != nil {
-		return 0, err
-	}
-	stmt, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[1666] failed to prepare statment: %v", err)
-		return 0, err
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
-
-	err = stmt.QueryRowx(q...).Scan(&id)
-
-	if OlricCache != nil {
-		cachePutErr := OlricCache.Put(context.Background(), cacheKey, id, olric.EX(30*time.Minute), olric.NX())
-		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
-	}
-
-	return id, err
-
+	return GetReferenceIdToIdWithTransaction(typeName, referenceId, transaction)
 }
 
 // GetReferenceIdToIdWithTransaction Looks up a string reference id and return an internal integer id of an object of type `typeName`
 func GetReferenceIdToIdWithTransaction(typeName string, referenceId daptinid.DaptinReferenceId, updateTransaction *sqlx.Tx) (int64, error) {
-
-	cacheKey := fmt.Sprintf("riti-%v-%v", typeName, referenceId)
-
-	if OlricCache != nil {
-
-		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
-		if err == nil && cachedValue != nil {
-			return cachedValue.Int64()
-		}
-	}
-
 	var id int64
 	s, q, err := statementbuilder.Squirrel.Select("id").
 		Prepared(true).From(typeName).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
 	if err != nil {
 		return 0, err
 	}
-	stmt, err := updateTransaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[1666] failed to prepare statment: %v", err)
-		return 0, err
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt)
-
-	err = stmt.QueryRowx(q...).Scan(&id)
-
-	if OlricCache != nil && err == nil {
-		cachePutErr := OlricCache.Put(context.Background(), cacheKey, id, olric.EX(1*time.Hour), olric.NX())
-		CheckErr(cachePutErr, "failed to cache reference id to id for [%v][%v]", typeName, referenceId)
-	}
-
+	err = updateTransaction.QueryRowx(s, q...).Scan(&id)
 	return id, err
-
 }
 
 // Lookup an string reference id and return a internal integer id of an object of type `typeName`
