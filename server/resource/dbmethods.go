@@ -484,6 +484,23 @@ func (dbResource *DbResource) GetObjectPermissionByIdWithTransaction(objectType 
 
 var OlricCache olric.DMap
 
+// InvalidateReferenceIDCache removes both lookup directions when a row is
+// deleted. SQLite can reuse an integer ID, so a retained reverse lookup can
+// otherwise identify a new row as the deleted one.
+func InvalidateReferenceIDCache(objectType string, numericID int64, referenceID daptinid.DaptinReferenceId) {
+	if OlricCache == nil {
+		return
+	}
+	for _, key := range []string{
+		fmt.Sprintf("itr-%v-%v", objectType, numericID),
+		fmt.Sprintf("riti-%v-%v", objectType, referenceID),
+	} {
+		if _, err := OlricCache.Delete(context.Background(), key); err != nil {
+			log.Warnf("failed to invalidate reference ID cache for %s: %v", key, err)
+		}
+	}
+}
+
 // InvalidateObjectPermissionCache removes the cached PermissionInstance for a specific object,
 // forcing the next access to re-fetch from the database.
 func InvalidateObjectPermissionCache(objectType string, referenceId daptinid.DaptinReferenceId) {

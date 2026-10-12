@@ -528,6 +528,37 @@ func runPublicBookingRealE2E(t *testing.T, databaseType, connectionString string
 		accessGroupsE2ERecordPayload("bookable", bookableID, map[string]interface{}{"published": false}), http.StatusOK)
 	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/slots", "",
 		map[string]interface{}{"bookable_ref": bookableID, "date": day}, http.StatusNotFound)
+	reuseDay := time.Now().UTC().AddDate(0, 0, 3).Format("2006-01-02")
+	reuseDestinationURL := fixture.URL + "/caldav/" + match[1] + "/calendars/reuse-destination/"
+	davE2EExpect(t, davE2ERequest(fixture.Client, "MKCOL", reuseDestinationURL, ownerToken, "", "", nil), http.StatusCreated)
+	reuseDestinationID := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "collection", "name", "reuse-destination")
+	reuseBookableID := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, ownerToken, "bookable", map[string]interface{}{
+		"title": "Deleted calendar regression", "published": true,
+		"destination_collection_id": reuseDestinationID, "time_zone": "UTC", "weekly_hours": hours,
+		"duration_minutes": 30, "increment_minutes": 30, "minimum_notice_minutes": 0, "horizon_days": 30,
+		"capacity": 1,
+	})
+	accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/set_calendar", ownerToken,
+		map[string]interface{}{"bookable_ref": reuseBookableID, "calendar_ref": reuseDestinationID, "enabled": true}, http.StatusOK)
+	for i := 0; i < 3; i++ {
+		temporaryURL := fmt.Sprintf("%s/caldav/%s/calendars/reuse-temporary-%d/", fixture.URL, match[1], i)
+		davE2EExpect(t, davE2ERequest(fixture.Client, "MKCOL", temporaryURL, ownerToken, "", "", nil), http.StatusCreated)
+		davE2EExpect(t, davE2ERequest(fixture.Client, http.MethodPut, temporaryURL+"unrelated.ics", ownerToken,
+			"text/calendar", davE2ECalendarA, http.Header{"If-None-Match": []string{"*"}}), http.StatusCreated)
+		davE2EExpect(t, davE2ERequest(fixture.Client, http.MethodDelete, temporaryURL, ownerToken, "", "", nil), http.StatusNoContent)
+		reuseSlotsResponse := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/slots", "",
+			map[string]interface{}{"bookable_ref": reuseBookableID, "date": reuseDay}, http.StatusOK)
+		reuseSlots := reuseSlotsResponse.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})["slots"].([]interface{})
+		if len(reuseSlots) < 2 {
+			t.Fatalf("iteration %d has fewer than two free slots: %#v", i, reuseSlotsResponse)
+		}
+		reserved := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reserve", "",
+			map[string]interface{}{"bookable_ref": reuseBookableID, "start": reuseSlots[0], "guest_name": "Reuse Guest",
+				"guest_email": "reuse@example.net", "attempt_key": uuid.NewString()}, http.StatusOK)
+		receipt := reserved.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+		accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/bookable/reschedule", "",
+			map[string]interface{}{"booking_ref": receipt["booking_ref"], "token": receipt["token"], "start": reuseSlots[1]}, http.StatusOK)
+	}
 	fixture.Process.stopProcess()
 	restarted := startServer()
 	retried := accessGroupsE2ERequestJSON(t, restarted.Client, http.MethodPost, restarted.URL+"/action/bookable/reserve", "", input, http.StatusOK)

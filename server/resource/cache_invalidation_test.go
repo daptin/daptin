@@ -2,6 +2,8 @@ package resource
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -96,6 +98,77 @@ func swapOlricCache(dm olric.DMap) func() {
 
 func makeRefId() daptinid.DaptinReferenceId {
 	return daptinid.DaptinReferenceId(uuid.New())
+}
+
+func TestReferenceIDCacheEvictionAllowsSQLiteIDReuse(t *testing.T) {
+	dm, cleanup := testOlric(t, "test-reference-id-reuse")
+	defer cleanup()
+	restore := swapOlricCache(dm)
+	defer restore()
+
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+	if _, err := db.Exec("create table calendar (id integer primary key, reference_id blob not null unique)"); err != nil {
+		t.Fatal(err)
+	}
+	oldRef, newRef := makeRefId(), makeRefId()
+	inserted, err := db.Exec("insert into calendar (reference_id) values (?)", oldRef[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldID, err := inserted.LastInsertId()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := GetIdToReferenceIdWithTransaction("calendar", oldID, tx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := GetReferenceIdToIdWithTransaction("calendar", oldRef, tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{fmt.Sprintf("itr-calendar-%d", oldID), fmt.Sprintf("riti-calendar-%v", oldRef)} {
+		if _, err := dm.Get(context.Background(), key); err != nil {
+			t.Fatalf("lookup was not cached at %s: %v", key, err)
+		}
+	}
+	if _, err := db.Exec("delete from calendar where reference_id = ?", oldRef[:]); err != nil {
+		t.Fatal(err)
+	}
+	InvalidateReferenceIDCache("calendar", oldID, oldRef)
+	inserted, err = db.Exec("insert into calendar (reference_id) values (?)", newRef[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	newID, err := inserted.LastInsertId()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if newID != oldID {
+		t.Fatalf("SQLite did not reuse deleted ID: old=%d new=%d", oldID, newID)
+	}
+	tx, err = db.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	gotRef, err := GetIdToReferenceIdWithTransaction("calendar", newID, tx)
+	if err != nil || gotRef != newRef {
+		t.Fatalf("reused ID resolved to %v, error %v; want %v", gotRef, err, newRef)
+	}
+	if _, err := GetReferenceIdToIdWithTransaction("calendar", oldRef, tx); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("deleted reference still resolves: %v", err)
+	}
 }
 
 // ---------------------------------------------------------------------------
