@@ -247,8 +247,8 @@ func (a *bookableAction) setCalendar(fields map[string]interface{}, tx *sqlx.Tx)
 	if err != nil {
 		return nil, bookingHTTP(http.StatusNotFound, "calendar not found")
 	}
-	join := "bookable_bookable_id_has_collection_collection_id"
-	links, err := GetObjectByWhereClauseWithTransaction(join, tx, goqu.Ex{"bookable_id": pageID, "collection_id": calendarID})
+	bookableCollectionJoinTableName := "bookable_bookable_id_has_collection_collection_id"
+	links, err := GetObjectByWhereClauseWithTransaction(bookableCollectionJoinTableName, tx, goqu.Ex{"bookable_id": pageID, "collection_id": calendarID})
 	if err != nil {
 		return nil, err
 	}
@@ -263,14 +263,14 @@ func (a *bookableAction) setCalendar(fields map[string]interface{}, tx *sqlx.Tx)
 			return nil, bookingHTTP(http.StatusForbidden, "required calendar reference denied")
 		}
 		if len(links) == 0 {
-			model := api2go.NewApi2GoModelWithData(join, nil, 0, nil, map[string]interface{}{"bookable_id": pageRef.String(), "collection_id": calendarRef.String()})
-			if _, err := a.cruds[join].createAfterAuthorizationWithTransaction(model, a.request(http.MethodPost, "/action/bookable/set_calendar", owner), tx); err != nil {
+			model := api2go.NewApi2GoModelWithData(bookableCollectionJoinTableName, nil, 0, nil, map[string]interface{}{"bookable_id": pageRef.String(), "collection_id": calendarRef.String()})
+			if _, err := a.cruds[bookableCollectionJoinTableName].createAfterAuthorizationWithTransaction(model, a.request(http.MethodPost, "/action/bookable/set_calendar", owner), tx); err != nil {
 				return nil, err
 			}
 		}
 	} else {
 		for _, link := range links {
-			if _, err := a.cruds[join].deleteAfterAuthorizationWithTransaction(bookingRef(link["reference_id"]), a.request(http.MethodDelete, "/action/bookable/set_calendar", owner), tx); err != nil {
+			if _, err := a.cruds[bookableCollectionJoinTableName].deleteAfterAuthorizationWithTransaction(bookingRef(link["reference_id"]), a.request(http.MethodDelete, "/action/bookable/set_calendar", owner), tx); err != nil {
 				return nil, err
 			}
 		}
