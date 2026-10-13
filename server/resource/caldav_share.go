@@ -105,7 +105,8 @@ func (a *calendarShareCapabilitiesAction) DoAction(_ actionresponse.Outcome, fie
 	if collectionRef == daptinid.NullReferenceId {
 		return nil, nil, []error{api2go.NewHTTPError(errors.New("invalid reference ID"), "invalid reference ID", http.StatusBadRequest)}
 	}
-	if _, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, collectionRef, tx); err != nil {
+	collectionID, err := GetReferenceIdToIdWithTransaction(calendarCollectionTable, collectionRef, tx)
+	if err != nil {
 		return nil, nil, []error{api2go.NewHTTPError(err, "collection not found", http.StatusNotFound)}
 	}
 	active, canManage := a.share.managementAccess(collectionRef, caller, tx)
@@ -142,9 +143,23 @@ func (a *calendarShareCapabilitiesAction) DoAction(_ actionresponse.Outcome, fie
 	if err != nil {
 		return nil, nil, []error{err}
 	}
+	canPrepareSharing, err := allowed("prepare_sharing")
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	canPrepareSharing = canPrepareSharing &&
+		(collection.UserId == active.UserReferenceId || IsAdminWithTransaction(active, tx))
+	revocableEditSharing := false
+	if canManage {
+		revocableEditSharing, err = a.share.revocableEditSharingReady(collectionRef, collectionID, tx)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+	}
 	return nil, []actionresponse.ActionResponse{NewActionResponse("calendar.share_capabilities", map[string]interface{}{
 		"collection_id": collectionRef.String(), "can_share_group": canShareGroup, "can_share_user": canShareUser,
 		"can_create_event": canCreateEvent, "can_update_metadata": canUpdateMetadata,
+		"can_prepare_sharing": canPrepareSharing, "revocable_edit_sharing": revocableEditSharing,
 	})}, nil
 }
 

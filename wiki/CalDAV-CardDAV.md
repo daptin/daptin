@@ -37,7 +37,8 @@ A calendar owner is not automatically a Daptin administrator. An administrator,
 or another account with schema-management permission, grants table access and
 chooses row defaults through the normal Daptin schema. For example, this setup
 lets members of `users` create calendars and gives creators control of their
-own rows:
+own rows. An editor who creates an event under this policy retains direct row
+access after their calendar share is removed:
 
 ```yaml
 Tables:
@@ -321,6 +322,10 @@ curl -X POST "http://localhost:6336/action/collection/share_capabilities" \
 
 Its `can_share_group` and `can_share_user` results reflect the caller's
 persisted collection management grant and the two action permissions.
+`can_prepare_sharing` reports permission to run the preparation action.
+`revocable_edit_sharing` reports whether the row default, existing event
+permissions, and private owner group are prepared for creator revocation.
+Other independent group grants still apply.
 `can_create_event` reports whether the caller can create an event through
 CalDAV PUT: the collection must be readable and grant Create and Refer, and
 the calendar table must grant Peek and Create. `can_update_metadata` reports
@@ -461,31 +466,37 @@ Other table or row permissions can still deny a request or allow access after
 a share is revoked. To revoke a delegate's direct JSON:API access to contacts
 they created, configure the `contact` row default without owner read rights.
 
-If an administrator wants revocation to cover direct JSON:API access to
-delegate-created events while retaining owner access,
-configure the `calendar` row default without `UserRead` or other owner rights.
-For example, `DefaultPermission: 16384` uses the existing `GroupPeek` bit and
-adds no owner access. Keep table access for the intended users as shown above.
-Create a separate private `usergroup` containing the calendar owner, then grant
-that group `GroupCRUD` on the collection through `collection/share` before
-creating events. CalDAV copies this owner group grant to new events alongside
-delegate grants. Removing only the delegate group's share then leaves owner
-access intact and removes the delegate's direct row access. Do not use a group
-that also contains delegates as the owner group.
+For revocable editor access across CalDAV and JSON:API, an administrator
+configures the `calendar` row default without creator `User` rights or public
+`Guest` CRUD rights. For example, `DefaultPermission: 16384` adds no creator
+access. Keep table access for the intended users. This is an administrator
+policy choice; other applications can retain creator-owned rows.
 
-Changing the row default affects new events only. For existing events, first
-grant the private owner group through `collection/share`, then have an
-administrator update each existing `calendar` row's `permission` through the
-normal resource API to remove owner bits. For example, after identifying an
-event's reference ID, patch its row with
-`{"data":{"type":"calendar","id":"EVENT_REFERENCE_ID","attributes":{"permission":16384}}}`.
-Check owner access before revoking delegate groups. Rows with other grants may
-still be accessible through those
-grants. Table-level denial cannot replace this row policy: it also denies
-authorized owners and delegates at the table boundary.
+After creating a collection and before granting editor access, its owner calls
+`collection/prepare_sharing`:
+
+```bash
+curl -X POST "http://localhost:6336/action/collection/prepare_sharing" \
+  -H "Authorization: Bearer $OWNER_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID"}}'
+```
+
+The action creates or reuses a private one-account owner group through normal
+sharing, grants it access to the collection and current events, and removes
+creator `User` rights from current events in one transaction. It preserves
+event ownership and other group links. CalDAV copies the owner grant to future
+events. The action refuses a row default that would give future creators
+independent access. It can be called again after more events have been added.
+Check `revocable_edit_sharing` before offering editor shares. Removing an
+editor's share then removes its share-derived access across CalDAV and
+JSON:API. Separate grants to that account continue to apply. Table-level
+denial cannot replace this row policy: it also denies authorized owners and
+delegates at the table boundary.
 
 A `GroupPeek` grant exposes free/busy intervals without event details.
-`GroupRead` permits details;
+`GroupRead` permits event details through CalDAV. Grant both `GroupPeek` and
+`GroupRead` when the reader also needs direct JSON:API event access;
 `GroupCRUD` permits edits when the corresponding table permissions allow them.
 Free/busy reports accept a range of at most one year and examine at most 1,000
 event objects in a collection; larger collections receive HTTP 507.

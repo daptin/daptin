@@ -146,6 +146,13 @@ func TestDAVConfiguredGroupDefaultsRealE2E(t *testing.T) {
 			davE2EExpect(t, davE2ERequest(client, http.MethodPut, eventURL, seedToken,
 				"text/calendar", davE2ECalendarA, nil), http.StatusCreated)
 			collectionID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "collection", "name", "team")
+			if grant.name == "edit" {
+				unsafe := davE2ERequest(client, http.MethodPost, base+"/action/collection/prepare_sharing", ownerToken,
+					"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q}}`, collectionID), nil)
+				if unsafe.err != nil || unsafe.status != http.StatusConflict {
+					t.Fatalf("creator-owned default was accepted for revocable sharing: %+v", unsafe)
+				}
+			}
 			capabilities := davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/share_capabilities", delegateToken,
 				"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q}}`, collectionID), nil), http.StatusOK)
 			if !strings.Contains(capabilities.body, fmt.Sprintf(`"can_create_event":%t`, grant.canCreate)) ||

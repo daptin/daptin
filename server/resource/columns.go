@@ -297,6 +297,20 @@ var SystemActions = []actionresponse.Action{
 		}},
 	},
 	{
+		Name:             "prepare_sharing",
+		Label:            "Prepare revocable calendar sharing",
+		OnType:           "collection",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields: []api2go.ColumnInfo{
+			{Name: "calendar_reference_id", ColumnName: "calendar_reference_id", ColumnType: "alias"},
+		},
+		OutFields: []actionresponse.Outcome{{
+			Type: "calendar.prepare_sharing", Method: "EXECUTE",
+			Attributes: map[string]interface{}{"collection_id": "~calendar_reference_id"},
+		}},
+	},
+	{
 		Name:             "list_shares",
 		Label:            "List calendar account shares",
 		OnType:           "collection",
