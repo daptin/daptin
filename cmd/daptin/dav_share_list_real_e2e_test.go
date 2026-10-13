@@ -99,7 +99,11 @@ func runDAVAccountShareRosterRealE2E(t *testing.T, databaseType, connectionStrin
 		davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", ownerToken,
 			"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"user_account_id":%q,"permission":%d}}`, collectionID, account, grant), nil), http.StatusOK)
 	}
-	assertOne := func(token, account string, grant auth.AuthPermission, busy, read, edit, identity bool) {
+	shareEmail := func(token, email string, grant auth.AuthPermission) davE2EResponse {
+		return davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", token,
+			"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"recipient_email":%q,"permission":%d}}`, collectionID, email, grant), nil)
+	}
+	assertOne := func(token, account string, grant auth.AuthPermission, busy, read, edit bool) {
 		t.Helper()
 		shares := readShares(token)
 		if len(shares) != 1 {
@@ -109,17 +113,18 @@ func runDAVAccountShareRosterRealE2E(t *testing.T, databaseType, connectionStrin
 		if row["user_account_id"] != account || row["permission"] != float64(grant) || row["can_free_busy"] != busy || row["can_read"] != read || row["can_edit"] != edit {
 			t.Fatalf("roster grant = %#v", row)
 		}
-		_, hasName := row["name"]
-		_, hasEmail := row["email"]
-		if hasName != identity || hasEmail != identity {
-			t.Fatalf("roster identity visibility = %#v", row)
-		}
-		if identity && (row["name"] != "roster-delegate" || row["email"] != "roster-delegate@test.local") {
+		if row["name"] != "roster-delegate" || row["email"] != "roster-delegate@test.local" {
 			t.Fatalf("roster account identity = %#v", row)
 		}
 	}
 	if len(readShares(ownerToken)) != 0 {
 		t.Fatal("new calendar already has direct account shares")
+	}
+	accounts := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/user_account?page%5Bsize%5D=200", ownerToken, nil, http.StatusOK)
+	for _, item := range accessGroupsE2EDataArray(t, accounts) {
+		if item.(map[string]interface{})["id"] == delegateID {
+			t.Fatal("owner unexpectedly read the recipient account")
+		}
 	}
 	ordinaryGroup := accessGroupsE2ECreateUsergroup(t, client, base, adminToken, "roster-ordinary-group")
 	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/share", ownerToken,
@@ -128,9 +133,35 @@ func runDAVAccountShareRosterRealE2E(t *testing.T, databaseType, connectionStrin
 		t.Fatalf("ordinary group appeared in account roster: %#v", shares)
 	}
 	davE2EExpect(t, list(delegateToken, collectionID, ""), http.StatusForbidden)
-	shareUser(delegateID, auth.GroupPeek)
-	assertOne(ownerToken, delegateID, auth.GroupPeek, true, false, false, false)
-	assertOne(adminToken, delegateID, auth.GroupPeek, true, false, false, true)
+	if response := shareEmail(otherToken, "roster-delegate@test.local", auth.GroupPeek); response.err != nil || response.status != http.StatusForbidden {
+		t.Fatalf("unrelated caller resolved a recipient: %+v", response)
+	}
+	if response := shareEmail(ownerToken, "missing@test.local", auth.GroupPeek); response.err != nil || response.status != http.StatusNotFound {
+		t.Fatalf("missing recipient response: %+v", response)
+	}
+	if response := shareEmail(ownerToken, "ROSTER-DELEGATE@test.local", auth.GroupPeek); response.err != nil || response.status != http.StatusNotFound {
+		t.Fatalf("non-exact recipient response: %+v", response)
+	}
+	if response := davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", ownerToken,
+		"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"user_account_id":%q,"recipient_email":"roster-delegate@test.local","permission":%d}}`, collectionID, delegateID, auth.GroupPeek), nil); response.err != nil || response.status != http.StatusBadRequest {
+		t.Fatalf("two recipient selectors accepted: %+v", response)
+	}
+	if response := davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", ownerToken,
+		"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"permission":%d}}`, collectionID, auth.GroupPeek), nil); response.err != nil || response.status != http.StatusBadRequest {
+		t.Fatalf("missing recipient accepted: %+v", response)
+	}
+	shared := davE2EExpect(t, shareEmail(ownerToken, "roster-delegate@test.local", auth.GroupPeek), http.StatusOK)
+	if !strings.Contains(shared.body, delegateID) {
+		t.Fatalf("email share did not return recipient ID: %s", shared.body)
+	}
+	assertOne(ownerToken, delegateID, auth.GroupPeek, true, false, false)
+	assertOne(adminToken, delegateID, auth.GroupPeek, true, false, false)
+	accounts = accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/user_account?page%5Bsize%5D=200", ownerToken, nil, http.StatusOK)
+	for _, item := range accessGroupsE2EDataArray(t, accounts) {
+		if item.(map[string]interface{})["id"] == delegateID {
+			t.Fatal("calendar share broadened account list access")
+		}
+	}
 	otherCalendar := davE2EExpect(t, list(ownerToken, otherCollectionID, ""), http.StatusOK)
 	if strings.Contains(otherCalendar.body, delegateID) {
 		t.Fatalf("one calendar's share appeared in another: %s", otherCalendar.body)
@@ -138,15 +169,15 @@ func runDAVAccountShareRosterRealE2E(t *testing.T, databaseType, connectionStrin
 	davE2EExpect(t, list(delegateToken, collectionID, ""), http.StatusForbidden)
 	davE2EExpect(t, list(otherToken, collectionID, ""), http.StatusForbidden)
 	shareUser(delegateID, auth.GroupPeek|auth.GroupRead)
-	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead, true, true, false, false)
+	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead, true, true, false)
 	shareUser(delegateID, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate)
-	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, true, true, true, false)
+	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, true, true, true)
 	shareUser(otherID, auth.GroupRead)
 	if shares := readShares(ownerToken); len(shares) != 2 {
 		t.Fatalf("two account shares absent: %#v", shares)
 	}
 	shareUser(otherID, 0)
-	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, true, true, true, false)
+	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, true, true, true)
 	if response := list(ownerToken, collectionID, "invalid"); response.err != nil || response.status != http.StatusBadRequest {
 		t.Fatalf("invalid share cursor accepted: %+v", response)
 	}
@@ -155,8 +186,8 @@ func runDAVAccountShareRosterRealE2E(t *testing.T, databaseType, connectionStrin
 	}
 	process.stopProcess()
 	base, process = start()
-	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, true, true, true, false)
-	shareUser(delegateID, 0)
+	assertOne(ownerToken, delegateID, auth.GroupPeek|auth.GroupRead|auth.GroupUpdate, true, true, true)
+	davE2EExpect(t, shareEmail(ownerToken, "roster-delegate@test.local", 0), http.StatusOK)
 	if shares := readShares(ownerToken); len(shares) != 0 {
 		t.Fatalf("revoked account remained in roster: %#v", shares)
 	}

@@ -267,6 +267,7 @@ var SystemActions = []actionresponse.Action{
 		InFields: []api2go.ColumnInfo{
 			{Name: "calendar_reference_id", ColumnName: "calendar_reference_id", ColumnType: "alias"},
 			{Name: "user_account_id", ColumnName: "user_account_id", ColumnType: "alias"},
+			{Name: "recipient_email", ColumnName: "recipient_email", ColumnType: "email"},
 			{Name: "permission", ColumnName: "permission", ColumnType: "value"},
 		},
 		OutFields: []actionresponse.Outcome{{
@@ -275,6 +276,7 @@ var SystemActions = []actionresponse.Action{
 			Attributes: map[string]interface{}{
 				"collection_id":  "~calendar_reference_id",
 				"target_user_id": "~user_account_id",
+				"target_email":   "~recipient_email",
 				"permission":     "~permission",
 			},
 		}},

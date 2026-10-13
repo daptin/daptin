@@ -108,7 +108,8 @@ func runDAVPrepareSharingRealE2E(t *testing.T, databaseType, connectionString st
 		davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", ownerToken,
 			"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"user_account_id":%q,"permission":%d}}`, collectionID, accountID, grant), nil), http.StatusOK)
 	}
-	share(delegateID, auth.GroupCRUD)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPost, base+"/action/collection/share_user", ownerToken,
+		"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,"recipient_email":"prepare-delegate@test.local","permission":%d}}`, collectionID, auth.GroupCRUD), nil), http.StatusOK)
 	share(readerID, auth.GroupRead|auth.GroupPeek)
 	createdURL := calendarURL + "delegate.ics"
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken, "text/calendar", davE2ECalendarB, nil), http.StatusCreated)

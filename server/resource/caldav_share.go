@@ -3,6 +3,7 @@ package resource
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
@@ -180,16 +181,53 @@ func (a *calendarShareAction) DoAction(_ actionresponse.Outcome, fields map[stri
 		return nil, nil, []error{api2go.NewHTTPError(err, "invalid group permission", http.StatusBadRequest)}
 	}
 	groupRef := daptinid.InterfaceToDIR(fields["usergroup_id"])
-	if target, present := fields["target_user_id"]; present {
+	targetRef := daptinid.NullReferenceId
+	hasTarget := false
+	switch value := fields["target_user_id"].(type) {
+	case string:
+		if value = strings.TrimSpace(value); value != "" {
+			hasTarget = true
+			targetRef = daptinid.InterfaceToDIR(value)
+		}
+	case nil:
+	default:
+		hasTarget = true
+		targetRef = daptinid.InterfaceToDIR(value)
+	}
+	email := strings.TrimSpace(StringOrEmpty(fields["target_email"]))
+	if hasTarget || email != "" {
 		if groupRef != daptinid.NullReferenceId {
 			return nil, nil, []error{api2go.NewHTTPError(errors.New("choose an account or group"), "choose an account or group", http.StatusBadRequest)}
 		}
-		targetRef := daptinid.InterfaceToDIR(target)
-		if targetRef == daptinid.NullReferenceId {
+		if hasTarget && email != "" {
+			return nil, nil, []error{api2go.NewHTTPError(errors.New("choose an account ID or email"), "choose an account ID or email", http.StatusBadRequest)}
+		}
+		if hasTarget && targetRef == daptinid.NullReferenceId {
 			return nil, nil, []error{api2go.NewHTTPError(errors.New("invalid account reference ID"), "invalid account reference ID", http.StatusBadRequest)}
 		}
-		var err error
-		groupRef, err = a.shareWithUser(collectionRef, targetRef, grant, user, tx)
+		base := a.base()
+		collectionID, active, err := base.authorizeCollection(collectionRef, user, tx)
+		if err != nil {
+			return nil, nil, []error{err}
+		}
+		if email != "" {
+			accounts, err := GetLimitedOrderedRowsWithTransaction(USER_ACCOUNT_TABLE_NAME,
+				[]string{"reference_id", "email"}, "id", tx, 2, goqu.Ex{"email": email})
+			if err != nil {
+				return nil, nil, []error{err}
+			}
+			if len(accounts) == 0 || (len(accounts) == 1 && StringOrEmpty(accounts[0]["email"]) != email) {
+				return nil, nil, []error{api2go.NewHTTPError(errors.New("account not found"), "account not found", http.StatusNotFound)}
+			}
+			if len(accounts) != 1 {
+				return nil, nil, []error{api2go.NewHTTPError(errors.New("ambiguous account email"), "ambiguous account email", http.StatusConflict)}
+			}
+			targetRef = daptinid.InterfaceToDIR(accounts[0]["reference_id"])
+			if targetRef == daptinid.NullReferenceId {
+				return nil, nil, []error{errors.New("account has invalid reference ID")}
+			}
+		}
+		groupRef, err = base.shareWithUserAuthorized(collectionID, collectionRef, targetRef, grant, user, active, tx)
 		if err != nil {
 			return nil, nil, []error{err}
 		}

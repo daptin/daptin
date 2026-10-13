@@ -288,27 +288,32 @@ curl -X POST "http://localhost:6336/action/collection/share" \
   --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID","usergroup_id":"GROUP_REFERENCE_ID","permission":32768}}'
 ```
 
-To share with one identified account, use `collection/share_user` with that
-account's public reference ID. A calendar manager needs `Refer` access to the
-target `user_account` table and row. The action creates a group for this
-calendar and account, adds the account through the ordinary membership
-relationship, and applies the same collection and event grants. The response
-includes the group's reference ID as the share handle.
+To share with one Daptin account, use `collection/share_user` with either its
+exact email address or its public reference ID. A calendar manager needs
+`Refer` access to the target `user_account` table and row, but does not need
+general account `Read` access. The action resolves an email after checking
+management access to the collection. It creates a group for this calendar and
+account, adds the account through the ordinary membership relationship, and
+applies the same collection and event grants. The response includes the
+account's reference ID and the group's reference ID as the share handle.
 
 ```bash
 curl -X POST "http://localhost:6336/action/collection/share_user" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID","user_account_id":"ACCOUNT_REFERENCE_ID","permission":32768}}'
+  --data '{"attributes":{"calendar_reference_id":"COLLECTION_REFERENCE_ID","recipient_email":"person@example.com","permission":32768}}'
 ```
 
-Call `share_user` again with another permission value to change that account's
-rights. Send `"permission":0` to revoke the share. Repeated calls for the same
-calendar and account reuse its group. The group membership and row links are
-the access authority; administrators can inspect or change them using normal
-relationship resources. If membership changes, `share_user` refuses to alter
-that group; use its returned group reference ID with `collection/share` to
-revoke the links. Changing membership changes who receives the grant.
+Use `user_account_id` instead of `recipient_email` when the reference ID is
+already known; provide exactly one. An unknown exact email or account ID
+returns 404, and an ambiguous email returns 409. Call `share_user` again with
+another permission value to change that account's rights. Send `"permission":0`
+to revoke the share. Repeated calls for the same calendar and account reuse
+its group. The group membership and row links are the access authority;
+administrators can inspect or change them using normal relationship resources.
+If membership changes, `share_user` refuses to alter that group; use its
+returned group reference ID with `collection/share` to revoke the links.
+Changing membership changes who receives the grant.
 
 To decide whether to show sharing controls for a selected calendar, call the
 read-only `collection/share_capabilities` action:
@@ -351,8 +356,9 @@ The response contains `shares` and `next_cursor`. Each share has
 `user_account_id`, `permission`, `can_free_busy`, `can_read`, and `can_edit`.
 The booleans describe the direct share grant; table and individual event row
 permissions still determine whether a particular operation succeeds. The
-account's `name` and `email` appear only when the caller can read that account
-row. Use `next_cursor` in the same action's `cursor` input until it is empty.
+account's `name` and `email` appear for verified direct shares on this managed
+calendar; this does not grant general account read access. Use `next_cursor`
+in the same action's `cursor` input until it is empty.
 The action requires its own Execute permission and the caller's persisted
 management access to the collection. The list omits group shares and revoked
 account shares.

@@ -94,7 +94,7 @@ func (a *calendarListSharesAction) DoAction(_ actionresponse.Outcome, fields map
 	if more {
 		links = links[:calendarShareListPageSize]
 	}
-	shares, err := a.shares(collectionRef, active, links, tx)
+	shares, err := a.shares(collectionRef, links, tx)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -110,7 +110,7 @@ func (a *calendarListSharesAction) DoAction(_ actionresponse.Outcome, fields map
 	})}, nil
 }
 
-func (a *calendarListSharesAction) shares(collectionRef daptinid.DaptinReferenceId, active *auth.SessionUser, links []map[string]interface{}, tx *sqlx.Tx) ([]map[string]interface{}, error) {
+func (a *calendarListSharesAction) shares(collectionRef daptinid.DaptinReferenceId, links []map[string]interface{}, tx *sqlx.Tx) ([]map[string]interface{}, error) {
 	visible := make([]map[string]interface{}, 0)
 	if len(links) == 0 {
 		return visible, nil
@@ -187,11 +187,6 @@ func (a *calendarListSharesAction) shares(collectionRef daptinid.DaptinReference
 		}
 		byID[id] = account
 	}
-	crud := a.share.cruds[USER_ACCOUNT_TABLE_NAME]
-	admin := crud.AdministratorGroupId
-	tableGrant := crud.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", USER_ACCOUNT_TABLE_NAME, tx)
-	canReadAccounts := tableGrant.CanRead(active.UserReferenceId, active.Groups, admin)
-	isAdmin := IsAdminWithTransaction(active, tx)
 	for _, link := range links {
 		groupID, err := ResourceRowInt64(link["usergroup_id"])
 		if err != nil {
@@ -219,15 +214,9 @@ func (a *calendarListSharesAction) shares(collectionRef daptinid.DaptinReference
 			"can_read":      grant&auth.GroupRead != 0,
 			"can_edit":      grant&(auth.GroupRead|auth.GroupUpdate) == auth.GroupRead|auth.GroupUpdate,
 		}
-		canReadAccount := isAdmin
-		if canReadAccounts && !canReadAccount {
-			rowGrant := GetObjectPermissionByReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, accountRef, tx)
-			canReadAccount = rowGrant.CanRead(active.UserReferenceId, active.Groups, admin)
-		}
-		if canReadAccounts && canReadAccount {
-			item["name"] = StringOrEmpty(account["name"])
-			item["email"] = StringOrEmpty(account["email"])
-		}
+		// Management access and the persisted one-account link scope these labels.
+		item["name"] = StringOrEmpty(account["name"])
+		item["email"] = StringOrEmpty(account["email"])
 		visible = append(visible, item)
 	}
 	return visible, nil

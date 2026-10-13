@@ -136,6 +136,10 @@ func (a *davShareAction) shareWithUser(collectionRef, targetRef daptinid.DaptinR
 	if err != nil {
 		return daptinid.NullReferenceId, err
 	}
+	return a.shareWithUserAuthorized(collectionID, collectionRef, targetRef, grant, caller, active, tx)
+}
+
+func (a *davShareAction) shareWithUserAuthorized(collectionID int64, collectionRef, targetRef daptinid.DaptinReferenceId, grant auth.AuthPermission, caller, active *auth.SessionUser, tx *sqlx.Tx) (daptinid.DaptinReferenceId, error) {
 	targetID, err := GetReferenceIdToIdWithTransaction(USER_ACCOUNT_TABLE_NAME, targetRef, tx)
 	if err != nil {
 		return daptinid.NullReferenceId, api2go.NewHTTPError(err, "account not found", http.StatusNotFound)
