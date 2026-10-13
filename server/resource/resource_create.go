@@ -418,7 +418,7 @@ func (dbResource *DbResource) createWithoutFilter(obj interface{}, req api2go.Re
 	}
 
 	colsList = append(colsList, "permission")
-	valsList = append(valsList, dbResource.model.GetDefaultPermission())
+	valsList = append(valsList, dbResource.defaultPermission())
 
 	colsList = append(colsList, "created_at")
 	valsList = append(valsList, time.Now())
@@ -559,7 +559,7 @@ func (dbResource *DbResource) createWithoutFilter(obj interface{}, req api2go.Re
 		if !ok {
 			log.Errorf("Relation table model not found [%s]", relationTableName)
 		} else {
-			relationPermission := auth.AuthPermission(relationTableModel.model.GetDefaultPermission())
+			relationPermission := auth.AuthPermission(relationTableModel.defaultPermission())
 			if group.Permission != nil {
 				relationPermission = *group.Permission
 			}
@@ -1045,7 +1045,7 @@ func (dbResource *DbResource) createWithTransaction(obj interface{}, req api2go.
 
 	n1 := dbResource.model.GetName()
 	c1 := dbResource.model.GetColumns()
-	p1 := dbResource.model.GetDefaultPermission()
+	p1 := dbResource.defaultPermission()
 	r1 := dbResource.model.GetRelations()
 	publicModel, err := newPublicApi2GoModel(n1, c1, p1, r1, createdResource)
 	if err != nil {
@@ -1116,7 +1116,7 @@ func (dbResource *DbResource) Create(obj interface{}, req api2go.Request) (api2g
 
 	n1 := dbResource.model.GetName()
 	c1 := dbResource.model.GetColumns()
-	p1 := dbResource.model.GetDefaultPermission()
+	p1 := dbResource.defaultPermission()
 	r1 := dbResource.model.GetRelations()
 	publicModel, err := newPublicApi2GoModel(n1, c1, p1, r1, createdResource)
 	if err != nil {
