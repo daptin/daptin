@@ -94,7 +94,11 @@ func (a *calendarListSharesAction) DoAction(_ actionresponse.Outcome, fields map
 	if more {
 		links = links[:calendarShareListPageSize]
 	}
-	shares, err := a.shares(collectionRef, links, tx)
+	protectedID, _, err := a.share.protectedOwnerShareGroup(collectionRef, collectionID, tx)
+	if err != nil {
+		return nil, nil, []error{err}
+	}
+	shares, err := a.shares(collectionRef, protectedID, links, tx)
 	if err != nil {
 		return nil, nil, []error{err}
 	}
@@ -110,7 +114,7 @@ func (a *calendarListSharesAction) DoAction(_ actionresponse.Outcome, fields map
 	})}, nil
 }
 
-func (a *calendarListSharesAction) shares(collectionRef daptinid.DaptinReferenceId, links []map[string]interface{}, tx *sqlx.Tx) ([]map[string]interface{}, error) {
+func (a *calendarListSharesAction) shares(collectionRef daptinid.DaptinReferenceId, protectedID int64, links []map[string]interface{}, tx *sqlx.Tx) ([]map[string]interface{}, error) {
 	visible := make([]map[string]interface{}, 0)
 	if len(links) == 0 {
 		return visible, nil
@@ -191,6 +195,9 @@ func (a *calendarListSharesAction) shares(collectionRef daptinid.DaptinReference
 		groupID, err := ResourceRowInt64(link["usergroup_id"])
 		if err != nil {
 			return nil, err
+		}
+		if groupID == protectedID {
+			continue
 		}
 		members := membership[groupID]
 		if len(members) != 1 {

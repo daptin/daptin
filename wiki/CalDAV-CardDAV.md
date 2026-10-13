@@ -360,8 +360,8 @@ account's `name` and `email` appear for verified direct shares on this managed
 calendar; this does not grant general account read access. Use `next_cursor`
 in the same action's `cursor` input until it is empty.
 The action requires its own Execute permission and the caller's persisted
-management access to the collection. The list omits group shares and revoked
-account shares.
+management access to the collection. The list omits group shares, revoked
+account shares, and the private owner grant used by `prepare_sharing`.
 
 For an event the caller can read, query its current edit rights with
 `collection/event_capabilities`:
@@ -494,6 +494,10 @@ creator `User` rights from current events in one transaction. It preserves
 event ownership and other group links. CalDAV copies the owner grant to future
 events. The action refuses a row default that would give future creators
 independent access. It can be called again after more events have been added.
+The private owner grant is not a delegate share. `collection/share_user` and
+`collection/share` reject attempts to remove or weaken it while the calendar
+uses this row policy, including calls using the owner account's email,
+reference ID, or the returned owner group ID.
 Check `revocable_edit_sharing` before offering editor shares. Removing an
 editor's share then removes its share-derived access across CalDAV and
 JSON:API. Separate grants to that account continue to apply. Table-level

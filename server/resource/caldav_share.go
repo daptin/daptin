@@ -227,6 +227,15 @@ func (a *calendarShareAction) DoAction(_ actionresponse.Outcome, fields map[stri
 				return nil, nil, []error{errors.New("account has invalid reference ID")}
 			}
 		}
+		if grant&(auth.GroupCRUD|auth.GroupExecute) != auth.GroupCRUD|auth.GroupExecute {
+			protectedID, owner, err := a.protectedOwnerShareGroup(collectionRef, collectionID, tx)
+			if err != nil {
+				return nil, nil, []error{err}
+			}
+			if protectedID != 0 && targetRef == owner {
+				return nil, nil, []error{calendarOwnerShareConflict()}
+			}
+		}
 		groupRef, err = base.shareWithUserAuthorized(collectionID, collectionRef, targetRef, grant, user, active, tx)
 		if err != nil {
 			return nil, nil, []error{err}
@@ -251,11 +260,31 @@ func (a *calendarShareAction) base() *davShareAction {
 }
 
 func (a *calendarShareAction) apply(collectionRef, groupRef daptinid.DaptinReferenceId, grant auth.AuthPermission, caller *auth.SessionUser, tx *sqlx.Tx) error {
-	return a.base().apply(collectionRef, groupRef, grant, caller, tx)
+	collectionID, active, err := a.authorizeCollection(collectionRef, caller, tx)
+	if err != nil {
+		return err
+	}
+	return a.applyAuthorized(collectionID, collectionRef, groupRef, grant, caller, active, tx)
 }
 
 func (a *calendarShareAction) applyAuthorized(collectionID int64, collectionRef, groupRef daptinid.DaptinReferenceId, grant auth.AuthPermission, caller, active *auth.SessionUser, tx *sqlx.Tx) error {
+	if grant&(auth.GroupCRUD|auth.GroupExecute) != auth.GroupCRUD|auth.GroupExecute {
+		protectedID, _, err := a.protectedOwnerShareGroup(collectionRef, collectionID, tx)
+		if err != nil {
+			return err
+		}
+		if protectedID != 0 {
+			groupID, err := GetReferenceIdToIdWithTransaction("usergroup", groupRef, tx)
+			if err == nil && groupID == protectedID {
+				return calendarOwnerShareConflict()
+			}
+		}
+	}
 	return a.base().applyAuthorized(collectionID, collectionRef, groupRef, grant, caller, active, tx)
+}
+
+func calendarOwnerShareConflict() error {
+	return api2go.NewHTTPError(errors.New("calendar owner share is required"), "calendar owner share is required", http.StatusConflict)
 }
 
 func (a *calendarShareAction) authorizeCollection(collectionRef daptinid.DaptinReferenceId, caller *auth.SessionUser, tx *sqlx.Tx) (int64, *auth.SessionUser, error) {

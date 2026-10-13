@@ -128,6 +128,53 @@ func forEachCalendarEvent(collectionID int64, tx *sqlx.Tx, visit func(map[string
 	}
 }
 
+// The owner-only group is the persisted grant prepared calendars need for
+// events created by another account. Its collection link and membership, not
+// its name alone, identify the protected share.
+func (a *calendarShareAction) protectedOwnerShareGroup(collectionRef daptinid.DaptinReferenceId, collectionID int64, tx *sqlx.Tx) (int64, daptinid.DaptinReferenceId, error) {
+	defaultPermission := auth.AuthPermission(a.cruds[calendarObjectTable].TableInfo().DefaultPermission)
+	if defaultPermission&(calendarCreatorRights|auth.GuestCRUD) != 0 {
+		return 0, daptinid.NullReferenceId, nil
+	}
+	owner := GetObjectPermissionByReferenceIdWithTransaction(calendarCollectionTable, collectionRef, tx).UserId
+	if owner == daptinid.NullReferenceId {
+		return 0, owner, nil
+	}
+	groups, err := GetObjectByWhereClauseWithTransaction("usergroup", tx,
+		goqu.Ex{"name": davAccountShareGroupName("calshare", collectionRef, owner)})
+	if err != nil || len(groups) == 0 {
+		return 0, owner, err
+	}
+	if len(groups) != 1 {
+		return 0, owner, errors.New("ambiguous calendar owner share group")
+	}
+	groupID, ok := groups[0]["id"].(int64)
+	if !ok {
+		return 0, owner, errors.New("invalid calendar owner share group ID")
+	}
+	ownerID, err := GetReferenceIdToIdWithTransaction(USER_ACCOUNT_TABLE_NAME, owner, tx)
+	if err != nil {
+		return 0, owner, err
+	}
+	members, err := GetObjectByWhereClauseWithTransaction("user_account_user_account_id_has_usergroup_usergroup_id", tx,
+		goqu.Ex{"usergroup_id": groupID})
+	if err != nil {
+		return 0, owner, err
+	}
+	if len(members) != 1 || members[0]["user_account_id"] != ownerID {
+		return 0, owner, nil
+	}
+	links, err := GetObjectByWhereClauseWithTransaction("collection_collection_id_has_usergroup_usergroup_id", tx,
+		goqu.Ex{"collection_id": collectionID, "usergroup_id": groupID})
+	if err != nil || len(links) == 0 {
+		return 0, owner, err
+	}
+	if len(links) != 1 {
+		return 0, owner, errors.New("ambiguous calendar owner share link")
+	}
+	return groupID, owner, nil
+}
+
 // This reports whether creator permissions can outlive an account share. Other
 // independently granted groups remain independent Daptin access authority.
 func (a *calendarShareAction) revocableEditSharingReady(collectionRef daptinid.DaptinReferenceId, collectionID int64, tx *sqlx.Tx) (bool, error) {
