@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -42,6 +43,122 @@ func TestFirstAdminClosesPublicSignupRealE2E(t *testing.T) {
 	if got := len(accessGroupsE2EDataArray(t, response)); got != 0 {
 		t.Fatalf("unauthenticated post-admin signup persisted %d user rows: %#v", got, response)
 	}
+}
+
+const becomeAdminLiveDefaultsSchema = `
+Tables:
+  - TableName: project
+    IsTopLevel: true
+    Permission: 2097151
+    DefaultPermission: 2097151
+    Columns:
+      - Name: name
+        DataType: varchar(100)
+        ColumnType: label
+`
+
+func TestBecomeAdminLiveDefaultsRealE2E(t *testing.T) {
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: becomeAdminLiveDefaultsSchema})
+	assertBecomeAdminLiveDefaults(t, fixture)
+}
+
+func TestBecomeAdminLiveDefaultsPostgresRealE2E(t *testing.T) {
+	requireRealE2E(t)
+	dsn := os.Getenv("DAPTIN_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("set DAPTIN_TEST_POSTGRES_DSN to a disposable PostgreSQL database")
+	}
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{
+		databaseType: "postgres", connectionString: dsn, schema: becomeAdminLiveDefaultsSchema,
+	})
+	assertBecomeAdminLiveDefaults(t, fixture)
+}
+
+func assertBecomeAdminLiveDefaults(t *testing.T, fixture *daptinE2EFixture) {
+	t.Helper()
+	baseURL, client := fixture.URL, fixture.Client
+	adminToken := fixture.SignupAdmin(t)
+
+	projectID := accessGroupsE2ECreateRecord(t, client, baseURL, adminToken, "project", map[string]interface{}{
+		"name": "live-default",
+	})
+	project := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseURL+"/api/project/"+projectID, adminToken, nil, http.StatusOK)
+	permission := becomeAdminE2EPermission(t, project)
+	if permission == int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN) || permission&int64(auth.GuestRead) != 0 {
+		t.Fatalf("project row permission = %d, want a non-bootstrap value without guest read", permission)
+	}
+	accessGroupsE2EAssertStatus(t, client, http.MethodGet, baseURL+"/api/project/"+projectID, "", nil, http.StatusForbidden)
+
+	blockedEmail := fmt.Sprintf("become-admin-guest-%d@test.local", time.Now().UnixNano())
+	accessGroupsE2EAssertStatus(t, client, http.MethodPost, baseURL+"/action/user_account/signup", "", map[string]interface{}{
+		"attributes": map[string]interface{}{
+			"name":            "Blocked Guest",
+			"email":           blockedEmail,
+			"password":        "testpass123",
+			"passwordConfirm": "testpass123",
+		},
+	}, http.StatusForbidden)
+	query := fmt.Sprintf(`[{"column":"email","operator":"is","value":%q}]`, blockedEmail)
+	users := accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		baseURL+"/api/user_account?query="+url.QueryEscape(query), adminToken, nil, http.StatusOK)
+	if got := len(accessGroupsE2EDataArray(t, users)); got != 0 {
+		t.Fatalf("unauthenticated post-admin signup persisted %d user rows: %#v", got, users)
+	}
+
+	userWorldID := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "world", "table_name", "user_account")
+	lockedSignup := int64(auth.UserRead | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute | auth.GroupRefer)
+	signupPermission := becomeAdminE2EActionPermission(t, client, baseURL, adminToken, "signup", userWorldID)
+	if signupPermission != lockedSignup {
+		t.Fatalf("user_account signup permission = %d, want %d", signupPermission, lockedSignup)
+	}
+	signinPermission := becomeAdminE2EActionPermission(t, client, baseURL, adminToken, "signin", userWorldID)
+	if signinPermission != int64(auth.DEFAULT_PERMISSION) {
+		t.Fatalf("user_account signin permission = %d, want public profile %d", signinPermission, auth.DEFAULT_PERMISSION)
+	}
+}
+
+func becomeAdminE2EActionPermission(t *testing.T, client *http.Client, baseURL, token, actionName, worldID string) int64 {
+	t.Helper()
+	query := fmt.Sprintf(`[{"column":"action_name","operator":"is","value":%q}]`, actionName)
+	response := accessGroupsE2ERequestJSON(t, client, http.MethodGet,
+		baseURL+"/api/action?query="+url.QueryEscape(query)+"&page%5Bsize%5D=100", token, nil, http.StatusOK)
+	for _, item := range accessGroupsE2EDataArray(t, response) {
+		row, _ := item.(map[string]interface{})
+		attributes, _ := row["attributes"].(map[string]interface{})
+		if attributes["world_id"] != worldID {
+			continue
+		}
+		id, _ := row["id"].(string)
+		if id == "" {
+			continue
+		}
+		action := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseURL+"/api/action/"+id, token, nil, http.StatusOK)
+		return becomeAdminE2EPermission(t, action)
+	}
+	t.Fatalf("%s action for world %s not found: %#v", actionName, worldID, response)
+	return 0
+}
+
+func becomeAdminE2EPermission(t *testing.T, response interface{}) int64 {
+	t.Helper()
+	document, _ := response.(map[string]interface{})
+	data, _ := document["data"].(map[string]interface{})
+	attributes, _ := data["attributes"].(map[string]interface{})
+	switch value := attributes["permission"].(type) {
+	case float64:
+		return int64(value)
+	case int64:
+		return value
+	case json.Number:
+		parsed, err := value.Int64()
+		if err != nil {
+			t.Fatalf("permission is not an integer: %v", err)
+		}
+		return parsed
+	default:
+		t.Fatalf("permission missing or unexpected: %#v", response)
+	}
+	return 0
 }
 
 func TestIntegrationOperationActionAuthorizationRealE2E(t *testing.T) {

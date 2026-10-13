@@ -2,12 +2,15 @@ package resource
 
 import (
 	stdjson "encoding/json"
+	"net/http/httptest"
+	"runtime"
 	"strconv"
 	"testing"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -210,6 +213,147 @@ func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *tes
 	assertActionPermission(t, db, 4, publicRoutePermission)
 	assertActionPermission(t, db, 5, postBootstrapPermission)
 	assertActionPermission(t, db, 6, publicRoutePermission)
+}
+
+func TestApplyBecomeAdminLiveDefaultsTransitionsBootstrapPermissions(t *testing.T) {
+	normal := becomeAdminLiveCrud("project", auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN)
+	audit := becomeAdminLiveCrud("project_audit", auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN)
+	explicit := becomeAdminLiveCrud("public_project", 15811)
+
+	ApplyBecomeAdminLiveDefaults(map[string]*DbResource{
+		"project":        normal,
+		"project_audit":  audit,
+		"public_project": explicit,
+	})
+
+	if normal.defaultPermission() != int64(auth.DEFAULT_PERMISSION) || normal.TableInfo().DefaultPermission != auth.DEFAULT_PERMISSION {
+		t.Fatalf("normal table default = model %d table %d, want %d",
+			normal.defaultPermission(), normal.TableInfo().DefaultPermission, auth.DEFAULT_PERMISSION)
+	}
+	if normal.TableInfo().Permission != auth.DEFAULT_PERMISSION {
+		t.Fatalf("normal table permission = %d, want %d", normal.TableInfo().Permission, auth.DEFAULT_PERMISSION)
+	}
+	if audit.defaultPermission() != int64(AuditRowDefaultPermission) || audit.TableInfo().DefaultPermission != AuditRowDefaultPermission {
+		t.Fatalf("audit table default = model %d table %d, want %d",
+			audit.defaultPermission(), audit.TableInfo().DefaultPermission, AuditRowDefaultPermission)
+	}
+	if audit.TableInfo().Permission != AuditTablePermission {
+		t.Fatalf("audit table permission = %d, want %d", audit.TableInfo().Permission, AuditTablePermission)
+	}
+	if explicit.defaultPermission() != 15811 || explicit.TableInfo().DefaultPermission != 15811 || explicit.TableInfo().Permission != 15811 {
+		t.Fatalf("explicit table changed: model %d default %d permission %d",
+			explicit.defaultPermission(), explicit.TableInfo().DefaultPermission, explicit.TableInfo().Permission)
+	}
+}
+
+// Exercise the actual insert path while live metadata is being published, including
+// a table whose explicit permission must not change.
+func TestBecomeAdminLiveDefaultsConcurrentCreate(t *testing.T) {
+	for _, initial := range []auth.AuthPermission{auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, 15811} {
+		t.Run(strconv.FormatInt(int64(initial), 10), func(t *testing.T) {
+			db, err := sqlx.Open("sqlite3", ":memory:")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			// This fixture exercises the resource persistence layer.
+			_, err = db.Exec(`create table project (
+				id integer primary key, reference_id blob, permission integer,
+				created_at timestamp, updated_at timestamp)`)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tx, err := db.Beginx()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Rollback()
+			project := becomeAdminLiveCrud("project", initial)
+			cruds := map[string]*DbResource{"project": project}
+			project.Cruds = cruds
+			original := project.TableInfo()
+			stop, done := make(chan struct{}), make(chan struct{})
+			go func() {
+				defer close(done)
+				for {
+					select {
+					case <-stop:
+						return
+					default:
+						ApplyBecomeAdminLiveDefaults(cruds)
+						runtime.Gosched()
+					}
+				}
+			}()
+			defer func() { close(stop); <-done }()
+			want := becomeAdminLiveDefaultPermission("project", initial)
+			for i := 0; i < 100; i++ {
+				row, err := project.CreateWithoutFilter(
+					api2go.NewApi2GoModelWithData("project", nil, 0, nil, map[string]interface{}{}),
+					api2go.Request{PlainRequest: httptest.NewRequest("POST", "/api/project", nil)}, tx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := auth.AuthPermission(row["permission"].(int64))
+				if got != initial && got != want {
+					t.Fatalf("insert permission = %d, want %d or %d", got, initial, want)
+				}
+				table := project.TableInfo()
+				if table.DefaultPermission != initial && table.DefaultPermission != want {
+					t.Fatalf("table default = %d", table.DefaultPermission)
+				}
+				if original.DefaultPermission != initial || original.Permission != initial {
+					t.Fatal("published transition mutated previously returned metadata")
+				}
+			}
+			ApplyBecomeAdminLiveDefaults(cruds)
+			row, err := project.CreateWithoutFilter(
+				api2go.NewApi2GoModelWithData("project", nil, 0, nil, map[string]interface{}{}),
+				api2go.Request{PlainRequest: httptest.NewRequest("POST", "/api/project", nil)}, tx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := auth.AuthPermission(row["permission"].(int64)); got != want {
+				t.Fatalf("post-transition insert permission = %d, want %d", got, want)
+			}
+		})
+	}
+}
+
+func TestBecomeAdminCommitFailureLeavesLiveDefaults(t *testing.T) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer db.Close()
+
+	project := becomeAdminLiveCrud("project", auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN)
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	if err := tx.Rollback(); err != nil {
+		t.Fatalf("rollback tx: %v", err)
+	}
+	err = CommitBecomeAdmin(tx, map[string]*DbResource{"project": project})
+	if err == nil {
+		t.Fatal("expected commit error")
+	}
+	if project.defaultPermission() != int64(auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN) {
+		t.Fatalf("live default permission = %d, want pre-admin %d",
+			project.defaultPermission(), auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN)
+	}
+}
+
+func becomeAdminLiveCrud(tableName string, permission auth.AuthPermission) *DbResource {
+	return &DbResource{
+		model: api2go.NewApi2GoModel(tableName, nil, int64(permission), nil),
+		tableInfo: &table_info.TableInfo{
+			TableName:         tableName,
+			DefaultPermission: permission,
+			Permission:        permission,
+		},
+	}
 }
 
 func TestNewImportAdminSessionUserIncludesAdminGroup(t *testing.T) {
