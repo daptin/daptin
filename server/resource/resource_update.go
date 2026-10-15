@@ -17,6 +17,7 @@ import (
 	//"reflect"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -1208,6 +1209,22 @@ func relationshipReplacementReferenceIDs(value interface{}) map[string]bool {
 
 func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2go.Responder, error) {
 	data, _ := obj.(api2go.Api2GoModel)
+	// api2go overlays PATCH attributes on the record it just loaded. Its
+	// GetCurrentVersion intentionally refers to that original record; reject a
+	// stale caller revision before middleware or storage work, then let the SQL
+	// version predicate protect the interval between this read and the write.
+	if requested, supplied := data.GetAllAsAttributes()["version"]; supplied {
+		version, valid := requested.(int64)
+		if numeric, ok := requested.(float64); ok && numeric >= 1 && numeric < float64(math.MaxInt64) && numeric == math.Trunc(numeric) {
+			version, valid = int64(numeric), true
+		}
+		if !valid || version < 1 {
+			return nil, api2go.NewHTTPError(nil, "invalid resource version", http.StatusUnprocessableEntity)
+		}
+		if !data.HasVersion() || version != data.GetCurrentVersion() {
+			return nil, api2go.NewHTTPError(nil, "resource version conflict", http.StatusConflict)
+		}
+	}
 	//log.Printf("Update object request: [%v][%v]", dbResource.model.GetTableName(), data.GetID())
 
 	updateRequest := &http.Request{
@@ -1257,6 +1274,9 @@ func (dbResource *DbResource) Update(obj interface{}, req api2go.Request) (api2g
 	updatedResource, err := dbResource.UpdateWithoutFilters(data, req, transaction)
 	log.Tracef("Completed UpdateWithoutFilters")
 	if err != nil {
+		if errors.Is(err, ErrVersionConflict) {
+			return nil, api2go.NewHTTPError(nil, "resource version conflict", http.StatusConflict)
+		}
 		return NewResponse(nil, nil, 500, nil), err
 	}
 

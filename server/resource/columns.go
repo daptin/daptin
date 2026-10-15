@@ -54,7 +54,7 @@ var StandardColumns = []api2go.ColumnInfo{
 			"new records, this integer increments with each update to support optimistic " +
 			"concurrency control and change tracking. Exposed through the API.",
 		DefaultValue:   "1",
-		ExcludeFromApi: true,
+		ExcludeFromApi: false,
 	},
 	{
 		Name:       "created_at",
