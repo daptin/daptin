@@ -110,6 +110,10 @@ curl -X POST http://localhost:6336/action/world/remove_table \
 
 Rename a column in a table.
 
+Table and column identifiers must match `[A-Za-z_][A-Za-z0-9_]*`. Spaces in the
+new name are converted to underscores before validation. Reserved words and
+names already used by another column are rejected before the rename runs.
+
 ```bash
 curl -X POST http://localhost:6336/action/world/rename_column \
   -H "Authorization: Bearer $TOKEN" \
