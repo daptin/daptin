@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	"github.com/jmoiron/sqlx"
@@ -279,6 +280,9 @@ func decodeString(buffer *bytes.Buffer) (string, error) {
 	var length int32
 	if err := binary.Read(buffer, binary.BigEndian, &length); err != nil {
 		return "", err
+	}
+	if length < 0 || int64(length) > int64(buffer.Len()) {
+		return "", fmt.Errorf("invalid event string length: %d", length)
 	}
 	data := make([]byte, length)
 	if _, err := buffer.Read(data); err != nil {

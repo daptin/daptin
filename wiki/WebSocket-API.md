@@ -320,6 +320,11 @@ System topics:
 - Cannot be created or destroyed via WebSocket
 - Permissions come from the table-level permission in the database
 - Events are filtered per-row: users only receive events for records they can read
+- Database create and update events use the record's current read permission;
+  delete events use the permission captured before deletion. Invalid database
+  events are discarded. Database event payloads follow public resource column
+  visibility: excluded columns, stored password values, internal numeric IDs,
+  and internal authorization metadata are not exposed.
 
 ## Event Types
 
