@@ -39,10 +39,34 @@ Every table and every record has permissions controlling:
 | **Peek** | See that something exists (appears in lists) |
 | **Read** | View the full data |
 | **Create** | Make new records |
-| **Update** | Change existing records |
+| **Update** | Change writable fields of existing records, including `permission` |
 | **Delete** | Remove records |
 | **Execute** | Run actions |
 | **Refer** | Use in relationships |
+
+### Update Access Includes Permission Changes
+
+Direct resource Update permission allows the caller to change the record's
+writable fields, including its `permission` bitmask. This applies whether access
+comes from owner, group, or guest permissions, after the normal table and row
+checks pass. An authorized editor can therefore change who may access the row,
+including making it readable by guests. Update is not a field-level grant or an
+owner-only permission-management capability; server-managed fields and normal
+validation and relationship checks still apply.
+
+Creation assigns server-controlled initial permissions. The `permission` field
+is writable afterward through PATCH, as shown in [[Permissions#make-a-record-public-readable-by-guests|Make a Record Public]].
+Changing a table's `DefaultPermission` affects new records, not the permissions
+of existing records.
+
+Grant direct Update access only to callers trusted to edit the row's writable
+fields and access policy. If users should edit selected fields while sharing
+policy remains administrator-controlled, withhold direct resource Update access
+and expose a named action with validated inputs and explicit update-field
+mappings. Configure its table, action, and subject-row execution permissions for
+the intended callers. Hiding fields in a client UI does not restrict the API.
+See [[Actions-Overview#constrained-record-edits|Constrained Record Edits]] for an
+example.
 
 ### Who Gets Checked
 

@@ -347,6 +347,57 @@ Tables:
             Value: "shipped"
 ```
 
+### Constrained Record Edits
+
+Use a named action when callers should change selected fields without receiving
+direct resource Update access. The full permission contract is described in
+[[Permissions#update-access-includes-permission-changes|Update Access Includes Permission Changes]].
+
+For an existing `todo` table with a `title` column, this top-level schema action
+maps only a validated title into the update. Provision the `editors` usergroup
+and assign its intended members through normal usergroup relationships.
+
+```yaml
+Actions:
+  - Name: edit_title
+    Label: Edit title
+    OnType: todo
+    InstanceOptional: false
+    Permission: 0
+    AccessGroups:
+      - Name: editors
+        Permission: 524288 # GroupExecute
+    InFields:
+      - Name: title
+        ColumnName: title
+        ColumnType: label
+        IsNullable: false
+    Validations:
+      - ColumnName: title
+        Tags: required,max=200
+    OutFields:
+      - Type: todo
+        Method: PATCH
+        Attributes:
+          reference_id: "~todo_id"
+          title: "~title"
+```
+
+Give the intended callers Read and Execute access at the `todo` table and
+subject-row boundaries, and Execute access to this action through its related
+`editors` group. Withhold direct Update access at the table or row boundary;
+check all applicable owner, group, and guest grants. The instance action loads
+and authorizes `todo_id` as its subject before running the outcome. The update
+targets that subject and maps only `title`; it does not forward caller-supplied
+`permission`, ownership, or arbitrary attribute maps.
+
+Call `POST /action/todo/edit_title` with
+`{"attributes":{"todo_id":"RECORD_REFERENCE_ID","title":"Revised title"}}`.
+Verify with a normal editor account that the action changes the title, direct
+PATCH is denied, an extra `permission` input does not change the row's ACL, and
+an unreadable or non-executable subject is rejected. Administrator requests
+alone cannot verify these restrictions.
+
 ### Action Properties
 
 | Property | Type | Description |
