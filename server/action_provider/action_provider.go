@@ -177,7 +177,27 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	mailUnpackAction, err := actions.NewMailUnpackActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create mail unpack performer")
 	performers = append(performers, mailUnpackAction)
+	mailReadAction, err := actions.NewMailReadActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create mail read performer")
+	performers = append(performers, mailReadAction)
+	for _, operation := range []string{"save", "status", "delete"} {
+		mailDraftAction, err := actions.NewMailDraftActionPerformer(cruds, operation)
+		resource.CheckErr(err, "Failed to create mail draft performer")
+		performers = append(performers, mailDraftAction)
+	}
 
+	for _, operation := range []string{"submit", "status"} {
+		performer, err := actions.NewMailSubmissionActionPerformer(cruds, certificateManager, operation)
+		resource.CheckErr(err, "Failed to create mail submission performer")
+		performers = append(performers, performer)
+	}
+	for family, operations := range map[string][]string{"message": {"state", "flags", "move", "archive", "trash", "delete"}, "folder": {"create", "rename", "delete"}} {
+		for _, operation := range operations {
+			performer, err := actions.NewMailOperationActionPerformer(cruds, family, operation)
+			resource.CheckErr(err, "Failed to create mail operation performer")
+			performers = append(performers, performer)
+		}
+	}
 	outboxProcessPerformer, err := actions.NewOutboxProcessActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create outbox process performer")
 	performers = append(performers, outboxProcessPerformer)

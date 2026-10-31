@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"errors"
 	"net"
 	"testing"
@@ -88,7 +89,7 @@ func TestSendOutboxMailWithStopsAfterUncertainDelivery(t *testing.T) {
 }
 
 func TestLookupOutboxMXUsesImplicitHostForLocalDelivery(t *testing.T) {
-	mxs, err := lookupOutboxMX("localhost")
+	mxs, err := lookupOutboxMX(context.Background(), "localhost")
 	if err != nil || len(mxs) == 0 || mxs[0].Host != "localhost" {
 		t.Fatalf("localhost without MX was not resolved as an implicit MX: %v, %#v", err, mxs)
 	}

@@ -114,8 +114,9 @@ func startTransportE2EDaptin(t testing.TB, port int, httpsPort int, baseURL stri
 		runtimeMode = "test"
 	}
 	arguments := []string{"run", "./cmd/daptin",
-		"-port", fmt.Sprintf(":%d", port),
-		"-https_port", fmt.Sprintf(":%d", httpsPort),
+		"-port", fmt.Sprintf("127.0.0.1:%d", port),
+		"-https_port", fmt.Sprintf("127.0.0.1:%d", httpsPort),
+		"-olric_bind_addr", "127.0.0.1",
 		"-db_type", options.databaseType,
 		"-db_connection_string", options.connectionString,
 		"-local_storage_path", filepath.Join(tmpDir, "storage"),

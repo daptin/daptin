@@ -1,7 +1,9 @@
 package actions
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -65,7 +67,10 @@ func (d *mailUnpackActionPerformer) DoAction(_ actionresponse.Outcome, inFields 
 		})
 	}
 
+	hash := sha256.Sum256(mailBytes)
 	attributes := map[string]interface{}{
+		"envelope":            unpacked.Envelope,
+		"revision":            hex.EncodeToString(hash[:]),
 		"preferred_text_body": unpacked.PreferredTextBody,
 		"optional_html_body":  unpacked.HTMLBody,
 		"parts":               parts,

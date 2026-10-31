@@ -2,12 +2,9 @@ package actions
 
 import (
 	"bytes"
-	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +13,6 @@ import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/daptin/daptin/server/actionresponse"
-	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/emersion/go-msgauth/dkim"
@@ -49,15 +45,6 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	attemptDelivery := mailSendAttemptDelivery(inFields)
 	createdOutboxMailReferences := make([]daptinid.DaptinReferenceId, 0)
 
-	outboxUrl, _ := url.Parse("/api/outbox")
-	outboxReq := api2go.Request{
-		PlainRequest: &http.Request{
-			Method: "POST",
-			URL:    outboxUrl,
-		},
-	}
-	outboxReq.PlainRequest = outboxReq.PlainRequest.WithContext(context.WithValue(context.Background(), "user", d.internalOutboxSessionUser()))
-
 	mailFromAddress, err := mail.NewAddress(mailFrom)
 	if err != nil {
 		log.Errorf("Invalid mail from address [%v]: %v", mailFrom, err)
@@ -79,90 +66,24 @@ func (d *mailSendActionPerformer) DoAction(request actionresponse.Outcome, inFie
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-	toAddresses := make([]mail.Address, 0, len(mailTo))
-	for _, adr := range mailTo {
-		mailToAddress, err := mail.NewAddress(adr)
-		if err != nil {
-			log.Errorf("Invalid mail to address [%v]: %v", adr, err)
-			return nil, nil, []error{err}
-		}
-		toAddresses = append(toAddresses, *mailToAddress)
-	}
-
-	cert, err := d.certificateManager.GetTLSConfig(mailFromAddress.Host, false, transaction)
-	if err != nil {
-		log.Errorf("Failed to get private key for domain [%v]", mailFromAddress.Host)
-		log.Errorf("Refusing to send mail without signing")
-		return nil, nil, []error{err}
-	}
-
-	block, _ := pem.Decode([]byte(cert.PrivatePEMDecrypted))
-	if block == nil {
-		return nil, nil, []error{fmt.Errorf("failed to decode PEM block for domain [%v]", mailFromAddress.Host)}
-	}
-
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, nil, []error{err}
-	}
-
-	dkimSelector := "d1"
-	if sel, err := d.cruds["mail"].ConfigStore.GetConfigValueFor("mail.dkim_selector", "backend", transaction); err == nil && sel != "" {
-		dkimSelector = sel
-	}
-
-	options := &dkim.SignOptions{
-		Selector:               dkimSelector,
-		HeaderCanonicalization: dkim.CanonicalizationRelaxed,
-		BodyCanonicalization:   dkim.CanonicalizationRelaxed,
-		Domain:                 mailFromAddress.Host,
-		Signer:                 privateKey,
-	}
-
 	messageID := fmt.Sprintf("<%s@%s>", uuid.NewString(), mailFromAddress.Host)
 	newMailString := fmt.Sprintf("From: %s\r\nSubject: %s\r\nTo: %s\r\nDate: %s\r\nMessage-ID: %s\r\n",
 		mailFromAddress.String(), subject, strings.Join(mailTo, ","), time.Now().Format(time.RFC822Z), messageID)
 	newMailString = newMailString + "\r\n" + mailBody
 
-	var b bytes.Buffer
-	if err := dkim.Sign(&b, bytes.NewReader([]byte(newMailString)), options); err != nil {
-		log.Errorf("Failed to sign outgoing mail via dkim, not sending it ahead [%v]", err)
+	finalMail, err := d.signMail(mailFromAddress.Host, []byte(newMailString), transaction)
+	if err != nil {
 		return nil, nil, []error{err}
 	}
-
-	finalMail := b.Bytes()
 	log.Printf("Final Mail: From [%v] to [%v] via [%v]", mailFromAddress.String(), strings.Join(mailTo, ","), mailServerHostname)
 
-	if _, err := d.cruds["mail"].AppendSentMailForSender(mailFromAddress.String(), finalMail, transaction); err != nil {
-		log.Errorf("Failed to append outbound mail to Sent for [%v]: %v", mailFromAddress.String(), err)
+	sent, err := d.cruds["mail"].AppendSentMailForSender(mailFromAddress.String(), finalMail, transaction)
+	if err != nil {
 		return nil, nil, []error{err}
 	}
-
-	for _, toAddress := range toAddresses {
-		outboxMailBody := d.cruds["outbox"].MailColumnValue("outbox", "mail", finalMail, subject)
-
-		outboxModel := api2go.NewApi2GoModelWithData("outbox", nil, 0, nil, map[string]interface{}{
-			"from_address":   mailFromAddress.String(),
-			"to_address":     toAddress.String(),
-			"to_host":        toAddress.Host,
-			"mail_server_id": mailServerObj["reference_id"],
-			"mail":           outboxMailBody,
-			"sent":           false,
-			"retry_count":    0,
-			"next_retry_at":  time.Now(),
-		})
-		createdOutboxMail, err := d.cruds["outbox"].CreateWithoutFilter(outboxModel, outboxReq, transaction)
-		if err != nil {
-			log.Errorf("Failed to queue mail to outbox for [%v]: %v", toAddress.String(), err)
-			return nil, nil, []error{err}
-		}
-		if attemptDelivery {
-			if outboxReference, ok := createdOutboxMail["reference_id"]; ok && outboxReference != nil {
-				createdOutboxMailReferences = append(createdOutboxMailReferences, daptinid.InterfaceToDIR(outboxReference))
-			} else {
-				log.Errorf("Failed to resolve outbox reference for immediate delivery of mail to [%v]", toAddress.String())
-			}
-		}
+	createdOutboxMailReferences, err = d.cruds["mail"].QueueOutgoingMail(mailAccount, daptinid.InterfaceToDIR(sent["reference_id"]), finalMail, mailTo, transaction)
+	if err != nil {
+		return nil, nil, []error{err}
 	}
 
 	if attemptDelivery && len(createdOutboxMailReferences) > 0 {
@@ -209,18 +130,6 @@ func (d *mailSendActionPerformer) deliverOutboxMailsAsync(outboxMailReferences [
 	}()
 }
 
-func (d *mailSendActionPerformer) internalOutboxSessionUser() *auth.SessionUser {
-	sessionUser := &auth.SessionUser{}
-
-	if userAccountCrud := d.cruds["user_account"]; userAccountCrud != nil && userAccountCrud.AdministratorGroupId != daptinid.NullReferenceId {
-		sessionUser.Groups = append(sessionUser.Groups, auth.GroupPermission{
-			GroupReferenceId: userAccountCrud.AdministratorGroupId,
-		})
-	}
-
-	return sessionUser
-}
-
 func mailSendAttemptDelivery(inFields map[string]interface{}) bool {
 	for _, key := range []string{"send_immediately", "attempt_delivery"} {
 		val, ok := inFields[key]
@@ -256,4 +165,42 @@ func NewMailSendActionPerformer(cruds map[string]*resource.DbResource, mailDaemo
 
 	return &handler, nil
 
+}
+
+func (d *mailSendActionPerformer) signMail(domain string, raw []byte, transaction *sqlx.Tx) ([]byte, error) {
+	cert, err := d.certificateManager.GetTLSConfig(domain, false, transaction)
+	if err != nil {
+		log.Errorf("Failed to get private key for domain [%v]", domain)
+		log.Errorf("Refusing to send mail without signing")
+		return nil, err
+	}
+
+	block, _ := pem.Decode([]byte(cert.PrivatePEMDecrypted))
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block for domain [%v]", domain)
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	dkimSelector := "d1"
+	if sel, err := d.cruds["mail"].ConfigStore.GetConfigValueFor("mail.dkim_selector", "backend", transaction); err == nil && sel != "" {
+		dkimSelector = sel
+	}
+
+	options := &dkim.SignOptions{
+		Selector:               dkimSelector,
+		HeaderCanonicalization: dkim.CanonicalizationRelaxed,
+		BodyCanonicalization:   dkim.CanonicalizationRelaxed,
+		Domain:                 domain,
+		Signer:                 privateKey,
+	}
+
+	var b bytes.Buffer
+	if err := dkim.Sign(&b, bytes.NewReader(raw), options); err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
 }

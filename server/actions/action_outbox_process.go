@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -32,7 +33,9 @@ type outboxProcessActionPerformer struct {
 
 type outboxUncertainError struct{ err error }
 
-func (e *outboxUncertainError) Error() string { return "SMTP delivery uncertain: " + e.err.Error() }
+func (e *outboxUncertainError) Error() string {
+	return resource.OutboxSMTPUncertainPrefix + e.err.Error()
+}
 func (e *outboxUncertainError) Unwrap() error { return e.err }
 
 func (d *outboxProcessActionPerformer) Name() string {
@@ -42,6 +45,11 @@ func (d *outboxProcessActionPerformer) Name() string {
 func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, inFields map[string]interface{}, transaction *sqlx.Tx) (api2go.Responder, []actionresponse.ActionResponse, []error) {
 
 	responses := make([]actionresponse.ActionResponse, 0)
+
+	smtpPort, err := d.smtpPort(transaction)
+	if err != nil {
+		return nil, responses, []error{err}
+	}
 
 	pendingMails, _, err := d.cruds["outbox"].GetRowsByWhereClauseWithTransaction("outbox", map[string]bool{"mail": true}, transaction,
 		goqu.Ex{"sent": false},
@@ -57,13 +65,13 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 	}
 
 	for _, pendingMail := range pendingMails {
-		d.processPendingMail(pendingMail, transaction, true)
+		d.processPendingMail(pendingMail, transaction, true, smtpPort)
 	}
 
 	return nil, responses, nil
 }
 
-func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string]interface{}, transaction *sqlx.Tx, respectNextRetry bool) bool {
+func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string]interface{}, transaction *sqlx.Tx, respectNextRetry bool, smtpPort int) bool {
 	if respectNextRetry {
 		if nextRetry, ok := pendingMail["next_retry_at"]; ok && nextRetry != nil {
 			var retryTime time.Time
@@ -93,6 +101,21 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 			log.Debugf("Outbox mail [%v] skipped because claim [%v] could not be acquired: %v", mailId, claimKey, err)
 			return false
 		}
+	}
+
+	claimed, err := d.cruds["outbox"].ClaimOutboxMail(mailId, time.Now(), transaction)
+	if err != nil {
+		log.Errorf("Failed to claim outbox mail [%v]: %v", mailId, err)
+		return false
+	}
+	if !claimed {
+		log.Debugf("Outbox mail [%v] skipped because it was already claimed, exhausted or sent", mailId)
+		if resource.OlricCache != nil {
+			if _, deleteErr := resource.OlricCache.Delete(context.Background(), claimKey); deleteErr != nil {
+				log.Debugf("Failed to release outbox claim [%v] after DB claim miss: %v", claimKey, deleteErr)
+			}
+		}
+		return false
 	}
 
 	fromAddress, ok := pendingMail["from_address"].(string)
@@ -127,43 +150,6 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		return false
 	}
 	senderHost = strings.TrimSpace(senderHost)
-
-	claimStartedAt := time.Now()
-	claimExpiresAt := claimStartedAt.Add(outboxClaimTTL())
-	query, args, err := statementbuilder.Squirrel.
-		Update("outbox").Prepared(true).
-		Set(goqu.Record{"next_retry_at": claimExpiresAt}).
-		Where(
-			goqu.Ex{"id": mailId},
-			goqu.Ex{"sent": false},
-			goqu.Or(
-				goqu.Ex{"next_retry_at": nil},
-				goqu.Ex{"next_retry_at": goqu.Op{"lte": claimStartedAt}},
-			),
-		).ToSQL()
-	if err != nil {
-		log.Errorf("Failed to build outbox lease query for mail [%v]: %v", mailId, err)
-		return false
-	}
-	leaseResult, err := transaction.Exec(query, args...)
-	if err != nil {
-		log.Errorf("Failed to lease outbox mail [%v]: %v", mailId, err)
-		return false
-	}
-	rowsAffected, err := leaseResult.RowsAffected()
-	if err != nil {
-		log.Errorf("Failed to read lease result for outbox mail [%v]: %v", mailId, err)
-		return false
-	}
-	if rowsAffected == 0 {
-		log.Debugf("Outbox mail [%v] skipped because it was already leased or sent", mailId)
-		if resource.OlricCache != nil {
-			if _, deleteErr := resource.OlricCache.Delete(context.Background(), claimKey); deleteErr != nil {
-				log.Debugf("Failed to release outbox claim [%v] after DB lease miss: %v", claimKey, deleteErr)
-			}
-		}
-		return false
-	}
 
 	if transaction != nil {
 		err := transaction.Commit()
@@ -233,11 +219,11 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 
 	// Send with 30s timeout to prevent hanging on unreachable MX. No database
 	// transaction is open while this external SMTP operation runs.
+	sendCtx, sendCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	sendDone := make(chan error, 1)
 	go func() {
-		sendDone <- sendOutboxMail(senderHost, fromAddress, []string{toAddress}, mailBytes)
+		sendDone <- sendOutboxMail(sendCtx, senderHost, fromAddress, []string{toAddress}, mailBytes, smtpPort)
 	}()
-	sendCtx, sendCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	select {
 	case err = <-sendDone:
 	case <-sendCtx.Done():
@@ -284,9 +270,10 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 		return false
 	}
 
-	query, args, err = statementbuilder.Squirrel.
+	retryCount, _ := resource.ResourceRowInt64(pendingMail["retry_count"])
+	query, args, err := statementbuilder.Squirrel.
 		Update("outbox").Prepared(true).
-		Set(goqu.Record{"sent": true}).
+		Set(goqu.Record{"sent": true, "retry_count": retryCount, "last_error": nil, "next_retry_at": nil}).
 		Where(goqu.Ex{"id": mailId}).ToSQL()
 	if err != nil {
 		log.Errorf("Failed to build sent-state query for outbox mail [%v]: %v", mailId, err)
@@ -337,7 +324,13 @@ func (d *outboxProcessActionPerformer) processPendingMailByReference(mailReferen
 		return false
 	}
 
-	processed := d.processPendingMail(pendingMails[0], transaction, respectNextRetry)
+	smtpPort, err := d.smtpPort(transaction)
+	if err != nil {
+		_ = transaction.Rollback()
+		log.Errorf("Invalid outbound SMTP configuration: %v", err)
+		return false
+	}
+	processed := d.processPendingMail(pendingMails[0], transaction, respectNextRetry, smtpPort)
 	if err := transaction.Commit(); err != nil {
 		log.Errorf("Failed to commit async outbox mail [%v] state: %v", mailReferenceId.String(), err)
 		return false
@@ -437,12 +430,32 @@ func (d *outboxProcessActionPerformer) markUncertain(mailId int64, lastError str
 	}
 }
 
-func sendOutboxMail(ehloHostname, from string, to []string, message []byte) error {
-	return sendOutboxMailWith(ehloHostname, from, to, message, lookupOutboxMX, sendOutboxSMTPData)
+// smtpPort is trusted backend configuration, never a compose or action input.
+// Resolve it before claiming work so invalid configuration leaves mail queued.
+func (d *outboxProcessActionPerformer) smtpPort(transaction *sqlx.Tx) (int, error) {
+	value, err := d.cruds["outbox"].ConfigStore.GetConfigValueFor("outbox.smtp_port", "backend", transaction)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 25, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("read outbox.smtp_port: %w", err)
+	}
+	port, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || port < 1 || port > 65535 {
+		return 0, fmt.Errorf("outbox.smtp_port must be an integer from 1 to 65535")
+	}
+	return port, nil
 }
 
-func lookupOutboxMX(domain string) ([]*net.MX, error) {
-	mxs, err := net.LookupMX(domain)
+func sendOutboxMail(ctx context.Context, ehloHostname, from string, to []string, message []byte, port int) error {
+	return sendOutboxMailWith(ehloHostname, from, to, message, func(domain string) ([]*net.MX, error) { return lookupOutboxMX(ctx, domain) },
+		func(mxHost, ehloHostname, from string, to []string, message []byte) error {
+			return sendOutboxSMTPData(ctx, mxHost, ehloHostname, from, to, message, port)
+		})
+}
+
+func lookupOutboxMX(ctx context.Context, domain string) ([]*net.MX, error) {
+	mxs, err := net.DefaultResolver.LookupMX(ctx, domain)
 	if err == nil && len(mxs) != 0 {
 		return mxs, nil
 	}
@@ -454,7 +467,7 @@ func lookupOutboxMX(domain string) ([]*net.MX, error) {
 	}
 	// An address record without MX records is an implicit MX for the host.
 	// This also permits delivery between mail accounts on the same instance.
-	if _, hostErr := net.LookupHost(domain); hostErr == nil {
+	if _, hostErr := net.DefaultResolver.LookupHost(ctx, domain); hostErr == nil {
 		return []*net.MX{{Host: domain}}, nil
 	} else if err == nil {
 		return nil, hostErr
@@ -508,10 +521,20 @@ func sendOutboxMailWith(
 	return nil
 }
 
-func sendOutboxSMTPData(mxHost, ehloHostname, from string, to []string, message []byte) error {
+func sendOutboxSMTPData(ctx context.Context, mxHost, ehloHostname, from string, to []string, message []byte, port int) error {
 	serverName := strings.TrimSuffix(mxHost, ".")
-	c, err := smtp.Dial(net.JoinHostPort(serverName, "25"))
+	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(serverName, strconv.Itoa(port)))
 	if err != nil {
+		return err
+	}
+	// Closing the SMTP socket makes our attempt deadline bound greeting,
+	// STARTTLS, commands and DATA,
+	// rather than only abandoning the goroutine waiting for them.
+	stopClose := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	defer stopClose()
+	c, err := smtp.NewClient(conn, serverName)
+	if err != nil {
+		_ = conn.Close()
 		return err
 	}
 	defer c.Close()

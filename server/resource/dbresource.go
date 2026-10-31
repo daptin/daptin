@@ -22,7 +22,6 @@ import (
 	"github.com/artpar/go-guerrilla/backends"
 	"github.com/artpar/go-guerrilla/mail"
 	"github.com/artpar/go-imap"
-	"github.com/artpar/go-imap/backend/backendutil"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -639,39 +638,9 @@ func (dbResource *DbResource) GetFirstUnseenMailSequence(mailBoxId int64, transa
 func (dbResource *DbResource) UpdateMailFlags(mailReferenceID daptinid.DaptinReferenceId, newFlags []string,
 	sessionUser *auth.SessionUser, transaction *sqlx.Tx) error {
 
-	log.Tracef("[UpdateMailFlags] Updating flags for mail=%s flags=%v", mailReferenceID, newFlags)
-	seen := false
-	recent := false
-	deleted := false
-
-	seen = HasAnyFlag(newFlags, []string{imap.SeenFlag})
-	recent = HasAnyFlag(newFlags, []string{imap.RecentFlag})
-
-	if HasAnyFlag(newFlags, []string{"\\expunge", "\\deleted"}) {
-		newFlags = backendutil.UpdateFlags(newFlags, imap.RemoveFlags, []string{imap.RecentFlag})
-		newFlags = backendutil.UpdateFlags(newFlags, imap.AddFlags, []string{"\\Seen"})
-		log.Tracef("[UpdateMailFlags] After expunge/deleted: %v", newFlags)
-		deleted = true
-		seen = true
-	}
-
-	model := api2go.NewApi2GoModelWithData("mail", nil, 0, nil, map[string]interface{}{
-		"flags":   strings.Join(newFlags, ","),
-		"seen":    seen,
-		"recent":  recent,
-		"deleted": deleted,
-	})
-	model.SetID(mailReferenceID.String())
-	requestURL, _ := url.Parse("/api/mail/" + mailReferenceID.String())
-	request := api2go.Request{PlainRequest: (&http.Request{
-		Method: http.MethodPatch,
-		URL:    requestURL,
-	}).WithContext(context.WithValue(context.Background(), "user", sessionUser))}
-	_, err := dbResource.updateAfterAuthorizationWithTransaction(model, request, transaction)
-	log.Tracef("[UpdateMailFlags] Update complete, err=%v", err)
-	return err
-
+	return dbResource.MutateMailFlags(mailReferenceID, imap.SetFlags, newFlags, sessionUser, transaction)
 }
+
 func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64, sessionUser *auth.SessionUser) (int64, error) {
 
 	tx, err := dbResource.Connection().Beginx()
@@ -679,6 +648,19 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64, sessionUser *auth.
 		return 0, err
 	}
 	defer tx.Rollback()
+
+	boxRef, err := dbResource.GetIdToReferenceId("mail_box", mailBoxId, tx)
+	if err != nil {
+		return 0, err
+	}
+	box, _, err := dbResource.Cruds["mail_box"].GetSingleRowByReferenceIdWithTransaction("mail_box", boxRef, nil, tx)
+	if err != nil {
+		return 0, err
+	}
+	_, sessionUser, err = dbResource.MailWriteAccount(daptinid.InterfaceToDIR(box["mail_account_id"]).String(), sessionUser, tx)
+	if err != nil {
+		return 0, err
+	}
 
 	selectQuery, args, err := statementbuilder.Squirrel.Select("reference_id").Prepared(true).From("mail").Where(
 		goqu.Ex{
@@ -720,11 +702,25 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64, sessionUser *auth.
 			URL:    mailURL,
 		}).WithContext(context.WithValue(context.Background(), "user", sessionUser)),
 	}
+	var expunged int64
 	for _, referenceId := range referenceIds {
+		if err = dbResource.Cruds["mail"].CheckMailDeletion(referenceId, sessionUser, tx); err != nil {
+			return 0, err
+		}
+		// Selection can precede a concurrent generic update. Check current state
+		// while CheckMailDeletion's message lock is still held.
+		current, err := dbResource.Cruds["mail"].readMailMetadataForPersistedSession(referenceId, sessionUser, tx)
+		if err != nil {
+			return 0, err
+		}
+		if daptinid.InterfaceToDIR(current["mail_box_id"]) != boxRef || !HasFlag(strings.Split(StringOrEmpty(current["flags"]), ","), imap.DeletedFlag) {
+			continue
+		}
 		_, err = dbResource.Cruds["mail"].deleteAfterAuthorizationWithTransaction(referenceId, mailRequest, tx)
 		if err != nil {
 			return 0, err
 		}
+		expunged++
 	}
 
 	err = tx.Commit()
@@ -732,7 +728,7 @@ func (dbResource *DbResource) ExpungeMailBox(mailBoxId int64, sessionUser *auth.
 		return 0, err
 	}
 
-	return int64(len(referenceIds)), nil
+	return expunged, nil
 
 }
 
