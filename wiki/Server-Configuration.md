@@ -490,6 +490,11 @@ DAPTIN_DB_CONNECTION_STRING="host=localhost port=5432 user=daptin password=secre
 
 **Tested:** Sets custom path for web dashboard files. Default: `daptinweb` (embedded). Useful for custom dashboards or local development.
 
+Dashboard request paths are normalized within the dashboard root. Root-escaping
+traversal paths return HTTP 404 before cached content or files are served,
+including when a source build loads an on-disk go.rice dashboard. Normal static
+assets and dashboard SPA routes remain available.
+
 ### profile_dump_path
 
 ```bash
