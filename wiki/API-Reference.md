@@ -490,6 +490,9 @@ Returns JavaScript model definition.
 GET /statistics
 ```
 
+Requires an administrator bearer token; guests and non-administrators receive
+HTTP 403. See [[Monitoring#statistics]] for access requirements.
+
 Returns server statistics including:
 - Memory usage
 - Goroutine count

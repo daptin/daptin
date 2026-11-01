@@ -631,7 +631,7 @@ curl http://localhost:6336/ping
 # Expected: pong
 
 # Full stats
-curl http://localhost:6336/statistics | jq '.web'
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:6336/statistics | jq '.web'
 
 # Check logs
 tail -50 /tmp/daptin.log | grep ERROR

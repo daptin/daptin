@@ -48,14 +48,18 @@ curl http://localhost:6336/health
 
 ## Statistics
 
-> **Sensitive default:** `/statistics` is public and exposes host, CPU, disk,
-> process, database-pool, web, and Olric cluster metrics.
-> Restrict it at the ingress or private network. Daptin does not currently
-> expose a native Prometheus or OpenTelemetry endpoint; adapt this JSON only
-> behind the same access boundary.
+`GET /statistics` requires an authenticated member of the `administrators`
+group. Guests and non-administrators receive HTTP 403 with no statistics.
+Access follows persisted administrator membership, including its revocation.
+Subsite web metrics at `/statistics` and `/stats` require the same access.
+
+Set `ADMIN_TOKEN` to the bearer token returned by signing in as an administrator.
+The response includes host, CPU, disk, process, database-pool, web, and Olric
+cluster metrics. Daptin does not currently expose a native Prometheus or
+OpenTelemetry endpoint. Use `/ping` for liveness and `/ready` for readiness.
 
 ```bash
-curl http://localhost:6336/statistics
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:6336/statistics
 ```
 
 **Response (Full Structure):**

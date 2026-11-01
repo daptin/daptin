@@ -261,8 +261,6 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 	defaultRouter.Use(rateLimiter)
 
-	defaultRouter.GET("/statistics", CreateStatisticsHandler(db, olricDb, localOlricAddr))
-
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 	defaultRouter.StaticFS("/statics", NewSubPathFs(boxRoot, "/statics"))
 	defaultRouter.StaticFS("/js", NewSubPathFs(boxRoot, "/js"))
@@ -390,6 +388,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
 	log.Tracef("Created middleware set")
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
+	defaultRouter.GET("/statistics", CreateStatisticsHandler(db, olricDb, localOlricAddr, cruds[resource.USER_ACCOUNT_TABLE_NAME]))
 	log.Tracef("Added ResourcesToApi2Go")
 	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub(olric.ToAddress(localOlricAddr))
 	if err != nil {

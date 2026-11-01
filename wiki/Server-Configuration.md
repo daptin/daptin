@@ -67,7 +67,7 @@ curl http://localhost:6336/ping
 ### Statistics
 
 ```bash
-curl http://localhost:6336/statistics
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:6336/statistics
 ```
 
 **Response (tested):**

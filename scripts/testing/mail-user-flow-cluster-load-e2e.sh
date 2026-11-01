@@ -268,7 +268,9 @@ sample_once() {
 
 	for node in "$NODE1:$NODE1_HTTP_PORT" "$NODE2:$NODE2_HTTP_PORT" "$NODE3:$NODE3_HTTP_PORT"; do
 		local node_name="${node%%:*}" node_port="${node##*:}"
-		curl -s --max-time 5 "http://127.0.0.1:${node_port}/statistics" >"$SAMPLE_DIR/$phase/${stamp}-${node_name}-statistics.json" 2>&1 || true
+		curl -s --max-time 5 "http://127.0.0.1:${node_port}/statistics" \
+			-H "Authorization: Bearer $(cat "$TOKEN_FILE" 2>/dev/null || true)" \
+			>"$SAMPLE_DIR/$phase/${stamp}-${node_name}-statistics.json" 2>&1 || true
 	done
 }
 

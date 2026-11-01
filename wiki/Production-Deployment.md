@@ -217,13 +217,12 @@ Use `/ready` for load-balancer and Kubernetes readiness checks. It returns HTTP 
 
 #### Statistics Monitoring
 
-`/statistics` is unauthenticated by default and exposes host,
-process, disk, CPU, web, and database-pool details. Put it on a private
-monitoring route or require authentication at the ingress before using it.
+`/statistics` requires an administrator bearer token. See
+[[Monitoring#statistics]] for access requirements and response fields.
 
 ```bash
 # Monitor system metrics
-curl http://api.example.com/statistics | jq '{
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://api.example.com/statistics | jq '{
   db: .db,
   memory: .memory.virtual.usedPercent,
   cpu: .cpu.percent
@@ -532,7 +531,7 @@ echo $DAPTIN_DB_CONNECTION_STRING
 psql "$DAPTIN_DB_CONNECTION_STRING"
 
 # Check connection pool
-curl http://localhost:6336/statistics | jq '.db'
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:6336/statistics | jq '.db'
 ```
 
 ### HTTPS Certificate Issues
@@ -555,7 +554,7 @@ curl -X POST http://localhost:6336/action/certificate/generate_acme_certificate 
 
 ```bash
 # Check statistics
-curl http://localhost:6336/statistics | jq '.'
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:6336/statistics | jq '.'
 
 # Database slow queries (PostgreSQL)
 psql daptin -c "SELECT query, calls, total_time, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;"

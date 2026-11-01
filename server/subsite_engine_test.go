@@ -51,6 +51,26 @@ func readGzipResponse(t *testing.T, response *httptest.ResponseRecorder) string 
 	return string(body)
 }
 
+func TestSubsiteStatisticsRequireAdministratorWithoutRestrictingPages(t *testing.T) {
+	cache := &assetcachepojo.AssetFolderCache{LocalSyncPath: t.TempDir()}
+	engine := CreateSubsiteEngine(subsite.SubSite{}, cache, []gin.HandlerFunc{
+		subsiteStatisticsMiddleware(nil, nil),
+	})
+	engine.GET("/public", func(c *gin.Context) { c.String(http.StatusOK, "public page") })
+	for _, path := range []string{"/statistics", "/stats"} {
+		response := httptest.NewRecorder()
+		engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusForbidden || response.Body.Len() != 0 {
+			t.Fatalf("%s: status=%d body=%s", path, response.Code, response.Body)
+		}
+	}
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/public", nil))
+	if response.Code != http.StatusOK || response.Body.String() != "public page" {
+		t.Fatalf("public page: status=%d body=%s", response.Code, response.Body)
+	}
+}
+
 func TestSubsiteEngineGzipEnabledByConfiguration(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
