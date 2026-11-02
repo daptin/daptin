@@ -36,7 +36,8 @@ Actions:
   - Name: change_label
     OnType: ws_acl_probe
     InstanceOptional: true
-    Permission: 2097151
+    # Keep this action explicitly executable after administrator onboarding.
+    Permission: 32
     InFields:
       - Name: record_id
         ColumnName: record_id
