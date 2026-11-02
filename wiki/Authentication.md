@@ -111,6 +111,17 @@ curl http://localhost:6336/api/todo \
 
 **Default lifetime**: 3 days (72 hours)
 
+### Account Deletion
+
+Deleting an account through Daptin's resource API invalidates its cached
+authentication identity. Subsequent requests with that account's old JWT return
+HTTP 401, including REST, WebSocket upgrades, and Yjs requests. A token for a
+missing account does not recreate the account. OAuth account provisioning remains
+part of the configured OAuth login action.
+
+This rejects subsequent authentication attempts; it does not disconnect sessions
+that were already open when the account was deleted.
+
 ### Configure JWT Settings
 
 ```bash

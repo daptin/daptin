@@ -21,7 +21,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -385,16 +384,14 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 		} else {
 
 			userToken := userJwtToken
-			var tokenAuthVersion int64
 			if hasJWTUser {
-				tokenAuthVersion, err = AuthVersionFromJWTToken(userToken)
+				_, err = AuthVersionFromJWTToken(userToken)
 				if err != nil {
 					log.Warnf("JWT auth version check failed: %v", err)
 					return false, false, req
 				}
 			}
 			email := userToken.Claims.(jwt.MapClaims)["email"].(string)
-			name := userToken.Claims.(jwt.MapClaims)["name"].(string)
 			//log.Printf("User is not nil: %v", email)
 
 			var sessionUser *SessionUser
@@ -430,118 +427,70 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 						goqu.Ex{"email": email}).ToSQL()
 					if err != nil {
 						log.Errorf("Failed to create select query for user table")
-						return false, true, req
+						return false, false, req
 					}
 
 					stmt1, err := a.db.Preparex(sql)
 					if err != nil {
 						log.Errorf("[315] failed to prepare statment: %v", err)
-						return false, true, req
+						return false, false, req
 					}
 
 					rowx := stmt1.QueryRowx(args...)
 					var authVersion int64
 					err = rowx.Scan(&userId, &referenceIdBytes, &authVersion)
-					err = stmt1.Close()
+					if closeErr := stmt1.Close(); closeErr != nil {
+						log.Errorf("failed to close prepared statement: %v", closeErr)
+					}
 					if err != nil {
-						log.Errorf("failed to close prepared statement: %v", err)
+						log.Warnf("Failed to load authenticated account: %v", err)
+						return false, false, req
 					}
 
-					uu, _ := uuid.FromBytes(referenceIdBytes[:])
-
+					uu, err := uuid.FromBytes(referenceIdBytes)
+					if err != nil || uu == uuid.Nil || userId <= 0 {
+						log.Warn("Invalid authenticated account identity")
+						return false, false, req
+					}
 					referenceId := daptinid.DaptinReferenceId(uu)
 
+					query, args1, err := UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
+
+					stmt1, err = a.db.Preparex(query)
 					if err != nil {
-						// if a user logged in from third party oauth login
-						log.Errorf("Failed to scan user [%v] from db: %v", email, err)
-
-						mapData := make(map[string]interface{})
-						mapData["name"] = name
-						mapData["email"] = email
-						mapData[AuthVersionColumn] = tokenAuthVersion
-
-						newUser := api2go.NewApi2GoModelWithData("user_account", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-						ur, _ := url.Parse("/user_account")
-
-						req1 := api2go.Request{
-							PlainRequest: &http.Request{
-								Method: "POST",
-								URL:    ur,
-							},
-						}
-
-						resp, err := a.userCrud.Create(newUser, req1)
+						log.Errorf("[382] failed to prepare statment: %v", err)
+						return false, true, nil
+					}
+					defer func(stmt1 *sqlx.Stmt) {
+						err := stmt1.Close()
 						if err != nil {
-							log.Errorf("Failed to create new user: %v", err)
-							abortRequest = true
-							return okToContinue, abortRequest, req
+							log.Errorf("failed to close prepared statement: %v", err)
 						}
-						referenceId = daptinid.DaptinReferenceId([]byte((resp.Result().(api2go.Api2GoModel)).GetID()))
+					}(stmt1)
 
-						mapData = make(map[string]interface{})
-						mapData["name"] = "Home group of " + name
-
-						newUserGroup := api2go.NewApi2GoModelWithData("usergroup", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-						resp, err = a.userGroupCrud.Create(newUserGroup, req1)
-						if err != nil {
-							log.Errorf("Failed to create new user group: %v", err)
-						}
-						userGroupId := daptinid.DaptinReferenceId([]byte((resp.Result().(api2go.Api2GoModel)).GetID()))
-
-						userGroups = make([]GroupPermission, 0)
-						mapData = make(map[string]interface{})
-						mapData["user_account_id"] = referenceId
-						mapData["usergroup_id"] = userGroupId
-
-						newUserUserGroup := api2go.NewApi2GoModelWithData("user_account_user_account_id_has_usergroup_usergroup_id", nil, int64(DEFAULT_PERMISSION), nil, mapData)
-
-						uug, err := a.userUserGroupCrud.Create(newUserUserGroup, req1)
-						if err != nil {
-							log.Errorf("Failed to create user-usergroup relation: %v", err)
-						}
-						log.Printf("User ug: %v", uug)
-
+					rows, err := stmt1.Queryx(args1...)
+					if err != nil {
+						log.Errorf("Failed to get user group permissions: %v", err)
 					} else {
+						defer func() {
+							if err := rows.Close(); err != nil {
+								log.Errorf("failed to close result after fetching user in auth: %v", err)
+							}
+						}()
 
-						query, args1, err := UserGroupSelectQuery.Where(goqu.Ex{"uug.user_account_id": userId}).ToSQL()
-
-						stmt1, err := a.db.Preparex(query)
-						if err != nil {
-							log.Errorf("[382] failed to prepare statment: %v", err)
-							return false, true, nil
-						}
-						defer func(stmt1 *sqlx.Stmt) {
-							err := stmt1.Close()
+						//cols, _ := rows.Columns()
+						//log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
+						for rows.Next() {
+							var p GroupPermission
+							err = rows.StructScan(&p)
+							p.ObjectReferenceId = referenceId
 							if err != nil {
-								log.Errorf("failed to close prepared statement: %v", err)
+								log.Errorf("failed to scan group permission struct: %v", err)
+								continue
 							}
-						}(stmt1)
-
-						rows, err := stmt1.Queryx(args1...)
-						if err != nil {
-							log.Errorf("Failed to get user group permissions: %v", err)
-						} else {
-							defer func() {
-								if err := rows.Close(); err != nil {
-									log.Errorf("failed to close result after fetching user in auth: %v", err)
-								}
-							}()
-
-							//cols, _ := rows.Columns()
-							//log.Debugf("Usergroup selection query for user [%v] : [%v]", email, query)
-							for rows.Next() {
-								var p GroupPermission
-								err = rows.StructScan(&p)
-								p.ObjectReferenceId = referenceId
-								if err != nil {
-									log.Errorf("failed to scan group permission struct: %v", err)
-									continue
-								}
-								userGroups = append(userGroups, p)
-							}
-
+							userGroups = append(userGroups, p)
 						}
+
 					}
 
 					//log.Printf("Group permissions :%v", userGroups)
@@ -588,6 +537,10 @@ func (a *AuthMiddleware) AuthCheckMiddlewareWithHttp(req *http.Request, writer h
 				}
 			} else {
 				//sessionUser = &localCachedUser.Account
+			}
+
+			if sessionUser == nil || sessionUser.UserId <= 0 || sessionUser.UserReferenceId == daptinid.NullReferenceId {
+				return false, false, req
 			}
 
 			if hasJWTUser {
