@@ -102,6 +102,18 @@ Permissions apply to three groups:
 
 ## Common Tasks
 
+### Account Visibility
+
+New accounts join the `users` group without granting that group read access to
+their account records. After administrator onboarding, owners can read their
+own accounts and administrators can read all accounts. Additional access requires
+an explicit sharing grant.
+
+Existing account-group relationships retain their persisted permissions. On an
+existing installation, administrators must revoke `GroupRead` on the account's
+`users` relationship to remove previously granted directory access; changing
+the account row's permission alone does not revoke a relationship grant.
+
 ### Private Mail Tables for Signed-In Users
 
 Mail applications often need all signed-in users to reach the mail tables while

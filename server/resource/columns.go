@@ -15,6 +15,7 @@ var publicBookingActionPermission = auth.GuestExecute
 var adminOnlyActionPermission = auth.None
 var adminGroupExecutePermission = auth.GroupExecute
 var adminQueuePermission = auth.GroupCRUD | auth.GroupExecute
+var userAccountMembershipPermission = auth.None
 
 const defaultCalendarColor = "#3B82F6"
 
@@ -3101,9 +3102,11 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     USER_ACCOUNT_TABLE_NAME,
-		Icon:          "fa-user",
-		DefaultGroups: table_info.DefaultGroups("users"),
+		TableName: USER_ACCOUNT_TABLE_NAME,
+		Icon:      "fa-user",
+		DefaultGroups: table_info.DefaultGroupList{
+			{Name: "users", Permission: &userAccountMembershipPermission},
+		},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:              "name",
