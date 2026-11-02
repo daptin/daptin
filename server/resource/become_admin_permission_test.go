@@ -139,7 +139,7 @@ func TestUpdateDefaultPermissionInSchemaJsonTransitionsOnlyBootstrapDefaults(t *
 	assertSchemaDefaultPermission(t, db, "private_table_audit", int64(auth.UserRead|auth.GroupRead))
 }
 
-func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *testing.T) {
+func TestBecomeAdminActionLockdownThenOwnershipPreservesSchemaPermissions(t *testing.T) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
@@ -150,6 +150,7 @@ func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *tes
 		id integer primary key,
 		action_name text,
 		world_id integer,
+		user_account_id integer,
 		permission integer
 	)`)
 	if err != nil {
@@ -199,6 +200,16 @@ func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *tes
 		_ = tx.Rollback()
 		t.Fatalf("transition action permissions: %v", err)
 	}
+	crud := &DbResource{
+		model: api2go.NewApi2GoModel("action", []api2go.ColumnInfo{
+			{ColumnName: USER_ACCOUNT_ID_COLUMN},
+			{ColumnName: "permission"},
+		}, int64(auth.DEFAULT_PERMISSION), nil),
+	}
+	if err := becomeAdminOwnRows(crud, 42, tx); err != nil {
+		_ = tx.Rollback()
+		t.Fatalf("assign action ownership after lockdown: %v", err)
+	}
 	if err := tx.Commit(); err != nil {
 		t.Fatalf("commit tx: %v", err)
 	}
@@ -210,6 +221,13 @@ func TestBecomeAdminTransitionActionPermissionsPreservesSchemaPermissions(t *tes
 	assertActionPermission(t, db, 4, publicRoutePermission)
 	assertActionPermission(t, db, 5, postBootstrapPermission)
 	assertActionPermission(t, db, 6, publicRoutePermission)
+	var otherOwners int
+	if err := db.QueryRow(`select count(*) from action where user_account_id is null or user_account_id != 42`).Scan(&otherOwners); err != nil {
+		t.Fatal(err)
+	}
+	if otherOwners != 0 {
+		t.Fatalf("%d actions were not assigned to the administrator", otherOwners)
+	}
 }
 
 func TestNewImportAdminSessionUserIncludesAdminGroup(t *testing.T) {

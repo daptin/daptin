@@ -1188,6 +1188,12 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		return false
 	}
 
+	// Lock bootstrap actions before the ownership pass replaces bootstrap permissions.
+	if err := becomeAdminTransitionActionPermissions(transaction); err != nil {
+		log.Errorf("Failed to update action permissions : %v", err)
+		return false
+	}
+
 	for _, crud := range dbResource.Cruds {
 
 		if crud.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
@@ -1284,12 +1290,6 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	err = updateDefaultPermissionInSchemaJson(transaction, auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN, auth.DEFAULT_PERMISSION, AuditRowDefaultPermission)
 	if err != nil {
 		log.Errorf("Failed to update default_permission in schema json: %v", err)
-	}
-
-	err = becomeAdminTransitionActionPermissions(transaction)
-	if err != nil {
-		log.Errorf("Failed to update action permissions : %v", err)
-		return false
 	}
 
 	return true

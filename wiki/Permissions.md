@@ -24,6 +24,17 @@ Once an admin exists:
 - Guests can only view public data
 - Only admins can create new users
 
+Onboarding restricts actions using bootstrap permissions and preserves explicit
+action permissions; signin stays publicly executable and
+signup is closed. With the built-in policy, anonymous and ordinary users cannot
+invoke `world/download_system_schema` after onboarding.
+
+Upgrading does not rerun onboarding or repair existing action grants. On an
+already configured instance, review administrative actions through the JSON:API
+`action` resource and revoke unintended `GuestExecute` grants. Preserve explicitly
+public application actions; the permission value alone does not distinguish an
+intentional public grant from an unintended one.
+
 See [[First-Admin-Setup]] for the required deny-and-test procedure. A successful
 `become_an_administrator` response is not sufficient evidence that anonymous
 signup is closed.
