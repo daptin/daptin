@@ -143,6 +143,11 @@ Successful publication sends no response to the publisher. An invalid request, m
 
 Publish a message to a topic via HTTP without a WebSocket connection. This enables mobile apps, serverless functions, and CLI scripts to push real-time events to WebSocket subscribers.
 
+Permission to invoke this action and permission to publish to the target topic
+are checked separately. Topic access uses the active account's persisted group
+memberships; trusted action execution does not grant topic access. A preceding
+`SWITCH_USER` outcome makes subsequent publishing use the selected account.
+
 ```
 POST /action/world/publish_to_topic
 Authorization: Bearer <token>
