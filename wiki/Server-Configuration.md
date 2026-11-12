@@ -54,6 +54,16 @@ All flags can be set via environment variables with `DAPTIN_` prefix:
 
 ---
 
+## Language Preferences
+
+The `Accept-Language` middleware runs before authentication. Parsing is bounded
+to 8 KiB, 32 comma-separated language ranges (including wildcards), and 32
+combined `-`/`_` separators. Over-limit values are ignored and the request
+continues using `language.default` (normally `en`). The same bounds apply to
+the configured default before parsing. Malformed values produce a generic
+DEBUG diagnostic without logging the header contents. These parser limits
+apply independently of request-rate limits.
+
 ## Monitoring Endpoints
 
 ### Health Check

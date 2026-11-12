@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 )
 
@@ -16,10 +17,14 @@ type LanguageMiddleware struct {
 	defaultLanguage string
 }
 
-// maxAcceptLanguageSeparators caps the number of '-' plus '_' separators we
-// pass to language.ParseAcceptLanguage. The parser guards large '-' lists, but
-// '_' is normalized internally and can otherwise drive quadratic parse work.
-const maxAcceptLanguageSeparators = 32
+// Bound input size and range count before the parser allocates and sorts tags.
+// Also cap '-' plus '_' separators: '_' is normalized internally and can
+// otherwise drive quadratic work even for a single language range.
+const (
+	maxAcceptLanguageBytes      = 8 * 1024
+	maxAcceptLanguageRanges     = 32
+	maxAcceptLanguageSeparators = 32
+)
 
 func NewLanguageMiddleware(configStore *resource.ConfigStore, transaction *sqlx.Tx) *LanguageMiddleware {
 
@@ -39,11 +44,7 @@ func NewLanguageMiddleware(configStore *resource.ConfigStore, transaction *sqlx.
 func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 	//log.Printf("middleware ")
 
-	header := c.GetHeader("Accept-Language")
-	if acceptLanguageTooComplex(header) {
-		header = ""
-	}
-	pref := GetLanguagePreference(header, lm.defaultLanguage)
+	pref := GetLanguagePreference(c.GetHeader("Accept-Language"), lm.defaultLanguage)
 
 	//c.Request.Context("language_preference", pref)
 	c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "language_preference", pref))
@@ -53,15 +54,17 @@ func (lm *LanguageMiddleware) LanguageMiddlewareFunc(c *gin.Context) {
 func GetLanguagePreference(header string, defaultLanguage string) []string {
 	preferredLanguage := header
 
-	if preferredLanguage == "" || preferredLanguage == "undefined" || preferredLanguage == "null" {
+	if preferredLanguage == "" || preferredLanguage == "undefined" || preferredLanguage == "null" || acceptLanguageTooComplex(preferredLanguage) {
 		preferredLanguage = defaultLanguage
-	}
-	if acceptLanguageTooComplex(preferredLanguage) {
-		preferredLanguage = defaultLanguage
+		if acceptLanguageTooComplex(preferredLanguage) {
+			return []string{}
+		}
 	}
 
 	languageTags, _, err := language.ParseAcceptLanguage(preferredLanguage)
-	resource.CheckErr(err, "Failed to parse Accept-Language header [%v]", preferredLanguage)
+	if err != nil {
+		log.Debug("Ignoring invalid Accept-Language header")
+	}
 	pref := make([]string, 0)
 	prefMap := make(map[string]bool)
 
@@ -86,5 +89,8 @@ func GetLanguagePreference(header string, defaultLanguage string) []string {
 }
 
 func acceptLanguageTooComplex(header string) bool {
-	return strings.Count(header, "-")+strings.Count(header, "_") > maxAcceptLanguageSeparators
+	// Check bytes first so oversized input is rejected without scanning its contents.
+	return len(header) > maxAcceptLanguageBytes ||
+		strings.Count(header, ",") >= maxAcceptLanguageRanges ||
+		strings.Count(header, "-")+strings.Count(header, "_") > maxAcceptLanguageSeparators
 }
