@@ -569,6 +569,7 @@ func newCatalogTestResources(t *testing.T) (*sqlx.DB, map[string]*resource.DbRes
 		"llm_provider": true, "llm_model": true, "llm_deployment": true,
 		"llm_file": true, "llm_batch": true, "llm_batch_item": true,
 		"api_plan": true, "api_member": true, "api_usage": true, "api_quota": true,
+		"api_usage_api_usage_id_has_usergroup_usergroup_id":           true,
 		"llm_model_llm_model_id_has_usergroup_usergroup_id":           true,
 		"user_account_user_account_id_has_usergroup_usergroup_id":     true,
 		"credential_credential_id_has_usergroup_usergroup_id":         true,

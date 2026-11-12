@@ -1,7 +1,6 @@
 package llm
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -82,35 +81,14 @@ type daptinMetering struct {
 	service *resource.MeteringService
 }
 
-type meteringPayloadKey struct{}
-
-type meteringPayload struct {
-	requestBody  *bytes.Buffer
-	requestBytes int
-	token        string
-}
-
-func (payload *meteringPayload) Write(value []byte) (int, error) {
-	payload.requestBytes += len(value)
-	if remaining := resource.MeteringPayloadBodyLimit - payload.requestBody.Len(); remaining > 0 {
-		payload.requestBody.Write(value[:min(len(value), remaining)])
-	}
-	return len(value), nil
-}
-
 func (metering daptinMetering) Admit(ctx context.Context, admission contract.Admission) (contract.ReservationToken, error) {
 	user := daptinSessionUser(ctx)
-	payload, _ := ctx.Value(meteringPayloadKey{}).(*meteringPayload)
-	var requestBody []byte
-	requestBytes := 0
-	if payload != nil && payload.requestBody != nil {
-		requestBody = append([]byte{}, payload.requestBody.Bytes()...)
-		requestBytes = payload.requestBytes
+	requestBody, err := json.Marshal(admission.Request)
+	if err != nil {
+		return contract.ReservationToken{}, err
 	}
-	metadata := map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation}
-	if requestBytes > len(requestBody) {
-		metadata["request_body_truncated"] = true
-	}
+	requestBytes := len(requestBody)
+	metadata := map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation, "payload_format": "llm.canonical.v1"}
 	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
 	if err != nil {
 		return contract.ReservationToken{}, fmt.Errorf("begin metering admission: %w", err)
@@ -135,41 +113,45 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 	if err := transaction.Commit(); err != nil {
 		return contract.ReservationToken{}, fmt.Errorf("commit metering admission: %w", err)
 	}
-	if payload != nil {
-		payload.token = decision.ReservationToken
-	}
-	return contract.ReservationToken{RequestID: admission.RequestID, Opaque: decision.ReservationToken}, nil
-}
-
-func (metering daptinMetering) recordResponse(ctx context.Context, payload *meteringPayload, body []byte, responseBytes int) error {
-	if payload == nil || payload.token == "" {
-		return nil
-	}
-	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
-	if err != nil {
-		return err
-	}
-	defer transaction.Rollback()
-	if err := metering.service.RecordResponseBody(daptinSessionUser(ctx), payload.token, body, responseBytes, transaction); err != nil {
-		return err
-	}
-	return transaction.Commit()
+	return contract.ReservationToken{RequestID: admission.RequestID, Opaque: decision.ReservationToken, CaptureLimit: resource.MeteringCaptureLimit(config)}, nil
 }
 
 func (metering daptinMetering) Complete(ctx context.Context, completion contract.Completion) error {
+	var body []byte
+	var err error
+	if completion.Response != nil {
+		body, err = json.Marshal(completion.Response)
+	} else if completion.StreamEvents != nil {
+		body, err = json.Marshal(map[string]interface{}{"events": completion.StreamEvents})
+	} else {
+		body, err = json.Marshal(map[string]interface{}{"status": completion.Status, "error_code": completion.ErrorCode})
+	}
+	if err != nil {
+		return err
+	}
+	count := len(body)
+	if completion.Response == nil {
+		count = max(count, completion.StreamBytes)
+	}
+
 	return metering.terminalize(ctx, completion.Token, "", completion.HTTPStatus, completion.Usage, map[string]interface{}{
 		"status": completion.Status, "error_code": completion.ErrorCode, "cache_status": completion.CacheStatus,
 		"attempts": completion.Attempts, "first_byte_at": completion.FirstByteAt, "ended_at": completion.EndedAt,
-	}, true)
+	}, true, body, count)
 }
 
 func (metering daptinMetering) Cancel(ctx context.Context, cancellation contract.Cancellation) error {
+	body, err := json.Marshal(map[string]interface{}{"status": "cancelled", "reason": cancellation.Reason, "events": cancellation.StreamEvents})
+	if err != nil {
+		return err
+	}
+
 	return metering.terminalize(ctx, cancellation.Token, cancellation.Reason, 499, cancellation.Usage, map[string]interface{}{
 		"status": "cancelled", "attempts": cancellation.Attempts, "ended_at": cancellation.EndedAt,
-	}, false)
+	}, false, body, max(len(body), cancellation.StreamBytes))
 }
 
-func (metering daptinMetering) terminalize(ctx context.Context, token contract.ReservationToken, reason string, status int, usage contract.Usage, metadata map[string]interface{}, complete bool) error {
+func (metering daptinMetering) terminalize(ctx context.Context, token contract.ReservationToken, reason string, status int, usage contract.Usage, metadata map[string]interface{}, complete bool, body []byte, bodyBytes int) error {
 	if token.Opaque == "" {
 		return nil
 	}
@@ -183,7 +165,7 @@ func (metering daptinMetering) terminalize(ctx context.Context, token contract.R
 	decision := &resource.MeteringDecision{Enabled: true, RequestID: string(token.RequestID), ReservationToken: token.Opaque}
 	meteringContext := resource.MeteringContext{
 		RequestID: string(token.RequestID), User: user, StatusCode: status, Measures: usage.AllMeasures(),
-		Metering: config, ErrorMessage: reason,
+		Metering: config, ErrorMessage: reason, ResponseBody: body, ResponseBytes: bodyBytes,
 		Metadata: metadata,
 	}
 	if complete {

@@ -57,6 +57,32 @@ The OpenAI-compatible `provider_parameters` object accepts only:
 
 `image_generation_path` may be `/images/generations` or `/images`.
 
+### Provider operation support
+
+An adapter implements the request format; the selected upstream endpoint must
+also support the operation. Declaring an operation in `llm_model.operations`
+and `llm_deployment.operations` permits routing to it, but does not add that
+operation to the provider. The adapter forwards chat to
+`{base_url}/chat/completions` and Responses to `{base_url}/responses`; it does
+not translate Responses into Chat Completions or Google's native API.
+
+The following non-streaming calls were verified on November 12, 2026:
+
+| Provider | `upstream_model` | Chat Completions | Responses |
+|---|---|---|---|
+| `google` | `gemini-2.5-flash` | Works | Unsupported at the tested default endpoint (404) |
+| `google` | `gemini-2.5-flash-lite` | Works | Unsupported at the tested default endpoint (404) |
+| `openrouter` | `google/gemini-2.5-flash` | Works | Works |
+| `openrouter` | `openai/gpt-4o-mini` | Works | Works |
+
+For the tested direct Google setup, set both operation lists to `["chat"]`.
+Google's [OpenAI compatibility guide](https://aistudio.google.com/docs/openai)
+documents Chat Completions at that base URL. For Gemini through Responses,
+the verified route uses `provider_type: "openrouter"`,
+`upstream_model: "google/gemini-2.5-flash"`, and operation lists containing
+`"responses"`. Verify additional operations against the selected provider
+before enabling them.
+
 ### Local Ollama through the OpenAI-compatible adapter
 
 Ollama's OpenAI-compatible API was exercised with non-streaming chat, SSE
@@ -304,8 +330,10 @@ The implemented OpenAI-compatible routes are:
 - `POST /v1/chat/completions`
 - `POST /v1/completions`
 - `POST /v1/messages`
-- `POST /v1/responses` (stateless; `store` and `previous_response_id` are
-  rejected)
+- `POST /v1/responses` (stateless or stored conversation history;
+  `background: true` is rejected)
+- `GET /v1/responses/{id}`
+- `DELETE /v1/responses/{id}`
 - `POST /v1/responses/compact` (explicit input only;
   `previous_response_id` is rejected)
 - `POST /v1/embeddings`
@@ -343,6 +371,64 @@ Responses `input_file` content accepts exactly one of inline `file_data`, an
 HTTP(S) `file_url`, or a Daptin `/v1/files` `file_id`. A Daptin file ID is read
 through the same permissioned file resource and normalized to inline content
 before model authorization, routing, metering, and provider invocation.
+
+### Stored Responses and conversation history
+
+Set `store: true` to retain the turn’s existing `api_usage` capture for conversation history. No separate response payload resource is created.
+Daptin returns that resource's reference ID as the response `id`. Send it as
+`previous_response_id` on the next turn; Daptin reads the saved input and output,
+appends the new input, and invokes the shared gateway with the complete history.
+Stored history survives restarts and can be routed to another eligible provider.
+Providers still receive `store: false`, without `previous_response_id`: Daptin
+owns this conversation state, independently of provider-side storage.
+
+```bash
+RESPONSE_ID=$(curl --fail --silent http://localhost:6336/v1/responses \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"model":"assistant","input":"Remember that my color is blue.","store":true}' | jq -r '.id')
+
+curl --fail http://localhost:6336/v1/responses \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data-binary '{"model":"assistant","input":"What is my color?","previous_response_id":"'"$RESPONSE_ID"'","store":true}'
+
+curl --fail "http://localhost:6336/v1/responses/$RESPONSE_ID" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl --fail -X DELETE "http://localhost:6336/v1/responses/$RESPONSE_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Stored responses require a signed-in account and belong to the active account.
+Rows are private to their owner by default; administrators and explicitly
+permissioned usergroups use the ordinary resource permissions. Reading, referring to, and deleting retained payloads use the usage row’s respective resource permissions. Usage facts remain backend managed. A continuation independently requires read access to the saved
+response and execute permission on the requested public model. Denial happens
+before provider invocation. Retrieval and deletion do not require model execute
+permission.
+
+Each saved row contains the complete input used for that turn and its output,
+including tool calls, reasoning items, and resolved file content. Subsequent
+turns recheck the selected model's capabilities against that history and reserve
+usage for the replayed context through generic metering. The selected provider
+must support the replayed item types. Top-level `instructions` and other request
+controls belong to the current turn; Daptin does not copy them from an earlier
+request.
+
+Omitting `store` or setting it to false leaves the new response unstored. A
+request may read a `previous_response_id` with `store: false`, but its new result
+cannot be used as a stored response ID. Use `store: true` on each turn to retain
+an ongoing chain. In-progress, failed, cancelled, missing, and inaccessible
+responses cannot be continued. Streaming stored responses use the same Daptin
+reference ID throughout their events and are saved before the terminal event is
+returned.
+
+Stored snapshots and replayed input are limited to 16 MiB each. Oversized
+history is rejected before provider invocation. A response whose output makes
+the stored snapshot exceed the limit fails storage after inference; admitted
+provider work is still metered. History remains in the usage record until its captured payload is deleted. `DELETE /v1/responses/{id}` clears retained request and response bodies and prevents continuation; it preserves usage quantities, quota accounting, and terminal status. Descendant turns retain their own complete context.
+
+The `llm_model` backend `invoke` configuration enables payload capture up to 16 MiB by default. Capture can remain enabled with metering disabled. Stateful storage requires that full-history capture policy; disabling capture or lowering its bound rejects `store: true` before inference. Ordinary non-retained invocations may still be captured according to policy, but their IDs cannot be used for continuation. See [[API-Metering]] for capture policy and resource access.
 
 ### Responses files and web search
 
@@ -444,7 +530,7 @@ bearer token as their API key.
 
 ### Codex CLI
 
-Daptin accepts the documented stateless Codex Responses subset, including
+Daptin accepts the documented Codex Responses subset, including
 reasoning includes, input-item IDs, function tool namespaces, and web search
 tools. `include` and item IDs are preserved upstream. Unsupported fields,
 including `client_metadata`, are rejected instead of being silently ignored.
@@ -549,6 +635,10 @@ limit is required. See [[API-Metering]] for the shared ledger lifecycle.
 - **Model not found:** verify the public `llm_model.name`, its `enable` flag,
   operation list, the active account's execute permission (or `GuestExecute`
   for a request without an account), and at least one enabled deployment.
+- **Upstream endpoint or model not found:** an upstream HTTP 404 does not
+  distinguish a missing operation endpoint from a missing model. Verify the
+  provider's base URL, its support for the requested operation, and the
+  deployment's `upstream_model`. See [Provider operation support](#provider-operation-support).
 - **No healthy deployment:** verify provider/deployment enable flags,
   capabilities, operation lists, timeouts, health state, and protection limits.
 - **Provider authentication error:** verify the provider's credential relationship and

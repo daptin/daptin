@@ -156,7 +156,7 @@ func IsMeteringSystemTable(tableName string) bool {
 func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDecision, error) {
 	decision := &MeteringDecision{}
 	config := normalizeMeteringConfig(ctx.Metering)
-	if config == nil || !config.Enabled {
+	if !MeteringConfigActive(config) {
 		return decision, nil
 	}
 	if tx == nil {
@@ -181,47 +181,55 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 	if ctx.RequestBytes < len(ctx.RequestBody) {
 		ctx.RequestBytes = len(ctx.RequestBody)
 	}
-	if len(ctx.RequestBody) > MeteringPayloadBodyLimit {
+	limit := MeteringCaptureLimit(config)
+	if ctx.Metadata == nil {
+		ctx.Metadata = make(map[string]interface{})
+	}
+	ctx.Metadata["capture_limit"] = limit
+	ctx.Metadata["metering_enabled"] = config.Enabled
+	if len(ctx.RequestBody) > limit {
 		if ctx.Metadata == nil {
 			ctx.Metadata = make(map[string]interface{})
 		}
 		ctx.Metadata["request_body_truncated"] = true
-		ctx.RequestBody = ctx.RequestBody[:MeteringPayloadBodyLimit]
+		ctx.RequestBody = ctx.RequestBody[:limit]
 	}
 	decision.Enabled = true
 	decision.config = config
-	if err := m.lockMeteringUser(ctx.User.UserId, tx); err != nil {
-		return nil, err
-	}
-
-	member, memberErr := m.findActiveMember(ctx.User.UserId, tx)
-	if memberErr == nil {
-		decision.Member = member
-		memberID, err := ResourceRowInt64(member["id"])
-		if err != nil {
-			return nil, fmt.Errorf("invalid api_member id: %w", err)
-		}
-		if memberID <= 0 {
-			return nil, errors.New("invalid api_member id: must be positive")
-		}
-		planID, err := ResourceRowInt64(member["api_plan_id"])
-		if err != nil {
-			return nil, fmt.Errorf("invalid api_member api_plan_id: %w", err)
-		}
-		if planID <= 0 {
-			return nil, errors.New("invalid api_member api_plan_id: must be positive")
-		}
-		decision.MemberID = memberID
-		decision.PlanID = planID
-		plan, err := m.findPlan(planID, tx)
-		if err != nil {
+	if config.Enabled {
+		if err := m.lockMeteringUser(ctx.User.UserId, tx); err != nil {
 			return nil, err
 		}
-		decision.Plan = plan
-	} else if !errors.Is(memberErr, errMeteringRowNotFound) {
-		return nil, memberErr
-	}
 
+		member, memberErr := m.findActiveMember(ctx.User.UserId, tx)
+		if memberErr == nil {
+			decision.Member = member
+			memberID, err := ResourceRowInt64(member["id"])
+			if err != nil {
+				return nil, fmt.Errorf("invalid api_member id: %w", err)
+			}
+			if memberID <= 0 {
+				return nil, errors.New("invalid api_member id: must be positive")
+			}
+			planID, err := ResourceRowInt64(member["api_plan_id"])
+			if err != nil {
+				return nil, fmt.Errorf("invalid api_member api_plan_id: %w", err)
+			}
+			if planID <= 0 {
+				return nil, errors.New("invalid api_member api_plan_id: must be positive")
+			}
+			decision.MemberID = memberID
+			decision.PlanID = planID
+			plan, err := m.findPlan(planID, tx)
+			if err != nil {
+				return nil, err
+			}
+			decision.Plan = plan
+		} else if !errors.Is(memberErr, errMeteringRowNotFound) {
+			return nil, memberErr
+		}
+
+	}
 	estimated, err := admissionMeasures(ctx, config)
 	if err != nil {
 		return nil, err
@@ -392,6 +400,15 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 			return fmt.Errorf("decode metering admission metadata: %w", err)
 		}
 	}
+	if ctx.Metadata == nil {
+		ctx.Metadata = make(map[string]interface{})
+	}
+	for key, value := range admissionMetadata {
+		if _, supplied := ctx.Metadata[key]; !supplied || key == "capture_limit" || key == "metering_enabled" || key == "payload_retained" || key == "payload_deleted" {
+			ctx.Metadata[key] = value
+		}
+	}
+	limit := usageCaptureLimit(usage)
 	if admissionMetadata["request_body_truncated"] == true {
 		if ctx.Metadata == nil {
 			ctx.Metadata = make(map[string]interface{})
@@ -404,19 +421,19 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if ctx.ResponseBytes < len(ctx.ResponseBody) {
 		ctx.ResponseBytes = len(ctx.ResponseBody)
 	}
-	if len(ctx.ResponseBody) > MeteringPayloadBodyLimit {
+	if len(ctx.ResponseBody) > limit {
 		if ctx.Metadata == nil {
 			ctx.Metadata = make(map[string]interface{})
 		}
 		ctx.Metadata["response_body_truncated"] = true
-		ctx.ResponseBody = ctx.ResponseBody[:MeteringPayloadBodyLimit]
+		ctx.ResponseBody = ctx.ResponseBody[:limit]
 	}
-	if len(ctx.RequestBody) > MeteringPayloadBodyLimit {
+	if len(ctx.RequestBody) > limit {
 		if ctx.Metadata == nil {
 			ctx.Metadata = make(map[string]interface{})
 		}
 		ctx.Metadata["request_body_truncated"] = true
-		ctx.RequestBody = ctx.RequestBody[:MeteringPayloadBodyLimit]
+		ctx.RequestBody = ctx.RequestBody[:limit]
 	}
 	if capture := meteringPayloadCapture(ctx.Request); capture != nil && capture.RequestBodyTruncated() {
 		if ctx.Metadata == nil {
@@ -453,6 +470,11 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	config := decision.config
 	if config == nil {
 		config = normalizeMeteringConfig(ctx.Metering)
+	}
+	if config != nil && admissionMetadata["metering_enabled"] == false {
+		copy := *config
+		copy.Enabled = false
+		config = &copy
 	}
 	if measures == nil {
 		measures, err = completionMeasures(ctx, config)
@@ -513,6 +535,10 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 		"request_bytes": ctx.RequestBytes, "response_bytes": ctx.ResponseBytes, "measures": measuresJSON,
 		"metadata": metadata, "error_message": nullableString(ctx.ErrorMessage), "terminal_at": m.now(),
 	}
+	if admissionMetadata["payload_deleted"] == true {
+		ctx.RequestBody = nil
+		ctx.ResponseBody = nil
+	}
 	if ctx.RequestBody != nil {
 		attributes["request_body"], attributes["request_body_encoding"] = encodeMeteringBody(ctx.RequestBody)
 	}
@@ -526,7 +552,7 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if _, err := (*m.cruds)["api_usage"].UpdateWithoutFilters(usageModel, request, tx); err != nil {
 		return fmt.Errorf("terminalize metering usage: %w", err)
 	}
-	if config != nil && config.PostMeteringAction != "" {
+	if config != nil && admissionMetadata["metering_enabled"] != false && config.PostMeteringAction != "" {
 		m.invokePostMeteringAction(config.PostMeteringAction, ctx, decision, usageID, measures, tx)
 	}
 	return nil
@@ -621,7 +647,6 @@ func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservation
 	if responseBytes < len(body) {
 		return errors.New("metering response byte count is smaller than the captured body")
 	}
-	retained := body[:min(len(body), MeteringPayloadBodyLimit)]
 	usage, err := m.findUsageByToken(reservationToken, tx)
 	if err != nil {
 		return err
@@ -634,6 +659,7 @@ func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservation
 	if err != nil || usageUserID != owner.UserId {
 		return errors.New("metering reservation belongs to another user")
 	}
+	retained := body[:min(len(body), usageCaptureLimit(usage))]
 	value, encoding := encodeMeteringBody(retained)
 	usageModel := api2go.NewApi2GoModelWithData("api_usage", (*m.cruds)["api_usage"].TableInfo().Columns,
 		int64((*m.cruds)["api_usage"].TableInfo().DefaultPermission), (*m.cruds)["api_usage"].TableInfo().Relations, usage)
@@ -648,6 +674,9 @@ func (m *MeteringService) RecordResponseBody(user *auth.SessionUser, reservation
 	}
 	if metadata == nil {
 		metadata = make(map[string]interface{})
+	}
+	if metadata["payload_deleted"] == true {
+		return nil
 	}
 	if responseBytes > len(retained) {
 		metadata["response_body_truncated"] = true
@@ -815,6 +844,9 @@ func MeteringConfigForAction(config *table_info.MeteringConfig, actionName strin
 		return nil
 	}
 	if actionConfig, ok := config.OnActions[actionName]; ok {
+		if actionConfig.Capture == nil {
+			actionConfig.Capture = config.Capture
+		}
 		if actionConfig.CostExpr == "" {
 			actionConfig.CostExpr = config.CostExpr
 		}
@@ -930,7 +962,7 @@ func completionMeasures(ctx MeteringContext, config *table_info.MeteringConfig) 
 		}
 		measures["bytes"] = bytes
 	}
-	if config != nil && config.MeterType != "" {
+	if config != nil && config.Enabled && config.MeterType != "" {
 		if _, supplied := measures[config.MeterType]; supplied {
 			return measures, nil
 		}
@@ -1130,4 +1162,42 @@ func toTime(value interface{}) time.Time {
 	default:
 		return time.Time{}
 	}
+}
+
+// MeteringConfigActive separates payload recording from quota enforcement.
+func MeteringConfigActive(config *table_info.MeteringConfig) bool {
+	return config != nil && (config.Enabled || (config.Capture != nil && config.Capture.Enabled))
+}
+
+// MeteringCaptureLimit is backend policy; callers cannot increase it with request input.
+func MeteringCaptureLimit(config *table_info.MeteringConfig) int {
+	if config == nil {
+		return 0
+	}
+	if config.Capture == nil {
+		if config.Enabled {
+			return MeteringPayloadBodyLimit
+		}
+		return 0
+	}
+	if !config.Capture.Enabled {
+		return 0
+	}
+	if config.Capture.MaxBytes <= 0 {
+		return MeteringPayloadBodyLimit
+	}
+	return min(config.Capture.MaxBytes, 16<<20)
+}
+
+func usageCaptureLimit(usage map[string]interface{}) int {
+	var policy struct {
+		Limit *int `json:"capture_limit"`
+	}
+	if err := json.UnmarshalFromString(StringOrEmpty(usage["metadata"]), &policy); err != nil {
+		return 0
+	}
+	if policy.Limit == nil {
+		return MeteringPayloadBodyLimit
+	}
+	return max(0, min(*policy.Limit, 16<<20))
 }

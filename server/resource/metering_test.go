@@ -227,7 +227,7 @@ func TestMeteringCaptureTruncationKeepsByteCounts(t *testing.T) {
 	service := NewMeteringService(&cruds)
 	config := &table_info.MeteringConfig{Enabled: true, MeterType: "requests", CostExpr: "1"}
 	requestBody := strings.Repeat("q", MeteringPayloadBodyLimit+37)
-	request, capture := NewMeteringPayloadCapture(httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(requestBody)))
+	request, capture := NewMeteringPayloadCapture(httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(requestBody)), MeteringPayloadBodyLimit)
 	if _, err := io.Copy(io.Discard, request.Body); err != nil {
 		t.Fatal(err)
 	}
@@ -1206,5 +1206,54 @@ func assertMeteringBucket(t *testing.T, service *MeteringService, tx *sqlx.Tx, m
 	}
 	if actualReserved != reserved || actualConsumed != consumed {
 		t.Fatalf("quota bucket = reserved %d consumed %d, want %d/%d", actualReserved, actualConsumed, reserved, consumed)
+	}
+}
+
+func TestCaptureOnlyDoesNotReserveOrConsumePlanQuota(t *testing.T) {
+	database, cruds, user := newCanonicalMeteringDatabase(t)
+	now := time.Now().UTC()
+	insertMeteringPlanAndMember(t, cruds, user, now, `[{"metric":"requests","window":"minute","maximum":1,"mode":"hard"}]`)
+	service := NewMeteringService(&cruds)
+	service.now = func() time.Time { return now }
+	metered := &table_info.MeteringConfig{Enabled: true}
+	tx, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	decision, err := service.Admit(MeteringContext{RequestID: "consume-quota", User: user, Metering: metered}, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Complete(MeteringContext{User: user, Metering: metered}, decision, tx); err != nil {
+		t.Fatal(err)
+	}
+	config := &table_info.MeteringConfig{Capture: &table_info.PayloadCaptureConfig{Enabled: true, MaxBytes: 128 * 1024}, CostExpr: "invalid expression", MeterType: "custom"}
+	body := []byte(strings.Repeat("capture", 14000))
+	capture, err := service.Admit(MeteringContext{RequestID: "capture-with-exhausted-quota", User: user, Metering: config, RequestBody: body}, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !capture.Enabled || capture.PlanID != 0 || capture.MemberID != 0 || len(capture.reservation) != 0 {
+		t.Fatalf("capture consulted plan: %#v", capture)
+	}
+	if err := service.Complete(MeteringContext{User: user, Metering: config, ResponseBody: body}, capture, tx); err != nil {
+		t.Fatal(err)
+	}
+	row, err := service.findUsageByToken(capture.ReservationToken, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if StringOrEmpty(row["request_body"]) != string(body) || StringOrEmpty(row["response_body"]) != string(body) {
+		t.Fatal("capture-only payload was truncated or lost")
+	}
+	quotas, _, err := cruds["api_quota"].GetRowsByWhereClauseWithTransaction("api_quota", nil, tx)
+	if err != nil || len(quotas) != 1 {
+		t.Fatalf("quotas=%#v error=%v", quotas, err)
+	}
+	consumed, _ := ResourceRowInt64(quotas[0]["consumed"])
+	reserved, _ := ResourceRowInt64(quotas[0]["reserved"])
+	if consumed != 1 || reserved != 0 {
+		t.Fatalf("capture changed quota: consumed=%d reserved=%d", consumed, reserved)
 	}
 }

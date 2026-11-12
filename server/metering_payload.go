@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/daptin/daptin/server/resource"
+	"github.com/daptin/daptin/server/table_info"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,7 +37,7 @@ func (writer *meteringPayloadWriter) Write(value []byte) (int, error) {
 	n, err := writer.ResponseWriter.Write(value)
 	if writer.capture.HasReservation() {
 		writer.bytes += n
-		if remaining := resource.MeteringPayloadBodyLimit - writer.body.Len(); remaining > 0 {
+		if remaining := writer.capture.BodyLimit() - writer.body.Len(); remaining > 0 {
 			writer.body.Write(value[:min(n, remaining)])
 		}
 	}
@@ -47,7 +48,7 @@ func (writer *meteringPayloadWriter) WriteString(value string) (int, error) {
 	n, err := writer.ResponseWriter.WriteString(value)
 	if writer.capture.HasReservation() {
 		writer.bytes += n
-		if remaining := resource.MeteringPayloadBodyLimit - writer.body.Len(); remaining > 0 {
+		if remaining := writer.capture.BodyLimit() - writer.body.Len(); remaining > 0 {
 			writer.body.WriteString(value[:min(n, remaining)])
 		}
 	}
@@ -75,7 +76,7 @@ func meteringPayloadMiddleware(cruds *map[string]*resource.DbResource, graphqlRe
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "GraphQL operation exceeds 256 selections"})
 			return
 		}
-		request, capture := resource.NewMeteringPayloadCapture(c.Request)
+		request, capture := resource.NewMeteringPayloadCapture(c.Request, resource.MeteringCaptureLimit(meteringPayloadPathConfig(path, *cruds)))
 		c.Request = request
 		if path == "/graphql" {
 			c.Next()
@@ -106,33 +107,34 @@ func meteringPayloadMiddleware(cruds *map[string]*resource.DbResource, graphqlRe
 }
 
 func meteringPayloadPathEnabled(path string, cruds map[string]*resource.DbResource) bool {
+	return resource.MeteringConfigActive(meteringPayloadPathConfig(path, cruds))
+}
+
+func meteringPayloadPathConfig(path string, cruds map[string]*resource.DbResource) *table_info.MeteringConfig {
 	if path == "/graphql" {
-		return true
+		return &table_info.MeteringConfig{Capture: &table_info.PayloadCaptureConfig{Enabled: true, MaxBytes: 16 << 20}}
 	}
 	if strings.HasPrefix(path, "/api/") {
 		tableName := strings.SplitN(strings.TrimPrefix(path, "/api/"), "/", 2)[0]
-		crud := cruds[tableName]
-		return crud != nil && crud.TableInfo().Metering != nil && crud.TableInfo().Metering.Enabled
+		if crud := cruds[tableName]; crud != nil {
+			return crud.TableInfo().Metering
+		}
+		return nil
 	}
 	if strings.HasPrefix(path, "/action/") {
 		parts := strings.SplitN(strings.TrimPrefix(path, "/action/"), "/", 2)
 		if len(parts) != 2 {
-			return false
+			return nil
 		}
-		crud := cruds[parts[0]]
-		if crud == nil {
-			return false
+		if crud := cruds[parts[0]]; crud != nil {
+			return resource.MeteringConfigForAction(crud.TableInfo().Metering, parts[1])
 		}
-		config := resource.MeteringConfigForAction(crud.TableInfo().Metering, parts[1])
-		return config != nil && config.Enabled
+		return nil
 	}
 	if strings.HasPrefix(path, "/integration/") {
-		crud := cruds["integration"]
-		if crud == nil {
-			return false
+		if crud := cruds["integration"]; crud != nil {
+			return resource.MeteringConfigForAction(crud.TableInfo().Metering, strings.TrimPrefix(path, "/integration/"))
 		}
-		config := resource.MeteringConfigForAction(crud.TableInfo().Metering, strings.TrimPrefix(path, "/integration/"))
-		return config != nil && config.Enabled
 	}
-	return false
+	return nil
 }

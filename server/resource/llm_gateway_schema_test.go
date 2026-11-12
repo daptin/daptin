@@ -42,6 +42,7 @@ func TestLLMGatewayUsesCanonicalResourcesAndRelations(t *testing.T) {
 		"llm_provider|has_one|credential|credential_id":          false,
 		"llm_deployment|belongs_to|llm_model|llm_model_id":       false,
 		"llm_deployment|belongs_to|llm_provider|llm_provider_id": false,
+		"api_usage|has_one|api_usage|parent_usage_id":            false,
 		"llm_file|belongs_to|document|document_id":               false,
 		"llm_batch|belongs_to|llm_file|input_file_id":            false,
 		"llm_batch|has_one|llm_file|output_file_id":              false,
@@ -96,6 +97,12 @@ func TestLLMGatewayRelationsUseDaptinOwnershipAndRequiredForeignKeys(t *testing.
 		if !owner.IsForeignKey || owner.ForeignKeyData.Namespace != "user_account" {
 			t.Fatalf("%s ownership was not supplied by CheckRelations: %#v", tableName, owner)
 		}
+	}
+
+	response := tableFromConfig(t, &config, "api_usage")
+	previous := columnFromTable(t, response, "parent_usage_id")
+	if !previous.IsForeignKey || !previous.IsNullable || previous.ForeignKeyData.Namespace != "api_usage" {
+		t.Fatalf("response history parent must be an optional resource relation: %#v", previous)
 	}
 
 	file := tableFromConfig(t, &config, "llm_file")

@@ -119,6 +119,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("llm_deployment", "belongs_to", "llm_model"),
 	api2go.NewTableRelation("llm_deployment", "belongs_to", "llm_provider"),
 	api2go.NewTableRelation("llm_file", "belongs_to", "document"),
+	api2go.NewTableRelationWithNames("api_usage", "child_usage_id", "has_one", "api_usage", "parent_usage_id"),
 	api2go.NewTableRelationWithNames("llm_batch", "input_batch_id", "belongs_to", "llm_file", "input_file_id"),
 	api2go.NewTableRelationWithNames("llm_batch", "output_batch_id", "has_one", "llm_file", "output_file_id"),
 	api2go.NewTableRelation("llm_batch_item", "belongs_to", "llm_batch"),
@@ -3685,7 +3686,7 @@ var StandardTables = []table_info.TableInfo{
 		DefaultGroups: adminsGroup,
 		IsHidden:      false,
 		Metering: &table_info.MeteringConfig{OnActions: map[string]table_info.MeteringConfig{
-			"invoke": {Enabled: true, CostExpr: "1", MeterType: "requests"},
+			"invoke": {Enabled: true, CostExpr: "1", MeterType: "requests", Capture: &table_info.PayloadCaptureConfig{Enabled: true, MaxBytes: 16 << 20}},
 		}},
 		Columns: []api2go.ColumnInfo{
 			{Name: "name", ColumnName: "name", ColumnType: "label", DataType: "varchar(200)", IsUnique: true, IsIndexed: true,
@@ -3816,7 +3817,8 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "api_usage",
+		TableName:  "api_usage",
+		Permission: auth.GuestPeek | auth.GuestRead, DefaultPermission: auth.UserCRUD,
 		Icon:          "fa-chart-line",
 		DefaultGroups: adminsGroup,
 		IsHidden:      false,

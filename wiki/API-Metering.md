@@ -18,25 +18,33 @@ For maintainer internals, see [[API-Metering-Technical-KT]].
 |---|---|
 | `api_plan` | A named plan, its JSON `limits`, and its retirement timestamp |
 | `api_member` | A user's active membership and optional billing period |
-| `api_usage` | One held, completed, cancelled, or expired request reservation |
+| `api_usage` | One operation capture and/or held, completed, cancelled, or expired reservation |
 | `api_quota` | Durable reserved and consumed totals for one metric/window bucket |
 
 Each `api_usage` record identifies the metered operation and account, its
 progress and result, the quantities consumed, and request and response payloads
-in `request_body` and `response_body`. Payload capture retains at most 64 KiB
-of each body. The `request_bytes` and `response_bytes` fields count the full
+in `request_body` and `response_body`. Payload capture defaults to 64 KiB of each body when metering is enabled. An explicit backend `capture` policy controls recording independently of quota enforcement and can retain up to 16 MiB per body. The `request_bytes` and `response_bytes` fields count the full
 operation payload, and `metadata.request_body_truncated` or
 `metadata.response_body_truncated` is true when a captured body was shortened.
 An empty request body is stored as an empty string. For scheduled actions and
 other calls without an HTTP client, Daptin stores the action inputs and
-results. LLM HTTP calls and direct action and batch invocations store their
-invocation data and results.
+results. LLM HTTP calls, direct action calls, and batch invocations record the same canonical gateway request and result. Streams record their final response snapshot or a bounded sequence of canonical events. These are logical payloads rather than a copy of SSE framing.
 
 `request_body_encoding` and `response_body_encoding` are `utf8` for text or
 `base64` when the payload contains non-UTF-8 bytes. Decode base64 values to
 recover the retained bytes. These fields store bodies, not authorization headers
 or the complete HTTP exchange. Access to `api_usage` follows its ordinary
 resource permissions; payloads may contain user-supplied sensitive data.
+
+Capture without quota enforcement can be configured in a resource’s backend metering configuration:
+
+```json
+{"metering":{"enabled":false,"capture":{"enabled":true,"max_bytes":16777216}}}
+```
+
+`enabled` controls plan admission, quota reservation, consumption, and post-metering billing actions. `capture.enabled` controls payload recording. Set it to false to keep metering facts without body retention. Action overrides inherit the parent capture policy unless explicitly configured. Capture-only operations still complete or cancel the same usage row, with no plan or quota reservation. The capture bound is persisted at admission so later configuration changes cannot enlarge an in-flight capture.
+
+Usage rows are private to their owner by default; administrators manage the ledger. Ordinary API clients cannot create or alter usage facts. Persisted row/group permissions govern reading and sharing. The Responses adapter retains an existing usage capture and links continuations through the optional `parent_usage_id` resource relationship. Deleting retained history clears payloads without deleting accounting facts; see [[LLM-Providers#stored-responses-and-conversation-history]]. Existing usage records retain their configured row permissions; review them before enabling history on an existing installation.
 
 `api_plan.archived_at` is the canonical retirement state for sales workflows.
 Set it to a timestamp to retire a plan and to `null` to restore it. Archival does

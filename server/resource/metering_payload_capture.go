@@ -15,6 +15,7 @@ type meteringPayloadCaptureKey struct{}
 // MeteringPayloadCapture carries the original HTTP body to metering and the
 // admitted reservation back to the HTTP response boundary.
 type MeteringPayloadCapture struct {
+	limit        int
 	requestBody  bytes.Buffer
 	requestBytes int
 	mu           sync.Mutex
@@ -30,8 +31,8 @@ type MeteringPayloadReservation struct {
 	Owner *auth.SessionUser
 }
 
-func NewMeteringPayloadCapture(request *http.Request) (*http.Request, *MeteringPayloadCapture) {
-	capture := &MeteringPayloadCapture{}
+func NewMeteringPayloadCapture(request *http.Request, limit int) (*http.Request, *MeteringPayloadCapture) {
+	capture := &MeteringPayloadCapture{limit: max(0, min(limit, 16<<20))}
 	if request.Body != nil {
 		request.Body = struct {
 			io.Reader
@@ -43,7 +44,7 @@ func NewMeteringPayloadCapture(request *http.Request) (*http.Request, *MeteringP
 
 func (capture *MeteringPayloadCapture) Write(value []byte) (int, error) {
 	capture.requestBytes += len(value)
-	if remaining := MeteringPayloadBodyLimit - capture.requestBody.Len(); remaining > 0 {
+	if remaining := capture.limit - capture.requestBody.Len(); remaining > 0 {
 		capture.requestBody.Write(value[:min(len(value), remaining)])
 	}
 	return len(value), nil
@@ -94,3 +95,5 @@ func (capture *MeteringPayloadCapture) register(decision *MeteringDecision, owne
 	}
 	capture.reservations = append(capture.reservations, MeteringPayloadReservation{Token: decision.ReservationToken, Owner: owner})
 }
+
+func (capture *MeteringPayloadCapture) BodyLimit() int { return capture.limit }
