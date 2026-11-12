@@ -267,5 +267,5 @@ func (daptinTelemetry) Record(_ context.Context, event gateway.TelemetryEvent) {
 
 // Reconciliation recovers missed resource events without synchronizing every node.
 func catalogReconcileDelay() time.Duration {
-	return 54*time.Second + time.Duration(rand.Int64N(int64(12*time.Second)))
+	return 27*time.Second + time.Duration(rand.Int64N(int64(6*time.Second)))
 }
