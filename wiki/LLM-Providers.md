@@ -20,8 +20,12 @@ Configuration uses ordinary Daptin resources and relationships:
   metering for LLM and non-LLM workloads.
 
 There is no comma-separated provider model list and no provider-specific usage
-ledger. Catalog changes are reloaded after resource events, with periodic
-fingerprint polling as recovery; a server restart is not required.
+ledger. Catalog changes trigger debounced reloads through resource events. As recovery
+for missed events, each instance reconciles roughly once per minute, with jitter
+(54–66 seconds). Unchanged checks read only active resource IDs and versions,
+plus versions of referenced credentials. The full catalog reloads only when
+those change. A missed event can delay a configuration change until the next
+reconciliation; a server restart is not required.
 
 ## Supported provider adapters
 

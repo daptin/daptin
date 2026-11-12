@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"sort"
 	"sync"
@@ -84,12 +85,12 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 	if err != nil {
 		return nil, err
 	}
-	if err := engine.Reload(ctx); err != nil {
-		return nil, fmt.Errorf("load LLM gateway catalog: %w", err)
-	}
 	gatewayHost := &Gateway{engine: engine, handler: handler, metering: metering, batchProcessor: &daptinBatchProcessor{
 		cruds: cruds, files: files, batches: daptinBatches{cruds: cruds, files: files}, handler: handler, coordination: coordination,
 	}}
+	if err := gatewayHost.Reload(ctx); err != nil {
+		return nil, fmt.Errorf("load LLM gateway catalog: %w", err)
+	}
 	gatewayHost.startMaintenance(ctx, cruds["world"].PubSub)
 	return gatewayHost, nil
 }
@@ -117,7 +118,13 @@ func (gatewayHost *Gateway) Invoke(ctx context.Context, user *auth.SessionUser, 
 }
 
 func (gatewayHost *Gateway) Reload(ctx context.Context) error {
-	return gatewayHost.engine.Reload(ctx)
+	err := gatewayHost.engine.Reload(ctx)
+	if err == nil {
+		log.WithField("revision", gatewayHost.engine.Status().Revision).Info("[llm] applied catalog")
+	} else if errors.Is(err, catalog.ErrStaleRevision) {
+		log.Debug("[llm] catalog unchanged")
+	}
+	return err
 }
 
 func (gatewayHost *Gateway) Status() gateway.Status {
@@ -165,7 +172,7 @@ func (gatewayHost *Gateway) startMaintenance(parent context.Context, pubsub *olr
 	}
 	go func() {
 		defer close(gatewayHost.maintenanceDone)
-		poll := time.NewTicker(3 * time.Second)
+		poll := time.NewTimer(catalogReconcileDelay())
 		defer poll.Stop()
 		health := time.NewTicker(time.Second)
 		defer health.Stop()
@@ -207,6 +214,7 @@ func (gatewayHost *Gateway) startMaintenance(parent context.Context, pubsub *olr
 				reload()
 			case <-poll.C:
 				reload()
+				poll.Reset(catalogReconcileDelay())
 			case <-health.C:
 				if probeActive {
 					continue
@@ -255,4 +263,9 @@ func (daptinTelemetry) Record(_ context.Context, event gateway.TelemetryEvent) {
 		fields[key] = value
 	}
 	log.WithFields(fields).Debug("LLM gateway event")
+}
+
+// Reconciliation recovers missed resource events without synchronizing every node.
+func catalogReconcileDelay() time.Duration {
+	return 54*time.Second + time.Duration(rand.Int64N(int64(12*time.Second)))
 }

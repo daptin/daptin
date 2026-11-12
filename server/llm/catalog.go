@@ -1,7 +1,6 @@
 package llm
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -20,13 +19,16 @@ import (
 )
 
 type daptinCatalog struct {
-	cruds       map[string]*resource.DbResource
-	mu          sync.Mutex
-	revision    uint64
-	fingerprint [sha256.Size]byte
+	cruds                map[string]*resource.DbResource
+	mu                   sync.Mutex
+	revision             uint64
+	fingerprint          [sha256.Size]byte
+	credentialReferences []string
 }
 
 func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Document, error) {
+	source.mu.Lock()
+	defer source.mu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return catalog.Document{}, err
 	}
@@ -35,6 +37,25 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 		return catalog.Document{}, fmt.Errorf("begin LLM catalog read: %w", err)
 	}
 	defer transaction.Rollback()
+
+	// Only skip a reload when this revision was actually accepted by the engine.
+	// Rejected candidates must remain retryable even if resource versions stay unchanged.
+	if source.revision != 0 && source.revision == after {
+		versions, err := source.readVersions(ctx, transaction)
+		if err != nil {
+			return catalog.Document{}, err
+		}
+		fingerprint, err := versions.fingerprint()
+		if err != nil {
+			return catalog.Document{}, err
+		}
+		if source.fingerprint == fingerprint {
+			if err := transaction.Commit(); err != nil {
+				return catalog.Document{}, err
+			}
+			return catalog.Document{}, catalog.ErrStaleRevision
+		}
+	}
 
 	providers, err := source.cruds["llm_provider"].GetActiveLLMProviders(transaction)
 	if err != nil {
@@ -184,44 +205,35 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 	sort.Slice(document.Providers, func(i, j int) bool { return document.Providers[i].ID < document.Providers[j].ID })
 	sort.Slice(document.Models, func(i, j int) bool { return document.Models[i].ID < document.Models[j].ID })
 	sort.Slice(document.Deployments, func(i, j int) bool { return document.Deployments[i].ID < document.Deployments[j].ID })
-	type credentialVersion struct {
-		Reference string `json:"reference"`
-		Version   int64  `json:"version"`
+	references := make([]string, 0, len(credentialReferences))
+	for reference := range credentialReferences {
+		references = append(references, reference)
 	}
-	credentialVersions := make([]credentialVersion, 0, len(credentialReferences))
-	if len(credentialReferences) > 0 {
-		storedReferences := make([]interface{}, 0, len(credentialReferences))
-		for reference := range credentialReferences {
-			referenceID := daptinid.InterfaceToDIR(reference)
-			storedReferences = append(storedReferences, referenceID[:])
-		}
-		credentialRows, _, lookupErr := source.cruds["credential"].GetRowsByWhereClauseWithTransaction(
-			"credential", nil, transaction, goqu.Ex{"reference_id": storedReferences},
-		)
-		if lookupErr != nil {
-			return catalog.Document{}, fmt.Errorf("load LLM credential versions: %w", lookupErr)
-		}
-		if len(credentialRows) != len(credentialReferences) {
-			return catalog.Document{}, errors.New("one or more LLM credential versions are unresolved")
-		}
-		for _, row := range credentialRows {
-			reference := daptinid.InterfaceToDIR(row["reference_id"]).String()
-			version, conversionErr := resource.ResourceRowInt64(row["version"])
-			if conversionErr != nil {
-				return catalog.Document{}, fmt.Errorf("decode LLM credential %s version: %w", reference, conversionErr)
-			}
-			credentialVersions = append(credentialVersions, credentialVersion{Reference: reference, Version: version})
-		}
-		sort.Slice(credentialVersions, func(i, j int) bool { return credentialVersions[i].Reference < credentialVersions[j].Reference })
-	}
-	payload, err := json.Marshal(struct {
-		Catalog            catalog.Document    `json:"catalog"`
-		CredentialVersions []credentialVersion `json:"credential_versions"`
-	}{Catalog: document, CredentialVersions: credentialVersions})
+	credentialVersions, err := readCatalogCredentialVersions(ctx, transaction, references)
 	if err != nil {
-		return catalog.Document{}, fmt.Errorf("fingerprint LLM catalog: %w", err)
+		return catalog.Document{}, err
 	}
-	fingerprint := sha256.Sum256(payload)
+	if len(credentialVersions) != len(references) {
+		return catalog.Document{}, errors.New("one or more LLM credential versions are unresolved")
+	}
+	// Seed the fingerprint from the rows used to build this document. Reading a
+	// newer stamp afterward could hide a concurrent edit that this load did not see.
+	versions := catalogVersions{Credentials: credentialVersions}
+	for _, provider := range providers {
+		versions.Providers = append(versions.Providers, catalogRecordVersion{Reference: provider.ReferenceId.String(), Version: int64(provider.Version)})
+	}
+	versions.Models, err = catalogVersionsFromRows("llm_model", modelRows)
+	if err != nil {
+		return catalog.Document{}, err
+	}
+	versions.Deployments, err = catalogVersionsFromRows("llm_deployment", deploymentRows)
+	if err != nil {
+		return catalog.Document{}, err
+	}
+	fingerprint, err := versions.fingerprint()
+	if err != nil {
+		return catalog.Document{}, err
+	}
 
 	if err := transaction.Commit(); err != nil {
 		return catalog.Document{}, fmt.Errorf("commit LLM catalog read: %w", err)
@@ -230,17 +242,13 @@ func (source *daptinCatalog) Load(ctx context.Context, after uint64) (catalog.Do
 		return catalog.Document{}, err
 	}
 
-	source.mu.Lock()
-	defer source.mu.Unlock()
-	if source.revision != 0 && bytes.Equal(source.fingerprint[:], fingerprint[:]) {
-		return catalog.Document{}, catalog.ErrStaleRevision
-	}
 	if source.revision <= after {
 		source.revision = after + 1
 	} else {
 		source.revision++
 	}
 	source.fingerprint = fingerprint
+	source.credentialReferences = references
 	document.Revision = source.revision
 	document.GeneratedAt = time.Now().UTC()
 	return document, nil

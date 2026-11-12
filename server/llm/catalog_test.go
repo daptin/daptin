@@ -32,7 +32,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) {
+func TestDaptinCatalogUsesCanonicalResourcesAndVersionFingerprint(t *testing.T) {
 	database, cruds, olricClient, userReference := newCatalogTestResources(t)
 	credentialReference := daptinid.DaptinReferenceId(uuid.New())
 	providerReference := daptinid.DaptinReferenceId(uuid.New())
@@ -195,6 +195,9 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		if rejectedStatus.Revision != initialStatus.Revision || !rejectedStatus.Ready || !rejectedStatus.Degraded ||
 			rejectedStatus.ReloadStage != "validate" {
 			t.Fatalf("gateway host %d replaced or disabled its active snapshot after a rejected catalog: %#v", index+1, rejectedStatus)
+		}
+		if err := host.Reload(context.Background()); err == nil || errors.Is(err, catalog.ErrStaleRevision) {
+			t.Fatalf("rejected candidate was not retried: %v", err)
 		}
 	}
 
