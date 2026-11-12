@@ -907,7 +907,7 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 			GroupReferenceId:    refId,
 			ObjectReferenceId:   refId,
 			RelationReferenceId: refId,
-			Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].model.GetDefaultPermission()),
+			Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].defaultPermission()),
 		})
 		return s
 	}
@@ -1295,6 +1295,64 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 	return true
 }
 
+// CommitBecomeAdmin commits the become-admin transaction and refreshes live
+// models only after that commit succeeds. A failed commit leaves the models
+// on their pre-admin defaults.
+func CommitBecomeAdmin(transaction *sqlx.Tx, cruds map[string]*DbResource) error {
+	if err := transaction.Commit(); err != nil {
+		return err
+	}
+	ApplyBecomeAdminLiveDefaults(cruds)
+	return nil
+}
+
+// ApplyBecomeAdminLiveDefaults copies the committed become-admin permission
+// transition onto the DbResource values this process already built. Inserts,
+// relation rows, and JSON responses read the atomically published defaults.
+func ApplyBecomeAdminLiveDefaults(cruds map[string]*DbResource) {
+	for name, crud := range cruds {
+		if crud == nil || crud.tableInfo == nil {
+			continue
+		}
+		tableName := crud.model.GetName()
+		if tableName == "" {
+			tableName = name
+		}
+		if tableName == "" {
+			tableName = crud.tableInfo.TableName
+		}
+
+		table := *crud.TableInfo()
+		table.DefaultPermission = becomeAdminLiveDefaultPermission(tableName, table.DefaultPermission)
+		if table.Permission == auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN {
+			if strings.HasSuffix(tableName, "_audit") {
+				table.Permission = AuditTablePermission
+			} else {
+				table.Permission = auth.DEFAULT_PERMISSION
+			}
+		}
+		crud.liveTableInfo.Store(&table)
+		log.Debugf("BecomeAdmin live default transition table=%s default_permission=%d permission=%d",
+			tableName, table.DefaultPermission, table.Permission)
+		InvalidateObjectPermissionWhereCache("world", "table_name", tableName)
+	}
+
+	for _, actionName := range []string{"signup", "signin"} {
+		InvalidateActionCache(USER_ACCOUNT_TABLE_NAME, actionName)
+		InvalidateObjectPermissionWhereCache("action", "action_name", actionName)
+	}
+}
+
+func becomeAdminLiveDefaultPermission(tableName string, current auth.AuthPermission) auth.AuthPermission {
+	if current != 0 && current != auth.DEFAULT_PERMISSION_WHEN_NO_ADMIN {
+		return current
+	}
+	if strings.HasSuffix(tableName, "_audit") {
+		return AuditRowDefaultPermission
+	}
+	return auth.DEFAULT_PERMISSION
+}
+
 func becomeAdminTransitionActionPermissions(transaction *sqlx.Tx) error {
 	postBootstrapPermission := auth.UserRead | auth.UserExecute | auth.GroupCRUD | auth.GroupExecute | auth.GroupRefer
 	query, args, err := statementbuilder.Squirrel.Update("action").Prepared(true).
@@ -1551,7 +1609,7 @@ func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, trans
 				GroupReferenceId:    originalGroupIdStr,
 				ObjectReferenceId:   refId,
 				RelationReferenceId: refId,
-				Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].model.GetDefaultPermission()),
+				Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].defaultPermission()),
 			},
 		}
 	} else if loc > -1 {
@@ -2464,7 +2522,7 @@ func (dbResource *DbResource) DirectInsert(typeName string, data map[string]inte
 		}
 
 		if columnName == "permission" {
-			value = dbResource.tableInfo.DefaultPermission
+			value = dbResource.TableInfo().DefaultPermission
 		}
 
 		cols = append(cols, columnName)
@@ -2481,7 +2539,7 @@ func (dbResource *DbResource) DirectInsert(typeName string, data map[string]inte
 	}
 	if _, ok := data["permission"]; !ok {
 		cols = append(cols, "permission")
-		vals = append(vals, dbResource.tableInfo.DefaultPermission)
+		vals = append(vals, dbResource.TableInfo().DefaultPermission)
 	}
 
 	sqlString, args, err := statementbuilder.Squirrel.Insert(typeName).Prepared(true).Cols(cols...).Vals(vals).ToSQL()

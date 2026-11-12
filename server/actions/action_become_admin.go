@@ -36,8 +36,11 @@ func (d *becomeAdminActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	var actionResponse actionresponse.ActionResponse
 	if d.cruds["world"].BecomeAdmin(user["id"].(int64), transaction) {
-		commitError := transaction.Commit()
-		resource.CheckErr(commitError, "failed to rollback")
+		commitError := resource.CommitBecomeAdmin(transaction, d.cruds)
+		if commitError != nil {
+			resource.CheckErr(commitError, "failed to commit")
+			return nil, nil, []error{commitError}
+		}
 		responseAttrs["location"] = "/"
 		responseAttrs["window"] = "self"
 		responseAttrs["delay"] = 7000
