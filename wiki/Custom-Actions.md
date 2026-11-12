@@ -366,6 +366,20 @@ Registered handlers that perform operations.
 
 **Tested ✓** - Make HTTP requests to external APIs.
 
+`$network.request` is a performer used by an action's `OutFields`. Registering
+the performer does not create an action endpoint. Call `/action/<OnType>/<Name>`
+for a configured action; Daptin checks execute permission on the table, action,
+and any subject record before running its outcomes.
+
+The backend action definition selects the URL, method, headers, and other
+request attributes. Extra caller fields do not override those attributes unless
+the definition explicitly references them. Keep destinations and credentials in
+the backend definition, and validate any inputs used to construct a destination.
+The performer can reach internal services and follows HTTP redirects; an action
+that accepts arbitrary URLs grants that network capability to its callers.
+Restrict execution and constrain destinations according to the integration's
+requirements.
+
 ```yaml
 OutFields:
   - Type: $network.request
