@@ -667,7 +667,11 @@ func main() {
 	gate.SetReady(true)
 	log.Infof("Listening at: [%v]", portValue)
 	var lifecycleErr error
+	restarting := false
 	select {
+	case <-runtimeInstance.RestartRequests:
+		restarting = true
+		log.Info("Administrator setup committed; restarting Daptin")
 	case <-processCtx.Done():
 		log.Infof("Shutdown signal received")
 	case lifecycleErr = <-serveErrors:
@@ -676,7 +680,9 @@ func main() {
 		log.Errorf("Runtime service stopped unexpectedly: %v", lifecycleErr)
 	}
 	gate.SetReady(false)
-	stopSignals()
+	if !restarting {
+		stopSignals()
+	}
 
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), *shutdownTimeout)
 	defer cancelShutdown()
@@ -718,6 +724,12 @@ func main() {
 	if lifecycleErr != nil {
 		log.Errorf("Shutdown failed: %v", lifecycleErr)
 		os.Exit(1)
+	}
+	if restarting && processCtx.Err() == nil {
+		if err := restartProcess(); err != nil {
+			log.Errorf("Failed to restart Daptin: %v", err)
+			os.Exit(1)
+		}
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
 	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
 	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager, integrationRuntimeInstanceID string,
-	llmGateway *llm.Gateway) []actionresponse.ActionPerformerInterface {
+	llmGateway *llm.Gateway, requestRestart func()) []actionresponse.ActionPerformerInterface {
 	log.Tracef("GetActionPerformers")
 	transaction, err := cruds["world"].Connection().Beginx()
 	resource.CheckErr(err, "Failed to begin transaction [14]")
@@ -38,7 +38,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	performers = append(performers, resource.NewITIPDeliveryStatusAction(cruds))
 	performers = append(performers, resource.NewITIPReconcileDeliveryAction(cruds))
 
-	becomeAdminPerformer, err := actions.NewBecomeAdminPerformer(initConfig, cruds)
+	becomeAdminPerformer, err := actions.NewBecomeAdminPerformer(initConfig, cruds, requestRestart)
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 

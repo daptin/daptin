@@ -19,6 +19,9 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 3. Locks down all tables (admin-only access by default)
 4. Disables action for future use
 
+Daptin restarts automatically after the claim; see [[First-Admin-Setup]] for
+the response and readiness procedure.
+
 **Response:**
 ```json
 [
@@ -28,8 +31,8 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 
 ## Restarting Daptin
 
-Process restarts are managed by Kubernetes, Docker, systemd, or another process
-supervisor rather than an administrative HTTP action.
+Configuration and maintenance restarts are managed by Kubernetes, Docker,
+systemd, or another process supervisor rather than a standalone restart action.
 
 **Use cases:**
 - Apply schema changes

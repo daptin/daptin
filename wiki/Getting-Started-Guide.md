@@ -81,10 +81,11 @@ curl --fail-with-body -sS \
   --data '{}'
 ```
 
-This action is intentionally available only for the first administrator. Its
-response contains a historical `Restart` response item, but the process does
-not restart itself. Use the process supervisor when a restart is actually
-required. Explicitly lock and test public signup with the procedure in
+This action is intentionally available only for the first administrator. After
+the claim commits, Daptin automatically drains and restarts to initialize
+administrator-owned services and system tasks. Wait until `/ready` returns HTTP
+200 before making further requests. No manual process or container restart is
+needed. Explicitly lock and test public signup with the procedure in
 [[First-Admin-Setup]]; do not infer the security result from the action's HTTP
 status.
 

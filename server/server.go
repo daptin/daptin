@@ -581,7 +581,14 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}()
 
 	integrationRuntimeInstanceID := uuid.NewString()
-	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID, llmGateway)
+	restartRequests := make(chan struct{}, 1)
+	requestRestart := func() {
+		select {
+		case restartRequests <- struct{}{}:
+		default:
+		}
+	}
+	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID, llmGateway, requestRestart)
 	initConfig.ActionPerformers = actionPerformers
 	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -747,6 +754,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	rateLimitClientTransferred = true
 	return &Runtime{
 		Handler:                 &hostSwitch,
+		RestartRequests:         restartRequests,
 		ConfigStore:             configStore,
 		CertificateManager:      certificateManager,
 		mailDaemon:              mailDaemon,

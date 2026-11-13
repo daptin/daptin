@@ -90,3 +90,22 @@ DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
 This SMTP test is opt-in and never uses a live installation or external
 recipient. Successful compilation or an ordinary skipped run is not SMTP
 acceptance. Results are recorded in the canonical Office Mail plan.
+
+## Administrator restart in Docker
+
+Build the candidate Linux binary and package it with the repository's production
+`Dockerfile`. Point the opt-in tests at that local image:
+
+```bash
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_DOCKER_IMAGE=daptin/admin-restart-test:local \
+  go test ./cmd/daptin -run '^TestAdminRestartDocker' -count=1 -v
+```
+
+These tests create uniquely named disposable containers, volumes, and networks.
+They exercise the non-root production entrypoint as PID 1 with Docker restart
+disabled, an init process with a read-only root filesystem, SQLite, PostgreSQL
+17, and MariaDB 10.11. They verify readiness transitions, unchanged container
+PID/start time, preserved authentication, administrator-owned system tasks,
+no duplicate tasks after a persisted restart, an accepted request draining
+before replacement, and SIGTERM canceling a pending restart. Existing containers
+are not used. The database images must be available to Docker.

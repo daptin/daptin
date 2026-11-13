@@ -227,7 +227,32 @@ func transportE2ESignupSigninAdmin(t testing.TB, client *http.Client, baseURL st
 	}
 
 	transportE2EPostJSON(t, client, baseURL+"/action/world/become_an_administrator", token, map[string]interface{}{})
+	waitForAdminRestart(t, client, baseURL)
 	return token
+}
+
+// Claiming the administrator drains and replaces the process. Observe both
+// readiness transitions so subsequent tests cannot accidentally use bootstrap state.
+func waitForAdminRestart(t testing.TB, client *http.Client, baseURL string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Minute)
+	sawDraining := false
+	for time.Now().Before(deadline) {
+		response, err := client.Get(baseURL + "/ready")
+		if err != nil {
+			sawDraining = true
+		} else {
+			_, _ = io.Copy(io.Discard, response.Body)
+			response.Body.Close()
+			if response.StatusCode != http.StatusOK {
+				sawDraining = true
+			} else if sawDraining {
+				return
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatalf("Daptin did not drain and become ready after administrator claim (observed drain: %v)", sawDraining)
 }
 
 func transportE2EPostJSON(t testing.TB, client *http.Client, url string, token string, payload interface{}) interface{} {

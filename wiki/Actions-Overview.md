@@ -169,9 +169,10 @@ See [[Authentication|Authentication]] for OAuth setup.
 | `download_system_schema` | world | Export full schema as JSON |
 | `upload_csv_to_system_schema` | world | Create/update tables from CSV |
 
-Runtime configuration uses the administrator-only `/_config` API. Process
-restarts are owned by the process supervisor; neither operation is exposed as
-a world action.
+Runtime configuration uses the administrator-only `/_config` API. Configuration
+and maintenance restarts use the process supervisor; there is no standalone
+restart action. The first administrator claim restarts automatically; see
+[[First-Admin-Setup]].
 
 **Example: Export Schema**
 ```bash
