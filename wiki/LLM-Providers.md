@@ -295,6 +295,23 @@ Chat Completions can be used as a Daptin `previous_response_id`. To continue a
 Chat conversation, send the earlier messages in the next `messages` array.
 For Daptin-owned history, use [Stored Responses](#stored-responses-and-conversation-history).
 
+Before granting anyone access, verify that the configured model rejects guest
+requests:
+
+```bash
+curl http://localhost:6336/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"assistant","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+Expect HTTP 403. Repeat with `-H 'Authorization: Bearer ooga'`; a made-up token
+must not give access to this restricted model either. On `v0.13.46`, an invalid
+bearer token can be evaluated as a guest, so an open model can still answer it.
+That does not mean the token authenticated successfully. If either request
+succeeds, verify that the separate permission PATCH in step 2 was applied and
+inspect any existing group grants. The model creation POST alone does not apply
+the administrator-only policy.
+
 <a id="grant-a-usergroup-permission-to-invoke-the-model"></a>
 
 ### 5. Allow an application user to invoke the model
