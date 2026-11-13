@@ -119,213 +119,565 @@ model name to one already pulled by Ollama.
 
 ```bash
 curl http://localhost:6336/v1/chat/completions \
-  -H "Authorization: Bearer $TOKEN" \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
   -H 'Content-Type: application/json' \
-  --data-binary '{"model":"assistant","messages":[{"role":"user","content":"Reply briefly"}],"max_tokens":32,"stream":false}' | jq '.usage'
+  --data-binary '{"model":"assistant","messages":[{"role":"user","content":"Reply briefly"}],"max_tokens":32,"stream":false}'
 ```
 
 ## Configure the gateway
 
-The examples use JSON:API resource reference IDs. Keep provider secrets out of
-shell history and source control; the inline value below is only a placeholder.
+Start with a running Daptin instance and a signed-in administrator. For Docker,
+persistent storage, account creation, and claiming the first administrator, follow
+[[Getting-Started-Guide]] and [[Installation]]. The examples below work with
+`v0.13.46` and later and use `http://localhost:6336`.
+
+Use ordinary `curl` commands below. Replace `YOUR_DAPTIN_TOKEN` with the
+administrator's Daptin JWT. Copy each creation response's `data.id` into the
+next command's ID placeholder; these are Daptin reference IDs. Your provider
+API key is used only when creating the credential.
+
+The walkthrough creates one public model, `assistant`, with GPT-4o mini as its
+primary upstream and Gemini 2.5 Flash as its backup, both through OpenRouter.
+Daptin chooses the deployment; your application always requests `assistant`.
+
+| Resource | Purpose in this walkthrough |
+|---|---|
+| `llm_provider` | The OpenRouter account and its credential |
+| `llm_model` | The public name `assistant`, allowed operations, capabilities, and execute permission |
+| `llm_deployment` | One route from `assistant` to a particular upstream model, with priority and operational limits |
 
 ### 1. Create and link a credential
 
 ```bash
-curl -X POST http://localhost:6336/api/credential \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
+curl http://localhost:6336/api/credential \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
   -d '{
     "data": {
       "type": "credential",
       "attributes": {
-        "name": "gateway-provider-key",
-        "content": "{\"api_key\":\"provider-secret\"}"
+        "name": "openrouter-key",
+        "content": "{\"api_key\":\"YOUR_OPENROUTER_KEY\"}"
       }
     }
   }'
 ```
 
+Copy `data.id` as `CREDENTIAL_ID`. `content` contains a JSON string, so the
+escaped quotes in that one field are required.
+
 ```bash
-curl -X POST http://localhost:6336/api/llm_provider \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
+curl http://localhost:6336/api/llm_provider \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
   -d '{
     "data": {
       "type": "llm_provider",
       "attributes": {
-        "name": "primary-openai",
-        "provider_type": "openai",
+        "name": "openrouter",
+        "provider_type": "openrouter",
+        "credential_id": "CREDENTIAL_ID",
         "provider_parameters": "{}",
         "enable": true
-      },
-      "relationships": {
-        "credential_id": {
-          "data": {"type": "credential", "id": "CREDENTIAL_REFERENCE_ID"}
-        }
       }
     }
   }'
 ```
 
-### 2. Create a public model
+Copy `data.id` as `PROVIDER_ID`. **Include `provider_parameters`: use `"{}"`
+when no provider-specific settings are needed.** Omitting this required field
+causes a 422 response on `v0.13.46`.
 
-Operations are `chat`, `text_completion`, `responses`, `response_compaction`,
-`embeddings`, `image_generation`, `image_edit`, `image_variation`, `moderation`, `rerank`, `audio_speech`,
-`audio_transcription`, `audio_translation`, `search`, and `ocr`. Capabilities
-are explicit and may include `tools`, `vision`, `audio`, `files`,
-`json_schema`, `logprobs`, `penalties`, `parallel_tools`, `reasoning`,
-`dimensions`, `token_ids`, `exact_cache`, and `public_cache`.
+### 2. Create the public model and choose its access policy
 
 ```bash
-curl -X POST http://localhost:6336/api/llm_model \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
+curl http://localhost:6336/api/llm_model \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
   -d '{
     "data": {
       "type": "llm_model",
       "attributes": {
         "name": "assistant",
         "operations": "[\"chat\",\"responses\"]",
-        "capabilities": "{\"tools\":true,\"vision\":true,\"json_schema\":true}",
+        "capabilities": "{}",
         "routing_strategy": "priority_weighted",
-        "fallback_models": "[]",
-        "default_parameters": "{\"chat\":{\"max_completion_tokens\":512}}",
-        "unsupported_parameter_policy": "reject",
         "enable": true
       }
     }
   }'
 ```
 
-### Grant a usergroup permission to invoke the model
-
-Model invocation uses the ordinary Daptin execute permission system. A user may
-invoke a model when the active user belongs to a group related to the
-`llm_model` row and that relation grants `GroupExecute`. The wrapper action that
-contains `$llm.chat` has its own independent execute permission.
-
-First make the model group-only and create the access group:
+Copy `data.id` as `MODEL_ID`. Clients send `"model": "assistant"`, not this ID
+or the upstream model name. **Apply the access policy with a separate PATCH before
+creating any deployment:**
 
 ```bash
-curl -X PATCH "http://localhost:6336/api/llm_model/$MODEL_REFERENCE_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{"data":{"type":"llm_model","id":"'$MODEL_REFERENCE_ID'","attributes":{"permission":0}}}'
-
-GROUP_REFERENCE_ID=$(curl -s -X POST http://localhost:6336/api/usergroup \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{"data":{"type":"usergroup","attributes":{"name":"llm-assistant-users"}}}' | jq -r '.data.id')
+curl -X PATCH http://localhost:6336/api/llm_model/MODEL_ID \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{"data":{"type":"llm_model","id":"MODEL_ID","attributes":{"permission":0}}}'
 ```
 
-Relate the user and model to that group through their normal Daptin relationship
-resources:
+Resource creation uses the table's default record permission. Supplying
+`"permission": 0` in the POST does not override that default on `v0.13.46`.
+The PATCH is the step that applies the restriction; check its response's
+`data.attributes.permission` is `0`.
+
+**After this PATCH, invocation is restricted to administrators.** `permission: 0`
+grants no row-level execution rights to the owner, ordinary signed-in users, or
+guests; Daptin's administrator-group rules still allow administrators. Creating
+an account or knowing the model name does not grant access. Later in this guide,
+[grant a usergroup access](#5-allow-an-application-user-to-invoke-the-model) before
+using an ordinary application user's token. Existing explicit group grants are
+separate permissions; changing the row permission does not revoke those grants.
+
+Start with text requests. `capabilities: "{}"` does not enable images, files, or
+tools. The [media section](#images-files-and-audio) explains how to enable them
+when your upstreams support them. Supported operations and capabilities are
+listed in [Operations and capabilities](#operations-and-capabilities).
+
+### 3. Create the primary deployment
 
 ```bash
-curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{"data":{"type":"user_account_user_account_id_has_usergroup_usergroup_id","attributes":{"user_account_id":"'$USER_REFERENCE_ID'","usergroup_id":"'$GROUP_REFERENCE_ID'"}}}'
-
-MODEL_GROUP_RELATION_ID=$(curl -s -X POST http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{"data":{"type":"llm_model_llm_model_id_has_usergroup_usergroup_id","attributes":{"llm_model_id":"'$MODEL_REFERENCE_ID'","usergroup_id":"'$GROUP_REFERENCE_ID'"}}}' | jq -r '.data.id')
-
-curl -X PATCH "http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id/$MODEL_GROUP_RELATION_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{"data":{"type":"llm_model_llm_model_id_has_usergroup_usergroup_id","id":"'$MODEL_GROUP_RELATION_ID'","attributes":{"permission":524288}}}'
-```
-
-`524288` is `GroupExecute`. Setting permission on a relationship is a PATCH
-after creating it. Model discovery and invocation use the same execute check, so
-`GET /v1/models` lists exactly the models the active account can invoke.
-
-### Allow guest invocation
-
-Guest access uses the same model permission field. Grant `GuestExecute` on the
-model; no OAuth client or service account is involved:
-
-```bash
-curl -X PATCH "http://localhost:6336/api/llm_model/$MODEL_REFERENCE_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  --data-binary '{"data":{"type":"llm_model","id":"'$MODEL_REFERENCE_ID'","attributes":{"permission":32}}}'
-
-curl http://localhost:6336/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  --data-binary '{"model":"assistant","messages":[{"role":"user","content":"Hello"}]}'
-```
-
-`32` is `GuestExecute`. Daptin permissions are bitsets; use the normal
-permission editor or the combined bit value when the model must retain other
-permission bits. Removing `GuestExecute` immediately removes the model from
-guest discovery and denies guest invocation.
-
-`fallback_models` is an ordered JSON array of other public model names. Cycles
-or missing models reject the candidate catalog. Supported parameter policies
-are:
-
-- `reject`: reject a request that asks for a capability the model does not
-  declare;
-- `drop`: remove only optional non-semantic controls; semantic media or tool
-  history is never silently removed;
-- `passthrough`: preserve typed fields when the selected adapter supports them.
-
-Unknown wire fields are always rejected.
-
-### 3. Create a deployment and its relationships
-
-```bash
-curl -X POST http://localhost:6336/api/llm_deployment \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
+curl http://localhost:6336/api/llm_deployment \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
   -d '{
     "data": {
       "type": "llm_deployment",
       "attributes": {
         "name": "assistant-primary",
-        "upstream_model": "gpt-4o-mini",
+        "llm_model_id": "MODEL_ID",
+        "llm_provider_id": "PROVIDER_ID",
+        "upstream_model": "openai/gpt-4o-mini",
         "operations": "[\"chat\",\"responses\"]",
         "priority": 0,
         "weight": 1,
-        "request_timeout_ms": 90000,
-        "connect_timeout_ms": 10000,
-        "max_concurrency": 100,
-        "rpm": -1,
-        "tpm": -1,
-        "pricing": "{\"input_tokens\":150000,\"output_tokens\":600000}",
-        "parameters": "{}",
-        "health_check": "{\"enabled\":true,\"interval_ms\":30000,\"timeout_ms\":5000,\"failure_threshold\":3}",
         "enable": true
-      },
-      "relationships": {
-        "llm_model_id": {
-          "data": {"type": "llm_model", "id": "MODEL_REFERENCE_ID"}
-        },
-        "llm_provider_id": {
-          "data": {"type": "llm_provider", "id": "PROVIDER_REFERENCE_ID"}
-        }
       }
     }
   }'
 ```
 
-Deployments in the lowest eligible priority tier are selected by positive
-weight without replacement. Retryable failures may move to another deployment
-or an ordered fallback model, within the engine's bounded attempt and request
-deadlines. Disabled, unhealthy, saturated, rate-protected, or
-capability-incompatible deployments are excluded. A streaming request may
-switch only before its first client-visible event.
+Copy `data.id` as `PRIMARY_DEPLOYMENT_ID`. A deployment belongs to one public
+model and one provider account. To use a different provider account, create its
+credential and provider first, then reference that provider ID in the deployment.
+The upstream model must support each declared operation.
 
-Pricing is a single map from a usage measure to its fixed-point cost in micros
-per one million units. Canonical token keys are `input_tokens`,
-`output_tokens`, `cache_read_tokens`, `cache_write_tokens`, and
-`reasoning_tokens`. Providers may also report named measures such as
-`search_units`, `ocr_pages`, or `document_bytes`; those use the same map and
-cost calculator.
+Catalog changes reload automatically. Allow a few seconds after a change and
+check model discovery. See [Health, reload, and shutdown](#health-reload-and-shutdown)
+for missed-event recovery and rejected reloads.
+
+### 4. Verify a non-streaming request as administrator
+
+```bash
+curl http://localhost:6336/v1/models \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN'
+```
+
+The response should list `assistant` for your administrator token.
+
+```bash
+curl http://localhost:6336/v1/chat/completions \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "assistant",
+    "messages": [{"role": "user", "content": "Reply with a short greeting."}],
+    "max_tokens": 128,
+    "stream": false
+  }'
+```
+
+Expect one JSON response containing `choices` and `usage`. No response ID from
+Chat Completions can be used as a Daptin `previous_response_id`. To continue a
+Chat conversation, send the earlier messages in the next `messages` array.
+For Daptin-owned history, use [Stored Responses](#stored-responses-and-conversation-history).
+
+<a id="grant-a-usergroup-permission-to-invoke-the-model"></a>
+
+### 5. Allow an application user to invoke the model
+
+Use the administrator token to create the user's account, if it does not
+already exist:
+
+```bash
+curl http://localhost:6336/action/user_account/signup \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "attributes": {
+      "name": "Router application",
+      "email": "app@example.com",
+      "password": "YOUR_APP_PASSWORD",
+      "passwordConfirm": "YOUR_APP_PASSWORD"
+    }
+  }'
+```
+
+As administrator, list accounts and copy the `data.id` of `app@example.com` as
+`USER_ID`:
+
+```bash
+curl http://localhost:6336/api/user_account \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN'
+```
+
+Create the access group and copy its `data.id` as `GROUP_ID`:
+
+```bash
+curl http://localhost:6336/api/usergroup \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{"data":{"type":"usergroup","attributes":{"name":"assistant-users"}}}'
+```
+
+Add the user to the group:
+
+```bash
+curl http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+    "data": {
+      "type": "user_account_user_account_id_has_usergroup_usergroup_id",
+      "attributes": {"user_account_id": "USER_ID", "usergroup_id": "GROUP_ID"}
+    }
+  }'
+```
+
+Relate the model to the group:
+
+```bash
+curl http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+    "data": {
+      "type": "llm_model_llm_model_id_has_usergroup_usergroup_id",
+      "attributes": {"llm_model_id": "MODEL_ID", "usergroup_id": "GROUP_ID"}
+    }
+  }'
+```
+
+Copy this relationship's `data.id` as `MODEL_GROUP_RELATION_ID`, then grant
+`GroupExecute` on that relationship:
+
+```bash
+curl -X PATCH http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id/MODEL_GROUP_RELATION_ID \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+    "data": {
+      "type": "llm_model_llm_model_id_has_usergroup_usergroup_id",
+      "id": "MODEL_GROUP_RELATION_ID",
+      "attributes": {"permission": 524288}
+    }
+  }'
+```
+
+`524288` is `GroupExecute`. Keep the model row's `permission` at `0`; the
+persisted group relationship is the access grant. To revoke this grant, PATCH
+this same relationship's permission to `0`. Other explicit grants, if present,
+remain independent.
+
+Sign in as the application user:
+
+```bash
+curl http://localhost:6336/action/user_account/signin \
+  -H 'Content-Type: application/json' \
+  -d '{"attributes":{"email":"app@example.com","password":"YOUR_APP_PASSWORD"}}'
+```
+
+Copy the `client.store.set` response item whose `Attributes.key` is `token`;
+its `Attributes.value` is `APP_TOKEN`. Use that token for discovery and inference:
+
+```bash
+curl http://localhost:6336/v1/models \
+  -H 'Authorization: Bearer APP_TOKEN'
+
+curl http://localhost:6336/v1/chat/completions \
+  -H 'Authorization: Bearer APP_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"assistant","messages":[{"role":"user","content":"Hello"}],"stream":false}'
+```
+
+After the grant, discovery lists `assistant` and inference is allowed. Without a
+grant, discovery hides the model and inference is denied. An action wrapping
+`$llm.chat` has its own execute permission, independent of the model grant.
+Application users do not need the provider key or access to credential records.
+Their usage and saved Responses belong to their own active Daptin account.
+
+### 6. Add Gemini as a fallback and understand when it is used
+
+```bash
+curl http://localhost:6336/api/llm_deployment \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+    "data": {
+      "type": "llm_deployment",
+      "attributes": {
+        "name": "assistant-fallback",
+        "llm_model_id": "MODEL_ID",
+        "llm_provider_id": "PROVIDER_ID",
+        "upstream_model": "google/gemini-2.5-flash",
+        "operations": "[\"chat\",\"responses\"]",
+        "priority": 1,
+        "weight": 1,
+        "enable": true
+      }
+    }
+  }'
+```
+
+Copy `data.id` as `FALLBACK_DEPLOYMENT_ID`. Your application continues to send
+`"model": "assistant"`; it does not choose a deployment ID.
+
+| Situation | What Daptin does |
+|---|---|
+| Primary is eligible and succeeds | Returns the GPT result; Gemini is not called |
+| Primary is disabled, unhealthy, or excluded by a deployment protection limit | Can use the eligible Gemini deployment |
+| Primary encounters a retryable failure | Can try Gemini within the attempt and request deadlines |
+| Request fails Daptin model permission, validation, or quota admission | Rejects it before inference; a fallback does not bypass that decision |
+| Upstream rejects with 400/401/402/403/404/422 | Returns the non-retryable error; adding Gemini does not repair the request or credentials |
+| A stream has already emitted its first client-visible event | Keeps that deployment; a later failure ends the stream rather than mixing upstreams |
+
+Retryable upstream errors include 408, 409, 429, and 5xx, plus connection failures
+and timeouts. Another attempt still needs an eligible route and remaining time;
+fallback is not a promise that every request succeeds. The default engine budget
+is at most three deployment attempts across the route plan.
+
+Priorities are ordered tiers: `0` is tried before `1`. Weights choose the order
+among deployments in the same priority tier. Giving both deployments priority
+`0` would make them weighted alternatives, rather than a primary and a standby.
+This example uses one provider account, so an OpenRouter account-wide problem
+can affect both routes. Separate provider accounts require separate provider
+rows and credentials.
+
+#### Test the backup without waiting for an outage
+
+As administrator, temporarily disable the primary:
+
+```bash
+curl -X PATCH http://localhost:6336/api/llm_deployment/PRIMARY_DEPLOYMENT_ID \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+    "data": {
+      "type": "llm_deployment",
+      "id": "PRIMARY_DEPLOYMENT_ID",
+      "attributes": {"enable": false}
+    }
+  }'
+```
+
+After the catalog reloads, repeat the same chat request using `APP_TOKEN` and
+`"model": "assistant"`. Gemini should handle it. The response's public model
+name remains `assistant`; inspect the usage record to identify the actual route:
+
+```bash
+curl 'http://localhost:6336/api/api_usage?page[size]=10&sort=-created_at' \
+  -g -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN'
+```
+
+In the relevant row's `attributes.metadata.attempts`, compare `DeploymentID`
+with `FALLBACK_DEPLOYMENT_ID`. `Outcome` and `HTTPStatus` describe each attempt.
+A request rejected before admission has no new admitted usage row.
+
+Restore the primary by repeating the PATCH with `"enable": true`. Wait for the
+catalog reload before expecting GPT to be preferred again. Disabling a route
+tests eligibility switching; it does not simulate an upstream retryable error.
+
+### Optional: allow guest invocation
+
+To make `assistant` callable without a signed-in account, explicitly grant
+`GuestExecute` (`32`) on the model row:
+
+```bash
+curl -X PATCH http://localhost:6336/api/llm_model/MODEL_ID \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{"data":{"type":"llm_model","id":"MODEL_ID","attributes":{"permission":32}}}'
+
+curl http://localhost:6336/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"assistant","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+Guest calls consume provider work and are metered to Daptin's persisted guest
+account. Stored Responses still require a signed-in account. Revert the row's
+permission to `0` to remove this row-level guest grant; existing usergroup grants
+remain separate. See [[Permissions]] for combined permission bitsets.
+
+## Streaming and non-streaming requests
+
+Use `APP_TOKEN` below after granting the application user access. Administrator
+tokens also work. The request's `stream` flag controls delivery; it does not
+change model permissions or make conversation history persistent.
+
+| Request | Delivery | Conversation handling |
+|---|---|---|
+| Chat with `stream: false` | One JSON response | Send previous messages yourself on the next call |
+| Chat with `stream: true` | Server-sent events (SSE) | Same caller-managed messages |
+| Responses with `store: true` | One JSON response by default | Continue with the returned response `id` |
+| Responses with both `stream: true` and `store: true` | SSE events | Continue with the saved response `id` once the turn completes |
+
+For a streaming chat request, `curl -N` displays events as they arrive:
+
+```bash
+curl -N http://localhost:6336/v1/chat/completions \
+  -H 'Authorization: Bearer APP_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "assistant",
+    "messages": [{"role": "user", "content": "Write a short greeting."}],
+    "max_tokens": 128,
+    "stream": true
+  }'
+```
+
+Expect `data:` events and a final `[DONE]` marker. Non-streaming chat places the
+finished text in `choices[].message.content`; streaming chat sends incremental
+content in `choices[].delta`. Requests use the same routing policy, but fallback
+can occur only before the first client-visible event. If a stream fails after
+that point, handle the error in the client; do not treat partial output as a
+completed saved turn.
+
+Use [Stored Responses](#stored-responses-and-conversation-history) for saving,
+continuation, retrieval, deletion, and streaming with retained history.
+
+## Images, files, and audio
+
+Media support requires both Daptin configuration and upstream support. Declaring
+a capability permits the request; it does not teach an upstream model to process
+that media. Daptin checks the public model and adapter capabilities, but does not
+discover every upstream model's abilities. Every route you intend to use for that
+request must support its input and output formats, including backup routes.
+
+| Feature | Operation in both model and deployment | Additional public-model capability |
+|---|---|---|
+| Image input in chat or Responses | `chat` or `responses` | `vision` |
+| File input in Responses | `responses` | `files` |
+| Inline audio input in chat | `chat` | `audio` |
+| Speech-to-text file upload | `audio_transcription` | No extra capability required for that dedicated operation |
+| Text-to-speech | `audio_speech` | No extra capability required for that dedicated operation |
+| Image generation | `image_generation` | No extra capability required for that dedicated operation |
+
+### Image and file inputs
+
+After verifying that the upstream routes support them, enable `vision` and
+`files` on `assistant` as administrator:
+
+```bash
+curl -X PATCH http://localhost:6336/api/llm_model/MODEL_ID \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{
+    "data": {
+      "type": "llm_model",
+      "id": "MODEL_ID",
+      "attributes": {"capabilities": "{\"vision\":true,\"files\":true}"}
+    }
+  }'
+```
+
+This replaces the capability object; include any other capabilities you already
+use. It leaves the model permission unchanged.
+
+Send an image using a publicly reachable image URL, replacing the example URL
+with your actual image:
+
+```bash
+curl http://localhost:6336/v1/chat/completions \
+  -H 'Authorization: Bearer APP_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "assistant",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "Describe this image."},
+        {"type": "image_url", "image_url": {"url": "https://YOUR_PUBLIC_HOST/photo.jpg"}}
+      ]
+    }],
+    "max_tokens": 128,
+    "stream": false
+  }'
+```
+
+The image URL is fetched by the upstream provider. A local path such as
+`/home/me/photo.jpg` is not an image URL. A `data:image/png;base64,...` value is
+another supported request form when the provider accepts it. For image input in
+Responses, use a content part with `"type": "input_image"` and `"image_url"` set
+to the URL string. Neither image input nor file input implies image generation.
+
+For inline files, file URLs, and Daptin file IDs, continue with
+[Responses files and web search](#responses-files-and-web-search). In particular,
+Daptin file IDs require an asset-backed file resource and read permission; a model
+execute grant does not grant file access. File formats and media streaming
+support depend on the selected upstream.
+
+### Dedicated audio models
+
+The GPT/Gemini text deployments above do not automatically become speech
+services. Repeat the model and deployment creation steps with upstream models
+that support the dedicated operation:
+
+| Example public name | `operations` JSON string on model and deployment |
+|---|---|
+| `transcriber` | `["audio_transcription"]` |
+| `speaker` | `["audio_speech"]` |
+
+Grant each new public model its own execute permission. Once `transcriber` is
+configured and granted to the application user, upload a real audio file:
+
+```bash
+curl http://localhost:6336/v1/audio/transcriptions \
+  -H 'Authorization: Bearer APP_TOKEN' \
+  -F 'model=transcriber' \
+  -F 'file=@recording.wav' \
+  -F 'response_format=json'
+```
+
+Do not set a JSON Content-Type on this multipart upload. Once `speaker` is
+configured, request audio using a voice supported by its upstream provider:
+
+```bash
+curl http://localhost:6336/v1/audio/speech \
+  -H 'Authorization: Bearer APP_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"speaker","input":"Hello from Daptin.","voice":"YOUR_UPSTREAM_VOICE","response_format":"mp3"}' \
+  -o greeting.mp3
+```
+
+These audio examples describe request formats after configuring compatible
+upstreams; they do not claim that the OpenRouter GPT/Gemini routes in this
+walkthrough implement those audio operations.
+
+## Operations and capabilities
+
+Operations are `chat`, `text_completion`, `responses`, `response_compaction`,
+`embeddings`, `image_generation`, `image_edit`, `image_variation`, `moderation`,
+`rerank`, `audio_speech`, `audio_transcription`, `audio_translation`, `search`,
+and `ocr`. Capabilities may include `tools`, `vision`, `audio`, `files`,
+`json_schema`, `logprobs`, `penalties`, `parallel_tools`, `reasoning`,
+`dimensions`, `token_ids`, `exact_cache`, and `public_cache`.
+
+`fallback_models` is an ordered JSON array of other public model names. It is
+separate from adding a second deployment to the same public model. Cycles or
+missing models reject the candidate catalog. Supported parameter policies are:
+
+- `reject`: reject a request that asks for a capability the model does not declare;
+- `drop`: remove only optional non-semantic controls; semantic media or tool history is never silently removed;
+- `passthrough`: preserve typed fields when the selected adapter supports them.
+
+Unknown wire fields are always rejected. Deployment `pricing` maps usage measures
+to fixed-point cost in micros per one million units, for example `input_tokens`,
+`output_tokens`, `cache_read_tokens`, `cache_write_tokens`, and `reasoning_tokens`.
+Empty pricing records quantities without adding configured token cost. See
+[[API-Metering]] for quota and billing setup.
 
 ## HTTP API
 
@@ -386,23 +738,83 @@ Stored history survives restarts and can be routed to another eligible provider.
 Providers still receive `store: false`, without `previous_response_id`: Daptin
 owns this conversation state, independently of provider-side storage.
 
+Create a stored turn with the application user's token:
+
 ```bash
-RESPONSE_ID=$(curl --fail --silent http://localhost:6336/v1/responses \
-  -H "Authorization: Bearer $TOKEN" \
+curl http://localhost:6336/v1/responses \
+  -H 'Authorization: Bearer APP_TOKEN' \
   -H 'Content-Type: application/json' \
-  --data-binary '{"model":"assistant","input":"Remember that my color is blue.","store":true}' | jq -r '.id')
-
-curl --fail http://localhost:6336/v1/responses \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  --data-binary '{"model":"assistant","input":"What is my color?","previous_response_id":"'"$RESPONSE_ID"'","store":true}'
-
-curl --fail "http://localhost:6336/v1/responses/$RESPONSE_ID" \
-  -H "Authorization: Bearer $TOKEN"
-
-curl --fail -X DELETE "http://localhost:6336/v1/responses/$RESPONSE_ID" \
-  -H "Authorization: Bearer $TOKEN"
+  -d '{
+    "model": "assistant",
+    "input": "Remember that my favorite color is blue.",
+    "store": true,
+    "stream": false,
+    "max_output_tokens": 128
+  }'
 ```
+
+Copy the top-level `id` from this response as `RESPONSE_ID`, then continue:
+
+```bash
+curl http://localhost:6336/v1/responses \
+  -H 'Authorization: Bearer APP_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "assistant",
+    "previous_response_id": "RESPONSE_ID",
+    "input": "What is my favorite color?",
+    "store": true,
+    "max_output_tokens": 128
+  }'
+```
+
+Expect the next response to recall blue. For another turn, use the newest
+completed response's `id`. Each saved turn already contains the complete replayed
+context; do not also resend the earlier input when using `previous_response_id`.
+
+To verify cross-deployment continuation, save the first turn while the primary
+is enabled, disable the primary with the [fallback test](#test-the-backup-without-waiting-for-an-outage),
+and send the continuation after the catalog reloads. Gemini receives Daptin's
+saved context. Inspect `api_usage` to confirm the deployment used, then restore
+the primary.
+
+To stream a saved continuation, add `stream: true` and use `curl -N`:
+
+```bash
+curl -N http://localhost:6336/v1/responses \
+  -H 'Authorization: Bearer APP_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "assistant",
+    "previous_response_id": "RESPONSE_ID",
+    "input": "Write a short poem about that color.",
+    "store": true,
+    "stream": true,
+    "max_output_tokens": 256
+  }'
+```
+
+Use the latest undeleted completed response ID for this request. Responses streaming
+uses named events such as `response.created`, `response.output_text.delta`, and
+`response.completed`, rather than Chat Completions' `choices[].delta` format.
+Copy the completed response's `id` from its event for the next continuation.
+An incomplete terminal response may also be continued; a failed, cancelled, or
+still-running response cannot.
+
+Retrieve or delete a saved turn as its owner:
+
+```bash
+curl http://localhost:6336/v1/responses/RESPONSE_ID \
+  -H 'Authorization: Bearer APP_TOKEN'
+
+curl -X DELETE http://localhost:6336/v1/responses/RESPONSE_ID \
+  -H 'Authorization: Bearer APP_TOKEN'
+```
+
+Retrieval returns the saved response. After deletion, retrieval and continuation
+using that ID fail; the accounting facts remain. Deleting a parent does not
+delete a descendant's already-captured context.
+
 
 Stored responses require a signed-in account and belong to the active account.
 Rows are private to their owner by default; administrators and explicitly
@@ -445,7 +857,7 @@ This example sends inline content:
 
 ```bash
 curl http://localhost:6336/v1/responses \
-  -H "Authorization: Bearer $TOKEN" \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
   -H "Content-Type: application/json" \
   --data-binary '{
     "model": "assistant",
@@ -487,7 +899,7 @@ model capability:
 
 ```bash
 curl http://localhost:6336/v1/responses \
-  -H "Authorization: Bearer $TOKEN" \
+  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
   -H "Content-Type: application/json" \
   --data-binary '{
     "model": "assistant",
@@ -511,23 +923,6 @@ Permission to execute the model does not grant access to a referenced Daptin
 file, and permission to read a file does not grant model execution. Successful
 and provider-failed admitted calls terminalize through the same `api_usage`
 lifecycle.
-
-Model discovery and invocation use the `llm_model` row's ordinary execute
-permissions. A request without a signed-in account is evaluated as a guest, so
-`GuestExecute` makes that model available without an access token. Signed-in,
-owner, group, and administrator access use the same Daptin permission rules as
-other resources. Model listing hides models the active context cannot invoke.
-
-```bash
-curl http://localhost:6336/v1/chat/completions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "assistant",
-    "messages": [{"role":"user","content":"Hello"}],
-    "stream": false
-  }'
-```
 
 OpenAI SDKs can use `http://localhost:6336/v1` as their base URL and a Daptin
 bearer token as their API key.
