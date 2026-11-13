@@ -81,13 +81,16 @@ example.
 
 ### Who Gets Checked
 
-Permissions apply to three groups:
+The main bit ranges distinguish these callers:
 
 | Group | Who |
 |-------|-----|
 | **Guest** | Anyone not logged in |
-| **Owner** | The user who created the record |
-| **Group** | Users who share a group with the record |
+| **Owner** | The account that owns the record |
+| **Group** | Members of a persisted group related to the record, using that relation’s Group bits |
+
+Execution also has an `AuthenticatedExecute` bit for any signed-in account.
+Administrator access comes from membership in the administrator group.
 
 ---
 
@@ -108,6 +111,10 @@ Permissions apply to three groups:
 | Owner | Read their own data, execute actions |
 | Group members | Read shared data, execute actions |
 | Administrators | Everything |
+
+These describe the built-in policy, not a guarantee about every existing row.
+Inspect persisted row and relation grants; onboarding and default changes do not
+replace all previously stored permissions.
 
 ---
 
@@ -209,49 +216,95 @@ curl -X PATCH "http://localhost:6336/api/todo/RECORD_ID" \
 
 ### Share with a Group
 
-**IMPORTANT**: POST requests to join tables ignore the `permission` attribute. You must:
-1. Create the join record first
-2. PATCH to set the permission
+A group grant has two separate relationships:
 
-```bash
-# Step 1: Add record to a group
-JOIN_ID=$(curl -s -X POST "http://localhost:6336/api/todo_todo_id_has_usergroup_usergroup_id" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "todo_todo_id_has_usergroup_usergroup_id",
-      "attributes": {
-        "todo_id": "RECORD_ID",
-        "usergroup_id": "GROUP_ID"
-      }
-    }
-  }' | jq -r '.data.id')
+- **Account → usergroup** records membership: which accounts belong to the group.
+- **Resource → usergroup** records sharing: which operations that group may perform on that resource.
 
-# Step 2: Set permission on the join record
-# Permission 32768 = 2 << 14 (Read permission for group)
-curl -X PATCH "http://localhost:6336/api/todo_todo_id_has_usergroup_usergroup_id/$JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "todo_todo_id_has_usergroup_usergroup_id",
-      "id": "'$JOIN_ID'",
-      "attributes": {
-        "permission": 32768
-      }
-    }
-  }'
-```
+For example, adding an account to `assistant-users` does not by itself grant
+access to an LLM model. The model must also be related to `assistant-users`,
+with Execute enabled on that model–group relation. Editing the account–group
+relation's permissions instead controls access to the account record; it does
+not configure the group's access to the model. Remove membership to remove an
+account from a group; clearing permission checkboxes is not membership removal.
 
-**Permission values for join tables** (group permissions only):
-```javascript
-// Group permissions are bit-shifted to position 14-20
-const groupRead = 2 << 14;        // 32768
-const groupUpdate = 8 << 14;      // 131072
-const groupReadWrite = (2+8) << 14; // 163840 = 10 << 14
-const groupFull = 127 << 14;      // 2080768
-```
+#### Dashboard workflow
+
+As an administrator:
+
+1. Create a group under **Users & Access → Groups**.
+2. Open the account's details, select **Groups → Add Group**, and attach that group.
+3. Open the resource to share, select **Groups → Add Group**, and attach the same group.
+4. In that resource's **Groups** tab, set the group's **Relation Permissions**.
+   Changes save automatically. For an execute-only group grant, enable Execute
+   and disable the other six group operations on that relation.
+5. Hard-refresh the page and confirm the checkboxes retain the saved values.
+6. Test the operation as an ordinary member, a nonmember, and a guest. Test
+   revocation too: disable Execute and repeat the member request.
+
+This was verified on a fresh Docker `v0.13.49` instance for account–group and
+LLM-model–group relations: disabling Execute persisted after a hard refresh;
+re-enabling it on the model relation also persisted. Normal resource permission
+edits do not require a server restart.
+
+The **Permissions** tab edits the resource row's own bitmask. The **Groups** tab
+edits each resource–group relation's bitmask. They are separate grants. Setting
+row `permission` to `0` does not revoke group grants, and disabling a group's
+Execute grant does not revoke owner, guest, authenticated, administrator, or
+other group grants.
+
+The seven relation checkboxes edit the **Group** bits of the stored bitmask;
+other bits can remain set. Only Execute checked therefore describes the group
+grant, not necessarily a complete stored value of `524288`. For example, starting
+from `2097151`, turning off GroupExecute saves `1572863`. Leaving only Execute
+checked saves `540671` (`524288` plus the preserved lower `16383` bits), as
+verified after refresh on `v0.13.49`. Inspect the saved value before claiming an
+exact numeric mask. PATCHing a raw `permission` value
+replaces that record's entire bitmask.
+
+| Value | Meaning for execution |
+|-------|-----------------------|
+| Resource row `0` | No grant from the row bitmask; administrators and separately granted groups may still execute |
+| Resource row `32` | GuestExecute; permits guest execution |
+| Resource row `4096` | UserExecute; permits the record's owner, not every signed-in account |
+| Resource row `2097152` | AuthenticatedExecute; permits any authenticated account |
+| Resource–group relation `524288` | GroupExecute; permits members of that related group |
+
+Group bits on the resource row are not a substitute for a persisted sharing
+relation. The access check uses the matching resource–group relation's Group
+bits. For generic CRUD, table/type and record checks must both pass; see
+[Two-Level Permission Check](#two-level-permission-check-critical).
+
+#### API boundaries and verification
+
+Create and inspect links through parent resource relationships; see
+[[Users-and-Groups#add-user-to-group|Add User to Group]] and
+[[Relationships#relationship-endpoints|Relationship Endpoints]]. Use public
+reference IDs, not internal numeric IDs or generated join-table names.
+
+Relationship storage exists internally, but its generated table names are not
+the application-facing CRUD contract. In `v0.13.49`, the dashboard internally
+PATCHes those relation records to save permission changes. That working
+implementation does **not** mean applications should list or manage generated
+join resources directly; their collection routes can fail. Use the dashboard
+workflow above for runtime group permission editing.
+
+Do not treat a nested `attributes.permission` in a parent relationship request
+as equivalent to the dashboard save. In `v0.13.46`, a resource-to-group nested
+update returned success while discarding that field; the inverse group-to-resource
+update persisted it. This is a direction-specific nested-update inconsistency,
+not evidence that dashboard permission editing is broken. A success status
+alone is insufficient: read back the relation and test effective access.
+
+Creation uses configured defaults; supplying `permission` during resource
+creation does not select the initial bitmask. Defaults are not universally
+`2097151`, and changing defaults does not rewrite existing rows or relations.
+For schema-managed group grants, use explicit `DefaultGroups` or `AccessGroups`
+permissions as described below. Review initial sharing defaults before attaching
+a group if even temporary broader access would be unacceptable.
+
+Group operation values are bits 14–20: Read `32768`, Update `131072`, Execute
+`524288`, and Read + Update + Execute `688128`.
 
 ---
 
@@ -261,10 +314,10 @@ Permissions are stored as numbers. Here are common values:
 
 | Value | Meaning |
 |-------|---------|
-| 0 | No access |
+| 0 | No grant from this row mask; independent group grants and administrator access remain |
 | 2 | Guest can read |
 | 256 | Owner can read |
-| 32768 | Group can read |
+| 32768 | GroupRead on a matching resource–group relation |
 | 33026 | Everyone can read |
 | 16256 | Owner has full access |
 | 561441 | Generic public-action profile |
@@ -282,7 +335,7 @@ function permission(guest, owner, group) {
 // Full = 127 (all bits)
 
 permission(2, 127, 0);    // 16258 - Guest read, owner full
-permission(0, 127, 127);  // 2080768 - Owner and group full, no guest
+permission(0, 127, 127);  // 2097024 - Packed owner/group bits, no guest
 permission(2, 2, 2);      // 33026 - Everyone can read
 ```
 
@@ -409,21 +462,7 @@ curl -X PATCH "http://localhost:6336/api/smd/$SMD_ID" \
 # Calculation: 66 | (127 << 7) | (98 << 14) = 66 + 16256 + 1605632 = 1621954
 ```
 
-**Option 2: Via SQL (If server stopped)**
-
-```bash
-# Stop server
-./scripts/testing/test-runner.sh stop
-
-# Get SMD reference_id
-sqlite3 daptin.db "SELECT hex(reference_id), name FROM smd;"
-
-# Update permission
-sqlite3 daptin.db "UPDATE smd SET permission = 1621954 WHERE reference_id = X'<UUID_HEX>';"
-
-# Restart server
-./scripts/testing/test-runner.sh start
-```
+Use the resource PATCH above so normal authorization, validation, audit, and cache invalidation run.
 
 ### State Transition Permissions
 
@@ -477,54 +516,11 @@ const smdPermission = guestPerms | (ownerPerms << 7) | (groupPerms << 14);
 
 ### Example: Share Product Table with Marketing Group
 
-```bash
-# Get the table's world ID
-WORLD_ID=$(curl --get \
-  --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"product"}]' \
-  -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/world" | jq -r '.data[0].id')
-
-# CRITICAL STEP 1: Share the TABLE (world record) with the group
-curl -X POST "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "world_world_id_has_usergroup_usergroup_id",
-      "attributes": {
-        "world_id": "'$WORLD_ID'",
-        "usergroup_id": "MARKETING_GROUP_ID"
-      }
-    }
-  }'
-
-# CRITICAL STEP 2: Set permission on the world-group join record
-# 688128 = 42 << 14 (Read + Update + Execute for group)
-WORLD_JOIN_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id" | \
-  jq -r '.data[0].id')
-
-curl -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$WORLD_JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "world_world_id_has_usergroup_usergroup_id",
-      "id": "'$WORLD_JOIN_ID'",
-      "attributes": {
-        "permission": 688128
-      }
-    }
-  }'
-
-# CRITICAL STEP 3: Restart server to clear Olric permission cache
-pkill -9 -f daptin
-sleep 2
-./daptin &
-sleep 10
-```
-
-**After this**, the marketing group can access records in the product table (subject to record-level permissions).
+Find the `world` record whose `table_name` is `product`. In the dashboard, open
+that world record's **Groups** tab and grant the marketing group the operations
+needed at the table gate. Then open each product's **Groups** tab and configure
+its row grant. Follow [Share with a Group](#share-with-a-group) for the workflow
+and verification. A group relation at one level does not grant access at the other.
 
 ---
 
@@ -690,13 +686,15 @@ Expected startup result:
 
 The user's group has permission on the record, but not on the table itself.
 
-**Solution**: Share the world (table) record with the group (see "Two-Level Permission Check" above), then restart the server.
+**Solution**: Check the world (table) grant and the record grant separately; follow [Share with a Group](#share-with-a-group).
 
 **2. Stale Olric permission cache**
 
-Permissions are cached for 10 minutes. After changing permissions, stale cache may cause 403 errors.
-
-**Solution**: Restart the server to clear the cache immediately.
+Normal resource updates invalidate the relevant permission caches. A restart is
+not a required step for dashboard group-permission editing. First hard-refresh
+the Groups tab, verify the saved relation permissions and membership, and test
+with the intended account. Distinguish a value that was never saved from a saved
+grant whose effective access is denied by another gate.
 
 **3. Other checks**:
 - Are you logged in?

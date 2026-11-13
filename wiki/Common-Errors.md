@@ -118,68 +118,15 @@ Both must be configured or access is denied.
 
 ### Solution
 
-```bash
-TOKEN=$(cat /tmp/daptin-token.txt)
+As an administrator, inspect the target account's membership, the table's world
+record grant, and the individual record grant. Configure group permissions using
+[[Permissions#share-with-a-group]]. Hard-refresh to verify persistence, then test
+as the affected account. A normal dashboard permission edit does not require a
+restart. A saved row permission does not override a denied table gate or revoke
+an independent group grant.
 
-# Step 1: Get IDs
-WORLD_ID=$(curl -s --get \
-  --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"product"}]' \
-  -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/world" | jq -r '.data[0].id')
-
-GROUP_ID=$(curl -s --get \
-  --data-urlencode 'query=[{"column":"name","operator":"is","value":"marketing"}]' \
-  -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/usergroup" | jq -r '.data[0].id')
-
-# Step 2: Share TABLE with group (critical!)
-curl -X POST http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "world_world_id_has_usergroup_usergroup_id",
-      "attributes": {
-        "world_id": "'$WORLD_ID'",
-        "usergroup_id": "'$GROUP_ID'"
-      }
-    }
-  }'
-
-# Step 3: Get join record ID
-JOIN_ID=$(curl -s --get \
-  --data-urlencode 'query=[{"column":"world_id","operator":"is","value":"'$WORLD_ID'"},{"column":"usergroup_id","operator":"is","value":"'$GROUP_ID'"}]' \
-  -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id" | jq -r '.data[0].id')
-
-# Step 4: Set permission (must PATCH, POST ignores permission field)
-curl -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "world_world_id_has_usergroup_usergroup_id",
-      "id": "'$JOIN_ID'",
-      "attributes": {
-        "permission": 688128
-      }
-    }
-  }'
-
-# Step 5: CRITICAL - Restart server to clear Olric cache
-./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
-
-# Step 6: Now share individual records (same POST + PATCH pattern)
-# ... share product_product_id_has_usergroup_usergroup_id records ...
-```
-
-### Key Points
-
-- **POST ignores `permission` field** on join tables - always use POST then PATCH
-- **Must restart server** after permission changes to clear Olric cache
-- **Both levels required** - table AND record permissions
-
-**Related**: [[Permissions#two-level-permission-system]]
+Use parent relationship reads to inspect links; do not list generated join
+resources or select the first relation returned as the intended grant.
 
 ---
 
@@ -647,18 +594,12 @@ lsof -i :6336
 lsof -i :5336
 ```
 
-### Check Database
+### Check Account and Group Membership
 
-```bash
-# List tables
-sqlite3 daptin.db ".tables"
-
-# Check admin exists
-sqlite3 daptin.db "SELECT name, email FROM user_account;"
-
-# Check admin is in administrators group
-sqlite3 daptin.db "SELECT * FROM user_account_user_account_id_has_usergroup_usergroup_id WHERE usergroup_id=2;"
-```
+Use an administrator token to inspect `/api/user_account` and `/api/usergroup`,
+and use the account's Groups tab or parent relationship reads to verify
+administrator membership. See [[Users-and-Groups#verify-group-membership]].
+Do not assume an internal numeric group ID such as `2` identifies administrators.
 
 ### Check Token
 

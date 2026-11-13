@@ -392,41 +392,20 @@ curl --get \
 1. **Table-level** (world record) - Can the group access this table at all?
 2. **Record-level** - Can the group access this specific record?
 
-**Required Steps** (not previously documented):
-```bash
-# CRITICAL: Share the TABLE (world record) with group first
-curl -X POST http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id \
-  -d '{"data":{"type":"world_world_id_has_usergroup_usergroup_id","attributes":{"world_id":"...","usergroup_id":"..."}}}'
-
-# Set permission on world-group join (must PATCH)
-curl -X PATCH http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$JOIN_ID \
-  -d '{"data":{"attributes":{"permission":688128}}}'
-
-# CRITICAL: Restart server to clear Olric cache
-pkill -9 -f daptin && ./daptin &
-```
-
-**Status**: ✅ Documented in Permissions.md and walkthrough.
+**Correction (2026-11-13):** The earlier generated join-resource CRUD and
+mandatory-restart instructions were misleading and have been removed. Configure
+the table's world-record grant and the row grant separately through the dashboard;
+see [[Permissions#share-with-a-group]].
 
 ---
 
-#### 3. POST Ignores Permission on Join Tables ✅ FIXED
+#### 3. Initial and Edited Relation Permissions — Corrected
 
-**Impact**: HIGH - Users set permission during POST and wonder why it's ignored.
-
-**Issue**: When creating join table records, the `permission` attribute is ignored and defaults to 2097151.
-
-**Solution**: Must use POST to create, then PATCH to set permission:
-```bash
-# Step 1: Create
-JOIN_ID=$(curl -X POST ... | jq -r '.data.id')
-
-# Step 2: PATCH to set permission
-curl -X PATCH "http://localhost:6336/api/join_table/$JOIN_ID" \
-  -d '{"data":{"attributes":{"permission":688128}}}'
-```
-
-**Status**: ✅ Documented in Permissions.md, Users-and-Groups.md, and walkthrough.
+Creation uses configured defaults. Dashboard relation permission edits persist
+after refresh. The earlier recommendation to POST/PATCH generated join resources
+was not an application-facing contract, and `2097151` is not a universal default.
+See [[Permissions#api-boundaries-and-verification]] for the nested-update
+inconsistency and the distinction from the working dashboard save path.
 
 ---
 
@@ -479,10 +458,11 @@ curl -X PATCH "http://localhost:6336/api/cloud_store/$STORE_ID" \
 - Creating cloud_store records
 - Linking credentials to cloud_store
 - Creating/modifying actions
-- Changing permissions (to clear Olric cache)
 - Creating tables via schema API
 
-**Status**: ✅ Added restart reminders in all affected documentation.
+Normal permission edits do not require a restart; see [[Permissions#share-with-a-group]].
+
+**Status**: Historical restart reminders; consult current feature guides.
 
 ---
 
@@ -557,7 +537,7 @@ curl "http://localhost:6336/api/world?page%5Bsize%5D=100"
 |-------|----------|----------------|--------|
 | Filter syntax wrong | CRITICAL | 6 pages | ✅ Fixed |
 | Two-level permission check | CRITICAL | Permissions.md | ✅ Fixed |
-| POST ignores permission | HIGH | Permissions.md, Users-and-Groups.md | ✅ Fixed |
+| Initial vs edited group permissions | HIGH | Permissions.md, Users-and-Groups.md | Corrected: use canonical dashboard workflow |
 | Credential format wrong | CRITICAL | Cloud-Storage.md | ✅ Fixed |
 | Credential linking missing | HIGH | Cloud-Storage.md | ✅ Fixed |
 | Server restart unclear | MEDIUM | Multiple | ✅ Fixed |
@@ -598,7 +578,7 @@ curl "http://localhost:6336/api/world?page%5Bsize%5D=100"
 
 2. **Permissions.md** ✅
    - Added two-level permission check section
-   - Added POST+PATCH join table pattern
+   - Historical POST+PATCH join-table guidance was superseded; use [[Permissions#share-with-a-group]]
    - Added bit-shifted permission values
    - Expanded troubleshooting
 

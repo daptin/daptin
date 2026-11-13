@@ -873,49 +873,10 @@ curl -s -X POST http://localhost:6336/api/user_account \
 
 ### 4.2 Add Mary to Marketing Group
 
-**What is a join table?**
-To link Mary to the marketing group, we create a record in a "join table" named:
-`user_account_user_account_id_has_usergroup_usergroup_id`
-
-This long name follows the pattern: `{table1}_{fk1}_has_{table2}_{fk2}`
-
-```bash
-# Get Mary's ID
-MARY_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/user_account | \
-  jq -r '.data[] | select(.attributes.email == "mary@techgear.com") | .id')
-
-# Get Marketing group ID
-MARKETING_GROUP_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/usergroup | \
-  jq -r '.data[] | select(.attributes.name == "marketing") | .id')
-
-echo "Mary ID: $MARY_ID"
-echo "Marketing Group ID: $MARKETING_GROUP_ID"
-
-# Add Mary to marketing group
-curl -s -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"user_account_user_account_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"user_account_id\": \"$MARY_ID\",
-        \"usergroup_id\": \"$MARKETING_GROUP_ID\"
-      }
-    }
-  }" | jq '{id: .data.id, user: .data.attributes.user_account_id, group: .data.attributes.usergroup_id}'
-```
-
-**Expected output:**
-```json
-{
-  "id": "...",
-  "user": "019bf54b-...",
-  "group": "..."
-}
-```
+Sign in to the dashboard as administrator. Open Marketing Mary's account,
+select **Groups → Add Group**, and choose `marketing`. This creates membership;
+it does not grant access to products yet. Use
+[[Users-and-Groups#add-user-to-group]] for the parent relationship API alternative.
 
 ### 4.3 Create Sales User and Add to Sales Group
 
@@ -937,55 +898,19 @@ curl -s -X POST http://localhost:6336/api/user_account \
     }
   }' | jq '{id: .data.id, name: .data.attributes.name, email: .data.attributes.email}'
 
-# Get Sam's ID
-SAM_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/user_account | \
-  jq -r '.data[] | select(.attributes.email == "sam@techgear.com") | .id')
-
-# Get Sales group ID
-SALES_GROUP_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/usergroup | \
-  jq -r '.data[] | select(.attributes.name == "sales") | .id')
-
-echo "Sam ID: $SAM_ID"
-echo "Sales Group ID: $SALES_GROUP_ID"
-
-# Add Sam to sales group
-curl -s -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"user_account_user_account_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"user_account_id\": \"$SAM_ID\",
-        \"usergroup_id\": \"$SALES_GROUP_ID\"
-      }
-    }
-  }" | jq '{id: .data.id, user: .data.attributes.user_account_id, group: .data.attributes.usergroup_id}'
 ```
+
+Open Sales Sam's account in the dashboard and attach `sales` through its
+**Groups** tab, using the same membership workflow as Mary.
 
 ---
 
 ### 4.4 Verify Group Membership
 
-Let's verify all users are in their correct groups:
-
-```bash
-# Using the API (cleaner output)
-echo "User-Group Memberships:"
-curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id?include=user_account_id,usergroup_id | \
-  jq -r '.data[] | "\(.attributes.user_account_id) → \(.attributes.usergroup_id)"'
-```
-
-Use the relationship response above to check each user's group. The
-`user_account_id` and `usergroup_id` values are record reference IDs.
-
-**What this means**:
-- Admin is in administrators and users groups ✓
-- Mary is in marketing group ✓
-- Sam is in sales group ✓
+Open each account's **Groups** tab and refresh. Mary should have `marketing`,
+Sam should have `sales`, and the administrator should retain `administrators`.
+For API verification, use the account's parent relationship reads documented in
+[[Users-and-Groups#verify-group-membership]]. Do not list generated join resources.
 
 **Quick test - sign in as Mary:**
 ```bash
@@ -1034,171 +959,32 @@ curl -X POST http://localhost:6336/api/product \
 
 ### 5.2 Share Product Table with Groups (CRITICAL)
 
-**IMPORTANT**: Daptin checks permissions at TWO levels:
-1. **Table-level** (world record) - Can the group access this table at all?
-2. **Record-level** - Can the group access this specific record?
+Generic resource access checks both the table/type and the individual row.
+Configure both using [[Permissions#share-with-a-group]], as administrator:
 
-Both levels must be configured. The table (world) must be shared with groups first.
+1. In the dashboard's `world` records, open the entry whose `table_name` is `product`.
+2. In its **Groups** tab, attach `marketing` and `sales`.
+3. Give `marketing` Peek, Read, Update, and Execute; disable its other group operations.
+4. Give `sales` Peek and Read; disable its other group operations.
+5. Hard-refresh and verify both relations retain those settings.
 
-```bash
-# Get the product ID from the response above, or query:
-PRODUCT_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/product | \
-  jq -r '.data[0].id')
+These settings permit the relevant operations at the table gate. They do not
+grant access to every product row. A server restart is not required for these
+permission edits.
 
-echo "Product ID: $PRODUCT_ID"
+### 5.3 Share Individual Products with Groups
 
-# Get the world ID for product table
-PRODUCT_WORLD_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/world?filter[table_name]=product" | \
-  jq -r '.data[0].id')
+Open each product you intend to share and configure its **Groups** tab:
 
-echo "Product World ID: $PRODUCT_WORLD_ID"
+| Group | Enable | Disable |
+|-------|--------|---------|
+| marketing | Peek, Read, Update, Execute | Create, Delete, Refer |
+| sales | Peek, Read | Create, Update, Delete, Execute, Refer |
 
-# CRITICAL STEP: Add product TABLE to marketing group
-# This allows the marketing group to access the product table at all
-# Permission uses bit-shifted format: Group permission at bits 14-20
-# 688128 = 42 << 14 (where 42 = Read + Update + Execute)
-curl -s -X POST http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"world_world_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"world_id\": \"$PRODUCT_WORLD_ID\",
-        \"usergroup_id\": \"$MARKETING_GROUP_ID\"
-      }
-    }
-  }" | jq '.data.id'
-
-# Set permission on the join table (POST ignores permission, must PATCH)
-WORLD_MARKETING_JOIN_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id | \
-  jq -r ".data[] | select(.attributes.world_id == \"$PRODUCT_WORLD_ID\" and .attributes.usergroup_id == \"$MARKETING_GROUP_ID\") | .id")
-
-curl -s -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$WORLD_MARKETING_JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"world_world_id_has_usergroup_usergroup_id\",
-      \"id\": \"$WORLD_MARKETING_JOIN_ID\",
-      \"attributes\": {
-        \"permission\": 688128
-      }
-    }
-  }"
-
-# Add product TABLE to sales group (read-only)
-# 32768 = 2 << 14 (where 2 = Read only)
-curl -s -X POST http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"world_world_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"world_id\": \"$PRODUCT_WORLD_ID\",
-        \"usergroup_id\": \"$SALES_GROUP_ID\"
-      }
-    }
-  }" | jq '.data.id'
-
-WORLD_SALES_JOIN_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id | \
-  jq -r ".data[] | select(.attributes.world_id == \"$PRODUCT_WORLD_ID\" and .attributes.usergroup_id == \"$SALES_GROUP_ID\") | .id")
-
-curl -s -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$WORLD_SALES_JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"world_world_id_has_usergroup_usergroup_id\",
-      \"id\": \"$WORLD_SALES_JOIN_ID\",
-      \"attributes\": {
-        \"permission\": 32768
-      }
-    }
-  }"
-
-# CRITICAL: Restart server to clear Olric permission cache
-kill "$(cat .daptin-walkthrough.pid)"
-sleep 2
-nohup daptin > /tmp/daptin.log 2>&1 &
-echo $! > .daptin-walkthrough.pid
-# Sign in again using the signin request in Step 0.3
-```
-
-### 5.3 Share Individual Products with Groups (Optional)
-
-Optionally, you can also set record-level permissions on individual products:
-
-```bash
-# Add product record to marketing group
-curl -s -X POST http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"product_product_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"product_id\": \"$PRODUCT_ID\",
-        \"usergroup_id\": \"$MARKETING_GROUP_ID\"
-      }
-    }
-  }" | jq '.data.id'
-
-# IMPORTANT: POST ignores permission attribute - must PATCH to set it
-PRODUCT_MARKETING_JOIN_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id | \
-  jq -r ".data[] | select(.attributes.product_id == \"$PRODUCT_ID\" and .attributes.usergroup_id == \"$MARKETING_GROUP_ID\") | .id")
-
-# Set permission: 688128 = 42 << 14 (Read + Update + Execute for group)
-curl -s -X PATCH "http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id/$PRODUCT_MARKETING_JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"product_product_id_has_usergroup_usergroup_id\",
-      \"id\": \"$PRODUCT_MARKETING_JOIN_ID\",
-      \"attributes\": {
-        \"permission\": 688128
-      }
-    }
-  }"
-
-# Add product record to sales group (read-only: 32768 = 2 << 14)
-curl -s -X POST http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"product_product_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"product_id\": \"$PRODUCT_ID\",
-        \"usergroup_id\": \"$SALES_GROUP_ID\"
-      }
-    }
-  }" | jq '.data.id'
-
-PRODUCT_SALES_JOIN_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id | \
-  jq -r ".data[] | select(.attributes.product_id == \"$PRODUCT_ID\" and .attributes.usergroup_id == \"$SALES_GROUP_ID\") | .id")
-
-curl -s -X PATCH "http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id/$PRODUCT_SALES_JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"product_product_id_has_usergroup_usergroup_id\",
-      \"id\": \"$PRODUCT_SALES_JOIN_ID\",
-      \"attributes\": {
-        \"permission\": 32768
-      }
-    }
-  }"
-```
+Refresh to confirm persistence. Test as Mary and Sam in Step 7. Keep the product's
+own permission mask restricted too: a guest or owner grant remains independent
+of these group relations. Changing only a row's Group bits does not create a
+group-sharing relationship.
 
 ---
 
@@ -1584,66 +1370,18 @@ decode(688128);  // { guest: 0, owner: 0, group: 42 }
 1. **Table-level**: Can this group access the `product` table at all?
 2. **Record-level**: Can this group access this specific product?
 
-**Solution**: Add the world record to the group:
+**Solution**: Inspect the product table's world record and the product itself
+through their **Groups** tabs. Confirm the intended group has the required
+operation at both levels, and confirm the user's membership. Follow
+[[Permissions#share-with-a-group]] and verify saved values after refresh.
+Do not restart to compensate for a missing grant or a value that was never saved.
 
-```bash
-# 1. Check if world-group relationship exists
-curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id | \
-  jq '.data[] | select(.attributes.world_id == "'$PRODUCT_WORLD_ID'")'
+### Initial and Edited Group Permissions
 
-# 2. If missing, add it (see Step 5.2)
-
-# 3. CRITICAL: Restart server to clear Olric permission cache
-kill "$(cat .daptin-walkthrough.pid)"
-sleep 2
-nohup daptin > /tmp/daptin.log 2>&1 &
-echo $! > .daptin-walkthrough.pid
-```
-
-**Other checks:**
-
-1. Check user is in the correct group:
-   ```bash
-   curl -s -H "Authorization: Bearer $TOKEN" \
-     "http://localhost:6336/api/user_account/$USER_ID?include=usergroup_id" | jq
-   ```
-
-2. Check record-group relationship:
-   ```bash
-   curl -s -H "Authorization: Bearer $TOKEN" \
-     "http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id" | jq
-   ```
-
-3. Check record permission value:
-   ```bash
-   curl -s -H "Authorization: Bearer $TOKEN" \
-     "http://localhost:6336/api/product/$PRODUCT_ID" | jq '.data.attributes.permission'
-   ```
-
-### Permission Ignored on POST to Join Tables
-
-**Problem**: When creating a join table record (e.g., `product_product_id_has_usergroup_usergroup_id`), the `permission` attribute is ignored and defaults to 2097151 (full access).
-
-**Solution**: Create the record first, then PATCH to set the permission:
-
-```bash
-# Step 1: Create the join record
-curl -s -X POST http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"product_product_id_has_usergroup_usergroup_id","attributes":{"product_id":"...","usergroup_id":"..."}}}'
-
-# Step 2: Get the join record ID
-JOIN_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id | jq -r '.data[0].id')
-
-# Step 3: PATCH to set permission
-curl -s -X PATCH "http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id/$JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{"data":{"type":"product_product_id_has_usergroup_usergroup_id","id":"'$JOIN_ID'","attributes":{"permission":688128}}}'
-```
+Creating a link uses configured defaults. Set its group operations through the
+dashboard and read them back; do not assume every default is `2097151` or that a
+nested `attributes.permission` performs the dashboard save. See
+[[Permissions#api-boundaries-and-verification]].
 
 ### Permission Values: Bit-Shift Format
 
@@ -1661,20 +1399,12 @@ curl -s -X PATCH "http://localhost:6336/api/product_product_id_has_usergroup_use
 # Group = Full (127) → 127 << 14 = 2080768
 ```
 
-### Olric Cache Stale After Permission Changes
+### Permission Changes and Refresh
 
-**Problem**: After changing permissions, users still get 403 errors.
-
-**Solution**: Restart the server to clear the Olric distributed cache:
-
-```bash
-kill "$(cat .daptin-walkthrough.pid)"
-sleep 2
-nohup daptin > /tmp/daptin.log 2>&1 &
-echo $! > .daptin-walkthrough.pid
-```
-
-The Olric cache has a 10-minute TTL, so alternatively you can wait for it to expire.
+Normal resource updates invalidate relevant permission caches. After editing,
+hard-refresh the Groups tab to check persistence, then repeat the operation as
+the intended account. Check membership, table access, row access, and independent
+grants separately. A server restart is not part of this permission-edit workflow.
 
 ### Photo Upload Fails
 
@@ -1726,11 +1456,11 @@ These issues were discovered during testing and are essential for success:
 
 1. **World (table) must be shared with groups**: Before a group can access any records in a table, the table's world record must be added to that group. This is the most common cause of 403 errors.
 
-2. **POST ignores permission on join tables**: When creating join table records (like `product_product_id_has_usergroup_usergroup_id`), the `permission` attribute is ignored. You must PATCH after creation to set permissions.
+2. **Membership and sharing are separate**: Relate the account and the resource to the same group, then configure the resource–group grant using [[Permissions#share-with-a-group]].
 
 3. **Bit-shifted permission format**: Group permissions on join tables must use bit-shifted values (e.g., 688128 = 42 << 14), not raw values (e.g., 42).
 
-4. **Server restart clears Olric cache**: After changing permissions, restart the server to clear the Olric distributed cache. Otherwise, stale permissions may cause 403 errors.
+4. **Verify persistence and access**: Refresh after permission edits and test as the affected account. Normal dashboard edits do not require a restart.
 
 5. **Action schema is a single JSON field**: Actions require `action_schema` as a complete JSON object, not separate `in_fields`/`out_fields` attributes.
 
@@ -1801,7 +1531,7 @@ Permission = guest + (owner × 128) + (group × 16384)
 // Examples
 Guest Peek only:           1 + (127 × 128) + (42 × 16384) = 704385
 Guest can Read:            3 + (127 × 128) + (42 × 16384) = 704387
-Group Read+Update (42):    42 × 16384 = 688128 (for join tables)
+Group Read+Update+Execute (42):    42 × 16384 = 688128 (for join tables)
 Group Read only (2):       2 × 16384 = 32768 (for join tables)
 ```
 
@@ -1822,7 +1552,7 @@ Group Read only (2):       2 × 16384 = 32768 (for join tables)
 ### Useful API Queries
 
 ```bash
-for resource in world user_account usergroup user_account_user_account_id_has_usergroup_usergroup_id product; do
+for resource in world user_account usergroup product; do
   curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:6336/api/$resource" | jq '.data'
 done
 ```
@@ -1862,7 +1592,7 @@ sleep 20
 | 403 Forbidden | World not shared with group | Add world to group (Step 5.2), restart server |
 | 403 Forbidden | Stale Olric cache | Restart server |
 | NOT NULL constraint | Missing required field | Add all non-nullable columns |
-| Permission ignored on POST | Join table limitation | Use POST then PATCH to set permission |
+| Unexpected group grant | Initial defaults or wrong relation edited | Use the resource’s Groups tab, refresh, and verify effective access |
 | Action returns HTML | Wrong URL format | Use `/action/{table}/{action}` not `/action/{table}/{id}/{action}` |
 | Cloud storage not found | Server not restarted | Restart after creating cloud_store |
 

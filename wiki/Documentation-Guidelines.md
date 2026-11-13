@@ -242,14 +242,10 @@ echo "Admin Token: $TOKEN"
 
 ### Verify Admin Status
 
-```sql
--- Check if user is in administrators group
-SELECT ua.name, ug.name as group_name
-FROM user_account ua
-JOIN user_account_user_account_id_has_usergroup_usergroup_id j ON ua.id = j.user_account_id
-JOIN usergroup ug ON j.usergroup_id = ug.id
-WHERE ug.name = 'administrators';
-```
+Open the account's **Groups** tab and confirm membership in `administrators`.
+For API checks use the parent relationship reads in
+[[Users-and-Groups#verify-group-membership]]. Do not substitute generated
+join-resource CRUD or database queries for the documented membership workflow.
 
 ---
 

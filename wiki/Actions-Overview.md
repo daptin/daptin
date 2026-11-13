@@ -637,7 +637,9 @@ curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
 
 ### Restrict Action to Admin Only
 
-To make an action admin-only, remove guest and group execute bits:
+To remove row-bitmask execution grants, set the action row permission to `0`.
+Also revoke Execute on any non-administrator group relations; changing the row
+alone does not revoke those grants. Administrator-group rules still apply:
 
 ```bash
 curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
@@ -648,7 +650,7 @@ curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
       "type": "action",
       "id": "'$ACTION_ID'",
       "attributes": {
-        "permission": 2085120
+        "permission": 0
       }
     }
   }'
@@ -656,43 +658,14 @@ curl -X PATCH "http://localhost:6336/api/action/$ACTION_ID" \
 
 ### Assign Action to User Group
 
-**Tested ✓** - To restrict an action to specific user groups:
+Open the action's **Groups** tab in the dashboard, attach the intended group,
+and set the relation's Execute permission. Hard-refresh and test as a member
+and a nonmember. Follow [[Permissions#share-with-a-group]]; creating a link alone
+does not specify an execute-only grant. The action's table/type gate and any
+subject-row execution check remain separate requirements.
 
-1. Get the action and usergroup reference IDs
-2. Create a relation via the junction table using relationships (not attributes)
-
-```bash
-# Get action ID
-ACTION_ID=$(curl -s http://localhost:6336/api/action \
-  -H "Authorization: Bearer $TOKEN" | \
-  jq -r '.data[] | select(.attributes.action_name == "your_action") | .id')
-
-# Get usergroup ID
-USERGROUP_ID=$(curl -s http://localhost:6336/api/usergroup \
-  -H "Authorization: Bearer $TOKEN" | \
-  jq -r '.data[] | select(.attributes.name == "editors") | .id')
-
-# Link action to usergroup using relationships
-curl -X POST http://localhost:6336/api/action_action_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d '{
-    "data": {
-      "type": "action_action_id_has_usergroup_usergroup_id",
-      "attributes": {},
-      "relationships": {
-        "action_id": {
-          "data": {"type": "action", "id": "'$ACTION_ID'"}
-        },
-        "usergroup_id": {
-          "data": {"type": "usergroup", "id": "'$USERGROUP_ID'"}
-        }
-      }
-    }
-  }'
-```
-
-**Note:** Junction tables can be created via POST but cannot be listed via GET.
+For schema-managed actions, prefer explicit `AccessGroups` as described above.
+Do not use generated join-table CRUD routes as the application workflow.
 
 ### Permission Bits Reference
 

@@ -143,27 +143,17 @@ echo "$TOKEN" > /tmp/daptin-token.txt
 
 ---
 
-### 6. Join Table Operations
+### 6. Group Relationships and Permissions
 
-**✅ CORRECT** - POST then PATCH for permissions:
-
-```bash
-# Step 1: Create join record (permission will be ignored)
-JOIN_ID=$(curl -s -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
-  -d '{"data":{"type":"...","attributes":{"user_account_id":"...","usergroup_id":"..."}}}' | \
-  jq -r '.data.id')
-
-# Step 2: PATCH to set permission
-curl -X PATCH "http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id/$JOIN_ID" \
-  -d '{"data":{"type":"...","id":"'$JOIN_ID'","attributes":{"permission":688128}}}'
-```
-
-**Important**: POST ignores `permission` attribute on join tables. Must PATCH after creation.
-
-**Join table permissions use bit-shifted format**:
-- Group Read (2): `2 << 14 = 32768`
-- Group Update (8): `8 << 14 = 131072`
-- Group Read+Update+Execute (42): `42 << 14 = 688128`
+- Use parent relationships for membership and links; do not publish generated
+  join-resource CRUD examples or SQL workarounds.
+- Link to [[Permissions#share-with-a-group]] for runtime permission editing.
+- Distinguish account membership, resource sharing, row masks, and table gates.
+- Verify permissions after refresh and test member/nonmember denial and revocation.
+- Do not equate nested `attributes.permission` with the dashboard save path.
+- Do not require a restart for normal resource permission edits or assume all
+  relation defaults are `2097151`.
+- Group bits are 14–20; UI group checkboxes may preserve other stored bits.
 
 ---
 
@@ -208,8 +198,8 @@ Before documenting a feature, verify you understand:
 - [ ] Bit values: Peek(1), Read(2), Create(4), Update(8), Delete(16), Execute(32), Refer(64), Full(127)
 - [ ] Formula: `guest + (owner * 128) + (group * 16384)`
 - [ ] Two-level check: Table (world) AND record must both be shared with group
-- [ ] POST ignores permission on join tables - must PATCH
-- [ ] Server restart clears Olric cache (10-minute TTL otherwise)
+- [ ] Creation uses configured defaults; group permission edits follow the canonical dashboard workflow
+- [ ] Confirm saved permissions and effective access; do not prescribe restarts for normal permission edits
 
 ### Cloud Storage
 
@@ -702,7 +692,7 @@ Before merging documentation changes:
 - [ ] All pagination uses correct `page[size]` format
 - [ ] Token extraction uses jq with proper selector
 - [ ] Permission values include calculation explanation
-- [ ] Join table examples use POST+PATCH pattern
+- [ ] Membership examples use parent relationships; group permission edits link to the canonical dashboard workflow
 - [ ] Cloud storage examples include credential linking
 - [ ] Action examples use schema file approach
 - [ ] Server restart mentioned where required

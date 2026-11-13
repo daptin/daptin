@@ -224,7 +224,7 @@ Resource creation uses the table's default record permission. Supplying
 The PATCH is the step that applies the restriction; check its response's
 `data.attributes.permission` is `0`.
 
-**After this PATCH, invocation is restricted to administrators.** `permission: 0`
+**With no other execution grants, this restricts invocation to administrators.** `permission: 0`
 grants no row-level execution rights to the owner, ordinary signed-in users, or
 guests; Daptin's administrator-group rules still allow administrators. Creating
 an account or knowing the model name does not grant access. Later in this guide,
@@ -333,15 +333,7 @@ curl http://localhost:6336/action/user_account/signup \
   }'
 ```
 
-As administrator, list accounts and copy the `data.id` of `app@example.com` as
-`USER_ID`:
-
-```bash
-curl http://localhost:6336/api/user_account \
-  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN'
-```
-
-Create the access group and copy its `data.id` as `GROUP_ID`:
+Create the access group:
 
 ```bash
 curl http://localhost:6336/api/usergroup \
@@ -350,54 +342,25 @@ curl http://localhost:6336/api/usergroup \
   -d '{"data":{"type":"usergroup","attributes":{"name":"assistant-users"}}}'
 ```
 
-Add the user to the group:
+Use the dashboard to configure the two separate links:
 
-```bash
-curl http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
-  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
-  -H 'Content-Type: application/vnd.api+json' \
-  -d '{
-    "data": {
-      "type": "user_account_user_account_id_has_usergroup_usergroup_id",
-      "attributes": {"user_account_id": "USER_ID", "usergroup_id": "GROUP_ID"}
-    }
-  }'
-```
+1. Open the `app@example.com` account, select **Groups → Add Group**, and attach `assistant-users`.
+2. Open the `assistant` model, select **Groups → Add Group**, and attach `assistant-users`.
+3. On the **model's** group relation, enable Execute and disable the other six
+   group operations. The checkboxes save automatically. Hard-refresh and confirm
+   the settings remain.
 
-Relate the model to the group:
+Keep the model row's `permission` at `0`. This leaves no row-bitmask execution
+grant; the model–group relation supplies the application's group grant.
+Changing the account–group relation's permission is not a model grant. To revoke
+this group's invocation access, disable Execute on the model–group relation and
+verify a member is denied, unless another independent grant permits execution.
 
-```bash
-curl http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id \
-  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
-  -H 'Content-Type: application/vnd.api+json' \
-  -d '{
-    "data": {
-      "type": "llm_model_llm_model_id_has_usergroup_usergroup_id",
-      "attributes": {"llm_model_id": "MODEL_ID", "usergroup_id": "GROUP_ID"}
-    }
-  }'
-```
-
-Copy this relationship's `data.id` as `MODEL_GROUP_RELATION_ID`, then grant
-`GroupExecute` on that relationship:
-
-```bash
-curl -X PATCH http://localhost:6336/api/llm_model_llm_model_id_has_usergroup_usergroup_id/MODEL_GROUP_RELATION_ID \
-  -H 'Authorization: Bearer YOUR_DAPTIN_TOKEN' \
-  -H 'Content-Type: application/vnd.api+json' \
-  -d '{
-    "data": {
-      "type": "llm_model_llm_model_id_has_usergroup_usergroup_id",
-      "id": "MODEL_GROUP_RELATION_ID",
-      "attributes": {"permission": 524288}
-    }
-  }'
-```
-
-`524288` is `GroupExecute`. Keep the model row's `permission` at `0`; the
-persisted group relationship is the access grant. To revoke this grant, PATCH
-this same relationship's permission to `0`. Other explicit grants, if present,
-remain independent.
+See [[Permissions#share-with-a-group|Share with a Group]] for the verified
+workflow, bitmask meanings, and the difference between dashboard saves and
+nested relationship updates. The UI's group checkboxes do not necessarily clear
+other bits in the complete relation mask; do not describe this as setting the
+entire stored value to `524288`.
 
 Sign in as the application user:
 

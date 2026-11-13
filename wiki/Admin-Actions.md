@@ -207,25 +207,7 @@ curl -X POST http://localhost:6336/action/certificate/download_certificate \
 
 ## Adding Admin Users
 
-Add users to administrators group:
-
-```bash
-# Get user ID
-USER_ID=$(curl --get -s \
-  --data-urlencode 'query=[{"column":"email","operator":"is","value":"newadmin@example.com"}]' \
-  -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/user_account" | jq -r '.data[0].id')
-
-# Add to administrators
-curl -X POST http://localhost:6336/api/user_account_administrators_has_usergroup_administrators \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"user_account_administrators_has_usergroup_administrators\",
-      \"attributes\": {
-        \"user_account_id\": \"$USER_ID\"
-      }
-    }
-  }"
-```
+As an existing administrator, open the intended account's **Groups** tab and
+attach `administrators`. Verify the account and group before granting this
+access. See [[Users-and-Groups#add-another-admin]] for the membership workflow;
+there is no special `user_account_administrators` application resource.

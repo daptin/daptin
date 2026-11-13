@@ -4,6 +4,12 @@
 
 **Tested ✓ 2026-01-26** with real Google OAuth credentials
 
+> The database inserts and generated relationship names in the flow trace below
+> describe internal/historical implementation, not application API instructions.
+> For current account membership and group permission editing, use
+> [[Users-and-Groups]] and [[Permissions#share-with-a-group]]. Do not copy the
+> trace's SQL or generated join names into an application CRUD workflow.
+
 ---
 
 ## Table of Contents

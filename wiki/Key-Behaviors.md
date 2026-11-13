@@ -36,7 +36,7 @@ sqlite3 daptin.db "SELECT COUNT(*) FROM world;"
 1. **Table-level**: Does user's group have access to the table itself?
 2. **Record-level**: Does user's group have access to specific records?
 
-**Related**: [[Common-Errors#api-returns-empty-data]] | [[Permissions#two-level-permission-system]]
+**Related**: [[Common-Errors#api-returns-empty-data]] | [[Permissions#two-level-permission-check-critical]]
 
 ---
 
@@ -54,46 +54,10 @@ sqlite3 daptin.db "SELECT COUNT(*) FROM world;"
 - Question: Can this group access specific records?
 - Effect: If denied, user sees only records they have permission for
 
-**Tested example**:
-```bash
-# Create marketing group
-GROUP_ID=$(curl -X POST http://localhost:6336/api/usergroup \
-  -H "Authorization: Bearer $TOKEN" -d '{"data":{"type":"usergroup","attributes":{"name":"marketing"}}}' | jq -r '.data.id')
-
-# Share TABLE with group (Level 1)
-WORLD_ID=$(curl --get --data-urlencode 'query=[{"column":"table_name","operator":"is","value":"product"}]' \
-  -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/world | jq -r '.data[0].id')
-
-curl -X POST http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" -d '{"data":{"type":"world_world_id_has_usergroup_usergroup_id","attributes":{"world_id":"'$WORLD_ID'","usergroup_id":"'$GROUP_ID'"}}}' | jq -r '.data.id'
-
-# Set permission on table-group join (MUST PATCH, POST ignores permission)
-JOIN_ID=$(curl --get --data-urlencode 'query=[{"column":"world_id","operator":"is","value":"'$WORLD_ID'"},{"column":"usergroup_id","operator":"is","value":"'$GROUP_ID'"}]' \
-  -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id | jq -r '.data[0].id')
-
-curl -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" -d '{"data":{"type":"world_world_id_has_usergroup_usergroup_id","id":"'$JOIN_ID'","attributes":{"permission":688128}}}'
-
-# MUST restart server to clear Olric cache
-./scripts/testing/test-runner.sh stop && ./scripts/testing/test-runner.sh start
-
-# Share RECORDS with group (Level 2)
-PRODUCT_ID=$(curl -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/product | jq -r '.data[0].id')
-
-curl -X POST http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $TOKEN" -d '{"data":{"type":"product_product_id_has_usergroup_usergroup_id","attributes":{"product_id":"'$PRODUCT_ID'","usergroup_id":"'$GROUP_ID'"}}}'
-
-# Set permission on record-group join (MUST PATCH)
-RECORD_JOIN_ID=$(curl --get --data-urlencode 'query=[{"column":"product_id","operator":"is","value":"'$PRODUCT_ID'"},{"column":"usergroup_id","operator":"is","value":"'$GROUP_ID'"}]' \
-  -H "Authorization: Bearer $TOKEN" http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id | jq -r '.data[0].id')
-
-curl -X PATCH "http://localhost:6336/api/product_product_id_has_usergroup_usergroup_id/$RECORD_JOIN_ID" \
-  -H "Authorization: Bearer $TOKEN" -d '{"data":{"attributes":{"permission":688128}}}'
-```
-
-**Key point**: POST ignores `permission` field on join tables - always use POST then PATCH
-
-**Related**: [[Common-Errors#403-forbidden-after-setting-permissions]] | [[Permissions]]
+For a group-based grant, configure the table's world record and the individual
+resource separately using their **Groups** tabs. See
+[[Permissions#share-with-a-group]] for the verified workflow and
+[[Permissions#two-level-permission-check-critical]] for the two gates.
 
 ---
 
@@ -278,34 +242,13 @@ curl 'http://localhost:6336/api/product?query=[{"column":"name","operator":"is",
 
 ---
 
-## POST Ignores Permission on Join Tables
+## Group Relation Permission Editing
 
-### Must PATCH after POST to set permission
-
-**Tested behavior**:
-```bash
-# Create join with permission field
-curl -X POST http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id \
-  -d '{"data":{"attributes":{"world_id":"...","usergroup_id":"...","permission":688128}}}'
-
-# Check database - permission is 2097151 (ignored the value we sent!)
-sqlite3 daptin.db "SELECT permission FROM world_world_id_has_usergroup_usergroup_id WHERE ..."
-# Shows: 2097151
-```
-
-**Correct approach**:
-```bash
-# Step 1: POST to create
-JOIN_ID=$(curl -X POST ... | jq -r '.data.id')
-
-# Step 2: PATCH to set permission
-curl -X PATCH "http://localhost:6336/api/world_world_id_has_usergroup_usergroup_id/$JOIN_ID" \
-  -d '{"data":{"attributes":{"permission":688128}}}'
-
-# Now permission is correct
-```
-
-**Related**: [[Common-Errors#403-forbidden-after-setting-permissions]] | [[Permissions]]
+Creation uses configured defaults. Dashboard group permission edits are a
+separate operation and persist after refresh; no restart is required. Use
+[[Permissions#share-with-a-group]] rather than CRUD on generated join resources.
+Nested parent relationship permission attributes do not necessarily follow the
+dashboard save path; verify the persisted grant and effective access.
 
 ---
 

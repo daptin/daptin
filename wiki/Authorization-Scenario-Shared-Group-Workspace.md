@@ -47,11 +47,14 @@ Then share records:
 
 The table gate allows signed-in users to reach the table. The row relation decides who can update each item.
 
-Runtime groups should be created via `/api/usergroup`, and users should be added through `user_account_user_account_id_has_usergroup_usergroup_id`.
+Create groups via `/api/usergroup`. Add membership through the account’s Groups
+tab or parent relationship PATCH; see [[Users-and-Groups#add-user-to-group]].
+Set each shared resource’s group grant through its Groups tab and verify it after
+refresh; see [[Permissions#share-with-a-group]].
 
 ## See Also
 
 - [[Authorization-Scenarios]] - choose another tested pattern
 - [[Authorization-Scenario-Private-Site]] - simpler authenticated-only sharing
 - [[Users-and-Groups]] - group and membership API
-- [[Permissions]] - join-table relation permission values
+- [[Permissions]] - resource–group relation permission values
