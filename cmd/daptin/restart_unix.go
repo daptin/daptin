@@ -8,7 +8,7 @@ import (
 )
 
 // Replace the drained process, preserving PID 1 in containers and all startup
-// arguments and environment. No external supervisor is needed for onboarding.
+// arguments and environment. No external supervisor is needed for action restarts.
 func restartProcess() error {
 	executable, err := os.Executable()
 	if err != nil {

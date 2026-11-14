@@ -31,17 +31,37 @@ the response and readiness procedure.
 
 ## Restarting Daptin
 
-Configuration and maintenance restarts are managed by Kubernetes, Docker,
-systemd, or another process supervisor rather than a standalone restart action.
+Available in `v0.13.51` and later.
 
-**Use cases:**
-- Apply schema changes
-- Enable/disable GraphQL
-- Load new configuration
-- Clear caches
+Use the administrator-only `world/restart_daptin` action to apply startup-loaded
+configuration or schema changes:
 
-Use that supervisor's normal restart command so Daptin receives its standard
-shutdown signal and drains through the runtime lifecycle.
+```bash
+curl http://localhost:6336/action/world/restart_daptin \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"attributes":{}}'
+```
+
+A successful call returns HTTP 200 with `ResponseType: "Restart"`. The action's
+`__restart` performer requests the existing process lifecycle: readiness becomes
+unavailable, accepted HTTP requests drain, runtime services shut down, and Daptin
+starts again with the same arguments and environment. On Unix, process replacement
+preserves the PID, including PID 1 in Docker. No Docker restart policy is required.
+
+The action has no broad execution grant and is shared with `administrators`.
+Guests and ordinary accounts receive HTTP 403. First-administrator onboarding
+uses the same lifecycle after committing its changes.
+
+During restart, `/ready` can return 503 or the connection can be unavailable.
+Wait for the new runtime to become ready before sending application traffic;
+check the configuration you changed to confirm it was loaded. The restart
+request acknowledges the request, not completion of the restart.
+
+For example, startup-loaded `limit.rate` needs a restart. Normal plan, model
+catalog, and relationship permission edits do not. Process supervisors can still
+restart Daptin through its normal shutdown signal. There is no bare `/restart`
+route; use the named action above.
 
 ## Enable GraphQL
 

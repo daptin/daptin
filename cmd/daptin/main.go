@@ -671,7 +671,7 @@ func main() {
 	select {
 	case <-runtimeInstance.RestartRequests:
 		restarting = true
-		log.Info("Administrator setup committed; restarting Daptin")
+		log.Info("Restart requested; restarting Daptin")
 	case <-processCtx.Done():
 		log.Infof("Shutdown signal received")
 	case lifecycleErr = <-serveErrors:

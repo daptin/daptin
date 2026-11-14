@@ -124,10 +124,6 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		log.Infof("ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value: %v", skipResourceInitialise)
 		InitialiseServerResources(&initConfig, db)
 	}
-	if err := resource.RemoveObsoleteSystemActions(db); err != nil {
-		log.Warnf("Failed to remove obsolete system actions: %v", err)
-	}
-
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
 	diskFileCache, err = lru.New(cacheSize)

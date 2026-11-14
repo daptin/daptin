@@ -166,13 +166,14 @@ See [[Authentication|Authentication]] for OAuth setup.
 | Action | Entity | Description |
 |--------|--------|-------------|
 | `become_an_administrator` | world | First user claims admin role |
+| `restart_daptin` | world | Administrator requests a graceful runtime restart |
 | `download_system_schema` | world | Export full schema as JSON |
 | `upload_csv_to_system_schema` | world | Create/update tables from CSV |
 
-Runtime configuration uses the administrator-only `/_config` API. Configuration
-and maintenance restarts use the process supervisor; there is no standalone
-restart action. The first administrator claim restarts automatically; see
-[[First-Admin-Setup]].
+Runtime configuration uses the administrator-only `/_config` API. To apply
+startup-loaded settings, call `world/restart_daptin`; see
+[[Admin-Actions#restarting-daptin]]. The first administrator claim uses the same
+restart lifecycle automatically; see [[First-Admin-Setup]].
 
 **Example: Export Schema**
 ```bash

@@ -1581,6 +1581,18 @@ var SystemActions = []actionresponse.Action{
 		},
 	},
 	{
+		Name:             "restart_daptin",
+		Label:            "Restart Daptin",
+		InstanceOptional: true,
+		OnType:           "world",
+		Permission:       &adminOnlyActionPermission,
+		AccessGroups:     adminOnlyActionAccessGroups,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []actionresponse.Outcome{
+			{Type: "__restart", Method: "EXECUTE", Attributes: map[string]interface{}{}},
+		},
+	},
+	{
 		Name:             "become_an_administrator",
 		Label:            "Become Daptin Administrator",
 		InstanceOptional: true,

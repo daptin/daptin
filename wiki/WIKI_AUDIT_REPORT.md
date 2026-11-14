@@ -126,7 +126,8 @@ curl http://localhost:6336/health
 
 ### 7. ~~GraphQL Restart Action (GraphQL-API.md)~~ - VERIFIED CORRECT
 
-Process restart is owned by the deployment supervisor; there is no restart HTTP action.
+The administrator-only `world/restart_daptin` action has been restored using
+the process-owned graceful restart lifecycle. See [[Admin-Actions#restarting-daptin]].
 
 **Status:** No fix needed.
 

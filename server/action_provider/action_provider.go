@@ -42,6 +42,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
 
+	restartPerformer, err := actions.NewRestartSystemPerformer(requestRestart)
+	resource.CheckErr(err, "Failed to create restart performer")
+	performers = append(performers, restartPerformer)
+
 	cloudStoreFileImportPerformer, err := actions.NewImportCloudStoreFilesPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create cloudStoreFileImportPerformer")
 	performers = append(performers, cloudStoreFileImportPerformer)

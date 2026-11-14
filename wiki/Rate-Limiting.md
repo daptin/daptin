@@ -53,8 +53,18 @@ curl -X POST http://localhost:6336/_config/backend/limit.rate \
   --data-binary '{"version":"1","limits":{"/statistics":2}}'
 ```
 
-Restart Daptin with its process supervisor because the limiter is composed at
-startup. Verify with a burst against the exact configured path. `/ping` is
+The limiter is composed at startup. Apply the new configuration with the
+administrator-only restart action:
+
+```bash
+curl http://localhost:6336/action/world/restart_daptin \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"attributes":{}}'
+```
+
+Wait for the new runtime to become ready; see [[Admin-Actions#restarting-daptin]].
+Verify with a burst against the exact configured path. `/ping` is
 handled by the outer lifecycle gate before this middleware, so it does not
 receive limiter headers and cannot be limited here.
 

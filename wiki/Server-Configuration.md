@@ -266,9 +266,10 @@ streams do not have a server-wide deadline.
 
 ### Restart ownership
 
-Daptin deliberately has no HTTP restart action. Use the deployment's process supervisor so the normal SIGTERM readiness and drain contract is followed.
-
-**Workaround:** Stop and restart the process for any changes that require restart.
+The administrator-only `world/restart_daptin` action requests a graceful restart
+through the process-owned readiness and drain lifecycle. See
+[[Admin-Actions#restarting-daptin]] for the curl command and readiness checks.
+A supervisor restart through the normal shutdown signal remains available.
 
 ---
 
