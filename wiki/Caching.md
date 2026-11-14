@@ -84,14 +84,10 @@ Cache automatically invalidates on:
 
 ## Manual Cache Clear
 
-Restart server to clear all caches:
-
-```bash
-docker restart daptin
-```
-
-Use the equivalent restart command for your process supervisor. Daptin does
-not expose a public restart action.
+An administrator can request a graceful restart through
+`POST /action/world/restart_daptin`. See [[Admin-Actions#restarting-daptin]] for
+the command and readiness checks. Normal resource permission edits invalidate
+relevant caches and do not require this step.
 
 ## TTL (Time-To-Live)
 
@@ -108,11 +104,11 @@ Default cache TTLs:
 Check Olric membership, partition ownership, and cache counters via statistics:
 
 ```bash
-curl -s http://localhost:6336/statistics | jq '.olric'
+curl -H "Authorization: Bearer $ADMIN_TOKEN" -s http://localhost:6336/statistics | jq '.olric'
 ```
 
-See [[Monitoring#statistics]] for the fields and their limits. Protect this
-public endpoint at the ingress if its operational details should stay private.
+An administrator bearer token is required. See [[Monitoring#statistics]] for
+access requirements, fields, and their limits.
 
 ## Performance Benefits
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/daptin/daptin/server/constants"
+	storagefs "github.com/daptin/daptin/server/filesystem"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -42,7 +43,11 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 	})
 
 	defaultRouter.NoRoute(func(c *gin.Context) {
-		filePath := strings.TrimLeft(c.Request.URL.Path, "/")
+		filePath, err := storagefs.ValidatePath(strings.TrimLeft(c.Request.URL.Path, "/"))
+		if err != nil {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
 		rootPath, _, _ := strings.Cut(filePath, "/")
 		if constants.WellDefinedApiPaths[rootPath] {
 			c.JSON(http.StatusNotFound, gin.H{"errors": []gin.H{{

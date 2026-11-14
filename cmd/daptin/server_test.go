@@ -514,7 +514,7 @@ func runTests(t *testing.T) error {
 		return err
 	}
 
-	resp, err = requestClient.Get(baseAddress + "/statistics")
+	resp, err = requestClient.Get(baseAddress+"/statistics", authTokenHeader)
 	if err != nil {
 		log.Printf("Failed to get %s %s", "statistics", err)
 		t.FailNow()

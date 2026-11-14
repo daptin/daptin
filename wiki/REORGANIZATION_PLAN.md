@@ -124,7 +124,7 @@ Based on walkthrough testing, this page addresses 90% of user issues:
 - Password handling - API auto-hashes, don't pre-hash
 - Server restart requirements - When it's needed
 - Filter query syntax - JSON array, not filter[field]
-- POST ignores permission on joins - Must PATCH after
+- Group membership and sharing - follow [[Permissions#share-with-a-group]]; earlier generated join-resource CRUD guidance is superseded
 - Token expiration - How to refresh
 - Credential linking - Must use relationship PATCH
 - File upload format - Array of objects with name, file, type

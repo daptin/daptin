@@ -1,8 +1,11 @@
 package resource
 
 import (
+	"context"
+	encodingjson "encoding/json"
 	"errors"
 	"fmt"
+	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-imap"
 	"github.com/artpar/go-imap/backend"
 	"github.com/daptin/daptin/server/auth"
@@ -10,6 +13,8 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 )
@@ -44,10 +49,52 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 	}
 	log.Printf("[IMAP] ListMailboxes: transaction started")
 	defer transaction.Rollback()
+	caller, err := diu.dbResource["mail_box"].MailSessionUser(diu.sessionUser, transaction)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = diu.dbResource["mail_box"].readMailResourceForSession("mail_account", daptinid.InterfaceToDIR(diu.mailAccountReferenceId), caller, transaction); err != nil {
+		return nil, err
+	}
 	mailBoxes, err := diu.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction(
 		"mail_box", transaction, goqu.Ex{"mail_account_id": diu.mailAccountId})
 	if err != nil {
 		return boxes, err
+	}
+
+	byRef := map[string]map[string]interface{}{}
+	for _, box := range mailBoxes {
+		byRef[daptinid.InterfaceToDIR(box["reference_id"]).String()] = box
+	}
+	mailBoxes = nil
+	for page := 1; ; page++ {
+		query, err := encodingjson.Marshal([]Query{{ColumnName: "mail_account_id", Operator: "=", Value: diu.mailAccountReferenceId}})
+		if err != nil {
+			return nil, err
+		}
+		location, _ := url.Parse("/api/mail_box")
+		requestContext := context.WithValue(context.Background(), "user", caller)
+		if page > 1 {
+			requestContext = WithMeteringInternal(requestContext)
+		}
+		request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodGet, URL: location}).WithContext(requestContext),
+			QueryParams: map[string][]string{"query": {string(query)}, "page[size]": {"200"}, "page[number]": {fmt.Sprint(page)}}}
+		_, response, err := diu.dbResource["mail_box"].PaginatedFindAllWithTransaction(request, transaction)
+		if err != nil {
+			return nil, err
+		}
+		models, ok := response.Result().([]api2go.Api2GoModel)
+		if !ok {
+			return nil, errors.New("native folder discovery returned invalid rows")
+		}
+		for _, model := range models {
+			if box, found := byRef[model.GetID()]; found {
+				mailBoxes = append(mailBoxes, box)
+			}
+		}
+		if len(models) < 200 {
+			break
+		}
 	}
 
 	hasTrash := false
@@ -80,7 +127,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			mailBoxId:          boxId,
 			info: imap.MailboxInfo{
 				Attributes: strings.Split(boxAttrs, ","),
-				Delimiter:  "\\",
+				Delimiter:  "/",
 				Name:       boxName,
 			},
 		}
@@ -182,7 +229,26 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 
 	}
 
-	transaction.Commit()
+	if subscribed {
+		filtered := make([]backend.Mailbox, 0, len(boxes))
+		for _, mailbox := range boxes {
+			ref := mailbox.(*DaptinImapMailBox).mailBoxReferenceId
+			if row, found := byRef[ref]; found {
+				value, err := resourceRowBool(row["subscribed"])
+				if err != nil {
+					return nil, err
+				}
+				if !value {
+					continue
+				}
+			}
+			filtered = append(filtered, mailbox)
+		}
+		boxes = filtered
+	}
+	if err = transaction.Commit(); err != nil {
+		return nil, err
+	}
 	return boxes, nil
 }
 
@@ -202,6 +268,11 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 
 	if len(box) == 0 {
 		return nil, errors.New("no such mailbox")
+	}
+
+	_, caller, err := diu.dbResource["mail_box"].readMailBoxForSession(daptinid.InterfaceToDIR(box[0]["reference_id"]), diu.sessionUser, transaction)
+	if err != nil {
+		return nil, err
 	}
 
 	boxId, ok := box[0]["id"].(int64)
@@ -236,7 +307,7 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 	mb := DaptinImapMailBox{
 		dbResource:         diu.dbResource,
 		name:               mbName,
-		sessionUser:        diu.sessionUser,
+		sessionUser:        caller,
 		mailBoxId:          boxId,
 		mailAccountId:      diu.mailAccountId,
 		lock:               sync.Mutex{},
@@ -245,7 +316,7 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 		mailBoxReferenceId: daptinid.InterfaceToDIR(box[0]["reference_id"]).String(),
 		info: imap.MailboxInfo{
 			Attributes: strings.Split(mbAttrs, ","),
-			Delimiter:  "\\",
+			Delimiter:  "/",
 			Name:       mbName,
 		},
 		status: mbStatus,
@@ -295,31 +366,11 @@ func (diu *DaptinImapUser) GetMailbox(name string) (backend.Mailbox, error) {
 // has a different unique identifier validity value.
 func (diu *DaptinImapUser) CreateMailboxWithTransaction(name string, transaction *sqlx.Tx) error {
 
-	log.Printf("Creating mailbox with name [%v] for mail account id [%v]", name, diu.mailAccountId)
-	err := diu.dbResource["mail_account"].LockMailAccountForMailboxCreation(diu.mailAccountId, transaction)
+	ref, err := GetIdToReferenceIdWithTransaction("mail_account", diu.mailAccountId, transaction)
 	if err != nil {
 		return err
 	}
-	box, err := diu.dbResource["mail_box"].GetAllObjectsWithWhereWithTransaction("mail_box", transaction,
-		goqu.Ex{
-			"mail_account_id": diu.mailAccountId,
-			"name":            name,
-		},
-	)
-	if len(box) > 0 {
-		return errors.New("mailbox already exists")
-	}
-
-	mailAccount, err := diu.dbResource["mail_box"].GetUserMailAccountRowByEmail(diu.username, transaction)
-	if err != nil {
-		return fmt.Errorf("failed to get mail account for %s: %w", diu.username, err)
-	}
-
-	_, err = diu.dbResource["mail_box"].CreateMailAccountBox(
-		daptinid.InterfaceToDIR(mailAccount["reference_id"]).String(),
-		diu.sessionUser,
-		name, transaction)
-
+	_, err = diu.dbResource["mail_box"].CreateMailFolderWithTransaction(ref.String(), name, diu.sessionUser, transaction)
 	return err
 
 }

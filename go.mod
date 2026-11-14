@@ -33,7 +33,7 @@ require (
 	github.com/bjarneh/latinx v0.0.0-20120329061922-4dfe9ba2a293
 	github.com/buraksezer/olric v0.5.7
 	github.com/daptin/go-webdav v0.7.11
-	github.com/daptin/llmgateway v0.1.0-dev.35
+	github.com/daptin/llmgateway v0.1.0-dev.36
 	github.com/disintegration/gift v1.2.1
 	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
 	github.com/doug-martin/goqu/v9 v9.11.1

@@ -559,6 +559,11 @@ func (dbResource *DbResource) deleteWithoutFiltersWithData(id daptinid.DaptinRef
 		log.Printf("Delete Sql: %v\n", sql1)
 
 		_, err = transaction.Exec(sql1, args...)
+		if err == nil && m.GetTableName() == USER_ACCOUNT_TABLE_NAME {
+			if email, ok := data["email"].(string); ok && email != "" {
+				auth.InvalidateAuthCacheForEmail(email)
+			}
+		}
 		return err
 	}
 

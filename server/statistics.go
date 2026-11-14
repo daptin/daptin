@@ -8,7 +8,11 @@ import (
 	"time"
 
 	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/permission"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -393,8 +397,36 @@ func olricStatistics(ctx context.Context, client *olric.EmbeddedClient, address 
 	return result
 }
 
-func CreateStatisticsHandler(db database.DatabaseConnection, olricDb *olric.EmbeddedClient, localOlricAddr string) func(*gin.Context) {
+func statisticsAdministratorMiddleware(db database.DatabaseConnection, userResource *resource.DbResource) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		user, _ := c.Request.Context().Value("user").(*auth.SessionUser)
+		if user == nil || user.UserReferenceId == daptinid.NullReferenceId {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		tx, err := db.Beginx()
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		// Resolve persisted membership so revoked access cannot survive in a session cache.
+		groups := userResource.GetObjectUserGroupsByWhereWithTransaction(resource.USER_ACCOUNT_TABLE_NAME, tx,
+			"reference_id", user.UserReferenceId[:])
+		isAdmin := (permission.PermissionInstance{}).CanRead(user.UserReferenceId, groups, userResource.AdministratorGroupId)
+		_ = tx.Rollback()
+		if !isAdmin {
+			c.AbortWithStatus(http.StatusForbidden)
+		}
+	}
+}
+
+func CreateStatisticsHandler(db database.DatabaseConnection, olricDb *olric.EmbeddedClient, localOlricAddr string, userResource *resource.DbResource) func(*gin.Context) {
+	authorize := statisticsAdministratorMiddleware(db, userResource)
+	return func(c *gin.Context) {
+		authorize(c)
+		if c.IsAborted() {
+			return
+		}
 		stats := make(map[string]interface{})
 
 		// Web stats

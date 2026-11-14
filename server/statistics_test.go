@@ -3,12 +3,84 @@ package server
 import (
 	"context"
 	stdjson "encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	olricstats "github.com/buraksezer/olric/stats"
+	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/resource"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
+
+func TestStatisticsRejectsGuestsBeforeCollectingMetrics(t *testing.T) {
+	for name, user := range map[string]interface{}{
+		"absent":         nil,
+		"wrong type":     "administrator",
+		"empty identity": &auth.SessionUser{},
+		"typed nil":      (*auth.SessionUser)(nil),
+	} {
+		t.Run(name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(response)
+			c.Request = httptest.NewRequest(http.MethodGet, "/statistics", nil)
+			if user != nil {
+				c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "user", user))
+			}
+			// A nil database would panic if collection or authorization queries ran.
+			CreateStatisticsHandler(nil, nil, "", nil)(c)
+			if response.Code != http.StatusForbidden || response.Body.Len() != 0 || !c.IsAborted() {
+				t.Fatalf("guest statistics: status=%d body=%s", response.Code, response.Body)
+			}
+		})
+	}
+}
+
+func TestStatisticsDatabaseFailureDoesNotExposeMetrics(t *testing.T) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	response := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(response)
+	c.Request = httptest.NewRequest(http.MethodGet, "/statistics", nil)
+	c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "user", &auth.SessionUser{
+		UserReferenceId: daptinid.DaptinReferenceId(uuid.New()),
+	}))
+	CreateStatisticsHandler(db, nil, "", nil)(c)
+	if response.Code != http.StatusInternalServerError || response.Body.Len() != 0 || !c.IsAborted() {
+		t.Fatalf("unavailable authorization: status=%d body=%s", response.Code, response.Body)
+	}
+}
+
+func TestStatisticsUnavailableMembershipDoesNotExposeMetrics(t *testing.T) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	response := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(response)
+	c.Request = httptest.NewRequest(http.MethodGet, "/statistics", nil)
+	c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), "user", &auth.SessionUser{
+		UserReferenceId: daptinid.DaptinReferenceId(uuid.New()),
+	}))
+	// No membership schema is available; its lookup must fail closed.
+	CreateStatisticsHandler(db, nil, "", &resource.DbResource{
+		AdministratorGroupId: daptinid.DaptinReferenceId(uuid.New()),
+	})(c)
+	if response.Code != http.StatusForbidden || response.Body.Len() != 0 || !c.IsAborted() {
+		t.Fatalf("unavailable membership: status=%d body=%s", response.Code, response.Body)
+	}
+}
 
 func TestOlricStatisticsExposeLocalClusterMetricsWithoutCommandLine(t *testing.T) {
 	address, _, client := startRateLimitTestNode(t, "")

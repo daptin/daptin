@@ -11,6 +11,7 @@ import (
 
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
+	mailheader "github.com/emersion/go-message/mail"
 )
 
 const (
@@ -47,6 +48,7 @@ type normalizedMail struct {
 	PreferredTextBody string
 	HTMLBody          string
 	Parts             []normalizedMailPart
+	Envelope          map[string]interface{}
 }
 
 type mailUnpackErrorDetail struct {
@@ -92,6 +94,34 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 	normalized := &normalizedMail{
 		Parts: make([]normalizedMailPart, 0),
 	}
+	header := mailheader.Header{Header: entity.Header}
+	warnings := []string{}
+	addresses := func(name string) []map[string]string {
+		result := []map[string]string{}
+		values, err := header.AddressList(name)
+		if err != nil {
+			warnings = append(warnings, name)
+			return result
+		}
+		for _, value := range values {
+			result = append(result, map[string]string{"name": value.Name, "address": value.Address})
+		}
+		return result
+	}
+	subject, _ := header.Subject()
+	messageID, _ := header.MessageID()
+	reply, _ := header.MsgIDList("In-Reply-To")
+	references, _ := header.MsgIDList("References")
+	if references == nil {
+		references = []string{}
+	}
+	inReplyTo := ""
+	if len(reply) > 0 {
+		inReplyTo = reply[0]
+	}
+	normalized.Envelope = map[string]interface{}{"subject": subject, "message_id": messageID, "in_reply_to": inReplyTo, "references": references,
+		"from": addresses("From"), "to": addresses("To"), "cc": addresses("Cc"), "bcc": addresses("Bcc"), "reply_to": addresses("Reply-To")}
+	normalized.Envelope["warnings"] = warnings
 
 	var decodedTotal int64
 	var headerTotal int64

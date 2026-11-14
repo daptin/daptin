@@ -177,6 +177,18 @@ curl -X PATCH http://localhost:6336/api/todo/REFERENCE_ID \
   }'
 ```
 
+### Prevent stale updates
+
+Read the record's `attributes.version` and include that positive integer in
+PATCH attributes alongside the changed fields. Daptin rejects a stale revision
+with HTTP 409 and leaves the stored record unchanged. Its existing conditional
+SQL update also detects a competing change during the request. Invalid revision
+values return HTTP 422.
+
+After a successful update, GET the record for its new revision before the next
+edit. The PATCH response may echo the submitted revision. A PATCH omitting
+`version` does not protect the caller's earlier read from a later overwrite.
+
 ### Update Relationship
 
 ```bash

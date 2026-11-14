@@ -11,7 +11,8 @@ import (
 
 // becomeAdminActionPerformer daptin action implementation
 type becomeAdminActionPerformer struct {
-	cruds map[string]*resource.DbResource
+	cruds          map[string]*resource.DbResource
+	requestRestart func()
 }
 
 // Name of the action
@@ -38,16 +39,15 @@ func (d *becomeAdminActionPerformer) DoAction(request actionresponse.Outcome, in
 	if d.cruds["world"].BecomeAdmin(user["id"].(int64), transaction) {
 		commitError := resource.CommitBecomeAdmin(transaction, d.cruds)
 		if commitError != nil {
-			resource.CheckErr(commitError, "failed to commit")
 			return nil, nil, []error{commitError}
 		}
 		responseAttrs["location"] = "/"
 		responseAttrs["window"] = "self"
 		responseAttrs["delay"] = 7000
-		//go Restart()
 		actionResponse = resource.NewActionResponse("client.redirect", responseAttrs)
 		userRefId := daptinid.InterfaceToDIR(user["reference_id"])
 		resource.InvalidateAdminCacheForUser(userRefId)
+		d.requestRestart()
 	} else {
 		rollbackError := transaction.Rollback()
 		resource.CheckErr(rollbackError, "failed to rollback")
@@ -60,10 +60,11 @@ func (d *becomeAdminActionPerformer) DoAction(request actionresponse.Outcome, in
 }
 
 // Create a new action performer for becoming administrator action
-func NewBecomeAdminPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource) (actionresponse.ActionPerformerInterface, error) {
+func NewBecomeAdminPerformer(initConfig *resource.CmsConfig, cruds map[string]*resource.DbResource, requestRestart func()) (actionresponse.ActionPerformerInterface, error) {
 
 	handler := becomeAdminActionPerformer{
-		cruds: cruds,
+		cruds:          cruds,
+		requestRestart: requestRestart,
 	}
 
 	return &handler, nil

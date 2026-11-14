@@ -4,6 +4,10 @@
 > setup and operating guidance, use [[Installation]], [[Database-Setup]], and
 > [[Production-Deployment]].
 
+For current membership and sharing guidance, use [[Users-and-Groups]] and
+[[Permissions#share-with-a-group]]. Historical claims below about “fixed junction
+table names” do not endorse generated join-resource CRUD.
+
 Track what's documented and what users still need.
 
 **Rule**: Only mark complete after testing the documented workflow yourself.

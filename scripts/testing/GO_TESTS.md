@@ -56,3 +56,56 @@ For a focused run while developing:
 ```bash
 DAPTIN_REAL_E2E=1 go test -count=1 -run '^TestExampleRealE2E$' ./cmd/daptin
 ```
+
+## Browser Mail protocol acceptance
+
+`TestMailNativeRoundTripRealE2E` reuses the shared executable harness with a
+fresh SQLite database, HTTP-created resources and a restarted loopback-only
+IMAP listener. It uses STARTTLS and a fixture-generated self-signed certificate;
+verification is relaxed only in the test client. It exercises MIME/UID/flags,
+native drafts and HTTP adoption, COPY/EXPUNGE, subscriptions, empty bodies,
+APPEND bounds and live permission revocation:
+
+```bash
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
+  go test ./cmd/daptin -run '^TestMailNativeRoundTripRealE2E$' -count=1
+```
+
+`TestMailLoopbackSMTPAndCrashRealE2E` binds an ephemeral unprivileged
+**127.0.0.1** SMTP port and configures the disposable server through the normal
+administrator-only `/_config/backend/outbox.smtp_port` setting. Recipients use
+`localhost`, so no custom DNS server, privileged port or container is needed.
+The production default remains port 25. Invalid port configuration is rejected
+before claiming queued messages. The test captures To/Bcc envelopes and signed
+MIME, checks `smtp_accepted`, qualifies the real 30-second final-acknowledgment
+deadline/uncertainty/no-redelivery path, then holds another acknowledgment and abruptly
+kills the disposable worker and checks that restart preserves `uncertain`
+without redelivery:
+
+```bash
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
+  go test ./cmd/daptin -run '^TestMailLoopbackSMTPAndCrashRealE2E$' -count=1
+```
+
+This SMTP test is opt-in and never uses a live installation or external
+recipient. Successful compilation or an ordinary skipped run is not SMTP
+acceptance. Results are recorded in the canonical Office Mail plan.
+
+## Administrator restart in Docker
+
+Build the candidate Linux binary and package it with the repository's production
+`Dockerfile`. Point the opt-in tests at that local image:
+
+```bash
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_DOCKER_IMAGE=daptin/admin-restart-test:local \
+  go test ./cmd/daptin -run '^TestAdminRestartDocker' -count=1 -v
+```
+
+These tests create uniquely named disposable containers, volumes, and networks.
+They exercise the non-root production entrypoint as PID 1 with Docker restart
+disabled, an init process with a read-only root filesystem, SQLite, PostgreSQL
+17, and MariaDB 10.11. They verify readiness transitions, unchanged container
+PID/start time, preserved authentication, administrator-owned system tasks,
+no duplicate tasks after a persisted restart, an accepted request draining
+before replacement, and SIGTERM canceling a pending restart. Existing containers
+are not used. The database images must be available to Docker.

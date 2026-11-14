@@ -24,6 +24,9 @@ type Runtime struct {
 	ConfigStore        *resource.ConfigStore
 	CertificateManager *resource.CertificateManager
 
+	// RestartRequests asks the process owner to drain this runtime and restart.
+	RestartRequests <-chan struct{}
+
 	mailDaemon              *guerrilla.Daemon
 	scheduler               *resource.DefaultTaskScheduler
 	ftpServer               *ftpserver.FtpServer

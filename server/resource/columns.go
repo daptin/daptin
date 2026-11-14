@@ -15,6 +15,7 @@ var publicBookingActionPermission = auth.GuestExecute
 var adminOnlyActionPermission = auth.None
 var adminGroupExecutePermission = auth.GroupExecute
 var adminQueuePermission = auth.GroupCRUD | auth.GroupExecute
+var userAccountMembershipPermission = auth.None
 
 const defaultCalendarColor = "#3B82F6"
 
@@ -54,7 +55,7 @@ var StandardColumns = []api2go.ColumnInfo{
 			"new records, this integer increments with each update to support optimistic " +
 			"concurrency control and change tracking. Exposed through the API.",
 		DefaultValue:   "1",
-		ExcludeFromApi: true,
+		ExcludeFromApi: false,
 	},
 	{
 		Name:       "created_at",
@@ -118,6 +119,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("llm_deployment", "belongs_to", "llm_model"),
 	api2go.NewTableRelation("llm_deployment", "belongs_to", "llm_provider"),
 	api2go.NewTableRelation("llm_file", "belongs_to", "document"),
+	api2go.NewTableRelationWithNames("api_usage", "child_usage_id", "has_one", "api_usage", "parent_usage_id"),
 	api2go.NewTableRelationWithNames("llm_batch", "input_batch_id", "belongs_to", "llm_file", "input_file_id"),
 	api2go.NewTableRelationWithNames("llm_batch", "output_batch_id", "has_one", "llm_file", "output_file_id"),
 	api2go.NewTableRelation("llm_batch_item", "belongs_to", "llm_batch"),
@@ -129,6 +131,7 @@ var StandardRelations = []api2go.TableRelation{
 	api2go.NewTableRelation("site", "has_one", "cloud_store"),
 	api2go.NewTableRelationWithNames("collection", "scheduling_mail_account", "has_one", "mail_account", "scheduling_mail_account_id"),
 	api2go.NewTableRelation("outbox", "belongs_to", "mail_server"),
+	api2go.NewTableRelationWithNames("outbox", "queued_mail", "has_one", "mail", "sent_mail_id"),
 	api2go.NewTableRelation("mail_account", "belongs_to", "mail_server"),
 	api2go.NewTableRelation("mail_box", "belongs_to", "mail_account"),
 	api2go.NewTableRelation("mail", "belongs_to", "mail_box"),
@@ -823,6 +826,116 @@ var SystemActions = []actionresponse.Action{
 		},
 	},
 	{
+		Name:             "unpack",
+		Label:            "Read message",
+		OnType:           "mail",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields:         []api2go.ColumnInfo{{Name: "message_ref", ColumnName: "message_ref", ColumnType: "alias", IsNullable: false}},
+		OutFields: []actionresponse.Outcome{{
+			Type: "mail.read", Method: "EXECUTE",
+			Attributes: map[string]interface{}{"mail_id": "~message_ref"},
+		}},
+	},
+	{
+		Name:             "source",
+		Label:            "Original message source",
+		OnType:           "mail",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields:         []api2go.ColumnInfo{{Name: "message_ref", ColumnName: "message_ref", ColumnType: "alias", IsNullable: false}},
+		OutFields: []actionresponse.Outcome{{Type: "mail.read", Method: "EXECUTE",
+			Attributes: map[string]interface{}{"mail_id": "~message_ref", "format": "source"},
+		}},
+	},
+	{
+		Name:             "draft_save",
+		Label:            "Save mail draft",
+		OnType:           "mail_account",
+		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
+		InFields:         []api2go.ColumnInfo{{Name: "draft", ColumnName: "draft", ColumnType: "json", IsNullable: false}},
+		OutFields:        []actionresponse.Outcome{{Type: "mail.draft.save", Method: "EXECUTE", Attributes: map[string]interface{}{"draft": "~draft"}}},
+	},
+	{
+		Name: "draft_status", Label: "Reconcile mail draft", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "draft", ColumnName: "draft", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.draft.status", Method: "EXECUTE", Attributes: map[string]interface{}{"draft": "~draft"}}},
+	},
+	{
+		Name: "draft_delete", Label: "Discard mail draft", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "draft", ColumnName: "draft", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.draft.delete", Method: "EXECUTE", Attributes: map[string]interface{}{"draft": "~draft"}}},
+	},
+	{
+		Name: "submit", Label: "Submit saved mail draft", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "submission", ColumnName: "submission", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.submit", Method: "EXECUTE", Attributes: map[string]interface{}{"submission": "~submission"}}},
+	},
+	{
+		Name: "submission_status", Label: "Reconcile mail submission", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "submission", ColumnName: "submission", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.submission.status", Method: "EXECUTE", Attributes: map[string]interface{}{"submission": "~submission"}}},
+	},
+	{
+		Name: "message_state", Label: "State mail message", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "message", ColumnName: "message", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.message.state", Method: "EXECUTE", Attributes: map[string]interface{}{"message": "~message"}}},
+	},
+	{
+		Name: "message_flags", Label: "Flags mail message", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "message", ColumnName: "message", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.message.flags", Method: "EXECUTE", Attributes: map[string]interface{}{"message": "~message"}}},
+	},
+	{
+		Name: "message_move", Label: "Move mail message", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "message", ColumnName: "message", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.message.move", Method: "EXECUTE", Attributes: map[string]interface{}{"message": "~message"}}},
+	},
+	{
+		Name: "message_archive", Label: "Archive mail message", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "message", ColumnName: "message", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.message.archive", Method: "EXECUTE", Attributes: map[string]interface{}{"message": "~message"}}},
+	},
+	{
+		Name: "message_trash", Label: "Trash mail message", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "message", ColumnName: "message", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.message.trash", Method: "EXECUTE", Attributes: map[string]interface{}{"message": "~message"}}},
+	},
+	{
+		Name: "message_delete", Label: "Delete mail message", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "message", ColumnName: "message", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.message.delete", Method: "EXECUTE", Attributes: map[string]interface{}{"message": "~message"}}},
+	},
+	{
+		Name: "folder_create", Label: "Create mail folder", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "folder", ColumnName: "folder", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.folder.create", Method: "EXECUTE", Attributes: map[string]interface{}{"folder": "~folder"}}},
+	},
+	{
+		Name: "folder_rename", Label: "Rename mail folder", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "folder", ColumnName: "folder", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.folder.rename", Method: "EXECUTE", Attributes: map[string]interface{}{"folder": "~folder"}}},
+	},
+	{
+		Name: "folder_delete", Label: "Delete mail folder", OnType: "mail_account", InstanceOptional: true,
+		Permission: &authenticatedOTPActionPermission,
+		InFields:   []api2go.ColumnInfo{{Name: "folder", ColumnName: "folder", ColumnType: "json", IsNullable: false}},
+		OutFields:  []actionresponse.Outcome{{Type: "mail.folder.delete", Method: "EXECUTE", Attributes: map[string]interface{}{"folder": "~folder"}}},
+	},
+	{
 		Name:             "process_outbox",
 		Label:            "Process Outbox Queue",
 		OnType:           "outbox",
@@ -1465,6 +1578,18 @@ var SystemActions = []actionresponse.Action{
 					"message":   "~message",
 				},
 			},
+		},
+	},
+	{
+		Name:             "restart_daptin",
+		Label:            "Restart Daptin",
+		InstanceOptional: true,
+		OnType:           "world",
+		Permission:       &adminOnlyActionPermission,
+		AccessGroups:     adminOnlyActionAccessGroups,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields: []actionresponse.Outcome{
+			{Type: "__restart", Method: "EXECUTE", Attributes: map[string]interface{}{}},
 		},
 	},
 	{
@@ -2990,9 +3115,11 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     USER_ACCOUNT_TABLE_NAME,
-		Icon:          "fa-user",
-		DefaultGroups: table_info.DefaultGroups("users"),
+		TableName: USER_ACCOUNT_TABLE_NAME,
+		Icon:      "fa-user",
+		DefaultGroups: table_info.DefaultGroupList{
+			{Name: "users", Permission: &userAccountMembershipPermission},
+		},
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:              "name",
@@ -3571,7 +3698,7 @@ var StandardTables = []table_info.TableInfo{
 		DefaultGroups: adminsGroup,
 		IsHidden:      false,
 		Metering: &table_info.MeteringConfig{OnActions: map[string]table_info.MeteringConfig{
-			"invoke": {Enabled: true, CostExpr: "1", MeterType: "requests"},
+			"invoke": {Enabled: true, CostExpr: "1", MeterType: "requests", Capture: &table_info.PayloadCaptureConfig{Enabled: true, MaxBytes: 16 << 20}},
 		}},
 		Columns: []api2go.ColumnInfo{
 			{Name: "name", ColumnName: "name", ColumnType: "label", DataType: "varchar(200)", IsUnique: true, IsIndexed: true,
@@ -3702,7 +3829,8 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "api_usage",
+		TableName:  "api_usage",
+		Permission: auth.GuestPeek | auth.GuestRead, DefaultPermission: auth.UserCRUD,
 		Icon:          "fa-chart-line",
 		DefaultGroups: adminsGroup,
 		IsHidden:      false,
@@ -3866,6 +3994,7 @@ var StandardTables = []table_info.TableInfo{
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-at",
 		Columns: []api2go.ColumnInfo{
+			{Name: "next_uidvalidity", ColumnName: "next_uidvalidity", ColumnType: "value", DataType: "bigint", DefaultValue: "1"},
 			{
 				Name:       "username",
 				ColumnName: "username",
@@ -3886,10 +4015,11 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "mail_box",
-		IsHidden:      false,
-		Icon:          "fa-inbox",
-		DefaultGroups: adminsGroup,
+		TableName:         "mail_box",
+		DefaultPermission: auth.UserCRUD | auth.UserExecute,
+		IsHidden:          false,
+		Icon:              "fa-inbox",
+		DefaultGroups:     adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "name",
@@ -3939,12 +4069,19 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:        "mail",
-		IsHidden:         false,
-		Icon:             "fa-envelope",
-		DefaultGroups:    adminsGroup,
-		CompositeIndexes: [][]string{{"mail_box_id", "uid", "id"}},
+		TableName:         "mail",
+		DefaultPermission: auth.UserCRUD | auth.UserExecute,
+		IsHidden:          false,
+		Icon:              "fa-envelope",
+		DefaultGroups:     adminsGroup,
+		CompositeIndexes:  [][]string{{"mail_box_id", "uid", "id"}},
 		Columns: []api2go.ColumnInfo{
+			{Name: "compose_key", ColumnName: "compose_key", ColumnType: "alias", DataType: "varchar(64)", IsNullable: true, IsUnique: true},
+			{Name: "draft_write_key", ColumnName: "draft_write_key", ColumnType: "alias", DataType: "varchar(64)", IsNullable: true},
+			{Name: "submission_key", ColumnName: "submission_key", ColumnType: "alias", DataType: "varchar(64)", IsNullable: true},
+			{Name: "submission_revision", ColumnName: "submission_revision", ColumnType: "label", DataType: "varchar(64)", IsNullable: true},
+			{Name: "draft_write_revision", ColumnName: "draft_write_revision", ColumnType: "label", DataType: "varchar(64)", IsNullable: true},
+			{Name: "draft_write_hash", ColumnName: "draft_write_hash", ColumnType: "label", DataType: "varchar(64)", IsNullable: true},
 			{
 				Name:       "message_id",
 				ColumnName: "message_id",
@@ -4133,10 +4270,11 @@ var StandardTables = []table_info.TableInfo{
 		},
 	},
 	{
-		TableName:     "outbox",
-		IsHidden:      false,
-		Icon:          "fa-paper-plane",
-		DefaultGroups: adminsGroup,
+		TableName:         "outbox",
+		DefaultPermission: auth.UserPeek | auth.UserRead | auth.UserRefer,
+		IsHidden:          false,
+		Icon:              "fa-paper-plane",
+		DefaultGroups:     adminsGroup,
 		Columns: []api2go.ColumnInfo{
 			{
 				Name:       "from_address",

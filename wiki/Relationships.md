@@ -213,7 +213,7 @@ Relations:
 
 Creates join table: `customer_customer_id_has_order_order_id`
 
-**Note**: Join tables are NOT directly accessible. Use relationship endpoints.
+**Application API**: Use parent relationship endpoints, not generated join-table CRUD routes. See [Group relationships and permissions](#group-relationships-and-permissions).
 
 ### API Usage
 
@@ -240,7 +240,7 @@ Relations:
 
 Creates join table: `product_product_id_has_category_category_id`
 
-**Note**: Join tables are NOT directly accessible via REST API. Access relationships through parent entities.
+**Application API**: Access relationships through parent entities. Generated join-resource routes are not the application contract; see [Group relationships and permissions](#group-relationships-and-permissions).
 
 ### API Usage
 
@@ -248,7 +248,7 @@ Creates join table: `product_product_id_has_category_category_id`
 # Get product's categories via relationship endpoint
 curl "http://localhost:6336/api/product/PROD_ID/category_id"
 
-# Replace the product's category links via PATCH
+# Add category links via a parent PATCH
 curl -X PATCH "http://localhost:6336/api/product/PROD_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
@@ -264,8 +264,7 @@ curl -X PATCH "http://localhost:6336/api/product/PROD_ID" \
     }
   }'
 
-# To remove a relationship, you need to update with the remaining relationships
-# or use the inverse relationship from the other entity
+# This parent update adds/updates supplied links; do not assume omitted links are removed.
 ```
 
 ### GraphQL mutations
@@ -327,6 +326,20 @@ curl "http://localhost:6336/api/mail_account?include=mail_server_id,user_account
 
 ---
 
+## Group relationships and permissions
+
+Membership (account → group), sharing (resource → group), and the resource's
+own row permission are separate data. The dashboard can create links and edit
+relation permissions, and those edits persist after refresh. Follow
+[[Permissions#share-with-a-group]] for the canonical procedure.
+
+Generated join tables are internal storage. Some routes are currently exposed
+and the dashboard uses a relation-record PATCH internally, so claiming they are
+all inaccessible is inaccurate. Their collection CRUD is not a supported guide
+workflow. Applications should use parent relationships for linking and reading.
+A nested relationship attribute update is also not interchangeable with the
+dashboard's permission save; see [[Permissions#api-boundaries-and-verification]].
+
 ## Relationship Endpoints
 
 ### Get Related Resources
@@ -346,7 +359,11 @@ curl "http://localhost:6336/api/user_account/USER_UUID/usergroup_id?page[size]=1
 
 ### Understanding IDs in Relationship Responses
 
-**Important**: When accessing via relationship endpoints, the IDs have special meaning:
+For to-many **related-resource** responses such as
+`GET /api/user_account/USER_ID/usergroup_id`, IDs have special meaning. This is
+not the to-one case and not the linkage endpoint
+`GET /api/user_account/USER_ID/relationships/usergroup_id`, whose identifiers
+are the actual groups' public reference IDs:
 
 ```json
 {

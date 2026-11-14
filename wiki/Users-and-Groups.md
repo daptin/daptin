@@ -152,94 +152,61 @@ curl -X POST http://localhost:6336/api/usergroup \
 
 ### Add User to Group
 
-**Tested ✓** - Use the junction table `user_account_user_account_id_has_usergroup_usergroup_id`.
+In the dashboard, open the account and use **Groups → Add Group**. This creates
+membership. To configure what that group may do to another resource, edit the
+other resource's **Groups** tab; see [[Permissions#share-with-a-group]].
 
-**Method 1: Using attributes** (simpler, recommended):
-
-```bash
-# Get user and group IDs
-USER_ID=$(curl --get \
-  --data-urlencode 'query=[{"column":"email","operator":"is","value":"newuser@example.com"}]' \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:6336/api/user_account" | jq -r '.data[0].id')
-
-GROUP_ID=$(curl --get \
-  --data-urlencode 'query=[{"column":"name","operator":"is","value":"editors"}]' \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:6336/api/usergroup" | jq -r '.data[0].id')
-
-# Add user to group
-curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"user_account_user_account_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"user_account_id\": \"$USER_ID\",
-        \"usergroup_id\": \"$GROUP_ID\"
-      }
-    }
-  }"
-```
-
-**Method 2: Using relationships**:
+For API link creation, PATCH the account's relationship using the account and
+group public reference IDs. Replace `USER_ID` and `GROUP_ID` below:
 
 ```bash
-curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
+curl -X PATCH http://localhost:6336/api/user_account/USER_ID \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
+  -H 'Content-Type: application/vnd.api+json' \
   -d '{
     "data": {
-      "type": "user_account_user_account_id_has_usergroup_usergroup_id",
+      "type": "user_account",
+      "id": "USER_ID",
       "relationships": {
-        "user_account_id": {
-          "data": {"type": "user_account", "id": "USER_REFERENCE_ID"}
-        },
         "usergroup_id": {
-          "data": {"type": "usergroup", "id": "GROUP_REFERENCE_ID"}
+          "data": [{"type": "usergroup", "id": "GROUP_ID"}]
         }
       }
     }
   }'
 ```
 
-**Both methods work**, but the attributes method is easier to use with variables.
+This adds the link; it does not choose an explicit relation permission. Do not
+add nested `attributes.permission` and assume it performs the same save as the
+dashboard's permission controls. See [[Permissions#api-boundaries-and-verification]].
 
 ### Verify Group Membership
 
-**Tested ✓** - Check which users are in which groups:
+Read the account's relationship identifiers:
 
 ```bash
-# Via API
-curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id?page%5Bsize%5D=100" | \
-  jq '.data[] | {user_id: .attributes.user_account_id, group_id: .attributes.usergroup_id}'
-
-# Or via database (more readable)
-sqlite3 daptin.db "
-SELECT u.name as User, ug.name as UserGroup
-FROM user_account_user_account_id_has_usergroup_usergroup_id j
-JOIN user_account u ON j.user_account_id = u.id
-JOIN usergroup ug ON j.usergroup_id = ug.id
-ORDER BY u.name, ug.name;
-"
+curl http://localhost:6336/api/user_account/USER_ID/relationships/usergroup_id \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+The `data` identifiers here are actual group reference IDs. To see group names
+and relation attributes, use the related-resource endpoint:
+
+```bash
+curl http://localhost:6336/api/user_account/USER_ID/usergroup_id \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+For these to-many related-resource results, `data.id` identifies the relation
+row, while `attributes.relation_reference_id` identifies the group. Do not use
+a relation ID as a group ID. See [[Relationships#understanding-ids-in-relationship-responses]].
 
 ### Remove User from Group
 
-Delete the junction record:
-
-```bash
-# Get the junction record ID
-JUNCTION_ID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id?page%5Bsize%5D=100" | \
-  jq -r '.data[] | select(.attributes.user_account_id == "USER_ID" and .attributes.usergroup_id == "GROUP_ID") | .id')
-
-# Delete it
-curl -X DELETE "http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id/$JUNCTION_ID" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-```
+Open the account's **Groups** tab and click **Remove** on the intended group.
+Refresh and verify the membership is absent. Clearing the relation's permission
+bits does not remove membership. Removing one membership does not revoke grants
+from other groups, ownership, guest access, or administrator membership.
 
 ---
 
@@ -262,39 +229,10 @@ Server restarts. Sign in again.
 
 ### Add Another Admin
 
-Add user to the administrators group:
-
-```bash
-# 1. Find the administrators group ID
-ADMIN_GROUP_ID=$(curl --get \
-  --data-urlencode 'query=[{"column":"name","operator":"is","value":"administrators"}]' \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:6336/api/usergroup" | jq -r '.data[0].id')
-
-echo "Administrators group ID: $ADMIN_GROUP_ID"
-
-# 2. Get the user ID to promote
-USER_ID=$(curl --get \
-  --data-urlencode 'query=[{"column":"email","operator":"is","value":"newuser@example.com"}]' \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:6336/api/user_account" | jq -r '.data[0].id')
-
-echo "User ID: $USER_ID"
-
-# 3. Add user to administrators group
-curl -X POST http://localhost:6336/api/user_account_user_account_id_has_usergroup_usergroup_id \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"user_account_user_account_id_has_usergroup_usergroup_id\",
-      \"attributes\": {
-        \"user_account_id\": \"$USER_ID\",
-        \"usergroup_id\": \"$ADMIN_GROUP_ID\"
-      }
-    }
-  }"
-```
+As an existing administrator, open the intended account's **Groups** tab and
+attach the built-in `administrators` group. Use the membership workflow above;
+do not invent a special administrator join resource. Verify the selected
+account and group before granting this access, then test as that account.
 
 ---
 
@@ -428,7 +366,7 @@ curl http://localhost:6336/api/user_account \
 |---------|----------|
 | **403 on signup** | Admin exists, signup disabled. Ask admin to create account. |
 | **Invalid password** | Check email/password. Passwords are case-sensitive. |
-| **Can't add user to group** | Use full junction table name: `user_account_user_account_id_has_usergroup_usergroup_id` |
+| **Can't add user to group** | Use the account’s Groups tab or parent relationship PATCH; verify public reference IDs and authorization |
 | **403 on password reset** | Guest users cannot trigger password reset. Admin must initiate. |
 | **Password reset email not received** | SMTP not configured. See [[SMTP-Server|SMTP Server]]. |
 | **OTP "no reference id"** | `register_otp` requires `user_account_id` in attributes. |

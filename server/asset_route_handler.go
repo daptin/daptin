@@ -13,6 +13,7 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"html"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -63,6 +64,10 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
+		if colInfo.ColumnType == "markdown" {
+			// Do not reuse unescaped HTML cached by earlier versions.
+			cacheKey = "markdown-escaped:" + cacheKey
+		}
 
 		if fileCache != nil {
 			if cachedFile, found := fileCache.Get(cacheKey); found {
@@ -112,7 +117,7 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			etag := cache.GenerateETag([]byte(markdownContent), time.Now())
 
 			// Cache the markdown content
-			htmlContent := fmt.Sprintf("<pre>%s</pre>", markdownContent)
+			htmlContent := fmt.Sprintf("<pre>%s</pre>", html.EscapeString(markdownContent))
 			cachedMarkdown := &cache.CachedFile{
 				Data:            []byte(htmlContent),
 				ETag:            etag,

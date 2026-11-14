@@ -218,6 +218,7 @@ func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
 
 	for _, statement := range []string{
 		`create table usergroup (id integer primary key, name text, reference_id blob, permission integer)`,
+		`create table world (id integer primary key, table_name text, reference_id blob, user_account_id integer, permission integer)`,
 		`create table user_account (
 			id integer primary key,
 			reference_id blob,
@@ -239,6 +240,7 @@ func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
 			username text,
 			password text,
 			password_md5 text,
+			next_uidvalidity integer default 1,
 			user_account_id integer,
 			reference_id blob,
 			permission integer,
@@ -329,8 +331,14 @@ func newSentMailTestEnv(t *testing.T, existingSent bool) sentMailTestEnv {
 		t.Fatalf("insert user: %v", err)
 	}
 	if _, err := db.Exec(`insert into mail_account (id, username, user_account_id, reference_id, permission, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?)`,
-		1, "sender@example.test", userRef.String(), mailAccountRef[:], int64(16256), time.Now(), time.Now()); err != nil {
+		1, "sender@example.test", 1, mailAccountRef[:], int64(16256), time.Now(), time.Now()); err != nil {
 		t.Fatalf("insert mail account: %v", err)
+	}
+	for i, name := range []string{"mail_account", "mail_box", "mail"} {
+		worldRef := daptinid.DaptinReferenceId(uuid.New())
+		if _, err := db.Exec(`insert into world (id, table_name, reference_id, user_account_id, permission) values (?, ?, ?, ?, ?)`, i+1, name, worldRef[:], 1, int64(16256)); err != nil {
+			t.Fatalf("insert world grant: %v", err)
+		}
 	}
 	if existingSent {
 		sentRef := daptinid.DaptinReferenceId(uuid.New())
@@ -404,7 +412,9 @@ func sentMailAccountColumns() []api2go.ColumnInfo {
 		{Name: "username", ColumnName: "username", DataType: "varchar(100)", ColumnType: "label"},
 		{Name: "password", ColumnName: "password", DataType: "varchar(100)", ColumnType: "password", IsNullable: true},
 		{Name: "password_md5", ColumnName: "password_md5", DataType: "varchar(100)", ColumnType: "md5-bcrypt", IsNullable: true},
-		{Name: "user_account_id", ColumnName: "user_account_id", DataType: "int(11)", ColumnType: "value"},
+		{Name: "user_account_id", ColumnName: "user_account_id", DataType: "int(11)", ColumnType: "alias", IsForeignKey: true,
+			ForeignKeyData: api2go.ForeignKeyData{Namespace: "user_account", KeyName: "id", DataSource: "self"}},
+		{Name: "next_uidvalidity", ColumnName: "next_uidvalidity", DataType: "bigint", ColumnType: "value", DefaultValue: "1"},
 		{Name: "reference_id", ColumnName: "reference_id", DataType: "blob", ColumnType: "alias"},
 		{Name: "permission", ColumnName: "permission", DataType: "integer"},
 		{Name: "created_at", ColumnName: "created_at", DataType: "timestamp", ColumnType: "datetime"},

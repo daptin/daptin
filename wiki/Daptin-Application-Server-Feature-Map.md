@@ -59,7 +59,7 @@ Important system tables:
 - entity join tables - relationship and usergroup membership links.
 - `{entity}_audit` - optional audit tables when auditing is enabled.
 
-Why it matters:
+
 
 Apps should not reinvent persistence, identifiers, relations, validation, API
 shape, or metadata discovery. Daptin gives projects a durable backend contract.
@@ -104,7 +104,7 @@ Related auth capabilities:
   - `/oauth/login/:authenticator`
   - `/oauth/response`
 
-Why it matters:
+
 
 Most apps eventually need users, teams, roles, tenant boundaries, login, and
 access policy. Daptin has those backend invariants in the runtime instead of
@@ -137,7 +137,7 @@ Core capabilities:
   - `/track/event/:typename/:objectStateId/:eventName`
 - State transition audit tables record workflow history.
 
-Why it matters:
+
 
 Apps should call stable backend actions. They should not hide business logic,
 secrets, workflow transitions, or scheduled jobs inside frontend code or
@@ -156,7 +156,7 @@ Core capabilities:
 - `stream` and `feed` tables support data streams and feeds.
 - `/feed/:feedname` exposes RSS/Atom/JSON-style feed output.
 
-Why it matters:
+
 
 Daptin turns backend data changes into live app events. Apps can be realtime
 without inventing their own event bus, change feed, or websocket server.
@@ -182,7 +182,7 @@ Core capabilities:
 - Subsite/template hooks allow sites and templates to run from the same Daptin
   runtime.
 
-Why it matters:
+
 
 Most apps need file uploads, media, static frontends, blogs, docs, and site
 hosting. Daptin includes storage and site hosting instead of requiring a
@@ -206,12 +206,6 @@ Built-in or config-gated surfaces:
 - OpenAI-compatible `/v1` LLM endpoints.
 - Gzip, CORS, rate limiting, language middleware, `/ping`, `/statistics`, and
   config endpoints.
-
-Why it matters:
-
-Daptin is not just CRUD over HTTP. It is a multi-protocol application server
-that can run app data, app APIs, app files, app sites, app mail, app auth, and
-app realtime behavior from one runtime.
 
 ## 7. Integrations, LLM Routing, Metering, And Monetization
 
@@ -263,7 +257,7 @@ Metering capabilities:
 - `post_metering_action` enables credit/billing hooks after usage is recorded.
 - Hard quota failures can deny requests before usage is recorded.
 
-Why it matters:
+
 
 Modern apps are often productized as APIs, SaaS products, internal tools, or AI
 features. Daptin gives them provider routing, external API execution, credential
@@ -286,7 +280,7 @@ Operational surfaces:
 - Optional audit tables and audit row creation on update/delete.
 - OpenAPI and metadata endpoints for tool/client discovery.
 
-Why it matters:
+
 
 Apps need production controls that are easy to postpone or underbuild: cache,
 limits, health, audit, runtime config, background work, metadata, and TLS.

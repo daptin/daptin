@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -40,6 +41,11 @@ func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, 
 		createdTx = true
 		defer tx.Rollback()
 	}
+	var principalErr error
+	sessionUser, principalErr = d.cruds["mail_box"].MailSessionUser(sessionUser, tx)
+	if principalErr != nil {
+		return nil, nil, []error{principalErr}
+	}
 
 	pageSize := parseMailboxStatusInt(inFields["page_size"], 50)
 	if pageSize < 1 {
@@ -66,6 +72,8 @@ func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, 
 	}
 
 	statusRows := make([]map[string]interface{}, 0, len(boxes))
+	accountTable := d.cruds["mail_account"].GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", "mail_account", tx)
+	readableAccounts := make(map[daptinid.DaptinReferenceId]bool)
 	for _, box := range boxes {
 		boxReferenceID := daptinid.InterfaceToDIR(box["reference_id"])
 		boxId, err := resource.GetReferenceIdToIdWithTransaction("mail_box", boxReferenceID, tx)
@@ -73,6 +81,16 @@ func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, 
 			return nil, nil, []error{err}
 		}
 		mailAccountReferenceID := daptinid.InterfaceToDIR(box["mail_account_id"])
+		readable, checked := readableAccounts[mailAccountReferenceID]
+		if !checked {
+			grant := resource.GetObjectPermissionByReferenceIdWithTransaction("mail_account", mailAccountReferenceID, tx)
+			admin := d.cruds["mail_account"].AdministratorGroupId
+			readable = accountTable.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, admin) && grant.CanRead(sessionUser.UserReferenceId, sessionUser.Groups, admin)
+			readableAccounts[mailAccountReferenceID] = readable
+		}
+		if !readable {
+			return nil, nil, []error{api2go.NewHTTPError(errors.New("mail account access denied"), "mail account access denied", http.StatusForbidden)}
+		}
 		mailAccountId, err := resource.GetReferenceIdToIdWithTransaction("mail_account", mailAccountReferenceID, tx)
 		if err != nil {
 			return nil, nil, []error{err}
@@ -173,6 +191,7 @@ func (d *mailboxStatusActionPerformer) latestMailMetadata(mailBoxReferenceID dap
 			"query":      {string(encoded)},
 			"page[size]": {"1"},
 			"sort":       {"-internal_date", "-id"},
+			"fields":     {"reference_id,subject,from_address,internal_date,message_id,seen,recent,uid"},
 		},
 	}
 	_, responder, err := d.cruds["mail"].PaginatedFindAllWithTransaction(request, tx)

@@ -110,7 +110,7 @@ func shouldMeterResource(dr *DbResource, req *api2go.Request) bool {
 		return false
 	}
 	cfg := dr.TableInfo().Metering
-	return cfg != nil && cfg.Enabled
+	return MeteringConfigActive(cfg)
 }
 
 func sessionUserFromAPIRequest(req *api2go.Request) *auth.SessionUser {

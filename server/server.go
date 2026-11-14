@@ -124,10 +124,6 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		log.Infof("ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value: %v", skipResourceInitialise)
 		InitialiseServerResources(&initConfig, db)
 	}
-	if err := resource.RemoveObsoleteSystemActions(db); err != nil {
-		log.Warnf("Failed to remove obsolete system actions: %v", err)
-	}
-
 	configStore, err := resource.NewConfigStore(db)
 	resource.CheckErr(err, "Failed to get config store")
 	diskFileCache, err = lru.New(cacheSize)
@@ -261,8 +257,6 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	defaultRouter.Use(limit.MaxAllowed(maxConnections))
 	defaultRouter.Use(rateLimiter)
 
-	defaultRouter.GET("/statistics", CreateStatisticsHandler(db, olricDb, localOlricAddr))
-
 	defaultRouter.StaticFS("/static", NewSubPathFs(boxRoot, "/static"))
 	defaultRouter.StaticFS("/statics", NewSubPathFs(boxRoot, "/statics"))
 	defaultRouter.StaticFS("/js", NewSubPathFs(boxRoot, "/js"))
@@ -390,6 +384,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	ms := BuildMiddlewareSet(&initConfig, &cruds, &dtopicMap)
 	log.Tracef("Created middleware set")
 	AddResourcesToApi2Go(api, initConfig.Tables, db, &ms, configStore, olricDb, cruds)
+	defaultRouter.GET("/statistics", CreateStatisticsHandler(db, olricDb, localOlricAddr, cruds[resource.USER_ACCOUNT_TABLE_NAME]))
 	log.Tracef("Added ResourcesToApi2Go")
 	tablesPubSub, err := cruds["world"].OlricDb.NewPubSub(olric.ToAddress(localOlricAddr))
 	if err != nil {
@@ -582,7 +577,14 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}()
 
 	integrationRuntimeInstanceID := uuid.NewString()
-	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID, llmGateway)
+	restartRequests := make(chan struct{}, 1)
+	requestRestart := func() {
+		select {
+		case restartRequests <- struct{}{}:
+		default:
+		}
+	}
+	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID, llmGateway, requestRestart)
 	initConfig.ActionPerformers = actionPerformers
 	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -748,6 +750,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	rateLimitClientTransferred = true
 	return &Runtime{
 		Handler:                 &hostSwitch,
+		RestartRequests:         restartRequests,
 		ConfigStore:             configStore,
 		CertificateManager:      certificateManager,
 		mailDaemon:              mailDaemon,

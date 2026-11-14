@@ -53,6 +53,7 @@ func runDAVPrepareSharingRealE2E(t *testing.T, databaseType, connectionString st
 	otherToken := accessGroupsE2ESignupSigninUser(t, client, base, adminToken, "prepare-other")
 	delegateID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email", "prepare-delegate@test.local")
 	readerID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email", "prepare-reader@test.local")
+	ownerID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "user_account", "email", "prepare-owner@test.local")
 	principal := davE2EExpect(t, davE2ERequest(client, "PROPFIND", base+"/caldav/", ownerToken,
 		"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:current-user-principal/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
 	owner := regexp.MustCompile(`/caldav/([0-9a-f-]{36})/`).FindStringSubmatch(principal.body)
@@ -95,6 +96,10 @@ func runDAVPrepareSharingRealE2E(t *testing.T, databaseType, connectionString st
 	if !strings.Contains(prepared.body, `"events_updated":1`) {
 		t.Fatalf("existing event was not migrated: %s", prepared.body)
 	}
+	ownerGroup := regexp.MustCompile(`"owner_group_id":"([0-9a-f-]{36})"`).FindStringSubmatch(prepared.body)
+	if len(ownerGroup) != 2 {
+		t.Fatalf("preparation returned no owner group: %s", prepared.body)
+	}
 	davE2EExpect(t, call("prepare_sharing", ownerToken), http.StatusOK)
 	ready := davE2EExpect(t, call("share_capabilities", ownerToken), http.StatusOK)
 	if !strings.Contains(ready.body, `"revocable_edit_sharing":true`) || !strings.Contains(ready.body, `"can_prepare_sharing":true`) {
@@ -124,6 +129,38 @@ func runDAVPrepareSharingRealE2E(t *testing.T, databaseType, connectionString st
 	if !strings.Contains(migrated.body, `"events_updated":1`) {
 		t.Fatalf("delegate-created event was not migrated: %s", migrated.body)
 	}
+	roster := davE2EExpect(t, call("list_shares", ownerToken), http.StatusOK)
+	if strings.Contains(roster.body, ownerID) || !strings.Contains(roster.body, delegateID) || !strings.Contains(roster.body, readerID) {
+		t.Fatalf("share roster exposed the protected owner or hid a delegate: %s", roster.body)
+	}
+	for _, attempt := range []struct {
+		name, action, fields string
+	}{
+		{"owner email revoke", "share_user", `"recipient_email":"prepare-owner@test.local","permission":0`},
+		{"owner email downgrade", "share_user", fmt.Sprintf(`"recipient_email":"prepare-owner@test.local","permission":%d`, auth.GroupRead)},
+		{"owner ID revoke", "share_user", fmt.Sprintf(`"user_account_id":%q,"permission":0`, ownerID)},
+		{"owner ID downgrade", "share_user", fmt.Sprintf(`"user_account_id":%q,"permission":%d`, ownerID, auth.GroupRead)},
+		{"owner group revoke", "share", fmt.Sprintf(`"usergroup_id":%q,"permission":0`, ownerGroup[1])},
+		{"owner group downgrade", "share", fmt.Sprintf(`"usergroup_id":%q,"permission":%d`, ownerGroup[1], auth.GroupCRUD)},
+	} {
+		response := davE2ERequest(client, http.MethodPost, base+"/action/collection/"+attempt.action, ownerToken,
+			"application/json", fmt.Sprintf(`{"attributes":{"calendar_reference_id":%q,%s}}`, collectionID, attempt.fields), nil)
+		if response.err != nil || response.status != http.StatusConflict {
+			t.Fatalf("%s changed the protected owner share: %+v", attempt.name, response)
+		}
+	}
+	if response := call("share_capabilities", ownerToken); response.err != nil || !strings.Contains(response.body, `"revocable_edit_sharing":true`) {
+		t.Fatalf("attempted owner share removal changed readiness: %+v", response)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+createdID, ownerToken, "", "", nil), http.StatusOK)
+	afterAttemptURL := calendarURL + "after-attempt.ics"
+	afterAttemptBody := strings.Replace(davE2ECalendarB, "UID:dav-condition-test", "UID:prepare-after-attempt", 1)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, afterAttemptURL, delegateToken, "text/calendar", afterAttemptBody, nil), http.StatusCreated)
+	afterAttemptID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "calendar", "rpath",
+		"/caldav/"+owner[1]+"/calendars/prepared/after-attempt.ics")
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, afterAttemptURL, ownerToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+"/api/calendar/"+afterAttemptID, ownerToken, "", "", nil), http.StatusOK)
 	created := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/calendar/"+createdID,
 		adminToken, nil, http.StatusOK)
 	createdAttributes := created.(map[string]interface{})["data"].(map[string]interface{})["attributes"].(map[string]interface{})

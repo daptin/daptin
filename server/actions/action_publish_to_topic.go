@@ -49,7 +49,12 @@ func (d *publishToTopicActionPerformer) DoAction(request actionresponse.Outcome,
 
 	userDIR := sessionUser.UserReferenceId
 	userUUID, _ := uuid.FromBytes(userDIR[:])
-	userGroups := sessionUser.Groups
+	var userGroups auth.GroupPermissionList
+	if userDIR != daptinid.NullReferenceId {
+		// Topic access follows persisted membership, not trusted outcome privileges.
+		userGroups = d.cruds["user_account"].GetObjectUserGroupsByWhereWithTransaction(
+			"user_account", transaction, "reference_id", userDIR[:])
+	}
 
 	pubSub := d.cruds["world"].PubSub
 	if pubSub == nil {

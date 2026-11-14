@@ -87,6 +87,9 @@ Columns:
     ColumnType: markdown
 ```
 
+The column's asset URL displays its text in an HTML-escaped, preformatted block.
+Embedded HTML appears as text; the asset endpoint does not render rich Markdown.
+
 ### name
 
 Name field with required validation.

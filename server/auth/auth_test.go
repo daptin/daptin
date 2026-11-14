@@ -318,6 +318,52 @@ func TestAuthCheckMiddlewareJWTAuthVersionLifecycle(t *testing.T) {
 		return req
 	}
 
+	assertRejected := func(version interface{}) {
+		t.Helper()
+		ok, abort, req := authMiddleware.AuthCheckMiddlewareWithHttp(newRequest(version), httptest.NewRecorder(), false)
+		if ok || abort || req == nil || req.Context().Value("user") != nil {
+			t.Fatalf("expected rejection without a session, got ok=%v abort=%v request=%v", ok, abort, req)
+		}
+	}
+	t.Run("missing account is rejected without provisioning", func(t *testing.T) {
+		InvalidateAuthCacheForEmail("user@example.com")
+		if _, err := db.Exec(`delete from user_account where id = 1`); err != nil {
+			t.Fatal(err)
+		}
+		assertRejected(float64(1))
+		for table, want := range map[string]int{"user_account": 0, "usergroup": 1, "user_account_user_account_id_has_usergroup_usergroup_id": 1} {
+			var count int
+			if err := db.QueryRow("select count(*) from " + table).Scan(&count); err != nil || count != want {
+				t.Fatalf("unexpected %s rows: %d, want %d, error=%v", table, count, want, err)
+			}
+		}
+		if _, err := db.Exec(`insert into user_account (id, email, name, reference_id, auth_version) values (?, ?, ?, ?, ?)`, 1, "user@example.com", "Test User", userRef[:], 2); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("invalid stored reference is rejected", func(t *testing.T) {
+		for _, reference := range [][]byte{nil, {1}, make([]byte, 16)} {
+			InvalidateAuthCacheForEmail("user@example.com")
+			if _, err := db.Exec(`update user_account set reference_id = ? where id = 1`, reference); err != nil {
+				t.Fatal(err)
+			}
+			assertRejected(float64(2))
+		}
+		if _, err := db.Exec(`update user_account set reference_id = ? where id = 1`, userRef[:]); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("scan failure is rejected", func(t *testing.T) {
+		InvalidateAuthCacheForEmail("user@example.com")
+		if _, err := db.Exec(`update user_account set auth_version = 'invalid' where id = 1`); err != nil {
+			t.Fatal(err)
+		}
+		assertRejected(float64(1))
+		if _, err := db.Exec(`update user_account set auth_version = 2 where id = 1`); err != nil {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("matching token continues and attaches session user", func(t *testing.T) {
 		ok, abort, req := authMiddleware.AuthCheckMiddlewareWithHttp(newRequest(float64(2)), httptest.NewRecorder(), false)
 		if !ok || abort {
@@ -365,6 +411,16 @@ func TestAuthCheckMiddlewareJWTAuthVersionLifecycle(t *testing.T) {
 		if ok || abort {
 			t.Fatalf("expected legacy token to stop without abort, got ok=%v abort=%v", ok, abort)
 		}
+	})
+	t.Run("empty cached identity is rejected", func(t *testing.T) {
+		if err := olricCache.Put(context.Background(), "user@example.com", SessionUser{AuthVersion: 1}); err != nil {
+			t.Fatal(err)
+		}
+		assertRejected(float64(1))
+		InvalidateAuthCacheForEmail("user@example.com")
+	})
+	t.Run("unavailable account lookup is rejected", func(t *testing.T) {
+		assertRejected(float64(2))
 	})
 }
 

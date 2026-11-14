@@ -386,7 +386,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	var meteringCaller *auth.SessionUser
 	var meteringRequest *http.Request
 	actionMetering := MeteringConfigForAction(dbResource.TableInfo().Metering, actionRequest.Action)
-	if actionMetering != nil && actionMetering.Enabled && req.PlainRequest != nil && !IsMeteringInternalRequest(req.PlainRequest) {
+	if MeteringConfigActive(actionMetering) && req.PlainRequest != nil && !IsMeteringInternalRequest(req.PlainRequest) {
 		caller := *sessionUser
 		caller.Groups = append(auth.GroupPermissionList(nil), sessionUser.Groups...)
 		meteringCaller = &caller

@@ -27,7 +27,7 @@ curl http://localhost:7337/ping
 
 ### /statistics
 ```bash
-curl http://localhost:7337/statistics
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:7337/statistics
 ```
 **Result:** Returns comprehensive JSON with:
 - `cpu`: counts, info, percent arrays

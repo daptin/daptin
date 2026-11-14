@@ -95,7 +95,13 @@ func (groups DefaultGroupList) MarshalJSON() ([]byte, error) {
 	return json.Marshal(bindings)
 }
 
+type PayloadCaptureConfig struct {
+	Enabled  bool `json:"enabled"`
+	MaxBytes int  `json:"max_bytes,omitempty"`
+}
+
 type MeteringConfig struct {
+	Capture            *PayloadCaptureConfig     `json:"capture,omitempty"`
 	Enabled            bool                      `json:"enabled,omitempty"`
 	CostExpr           string                    `json:"cost_expr,omitempty"`
 	MeterType          string                    `json:"meter_type,omitempty"`

@@ -190,7 +190,10 @@ curl -s -X POST http://localhost:6336/action/world/become_an_administrator \
 ]
 ```
 
-**Server may restart** - wait 5-10 seconds.
+**Daptin restarts automatically** after the claim commits. It drains active
+requests before restarting and initializes system tasks using the new
+administrator. Wait until `/ready` returns HTTP 200; no manual process or
+container restart is needed.
 
 **If you get "Unauthorized"**:
 
@@ -215,7 +218,8 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 
 ## Step 4: Get Fresh Token After Restart
 
-Server restart invalidates old token. Sign in again:
+The existing token remains valid across restart. You can also sign in again
+once `/ready` returns HTTP 200:
 
 ```bash
 sleep 5  # Wait for server to fully restart

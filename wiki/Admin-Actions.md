@@ -19,6 +19,9 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 3. Locks down all tables (admin-only access by default)
 4. Disables action for future use
 
+Daptin restarts automatically after the claim; see [[First-Admin-Setup]] for
+the response and readiness procedure.
+
 **Response:**
 ```json
 [
@@ -28,17 +31,37 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 
 ## Restarting Daptin
 
-Process restarts are managed by Kubernetes, Docker, systemd, or another process
-supervisor rather than an administrative HTTP action.
+Available in `v0.13.51` and later.
 
-**Use cases:**
-- Apply schema changes
-- Enable/disable GraphQL
-- Load new configuration
-- Clear caches
+Use the administrator-only `world/restart_daptin` action to apply startup-loaded
+configuration or schema changes:
 
-Use that supervisor's normal restart command so Daptin receives its standard
-shutdown signal and drains through the runtime lifecycle.
+```bash
+curl http://localhost:6336/action/world/restart_daptin \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"attributes":{}}'
+```
+
+A successful call returns HTTP 200 with `ResponseType: "Restart"`. The action's
+`__restart` performer requests the existing process lifecycle: readiness becomes
+unavailable, accepted HTTP requests drain, runtime services shut down, and Daptin
+starts again with the same arguments and environment. On Unix, process replacement
+preserves the PID, including PID 1 in Docker. No Docker restart policy is required.
+
+The action has no broad execution grant and is shared with `administrators`.
+Guests and ordinary accounts receive HTTP 403. First-administrator onboarding
+uses the same lifecycle after committing its changes.
+
+During restart, `/ready` can return 503 or the connection can be unavailable.
+Wait for the new runtime to become ready before sending application traffic;
+check the configuration you changed to confirm it was loaded. The restart
+request acknowledges the request, not completion of the restart.
+
+For example, startup-loaded `limit.rate` needs a restart. Normal plan, model
+catalog, and relationship permission edits do not. Process supervisors can still
+restart Daptin through its normal shutdown signal. There is no bare `/restart`
+route; use the named action above.
 
 ## Enable GraphQL
 
@@ -109,6 +132,10 @@ curl -X POST http://localhost:6336/action/world/remove_table \
 ## rename_column
 
 Rename a column in a table.
+
+Table and column identifiers must match `[A-Za-z_][A-Za-z0-9_]*`. Spaces in the
+new name are converted to underscores before validation. Reserved words and
+names already used by another column are rejected before the rename runs.
 
 ```bash
 curl -X POST http://localhost:6336/action/world/rename_column \
@@ -200,25 +227,7 @@ curl -X POST http://localhost:6336/action/certificate/download_certificate \
 
 ## Adding Admin Users
 
-Add users to administrators group:
-
-```bash
-# Get user ID
-USER_ID=$(curl --get -s \
-  --data-urlencode 'query=[{"column":"email","operator":"is","value":"newadmin@example.com"}]' \
-  -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:6336/api/user_account" | jq -r '.data[0].id')
-
-# Add to administrators
-curl -X POST http://localhost:6336/api/user_account_administrators_has_usergroup_administrators \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/vnd.api+json" \
-  -d "{
-    \"data\": {
-      \"type\": \"user_account_administrators_has_usergroup_administrators\",
-      \"attributes\": {
-        \"user_account_id\": \"$USER_ID\"
-      }
-    }
-  }"
-```
+As an existing administrator, open the intended account's **Groups** tab and
+attach `administrators`. Verify the account and group before granting this
+access. See [[Users-and-Groups#add-another-admin]] for the membership workflow;
+there is no special `user_account_administrators` application resource.

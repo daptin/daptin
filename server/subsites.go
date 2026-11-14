@@ -7,6 +7,7 @@ import (
 	"github.com/daptin/daptin/server/assetcachepojo"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/cloud_store"
+	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/hostswitch"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
@@ -22,6 +23,15 @@ import (
 	"strings"
 	"time"
 )
+
+func subsiteStatisticsMiddleware(db database.DatabaseConnection, userResource *resource.DbResource) gin.HandlerFunc {
+	authorize := statisticsAdministratorMiddleware(db, userResource)
+	return func(c *gin.Context) {
+		if c.Request.URL.Path == "/statistics" || c.Request.URL.Path == "/stats" {
+			authorize(c)
+		}
+	}
+}
 
 func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeTasks *[]task.Task, transaction *sqlx.Tx,
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
@@ -77,7 +87,8 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeT
 
 	rateLimiter := CreateSubsiteRateLimiterMiddleware(rateConfig, rateCounter)
 	maxLimiter := limit.MaxAllowed(max_connections)
-	middlewares := []gin.HandlerFunc{rateLimiter, maxLimiter, authMiddleware.AuthCheckMiddleware}
+	middlewares := []gin.HandlerFunc{rateLimiter, maxLimiter, authMiddleware.AuthCheckMiddleware,
+		subsiteStatisticsMiddleware(cruds[resource.USER_ACCOUNT_TABLE_NAME].Connection(), cruds[resource.USER_ACCOUNT_TABLE_NAME])}
 
 	for _, site := range sites {
 

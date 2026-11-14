@@ -34,6 +34,7 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 	imapServer.Addr = imapListenInterface
 	imapServer.Debug = nil
 	imapServer.AllowInsecureAuth = false
+	imapServer.MaxLiteralSize = 25 * 1024 * 1024
 	imapServer.Enable(idle.NewExtension())
 	imapServer.Enable(&noopPollExtension{})
 

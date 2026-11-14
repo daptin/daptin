@@ -284,7 +284,7 @@ Once Daptin is running, verify with these endpoints:
 
 ```bash
 # View system statistics (includes uptime, DB connections, web stats)
-curl http://localhost:6336/statistics
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:6336/statistics
 
 # View API documentation (confirms server is responding)
 curl http://localhost:6336/openapi.yaml
@@ -294,12 +294,12 @@ curl http://localhost:6336/health
 # Note: /health returns HTML dashboard, not a health check response
 ```
 
-**For monitoring/health checks**: Use `/statistics` endpoint, which returns JSON with server metrics. The `/health` endpoint returns the admin dashboard HTML and is not suitable for automated health checks.
+**For monitoring/health checks**: Use `/ping` for liveness and `/ready` for readiness. Administrator-only metrics are available at `/statistics`; see [[Monitoring#statistics]] for access requirements. The `/health` endpoint returns the admin dashboard HTML.
 
 **Verify the server is ready**:
 ```bash
-# Server is ready when this returns JSON
-curl -s http://localhost:6336/statistics | jq '.web.uptime'
+# Server is ready when this returns HTTP 200
+curl -f http://localhost:6336/ready
 ```
 
 ---

@@ -176,6 +176,7 @@ func accessGroupsE2ESignupSigninAdmin(t *testing.T, client *http.Client, baseURL
 
 	token := accessGroupsE2ESignupSigninUser(t, client, baseURL, "", "admin")
 	accessGroupsE2EAssertStatus(t, client, http.MethodPost, baseURL+"/action/world/become_an_administrator", token, map[string]interface{}{"attributes": map[string]interface{}{}}, http.StatusOK)
+	waitForAdminRestart(t, client, baseURL)
 	return token
 }
 

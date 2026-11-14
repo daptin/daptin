@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -184,7 +185,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 					cancel: cancel,
 				}
 				ready := make(chan struct{})
-				go wsch.systemTopicListener(subscription, eventTypeString, filtersMap, client, ready)
+				go wsch.systemTopicListener(topic, subscription, eventTypeString, filtersMap, client, ready)
 				<-ready
 			} else {
 				// User topic: check DMap meta CanRead
@@ -497,7 +498,7 @@ func (wsch *WebSocketConnectionHandlerImpl) MessageFromClient(message WebSocketP
 
 // systemTopicListener handles messages for system topics with per-row CanRead checks
 func (wsch *WebSocketConnectionHandlerImpl) systemTopicListener(
-	pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client, ready chan struct{},
+	topic string, pubsub *redis.PubSub, eventType string, filtersMap map[string]interface{}, client *Client, ready chan struct{},
 ) {
 	// Wait for Olric to confirm the subscription before signaling ready.
 	// Without this, the SUBSCRIBE command may still be in-flight when PUBLISH fires.
@@ -507,37 +508,61 @@ func (wsch *WebSocketConnectionHandlerImpl) systemTopicListener(
 	}
 	listenChannel := pubsub.Channel()
 	close(ready)
+	table := wsch.cruds[topic]
+	if table == nil {
+		return
+	}
 	for msg := range listenChannel {
 		var eventMessage resource.WsOutMessage
-		err := eventMessage.UnmarshalBinary([]byte(msg.Payload))
-		resource.CheckErr(err, "Failed to unmarshal eventMessage")
-
-		eventDataMap := make(map[string]interface{})
-		err = json.Unmarshal(eventMessage.Data, &eventDataMap)
-		resource.CheckErr(err, "Failed to unmarshal eventMessage.Data")
-
-		typeName, _ := eventDataMap["__type"]
-		tableExists := false
-		if typeName != nil {
-			typeStr, ok := typeName.(string)
-			if ok {
-				_, tableExists = wsch.cruds[typeStr]
-			}
+		if msg.Channel != topic || eventMessage.UnmarshalBinary([]byte(msg.Payload)) != nil {
+			continue
 		}
-
-		perm := permission.PermissionInstance{Permission: auth.ALLOW_ALL_PERMISSIONS}
-		if tableExists {
-			tx, err := wsch.cruds["world"].Connection().Beginx()
-			if err != nil {
-				resource.CheckErr(err, "Failed to begin transaction for row permission check")
+		eventDataMap, ok := systemEventData(topic, eventMessage)
+		if !ok {
+			continue
+		}
+		if eventMessage.Event != "new-message" {
+			var perm permission.PermissionInstance
+			if eventMessage.Event == "delete" {
+				// The resource lifecycle captures this before deleting the row and
+				// its group relationships. A lookup after deletion loses that ACL.
+				snapshot, ok := eventDataMap["__permission"].(map[string]interface{})
+				_, groupsPresent := snapshot["UserGroupId"]
+				if !ok || snapshot["Permission"] == nil || snapshot["UserId"] == nil || !groupsPresent {
+					continue
+				}
+				encoded, err := json.Marshal(snapshot)
+				if err != nil || json.Unmarshal(encoded, &perm) != nil {
+					continue
+				}
+			} else {
+				tx, err := table.Connection().Beginx()
+				if err != nil {
+					continue
+				}
+				row, err := table.GetReferenceIdToObjectWithTransaction(topic, daptinid.InterfaceToDIR(eventDataMap["reference_id"]), tx)
+				if err != nil {
+					tx.Rollback()
+					continue
+				}
+				perm = table.GetRowPermission(row, tx)
+				if tx.Commit() != nil {
+					continue
+				}
+			}
+			if !perm.CanRead(client.user.UserReferenceId, client.user.Groups, table.AdministratorGroupId) {
 				continue
 			}
-			perm = wsch.cruds["world"].GetRowPermission(eventDataMap, tx)
-			tx.Commit()
-		}
-
-		if !perm.CanRead(client.user.UserReferenceId, client.user.Groups, wsch.cruds["world"].AdministratorGroupId) {
-			continue
+			// Apply the same column visibility rules as public resource responses.
+			delete(eventDataMap, "id")
+			delete(eventDataMap, "__permission")
+			info := table.TableInfo()
+			model := api2go.NewApi2GoModelWithData(topic, info.Columns, int64(info.DefaultPermission), info.Relations, eventDataMap)
+			eventDataMap = model.GetAttributes()
+			eventMessage.Data, err = json.Marshal(eventDataMap)
+			if err != nil {
+				continue
+			}
 		}
 
 		sendMessage := true
@@ -556,6 +581,33 @@ func (wsch *WebSocketConnectionHandlerImpl) systemTopicListener(
 			client.Write(eventMessage)
 		}
 	}
+}
+
+// System topics carry database lifecycle events and explicitly published messages.
+// Payload attributes cannot select a different resource or event authorization path.
+func systemEventData(topic string, event resource.WsOutMessage) (map[string]interface{}, bool) {
+	if event.Type != "event" || event.Topic != topic {
+		return nil, false
+	}
+	if event.Event == "new-message" {
+		if _, err := uuid.Parse(event.Source); err != nil || !json.Valid(event.Data) {
+			return nil, false
+		}
+		var message map[string]interface{}
+		_ = json.Unmarshal(event.Data, &message)
+		return message, true
+	}
+	if event.Source != "database" || (event.Event != "create" && event.Event != "update" && event.Event != "delete") {
+		return nil, false
+	}
+	var row map[string]interface{}
+	if json.Unmarshal(event.Data, &row) != nil || row == nil {
+		return nil, false
+	}
+	if row["__type"] != topic || daptinid.InterfaceToDIR(row["reference_id"]) == daptinid.NullReferenceId {
+		return nil, false
+	}
+	return row, true
 }
 
 // userTopicListener handles messages for user-created topics (no per-row permission check)

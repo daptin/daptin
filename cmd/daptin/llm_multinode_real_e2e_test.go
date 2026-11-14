@@ -146,7 +146,8 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	})
 	defer processA.stopProcess()
 	client := &http.Client{Timeout: 20 * time.Second}
-	statsA := transportE2EGetJSON(t, client, baseA+"/statistics", "")
+	token := transportE2ESignupSigninAdmin(t, client, baseA)
+	statsA := transportE2EGetJSON(t, client, baseA+"/statistics", token)
 	memberA, ok := transportE2EPath(statsA, "olric.member")
 	if !ok {
 		t.Fatalf("first server has no Olric member: %#v", statsA)
@@ -165,8 +166,7 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	})
 	defer processB.stopProcess()
 
-	waitForLLME2ECluster(t, client, baseA, baseB)
-	token := transportE2ESignupSigninAdmin(t, client, baseA)
+	waitForLLME2ECluster(t, client, baseA, baseB, token)
 	credentialReference := createLLME2ECatalog(t, client, baseA, token, llmE2ECatalog{
 		name: "llm-multinode-e2e", upstreamURL: upstream.URL, apiKey: "multinode-initial-key",
 		upstreamModel: "multinode-upstream", operations: []string{"chat"}, maxConcurrency: 4,
@@ -211,12 +211,12 @@ func TestLLMMultinodeCatalogConvergence(t *testing.T) {
 	}
 }
 
-func waitForLLME2ECluster(t *testing.T, client *http.Client, baseA, baseB string) {
+func waitForLLME2ECluster(t *testing.T, client *http.Client, baseA, baseB, token string) {
 	t.Helper()
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		statsA := transportE2EGetJSON(t, client, baseA+"/statistics", "")
-		statsB := transportE2EGetJSON(t, client, baseB+"/statistics", "")
+		statsA := transportE2EGetJSON(t, client, baseA+"/statistics", token)
+		statsB := transportE2EGetJSON(t, client, baseB+"/statistics", token)
 		memberA, _ := transportE2EPath(statsA, "olric.member")
 		memberB, _ := transportE2EPath(statsB, "olric.member")
 		countA, _ := transportE2EPath(statsA, "olric.member_count")

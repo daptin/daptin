@@ -292,7 +292,7 @@ func (dbResource *DbResource) GetActiveLLMProviders(transaction *sqlx.Tx) ([]roo
 		providers = append(providers, provider)
 	}
 
-	log.Infof("[llm] loaded %d active LLM providers", len(providers))
+	log.Debugf("[llm] loaded %d active LLM providers", len(providers))
 	return providers, nil
 }
 

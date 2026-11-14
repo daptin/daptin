@@ -54,6 +54,16 @@ All flags can be set via environment variables with `DAPTIN_` prefix:
 
 ---
 
+## Language Preferences
+
+The `Accept-Language` middleware runs before authentication. Parsing is bounded
+to 8 KiB, 32 comma-separated language ranges (including wildcards), and 32
+combined `-`/`_` separators. Over-limit values are ignored and the request
+continues using `language.default` (normally `en`). The same bounds apply to
+the configured default before parsing. Malformed values produce a generic
+DEBUG diagnostic without logging the header contents. These parser limits
+apply independently of request-rate limits.
+
 ## Monitoring Endpoints
 
 ### Health Check
@@ -67,7 +77,7 @@ curl http://localhost:6336/ping
 ### Statistics
 
 ```bash
-curl http://localhost:6336/statistics
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:6336/statistics
 ```
 
 **Response (tested):**
@@ -256,9 +266,10 @@ streams do not have a server-wide deadline.
 
 ### Restart ownership
 
-Daptin deliberately has no HTTP restart action. Use the deployment's process supervisor so the normal SIGTERM readiness and drain contract is followed.
-
-**Workaround:** Stop and restart the process for any changes that require restart.
+The administrator-only `world/restart_daptin` action requests a graceful restart
+through the process-owned readiness and drain lifecycle. See
+[[Admin-Actions#restarting-daptin]] for the curl command and readiness checks.
+A supervisor restart through the normal shutdown signal remains available.
 
 ---
 
@@ -489,6 +500,11 @@ DAPTIN_DB_CONNECTION_STRING="host=localhost port=5432 user=daptin password=secre
 ```
 
 **Tested:** Sets custom path for web dashboard files. Default: `daptinweb` (embedded). Useful for custom dashboards or local development.
+
+Dashboard request paths are normalized within the dashboard root. Root-escaping
+traversal paths return HTTP 404 before cached content or files are served,
+including when a source build loads an on-disk go.rice dashboard. Normal static
+assets and dashboard SPA routes remain available.
 
 ### profile_dump_path
 

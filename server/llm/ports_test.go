@@ -3,9 +3,8 @@ package llm
 import (
 	"context"
 	"errors"
-	"io"
-	"net/http"
-	"net/http/httptest"
+	"fmt"
+	"github.com/daptin/daptin/server/table_info"
 	"strings"
 	"testing"
 	"time"
@@ -17,94 +16,54 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestDaptinMeteringCapturesHTTPPayloads(t *testing.T) {
-	database, cruds, _, _ := newCatalogTestResources(t)
-	metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}
-	handler := metering.captureHandler(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if _, err := io.ReadAll(request.Body); err != nil {
-			t.Error(err)
-		}
-		token, err := metering.Admit(request.Context(), contract.Admission{RequestID: "capture-http", Operation: contract.OperationResponses})
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		if err := metering.Complete(request.Context(), contract.Completion{Token: token, Status: "completed", HTTPStatus: 200}); err != nil {
-			t.Error(err)
-			return
-		}
-		writer.Write([]byte(`{"answer":"complete"}`))
-		writer.(http.Flusher).Flush()
-	}))
-	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(`{"prompt":"all bytes"}`)))
-	transaction, err := database.Beginx()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer transaction.Rollback()
-	rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, transaction)
-	if err != nil || len(rows) != 1 {
-		t.Fatalf("usage rows = %d, %v", len(rows), err)
-	}
-	if resource.StringOrEmpty(rows[0]["request_body"]) != `{"prompt":"all bytes"}` || resource.StringOrEmpty(rows[0]["response_body"]) != `{"answer":"complete"}` {
-		t.Fatalf("HTTP payloads were not recorded: %#v", rows[0])
-	}
-	requestBytes, err := resource.ResourceRowInt64(rows[0]["request_bytes"])
-	if err != nil || requestBytes != int64(len(`{"prompt":"all bytes"}`)) {
-		t.Fatalf("request_bytes = %v, %v", rows[0]["request_bytes"], err)
-	}
-}
-
-func TestDaptinMeteringBoundsHTTPPayloadCapture(t *testing.T) {
-	database, cruds, _, _ := newCatalogTestResources(t)
-	metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}
-	requestBody := strings.Repeat("r", resource.MeteringPayloadBodyLimit+1024)
-	responseBody := strings.Repeat("s", resource.MeteringPayloadBodyLimit+2048)
-	handler := metering.captureHandler(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if _, err := io.Copy(io.Discard, request.Body); err != nil {
-			t.Error(err)
-		}
-		token, err := metering.Admit(request.Context(), contract.Admission{RequestID: "bounded-http", Operation: contract.OperationResponses})
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		if err := metering.Complete(request.Context(), contract.Completion{Token: token, Status: "completed", HTTPStatus: 200}); err != nil {
-			t.Error(err)
-			return
-		}
-		for offset := 0; offset < len(responseBody); offset += 4096 {
-			writer.Write([]byte(responseBody[offset:min(offset+4096, len(responseBody))]))
-		}
-	}))
-	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(requestBody)))
-	if response.Body.String() != responseBody {
-		t.Fatal("client response was truncated")
-	}
-	transaction, err := database.Beginx()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer transaction.Rollback()
-	rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, transaction)
-	if err != nil || len(rows) != 1 {
-		t.Fatalf("usage rows = %d, %v", len(rows), err)
-	}
-	usage := rows[0]
-	requestBytes, requestErr := resource.ResourceRowInt64(usage["request_bytes"])
-	responseBytes, responseErr := resource.ResourceRowInt64(usage["response_bytes"])
-	if requestErr != nil || responseErr != nil || requestBytes != int64(len(requestBody)) || responseBytes != int64(len(responseBody)) {
-		t.Fatalf("metered byte counts = %v, %v (%v, %v)", requestBytes, responseBytes, requestErr, responseErr)
-	}
-	if len(resource.StringOrEmpty(usage["request_body"])) != resource.MeteringPayloadBodyLimit ||
-		len(resource.StringOrEmpty(usage["response_body"])) != resource.MeteringPayloadBodyLimit {
-		t.Fatalf("retained body sizes = %d, %d", len(resource.StringOrEmpty(usage["request_body"])), len(resource.StringOrEmpty(usage["response_body"])))
-	}
-	metadata := resource.StringOrEmpty(usage["metadata"])
-	if !strings.Contains(metadata, `"request_body_truncated":true`) || !strings.Contains(metadata, `"response_body_truncated":true`) {
-		t.Fatalf("truncation flags missing: %s", metadata)
+func TestDaptinMeteringCapturesCanonicalPayloads(t *testing.T) {
+	for _, bounded := range []bool{false, true} {
+		t.Run(fmt.Sprint(bounded), func(t *testing.T) {
+			database, cruds, _, _ := newCatalogTestResources(t)
+			config := cruds["llm_model"].TableInfo().Metering
+			config.OnActions["invoke"] = table_info.MeteringConfig{Capture: &table_info.PayloadCaptureConfig{Enabled: true, MaxBytes: 2048}}
+			metering := daptinMetering{cruds: cruds, service: resource.NewMeteringService(&cruds)}
+			text := "remember"
+			if bounded {
+				text = strings.Repeat("r", 4096)
+			}
+			request := contract.Request{Responses: &contract.ResponsesRequest{Input: []contract.ResponseInputItem{{Type: "message", Role: "user", Content: []contract.ContentPart{{Type: "input_text", Text: text}}}}}}
+			response := contract.Response{Responses: &contract.ResponsesResponse{Status: "completed", Output: []contract.ResponseOutputItem{{Type: "message", Content: []contract.ContentPart{{Type: "output_text", Text: text}}}}}}
+			requestBody, _ := json.Marshal(request)
+			responseBody, _ := json.Marshal(response)
+			token, err := metering.Admit(context.Background(), contract.Admission{RequestID: "logical-payload", Operation: contract.OperationResponses, Request: request})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := metering.Complete(context.Background(), contract.Completion{Token: token, Status: "succeeded", HTTPStatus: 200, Response: &response}); err != nil {
+				t.Fatal(err)
+			}
+			tx, err := database.Beginx()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Rollback()
+			rows, _, err := cruds["api_usage"].GetRowsByWhereClauseWithTransaction("api_usage", nil, tx)
+			if err != nil || len(rows) != 1 {
+				t.Fatalf("usage rows=%d error=%v", len(rows), err)
+			}
+			row := rows[0]
+			if resource.StringOrEmpty(row["request_body"]) != string(requestBody[:min(len(requestBody), 2048)]) || resource.StringOrEmpty(row["response_body"]) != string(responseBody[:min(len(responseBody), 2048)]) {
+				t.Fatalf("logical payload mismatch: %#v", row)
+			}
+			requestBytes, _ := resource.ResourceRowInt64(row["request_bytes"])
+			responseBytes, _ := resource.ResourceRowInt64(row["response_bytes"])
+			if requestBytes != int64(len(requestBody)) || responseBytes != int64(len(responseBody)) {
+				t.Fatalf("byte counts=%d,%d", requestBytes, responseBytes)
+			}
+			var metadata map[string]interface{}
+			if err := json.UnmarshalFromString(resource.StringOrEmpty(row["metadata"]), &metadata); err != nil {
+				t.Fatal(err)
+			}
+			if bounded && (metadata["request_body_truncated"] != true || metadata["response_body_truncated"] != true) {
+				t.Fatalf("missing truncation facts: %#v", metadata)
+			}
+		})
 	}
 }
 

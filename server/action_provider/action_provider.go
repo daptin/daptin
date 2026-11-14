@@ -13,7 +13,7 @@ import (
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
 	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
 	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager, integrationRuntimeInstanceID string,
-	llmGateway *llm.Gateway) []actionresponse.ActionPerformerInterface {
+	llmGateway *llm.Gateway, requestRestart func()) []actionresponse.ActionPerformerInterface {
 	log.Tracef("GetActionPerformers")
 	transaction, err := cruds["world"].Connection().Beginx()
 	resource.CheckErr(err, "Failed to begin transaction [14]")
@@ -38,9 +38,13 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	performers = append(performers, resource.NewITIPDeliveryStatusAction(cruds))
 	performers = append(performers, resource.NewITIPReconcileDeliveryAction(cruds))
 
-	becomeAdminPerformer, err := actions.NewBecomeAdminPerformer(initConfig, cruds)
+	becomeAdminPerformer, err := actions.NewBecomeAdminPerformer(initConfig, cruds, requestRestart)
 	resource.CheckErr(err, "Failed to create become admin performer")
 	performers = append(performers, becomeAdminPerformer)
+
+	restartPerformer, err := actions.NewRestartSystemPerformer(requestRestart)
+	resource.CheckErr(err, "Failed to create restart performer")
+	performers = append(performers, restartPerformer)
 
 	cloudStoreFileImportPerformer, err := actions.NewImportCloudStoreFilesPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create cloudStoreFileImportPerformer")
@@ -177,7 +181,27 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	mailUnpackAction, err := actions.NewMailUnpackActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create mail unpack performer")
 	performers = append(performers, mailUnpackAction)
+	mailReadAction, err := actions.NewMailReadActionPerformer(cruds)
+	resource.CheckErr(err, "Failed to create mail read performer")
+	performers = append(performers, mailReadAction)
+	for _, operation := range []string{"save", "status", "delete"} {
+		mailDraftAction, err := actions.NewMailDraftActionPerformer(cruds, operation)
+		resource.CheckErr(err, "Failed to create mail draft performer")
+		performers = append(performers, mailDraftAction)
+	}
 
+	for _, operation := range []string{"submit", "status"} {
+		performer, err := actions.NewMailSubmissionActionPerformer(cruds, certificateManager, operation)
+		resource.CheckErr(err, "Failed to create mail submission performer")
+		performers = append(performers, performer)
+	}
+	for family, operations := range map[string][]string{"message": {"state", "flags", "move", "archive", "trash", "delete"}, "folder": {"create", "rename", "delete"}} {
+		for _, operation := range operations {
+			performer, err := actions.NewMailOperationActionPerformer(cruds, family, operation)
+			resource.CheckErr(err, "Failed to create mail operation performer")
+			performers = append(performers, performer)
+		}
+	}
 	outboxProcessPerformer, err := actions.NewOutboxProcessActionPerformer(cruds)
 	resource.CheckErr(err, "Failed to create outbox process performer")
 	performers = append(performers, outboxProcessPerformer)

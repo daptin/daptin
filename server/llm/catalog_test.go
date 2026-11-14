@@ -32,7 +32,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) {
+func TestDaptinCatalogUsesCanonicalResourcesAndVersionFingerprint(t *testing.T) {
 	database, cruds, olricClient, userReference := newCatalogTestResources(t)
 	credentialReference := daptinid.DaptinReferenceId(uuid.New())
 	providerReference := daptinid.DaptinReferenceId(uuid.New())
@@ -195,6 +195,9 @@ func TestDaptinCatalogUsesCanonicalResourcesAndContentFingerprint(t *testing.T) 
 		if rejectedStatus.Revision != initialStatus.Revision || !rejectedStatus.Ready || !rejectedStatus.Degraded ||
 			rejectedStatus.ReloadStage != "validate" {
 			t.Fatalf("gateway host %d replaced or disabled its active snapshot after a rejected catalog: %#v", index+1, rejectedStatus)
+		}
+		if err := host.Reload(context.Background()); err == nil || errors.Is(err, catalog.ErrStaleRevision) {
+			t.Fatalf("rejected candidate was not retried: %v", err)
 		}
 	}
 
@@ -569,6 +572,7 @@ func newCatalogTestResources(t *testing.T) (*sqlx.DB, map[string]*resource.DbRes
 		"llm_provider": true, "llm_model": true, "llm_deployment": true,
 		"llm_file": true, "llm_batch": true, "llm_batch_item": true,
 		"api_plan": true, "api_member": true, "api_usage": true, "api_quota": true,
+		"api_usage_api_usage_id_has_usergroup_usergroup_id":           true,
 		"llm_model_llm_model_id_has_usergroup_usergroup_id":           true,
 		"user_account_user_account_id_has_usergroup_usergroup_id":     true,
 		"credential_credential_id_has_usergroup_usergroup_id":         true,
