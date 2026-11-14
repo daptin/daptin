@@ -9,7 +9,7 @@
 - [[Common-Errors]]
 
 ## Walkthroughs
-- [[Walkthrough-LLM-Router|Build an LLM Router with Daptin]]
+- [[Build an LLM Router with Daptin|Walkthrough-LLM-Router]]
 - [[Walkthrough-Product-Catalog]]
 - [[Walkthrough-WebSocket-Real-Time]]
 - [[Walkthrough-YJS-Collaborative-Editing]]
@@ -19,7 +19,7 @@
 - [[Schema-Definition]]
 - [[Column-Types]]
 - [[Permissions]]
-- [[Authorization-Scenarios|SaaS Access Scenarios]]
+- [[SaaS Access Scenarios|Authorization-Scenarios]]
 - [[Users-and-Groups]]
 
 ## REST API

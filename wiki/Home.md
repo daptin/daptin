@@ -42,7 +42,7 @@ stack as a sidecar for the backend features you are missing.
 ### Walkthroughs
 
 - **[[Walkthrough-Product-Catalog]]** (30-45 min, tested end-to-end)
-- **[[Walkthrough-LLM-Router|Build an LLM Router with Daptin]]** — providers, permissions, fallback routing, conversations, and budgets
+- **[[Build an LLM Router with Daptin|Walkthrough-LLM-Router]]** — providers, permissions, fallback routing, conversations, and budgets
 
 ### Troubleshooting And Reference
 
