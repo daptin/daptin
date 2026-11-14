@@ -9,6 +9,7 @@
 - [[Common-Errors]]
 
 ## Walkthroughs
+- [[Walkthrough-LLM-Router|Build an LLM Router with Daptin]]
 - [[Walkthrough-Product-Catalog]]
 - [[Walkthrough-WebSocket-Real-Time]]
 - [[Walkthrough-YJS-Collaborative-Editing]]
