@@ -236,6 +236,26 @@ func TestNormalizeMailPlainTextWithoutAttachments(t *testing.T) {
 	}
 }
 
+func TestNormalizeMailExposesCalendarWithoutPresentingItAsBody(t *testing.T) {
+	for _, fixture := range []struct{ header, filename string }{
+		{"Content-Type: text/calendar; method=REQUEST", "event.ics"},
+		{"Content-Type: text/calendar\r\nContent-Disposition: attachment; filename=meeting.ics", "meeting.ics"},
+	} {
+		const payload = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n"
+		result, err := normalizeMail([]byte(fixture.header+"\r\n\r\n"+payload), defaultMailUnpackLimits())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result.PreferredTextBody != "" || result.HTMLBody != "" || len(result.Parts) != 1 {
+			t.Fatalf("calendar was treated as the reader body: %#v", result)
+		}
+		part := result.Parts[0]
+		if part.Presentation != "attachment" || part.Filename != fixture.filename || string(part.Content) != payload {
+			t.Fatalf("unexpected calendar artifact: %#v", part)
+		}
+	}
+}
+
 func TestNormalizeMailDecodesCharsetAndImplicitCIDInlinePart(t *testing.T) {
 	raw := []byte("Content-Type: multipart/related; boundary=x\r\n\r\n" +
 		"--x\r\nContent-Type: text/plain; charset=iso-8859-1\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\ncaf=E9\r\n" +

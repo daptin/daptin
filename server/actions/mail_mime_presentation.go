@@ -102,10 +102,30 @@ func (m *normalizedMail) hasRasterCID(node *mailMIMEPart) bool {
 	return false
 }
 
+// Calendar payloads are independently downloadable, including scheduling
+// parts that accompany a human-readable alternative. They never supply
+// the displayed body or an HTML inline resource.
+func (m *normalizedMail) retainCalendarParts(node *mailMIMEPart) {
+	if node.opaque {
+		return
+	}
+	if node.index >= 0 && node.media == "text/calendar" {
+		part := &m.Parts[node.index]
+		part.Presentation = "attachment"
+		if part.Filename == "" {
+			part.Filename = "event.ics"
+		}
+	}
+	for _, child := range node.children {
+		m.retainCalendarParts(child)
+	}
+}
+
 func (m *normalizedMail) selectPresentation(tree *mailMIMEPart) {
 	if tree == nil {
 		return
 	}
+	m.retainCalendarParts(tree)
 	plain := m.preferredBody(tree, "text/plain", false)
 	html := m.preferredBody(tree, "text/html", false)
 	if plain != nil {
@@ -124,7 +144,7 @@ func (m *normalizedMail) selectPresentation(tree *mailMIMEPart) {
 	inline := map[string]int{}
 	var visit func(*mailMIMEPart, bool, bool)
 	visit = func(node *mailMIMEPart, allowCID, isRelatedRoot bool) {
-		if node.opaque {
+		if node.opaque || node.media == "text/calendar" {
 			return
 		}
 		if node.index >= 0 {
