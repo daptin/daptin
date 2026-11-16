@@ -170,7 +170,7 @@ func TestMailBrowserReadRevocationRealE2E(t *testing.T) {
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail_account/draft_delete", alice, draftPayload(), http.StatusOK)
 
 	// A native-shaped fixture has no browser key. Adoption preserves its current
-	// mailbox UID and native flags; full network IMAP acceptance is separate.
+	// mailbox and native flags, with a replacement UID for the edited MIME.
 	nativeBox := seed("mail_box", map[string]interface{}{"name": "NativeDrafts", "subscribed": true, "uidvalidity": 7, "nextuid": 10, "attributes": "", "flags": "", "permanent_flags": "\\*", "mail_account_id": accountRef})
 	nativeRaw := "From: mail-alice@browser.test\r\nTo: recipient@example.test\r\nBcc: hidden@example.test\r\nSubject: Native draft\r\n\r\nNative text"
 	nativeRef := seed("mail", map[string]interface{}{
@@ -189,7 +189,7 @@ func TestMailBrowserReadRevocationRealE2E(t *testing.T) {
 		t.Fatal("native adoption duplicated canonical identity")
 	}
 	nativeRow := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/mail/"+nativeRef, admin, nil, http.StatusOK).(map[string]interface{})["data"].(map[string]interface{})["attributes"].(map[string]interface{})
-	if nativeRow["mail_box_id"] != nativeBox || nativeRow["uid"] != float64(9) || (nativeRow["recent"] != true && nativeRow["recent"] != float64(1)) || !strings.Contains(nativeRow["flags"].(string), "custom") {
+	if nativeRow["mail_box_id"] != nativeBox || nativeRow["uid"] != float64(10) || (nativeRow["recent"] != true && nativeRow["recent"] != float64(1)) || !strings.Contains(nativeRow["flags"].(string), "custom") {
 		t.Fatalf("native adoption lost mailbox/UID/flags: box=%v uid=%v recent=%v flags=%v", nativeRow["mail_box_id"], nativeRow["uid"], nativeRow["recent"], nativeRow["flags"])
 	}
 	if strings.Contains(strings.ToLower(nativeRow["flags"].(string)), "\\recent") {

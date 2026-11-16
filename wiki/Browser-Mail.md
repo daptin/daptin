@@ -105,8 +105,10 @@ rejected. Sender identity comes from the canonical account, not the request.
 
 `draft_save` returns `mail.draft` with the canonical reference, compose/write
 keys, SHA-256 revision and UID. One account transaction owns mailbox creation,
-UID allocation and the normal resource lifecycle. Updates preserve identity
-and UID. Repeating the same write key and identical content returns its
+UID allocation and the normal resource lifecycle. Updates preserve the
+canonical reference. A change to the stored MIME retires the old mailbox UID
+and allocates a new one; UIDVALIDITY does not change. Repeating the same write
+key and identical content returns its
 already-persisted result; stale revisions or a reused key with changed content
 conflict. Native APPEND and Sent insertion use the same append routine.
 
@@ -125,7 +127,7 @@ delivery envelope. Draft persistence is not a send or delivery acknowledgment.
 An unclaimed native draft can be adopted by `draft_save` using its canonical
 `draft_ref`, current MIME revision, and a new compose/write key. The server
 checks that it is still a writable draft and has no other compose identity.
-Updates retain the current mailbox, UID, internal date and native flags; they
+Updates retain the current mailbox, internal date and native flags; they
 do not silently move the message to the default Draft folder. Resource version
 checks protect changes made while MIME is being prepared.
 

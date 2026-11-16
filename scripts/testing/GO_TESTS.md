@@ -102,7 +102,8 @@ appends a mixed plain-text draft with a binary attachment, and uses its online
 search session to find the draft by a custom header. The driver requires the
 matching command in Thunderbird's IMAP trace. Daptin HTTP checks the returned
 UID and decoded attachment, then adopts the draft without changing the
-canonical reference, mailbox or UID. Finally, Thunderbird moves a flagged
+canonical reference or mailbox. Editing the MIME allocates a replacement UID.
+Finally, Thunderbird moves a flagged
 multipart fixture from Inbox to Archive through its own move service. The
 driver checks that Thunderbird actually sent UID MOVE, removed the Inbox
 entry, and rendered the message at its Archive UID. Daptin HTTP compares that

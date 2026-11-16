@@ -151,6 +151,7 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 	}
 	contentHash := mailRevision(encoded)
 	var original map[string]interface{}
+	var previousRevision string
 	if row != nil {
 		original, err = dbResource.GetReferenceIdToObjectWithTransaction("mail", daptinid.InterfaceToDIR(row["reference_id"]), tx)
 		if err != nil {
@@ -169,16 +170,17 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 		if err != nil {
 			return nil, err
 		}
+		previousRevision = mailRevision(raw)
 		if row["draft_write_key"] == input.WriteKey {
-			if row["draft_write_revision"] != mailRevision(raw) {
+			if row["draft_write_revision"] != previousRevision {
 				return nil, mailDraftError(409, "saved MIME changed after this write; reload before saving")
 			}
 			if row["draft_write_hash"] != contentHash {
 				return nil, mailDraftError(409, "write key already belongs to different content")
 			}
-			return &MailDraftResult{ReferenceID: daptinid.InterfaceToDIR(row["reference_id"]).String(), ComposeKey: input.ComposeKey, WriteKey: input.WriteKey, Revision: mailRevision(raw), UID: row["uid"]}, nil
+			return &MailDraftResult{ReferenceID: daptinid.InterfaceToDIR(row["reference_id"]).String(), ComposeKey: input.ComposeKey, WriteKey: input.WriteKey, Revision: previousRevision, UID: row["uid"]}, nil
 		}
-		if input.ExpectedRevision == "" || mailRevision(raw) != input.ExpectedRevision {
+		if input.ExpectedRevision == "" || previousRevision != input.ExpectedRevision {
 			return nil, mailDraftError(409, "draft changed; reload before saving")
 		}
 		grant := GetObjectPermissionByReferenceIdWithTransaction("mail", daptinid.InterfaceToDIR(row["reference_id"]), tx)
@@ -205,6 +207,7 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 		}
 		return nil, mailDraftError(422, err.Error())
 	}
+	revision := mailRevision(raw)
 	accountID, err := dbResource.Cruds["mail_account"].GetReferenceIdToId("mail_account", daptinid.InterfaceToDIR(account["reference_id"]), tx)
 	if err != nil {
 		return nil, err
@@ -242,11 +245,24 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 		}
 	}
 	ref := daptinid.InterfaceToDIR(row["reference_id"])
-	uid, err := ResourceRowInt64(row["uid"])
+	numericUID, err := ResourceRowInt64(row["uid"])
 	if err != nil {
 		return nil, err
 	}
-	changes, err := dbResource.mailMessageAttributes(raw, box, uint32(uid))
+	uid := uint32(numericUID)
+	if previousRevision != "" && previousRevision != revision {
+		// An IMAP UID cannot name different message bytes. Replace the
+		// mailbox UID in the same transaction while keeping the Office ref.
+		boxID, err := ResourceRowInt64(box["id"])
+		if err != nil {
+			return nil, err
+		}
+		uid, err = dbResource.Cruds["mail_box"].AllocateMailBoxUid(boxID, tx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	changes, err := dbResource.mailMessageAttributes(raw, box, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +275,7 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 	changes["compose_key"] = input.ComposeKey
 	changes["draft_write_key"] = input.WriteKey
 	changes["draft_write_hash"] = contentHash
-	changes["draft_write_revision"] = mailRevision(raw)
+	changes["draft_write_revision"] = revision
 	changes["permission"] = int64(auth.UserCRUD | auth.UserExecute)
 	if original == nil {
 		original, err = dbResource.GetReferenceIdToObjectWithTransaction("mail", ref, tx)
@@ -276,7 +292,7 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 		}
 		return nil, err
 	}
-	return &MailDraftResult{ReferenceID: ref.String(), ComposeKey: input.ComposeKey, WriteKey: input.WriteKey, Revision: mailRevision(raw), UID: uid}, nil
+	return &MailDraftResult{ReferenceID: ref.String(), ComposeKey: input.ComposeKey, WriteKey: input.WriteKey, Revision: revision, UID: uid}, nil
 }
 
 func (dbResource *DbResource) MailDraftStatus(input MailDraftRequest, active *auth.SessionUser, tx *sqlx.Tx) (map[string]interface{}, error) {

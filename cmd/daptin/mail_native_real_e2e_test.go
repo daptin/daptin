@@ -409,10 +409,10 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 				"content": map[string]interface{}{"subject": "Adopted Thunderbird draft", "text": "Edited through the Office draft contract"},
 			})
 			adoptedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": appended})
-			if adopted["reference_id"] != appended || adoptedState["uid"] != appendedState["uid"] || adoptedState["mail_box_id"] != appendedState["mail_box_id"] {
+			if adopted["reference_id"] != appended || adoptedState["uid"].(float64) <= appendedState["uid"].(float64) || adoptedState["mail_box_id"] != appendedState["mail_box_id"] {
 				t.Fatal("Office adoption changed the Thunderbird draft identity")
 			}
-			t.Log("Daptin HTTP confirmed the online-search UID and attachment bytes, then adopted the same Thunderbird draft reference, mailbox and UID")
+			t.Log("Daptin HTTP confirmed the online-search UID and attachment bytes, then adopted the same Thunderbird draft reference and mailbox with a replacement UID")
 			composed := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Thunderbird composer attachment")
 			composedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": composed})
 			if composedState["mail_box_id"] != state["mail_box_id"] || composedState["uid"] != float64(thunderbirdComposedUID) {
@@ -503,15 +503,65 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		t.Fatal("native APPEND changed original MIME")
 	}
 	nativeState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": nativeRef})
+	beforeEdit, err := native.Select("Native/2026", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readDraftUID := func(uid uint32) []byte {
+		t.Helper()
+		requested := new(imap.SeqSet)
+		requested.AddNum(uid)
+		body := &imap.BodySectionName{Peek: true}
+		messages := make(chan *imap.Message, 2)
+		if err := native.UidFetch(requested, []imap.FetchItem{imap.FetchUid, body.FetchItem()}, messages); err != nil {
+			t.Fatal(err)
+		}
+		got := <-messages
+		if got == nil {
+			return nil
+		}
+		literal := got.GetBody(body)
+		if got.Uid != uid || literal == nil || <-messages != nil {
+			t.Fatalf("unexpected response to UID FETCH %d", uid)
+		}
+		data, err := io.ReadAll(literal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data
+	}
+	oldUID := uint32(nativeState["uid"].(float64))
+	if !bytes.Equal(readDraftUID(oldUID), nativeRaw) {
+		t.Fatal("initial UID FETCH did not return the native draft before Office edit")
+	}
 	parsed := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail/unpack", alice, map[string]interface{}{"attributes": map[string]interface{}{"message_ref": nativeRef}}, http.StatusOK)
 	revision, _ := accessGroupsE2EFindString(parsed, "revision")
 	draft["draft_ref"], draft["compose_key"], draft["write_key"], draft["expected_revision"] = nativeRef, uuid.NewString(), uuid.NewString(), revision
 	draft["content"].(map[string]interface{})["subject"] = "Adopted native draft"
 	adopted := call("draft_save", "draft", draft)
 	adoptedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": nativeRef})
-	if adopted["reference_id"] != nativeRef || adoptedState["uid"] != nativeState["uid"] || adoptedState["mail_box_id"] != nativeState["mail_box_id"] || adoptedState["flagged"] != true {
+	afterEdit, err := native.Select("Native/2026", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if raw := readDraftUID(oldUID); raw != nil {
+		t.Fatalf("old draft UID %d still resolves after the MIME edit (same original bytes: %v)", oldUID, bytes.Equal(raw, nativeRaw))
+	}
+	newUID := uint32(adoptedState["uid"].(float64))
+	if adopted["reference_id"] != nativeRef || adopted["uid"] != adoptedState["uid"] || newUID != beforeEdit.UidNext || newUID <= oldUID || adoptedState["mail_box_id"] != nativeState["mail_box_id"] || adoptedState["flagged"] != true {
 		t.Fatal("native draft adoption lost canonical identity/flags")
 	}
+	if beforeEdit.UidValidity != afterEdit.UidValidity || beforeEdit.Messages != afterEdit.Messages || afterEdit.UidNext != newUID+1 || !bytes.Equal(readDraftUID(newUID), source(nativeRef)) {
+		t.Fatal("a draft edit did not replace only the edited message at a new UID")
+	}
+	replayed := call("draft_save", "draft", draft)
+	if replayed["uid"] != adopted["uid"] || replayed["revision"] != adopted["revision"] {
+		t.Fatal("replay of a successful draft edit allocated another UID or changed MIME")
+	}
+	if status, err := native.Status("Native/2026", []imap.StatusItem{imap.StatusUidNext}); err != nil || status.UidNext != afterEdit.UidNext {
+		t.Fatalf("draft replay changed mailbox UIDNEXT: %v, %v", status, err)
+	}
+	t.Logf("Office edit retired Draft UID %d, published replacement UID %d with exact MIME, and kept the canonical reference and UIDVALIDITY", oldUID, newUID)
 	// Empty TEXT is a valid literal; it must not make FETCH omit the message.
 	empty := []byte("From: native-alice@native.test\r\nTo: recipient@example.test\r\nSubject: Empty native body\r\n\r\n")
 	if err = native.Append("Native/2026", nil, nativeDate, bytes.NewReader(empty)); err != nil {
@@ -521,7 +571,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		t.Fatal(err)
 	}
 	emptySeq := new(imap.SeqSet)
-	emptySeq.AddNum(2)
+	emptySeq.AddNum(afterEdit.UidNext)
 	emptySection := &imap.BodySectionName{Peek: true, BodyPartName: imap.BodyPartName{Specifier: imap.TextSpecifier}}
 	emptyMessages := make(chan *imap.Message, 2)
 	if err = native.UidFetch(emptySeq, []imap.FetchItem{imap.FetchUid, emptySection.FetchItem()}, emptyMessages); err != nil {
