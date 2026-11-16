@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -67,9 +68,22 @@ type yjsRelay struct {
 	broadcast *olricYjsBroadcaster
 	next      atomic.Uint64
 	upgrader  websocket.Upgrader
+	mu        sync.Mutex
+	closing   bool
+	active    sync.WaitGroup
 }
 
 func (r *yjsRelay) serve(w http.ResponseWriter, req *http.Request, room string, readOnly bool) {
+	r.mu.Lock()
+	if r.closing {
+		r.mu.Unlock()
+		http.Error(w, "YJS runtime is draining", http.StatusServiceUnavailable)
+		return
+	}
+	r.active.Add(1)
+	r.mu.Unlock()
+	defer r.active.Done()
+
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 	stop := context.AfterFunc(r.ctx, cancel)

@@ -87,9 +87,20 @@ type YjsRuntime struct {
 	relay *yjsRelay
 }
 
-func (r *YjsRuntime) Close() {
+func (r *YjsRuntime) Close(ctx context.Context) error {
+	r.relay.mu.Lock()
+	r.relay.closing = true
+	r.relay.mu.Unlock()
 	r.relay.cancel()
 	r.relay.broadcast.Close()
+	done := make(chan struct{})
+	go func() { r.relay.active.Wait(); close(done) }()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func InitializeYjsResources(ctx context.Context, store yjsStore, defaultRouter *gin.Engine,

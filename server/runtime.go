@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	ftpserver "github.com/artpar/ftpserver/server"
 	"github.com/artpar/go-guerrilla"
 	imapserver "github.com/artpar/go-imap/server"
 	"github.com/buraksezer/olric"
@@ -13,7 +14,6 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/subsite"
 	"github.com/daptin/daptin/server/websockets"
-	ftpserver "github.com/artpar/ftpserver/server"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -91,7 +91,7 @@ func (r *Runtime) Drain(ctx context.Context) error {
 	}
 	errs = append(errs, resource.ShutdownEventWorkerPool(ctx))
 	if r.yjs != nil {
-		r.yjs.Close()
+		errs = append(errs, r.yjs.Close(ctx))
 	}
 	if r.integrationSubscription != nil {
 		errs = append(errs, r.integrationSubscription.Close())

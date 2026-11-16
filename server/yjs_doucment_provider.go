@@ -218,8 +218,14 @@ func (s *daptinYjsStore) appendUpdate(ctx context.Context, room string, data []b
 		request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch, URL: requestURL}).WithContext(ctx)}
 		if _, updateErr := target.crud.Update(model, request); updateErr == nil {
 			return nil
-		} else if !errors.Is(updateErr, resource.ErrVersionConflict) {
-			return updateErr
+		} else {
+			// The normal CRUD path translates optimistic write conflicts
+			// to HTTP 409. Reload the journal and retry from that version.
+			var failure api2go.HTTPError
+			if !errors.Is(updateErr, resource.ErrVersionConflict) &&
+				(!errors.As(updateErr, &failure) || failure.Status() != http.StatusConflict) {
+				return updateErr
+			}
 		}
 	}
 	return fmt.Errorf("%w: exhausted YJS update retries", resource.ErrVersionConflict)
