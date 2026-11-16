@@ -228,7 +228,11 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 		t.Fatalf("invalid SMTP configuration not rejected: %#v", invalid)
 	}
 	queuedStatus := action("submission_status", "submission", submission)
-	for _, value := range queuedStatus["recipients"].([]interface{}) {
+	queuedRecipients := queuedStatus["recipients"].([]interface{})
+	if len(queuedRecipients) != 3 {
+		t.Fatalf("expected three distinct queued recipients: %#v", queuedStatus)
+	}
+	for _, value := range queuedRecipients {
 		if value.(map[string]interface{})["state"] != "queued" {
 			t.Fatalf("invalid port claimed queued mail: %#v", queuedStatus)
 		}
@@ -277,6 +281,11 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 	}
 	if !recipients["recipient@localhost"] || !recipients["Recipient@localhost"] || !recipients["hidden@localhost"] {
 		t.Fatalf("case-sensitive To/Cc or Bcc envelope recipients missing: %v", recipients)
+	}
+	select {
+	case extra := <-receipts:
+		t.Fatalf("unexpected additional loopback recipient %q", extra.to)
+	default:
 	}
 	t.Log("Loopback SMTP received both case-distinct local parts and the hidden recipient, with exact 7bit .eml bytes")
 	status := action("submission_status", "submission", submission)
