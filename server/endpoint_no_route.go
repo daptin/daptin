@@ -26,10 +26,6 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 	if indexFile != nil && err == nil {
 		indexFileContents, err = io.ReadAll(indexFile)
 	}
-	defaultRouter.GET("", func(c *gin.Context) {
-		c.Header("Cache-Control", "public, max-age=60") // Short cache time for index.html
-		c.Data(http.StatusOK, "text/html; charset=UTF-8", indexFileContents)
-	})
 
 	// Add cache middleware
 	defaultRouter.Use(func(c *gin.Context) {
@@ -46,6 +42,11 @@ func SetupNoRouteRouter(boxRoot http.FileSystem, defaultRouter *gin.Engine) {
 		filePath, err := storagefs.ValidatePath(strings.TrimLeft(c.Request.URL.Path, "/"))
 		if err != nil {
 			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		if filePath == "" {
+			c.Header("Cache-Control", "public, max-age=60")
+			c.Data(http.StatusOK, "text/html; charset=UTF-8", indexFileContents)
 			return
 		}
 		rootPath, _, _ := strings.Cut(filePath, "/")

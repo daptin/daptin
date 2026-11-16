@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	_ "github.com/artpar/rclone/backend/all" // import all fs
@@ -95,7 +94,6 @@ func generateCacheKey(c *gin.Context, config *CacheConfig) string {
 }
 
 func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterface.DbResourceInterface, hostSwitch HostRouterProvider, olricDb *olric.EmbeddedClient, gzipEnabled bool) error {
-	allRouters := hostSwitch.GetAllRouter()
 	templateList, err := cruds["template"].GetAllObjects("template", transaction)
 	log.Infof("Got [%d] Templates from database", len(templateList))
 	if err != nil {
@@ -103,28 +101,11 @@ func CreateTemplateHooks(transaction *sqlx.Tx, cruds map[string]dbresourceinterf
 	}
 	if fileCache == nil {
 		fileCache, err = cache.NewFileCache(olricDb, "template-cache")
-		CheckErr(err, "Failed to create olric template cache")
-	}
-
-	handlerCreator := CreateTemplateRouteHandler(cruds, transaction, gzipEnabled)
-	for _, templateRow := range templateList {
-		log.Infof("ProcessTemplateRoute [%s] %v", templateRow["name"], templateRow["url_pattern"])
-		urlPattern := templateRow["url_pattern"].(string)
-		strArray := make([]string, 0)
-		err = json.Unmarshal([]byte(urlPattern), &strArray)
 		if err != nil {
-			log.Errorf("Failed to parse url pattern [%v] as string array [%v]", urlPattern, err)
-			continue
-		}
-		templateRenderHelper := handlerCreator(templateRow)
-		for _, urlMatch := range strArray {
-			log.Infof("TemplateRoute [%s] => %s", urlMatch, templateRow["name"])
-			for _, router := range allRouters {
-				router.Any(urlMatch, templateRenderHelper)
-			}
+			return fmt.Errorf("initialize template cache: %w", err)
 		}
 	}
-	return nil
+	return registerTemplateRoutes(templateList, hostSwitch.GetAllRouter(), CreateTemplateRouteHandler(cruds, transaction, gzipEnabled))
 }
 
 func CreateTemplateRouteHandler(cruds map[string]dbresourceinterface.DbResourceInterface, transaction *sqlx.Tx, gzipEnabled bool) func(template map[string]interface{}) func(ginContext *gin.Context) {

@@ -602,15 +602,6 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}
 	integrationSubscription := actions.StartIntegrationRuntimeInstallSubscriber(ctx, cruds, configStore, integrationRuntimeInstanceID)
 
-	transaction, err = db.Beginx()
-	if err != nil {
-		resource.CheckErr(err, "Failed to begin transaction [634]")
-	}
-
-	// Set the Olric client for template cache
-	_ = subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch, olricDb, enableGzip == "true")
-	_ = transaction.Commit()
-
 	if adminTaskUserReferenceId == daptinid.NullReferenceId {
 		log.Warn("system tasks were not persisted because no administrator identity exists")
 	} else {
@@ -636,9 +627,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	for k := range cruds {
 		cruds[k].AssetFolderCache = assetColumnFolders
 	}
-	llmGateway.StartBatchProcessing(ctx)
 	taskScheduler.LoadPersistedTasks()
-	taskScheduler.Start()
 
 	authMiddleware.SetUserCrud(cruds[resource.USER_ACCOUNT_TABLE_NAME])
 	authMiddleware.SetUserGroupCrud(cruds["usergroup"])
@@ -735,6 +724,25 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	SetupNoRouteRouter(boxRoot, defaultRouter)
 	websocketServer.Register(defaultRouter)
+
+	// Compile persisted template routes only after every built-in route exists.
+	// A bad template set must leave administration available for repair.
+	transaction, err = db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("begin template route loading: %w", err)
+	}
+	templateErr := subsite.CreateTemplateHooks(transaction, crudsInterface, hostSwitch, olricDb, enableGzip == "true")
+	if err := transaction.Rollback(); err != nil {
+		return nil, fmt.Errorf("close template route snapshot: %w", err)
+	}
+	if templateErr != nil {
+		if !errors.Is(templateErr, subsite.ErrInvalidTemplateRoutes) {
+			return nil, fmt.Errorf("initialize template routes: %w", templateErr)
+		}
+		log.WithError(templateErr).Error("Template HTTP routes not mounted; repair template url_pattern configuration and restart")
+	}
+	llmGateway.StartBatchProcessing(ctx)
+	taskScheduler.Start()
 	go websocketServer.Listen()
 
 	//defaultRouter.Run(fmt.Sprintf(":%v", *port))

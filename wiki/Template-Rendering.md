@@ -337,7 +337,16 @@ A template row can register HTTP routes with `url_pattern`.
 }
 ```
 
-Daptin registers each pattern with `router.Any`, so the same template can answer GET, POST, PUT, PATCH, DELETE, and other methods. Design route paths carefully and avoid conflicts with Daptin's built-in endpoints such as `/api`, `/action`, `/openapi.yaml`, `/graphql`, `/live`, `/asset`, and existing subsite routes.
+Daptin registers each pattern with `router.Any`, so the same template can answer
+GET, POST, PUT, PATCH, DELETE, and other methods. Template routes have global
+scope: they are installed on the dashboard router and every configured Site
+router. Existing Site access checks still apply. There is no per-Site template
+binding.
+
+A template with `url_pattern: "[\"/\"]"` owns the root page on those routers.
+Without a matching template route, the normal dashboard or Site fallback serves
+the request. Template routes cannot conflict with registered built-in routes
+such as `/meta`, `/action`, `/graphql` or a Site's `/stats` endpoint.
 
 ### Route Parameters
 
@@ -378,7 +387,22 @@ For repeated query parameters such as `/search?tag=go&tag=api`, Daptin sets both
 
 ### Route Lifecycle
 
-Template routes are loaded when Daptin creates template hooks during server startup.
+Template routes are compiled during runtime startup, after built-in endpoints
+are registered. Daptin reads the persisted definitions and validates the complete
+routing set using Gin's own method, parameter and wildcard rules before mounting
+any template route. This applies regardless of how the database rows were
+written; resource writes do not perform route-conflict validation.
+
+If a persisted definition is malformed or conflicts with a built-in endpoint or
+another template, **none of the template HTTP routes are mounted for that
+runtime**. Daptin logs the template identity, reference and route diagnostic.
+Built-in administration APIs and normal dashboard/Site fallbacks remain
+available. Internal `template.render` action outcomes remain available as well.
+
+Correct the affected rows through `/api/template`, or set their `url_pattern` to
+`[]` to remove their HTTP routes, then restart/reload. Daptin compiles the complete
+set again. This is startup validation; editing a definition does not mutate the
+running Gin routers.
 
 - Changing `content`, `mime_type`, or `headers` is picked up by `template.render` on the next render because the renderer looks up the template row by `name`.
 - Changing `url_pattern`, `action_config`, or `cache_config` requires a restart or system reload so routes and route configuration are rebuilt.

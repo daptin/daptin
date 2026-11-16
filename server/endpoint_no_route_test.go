@@ -196,3 +196,24 @@ func TestDashboardNoRouteKeepsSPARoutesAndRejectsMissingAPIsAndAssets(t *testing
 		})
 	}
 }
+
+func TestDashboardRootIsFallbackForExplicitTemplateRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("dashboard root"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	router := gin.New()
+	SetupNoRouteRouter(http.Dir(root), router)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	if response.Code != 200 || response.Body.String() != "dashboard root" || response.Header().Get("Cache-Control") != "public, max-age=60" {
+		t.Fatalf("root fallback: %d %q %v", response.Code, response.Body.String(), response.Header())
+	}
+	router.GET("/", func(c *gin.Context) { c.Header("X-Template", "root"); c.String(200, "template root") })
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	if response.Code != 200 || response.Body.String() != "template root" || response.Header().Get("X-Template") != "root" {
+		t.Fatalf("explicit root: %d %q", response.Code, response.Body.String())
+	}
+}
