@@ -70,6 +70,8 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 		"--alt", "Content-Type: text/plain; charset=utf-8", "", "Delivered body",
 		"--alt", "Content-Type: text/html; charset=utf-8", "Content-Transfer-Encoding: x-unknown-fixture",
 		"", "<p>Opaque branch</p>", "--alt--",
+		"--fixture", "Content-Type: application/octet-stream", "Content-Disposition: attachment; filename=damaged.bin",
+		"Content-Transfer-Encoding: base64", "", "cHJlZml4!!!!",
 		"--fixture", "Content-Type: application/octet-stream", "Content-Disposition: attachment; filename=proof.bin",
 		"Content-Transfer-Encoding: base64", "", "AP9wcm9vZg==", "--fixture--", "",
 	}, "\r\n")
@@ -138,7 +140,7 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 		if bodyAttrs["optional_html_body"] != "" {
 			t.Fatal("unsupported HTML was presented as a decoded body")
 		}
-		opaqueFound := false
+		opaqueFound, damagedFound := false, false
 		attachment := ""
 		for _, value := range bodyAttrs["parts"].([]interface{}) {
 			part := value.(map[string]interface{})
@@ -148,12 +150,19 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 			if part["filename"] == "proof.bin" {
 				attachment, _ = accessGroupsE2EFindString(part, "contents")
 			}
+			if part["filename"] == "damaged.bin" {
+				data, present := accessGroupsE2EFindString(part, "contents")
+				damagedFound = present && data == "" && part["presentation"] == "damaged"
+			}
 		}
 		if attachment != "AP9wcm9vZg==" {
 			t.Fatalf("attachment bytes differ: %q", attachment)
 		}
 		if !opaqueFound {
 			t.Fatal("unsupported alternative lost its stable unpack leaf")
+		}
+		if !damagedFound {
+			t.Fatal("damaged attachment was not isolated from its readable siblings")
 		}
 		return box, ref
 	}

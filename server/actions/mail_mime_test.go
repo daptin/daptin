@@ -118,6 +118,31 @@ func TestNormalizeMailKeepsOpaqueRootWithoutPresentingIt(t *testing.T) {
 	}
 }
 
+func TestNormalizeMailKeepsGoodSiblingsAfterDamagedBase64(t *testing.T) {
+	raw := []byte("Content-Type: multipart/mixed; boundary=m\r\n\r\n" +
+		"--m\r\nContent-Type: text/plain\r\n\r\nreadable body\r\n" +
+		"--m\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=damaged.bin\r\nContent-Transfer-Encoding: base64\r\n\r\ncHJlZml4!!!!\r\n" +
+		"--m\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=good.bin\r\nContent-Transfer-Encoding: base64\r\n\r\nAP8=\r\n--m--\r\n")
+	got, err := normalizeMail(raw, defaultMailUnpackLimits())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.PreferredTextBody != "readable body" || len(got.Parts) != 3 {
+		t.Fatalf("sibling lost: %#v", got)
+	}
+	damaged, good := got.Parts[1], got.Parts[2]
+	if damaged.Index != 1 || damaged.Presentation != "damaged" || damaged.DecodedSize != 0 || len(damaged.Content) != 0 {
+		t.Fatalf("damaged part leaked a decoded prefix: %#v", damaged)
+	}
+	if good.Index != 2 || good.Presentation != "attachment" || string(good.Content) != "\x00\xff" {
+		t.Fatalf("later attachment lost: %#v", good)
+	}
+	limits := defaultMailUnpackLimits()
+	limits.MaxDecodedBytes = int64(len("readable bodyprefix"))
+	_, err = normalizeMail(raw, limits)
+	assertMailUnpackErrorCode(t, err, "mail_decoded_too_large")
+}
+
 func TestNormalizeMailChoosesThePreferredRelatedRepresentation(t *testing.T) {
 	raw := []byte(strings.Join([]string{
 		"Content-Type: multipart/mixed; boundary=outer", "", "--outer",

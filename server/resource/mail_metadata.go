@@ -2,6 +2,7 @@ package resource
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"io"
 	"strings"
@@ -41,6 +42,12 @@ func ExtractMailSearchMetadata(raw []byte) (MailSearchMetadata, error) {
 // is not decoded text. A MIME consumer must not render or index it as such.
 func MailMIMEEncodingUnsupported(err error) bool {
 	return message.IsUnknownCharset(err) || message.IsUnknownEncoding(err)
+}
+
+// IsDamagedMailBase64 distinguishes a corrupt leaf from MIME framing or I/O errors.
+func IsDamagedMailBase64(err error) bool {
+	var corrupt base64.CorruptInputError
+	return errors.As(err, &corrupt)
 }
 
 func mailSearchMetadataFromEntity(entity *message.Entity, rootErr error) (MailSearchMetadata, error) {
@@ -99,12 +106,15 @@ func mailSearchMetadataFromEntity(entity *message.Entity, rootErr error) (MailSe
 			return nil
 		}
 		data, err := io.ReadAll(io.LimitReader(part.Body, remaining+1))
-		if err != nil {
-			return err
-		}
 		remaining -= int64(len(data))
 		if remaining < 0 {
 			return errors.New("mail metadata decoded text limit exceeded")
+		}
+		if IsDamagedMailBase64(err) {
+			return nil
+		}
+		if err != nil {
+			return err
 		}
 		if text.Len() != 0 && len(data) != 0 {
 			text.WriteByte('\n')

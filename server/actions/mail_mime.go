@@ -193,13 +193,19 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 			limitCode = "mail_decoded_too_large"
 		}
 		content, err := io.ReadAll(io.LimitReader(part.Body, readLimit+1))
-		if err != nil {
-			return mailUnpackError("mail_malformed", err)
-		}
 		if int64(len(content)) > readLimit {
 			return mailUnpackError(limitCode, nil)
 		}
 		decodedTotal += int64(len(content))
+		presentation := "unselected"
+		if resource.IsDamagedMailBase64(err) {
+			// Keep the original part index, but never publish a decoded prefix.
+			node.opaque = true
+			content = nil
+			presentation = "damaged"
+		} else if err != nil {
+			return mailUnpackError("mail_malformed", err)
+		}
 		digest := sha256.Sum256(content)
 		normalizedPart := normalizedMailPart{
 			Index:              len(normalized.Parts),
@@ -211,7 +217,7 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 			DecodedSize:        int64(len(content)),
 			SHA256:             hex.EncodeToString(digest[:]),
 			Content:            content,
-			Presentation:       "unselected",
+			Presentation:       presentation,
 		}
 		node.index = normalizedPart.Index
 		normalized.Parts = append(normalized.Parts, normalizedPart)

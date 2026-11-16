@@ -269,12 +269,15 @@ func (c *imapSearchContent) collectText(entity *message.Entity, depth int, remai
 		return nil
 	}
 	data, err := io.ReadAll(io.LimitReader(entity.Body, *remaining+1))
-	if err != nil {
-		return err
-	}
 	*remaining -= int64(len(data))
 	if *remaining < 0 {
 		return errors.New("IMAP search decoded text limit exceeded")
+	}
+	if IsDamagedMailBase64(err) {
+		return nil
+	}
+	if err != nil {
+		return err
 	}
 	c.textParts = append(c.textParts, strings.ToLower(string(data)))
 	return nil

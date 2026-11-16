@@ -109,6 +109,10 @@ original indexes as `application/octet-stream`, with `presentation` set to
 `unselected`. Their available opaque bytes are never used as text or inline
 resources. Supported sibling bodies and attachments remain usable, and the
 original message source retains the exact transport bytes.
+When the Base64 decoder detects corrupted data, the part retains its index,
+has `presentation: "damaged"`, and returns an empty payload rather than a
+partly decoded file. The other parts and the original message source remain
+available. MIME framing errors still fail the unpack action.
 
 The optional integer limits are `max_raw_size`, `max_decoded_size`,
 `max_part_size`, `max_header_size`, `max_parts`, and `max_nesting_depth`. They
