@@ -28,6 +28,14 @@ Tables:
       - Name: count
         DataType: int(11)
         ColumnType: measurement
+      - Name: canonical_name
+        DataType: varchar(100)
+        ColumnType: label
+      # No resource conformation: verifies the action transformed its input.
+      - Name: action_name
+        DataType: varchar(100)
+        ColumnType: label
+        IsNullable: true
     Validations:
       - ColumnName: code
         Tags: required,alphanum
@@ -42,6 +50,8 @@ Tables:
         Tags: trim,email
       - ColumnName: count
         Tags: trim
+      - ColumnName: canonical_name
+        Tags: lower,snake
 
 Actions:
   - Name: create_conformed_probe
@@ -53,12 +63,18 @@ Actions:
         ColumnName: code
         ColumnType: label
         IsNullable: false
+      - Name: canonical_name
+        ColumnName: canonical_name
+        ColumnType: label
+        IsNullable: false
     Validations:
       - ColumnName: code
         Tags: required,alphanum
     Conformations:
       - ColumnName: code
         Tags: trim,upper
+      - ColumnName: canonical_name
+        Tags: lower,snake
     OutFields:
       - Type: conformation_probe
         Method: POST
@@ -68,6 +84,8 @@ Actions:
           name: "  transactional widget  "
           contact_email: "TX@EXAMPLE.COM"
           count: 9
+          canonical_name: "~canonical_name"
+          action_name: "~canonical_name"
 `
 
 func TestDeclaredConformationsRealE2E(t *testing.T) {
@@ -79,10 +97,11 @@ func TestDeclaredConformationsRealE2E(t *testing.T) {
 
 	created := conformationE2EPostResource(t, client, baseURL+"/api/conformation_probe", adminToken,
 		accessGroupsE2ERecordPayload("conformation_probe", "", map[string]interface{}{
-			"code":          "  ab12  ",
-			"name":          "  direct widget  ",
-			"contact_email": "TEST@EXAMPLE.COM",
-			"count":         7,
+			"code":           "  ab12  ",
+			"name":           "  direct widget  ",
+			"contact_email":  "TEST@EXAMPLE.COM",
+			"count":          7,
+			"canonical_name": "OAuth.Login.Response",
 		}), daptinProcess)
 	createdID := accessGroupsE2EResourceID(t, created)
 	assertConformationE2EAttributes(t, created, map[string]interface{}{
@@ -93,15 +112,16 @@ func TestDeclaredConformationsRealE2E(t *testing.T) {
 		baseURL+"/api/conformation_probe/"+createdID, adminToken, nil, http.StatusOK)
 	assertConformationE2EAttributes(t, fetched, map[string]interface{}{
 		"code": "AB12", "name": "Direct Widget", "contact_email": "TEST@example.com", "count": float64(7),
+		"canonical_name": "oauth_login_response",
 	})
 
 	updated := accessGroupsE2ERequestJSON(t, client, http.MethodPatch,
 		baseURL+"/api/conformation_probe/"+createdID, adminToken,
 		accessGroupsE2ERecordPayload("conformation_probe", createdID, map[string]interface{}{
-			"code": "  cd34  ", "name": "  updated widget  ",
+			"code": "  cd34  ", "name": "  updated widget  ", "canonical_name": "x+y",
 		}), http.StatusOK)
 	assertConformationE2EAttributes(t, updated, map[string]interface{}{
-		"code": "CD34", "name": "Updated Widget",
+		"code": "CD34", "name": "Updated Widget", "canonical_name": "x_y",
 	})
 
 	accessGroupsE2EAssertStatus(t, client, http.MethodPost, baseURL+"/api/conformation_probe", adminToken,
@@ -111,12 +131,14 @@ func TestDeclaredConformationsRealE2E(t *testing.T) {
 
 	accessGroupsE2EAssertStatus(t, client, http.MethodPost,
 		baseURL+"/action/conformation_probe/create_conformed_probe", adminToken,
-		map[string]interface{}{"attributes": map[string]interface{}{"code": "  tx77  "}}, http.StatusOK)
+		map[string]interface{}{"attributes": map[string]interface{}{"code": "  tx77  ", "canonical_name": "SMTP.Server"}}, http.StatusOK)
 	actionCreatedID := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "conformation_probe", "code", "TX77")
 	actionCreated := accessGroupsE2ERequestJSON(t, client, http.MethodGet,
 		baseURL+"/api/conformation_probe/"+actionCreatedID, adminToken, nil, http.StatusOK)
 	assertConformationE2EAttributes(t, actionCreated, map[string]interface{}{
 		"code": "TX77", "name": "Transactional Widget", "contact_email": "TX@example.com", "count": float64(9),
+		"canonical_name": "smtp_server",
+		"action_name":    "smtp_server",
 	})
 }
 
