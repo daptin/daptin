@@ -114,6 +114,30 @@ See [[Actions-Overview#require-a-current-api-membership]] for membership dates,
 ownership, revocation, `SWITCH_USER`, denial and metering semantics. Credential
 access and ordinary execution permissions remain independent requirements.
 
+## Provider Availability Errors
+
+For REST and HTTP GraphQL integrations, a valid request whose provider cannot
+be reached returns `502 Bad Gateway`. A provider connection or response timeout
+returns `504 Gateway Timeout`. Invalid JSON or an incomplete upstream response
+also fails as an upstream error. Public errors use stable messages and exclude
+provider addresses, URLs, credentials and raw response bodies.
+
+The provider-scoped and generated-action HTTP routes use the same classification.
+GraphQL reports the sanitized error in its normal `errors` envelope. These
+transport failures stop subsequent outcomes. A failed action's admitted usage
+is cancelled immediately, releasing reserved quota without consuming a successful
+work unit; ownership stays with the account that admitted the action, including
+when a later outcome uses `SWITCH_USER`. See [[API-Metering#reservations-and-quota-state]].
+
+A complete provider HTTP response keeps its existing status and action response
+contract. Provider-returned HTTP errors are distinct from a failure to reach the
+provider. Input and permission failures retain their normal 4xx behavior.
+
+Use the backend operation extension `x-daptin-timeout-ms` to bound HTTP provider
+work (10 seconds by default). Request cancellation also cancels the outgoing
+HTTP request. Daptin adds no automatic retry, since an interrupted request may
+already have caused an external side effect.
+
 ## Which User Supplies the Credential?
 
 For the wider product choice between personal connections, paid users, teams,
@@ -179,7 +203,7 @@ time.
 |-----------|------------|-------------|
 | `x-daptin-transport` | all non-REST transports | One of `rest`, `graphql`, `grpc`, or `websocket`. Defaults to `rest`. |
 | `x-daptin-upstream-path` | GraphQL, WebSocket | Upstream path to call instead of the facade path in `paths`. Defaults to `/graphql` for GraphQL. |
-| `x-daptin-timeout-ms` | GraphQL, WebSocket, gRPC | Per-operation timeout in milliseconds. Defaults to 10 seconds. |
+| `x-daptin-timeout-ms` | REST, GraphQL, WebSocket, gRPC | Per-operation timeout in milliseconds. Defaults to 10 seconds. |
 | `x-daptin-graphql-document` | GraphQL | Required GraphQL query or mutation document. If this is present and `x-daptin-transport` is omitted, Daptin treats the operation as GraphQL. |
 | `x-daptin-graphql-operation-name` | GraphQL | Optional GraphQL `operationName`. |
 | `x-daptin-websocket-message-template` | WebSocket | Optional template used to build the outbound WebSocket message from operation input. Without it, Daptin sends the derived input object as JSON. |

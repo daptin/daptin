@@ -191,7 +191,8 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 		}
 
 		if err != nil {
-			if httpErr, ok := err.(api2go.HTTPError); ok {
+			var httpErr api2go.HTTPError
+			if errors.As(err, &httpErr) {
 				message := err.Error()
 				if len(httpErr.Errors) > 0 && httpErr.Errors[0].Title != "" {
 					message = httpErr.Errors[0].Title
@@ -239,7 +240,7 @@ func CreatePostActionHandler(initConfig *CmsConfig,
 }
 
 func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.ActionRequest,
-	req api2go.Request, transaction *sqlx.Tx) ([]actionresponse.ActionResponse, error) {
+	req api2go.Request, transaction *sqlx.Tx) (result []actionresponse.ActionResponse, actionErr error) {
 
 	start := time.Now()
 	user := req.PlainRequest.Context().Value("user")
@@ -356,7 +357,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	inFieldMap, err := GetValidatedInFields(actionRequest, action)
 	if err != nil {
 		log.Errorf("Action Input Validation Failed: [%v]", err)
-		return nil, err
+		return nil, api2go.NewHTTPError(nil, err.Error(), http.StatusBadRequest)
 	}
 	inFieldMap["httpRequest"] = req.PlainRequest
 	inFieldMap["httpRequestHeaders"] = map[string][]string(req.PlainRequest.Header)
@@ -416,6 +417,32 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 			return nil, meteringErr
 		}
 	}
+
+	// A performer may commit admission before external work and replace the
+	// transaction afterwards. A caller's rollback cannot release that durable
+	// reservation. Finalize failure here so every action entry point shares it.
+	defer func() {
+		if actionErr == nil || meteringDecision == nil || !meteringDecision.Enabled {
+			return
+		}
+		if err := transaction.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			log.Errorf("rollback failed action transaction: %v", err)
+			actionErr = api2go.NewHTTPError(nil, "action usage finalization failed", http.StatusInternalServerError)
+			return
+		}
+		status := http.StatusInternalServerError
+		var httpError api2go.HTTPError
+		if errors.As(actionErr, &httpError) {
+			status = httpError.Status()
+		}
+		if err := meteringService.cancelFailedAction(MeteringContext{
+			Request: meteringRequest, User: meteringCaller, Metering: actionMetering,
+			StatusCode: status, LatencyMS: int(time.Since(start).Milliseconds()), ErrorMessage: "action failed",
+		}, meteringDecision); err != nil {
+			log.Errorf("cancel failed action reservation: %v", err)
+			actionErr = api2go.NewHTTPError(nil, "action usage finalization failed", http.StatusInternalServerError)
+		}
+	}()
 
 	responses := make([]actionresponse.ActionResponse, 0)
 

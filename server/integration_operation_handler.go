@@ -61,7 +61,11 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 		if err != nil {
 			status := integrationOperationErrorStatus(err)
 			log.Warnf("Integration operation execution failed provider=[%s] operation=[%s] status=[%d]: %v", providerName, operationName, status, err)
-			c.AbortWithStatusJSON(status, map[string]interface{}{"error": err.Error()})
+			message := err.Error()
+			if status == http.StatusInternalServerError {
+				message = "integration execution failed"
+			}
+			c.AbortWithStatusJSON(status, map[string]interface{}{"error": message})
 			return
 		}
 		result, statusCode, err := integrationOperationActionResult(providerName, operationName, actionResponses)
@@ -130,10 +134,11 @@ func integrationOperationActionResult(providerName string, operationName string,
 }
 
 func integrationOperationErrorStatus(err error) int {
-	if httpError, ok := err.(api2go.HTTPError); ok {
+	var httpError api2go.HTTPError
+	if errors.As(err, &httpError) {
 		return httpError.Status()
 	}
-	return http.StatusBadRequest
+	return http.StatusInternalServerError
 }
 
 func integrationOperationNameParam(c *gin.Context) string {

@@ -297,6 +297,10 @@ hard-limit measures in `api_quota`. Completion atomically releases reservations,
 increments consumed totals, stores final measures, and marks the usage row
 `completed`. Cancellation and expiry release reservations. Cancellation can
 record the request and any reported measures; expiry records no consumption.
+When an action fails after admission was committed for external work, its
+reservation is cancelled in a separate short transaction after failed resource
+work is rolled back. Failed actions report zero successful-work measures and
+retain the original admission owner. See [[Integrations#provider-availability-errors]].
 
 Hard-limit admission failure returns `402 Payment Required`. Deployment RPM,
 TPM, and concurrency protection are separate gateway controls and may return

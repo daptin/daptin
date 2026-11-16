@@ -1196,3 +1196,32 @@ func usageCaptureLimit(usage map[string]interface{}) int {
 	}
 	return max(0, min(*policy.Limit, 16<<20))
 }
+
+// cancelFailedAction runs after the failed action transaction is rolled back.
+// Admission may have been committed before external work, or rolled back with
+// the action. Only a durable held reservation needs cancellation.
+func (m *MeteringService) cancelFailedAction(ctx MeteringContext, decision *MeteringDecision) error {
+	tx, err := (*m.cruds)["api_usage"].Connection().Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	// Cancel also supports partial work and otherwise computes default measures.
+	// A failed action reports no successful-work consumption for any metric.
+	ctx.Measures = map[string]int64{"requests": 0, "bytes": 0}
+	if ctx.Metering != nil && ctx.Metering.MeterType != "" {
+		ctx.Measures[ctx.Metering.MeterType] = 0
+	}
+	for _, reservation := range decision.reservation {
+		ctx.Measures[reservation.Metric] = 0
+	}
+	if err := m.Cancel(ctx, decision, tx); err != nil {
+		// A rolled-back admission has no durable row. Already terminal work must
+		// retain its settled measures. Cancel owns both classifications.
+		if errors.Is(err, errMeteringRowNotFound) || errors.Is(err, errMeteringRequestTerminal) {
+			return nil
+		}
+		return err
+	}
+	return tx.Commit()
+}

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/textproto"
 	"net/url"
@@ -134,6 +135,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	r := req.New()
+	r.SetTimeout(transportConfig.Timeout)
 
 	basePath, err := selectedIntegrationServerBaseURL(d.router, pathItem, operation)
 	if err != nil {
@@ -152,13 +154,13 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	for _, matc := range matches {
-		value := inFieldMap[matc]
-		if value == nil {
+		value, valid := inFieldMap[matc].(string)
+		if !valid || strings.TrimSpace(value) == "" {
 			log.Errorf("No value found for key: %s", matc)
-			return nil, nil, []error{fmt.Errorf("No value found for key: %s", matc)}
+			return nil, nil, []error{api2go.NewHTTPError(nil, fmt.Sprintf("missing integration parameter: %s", matc), http.StatusBadRequest)}
 		}
 
-		url = strings.Replace(url, "{"+matc+"}", value.(string), -1)
+		url = strings.Replace(url, "{"+matc+"}", value, -1)
 	}
 
 	urlValue, err := resource.EvaluateString(url, inFieldMap)
@@ -184,7 +186,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 
 				requestBody, err := CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, mediaType, spec.Schema, inFieldMap)
 				if err != nil {
-					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
+					return nil, nil, []error{api2go.NewHTTPError(nil, "invalid integration request body", http.StatusBadRequest)}
 				} else if requestBody != nil {
 					arguments = append(arguments, req.BodyJSON(requestBody))
 				}
@@ -192,7 +194,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			case "application/x-www-form-urlencoded":
 				requestBody, err := CreateIntegrationRequestBodyFromSchemaRef(ModeRequest, mediaType, spec.Schema, inFieldMap)
 				if err != nil {
-					log.Errorf("Failed to create request body for calling [%v][%v]: %v", d.integration.Name, request.Method, err)
+					return nil, nil, []error{api2go.NewHTTPError(nil, "invalid integration request body", http.StatusBadRequest)}
 				} else {
 					m := strings.ToLower(method)
 
@@ -212,7 +214,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 				}
 				body, contentType, err := createIntegrationMultipartBody(spec, inFieldMap)
 				if err != nil {
-					return nil, nil, []error{err}
+					return nil, nil, []error{api2go.NewHTTPError(nil, "invalid integration request body", http.StatusBadRequest)}
 				}
 				arguments = append(arguments, req.Header{"Content-Type": contentType}, body)
 
@@ -245,8 +247,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			parameterValues := make(map[string]string)
 			value, err := CreateRequestBody(ModeRequest, "application/json", param.Value.Name, param.Value.Schema.Value, inFieldMap)
 			if err != nil {
-				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
-				return nil, nil, []error{err}
+				return nil, nil, []error{api2go.NewHTTPError(nil, "invalid integration request parameter", http.StatusBadRequest)}
 			}
 			if value == nil {
 				continue
@@ -263,8 +264,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			parameterValues := make(map[string]interface{})
 			value, err := CreateRequestBody(ModeRequest, "application/x-www-form-urlencoded", param.Value.Name, param.Value.Schema.Value, inFieldMap)
 			if err != nil {
-				log.Errorf("Failed to create parameters for calling [%v][%v]", d.integration.Name, request.Method)
-				return nil, nil, []error{err}
+				return nil, nil, []error{api2go.NewHTTPError(nil, "invalid integration request parameter", http.StatusBadRequest)}
 			}
 			if value == nil {
 				continue
@@ -276,6 +276,9 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	arguments = append(arguments, integrationTransportAuthArguments(transportAuth)...)
+	if httpRequest, ok := inFieldMap["httpRequest"].(*http.Request); ok && httpRequest != nil {
+		arguments = append(arguments, httpRequest.Context())
+	}
 
 	var graphqlBody map[string]interface{}
 	if transportConfig.Transport == integrationTransportGraphQL {
@@ -359,6 +362,18 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		}
 	}
 
+	if err != nil {
+		return nil, nil, []error{integrationHTTPUpstreamError(err, "integration upstream unavailable")}
+	}
+
+	var res map[string]interface{}
+	err = resp.ToJSON(&res)
+	if err != nil {
+		return nil, nil, []error{integrationHTTPUpstreamError(err, "invalid integration upstream response")}
+	}
+
+	// Read and close the complete HTTP response before opening the next resource
+	// transaction; a slow body must not hold a database transaction either.
 	if transaction != nil && d.cruds["world"] != nil {
 		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
 		if beginErr != nil {
@@ -367,21 +382,6 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		*transaction = *newTransaction
 	}
 
-	resource.CheckErr(err, "Action execution failed")
-	if err != nil {
-		return nil, nil, []error{err}
-	}
-
-	var res map[string]interface{}
-	err = resp.ToJSON(&res)
-	resource.CheckErr(err, "[432] Failed to read value as json: [%s]", resp.String())
-	if err != nil {
-		res = map[string]interface{}{
-			"body": resp.String(),
-		}
-		log.Printf("API Response [%s][%s]: %v %v", method, url, resp.Response().Status, resp.String())
-		return nil, nil, []error{err}
-	}
 	responseType := d.integration.Name + "." + request.Method + ".response"
 	responder := resource.NewResponse(nil, integrationResponseModel(responseType, res), resp.Response().StatusCode, nil)
 	return responder, []actionresponse.ActionResponse{
@@ -2035,4 +2035,22 @@ func NewIntegrationActionPerformer(integration resource.Integration, initConfig 
 
 	return &handler, nil
 
+}
+
+// Public errors must not wrap the raw cause: HTTPError.Error includes it, and
+// action, provider and GraphQL callers all serialize that string.
+func integrationHTTPUpstreamError(err error, message string) error {
+	cause := err
+	var requestError *url.Error
+	if errors.As(err, &requestError) {
+		cause = requestError.Err
+	}
+	log.Warnf("Integration HTTP upstream failure: %v", cause)
+	status := http.StatusBadGateway
+	var timeout net.Error
+	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &timeout) && timeout.Timeout()) {
+		status = http.StatusGatewayTimeout
+		message = "integration upstream timed out"
+	}
+	return api2go.NewHTTPError(nil, message, status)
 }
