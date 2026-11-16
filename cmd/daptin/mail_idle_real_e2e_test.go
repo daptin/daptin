@@ -62,3 +62,19 @@ func openMailIdleFixture(t *testing.T, address string, tlsConfig *tls.Config) (n
 	}
 	return secure, r
 }
+
+func expectQuietMailIdle(t *testing.T, conn net.Conn, reader *bufio.Reader) {
+	t.Helper()
+	// Cross the server's first poll without a mailbox change so the next
+	// event exercises change detection against an established store marker.
+	if err := conn.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	line, err := reader.ReadString('\n')
+	if timeout, ok := err.(net.Error); !ok || !timeout.Timeout() || line != "" {
+		t.Fatalf("unchanged IDLE sent an unexpected response: %q %v", line, err)
+	}
+	if err := conn.SetDeadline(time.Now().Add(7 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+}

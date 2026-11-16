@@ -544,6 +544,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	draft["draft_ref"], draft["compose_key"], draft["write_key"], draft["expected_revision"] = nativeRef, uuid.NewString(), uuid.NewString(), revision
 	draft["content"].(map[string]interface{})["subject"] = "Adopted native draft"
 	idling, idleRead := openMailIdleFixture(t, address, tlsConfig)
+	expectQuietMailIdle(t, idling, idleRead)
 	adopted := call("draft_save", "draft", draft)
 	adoptedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": nativeRef})
 	_ = idling.SetDeadline(time.Now().Add(7 * time.Second))
@@ -576,6 +577,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		if line, err := idleRead.ReadString('\n'); err != nil || !strings.HasPrefix(line, "+ ") {
 			t.Fatalf("second IDLE continuation: %q %v", line, err)
 		}
+		expectQuietMailIdle(t, idling, idleRead)
 		permission := func(bits int64) {
 			accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail_account/"+accountRef, admin,
 				accessGroupsE2ERecordPayload("mail_account", accountRef, map[string]interface{}{"permission": bits}), http.StatusOK)
