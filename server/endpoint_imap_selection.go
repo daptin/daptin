@@ -34,9 +34,12 @@ func (box *selectedIMAPMailbox) announceSelection(uids []uint32, recent uint32) 
 		}
 	}
 	if len(uids) > len(announced)-len(removed) {
-		status := imap.NewMailboxStatus(box.Name(), []imap.StatusItem{imap.StatusMessages, imap.StatusRecent})
-		status.Messages, status.Recent = uint32(len(uids)), recent
-		if err := box.conn.WriteResp(&responses.Select{Mailbox: status}); err != nil {
+		// Report the new sequence space before its Recent count. The generic
+		// SELECT formatter writes status items in Go map iteration order.
+		if err := box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{uint32(len(uids)), imap.RawString("EXISTS")})); err != nil {
+			return err
+		}
+		if err := box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{recent, imap.RawString("RECENT")})); err != nil {
 			return err
 		}
 	}
