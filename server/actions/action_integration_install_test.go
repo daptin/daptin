@@ -1,9 +1,11 @@
 package actions
 
 import (
+	stdjson "encoding/json"
 	"reflect"
 	"testing"
 
+	"github.com/daptin/daptin/server/resource"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -144,4 +146,59 @@ func stringSet(values []string) map[string]bool {
 		set[value] = true
 	}
 	return set
+}
+
+func TestIntegrationOperationMembershipPolicy(t *testing.T) {
+	for _, test := range []struct {
+		name                    string
+		value                   interface{}
+		present, guard, invalid bool
+	}{
+		{name: "absent"},
+		{name: "false", value: false, present: true},
+		{name: "true", value: true, present: true, guard: true},
+		{name: "raw true", value: stdjson.RawMessage(`true`), present: true, guard: true},
+		{name: "bytes false", value: []byte(`false`), present: true},
+		{name: "string", value: "true", present: true, invalid: true},
+		{name: "encoded string", value: stdjson.RawMessage(`"true"`), present: true, invalid: true},
+		{name: "null", present: true, invalid: true},
+		{name: "number", value: 1, present: true, invalid: true},
+		{name: "object", value: map[string]interface{}{}, present: true, invalid: true},
+		{name: "malformed", value: stdjson.RawMessage(`tru`), present: true, invalid: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			operation := &openapi3.Operation{}
+			if test.present {
+				operation.Extensions = map[string]interface{}{"x-daptin-require-membership": test.value}
+			}
+			attrs := map[string]interface{}{"body": "~body"}
+			outcomes, err := integrationOperationOutcomes("provider", "invoke", attrs, operation)
+			if test.invalid {
+				if err == nil {
+					t.Fatal("invalid policy accepted")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			count := 1
+			if test.guard {
+				count = 2
+			}
+			if len(outcomes) != count {
+				t.Fatalf("outcomes=%#v", outcomes)
+			}
+			if test.guard {
+				guard := outcomes[0]
+				if guard.Type != resource.RequireCurrentMembershipActionName || guard.Method != "EXECUTE" || !guard.SkipInResponse || guard.Condition != "" || len(guard.Attributes) != 0 {
+					t.Fatalf("unexpected guard: %#v", guard)
+				}
+			}
+			provider := outcomes[len(outcomes)-1]
+			if provider.Type != "provider" || provider.Method != "invoke" || !reflect.DeepEqual(provider.Attributes, attrs) {
+				t.Fatalf("provider changed: %#v", provider)
+			}
+		})
+	}
 }

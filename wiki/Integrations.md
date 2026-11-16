@@ -89,6 +89,31 @@ includes the integration call as an outcome, only that outer action's metering a
 [[API-Metering#what-you-can-meter]] for examples and the behavior when combining
 actions and integrations.
 
+## Require a Current Membership
+
+Set an operation-level boolean in the backend-controlled OpenAPI specification:
+
+```yaml
+paths:
+  /paid-operation:
+    get:
+      operationId: paidOperation
+      x-daptin-require-membership: true
+      responses:
+        '200':
+          description: Success
+```
+
+Installing or reinstalling the integration prepends the native
+`api_member.require_current` outcome before that operation's provider call.
+The provider-scoped HTTP route, generated action and GraphQL mutation all use
+that generated action and gate. The extension must be a boolean; absent or
+`false` leaves the operation ungated. Client request fields cannot change it.
+
+See [[Actions-Overview#require-a-current-api-membership]] for membership dates,
+ownership, revocation, `SWITCH_USER`, denial and metering semantics. Credential
+access and ordinary execution permissions remain independent requirements.
+
 ## Which User Supplies the Credential?
 
 For the wider product choice between personal connections, paid users, teams,

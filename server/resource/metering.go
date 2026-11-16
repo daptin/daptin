@@ -1029,12 +1029,7 @@ func (m *MeteringService) lockMeteringUser(userID int64, tx *sqlx.Tx) error {
 }
 
 func (m *MeteringService) findActiveMember(userID int64, tx *sqlx.Tx) (map[string]interface{}, error) {
-	query, arguments, err := statementbuilder.Squirrel.Select("*").Prepared(true).From("api_member").
-		Where(goqu.Ex{"user_account_id": userID, "status": "active"}).Order(goqu.I("id").Desc()).Limit(1).ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	return querySingleMeteringRow("api_member", tx, query, arguments...)
+	return findActiveAPIMember(userID, tx)
 }
 
 func (m *MeteringService) findMember(memberID int64, tx *sqlx.Tx) (map[string]interface{}, error) {

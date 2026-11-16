@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -301,12 +302,9 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 		action.InFields = cols
 		action.InstanceOptional = true
 
-		action.OutFields = []actionresponse.Outcome{
-			{
-				Type:       integrationName,
-				Method:     commandId,
-				Attributes: attrs,
-			},
+		action.OutFields, err = integrationOperationOutcomes(integrationName, commandId, attrs, command)
+		if err != nil {
+			return nil, nil, []error{err}
 		}
 
 		actions = append(actions, action)
@@ -704,4 +702,34 @@ func uniqueBodyParameterNames(names []string) []string {
 		unique = append(unique, name)
 	}
 	return unique
+}
+
+// The persisted operation specification compiles to ordinary action outcomes.
+// Reinstalling an integration therefore retains its explicit membership gate.
+func integrationOperationOutcomes(provider, operationID string, attributes map[string]interface{}, operation *openapi3.Operation) ([]actionresponse.Outcome, error) {
+	outcomes := make([]actionresponse.Outcome, 0, 2)
+	const key = "x-daptin-require-membership"
+	if value, present := operation.Extensions[key]; present {
+		var decoded interface{}
+		switch typed := value.(type) {
+		case stdjson.RawMessage:
+			if err := stdjson.Unmarshal(typed, &decoded); err != nil {
+				return nil, fmt.Errorf("operation %s: %s must be a boolean", operationID, key)
+			}
+		case []byte:
+			if err := stdjson.Unmarshal(typed, &decoded); err != nil {
+				return nil, fmt.Errorf("operation %s: %s must be a boolean", operationID, key)
+			}
+		default:
+			decoded = value
+		}
+		required, ok := decoded.(bool)
+		if !ok {
+			return nil, fmt.Errorf("operation %s: %s must be a boolean", operationID, key)
+		}
+		if required {
+			outcomes = append(outcomes, actionresponse.Outcome{Type: resource.RequireCurrentMembershipActionName, Method: "EXECUTE", SkipInResponse: true, Attributes: map[string]interface{}{}})
+		}
+	}
+	return append(outcomes, actionresponse.Outcome{Type: provider, Method: operationID, Attributes: attributes}), nil
 }

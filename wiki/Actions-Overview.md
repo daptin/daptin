@@ -49,6 +49,52 @@ Response:
 
 ---
 
+## Require a Current API Membership
+
+For an action that requires a current subscription, place this unconditional
+outcome before the provider call or other protected side effect:
+
+```yaml
+OutFields:
+  - Type: api_member.require_current
+    Method: EXECUTE
+    SkipInResponse: true
+    Attributes: {}
+  # Protected outcomes follow here.
+```
+
+The preflight takes no inputs. It checks the active server-authenticated
+account's persisted `api_member` and its related `api_plan`. Like metering, it
+selects the newest membership with `status: active`. That selected membership
+must have a valid `period_start` at or before the server's current time and a
+`period_end` strictly after it. A null end means open-ended membership. Missing
+membership, cancelled status, future start, expiry, malformed dates, or a missing
+plan deny execution with HTTP 403. Database failures also stop execution. It
+does not fall back to an older active membership if the newest is ineligible.
+
+Membership provisioning uses normal resource APIs and ownership: create the
+plan, then create an `api_member` owned by the intended account and relate it to
+the plan. A trusted administrative provisioning action can use `SWITCH_USER`
+before creating the membership. Cancellation or expiry revokes eligibility;
+archiving a plan does not revoke existing members.
+
+Ordinary entity, action, row and credential permissions still apply. Group
+membership and transient action privileges do not satisfy this preflight.
+`SWITCH_USER` changes the account checked by subsequent outcomes, including this
+one. Caller inputs cannot choose a membership, plan, account or policy.
+
+A failed preflight stops later outcomes before their side effects. The owning
+action transaction rolls back its metering reservation; no successful usage or
+quota consumption is recorded. Place the preflight before any outcome that
+commits or performs external work, since it cannot undo an earlier side effect.
+Metering remains separately configurable; ungated actions keep their existing
+behavior, including free and anonymous workflows. See [[API-Metering]].
+
+Installed OpenAPI operations can opt into this same outcome using
+`x-daptin-require-membership: true`; see [[Integrations#require-a-current-membership]].
+
+---
+
 ## Understanding Response Types
 
 Every action returns an array of responses. Each response has a `ResponseType` that tells clients what to do with the result.

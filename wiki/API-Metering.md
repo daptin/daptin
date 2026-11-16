@@ -350,3 +350,12 @@ marker so it does not recursively meter itself.
 | Cost is zero | `llm_deployment.pricing` keys and fixed-point values |
 | Reservations remain held | Runtime recovery task and database errors |
 | Billing action does not run | `post_metering_action` name and action logs |
+
+## Membership Eligibility
+
+Metering accounts for usage and enforces configured plan limits. Missing
+membership does not by itself reject an action. To require a current persisted
+membership before protected work, opt into the native
+[[Actions-Overview#require-a-current-api-membership|membership preflight]] or the
+[[Integrations#require-a-current-membership|OpenAPI operation extension]].
+Eligibility and quota accounting remain separate decisions.
