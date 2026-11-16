@@ -207,6 +207,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	raw := source(messageRef)
 	checkNativeMove(t, native, fixture, admin, accountRef, call, source)
 	checkNativeFlagIndependence(t, native, fixture, admin, accountRef, call)
+	checkNativeFetchHydration(t, native, fixture, admin)
 	draftMailbox, err := native.Select("Draft", false)
 	if err != nil {
 		t.Fatalf("native SELECT: %v", err)
@@ -762,6 +763,88 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	patchGrant("mail_account", accountRef, 0)
 	fetch(true)
 	list(true)
+}
+
+func checkNativeFetchHydration(t *testing.T, native *imapclient.Client, fixture *daptinE2EFixture, admin string) {
+	t.Helper()
+	const folder, damaged, count = "NativeFetchWindow", "Fetch damaged body", 36
+	if err := native.Create(folder); err != nil {
+		t.Fatal(err)
+	}
+	date := time.Date(2026, 10, 16, 10, 11, 12, 0, time.UTC)
+	message := func(subject string) string {
+		return "From: native-alice@native.test\r\nSubject: " + subject + "\r\n\r\nFetch window body.\r\n"
+	}
+	for i := 1; i <= count; i++ {
+		if err := native.Append(folder, nil, date, strings.NewReader(message(fmt.Sprintf("Fetch window %d", i)))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := native.Append(folder, []string{imap.FlaggedFlag}, date, strings.NewReader(message(damaged))); err != nil {
+		t.Fatal(err)
+	}
+	last := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", damaged)
+	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail/"+last, admin,
+		accessGroupsE2ERecordPayload("mail", last, map[string]interface{}{"mail": "!!!!"}), http.StatusOK)
+	if _, err := native.Select(folder, true); err != nil {
+		t.Fatal(err)
+	}
+	all := new(imap.SeqSet)
+	all.AddRange(1, 0)
+	metadata := make(chan *imap.Message, count+2)
+	if err := native.UidFetch(all, []imap.FetchItem{imap.FetchFast}, metadata); err != nil {
+		t.Fatal(err)
+	}
+	var got []*imap.Message
+	for entry := range metadata {
+		got = append(got, entry)
+	}
+	if len(got) != count+1 {
+		t.Errorf("UID FETCH FAST returned %d metadata records, want %d including the unreadable MIME record", len(got), count+1)
+	} else {
+		for i, entry := range got {
+			subject := fmt.Sprintf("Fetch window %d", i+1)
+			if i == count {
+				subject = damaged
+			}
+			if entry.Uid != uint32(i+1) || entry.SeqNum != uint32(i+1) ||
+				entry.Size != uint32(len(message(subject))) || !entry.InternalDate.Equal(date) ||
+				slices.Contains(entry.Flags, imap.FlaggedFlag) != (i == count) {
+				t.Errorf("UID FETCH FAST lost ordered UID, size, date or flags at message %d", i+1)
+			}
+		}
+	}
+	valid := new(imap.SeqSet)
+	valid.AddRange(1, count)
+	section := &imap.BodySectionName{Peek: true}
+	bodies := make(chan *imap.Message, count+1)
+	if err := native.UidFetch(valid, []imap.FetchItem{imap.FetchUid, section.FetchItem()}, bodies); err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for entry := range bodies {
+		n++
+		body := entry.GetBody(section)
+		if body == nil {
+			t.Fatalf("missing BODY.PEEK[] at message %d", n)
+		}
+		data, err := io.ReadAll(body)
+		if err != nil || entry.Uid != uint32(n) || string(data) != message(fmt.Sprintf("Fetch window %d", n)) {
+			t.Fatalf("wrong ordered MIME at message %d: %v", n, err)
+		}
+	}
+	if n != count {
+		t.Fatalf("received %d MIME bodies, want %d", n, count)
+	}
+	one := new(imap.SeqSet)
+	one.AddNum(count + 1)
+	unreadable := make(chan *imap.Message, 1)
+	if err := native.UidFetch(one, []imap.FetchItem{section.FetchItem()}, unreadable); err == nil || len(unreadable) != 0 {
+		t.Error("unavailable MIME did not fail BODY.PEEK[] explicitly")
+	}
+	if !t.Failed() {
+		t.Log("UID FETCH FAST returned 37 metadata records including unavailable MIME; BODY.PEEK[] returned 36 exact ordered messages and rejected the unavailable MIME")
+	}
 }
 
 func checkNativeFlagIndependence(t *testing.T, native *imapclient.Client, fixture *daptinE2EFixture, admin, accountRef string,

@@ -20,17 +20,21 @@ type imapSearchHydration struct {
 	size  int64
 }
 
-// Use the canonical message sizes to budget raw MIME held by a search window.
-// A message with unknown size or larger than the window is loaded by itself.
-// The part decoder still processes one message at a time.
 func imapSearchHydrationWindow(pending []imapSearchHydration) int {
+	return imapMIMEHydrationWindow(pending, func(entry imapSearchHydration) int64 { return entry.size })
+}
+
+// Budget raw MIME held by a FETCH or SEARCH window with canonical message sizes.
+// An unknown or oversized message is fetched by itself.
+func imapMIMEHydrationWindow[T any](pending []T, size func(T) int64) int {
 	const maxRows, maxBytes = 32, 8 << 20
 	bytesLeft := int64(maxBytes)
 	for i, entry := range pending[:min(len(pending), maxRows)] {
-		if entry.size <= 0 || entry.size > bytesLeft {
+		bytes := size(entry)
+		if bytes <= 0 || bytes > bytesLeft {
 			return max(1, i)
 		}
-		bytesLeft -= entry.size
+		bytesLeft -= bytes
 	}
 	return min(len(pending), maxRows)
 }

@@ -331,6 +331,19 @@ func (dimb *DaptinImapMailBox) ListMessagesReadOnly(uid bool, seqset *imap.SeqSe
 func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items []imap.FetchItem, ch chan<- *imap.Message, readOnly bool) error {
 	defer close(ch)
 
+	var expanded []imap.FetchItem
+	for _, item := range items {
+		expanded = append(expanded, item.Expand()...)
+	}
+	items = expanded
+	needsMIME := slices.ContainsFunc(items, func(item imap.FetchItem) bool {
+		switch item {
+		case imap.FetchFlags, imap.FetchInternalDate, imap.FetchRFC822Size, imap.FetchUid:
+			return false
+		default:
+			return true
+		}
+	})
 	extendedBody := slices.Contains(items, imap.FetchBodyStructure)
 	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
@@ -342,151 +355,149 @@ func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items
 	if err != nil {
 		return err
 	}
-	mails, err := dimb.readSelectedMails(selections, true, transaction)
+	_, caller, err := dimb.authorizeRead(transaction)
 	if err != nil {
 		return err
 	}
-	var caller *auth.SessionUser
-	var canMarkSeen bool
+	// Authorize the requested set before starting responses, without opening MIME.
+	mails, err := dimb.readIMAPMailRows(selections, caller,
+		imapMailReadOptions{fields: "reference_id,flags,recent,internal_date,size", requireAll: true}, transaction)
+	if err != nil {
+		return err
+	}
+	var checkedSeenWrite, canMarkSeen bool
+	var seenCaller *auth.SessionUser
+	var mimeRows map[daptinid.DaptinReferenceId]map[string]interface{}
+	windowEnd := 0
+	rawSize := func(selection MailSelection) int64 {
+		size, _ := ResourceRowInt64(mails[selection.ReferenceID]["size"])
+		return size
+	}
 
-	for _, selection := range selections {
+	for index, selection := range selections {
 		mailContent, ok := mails[selection.ReferenceID]
 		if !ok {
-			continue
+			return errors.New("native FETCH metadata missing for an authorized message")
 		}
-		//log.Printf("Return mailContent: %v", mailContent)
-
-		bodyContents, e := dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mailContent["mail"])
-		if e != nil {
-			CheckErr(e, "Failed to read mail contents")
-			continue
+		var bodyContents []byte
+		if needsMIME {
+			if index == windowEnd {
+				windowEnd = index + imapMIMEHydrationWindow(selections[index:], rawSize)
+				mimeRows = nil
+				mimeRows, err = dimb.readIMAPMailRows(selections[index:windowEnd], caller,
+					imapMailReadOptions{fields: "mail", includeBody: true, requireAll: true, internal: true}, transaction)
+				if err != nil {
+					return err
+				}
+			}
+			bodyContents, err = dimb.dbResource["mail"].MailColumnBytes("mail", "mail", mimeRows[selection.ReferenceID]["mail"])
+			if err != nil {
+				return fmt.Errorf("could not read original MIME for UID %d: %w", selection.UID, err)
+			}
 		}
-		//messageBytes := bytes.NewReader(bodyContents)
-		//log.Printf("Message: %v", string(bodyContents))
-		//parsedMail, err := parsemail.Parse(messageBytes)
-
-		//messageEntity, err := message.Read(messageBytes)
-
 		returnMail := imap.NewMessage(selection.SequenceNumber, items)
-		returnMail.Size = uint32(mailContent["size"].(int64))
+		returnMail.Size = uint32(rawSize(selection))
 		flagList := mailFlagsForRow(mailContent)
 
 		skipMail := false
 
-		//responseItems := make([]interface{}, 0)
-		for _, item1 := range items {
+		for _, item := range items {
+			if skipMail {
+				break
+			}
 
-			for _, subItems := range item1.Expand() {
+			switch item {
+			case imap.FetchEnvelope:
 
-				if skipMail {
+				bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+				header, _ := textproto.ReadHeader(bodyReader)
+
+				enve, err := backendutil.FetchEnvelope(header)
+				if err != nil {
+					log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
+					skipMail = true
+					break
+				}
+				returnMail.Envelope = enve
+			case imap.FetchBody, imap.FetchBodyStructure:
+				if returnMail.BodyStructure != nil {
+					continue
+				}
+				bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+				header, err := textproto.ReadHeader(bodyReader)
+				if err != nil {
+					log.Printf("Failed to fetch MIME header for email [%v]: %v", mailContent["id"], err)
+					skipMail = true
+					break
+				}
+				bs, err := backendutil.FetchBodyStructure(header, bodyReader, extendedBody)
+				if err != nil {
+					log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
+					skipMail = true
+					break
+				}
+				returnMail.BodyStructure = bs
+			case imap.FetchFlags:
+				returnMail.Flags = flagList
+
+			case imap.FetchInternalDate:
+				returnMail.InternalDate = mailContent["internal_date"].(time.Time)
+			case imap.FetchRFC822Size:
+				// Size comes from the sparse message row.
+			case imap.FetchUid:
+				returnMail.Uid = selection.UID
+			default:
+				section, err := imap.ParseBodySectionName(item)
+				if CheckErr(err, "failed to parse item name") {
+					skipMail = true
 					break
 				}
 
-				//log.Printf("Mail flags: %v at fetch item [%v]", flagList, subItems)
+				bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
+				header, _ := textproto.ReadHeader(bodyReader)
 
-				switch subItems {
-				case imap.FetchEnvelope:
-
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, _ := textproto.ReadHeader(bodyReader)
-
-					enve, err := backendutil.FetchEnvelope(header)
-					if err != nil {
-						log.Printf("Failed to fetch envelop for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
-					returnMail.Envelope = enve
-				case imap.FetchBody, imap.FetchBodyStructure:
-					if returnMail.BodyStructure != nil {
-						continue
-					}
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, err := textproto.ReadHeader(bodyReader)
-					if err != nil {
-						log.Printf("Failed to fetch MIME header for email [%v]: %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
-					bs, err := backendutil.FetchBodyStructure(header, bodyReader, extendedBody)
-					if err != nil {
-						log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
-					returnMail.BodyStructure = bs
-				case imap.FetchFlags:
-					returnMail.Flags = flagList
-
-				case imap.FetchInternalDate:
-					returnMail.InternalDate = mailContent["internal_date"].(time.Time)
-				case imap.FetchRFC822Size:
-					returnMail.Size = uint32(mailContent["size"].(int64))
-				case imap.FetchUid:
-					returnMail.Uid = selection.UID
-				default:
-					log.Printf("Fetch default [%v] update flags: %v", subItems, flagList)
-
-					section, err := imap.ParseBodySectionName(subItems)
-					if CheckErr(err, "failed to parse item name") {
-						skipMail = true
-						break
-					}
-
-					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-					header, err := textproto.ReadHeader(bodyReader)
-
-					log.Printf("Fetch default section peek [%v]: %v", section, section.Peek)
-
-					l, err := backendutil.FetchBodySection(header, bodyReader, section)
-					if err != nil {
-						log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
-						skipMail = true
-						break
-					}
-
-					if !readOnly && !section.Peek && !HasFlag(flagList, imap.SeenFlag) {
-						// A write grant can be removed after SELECT or
-						// withheld on one message. Its valid read grant
-						// still permits FETCH, without the implicit write.
-						if caller == nil {
-							box, current, err := dimb.authorizeRead(transaction)
-							if err != nil {
-								return err
-							}
-							caller = current
-							canMarkSeen = dimb.canUpdateMailbox(box, caller, transaction)
-						}
-						crud := dimb.dbResource["mail"]
-						ref := daptinid.InterfaceToDIR(mailContent["reference_id"])
-						if canMarkSeen && crud.mailRowPermission("mail", ref, caller, false, transaction) == nil {
-							written, changed, err := crud.mutateMailFlags(ref, imap.AddFlags, []string{imap.SeenFlag}, caller, transaction)
-							if err != nil {
-								return err
-							}
-							flagList = written
-							returnMail.Flags = flagList
-							if changed {
-								returnMail.Items[imap.FetchFlags] = nil
-							}
-						}
-					}
-
-					returnMail.Body[section] = l
-					//responseItems = append(responseItems, string(item), l)
+				l, err := backendutil.FetchBodySection(header, bodyReader, section)
+				if err != nil {
+					log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
+					skipMail = true
+					break
 				}
+
+				if !readOnly && !section.Peek && !HasFlag(flagList, imap.SeenFlag) {
+					// A write grant can be removed after SELECT or
+					// withheld on one message. Its valid read grant
+					// still permits FETCH, without the implicit write.
+					if !checkedSeenWrite {
+						box, current, err := dimb.authorizeRead(transaction)
+						if err != nil {
+							return err
+						}
+						checkedSeenWrite = true
+						seenCaller = current
+						canMarkSeen = dimb.canUpdateMailbox(box, current, transaction)
+					}
+					crud := dimb.dbResource["mail"]
+					ref := daptinid.InterfaceToDIR(mailContent["reference_id"])
+					if canMarkSeen && crud.mailRowPermission("mail", ref, seenCaller, false, transaction) == nil {
+						written, changed, err := crud.mutateMailFlags(ref, imap.AddFlags, []string{imap.SeenFlag}, seenCaller, transaction)
+						if err != nil {
+							return err
+						}
+						flagList = written
+						returnMail.Flags = flagList
+						if changed {
+							returnMail.Items[imap.FetchFlags] = nil
+						}
+					}
+				}
+
+				returnMail.Body[section] = l
 			}
 		}
 
 		if skipMail {
 			continue
 		}
-		//err = returnMail.Parse(responseItems)
-		//if err != nil {
-		//	log.Printf("Failed to parse fields: %v", err)
-		//	continue
-		//}
-
 		ch <- returnMail
 	}
 
