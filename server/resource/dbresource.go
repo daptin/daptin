@@ -513,17 +513,6 @@ func (dbResource *DbResource) GetAdminEmailId(transaction *sqlx.Tx) string {
 }
 
 func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId int64, transaction *sqlx.Tx) (*imap.MailboxStatus, error) {
-
-	var uidValidity uint32
-
-	// Use db directly for reads when no transaction provided (reduces lock contention)
-	queryRow := func(query string, args ...interface{}) *sqlx.Row {
-		if transaction != nil {
-			return transaction.QueryRowx(query, args...)
-		}
-		return dbResource.db.QueryRowx(query, args...)
-	}
-
 	messageCount, err := dbResource.countMailboxMessages(mailBoxId, nil, transaction)
 	if err != nil {
 		return nil, err
@@ -537,6 +526,17 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 		return nil, err
 	}
 
+	return dbResource.mailBoxStatusWithCounts(mailBoxId, messageCount, unseenCount, recentCount, transaction)
+}
+
+func (dbResource *DbResource) mailBoxStatusWithCounts(mailBoxId int64, messageCount, unseenCount, recentCount uint32, transaction *sqlx.Tx) (*imap.MailboxStatus, error) {
+	var uidValidity uint32
+	queryRow := func(query string, args ...interface{}) *sqlx.Row {
+		if transaction != nil {
+			return transaction.QueryRowx(query, args...)
+		}
+		return dbResource.db.QueryRowx(query, args...)
+	}
 	q3, v3, e3 := statementbuilder.Squirrel.Select("uidvalidity").Prepared(true).From("mail_box").Where(goqu.Ex{
 		"id": mailBoxId,
 	}).ToSQL()
@@ -551,7 +551,7 @@ func (dbResource *DbResource) GetMailBoxStatus(mailAccountId int64, mailBoxId in
 
 	st := imap.NewMailboxStatus("", []imap.StatusItem{imap.StatusUnseen, imap.StatusMessages, imap.StatusRecent, imap.StatusUidNext, imap.StatusUidValidity})
 
-	err = st.Parse([]interface{}{
+	err := st.Parse([]interface{}{
 		string(imap.StatusMessages), messageCount,
 		string(imap.StatusUnseen), unseenCount,
 		string(imap.StatusRecent), recentCount,

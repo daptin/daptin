@@ -43,8 +43,10 @@ projections. Paginate rather than retrieving MIME to compute counts.
 
 `POST /action/mail_box/status` is callable by authenticated users and accepts `mail_account_id`, optional
 `mail_box_id`, `page_size` and `page_number`. It returns `mail_box.status`
-with folder counts and UID state. Resource read permission and containing
-account access are enforced using persisted active-user memberships.
+with folder counts and UID state. Inaccessible folders are omitted. Message,
+unread and recent counts include only messages readable by the active user,
+using persisted memberships and current grants. The UID fields describe
+the folder's allocation state; they are not message counts.
 
 For a typed subject search, send the `contains_literal` operator and the literal
 term, for example `50%`, with no wildcard wrapper. The standard `contains`

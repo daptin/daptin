@@ -51,9 +51,9 @@ func TestMailGroupReadsRealE2E(t *testing.T) {
 		id := "<" + name + "@group-mail.test>"
 		raw := "From: sender@example.test\r\nTo: " + mailbox + "\r\nSubject: " + name + "\r\nMessage-ID: " + id + "\r\n\r\nShared fixture body\r\n"
 		return seed("mail", map[string]interface{}{"mail_box_id": box, "mail": base64.StdEncoding.EncodeToString([]byte(raw)), "message_id": id, "mail_id": name,
-			"from_address": "sender@example.test", "internal_date": time.Now().UTC().Format(time.RFC3339), "to_address": mailbox, "reply_to_address": "sender@example.test", "sender_address": "sender@example.test",
+			"from_address": "sender@example.test", "internal_date": time.Date(2026, 10, sequence, 12, 0, 0, 0, time.UTC).Format(time.RFC3339), "to_address": mailbox, "reply_to_address": "sender@example.test", "sender_address": "sender@example.test",
 			"subject": name, "body": "Shared fixture body", "spam_score": 0, "hash": name, "content_type": "text/plain", "recipient": mailbox, "has_attachment": false,
-			"ip_addr": "127.0.0.1", "return_path": "sender@example.test", "is_tls": false, "seen": false, "recent": false, "deleted": false, "uid": sequence, "spam": false, "size": len(raw), "flags": ""})
+			"ip_addr": "127.0.0.1", "return_path": "sender@example.test", "is_tls": false, "seen": sequence == 1, "recent": sequence == 2, "deleted": false, "uid": sequence, "spam": false, "size": len(raw), "flags": ""})
 	}
 	first, second := addMail(1), addMail(2)
 	groupA := accessGroupsE2ECreateUsergroup(t, f.Client, f.URL, admin, "group_mail_a")
@@ -113,25 +113,52 @@ func TestMailGroupReadsRealE2E(t *testing.T) {
 		accessGroupsE2EAssertStatus(t, f.Client, http.MethodPost, f.URL+"/action/mail/unpack", member,
 			map[string]interface{}{"attributes": map[string]interface{}{"message_ref": ref}}, status)
 	}
+	status := func(token string, total, unread, recent int, latest string) {
+		t.Helper()
+		response := accessGroupsE2ERequestJSON(t, f.Client, http.MethodPost, f.URL+"/action/mail_box/status", token,
+			map[string]interface{}{"attributes": map[string]interface{}{"mail_account_id": account}}, http.StatusOK)
+		rows := response.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})["data"].([]interface{})
+		if len(rows) != 1 {
+			t.Fatalf("expected one readable status row, got %d", len(rows))
+		}
+		row := rows[0].(map[string]interface{})
+		var gotLatest string
+		if message, ok := row["latest_message"].(map[string]interface{}); ok {
+			gotLatest, _ = message["reference_id"].(string)
+		}
+		if row["messages"] != float64(total) || row["unseen"] != float64(unread) || row["recent"] != float64(recent) || gotLatest != latest {
+			t.Errorf("Mail status: got messages=%v unseen=%v recent=%v latest=%q; want %d/%d/%d/latest=%q",
+				row["messages"], row["unseen"], row["recent"], gotLatest, total, unread, recent, latest)
+		}
+		if row["uidnext"] != float64(3) || row["uidvalidity"] != float64(1) {
+			t.Errorf("mailbox UID state changed: %#v", row)
+		}
+	}
 	list(other, 1, 0, "")
 	list(member, 1, 2, first)
 	list(member, 2, 2, second)
 	read(first, http.StatusOK)
+	status(member, 2, 1, 1, second)
 	unlink(joinB)
 	list(member, 1, 1, first)
 	list(member, 2, 1, "")
+	status(member, 1, 0, 0, first)
 	// Keep parents readable so no ancestor check can mask a stale message grant.
 	patch("mail_account", account, int64(auth.GuestRead))
 	patch("mail_box", box, int64(auth.GuestRead))
+	status(other, 0, 0, 0, "")
 	read(second, http.StatusForbidden)
 	unlink(joinA)
 	list(member, 1, 0, "")
 	read(first, http.StatusForbidden)
+	status(member, 0, 0, 0, "")
 	link("user_account", user, groupB, 0)
 	list(member, 1, 2, first)
 	list(member, 2, 2, second)
 	read(second, http.StatusOK)
+	status(member, 2, 1, 1, second)
 	if !t.Failed() {
 		t.Log("Overlapping group grants occupy one row per message; the same bearer session reflects removal and restoration.")
+		t.Log("Mailbox status counts and latest message follow readable rows; UID state stays fixed.")
 	}
 }

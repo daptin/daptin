@@ -91,11 +91,7 @@ func (d *mailboxStatusActionPerformer) DoAction(request actionresponse.Outcome, 
 		if !readable {
 			return nil, nil, []error{api2go.NewHTTPError(errors.New("mail account access denied"), "mail account access denied", http.StatusForbidden)}
 		}
-		mailAccountId, err := resource.GetReferenceIdToIdWithTransaction("mail_account", mailAccountReferenceID, tx)
-		if err != nil {
-			return nil, nil, []error{err}
-		}
-		status, err := d.cruds["mail_box"].GetMailBoxStatus(mailAccountId, boxId, tx)
+		status, err := d.cruds["mail_box"].GetMailBoxStatusForReader(boxId, sessionUser, tx)
 		if err != nil {
 			return nil, nil, []error{err}
 		}

@@ -82,7 +82,7 @@ func TestMailBrowserReadRevocationRealE2E(t *testing.T) {
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail_account/"+accountRef, admin,
 		accessGroupsE2ERecordPayload("mail_account", accountRef, map[string]interface{}{"permission": 0}), http.StatusOK)
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, url, alice, payload, http.StatusForbidden)
-	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, mailboxStatusURL, alice, statusPayload, http.StatusForbidden)
+	assertMailboxStatus(alice, false)
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail_account/"+accountRef, admin,
 		accessGroupsE2ERecordPayload("mail_account", accountRef, map[string]interface{}{"permission": private}), http.StatusOK)
 	assertMailboxStatus(alice, true)
