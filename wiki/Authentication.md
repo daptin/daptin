@@ -69,6 +69,14 @@ curl -X POST http://localhost:6336/action/user_account/signin \
 ]
 ```
 
+Wrong credentials, an unknown account, or missing/empty credentials return
+HTTP **401** with the generic message `Invalid username or password`. These
+rejections issue neither a token nor a token cookie. Invalid credential types
+(such as an object or number in the password field) return **400**. Backend
+lookup or token-signing failures remain **500** with `Sign-in unavailable`.
+GraphQL reports credential rejection in its normal `errors` envelope, with the
+same message for known and unknown accounts.
+
 ### Using JWT Tokens
 
 **Authorization header** (recommended):

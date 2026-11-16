@@ -3,7 +3,9 @@ package actions
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -189,6 +191,54 @@ func TestGenerateJwtTokenActionIssuesAuthVersionClaim(t *testing.T) {
 	claims := parseTestSessionToken(t, attrs["value"].(string), []byte("test-secret"))
 	if claims[auth.AuthVersionClaim] != float64(4) {
 		t.Fatalf("expected auth_version 4, got %v", claims[auth.AuthVersionClaim])
+	}
+	for _, test := range []struct {
+		name            string
+		email, password interface{}
+		status          int
+	}{
+		{"wrong password", "user@example.com", "WrongPass123!", 401},
+		{"unknown account", "unknown@example.com", "WrongPass123!", 401},
+		{"empty password", "user@example.com", "", 401},
+		{"null password", "user@example.com", nil, 401},
+		{"empty email", "", "WrongPass123!", 401},
+		{"null email", nil, "WrongPass123!", 401},
+		{"numeric password", "user@example.com", 123, 400},
+		{"object password", "user@example.com", map[string]interface{}{"value": "secret"}, 400},
+		{"numeric email", 123, "WrongPass123!", 400},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, responses, failures := performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{"email": test.email, "password": test.password}, tx)
+			var typed api2go.HTTPError
+			if len(failures) != 1 || !errors.As(failures[0], &typed) || typed.Status() != test.status {
+				t.Fatalf("failures=%v, want HTTP %d", failures, test.status)
+			}
+			if test.status == 401 && (len(typed.Errors) != 1 || typed.Errors[0].Title != "Invalid username or password") {
+				t.Fatalf("rejection message differs: %#v", typed.Errors)
+			}
+			for _, response := range responses {
+				if response.ResponseType == "client.store.set" || response.ResponseType == "client.cookie.set" {
+					t.Fatal("rejected credentials produced a token response")
+				}
+			}
+		})
+	}
+	// Trusted backend outcomes can still issue a session after OAuth has verified
+	// identity. Public signin does not forward this flag from caller inputs.
+	_, trustedResponses, failures := performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{"email": "user@example.com", "skipPasswordCheck": true}, tx)
+	if len(failures) != 0 || len(trustedResponses) == 0 || trustedResponses[0].ResponseType != "client.store.set" {
+		t.Fatalf("trusted issuance failed: %v", failures)
+	}
+	if err := tx.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	_, responses, failures = performer.DoAction(actionresponse.Outcome{}, map[string]interface{}{"email": "user@example.com", "password": "CorrectPass123!"}, tx)
+	var unavailable api2go.HTTPError
+	if len(failures) != 1 || !errors.As(failures[0], &unavailable) || unavailable.Status() != http.StatusInternalServerError || len(responses) != 0 {
+		t.Fatalf("lookup error became credential rejection: %v", failures)
+	}
+	if strings.Contains(unavailable.Error(), "sql") || strings.Contains(unavailable.Error(), "transaction") {
+		t.Fatalf("database details leaked: %v", unavailable)
 	}
 }
 

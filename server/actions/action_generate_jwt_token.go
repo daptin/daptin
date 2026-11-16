@@ -1,7 +1,9 @@
 package actions
 
 import (
-	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/resource"
@@ -9,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type generateJwtTokenActionPerformer struct {
@@ -27,41 +28,36 @@ func (d *generateJwtTokenActionPerformer) DoAction(request actionresponse.Outcom
 
 	responses := make([]actionresponse.ActionResponse, 0)
 
-	email := inFieldMap["email"]
-	var password = ""
+	email, emailIsString := inFieldMap["email"].(string)
+	password, passwordIsString := inFieldMap["password"].(string)
+	skipPasswordCheck, _ := inFieldMap["skipPasswordCheck"].(bool)
 
-	skipPasswordCheck := false
-
-	skipPasswordCheckStr, ok := inFieldMap["skipPasswordCheck"]
-	if ok {
-		skipPasswordCheck, _ = skipPasswordCheckStr.(bool)
+	if (!emailIsString && inFieldMap["email"] != nil) ||
+		(!skipPasswordCheck && !passwordIsString && inFieldMap["password"] != nil) {
+		return nil, nil, []error{jwtTokenHTTPError(http.StatusBadRequest, "Invalid sign-in input")}
 	}
-
-	if !skipPasswordCheck {
-		if inFieldMap["password"] != nil {
-			password = inFieldMap["password"].(string)
-		} else {
-			return nil, nil, []error{fmt.Errorf("email or password is empty")}
-		}
-	}
-
-	if email == nil || (len(password) < 1 && !skipPasswordCheck) {
-		return nil, nil, []error{fmt.Errorf("email or password is empty")}
+	if email == "" || (!skipPasswordCheck && password == "") {
+		return nil, nil, []error{jwtTokenHTTPError(http.StatusUnauthorized, "Invalid username or password")}
 	}
 
 	existingUsers, _, err := d.cruds[resource.USER_ACCOUNT_TABLE_NAME].GetRowsByWhereClauseWithTransaction("user_account", nil, transaction, goqu.Ex{"email": email})
 
 	responseAttrs := make(map[string]interface{})
-	if err != nil || len(existingUsers) < 1 {
+	if err != nil {
+		log.Errorf("Sign-in user lookup failed: %v", err)
+		return nil, nil, []error{jwtTokenHTTPError(http.StatusInternalServerError, "Sign-in unavailable")}
+	}
+	if len(existingUsers) < 1 {
 		responseAttrs["type"] = "error"
 		responseAttrs["message"] = "Invalid username or password"
 		responseAttrs["title"] = "Failed"
 		actionResponse := resource.NewActionResponse("client.notify", responseAttrs)
 		responses = append(responses, actionResponse)
-		return nil, responses, []error{fmt.Errorf("Invalid username or password")}
+		return nil, responses, []error{jwtTokenHTTPError(http.StatusUnauthorized, "Invalid username or password")}
 	} else {
 		existingUser := existingUsers[0]
-		if skipPasswordCheck || (existingUser["password"] != nil && resource.BcryptCheckStringHash(password, existingUser["password"].(string))) {
+		passwordHash, _ := existingUser["password"].(string)
+		if skipPasswordCheck || (passwordHash != "" && resource.BcryptCheckStringHash(password, passwordHash)) {
 
 			// Create a new token object, specifying signing method and the claims
 			// you would like it to contain.
@@ -73,7 +69,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request actionresponse.Outcom
 			//fmt.Printf("%v %v", tokenString, err)
 			if err != nil {
 				log.Errorf("Failed to sign string: %v", err)
-				return nil, nil, []error{err}
+				return nil, nil, []error{jwtTokenHTTPError(http.StatusInternalServerError, "Sign-in unavailable")}
 			}
 
 			responseAttrs = make(map[string]interface{})
@@ -109,7 +105,7 @@ func (d *generateJwtTokenActionPerformer) DoAction(request actionresponse.Outcom
 			responseAttrs["title"] = "Failed"
 			responseAttrs["message"] = "Invalid username or password"
 			responses = append(responses, resource.NewActionResponse("client.notify", responseAttrs))
-			return nil, responses, []error{fmt.Errorf("Invalid username or password")}
+			return nil, responses, []error{jwtTokenHTTPError(http.StatusUnauthorized, "Invalid username or password")}
 		}
 
 	}
@@ -146,4 +142,10 @@ func NewGenerateJwtTokenPerformer(configStore *resource.ConfigStore, cruds map[s
 
 	return &handler, nil
 
+}
+
+func jwtTokenHTTPError(status int, message string) api2go.HTTPError {
+	failure := api2go.NewHTTPError(nil, message, status)
+	failure.Errors = []api2go.Error{{Title: message}}
+	return failure
 }
