@@ -56,13 +56,36 @@ func TestMailBrowserReadRevocationRealE2E(t *testing.T) {
 		t.Fatalf("MIME reference must be canonical resource, not UID: %#v", response)
 	}
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, url, bob, payload, http.StatusForbidden)
+	mailboxStatusURL := fixture.URL + "/action/mail_box/status"
+	statusPayload := map[string]interface{}{"attributes": map[string]interface{}{"mail_account_id": accountRef}}
+	assertMailboxStatus := func(token string, wantVisible bool) {
+		t.Helper()
+		response := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, mailboxStatusURL, token, statusPayload, http.StatusOK)
+		attributes := response.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+		rows := attributes["data"].([]interface{})
+		if !wantVisible {
+			if len(rows) != 0 {
+				t.Fatalf("mailbox status disclosed a private mailbox: %#v", rows)
+			}
+			return
+		}
+		if len(rows) != 1 {
+			t.Fatalf("owner mailbox status rows = %#v, want one private mailbox", rows)
+		}
+		row := rows[0].(map[string]interface{})
+		if row["mail_box_id"] != boxRef || row["messages"] != float64(1) || row["unseen"] != float64(1) {
+			t.Fatalf("mailbox status did not report canonical mailbox and counts: %#v", row)
+		}
+	}
+	assertMailboxStatus(alice, true)
+	assertMailboxStatus(bob, false)
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail_account/"+accountRef, admin,
 		accessGroupsE2ERecordPayload("mail_account", accountRef, map[string]interface{}{"permission": 0}), http.StatusOK)
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, url, alice, payload, http.StatusForbidden)
-	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail_box/status", alice,
-		map[string]interface{}{"attributes": map[string]interface{}{"mail_account_id": accountRef}}, http.StatusForbidden)
+	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, mailboxStatusURL, alice, statusPayload, http.StatusForbidden)
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail_account/"+accountRef, admin,
 		accessGroupsE2ERecordPayload("mail_account", accountRef, map[string]interface{}{"permission": private}), http.StatusOK)
+	assertMailboxStatus(alice, true)
 	draft := map[string]interface{}{
 		"account_ref": accountRef, "compose_key": uuid.NewString(), "write_key": uuid.NewString(),
 		"content": map[string]interface{}{"subject": "Durable draft", "text": "First text", "html": "<p>First text</p>",

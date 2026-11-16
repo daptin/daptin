@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -32,6 +33,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	alice := accessGroupsE2ESignupSigninUser(t, fixture.Client, fixture.URL, admin, "native-alice")
 	aliceRef := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "user_account", "email", "native-alice@test.local")
 	private := int64(auth.UserCRUD | auth.UserExecute)
+	const imapHostname = "imap.native.test"
 	seed := func(table string, values map[string]interface{}) string {
 		ref := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, table, values)
 		accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/"+table+"/"+ref, admin,
@@ -40,9 +42,16 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	}
 	serverRef := seed("mail_server", map[string]interface{}{"hostname": "native.test", "is_enabled": false, "listen_interface": "127.0.0.1:0", "max_size": 30000000, "max_clients": 1, "xclient_on": false, "always_on_tls": false, "authentication_required": true})
 	accountRef := seed("mail_account", map[string]interface{}{"username": "native-alice@native.test", "password": "fixture-password", "password_md5": "fixture-password", "mail_server_id": serverRef})
-	cert := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, "certificate", map[string]interface{}{"hostname": "imap.native.test", "issuer": "self"})
+	cert := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, "certificate", map[string]interface{}{"hostname": imapHostname, "issuer": "self"})
 	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, fixture.URL+"/action/certificate/generate_self_certificate", admin,
 		map[string]interface{}{"attributes": map[string]interface{}{"certificate_id": cert}}, http.StatusOK)
+	certRecord := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/certificate/"+cert, admin, nil, http.StatusOK)
+	publicPEM, _ := accessGroupsE2EFindString(certRecord, "certificate_pem")
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM([]byte(publicPEM)) {
+		t.Fatal("fixture certificate could not be loaded")
+	}
+	tlsConfig := &tls.Config{RootCAs: roots, ServerName: imapHostname}
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +76,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		}
 	}
 	configure("imap.listen_interface", address)
-	configure("imap.hostname", "imap.native.test")
+	configure("imap.hostname", imapHostname)
 	configure("imap.enabled", "true")
 	fixture.Process.stopProcess()
 	fixture = startDaptinE2E(t, options)
@@ -80,15 +89,15 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 			t.Log(output)
 		}
 	})
-	// TLS skips certificate verification only for this generated, loopback-only
-	// self-signed fixture. Production listener policy remains unchanged.
+	// Verify the configured IMAP hostname against only this fixture's public
+	// certificate. The test leaves the machine's root trust unchanged.
 	native, err := imapclient.DialWithDialer(&net.Dialer{Timeout: 10 * time.Second}, address)
 	if err != nil {
 		t.Fatalf("IMAP connect: %v", err)
 	}
 	native.Timeout = 15 * time.Second
 	t.Cleanup(func() { _ = native.Terminate() })
-	if err = native.StartTLS(&tls.Config{InsecureSkipVerify: true}); err != nil {
+	if err = native.StartTLS(tlsConfig); err != nil {
 		t.Fatalf("STARTTLS: %v", err)
 	}
 	if err = native.Login("native-alice@native.test", "fixture-password"); err != nil {
@@ -264,7 +273,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if line, err := wireReader.ReadString('\n'); err != nil || !strings.HasPrefix(line, "a OK") {
 		t.Fatalf("bounded STARTTLS: %q %v", line, err)
 	}
-	secure := tls.Client(bounded, &tls.Config{InsecureSkipVerify: true})
+	secure := tls.Client(bounded, tlsConfig)
 	if err = secure.Handshake(); err != nil {
 		t.Fatal(err)
 	}

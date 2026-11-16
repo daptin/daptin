@@ -41,7 +41,7 @@ Filter folders by `mail_account_id`, then messages by `mail_box_id`; retain
 public references as identity. Keep `mail` and `body` out of message-list
 projections. Paginate rather than retrieving MIME to compute counts.
 
-`POST /action/mail_box/status` accepts `mail_account_id`, optional
+`POST /action/mail_box/status` is callable by authenticated users and accepts `mail_account_id`, optional
 `mail_box_id`, `page_size` and `page_number`. It returns `mail_box.status`
 with folder counts and UID state. Resource read permission and containing
 account access are enforced using persisted active-user memberships.

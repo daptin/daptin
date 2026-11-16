@@ -784,6 +784,7 @@ var SystemActions = []actionresponse.Action{
 		Label:            "Mailbox Status",
 		OnType:           "mail_box",
 		InstanceOptional: true,
+		Permission:       &authenticatedOTPActionPermission,
 		InFields: []api2go.ColumnInfo{
 			{
 				Name:       "mail_account_id",

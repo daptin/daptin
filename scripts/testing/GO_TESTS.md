@@ -61,8 +61,9 @@ DAPTIN_REAL_E2E=1 go test -count=1 -run '^TestExampleRealE2E$' ./cmd/daptin
 
 `TestMailNativeRoundTripRealE2E` reuses the shared executable harness with a
 fresh SQLite database, HTTP-created resources and a restarted loopback-only
-IMAP listener. It uses STARTTLS and a fixture-generated self-signed certificate;
-verification is relaxed only in the test client. It exercises MIME/UID/flags,
+IMAP listener. It uses STARTTLS and verifies the hostname against a
+fixture-generated certificate in the test client's private trust pool.
+It exercises MIME/UID/flags,
 native drafts and HTTP adoption, COPY/EXPUNGE, subscriptions, empty bodies,
 APPEND bounds and live permission revocation:
 
@@ -90,6 +91,19 @@ DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
 This SMTP test is opt-in and never uses a live installation or external
 recipient. Successful compilation or an ordinary skipped run is not SMTP
 acceptance. Results are recorded in the canonical Office Mail plan.
+
+`TestMailInboundSMTPRealE2E` exercises the receiving side. It provisions two
+private mail accounts through the resource APIs, restarts a disposable SQLite
+server with an unprivileged loopback SMTP listener, and sends one unsigned MIME
+message to two local envelope recipients. The listener creates the Inbox and
+message records. The test verifies sparse owner-scoped metadata, UID allocation,
+decoded attachment bytes, canonical source after SMTP DATA line-ending
+normalization, cross-user denial, and independent unread state.
+
+```bash
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
+  go test ./cmd/daptin -run '^TestMailInboundSMTPRealE2E$' -count=1
+```
 
 ## Administrator restart in Docker
 
