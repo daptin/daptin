@@ -3,6 +3,7 @@ package resource
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -153,9 +154,16 @@ func mailFlagAttributes(flags []string) map[string]interface{} {
 // MutateMailFlags is shared by native STORE/FETCH and browser updates. Resolve
 // persisted permissions and lock the account before merging incremental flags.
 func (dbResource *DbResource) MutateMailFlags(ref daptinid.DaptinReferenceId, operation imap.FlagsOp, flags []string, active *auth.SessionUser, tx *sqlx.Tx) error {
+	_, _, err := dbResource.mutateMailFlags(ref, operation, flags, active, tx)
+	return err
+}
+
+// mutateMailFlags also returns the flags written and whether they differ from
+// the locked row, so FETCH can report an implicit change in the same response.
+func (dbResource *DbResource) mutateMailFlags(ref daptinid.DaptinReferenceId, operation imap.FlagsOp, flags []string, active *auth.SessionUser, tx *sqlx.Tx) ([]string, bool, error) {
 	row, caller, err := dbResource.writableMailRow(ref, active, tx)
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 	current := canonicalMailFlags(strings.Split(StringOrEmpty(row["flags"]), ","))
 	values := []string{}
@@ -168,7 +176,12 @@ func (dbResource *DbResource) MutateMailFlags(ref daptinid.DaptinReferenceId, op
 	if operation == imap.SetFlags && HasFlag(current, imap.RecentFlag) {
 		next = append(next, imap.RecentFlag)
 	}
-	return dbResource.updateMailOperationRow(row, mailFlagAttributes(next), caller, tx)
+	attributes := mailFlagAttributes(next)
+	if err = dbResource.updateMailOperationRow(row, attributes, caller, tx); err != nil {
+		return nil, false, err
+	}
+	written := canonicalMailFlags(strings.Split(StringOrEmpty(attributes["flags"]), ","))
+	return written, !slices.Equal(current, written), nil
 }
 func (dbResource *DbResource) MoveMailMessage(ref daptinid.DaptinReferenceId, destination map[string]interface{}, active *auth.SessionUser, tx *sqlx.Tx) error {
 	row, caller, err := dbResource.writableMailRow(ref, active, tx)

@@ -56,6 +56,7 @@ func (d *mailUnpackActionPerformer) DoAction(_ actionresponse.Outcome, inFields 
 			"filename":            part.Filename,
 			"content_id":          part.ContentID,
 			"content_disposition": part.ContentDisposition,
+			"presentation":        part.Presentation,
 			"decoded_size":        part.DecodedSize,
 			"sha256":              part.SHA256,
 			"content": []interface{}{map[string]interface{}{

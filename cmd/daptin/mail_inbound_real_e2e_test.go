@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/smtp"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +19,7 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 	requireRealE2E(t)
 	t.Setenv("DAPTIN_DISABLE_SMTP", "false")
 	address := fmt.Sprintf("127.0.0.1:%d", freeTransportE2EPort(t, make(map[int]bool)))
-	options := transportE2EDaptinOptions{connectionString: filepath.Join(t.TempDir(), "inbound-mail.db")}
+	options := mailProtocolDatabase(t)
 	fixture := startDaptinE2E(t, options)
 	admin := fixture.SignupAdmin(t)
 	alice := accessGroupsE2ESignupSigninUser(t, fixture.Client, fixture.URL, admin, "inbound-alice")

@@ -88,6 +88,7 @@ curl --get \
 | `eq` | No | `"Admin"` | Exact: "Admin" |
 | `neq` / `is not` | No | `"Admin"` | Not "Admin" |
 | `contains` | **YES** | `"%mail%"` | Substring: "email", "gmail" |
+| `contains_literal` | **NO** | `"50%_done"` | Finds the exact substring `50%_done`, including the percent sign and underscore |
 | `like` | **YES** | `"%user%"` | Pattern match |
 | `ilike` | **YES** | `"%USER%"` | Case-insensitive |
 | `begins with` | **YES** | `"user%"` | Starts with "user" |
@@ -96,6 +97,11 @@ curl --get \
 | `not like` | **YES** | `"%temp%"` | NOT LIKE pattern |
 
 **CRITICAL**: String pattern operators (`contains`, `begins with`, `ends with`) require manual `%` wildcards.
+
+Use `contains_literal` for user-entered text. Supply a nonempty string without
+NUL characters; Daptin escapes pattern characters before matching the
+substring. Use it on text columns; reference IDs and foreign keys are
+unsupported. Case and accent matching follow the database's `LIKE` rules.
 
 ### Numeric Operators
 

@@ -7,11 +7,13 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -26,14 +28,13 @@ import (
 // executable. Resource/action HTTP remains the setup and browser authority.
 func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	requireRealE2E(t)
-	database := filepath.Join(t.TempDir(), "native-mail.db")
-	options := transportE2EDaptinOptions{connectionString: database}
+	options := mailProtocolDatabase(t)
 	fixture := startDaptinE2E(t, options)
 	admin := fixture.SignupAdmin(t)
 	alice := accessGroupsE2ESignupSigninUser(t, fixture.Client, fixture.URL, admin, "native-alice")
 	aliceRef := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "user_account", "email", "native-alice@test.local")
 	private := int64(auth.UserCRUD | auth.UserExecute)
-	const imapHostname = "imap.native.test"
+	const imapHostname = "localhost"
 	seed := func(table string, values map[string]interface{}) string {
 		ref := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, table, values)
 		accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/"+table+"/"+ref, admin,
@@ -42,11 +43,19 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	}
 	serverRef := seed("mail_server", map[string]interface{}{"hostname": "native.test", "is_enabled": false, "listen_interface": "127.0.0.1:0", "max_size": 30000000, "max_clients": 1, "xclient_on": false, "always_on_tls": false, "authentication_required": true})
 	accountRef := seed("mail_account", map[string]interface{}{"username": "native-alice@native.test", "password": "fixture-password", "password_md5": "fixture-password", "mail_server_id": serverRef})
-	cert := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, "certificate", map[string]interface{}{"hostname": imapHostname, "issuer": "self"})
-	accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, fixture.URL+"/action/certificate/generate_self_certificate", admin,
-		map[string]interface{}{"attributes": map[string]interface{}{"certificate_id": cert}}, http.StatusOK)
-	certRecord := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/certificate/"+cert, admin, nil, http.StatusOK)
-	publicPEM, _ := accessGroupsE2EFindString(certRecord, "certificate_pem")
+	thunderbird := os.Getenv("DAPTIN_E2E_THUNDERBIRD_DRIVER")
+	var publicPEM string
+	if thunderbird != "" {
+		attributes, root := thunderbirdFixtureCertificate(t, imapHostname)
+		accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, "certificate", attributes)
+		publicPEM = root
+	} else {
+		cert := accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, "certificate", map[string]interface{}{"hostname": imapHostname, "issuer": "self"})
+		accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPost, fixture.URL+"/action/certificate/generate_self_certificate", admin,
+			map[string]interface{}{"attributes": map[string]interface{}{"certificate_id": cert}}, http.StatusOK)
+		certRecord := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/certificate/"+cert, admin, nil, http.StatusOK)
+		publicPEM, _ = accessGroupsE2EFindString(certRecord, "certificate_pem")
+	}
 	roots := x509.NewCertPool()
 	if !roots.AppendCertsFromPEM([]byte(publicPEM)) {
 		t.Fatal("fixture certificate could not be loaded")
@@ -96,9 +105,21 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		t.Fatalf("IMAP connect: %v", err)
 	}
 	native.Timeout = 15 * time.Second
+	if thunderbird != "" {
+		// The independent macOS app can take time to launch. Keep this
+		// already-authenticated IMAP connection alive while it does.
+		native.Timeout = 90 * time.Second
+	}
 	t.Cleanup(func() { _ = native.Terminate() })
 	if err = native.StartTLS(tlsConfig); err != nil {
 		t.Fatalf("STARTTLS: %v", err)
+	}
+	// The mail account username is the full address. Neither the local part
+	// nor the Office sign-in identity names this mail account.
+	for _, nonAccount := range []string{"native-alice", "native-alice@test.local"} {
+		if err = native.Login(nonAccount, "fixture-password"); err == nil {
+			t.Fatalf("IMAP accepted a username that does not identify the mail account: %q", nonAccount)
+		}
 	}
 	if err = native.Login("native-alice@native.test", "fixture-password"); err != nil {
 		t.Fatalf("native login: %v", err)
@@ -129,16 +150,47 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if len(list(false)) < 6 {
 		t.Fatal("native discovery did not create canonical folders")
 	}
+	checkRoles := func(infos []*imap.MailboxInfo) {
+		t.Helper()
+		roles := map[string]string{
+			"Draft": imap.DraftsAttr, "Sent": imap.SentAttr, "Archive": imap.ArchiveAttr,
+			"Trash": imap.TrashAttr, "Spam": imap.JunkAttr,
+		}
+		for _, info := range infos {
+			if role, found := roles[info.Name]; found {
+				if !slices.Contains(info.Attributes, role) {
+					t.Fatalf("IMAP folder %q omitted %s: attributes=%q", info.Name, role, info.Attributes)
+				}
+				delete(roles, info.Name)
+			}
+			if (info.Name == "INBOX" || info.Name == "Native/Draft") && slices.Contains(info.Attributes, imap.DraftsAttr) {
+				t.Fatalf("Non-draft folder %q advertised the draft role", info.Name)
+			}
+		}
+		if len(roles) != 0 {
+			t.Fatalf("IMAP discovery omitted canonical folders: %v", roles)
+		}
+	}
+	checkRoles(list(false))
+	roleSubscriptions := make(chan *imap.MailboxInfo, 16)
+	if err = native.Lsub("", "*", roleSubscriptions); err != nil {
+		t.Fatalf("native LSUB: %v", err)
+	}
+	var subscriptions []*imap.MailboxInfo
+	for folder := range roleSubscriptions {
+		subscriptions = append(subscriptions, folder)
+	}
+	checkRoles(subscriptions)
 	call := func(name, family string, input map[string]interface{}) map[string]interface{} {
 		response := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail_account/"+name, alice,
 			map[string]interface{}{"attributes": map[string]interface{}{family: input}}, http.StatusOK)
 		return response.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
 	}
 	draft := map[string]interface{}{"account_ref": accountRef, "compose_key": uuid.NewString(), "write_key": uuid.NewString(),
-		"content": map[string]interface{}{"subject": "Browser round trip", "text": "مرحبا नमस्ते こんにちは", "html": "<p>مرحبا नमस्ते こんにちは</p><img src=\"cid:inline@native\">",
+		"content": map[string]interface{}{"subject": "Browser round trip", "text": "مرحبا नमस्ते こんにちは", "html": "<p>مرحبا नमस्ते こんにちは</p><img src=\"cid:inline%2F2026%25@native\">",
 			"to": []map[string]interface{}{{"address": "recipient@example.test"}}, "bcc": []map[string]interface{}{{"address": "hidden@example.test"}},
 			"in_reply_to": "<original@test>", "references": []string{"<root@test>", "<original@test>"},
-			"parts": []map[string]interface{}{{"filename": "inline.png", "media_type": "image/png", "content_id": "inline@native", "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aH2kAAAAASUVORK5CYII="}, {"filename": "résumé.txt", "media_type": "text/plain", "base64": "cHJvb2Y="}}}}
+			"parts": []map[string]interface{}{{"filename": "inline.png", "media_type": "image/png", "content_id": "inline/2026%@native", "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aH2kAAAAASUVORK5CYII="}, {"filename": "résumé.txt", "media_type": "text/plain", "base64": "cHJvb2Y="}}}}
 	saved := call("draft_save", "draft", draft)
 	messageRef := saved["reference_id"].(string)
 	uid := uint32(saved["uid"].(float64))
@@ -152,7 +204,8 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		return raw
 	}
 	raw := source(messageRef)
-	if _, err = native.Select("Draft", false); err != nil {
+	draftMailbox, err := native.Select("Draft", false)
+	if err != nil {
 		t.Fatalf("native SELECT: %v", err)
 	}
 	seq := new(imap.SeqSet)
@@ -189,6 +242,138 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if fetch(false).Uid != uid {
 		t.Fatal("canonical browser record has different native UID")
 	}
+	// An existing deleted message must stay in place when a readonly session
+	// closes, even though writable CLOSE would expunge it.
+	sentinel := []byte("From: native-alice@native.test\r\nSubject: Read-only CLOSE sentinel\r\n\r\nRetain this row.\r\n")
+	if err = native.Append("Draft", []string{imap.DeletedFlag}, time.Now(), bytes.NewReader(sentinel)); err != nil {
+		t.Fatalf("create readonly CLOSE sentinel: %v", err)
+	}
+	sentinelReference := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Read-only CLOSE sentinel")
+	messageState := map[string]interface{}{"account_ref": accountRef, "message_ref": messageRef}
+	beforeRead := call("message_state", "message", messageState)
+	if beforeRead["seen"] != false {
+		beforeRead = call("message_flags", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": messageRef,
+			"expected_box_ref": beforeRead["mail_box_id"], "expected_version": beforeRead["version"], "seen": false})
+	}
+	if beforeRead["seen"] != false {
+		t.Fatal("readonly FETCH precondition: original draft must be unread")
+	}
+	readonly, err := native.Select("Draft", true)
+	if err != nil {
+		t.Fatalf("native EXAMINE: %v", err)
+	}
+	if !readonly.ReadOnly || len(readonly.PermanentFlags) != 0 {
+		t.Errorf("EXAMINE advertised writable flag state: readOnly=%v permanent=%q", readonly.ReadOnly, readonly.PermanentFlags)
+	}
+	nonPeek := &imap.BodySectionName{}
+	read := make(chan *imap.Message, 2)
+	if err = native.UidFetch(seq, []imap.FetchItem{nonPeek.FetchItem()}, read); err != nil {
+		t.Fatalf("read-only UID FETCH: %v", err)
+	}
+	readMessage := <-read
+	if readMessage == nil || readMessage.GetBody(nonPeek) == nil {
+		t.Fatal("read-only FETCH omitted the message")
+	}
+	bodyBytes, err := io.ReadAll(readMessage.GetBody(nonPeek))
+	if err != nil || !bytes.Equal(bodyBytes, raw) {
+		t.Fatal("read-only FETCH did not return the same MIME")
+	}
+	afterRead := call("message_state", "message", messageState)
+	if afterRead["seen"] != false {
+		t.Error("read-only non-PEEK FETCH marked the draft Seen")
+		// Keep the remainder of the baseline check independent of this failure.
+		call("message_flags", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": messageRef,
+			"expected_box_ref": afterRead["mail_box_id"], "expected_version": afterRead["version"], "seen": false})
+	}
+	if err = native.UidStore(seq, imap.FormatFlagsOp(imap.AddFlags, true), []interface{}{imap.FlaggedFlag}, nil); err == nil {
+		t.Error("read-only STORE changed the draft")
+	}
+	if err = native.Close(); err != nil {
+		t.Fatalf("read-only CLOSE: %v", err)
+	}
+	retained := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": sentinelReference})
+	if retained["exists"] != true || retained["deleted"] != true {
+		t.Errorf("read-only CLOSE expunged the deleted message: %v", retained["exists"])
+	}
+	if _, err = native.Select("Draft", false); err != nil {
+		t.Fatalf("native reselect after EXAMINE: %v", err)
+	}
+	if executable := os.Getenv("DAPTIN_E2E_MUTT_BINARY"); executable != "" || thunderbird != "" {
+		message := map[string]interface{}{"account_ref": accountRef, "message_ref": messageRef}
+		clearFlags := func(state map[string]interface{}) {
+			state = call("message_flags", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": messageRef,
+				"expected_box_ref": state["mail_box_id"], "expected_version": state["version"], "seen": false, "flagged": false})
+			if state["seen"] != false || state["flagged"] != false {
+				t.Fatal("HTTP did not clear the existing flags")
+			}
+		}
+		clearFlags(call("message_state", "message", message))
+		var passed bool
+		var thunderbirdSearchUID uint32
+		if thunderbird != "" {
+			passed = t.Run("desktop_thunderbird_starttls", func(t *testing.T) {
+				thunderbirdSearchUID = exerciseMailWithThunderbird(t, thunderbird, address, imapHostname, publicPEM)
+			})
+		} else {
+			passed = t.Run("desktop_mutt_starttls", func(t *testing.T) {
+				exerciseMailWithMutt(t, executable, address, imapHostname, publicPEM)
+			})
+		}
+		if !passed {
+			return
+		}
+		state := call("message_state", "message", message)
+		if state["seen"] != true || state["flagged"] != true || state["uid"] != float64(uid) {
+			t.Fatalf("desktop client flags on canonical UID %d: seen=%v flagged=%v uid=%v", uid, state["seen"], state["flagged"], state["uid"])
+		}
+		t.Log("Daptin HTTP confirmed the desktop client updated Seen and Flagged on the same canonical draft UID")
+		clearFlags(state)
+		if thunderbird != "" {
+			appended := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Thunderbird native draft")
+			appendedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": appended})
+			if appendedState["mail_box_id"] != state["mail_box_id"] || appendedState["uid"] == state["uid"] ||
+				!bytes.Contains(source(appended), []byte("Thunderbird native draft body")) {
+				t.Fatal("Thunderbird did not append a distinct draft to the canonical Draft mailbox")
+			}
+			if appendedState["uid"] != float64(thunderbirdSearchUID) {
+				t.Fatalf("Thunderbird search returned UID %d, canonical draft UID is %v", thunderbirdSearchUID, appendedState["uid"])
+			}
+			body := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail/unpack", alice,
+				map[string]interface{}{"attributes": map[string]interface{}{"message_ref": appended}}, http.StatusOK)
+			unpack := body.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+			attachmentFound := false
+			for _, part := range unpack["parts"].([]interface{}) {
+				fields := part.(map[string]interface{})
+				if fields["filename"] == "tb-proof.bin" && fields["kind"] == "attachment" {
+					data, _ := accessGroupsE2EFindString(fields, "contents")
+					attachmentFound = data == "AP9wcm9vZg=="
+				}
+			}
+			if !attachmentFound {
+				t.Fatal("Office unpack did not recover the Thunderbird draft attachment")
+			}
+			revision, _ := accessGroupsE2EFindString(body, "revision")
+			adopted := call("draft_save", "draft", map[string]interface{}{
+				"account_ref": accountRef, "compose_key": uuid.NewString(), "write_key": uuid.NewString(),
+				"draft_ref": appended, "expected_revision": revision,
+				"content": map[string]interface{}{"subject": "Adopted Thunderbird draft", "text": "Edited through the Office draft contract"},
+			})
+			adoptedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": appended})
+			if adopted["reference_id"] != appended || adoptedState["uid"] != appendedState["uid"] || adoptedState["mail_box_id"] != appendedState["mail_box_id"] {
+				t.Fatal("Office adoption changed the Thunderbird draft identity")
+			}
+			t.Log("Daptin HTTP confirmed the online-search UID and attachment bytes, then adopted the same Thunderbird draft reference, mailbox and UID")
+		}
+	}
+	for _, flag := range []string{imap.AnsweredFlag, imap.FlaggedFlag, imap.DeletedFlag, imap.SeenFlag, imap.DraftFlag} {
+		if !slices.Contains(draftMailbox.Flags, flag) || !slices.Contains(draftMailbox.PermanentFlags, flag) {
+			t.Fatalf("Draft did not advertise writable system flag %s: %v %v", flag, draftMailbox.Flags, draftMailbox.PermanentFlags)
+		}
+	}
+	if slices.Contains(draftMailbox.PermanentFlags, imap.RecentFlag) || slices.Contains(draftMailbox.Flags, imap.TryCreateFlag) ||
+		strings.Count(strings.Join(draftMailbox.PermanentFlags, " "), imap.TryCreateFlag) != 1 {
+		t.Fatalf("Invalid advertised Draft capabilities: %v %v", draftMailbox.Flags, draftMailbox.PermanentFlags)
+	}
 	if err = native.UidStore(seq, imap.FormatFlagsOp(imap.AddFlags, true), []interface{}{imap.FlaggedFlag, "Project"}, nil); err != nil {
 		t.Fatalf("native STORE: %v", err)
 	}
@@ -203,6 +388,25 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	}
 	if err = native.Create("Native/2026"); err != nil {
 		t.Fatalf("native CREATE hierarchy: %v", err)
+	}
+	if err = native.Create("Native/Draft"); err != nil {
+		t.Fatalf("native CREATE ordinary nested Draft: %v", err)
+	}
+	checkRoles(list(false))
+	checkNativeContentSearch(t, native, func(permission int64) {
+		ref := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Header search fixture one")
+		accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail/"+ref, admin,
+			accessGroupsE2ERecordPayload("mail", ref, map[string]interface{}{"permission": permission}), http.StatusOK)
+	}, private)
+	checkNativeSimpleMultipart(t, native, func() (string, interface{}, interface{}) {
+		ref := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Native mixed plain fixture")
+		record := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/mail/"+ref+"?fields=has_attachment,body", alice, nil, http.StatusOK)
+		body := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail/unpack", alice,
+			map[string]interface{}{"attributes": map[string]interface{}{"message_ref": ref}}, http.StatusOK)
+		return ref, record, body
+	}, source)
+	if os.Getenv("DAPTIN_E2E_MAIL_SEARCH_SCALE") == "1" {
+		checkNativeContentSearchScale(t, native)
 	}
 	nativeRaw := bytes.Replace(raw, []byte("Browser round trip"), []byte("Native round trip"), 1)
 	nativeDate := time.Date(2024, 2, 3, 4, 5, 6, 0, time.UTC)
@@ -284,6 +488,27 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if line, err := wireReader.ReadString('\n'); err != nil || !strings.HasPrefix(line, "b OK") {
 		t.Fatalf("bounded LOGIN: %q %v", line, err)
 	}
+	if _, err = io.WriteString(secure, "x EXAMINE iNbOx\r\n"); err != nil {
+		t.Fatal(err)
+	}
+	sawEmptyPermanentFlags := false
+	for {
+		line, err := wireReader.ReadString('\n')
+		if err != nil {
+			t.Fatalf("wire EXAMINE: %v", err)
+		}
+		if strings.Contains(line, "[PERMANENTFLAGS ()]") {
+			sawEmptyPermanentFlags = true
+		}
+		if strings.HasPrefix(line, "x ") {
+			if !sawEmptyPermanentFlags || !strings.HasPrefix(line, "x OK [READ-ONLY]") {
+				t.Fatalf("mixed-case INBOX EXAMINE did not explicitly advertise read-only flags: %q", line)
+			}
+			break
+		}
+	}
+	_ = secure.SetDeadline(time.Now().Add(10 * time.Second))
+	checkNativeFetchStructure(t, secure, wireReader, uid)
 	if _, err = io.WriteString(secure, "c APPEND Draft {27262976}\r\n"); err != nil {
 		t.Fatal(err)
 	}
@@ -366,8 +591,368 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if err = native.Unsubscribe("Copies"); err == nil {
 		t.Fatal("read-only mailbox allowed subscription mutation")
 	}
+	checkSeenAfterFetch := func(step string, peek, seen, flagUpdate bool) {
+		t.Helper()
+		section := &imap.BodySectionName{Peek: peek}
+		messages := make(chan *imap.Message, 2)
+		if err := native.UidFetch(seq, []imap.FetchItem{section.FetchItem()}, messages); err != nil {
+			t.Errorf("%s: body FETCH failed with a current read grant: %v", step, err)
+			return
+		}
+		got := <-messages
+		if got == nil || got.GetBody(section) == nil {
+			t.Errorf("%s: body omitted", step)
+			return
+		}
+		body, err := io.ReadAll(got.GetBody(section))
+		if err != nil || !bytes.Equal(body, raw) {
+			t.Errorf("%s: body differs", step)
+		}
+		_, returnedFlags := got.Items[imap.FetchFlags]
+		if returnedFlags != flagUpdate {
+			t.Errorf("%s: body FETCH returned FLAGS = %v, want %v", step, returnedFlags, flagUpdate)
+		}
+		if flagUpdate && (!slices.Contains(got.Flags, imap.SeenFlag) || !slices.Contains(got.Flags, imap.FlaggedFlag) ||
+			!strings.Contains(strings.ToLower(strings.Join(got.Flags, ",")), "project")) {
+			t.Errorf("%s: body FETCH must return changed and retained flags, got %q", step, got.Flags)
+		}
+		// Issue a fresh read from storage. The Office operation-state action
+		// requires account write authority, which this fixture revokes.
+		flags := make(chan *imap.Message, 2)
+		if err := native.UidFetch(seq, []imap.FetchItem{imap.FetchFlags}, flags); err != nil {
+			t.Errorf("%s: FLAGS fetch failed: %v", step, err)
+			return
+		}
+		observed := <-flags
+		if observed == nil || slices.Contains(observed.Flags, imap.SeenFlag) != seen {
+			t.Errorf("%s: persistent Seen state did not match %v", step, seen)
+		}
+	}
+	checkSeenAfterFetch("mailbox write permission revoked on the selected connection", false, false, false)
+	selected, err := native.Select("Copies", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !selected.ReadOnly || len(selected.PermanentFlags) != 0 {
+		t.Errorf("SELECT with a read-only mailbox grant advertised writable state: %v %q", selected.ReadOnly, selected.PermanentFlags)
+	}
+	checkSeenAfterFetch("SELECT with a read-only mailbox grant", false, false, false)
 	patchGrant("mail_box", copyBox, private)
+	patchGrant("mail_account", accountRef, int64(auth.UserPeek|auth.UserRead))
+	selected, err = native.Select("Copies", false)
+	if err != nil || !selected.ReadOnly || len(selected.PermanentFlags) != 0 {
+		t.Errorf("SELECT with a read-only account grant did not select read-only: %v", err)
+	}
+	checkSeenAfterFetch("SELECT with a read-only account grant", false, false, false)
+	patchGrant("mail_account", accountRef, private)
+	selected, err = native.Select("Copies", false)
+	if err != nil || selected.ReadOnly || !slices.Contains(selected.PermanentFlags, imap.SeenFlag) {
+		t.Fatalf("SELECT after restoring writes: %v", err)
+	}
+	patchGrant("mail", copyRef, int64(auth.UserPeek|auth.UserRead))
+	checkSeenAfterFetch("message write permission revoked within a writable mailbox", false, false, false)
+	patchGrant("mail", copyRef, private)
+	checkSeenAfterFetch("PEEK FETCH after restoring writes", true, false, false)
+	checkSeenAfterFetch("non-PEEK FETCH after restoring writes", false, true, true)
+	checkSeenAfterFetch("non-PEEK FETCH for an already Seen message", false, true, false)
 	patchGrant("mail_account", accountRef, 0)
 	fetch(true)
 	list(true)
+}
+
+func checkNativeSimpleMultipart(t *testing.T, native *imapclient.Client, read func() (string, interface{}, interface{}), source func(string) []byte) {
+	t.Helper()
+	const box = "Native/SimpleMixed"
+	if err := native.Create(box); err != nil {
+		t.Fatal(err)
+	}
+	raw := "From: native-alice@native.test\r\nTo: recipient@example.test\r\nSubject: Native mixed plain fixture\r\nDate: Mon, 16 Nov 2026 12:00:00 +0000\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=mixed\r\n\r\n--mixed\r\nContent-Type: text/plain; charset=ISO-8859-1\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nPlain =E9mail body.\r\n--mixed\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=proof.bin\r\nContent-Transfer-Encoding: base64\r\n\r\nAP9wcm9vZg==\r\n--mixed--\r\n"
+	if err := native.Append(box, nil, time.Now(), strings.NewReader(raw)); err != nil {
+		t.Fatalf("APPEND direct mixed text and attachment: %v", err)
+	}
+	ref, record, body := read()
+	if !bytes.Equal(source(ref), []byte(raw)) {
+		t.Fatal("APPEND changed original mixed MIME")
+	}
+	data := record.(map[string]interface{})["data"].(map[string]interface{})["attributes"].(map[string]interface{})
+	if data["has_attachment"] != true && data["has_attachment"] != float64(1) {
+		t.Fatalf("mixed message attachment marker missing: %v", data["has_attachment"])
+	}
+	if data["body"] != "Plain émail body." {
+		t.Fatalf("mixed display body = %q", data["body"])
+	}
+	decoded, _ := accessGroupsE2EFindString(body, "preferred_text_body")
+	if decoded != "Plain émail body." {
+		t.Fatalf("mixed unpack body = %q", decoded)
+	}
+	fields := body.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+	for _, value := range fields["parts"].([]interface{}) {
+		part := value.(map[string]interface{})
+		if part["filename"] == "proof.bin" && part["kind"] == "attachment" {
+			payload, _ := accessGroupsE2EFindString(part, "contents")
+			if payload != "AP9wcm9vZg==" {
+				t.Fatalf("mixed attachment bytes = %q", payload)
+			}
+			return
+		}
+	}
+	t.Fatal("mixed attachment was omitted by mail.unpack")
+}
+
+func checkNativeContentSearchScale(t *testing.T, native *imapclient.Client) {
+	t.Helper()
+	const box, count, samples = "Native/SearchScale", 320, 5
+	if err := native.Create(box); err != nil {
+		t.Fatal(err)
+	}
+	payload := strings.Repeat(strings.Repeat("YWJj", 18)+"\r\n", 3800)
+	nativeDate := time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC)
+	var marked, headerMatches []uint32
+	var wireBytes int
+	for i := 1; i <= count; i++ {
+		var flags []string
+		header := "ordinary"
+		if i%23 == 0 {
+			flags = []string{imap.FlaggedFlag}
+			marked = append(marked, uint32(i))
+		}
+		if i%13 == 0 {
+			header = "match-50%_"
+			headerMatches = append(headerMatches, uint32(i))
+		}
+		raw := fmt.Sprintf("From: native-alice@native.test\r\nSubject: Scale fixture %d\r\nMessage-ID: <scale-%d@native.test>\r\nX-Trace-Key: %s\r\n", i, i, header)
+		if i%20 == 0 {
+			raw += "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=scale\r\n\r\n--scale\r\nContent-Type: text/plain\r\n\r\nscale body needle\r\n--scale\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n" + payload + "--scale--\r\n"
+		} else {
+			raw += "Content-Type: text/plain\r\n\r\nscale body needle\r\n" + strings.Repeat("scale padding ", 140)
+		}
+		if err := native.Append(box, flags, nativeDate, strings.NewReader(raw)); err != nil {
+			t.Fatalf("APPEND %d: %v", i, err)
+		}
+		wireBytes += len(raw)
+	}
+	selected, err := native.Select(box, true)
+	if err != nil || selected.Messages != count {
+		t.Fatalf("EXAMINE scale mailbox: %v, %v", selected, err)
+	}
+	header := imap.NewSearchCriteria()
+	header.Header.Add("X-Trace-Key", "match-50%_")
+	bodyAndFlag := imap.NewSearchCriteria()
+	bodyAndFlag.Body = []string{"scale body needle"}
+	bodyAndFlag.WithFlags = []string{imap.FlaggedFlag}
+	flagsOnly := imap.NewSearchCriteria()
+	flagsOnly.WithFlags = []string{imap.FlaggedFlag}
+	byUID := imap.NewSearchCriteria()
+	byUID.Uid, err = imap.ParseSeqSet("299:320")
+	if err != nil {
+		t.Fatal(err)
+	}
+	byUID.Body = []string{"scale body needle"}
+	wantUID := make([]uint32, 22)
+	for i := range wantUID {
+		wantUID[i] = uint32(299 + i)
+	}
+	t.Logf("IMAP search scale: messages=%d MIME_bytes=%d", count, wireBytes)
+	for _, tt := range []struct {
+		name     string
+		criteria *imap.SearchCriteria
+		want     []uint32
+	}{
+		{"HEADER", header, headerMatches},
+		{"BODY_FLAGGED", bodyAndFlag, marked},
+		{"BODY_UID_RANGE", byUID, wantUID},
+		{"FLAGGED", flagsOnly, marked},
+	} {
+		times := make([]time.Duration, 0, samples)
+		for i := 0; i <= samples; i++ {
+			start := time.Now()
+			found, err := native.UidSearch(tt.criteria)
+			elapsed := time.Since(start)
+			if err != nil || !slices.Equal(found, tt.want) {
+				t.Fatalf("UID SEARCH %s: %v, %v; want %v", tt.name, found, err, tt.want)
+			}
+			if i > 0 {
+				times = append(times, elapsed)
+			}
+		}
+		slices.Sort(times)
+		t.Logf("IMAP search scale: case=%s matches=%d median=%s samples=%v", tt.name, len(tt.want), times[len(times)/2], times)
+	}
+}
+
+func checkNativeContentSearch(t *testing.T, native *imapclient.Client, grantFirst func(int64), private int64) {
+	t.Helper()
+	const box = "Native/Search"
+	if err := native.Create(box); err != nil {
+		t.Fatal(err)
+	}
+	other := "From: native-alice@native.test\r\nSubject: Outside search scope\r\nX-Trace-Key: duplicate-needle 50%_\r\n\r\n"
+	if err := native.Append("Native/Draft", nil, time.Now(), strings.NewReader(other)); err != nil {
+		t.Fatal(err)
+	}
+	fixtures := []string{
+		"From: native-alice@native.test\r\nSubject: Header search fixture one\r\nX-Trace-Key: unrelated\r\nX-Trace-Key: Duplicate-Needle 50%_\r\nX-Empty:\r\nX-Name: =?UTF-8?Q?=C3=84rger?=\r\nContent-Type: multipart/alternative; boundary=search\r\n\r\n--search\r\nContent-Type: text/plain\r\n\r\nplain text only\r\n--search\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n<p>html-only =C3=84rger</p>\r\n--search--\r\n",
+		"From: native-alice@native.test\r\nSubject: Header search fixture two\r\nX-Trace-Key: duplicate-needle 500X\r\n\r\nX-Empty: this is body text, not a header\r\n",
+	}
+	for idx, raw := range fixtures {
+		var flags []string
+		if idx == 1 {
+			flags = []string{imap.FlaggedFlag}
+		}
+		if err := native.Append(box, flags, time.Now(), strings.NewReader(raw)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := native.Select(box, true); err != nil {
+		t.Fatal(err)
+	}
+	header := func(name, value string) *imap.SearchCriteria {
+		c := imap.NewSearchCriteria()
+		c.Header.Add(name, value)
+		return c
+	}
+	check := func(label string, uid bool, criteria *imap.SearchCriteria, want ...uint32) {
+		t.Helper()
+		search := native.Search
+		if uid {
+			search = native.UidSearch
+		}
+		got, err := search(criteria)
+		if err != nil || !slices.Equal(got, want) {
+			t.Errorf("IMAP SEARCH %s: got %v (%v), want %v", label, got, err, want)
+		}
+	}
+	check("repeated literal header", true, header("x-trace-key", "DUPLICATE-NEEDLE 50%_"), 1)
+	check("present empty header", false, header("X-Empty", ""), 1)
+	check("absent header", true, header("X-Absent", ""))
+	check("decoded Unicode header", true, header("X-Name", "ärger"), 1)
+	text := imap.NewSearchCriteria()
+	text.Text = []string{"x-trace-key: duplicate-needle"}
+	check("TEXT with arbitrary header", true, text, 1, 2)
+	body := imap.NewSearchCriteria()
+	body.Body = []string{"html-only ärger"}
+	check("BODY with decoded HTML alternative", true, body, 1)
+	flag := imap.NewSearchCriteria()
+	flag.WithFlags = []string{imap.FlaggedFlag}
+	mixed := imap.NewSearchCriteria()
+	mixed.Or = append(mixed.Or, [2]*imap.SearchCriteria{flag, header("X-Empty", "")})
+	mixed.Not = append(mixed.Not, header("X-Trace-Key", "500X"))
+	check("OR/NOT and flag", true, mixed, 1)
+	unseen := imap.NewSearchCriteria()
+	unseen.WithoutFlags = []string{imap.SeenFlag}
+	check("SEARCH leaves Seen unchanged", true, unseen, 1, 2)
+	grantFirst(0)
+	check("revoked row omitted from TEXT", true, text, 2)
+	check("revoked row omitted from HEADER", true, header("X-Empty", ""))
+	grantFirst(private)
+	check("restored row visible", true, header("X-Empty", ""), 1)
+}
+
+func checkNativeFetchStructure(t *testing.T, conn io.Writer, reader *bufio.Reader, uid uint32) {
+	t.Helper()
+	wire := imap.NewReader(reader)
+	command := func(tag, command string) []imap.Resp {
+		t.Helper()
+		if _, err := fmt.Fprintf(conn, "%s %s\r\n", tag, command); err != nil {
+			t.Fatal(err)
+		}
+		var data []imap.Resp
+		for {
+			response, err := imap.ReadResp(wire)
+			if err != nil {
+				t.Fatalf("%s: %v", command, err)
+			}
+			if status, ok := response.(*imap.StatusResp); ok && status.Tag == tag {
+				if status.Type != imap.StatusRespOk {
+					t.Errorf("%s: unexpected %s: %s", command, status.Type, status.Info)
+				}
+				return data
+			}
+			data = append(data, response)
+		}
+	}
+	command("s0", "SELECT Draft")
+	test := func(tag, fetch string, want ...imap.FetchItem) {
+		t.Helper()
+		commandLine := fmt.Sprintf("UID FETCH %d %s", uid, fetch)
+		items := map[imap.FetchItem]interface{}{}
+		messages := 0
+		for _, response := range command(tag, commandLine) {
+			name, fields, ok := imap.ParseNamedResp(response)
+			if !ok || name != "FETCH" || len(fields) != 2 {
+				continue
+			}
+			messages++
+			list, ok := fields[1].([]interface{})
+			if !ok || len(list)%2 != 0 {
+				t.Fatalf("%s: invalid FETCH items %#v", tag, fields)
+			}
+			for i := 0; i < len(list); i += 2 {
+				item, ok := list[i].(string)
+				if !ok {
+					t.Fatalf("%s: invalid FETCH item name %#v", tag, list[i])
+				}
+				items[imap.FetchItem(item)] = list[i+1]
+			}
+		}
+		if messages != 1 {
+			t.Errorf("%s: %s returned %d message responses, want 1", tag, commandLine, messages)
+			return
+		}
+		for _, key := range append(want, imap.FetchUid) {
+			item, ok := items[key]
+			if !ok {
+				t.Errorf("%s: %s omitted %s", tag, commandLine, key)
+				continue
+			}
+			if key == imap.FetchUid {
+				got, err := imap.ParseNumber(item)
+				if err != nil || got != uid {
+					t.Errorf("%s: UID = %v, want %d", tag, item, uid)
+				}
+			}
+			if key != imap.FetchBody && key != imap.FetchBodyStructure {
+				continue
+			}
+			data, ok := item.([]interface{})
+			if !ok {
+				t.Errorf("%s: %s has no MIME structure", tag, key)
+				continue
+			}
+			structure := new(imap.BodyStructure)
+			if err := structure.Parse(data); err != nil {
+				t.Errorf("%s: %s: %v", tag, key, err)
+				continue
+			}
+			wantExtended := key == imap.FetchBodyStructure
+			if !strings.EqualFold(structure.MIMEType, "multipart") || len(structure.Parts) < 2 {
+				t.Errorf("%s: %s omitted multipart MIME", tag, key)
+			}
+			foundCID := false
+			structure.Walk(func(path []int, part *imap.BodyStructure) bool {
+				if part.Extended != wantExtended {
+					t.Errorf("%s: %s at part %v extension state = %t, want %t", tag, key, path, part.Extended, wantExtended)
+				}
+				if wantExtended && strings.EqualFold(part.MIMEType, "multipart") && strings.EqualFold(part.MIMESubType, "related") && part.Params["type"] != "text/html" {
+					t.Errorf("%s: BODYSTRUCTURE lost multipart/related's HTML root type: %v", tag, part.Params)
+				}
+				if strings.Trim(part.Id, "<>") == "inline/2026%@native" && strings.EqualFold(part.MIMEType, "image") {
+					foundCID = true
+					if wantExtended && part.Disposition != "inline" {
+						t.Errorf("%s: BODYSTRUCTURE lost inline disposition", tag)
+					}
+				}
+				return true
+			})
+			if !foundCID {
+				t.Errorf("%s: %s lost the nested inline CID image", tag, key)
+			}
+		}
+	}
+	test("s1", "BODY", imap.FetchBody)
+	test("s2", "FULL", imap.FetchFlags, imap.FetchInternalDate, imap.FetchRFC822Size, imap.FetchEnvelope, imap.FetchBody)
+	test("s3", "BODYSTRUCTURE", imap.FetchBodyStructure)
+	test("s4", "(BODY BODYSTRUCTURE)", imap.FetchBody, imap.FetchBodyStructure)
+	command("s5", "EXAMINE Draft")
+	test("s6", "(BODYSTRUCTURE BODY)", imap.FetchBodyStructure, imap.FetchBody)
 }

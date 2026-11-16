@@ -1,11 +1,12 @@
 package resource
 
 import (
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jmoiron/sqlx"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // This is a database-layer regression of the durable SMTP claim. No DNS, SMTP,
@@ -17,7 +18,7 @@ func TestMailOutboxClaimSurvivesLostLiveLease(t *testing.T) {
 	}
 	defer db.Close()
 	db.SetMaxOpenConns(1)
-	if _, err = db.Exec(`CREATE TABLE outbox (id INTEGER PRIMARY KEY, sent BOOLEAN, retry_count INTEGER, next_retry_at DATETIME, last_error TEXT)`); err != nil {
+	if _, err = db.Exec(`CREATE TABLE outbox (id INTEGER PRIMARY KEY, sent BOOLEAN, retry_count INTEGER, next_retry_at DATETIME, last_error TEXT, from_address TEXT, to_address TEXT, mail_server_id INTEGER)`); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC()
@@ -34,6 +35,15 @@ func TestMailOutboxClaimSurvivesLostLiveLease(t *testing.T) {
 		}
 	}
 	crud := &DbResource{}
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	due, err := crud.DueOutboxMail(now, tx)
+	_ = tx.Rollback()
+	if err != nil || len(due) != 1 || due[0]["id"] != int64(1) {
+		t.Fatalf("selected ineligible or skipped eligible mail: %v (%v)", due, err)
+	}
 	claim := func(id int64, at time.Time) bool {
 		t.Helper()
 		tx, err := db.Beginx()

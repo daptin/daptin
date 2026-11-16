@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
 )
 
@@ -23,6 +24,34 @@ func TestComposeMailMIMEAndEnvelope(t *testing.T) {
 	}
 	if strings.Contains(string(raw), "\r\nBcc:") || len(envelope) != 3 || envelope[2] != "hidden@example.test" {
 		t.Fatalf("Bcc wire/envelope separation failed: %s %#v", raw, envelope)
+	}
+	entity, err := message.Read(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mixed := entity.MultipartReader()
+	alternatives, err := mixed.NextPart()
+	if err != nil {
+		t.Fatal(err)
+	}
+	alternative := alternatives.MultipartReader()
+	if _, err := alternative.NextPart(); err != nil {
+		t.Fatal(err)
+	}
+	related, err := alternative.NextPart()
+	if err != nil {
+		t.Fatal(err)
+	}
+	media, params, err := related.Header.ContentType()
+	if err != nil || media != "multipart/related" || params["type"] != "text/html" {
+		t.Fatalf("related MIME entity must declare its HTML root: %q %v %v", media, params, err)
+	}
+	root, err := related.MultipartReader().NextPart()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if media, _, _ := root.Header.ContentType(); media != "text/html" {
+		t.Fatalf("first related part = %q, want text/html", media)
 	}
 	reader, err := mail.CreateReader(bytes.NewReader(raw))
 	if err != nil {
@@ -72,6 +101,31 @@ func TestComposeMailMIMEAndEnvelope(t *testing.T) {
 	bcc, err := draftReader.Header.AddressList("Bcc")
 	if err != nil || len(bcc) != 1 || bcc[0].Address != "hidden@example.test" {
 		t.Fatal("durable draft lost Bcc")
+	}
+}
+
+func TestComposeMailResolvesEncodedCIDAgainstExactMIMEID(t *testing.T) {
+	for _, test := range []struct {
+		url string
+		ok  bool
+	}{
+		{"CID:Logo%2f2026%25+EU@corpus", true},
+		{"cid:Logo%2F2026%25%2BEU@corpus", true},
+		{"cid:logo%2F2026%25+EU@corpus", false},
+		{"cid:Logo/2026%25+EU@corpus", false},
+		{"cid:Logo%2F2026%2525+EU@corpus", false},
+		{"cid:Logo%2F2026%ZZ+EU@corpus", false},
+	} {
+		t.Run(test.url, func(t *testing.T) {
+			value := MailComposition{HTML: `<img src="` + test.url + `">`, Parts: []MailComposePart{{ContentID: "Logo/2026%+EU@corpus", MediaType: "image/png", Base64: "YWJj"}}}
+			raw, err := ComposeDraftMail("sender@example.test", "draft@example.test", time.Now(), value)
+			if (err == nil) != test.ok {
+				t.Fatalf("want success %t, error = %v", test.ok, err)
+			}
+			if test.ok && !strings.Contains(string(raw), "Content-Id: <Logo/2026%+EU@corpus>") && !strings.Contains(string(raw), "Content-ID: <Logo/2026%+EU@corpus>") {
+				t.Fatal("MIME header must retain the literal ID")
+			}
+		})
 	}
 }
 

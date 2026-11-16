@@ -16,10 +16,7 @@ import (
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-imap"
-	"github.com/artpar/parsemail"
-	"github.com/bjarneh/latinx"
 	"github.com/daptin/daptin/server/auth"
-	fieldtypes "github.com/daptin/daptin/server/columntypes"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
@@ -386,31 +383,16 @@ func (dbResource *DbResource) mailMessageAttributes(messageBytes []byte, sentBox
 		return nil, err
 	}
 
-	hash := GetMD5Hash(messageBytes)
-	storedMailContents := dbResource.MailColumnValue("mail", "mail", messageBytes, hash)
-	parsedMail, err := parsemail.Parse(bytes.NewReader(messageBytes))
+	searchMetadata, err := mailSearchMetadataFromEntity(messageEntity)
 	if err != nil {
 		return nil, err
 	}
-
-	textBody := parsedMail.TextBody
-	if strings.Contains(strings.ToLower(parsedMail.Header.Get("Content-Type")), "iso-8859-1") {
-		converter := latinx.Get(latinx.ISO_8859_1)
-		textBodyBytes, err := converter.Decode([]byte(textBody))
-		if err == nil {
-			textBody = string(textBodyBytes)
-		}
-	}
-
-	mailDate := parsedMail.Date
-	if parsedDate, _, err := fieldtypes.GetDateTime(parsedMail.Header.Get("Date")); err == nil {
-		mailDate = parsedDate
-	}
+	hash := GetMD5Hash(messageBytes)
+	storedMailContents := dbResource.MailColumnValue("mail", "mail", messageBytes, hash)
+	mailDate := searchMetadata.SentDate
 	if mailDate.IsZero() {
 		mailDate = time.Now()
 	}
-	searchMetadata := mailSearchMetadataFromParsed(parsedMail)
-	searchMetadata.Body = textBody
 
 	messageId := searchMetadata.MessageID
 	if strings.TrimSpace(messageId) == "" {
@@ -436,7 +418,7 @@ func (dbResource *DbResource) mailMessageAttributes(messageBytes []byte, sentBox
 		"content_type":     messageEntity.Header.Get("Content-Type"),
 		"reply_to_address": searchMetadata.ReplyTo,
 		"recipient":        searchMetadata.To,
-		"has_attachment":   len(parsedMail.Attachments) > 0,
+		"has_attachment":   searchMetadata.HasAttachment,
 		"ip_addr":          "",
 		"return_path":      searchMetadata.From,
 		"is_tls":           false,

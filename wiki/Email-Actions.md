@@ -94,9 +94,16 @@ OutFields:
 
 `unpacked` contains `preferred_text_body`, `optional_html_body`, and `parts` in
 deterministic MIME order. Each part has `index`, `kind`, `media_type`,
-`filename`, `content_id`, `content_disposition`, `decoded_size`, `sha256`, and
+`filename`, `content_id`, `content_disposition`, `presentation`, `decoded_size`, `sha256`, and
 `content`. `content` is a normal Daptin file value with Base64 `contents`, so a
 later resource outcome can assign it to a file column.
+
+Use `presentation` when presenting or quoting a message: `body` marks a selected
+plain or HTML body, `html-resource` identifies a part available to that HTML's
+CID lookups, `attachment` identifies an independent downloadable part, and
+`unselected` preserves a MIME leaf that is not part of the chosen presentation.
+Use the related entity's declared root and alternative order when choosing the
+presentation. Duplicate IDs within the selected scope do not bind inline.
 
 The optional integer limits are `max_raw_size`, `max_decoded_size`,
 `max_part_size`, `max_header_size`, `max_parts`, and `max_nesting_depth`. They

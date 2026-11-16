@@ -46,9 +46,13 @@ projections. Paginate rather than retrieving MIME to compute counts.
 with folder counts and UID state. Resource read permission and containing
 account access are enforced using persisted active-user memberships.
 
-SQL-like `contains` filters use explicit patterns, for example `%invoice%`.
-Always retain the mailbox filter when adding search terms. Server permission
-checks remain authoritative; client filtering is not access control.
+For a typed subject search, send the `contains_literal` operator and the literal
+term, for example `50%`, with no wildcard wrapper. The standard `contains`
+operator still accepts an explicit SQL-like pattern, for example `%invoice%`.
+The minimum backend version for Mail's literal search is the one with
+`contains_literal` support. Always retain the mailbox filter when adding search
+terms. Server permission checks remain authoritative; client filtering is not
+access control.
 
 Sanitize and isolate rendered email, deny automatic remote content, and
 reauthorize downloads instead of treating cached decoded parts as enduring
@@ -158,7 +162,10 @@ Each recipient has a canonical outbox `reference_id`, `address` and `state`:
 `queued`, `retrying`, `smtp_accepted`, `uncertain` or `failed`. Status reads only
 bounded queue metadata, never per-recipient MIME. `smtp_accepted` means that
 SMTP accepted the message, not that the destination user received or read it.
-Known failures use the existing bounded retry schedule. Before SMTP begins,
+Known failures use the existing bounded retry schedule. The scheduled worker selects up
+to 100 due recipients using the same database time comparison as the durable
+claim; it reads the message body only after it has claimed the recipient.
+Before SMTP begins,
 the queue durably disables automatic retry and records an uncertainty marker.
 A confirmed result replaces that marker; a process crash or failed state
 commit leaves it uncertain even after its live lease disappears. Operator
@@ -263,10 +270,68 @@ transfer and in the shared append routine. The advertised folder delimiter is
 FETCH results. Native EXPUNGE uses the same linked-delivery deletion checks as
 browser permanent deletion.
 
+A plain-text part can sit directly beside an attachment in
+`multipart/mixed`. The metadata extractor follows the MIME tree and
+decodes the text charset for list metadata. It uses an attachment marker
+without copying the attachment into the summary. APPEND keeps the original
+bytes for source, native FETCH and the browser's authorized MIME reader.
+
 The executable regression exercises a real loopback STARTTLS connection,
 resource/action HTTP interoperability and same-connection revocation. See
 [the test workflow](../scripts/testing/GO_TESTS.md#browser-mail-protocol-acceptance).
-It does not certify a desktop mail-client UI or SMTP delivery.
+The optional macOS Mutt case opens the browser draft over verified STARTTLS
+and checks its read and flagged state through the HTTP API. It does not cover
+other desktop clients or external SMTP delivery.
+
+Writable IMAP folders advertise the supported system flags in both
+`FLAGS` and `PERMANENTFLAGS`, including Seen and Flagged. The wildcard in
+`PERMANENTFLAGS` only permits new keywords. The optional Thunderbird case
+verifies that a client relying on this advertisement writes both flags
+back to the same canonical draft.
+
+Ordinary IMAP `LIST` identifies the canonical top-level Draft, Sent,
+Archive, Trash and Spam folders with `\Drafts`, `\Sent`, `\Archive`,
+`\Trash` and `\Junk`, respectively. Roles are derived from exact
+canonical names, without aliases for other names or nested paths. This
+does not enable the extended `SPECIAL-USE` LIST request.
+
+IMAP `EXAMINE` opens a read-only selection and reports empty
+`PERMANENTFLAGS` on the wire. Fetching the body in this selection does not
+set Seen, and closing it does not expunge deleted messages.
+
+A regular IMAP `SELECT` also reports read-only access when the current
+Daptin account or mailbox grant allows reads but not changes. FETCH still
+returns the authorized body if the account, mailbox or message cannot be
+written. It skips the implicit Seen change in that case. Closing a
+read-only selection does not expunge.
+
+In a writable selection, fetching an unread message with `BODY[]` marks it
+Seen when the account, mailbox and message allow writes. The same FETCH
+response includes the resulting flags, including existing system flags and
+keywords. `BODY.PEEK[]` leaves Seen unchanged. A body-only request that does
+not change flags does not include an unsolicited FLAGS item. See the
+[IMAP FETCH rules](https://datatracker.ietf.org/doc/html/rfc3501#section-6.4.5).
+
+`FETCH BODY` and the `FULL` macro return the basic MIME structure without
+extension fields. `FETCH BODYSTRUCTURE` includes extended fields such as
+the inline or attachment disposition. A client may request both forms in
+the same command; Daptin returns both representations of the same message
+without marking it Seen.
+
+Native IMAP SEARCH evaluates arbitrary `HEADER` fields against the original
+message. An empty search string tests whether the named header exists, even
+if its value is empty. `TEXT` includes decoded headers and textual MIME
+parts, while `BODY` searches the textual parts without searching the
+top-level headers. UID, sequence, size, date and flag checks stay in SQL.
+Daptin applies current mailbox and message permissions before reading MIME
+and does not set Seen. This is separate from Office's paginated subject
+search.
+
+The SEARCH permission pass fetches only identifiers. Daptin groups the
+messages that still need MIME into reads of up to 32 rows and budgets
+8 MiB by recorded MIME size. Oversized and unknown-size messages are read
+individually. The ordinary resource pipeline rechecks grants on each
+content read. Metadata-only queries do not hydrate MIME.
 
 ### Outbound SMTP port
 

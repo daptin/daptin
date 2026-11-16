@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"mime"
 	"net/mail"
+	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -216,8 +217,13 @@ func composeMail(sender, messageID string, date time.Time, value MailComposition
 						if strings.HasPrefix(lower, "blob:") || strings.HasPrefix(lower, "data:") {
 							return errors.New("persist inline images as CID parts before saving")
 						}
-						if strings.HasPrefix(lower, "cid:") && !cids[attr.Val[4:]] {
-							return errors.New("inline image has no matching MIME part")
+						if strings.HasPrefix(lower, "cid:") {
+							reference := attr.Val[4:]
+							// PathUnescape decodes percent escapes without treating '+' as space.
+							id, err := url.PathUnescape(reference)
+							if err != nil || strings.ContainsAny(reference, "/?#<>") || !cids[id] {
+								return errors.New("inline image has no matching MIME part")
+							}
 						}
 					}
 				}
@@ -275,7 +281,7 @@ func composeMail(sender, messageID string, date time.Time, value MailComposition
 	}
 	if value.HTML != "" {
 		var relatedHeader message.Header
-		relatedHeader.SetContentType("multipart/related", nil)
+		relatedHeader.SetContentType("multipart/related", map[string]string{"type": "text/html"})
 		related, err := alternative.CreatePart(relatedHeader)
 		if err != nil {
 			return nil, nil, err

@@ -10,6 +10,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
+	"sort"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/artpar/go-imap"
@@ -20,10 +25,6 @@ import (
 	"github.com/emersion/go-message/textproto"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
-
-	"strings"
-	"sync"
-	"time"
 )
 
 type DaptinImapMailBox struct {
@@ -59,12 +60,30 @@ func (dimb *DaptinImapMailBox) authorizeRead(transaction *sqlx.Tx) (map[string]i
 	return box, caller, nil
 }
 
+func (dimb *DaptinImapMailBox) canUpdateMailbox(box map[string]interface{}, caller *auth.SessionUser, tx *sqlx.Tx) bool {
+	crud := dimb.dbResource["mail"]
+	return crud.mailAccountCanWrite(daptinid.InterfaceToDIR(box["mail_account_id"]), caller, tx) &&
+		crud.mailRowPermission("mail_box", daptinid.InterfaceToDIR(box["reference_id"]), caller, false, tx) == nil
+}
+
 func (dimb *DaptinImapMailBox) readSelectedMails(selections []MailSelection, includeBody bool,
 	transaction *sqlx.Tx) (map[daptinid.DaptinReferenceId]map[string]interface{}, error) {
 	_, caller, err := dimb.authorizeRead(transaction)
 	if err != nil {
 		return nil, err
 	}
+	return dimb.readIMAPMailRows(selections, caller, imapMailReadOptions{includeBody: includeBody, requireAll: true}, transaction)
+}
+
+type imapMailReadOptions struct {
+	includeBody bool
+	requireAll  bool
+	internal    bool
+	fields      string
+}
+
+func (dimb *DaptinImapMailBox) readIMAPMailRows(selections []MailSelection, caller *auth.SessionUser,
+	options imapMailReadOptions, transaction *sqlx.Tx) (map[daptinid.DaptinReferenceId]map[string]interface{}, error) {
 	result := make(map[daptinid.DaptinReferenceId]map[string]interface{}, len(selections))
 	for start := 0; start < len(selections); start += imapResourceReadBatchSize {
 		stop := start + imapResourceReadBatchSize
@@ -79,7 +98,7 @@ func (dimb *DaptinImapMailBox) readSelectedMails(selections []MailSelection, inc
 
 		requestURL, _ := url.Parse("/api/mail")
 		requestContext := context.WithValue(context.Background(), "user", caller)
-		if start > 0 {
+		if options.internal || start > 0 {
 			requestContext = WithMeteringInternal(requestContext)
 		}
 		request := api2go.Request{
@@ -93,7 +112,10 @@ func (dimb *DaptinImapMailBox) readSelectedMails(selections []MailSelection, inc
 			return nil, err
 		}
 		request.QueryParams = map[string][]string{"query": {string(filters)}, "page[size]": {fmt.Sprint(imapResourceReadBatchSize)}, "page[number]": {"1"}}
-		if includeBody {
+		if options.fields != "" {
+			request.QueryParams["fields"] = []string{options.fields}
+		}
+		if options.includeBody {
 			request.QueryParams["included_relations"] = []string{"mail"}
 		}
 		// The normal resource read pipeline applies current row permissions in
@@ -106,7 +128,7 @@ func (dimb *DaptinImapMailBox) readSelectedMails(selections []MailSelection, inc
 		if !ok {
 			return nil, errors.New("native mail read returned invalid rows")
 		}
-		if len(models) != len(referenceIDs) {
+		if options.requireAll && len(models) != len(referenceIDs) {
 			return nil, mailDraftError(403, "selected messages are no longer readable")
 		}
 		for _, model := range models {
@@ -168,7 +190,8 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 		return nil, err
 	}
 	defer transaction.Rollback()
-	if _, _, err = dimb.authorizeRead(transaction); err != nil {
+	box, caller, err := dimb.authorizeRead(transaction)
+	if err != nil {
 		return nil, err
 	}
 	mbsCurrent, err := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, transaction)
@@ -186,6 +209,7 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 	dimb.status.PermanentFlags = basePermanentFlags
 
 	mbs := imap.NewMailboxStatus(dimb.name, items)
+	mbs.ReadOnly = !dimb.canUpdateMailbox(box, caller, transaction)
 
 	// Include cached keywords in FLAGS so clients know they exist
 	dimb.lock.Lock()
@@ -194,9 +218,16 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 		keywords = append(keywords, k)
 	}
 	dimb.lock.Unlock()
-	mbs.Flags = append(append([]string{}, dimb.status.Flags...), keywords...)
-	mbs.PermanentFlags = append(append([]string{}, dimb.status.PermanentFlags...), keywords...)
-	mbs.PermanentFlags = append(mbs.PermanentFlags, "\\*")
+	sort.Strings(keywords)
+	// Older and newly created Daptin folders may store just "\*" in their
+	// flag metadata. It permits new keywords; it does not advertise system
+	// flags. List the system flags supported by STORE for all such folders.
+	mbs.Flags = advertisedIMAPFlags(dimb.status.Flags, keywords, false)
+	if mbs.ReadOnly {
+		mbs.PermanentFlags = []string{}
+	} else {
+		mbs.PermanentFlags = advertisedIMAPFlags(dimb.status.PermanentFlags, keywords, true)
+	}
 
 	mbs.UnseenSeqNum = dimb.dbResource["mail_box"].GetFirstUnseenMailSequence(dimb.mailBoxId, transaction)
 	for _, item := range items {
@@ -215,6 +246,23 @@ func (dimb *DaptinImapMailBox) Status(items []imap.StatusItem) (*imap.MailboxSta
 		}
 	}
 	return mbs, nil
+}
+
+func advertisedIMAPFlags(stored, keywords []string, permanent bool) []string {
+	values := []string{imap.AnsweredFlag, imap.FlaggedFlag, imap.DeletedFlag, imap.SeenFlag, imap.DraftFlag}
+	values = append(values, stored...)
+	values = append(values, keywords...)
+	flags := make([]string, 0, len(values)+1)
+	for _, flag := range canonicalMailFlags(values) {
+		if flag == imap.TryCreateFlag || (permanent && flag == imap.RecentFlag) {
+			continue
+		}
+		flags = append(flags, flag)
+	}
+	if permanent {
+		flags = append(flags, imap.TryCreateFlag)
+	}
+	return flags
 }
 
 // SetSubscribed adds or removes the mailbox to the server's set of "active"
@@ -271,8 +319,19 @@ func (dimb *DaptinImapMailBox) Check() error {
 //
 // Messages must be sent to ch. When the function returns, ch must be closed.
 func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items []imap.FetchItem, ch chan<- *imap.Message) error {
+	return dimb.listMessages(uid, seqset, items, ch, false)
+}
+
+// ListMessagesReadOnly serves the original FETCH items without the implicit
+// Seen change from non-PEEK body requests.
+func (dimb *DaptinImapMailBox) ListMessagesReadOnly(uid bool, seqset *imap.SeqSet, items []imap.FetchItem, ch chan<- *imap.Message) error {
+	return dimb.listMessages(uid, seqset, items, ch, true)
+}
+
+func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items []imap.FetchItem, ch chan<- *imap.Message, readOnly bool) error {
 	defer close(ch)
 
+	extendedBody := slices.Contains(items, imap.FetchBodyStructure)
 	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
@@ -287,6 +346,8 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 	if err != nil {
 		return err
 	}
+	var caller *auth.SessionUser
+	var canMarkSeen bool
 
 	for _, selection := range selections {
 		mailContent, ok := mails[selection.ReferenceID]
@@ -308,6 +369,7 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 
 		returnMail := imap.NewMessage(selection.SequenceNumber, items)
 		returnMail.Size = uint32(mailContent["size"].(int64))
+		flagList := strings.Split(mailContent["flags"].(string), ",")
 
 		skipMail := false
 
@@ -320,7 +382,6 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 					break
 				}
 
-				flagList := strings.Split(mailContent["flags"].(string), ",")
 				//log.Printf("Mail flags: %v at fetch item [%v]", flagList, subItems)
 
 				switch subItems {
@@ -336,12 +397,18 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 						break
 					}
 					returnMail.Envelope = enve
-				case imap.FetchBodyStructure:
-					log.Printf("Fetch Body [%v] update flags: ", subItems == imap.FetchBodyStructure)
+				case imap.FetchBody, imap.FetchBodyStructure:
+					if returnMail.BodyStructure != nil {
+						continue
+					}
 					bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
 					header, err := textproto.ReadHeader(bodyReader)
-
-					bs, err := backendutil.FetchBodyStructure(header, bodyReader, subItems == imap.FetchBodyStructure)
+					if err != nil {
+						log.Printf("Failed to fetch MIME header for email [%v]: %v", mailContent["id"], err)
+						skipMail = true
+						break
+					}
+					bs, err := backendutil.FetchBodyStructure(header, bodyReader, extendedBody)
 					if err != nil {
 						log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
 						skipMail = true
@@ -378,13 +445,30 @@ func (dimb *DaptinImapMailBox) ListMessages(uid bool, seqset *imap.SeqSet, items
 						break
 					}
 
-					if !section.Peek {
-						// Set \Seen flag only on non-PEEK fetch
-						flagList = backendutil.UpdateFlags(flagList, imap.AddFlags, []string{imap.SeenFlag})
-						err = dimb.dbResource["mail"].MutateMailFlags(
-							daptinid.InterfaceToDIR(mailContent["reference_id"]), imap.AddFlags, []string{imap.SeenFlag}, dimb.sessionUser, transaction)
-						if err != nil {
-							return err
+					if !readOnly && !section.Peek && !HasFlag(flagList, imap.SeenFlag) {
+						// A write grant can be removed after SELECT or
+						// withheld on one message. Its valid read grant
+						// still permits FETCH, without the implicit write.
+						if caller == nil {
+							box, current, err := dimb.authorizeRead(transaction)
+							if err != nil {
+								return err
+							}
+							caller = current
+							canMarkSeen = dimb.canUpdateMailbox(box, caller, transaction)
+						}
+						crud := dimb.dbResource["mail"]
+						ref := daptinid.InterfaceToDIR(mailContent["reference_id"])
+						if canMarkSeen && crud.mailRowPermission("mail", ref, caller, false, transaction) == nil {
+							written, changed, err := crud.mutateMailFlags(ref, imap.AddFlags, []string{imap.SeenFlag}, caller, transaction)
+							if err != nil {
+								return err
+							}
+							flagList = written
+							returnMail.Flags = flagList
+							if changed {
+								returnMail.Items[imap.FetchFlags] = nil
+							}
 						}
 					}
 
@@ -417,23 +501,77 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		return nil, err
 	}
 	defer transaction.Rollback()
-	selections, err := dimb.dbResource["mail"].SearchMailBoxCandidates(dimb.mailBoxId, criteria, transaction)
+	_, caller, err := dimb.authorizeRead(transaction)
 	if err != nil {
 		return nil, err
 	}
-	mails, err := dimb.readSelectedMails(selections, false, transaction)
+	crud := dimb.dbResource["mail"]
+	candidates, plan, err := crud.selectIMAPSearchCandidates(dimb.mailBoxId, criteria, transaction)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]uint32, 0, len(mails))
-	for _, selection := range selections {
-		if _, ok := mails[selection.ReferenceID]; !ok {
-			continue
+	result := make([]uint32, 0)
+	for start := 0; start < len(candidates); start += imapResourceReadBatchSize {
+		batch := candidates[start:min(start+imapResourceReadBatchSize, len(candidates))]
+		selections := make([]MailSelection, 0, len(batch))
+		for _, candidate := range batch {
+			selections = append(selections, candidate.MailSelection)
 		}
-		if uid {
-			result = append(result, selection.UID)
-		} else {
-			result = append(result, selection.SequenceNumber)
+		visible, err := dimb.readIMAPMailRows(selections, caller,
+			imapMailReadOptions{fields: "reference_id", internal: start > 0}, transaction)
+		if err != nil {
+			return nil, err
+		}
+		var pending []imapSearchHydration
+		matches := make([]bool, len(batch))
+		for index, candidate := range batch {
+			if _, ok := visible[candidate.ReferenceID]; !ok {
+				continue
+			}
+			matches[index], err = plan.matches(candidate.predicates, &imapSearchContent{load: imapSearchNeedsContent})
+			if errors.Is(err, errIMAPSearchNeedsContent) {
+				pending = append(pending, imapSearchHydration{index, candidate.size})
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+		for len(pending) > 0 {
+			windowSize := imapSearchHydrationWindow(pending)
+			hydration := make([]MailSelection, 0, windowSize)
+			for _, entry := range pending[:windowSize] {
+				hydration = append(hydration, batch[entry.index].MailSelection)
+			}
+			hydrated, err := dimb.readIMAPMailRows(hydration, caller,
+				imapMailReadOptions{fields: "mail", includeBody: true, internal: true}, transaction)
+			if err != nil {
+				return nil, err
+			}
+			for _, entry := range pending[:windowSize] {
+				candidate := batch[entry.index]
+				row, ok := hydrated[candidate.ReferenceID]
+				if !ok {
+					continue // recheck row and mailbox scope in the hydration query
+				}
+				content := imapSearchContent{load: func() ([]byte, error) {
+					return crud.MailColumnBytes("mail", "mail", row["mail"])
+				}}
+				matches[entry.index], err = plan.matches(candidate.predicates, &content)
+				if err != nil {
+					return nil, err
+				}
+			}
+			pending = pending[windowSize:]
+		}
+		for index, candidate := range batch {
+			if matches[index] {
+				if uid {
+					result = append(result, candidate.UID)
+				} else {
+					result = append(result, candidate.SequenceNumber)
+				}
+			}
 		}
 	}
 	if err := transaction.Commit(); err != nil {

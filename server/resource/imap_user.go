@@ -36,6 +36,36 @@ func (diu *DaptinImapUser) Username() string {
 	return diu.username
 }
 
+// Native LIST can identify the same top-level folders the HTTP mail actions
+// use even if older rows have no attributes. Compute the role from the
+// canonical name at read time so it cannot stick to a renamed folder.
+func nativeMailboxAttributes(name, stored string) []string {
+	role := ""
+	switch name {
+	case "Draft":
+		role = imap.DraftsAttr
+	case "Sent":
+		role = imap.SentAttr
+	case "Archive":
+		role = imap.ArchiveAttr
+	case "Trash":
+		role = imap.TrashAttr
+	case "Spam":
+		role = imap.JunkAttr
+	}
+	var attributes []string
+	seen := make(map[string]bool)
+	for _, attr := range append([]string{role}, strings.Split(stored, ",")...) {
+		attr = strings.TrimSpace(attr)
+		key := strings.ToLower(attr)
+		if attr != "" && !seen[key] {
+			seen[key] = true
+			attributes = append(attributes, attr)
+		}
+	}
+	return attributes
+}
+
 // ListMailboxes returns a list of mailboxes belonging to this user. If
 // subscribed is set to true, only returns subscribed mailboxes.
 func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, error) {
@@ -126,7 +156,7 @@ func (diu *DaptinImapUser) ListMailboxes(subscribed bool) ([]backend.Mailbox, er
 			knownKeywords:      make(map[string]bool),
 			mailBoxId:          boxId,
 			info: imap.MailboxInfo{
-				Attributes: strings.Split(boxAttrs, ","),
+				Attributes: nativeMailboxAttributes(boxName, boxAttrs),
 				Delimiter:  "/",
 				Name:       boxName,
 			},
@@ -315,7 +345,7 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 		lastKnownMessages:  mbStatus.Messages,
 		mailBoxReferenceId: daptinid.InterfaceToDIR(box[0]["reference_id"]).String(),
 		info: imap.MailboxInfo{
-			Attributes: strings.Split(mbAttrs, ","),
+			Attributes: nativeMailboxAttributes(mbName, mbAttrs),
 			Delimiter:  "/",
 			Name:       mbName,
 		},

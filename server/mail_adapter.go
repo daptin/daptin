@@ -18,7 +18,6 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
 	_ "github.com/emersion/go-message/charset"
-	mailpacket "github.com/emersion/go-message/mail"
 	"github.com/emersion/go-msgauth/dkim"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -218,11 +217,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						contentType := ""
 						if v, ok := e.Header["Content-Type"]; ok {
 							contentType = trimToLimit(v[0], 255)
-						}
-
-						parsedMail, err := mailpacket.CreateReader(bytes.NewReader(mailBytes))
-						if err != nil {
-							log.Warnf("Failed to extract mail attachment metadata; storing raw message: %v", err)
 						}
 
 						log.Printf("Authorized login: %v", e.AuthorizedLogin)
@@ -492,21 +486,6 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 							spam = true
 						}
 
-						hasAttachment := false
-						if parsedMail != nil {
-							for {
-								part, partErr := parsedMail.NextPart()
-								if partErr != nil {
-									break
-								}
-								_, ok := part.Header.(*mailpacket.AttachmentHeader)
-								if ok {
-									hasAttachment = true
-									break
-								}
-							}
-						}
-
 						// Permission 768 = Owner read (256) + Owner write (512)
 						// This ensures only the mail owner can read/write their mail
 						model := api2go.NewApi2GoModelWithData("mail",
@@ -529,7 +508,7 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 								"internal_date":    time.Now(),
 								"sent_date":        sentDate,
 								"recipient":        recipient,
-								"has_attachment":   hasAttachment,
+								"has_attachment":   searchMetadata.HasAttachment,
 								"ip_addr":          e.RemoteIP,
 								"return_path":      trimToLimit(e.MailFrom.String(), 255),
 								"is_tls":           e.TLS,

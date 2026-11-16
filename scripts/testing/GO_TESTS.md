@@ -60,17 +60,50 @@ DAPTIN_REAL_E2E=1 go test -count=1 -run '^TestExampleRealE2E$' ./cmd/daptin
 ## Browser Mail protocol acceptance
 
 `TestMailNativeRoundTripRealE2E` reuses the shared executable harness with a
-fresh SQLite database, HTTP-created resources and a restarted loopback-only
+fresh database (SQLite by default), HTTP-created resources and a restarted loopback-only
 IMAP listener. It uses STARTTLS and verifies the hostname against a
 fixture-generated certificate in the test client's private trust pool.
 It exercises MIME/UID/flags,
 native drafts and HTTP adoption, COPY/EXPUNGE, subscriptions, empty bodies,
-APPEND bounds and live permission revocation:
+APPEND bounds and live permission revocation. It also checks that EXAMINE
+advertises empty permanent flags, that ordinary BODY FETCH does not set
+Seen in the read-only selection, and that CLOSE does not expunge it.
+Regular SELECT with read-only account or mailbox grants must also report
+read-only. The same connection can still fetch bytes without setting Seen
+when a write grant is revoked at the mailbox or message level:
 
 ```bash
 DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
   go test ./cmd/daptin -run '^TestMailNativeRoundTripRealE2E$' -count=1
 ```
+
+Set `DAPTIN_E2E_MAIL_SEARCH_SCALE=1` to append 320 synthetic messages, including
+16 with binary MIME attachments, and time broad and scoped native searches.
+This verifies every returned UID set and prints five timed samples per search
+after one warmup. It does not impose machine-dependent latency thresholds.
+
+On macOS, also set `DAPTIN_E2E_MUTT_BINARY` to the absolute path of a Mutt
+build with IMAP and OpenSSL. The optional case drives Mutt through the system
+`expect` terminal, checks that it reads the multilingual draft using STARTTLS,
+then checks the changes to Seen and Flagged through Daptin HTTP on the same
+mailbox UID. Mutt starts with an isolated configuration, local directory and
+only the fixture's public certificate. Use a terminfo database containing
+`xterm` if the host terminal sets a custom `TERMINFO`.
+
+The same IMAP case can use a disposable Thunderbird profile on macOS. Set
+`DAPTIN_E2E_THUNDERBIRD_DRIVER` to the absolute path of Office's
+`scripts/check-mail-thunderbird.py` and `MAIL_QUALIFICATION_THUNDERBIRD_APP` to
+the Thunderbird executable inside a verified app bundle. The driver requires
+NSS `certutil` and imports only the temporary CA into its profile. It requires
+STARTTLS, renders the multilingual draft using Thunderbird's message view and
+sets Seen and Flagged through Thunderbird. Daptin HTTP must observe both
+changes on the same UID. Thunderbird also identifies Draft and Sent by role,
+appends a mixed plain-text draft with a binary attachment, and uses its online
+search session to find the draft by a custom header. The driver requires the
+matching command in Thunderbird's IMAP trace. Daptin HTTP checks the returned
+UID and decoded attachment, then adopts the draft without changing the
+canonical reference, mailbox or UID. This option runs in place of the optional
+Mutt case.
 
 `TestMailLoopbackSMTPAndCrashRealE2E` binds an ephemeral unprivileged
 **127.0.0.1** SMTP port and configures the disposable server through the normal
@@ -93,7 +126,7 @@ recipient. Successful compilation or an ordinary skipped run is not SMTP
 acceptance. Results are recorded in the canonical Office Mail plan.
 
 `TestMailInboundSMTPRealE2E` exercises the receiving side. It provisions two
-private mail accounts through the resource APIs, restarts a disposable SQLite
+private mail accounts through the resource APIs, restarts a disposable
 server with an unprivileged loopback SMTP listener, and sends one unsigned MIME
 message to two local envelope recipients. The listener creates the Inbox and
 message records. The test verifies sparse owner-scoped metadata, UID allocation,
@@ -104,6 +137,21 @@ normalization, cross-user denial, and independent unread state.
 DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
   go test ./cmd/daptin -run '^TestMailInboundSMTPRealE2E$' -count=1
 ```
+
+For the same three protocol scenarios on PostgreSQL, supply the absolute
+path to its local `bin` directory:
+
+```bash
+DAPTIN_E2E_MAIL_POSTGRES_BIN=/path/to/postgresql/bin \
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/path/to/candidate \
+  go test ./cmd/daptin -v -count=1 \
+    -run '^(TestMailNativeRoundTripRealE2E|TestMailInboundSMTPRealE2E|TestMailLoopbackSMTPAndCrashRealE2E)$'
+```
+
+Each scenario initializes a new UTF-8 cluster and uses its private Unix
+socket across Daptin restarts. PostgreSQL has no TCP listener and requires
+no installed database or external test DSN. The fixture stops the cluster
+and removes its files on cleanup.
 
 ## Administrator restart in Docker
 

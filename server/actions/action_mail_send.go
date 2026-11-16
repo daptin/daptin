@@ -125,7 +125,7 @@ func (d *mailSendActionPerformer) deliverOutboxMailsAsync(outboxMailReferences [
 	go func() {
 		outboxProcessor := &outboxProcessActionPerformer{cruds: d.cruds}
 		for _, outboxMailReference := range references {
-			outboxProcessor.processPendingMailByReference(outboxMailReference, false)
+			outboxProcessor.processPendingMailByReference(outboxMailReference)
 		}
 	}()
 }

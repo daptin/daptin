@@ -39,6 +39,7 @@ type normalizedMailPart struct {
 	Filename           string
 	ContentID          string
 	ContentDisposition string
+	Presentation       string
 	DecodedSize        int64
 	SHA256             string
 	Content            []byte
@@ -125,11 +126,13 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 
 	var decodedTotal int64
 	var headerTotal int64
+	var tree *mailMIMEPart
+	var ancestry [mailMaxNestingDepth + 1]*mailMIMEPart
 	err = entity.Walk(func(path []int, part *message.Entity, walkErr error) error {
 		if walkErr != nil {
 			return mailUnpackError("mail_malformed", walkErr)
 		}
-		if len(path) > limits.MaxNestingDepth {
+		if len(path) > limits.MaxNestingDepth || len(path) >= len(ancestry) {
 			return mailUnpackError("mail_nesting_too_deep", nil)
 		}
 		partHeaderBytes, err := normalizedMailHeaderBytes(&part.Header)
@@ -140,13 +143,6 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 		if headerTotal > limits.MaxHeaderBytes {
 			return mailUnpackError("mail_headers_too_large", nil)
 		}
-		if part.MultipartReader() != nil {
-			return nil
-		}
-		if len(normalized.Parts) >= limits.MaxParts {
-			return mailUnpackError("mail_too_many_parts", nil)
-		}
-
 		mediaType, contentTypeParams, err := part.Header.ContentType()
 		if err != nil {
 			return mailUnpackError("mail_malformed", err)
@@ -158,6 +154,20 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 		mediaType = strings.ToLower(strings.TrimSpace(mediaType))
 		disposition = strings.ToLower(strings.TrimSpace(disposition))
 		contentID := strings.Trim(strings.TrimSpace(part.Header.Get("Content-ID")), "<>")
+		node := &mailMIMEPart{media: mediaType, cid: contentID, start: contentTypeParams["start"], rootType: contentTypeParams["type"], attached: disposition == "attachment", index: -1}
+		if depth := len(path); depth == 0 {
+			tree = node
+		} else {
+			node.parent = ancestry[depth-1]
+			node.parent.children = append(node.parent.children, node)
+		}
+		ancestry[len(path)] = node
+		if part.MultipartReader() != nil {
+			return nil
+		}
+		if len(normalized.Parts) >= limits.MaxParts {
+			return mailUnpackError("mail_too_many_parts", nil)
+		}
 		kind := "attachment"
 		if disposition == "inline" || (disposition != "attachment" && (strings.HasPrefix(mediaType, "text/") || contentID != "")) {
 			kind = "inline"
@@ -193,20 +203,10 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 			DecodedSize:        int64(len(content)),
 			SHA256:             hex.EncodeToString(digest[:]),
 			Content:            content,
+			Presentation:       "unselected",
 		}
+		node.index = normalizedPart.Index
 		normalized.Parts = append(normalized.Parts, normalizedPart)
-		if kind == "inline" && len(bytes.TrimSpace(content)) > 0 {
-			switch mediaType {
-			case "text/plain":
-				if normalized.PreferredTextBody == "" {
-					normalized.PreferredTextBody = string(content)
-				}
-			case "text/html":
-				if normalized.HTMLBody == "" {
-					normalized.HTMLBody = string(content)
-				}
-			}
-		}
 		return nil
 	})
 	if err != nil {
@@ -216,6 +216,7 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 		}
 		return nil, mailUnpackError("mail_malformed", err)
 	}
+	normalized.selectPresentation(tree)
 	return normalized, nil
 }
 

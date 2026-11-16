@@ -1398,6 +1398,10 @@ var OperatorMap = map[string]string{
 
 const invalidQueryFilterMessage = "invalid query filter column"
 
+// Use an explicit escape character instead of relying on driver-specific
+// backslash defaults. '[' is a wildcard on SQL Server.
+var literalSubstringEscaper = strings.NewReplacer("!", "!!", "%", "!%", "_", "!_", "[", "![")
+
 func (dbResource *DbResource) authorizeRelatedParents(table string, references []string, req api2go.Request, tx *sqlx.Tx) error {
 	parent := dbResource.Cruds[table]
 	if parent == nil || req.PlainRequest == nil {
@@ -1470,6 +1474,14 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 	if !ok {
 		log.Warnf("[1316] Table [%v] invalid column query [%v]", dbResource.model.GetName(), columnName)
 		return nil, invalidQueryFilterError(dbResource.model.GetName(), columnName)
+	}
+
+	if filterQuery.Operator == "contains_literal" {
+		value, valid := filterQuery.Value.(string)
+		if !valid || value == "" || strings.ContainsRune(value, 0) || colInfo.IsForeignKey || columnName == "reference_id" {
+			return nil, api2go.NewHTTPError(nil, "literal substring filters require a nonempty text value and a non-reference column", http.StatusBadRequest)
+		}
+		return goqu.L("? LIKE ? ESCAPE '!'", goqu.I(prefix+columnName), "%"+literalSubstringEscaper.Replace(value)+"%"), nil
 	}
 
 	// Handle foreign key columns

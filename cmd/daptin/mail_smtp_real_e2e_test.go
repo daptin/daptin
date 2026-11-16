@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -29,6 +28,9 @@ type loopbackSMTPReceipt struct {
 // The normal administrator-only backend setting supplies its unprivileged port.
 func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 	requireRealE2E(t)
+	// PostgreSQL TIMESTAMP has no timezone; keep this test sensitive to a
+	// worker accidentally reinterpreting the scheduled wall time as UTC.
+	t.Setenv("TZ", "Asia/Kolkata")
 	smtpListener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -139,8 +141,7 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 			}()
 		}
 	}()
-	database := filepath.Join(t.TempDir(), "smtp-mail.db")
-	options := transportE2EDaptinOptions{connectionString: database}
+	options := mailProtocolDatabase(t)
 	fixture := startDaptinE2E(t, options)
 	admin := fixture.SignupAdmin(t)
 	configurePort := func(value string) {
@@ -210,7 +211,7 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 		case receipt := <-receipts:
 			return receipt
 		case <-time.After(15 * time.Second):
-			t.Fatal("no loopback SMTP DATA received")
+			t.Fatalf("no loopback SMTP DATA received\n%s", fixture.Process.logs.String())
 			return loopbackSMTPReceipt{}
 		}
 	}

@@ -37,6 +37,8 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 	imapServer.MaxLiteralSize = 25 * 1024 * 1024
 	imapServer.Enable(idle.NewExtension())
 	imapServer.Enable(&noopPollExtension{})
+	imapServer.Enable(&readOnlyIMAPExtension{})
+	imapServer.Enable(&bodyIMAPExtension{})
 
 	cert, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 	if err != nil {
@@ -132,6 +134,9 @@ func (cmd *noopPollHandler) Handle(conn server.Conn) error {
 
 	// Check if Poll() found new messages
 	dimb, ok := ctx.Mailbox.(*resource.DaptinImapMailBox)
+	if examined, readOnly := ctx.Mailbox.(*readOnlyIMAPMailbox); readOnly {
+		dimb, ok = examined.DaptinImapMailBox, true
+	}
 	if !ok {
 		return nil
 	}

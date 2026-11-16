@@ -154,6 +154,32 @@ func TestSelectMailBoxCandidates(t *testing.T) {
 	}
 }
 
+func TestIMAPSearchHydrationWindows(t *testing.T) {
+	const mib = 1 << 20
+	if got := imapSearchHydrationWindow(make([]imapSearchHydration, 0)); got != 0 {
+		t.Fatalf("empty search window = %d", got)
+	}
+	sizes := []int64{3 * mib, 5 * mib, 1, 0, 25 * mib, 2, 3}
+	pending := make([]imapSearchHydration, 0, len(sizes))
+	for i, size := range sizes {
+		pending = append(pending, imapSearchHydration{index: i, size: size})
+	}
+	for i, want := range []int{2, 1, 1, 1, 2} {
+		width := imapSearchHydrationWindow(pending)
+		if width != want {
+			t.Fatalf("search window %d = %d, want %d", i, width, want)
+		}
+		pending = pending[width:]
+	}
+	many := make([]imapSearchHydration, 100)
+	for i := range many {
+		many[i].size = 1024
+	}
+	if got := imapSearchHydrationWindow(many); got != 32 {
+		t.Fatalf("search window must bound small message count, measured %d", got)
+	}
+}
+
 func TestExtractMailSearchMetadataKeepsAllHeaderAddresses(t *testing.T) {
 	metadata, err := ExtractMailSearchMetadata([]byte("From: Alice <alice@example.test>, Bob <bob@example.test>\r\n" +
 		"To: Carol <carol@example.test>, Dan <dan@example.test>\r\n" +
@@ -209,15 +235,7 @@ func TestSearchMailBoxComposesCriteriaInSQL(t *testing.T) {
 	criteria.Not = append(criteria.Not, searchHeader("Subject", "beta"))
 	assertMailSearch(t, crud, false, criteria, []uint32{3})
 
-	unsupported := searchHeader("X-Trace-ID", "abc")
-	tx, err := db.Beginx()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Rollback()
-	if _, err := crud.SearchMailBoxCandidates(7, unsupported, tx); err == nil {
-		t.Fatal("unsupported header search should fail instead of matching unrelated messages")
-	}
+	assertMailSearch(t, crud, false, searchHeader("X-Trace-ID", "abc"), nil)
 }
 
 func TestSearchMailBoxDatabaseContracts(t *testing.T) {
@@ -309,12 +327,25 @@ func assertMailSearch(t *testing.T, crud *DbResource, uid bool, criteria *imap.S
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	selections, err := crud.SearchMailBoxCandidates(7, criteria, tx)
+	selections, plan, err := crud.selectIMAPSearchCandidates(7, criteria, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := make([]uint32, 0, len(selections))
 	for _, selection := range selections {
+		content := imapSearchContent{load: func() ([]byte, error) {
+			var subject, from, messageID, body string
+			err := tx.QueryRowx(tx.Rebind(`SELECT COALESCE(subject,''), COALESCE(from_address,''), COALESCE(message_id,''), COALESCE(body,'') FROM mail WHERE reference_id=?`),
+				selection.ReferenceID[:]).Scan(&subject, &from, &messageID, &body)
+			return []byte(fmt.Sprintf("Subject: %s\r\nFrom: %s\r\nMessage-ID: %s\r\n\r\n%s", subject, from, messageID, body)), err
+		}}
+		matched, err := plan.matches(selection.predicates, &content)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !matched {
+			continue
+		}
 		if uid {
 			got = append(got, selection.UID)
 		} else {

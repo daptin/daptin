@@ -51,42 +51,20 @@ func (d *outboxProcessActionPerformer) DoAction(request actionresponse.Outcome, 
 		return nil, responses, []error{err}
 	}
 
-	pendingMails, _, err := d.cruds["outbox"].GetRowsByWhereClauseWithTransaction("outbox", map[string]bool{"mail": true}, transaction,
-		goqu.Ex{"sent": false},
-		goqu.Ex{"retry_count": goqu.Op{"lt": 5}},
-	)
-	// Limit batch size to prevent OOM on large queues
-	if len(pendingMails) > 100 {
-		pendingMails = pendingMails[:100]
-	}
+	pendingMails, err := d.cruds["outbox"].DueOutboxMail(time.Now(), transaction)
 	if err != nil {
 		log.Errorf("Failed to query outbox: %v", err)
 		return nil, responses, []error{err}
 	}
 
 	for _, pendingMail := range pendingMails {
-		d.processPendingMail(pendingMail, transaction, true, smtpPort)
+		d.processPendingMail(pendingMail, transaction, smtpPort)
 	}
 
 	return nil, responses, nil
 }
 
-func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string]interface{}, transaction *sqlx.Tx, respectNextRetry bool, smtpPort int) bool {
-	if respectNextRetry {
-		if nextRetry, ok := pendingMail["next_retry_at"]; ok && nextRetry != nil {
-			var retryTime time.Time
-			switch v := nextRetry.(type) {
-			case time.Time:
-				retryTime = v
-			case string:
-				retryTime, _ = time.Parse(time.RFC3339, v)
-			}
-			if !retryTime.IsZero() && retryTime.After(time.Now()) {
-				return false
-			}
-		}
-	}
-
+func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string]interface{}, transaction *sqlx.Tx, smtpPort int) bool {
 	mailId, ok := pendingMail["id"].(int64)
 	if !ok {
 		log.Errorf("Outbox entry has invalid id type: %T", pendingMail["id"])
@@ -305,7 +283,7 @@ func (d *outboxProcessActionPerformer) processPendingMail(pendingMail map[string
 	return true
 }
 
-func (d *outboxProcessActionPerformer) processPendingMailByReference(mailReferenceId daptinid.DaptinReferenceId, respectNextRetry bool) bool {
+func (d *outboxProcessActionPerformer) processPendingMailByReference(mailReferenceId daptinid.DaptinReferenceId) bool {
 	transaction, err := d.cruds["outbox"].Connection().Beginx()
 	if err != nil {
 		log.Errorf("Failed to begin transaction for async outbox mail [%v]: %v", mailReferenceId.String(), err)
@@ -330,7 +308,7 @@ func (d *outboxProcessActionPerformer) processPendingMailByReference(mailReferen
 		log.Errorf("Invalid outbound SMTP configuration: %v", err)
 		return false
 	}
-	processed := d.processPendingMail(pendingMails[0], transaction, respectNextRetry, smtpPort)
+	processed := d.processPendingMail(pendingMails[0], transaction, smtpPort)
 	if err := transaction.Commit(); err != nil {
 		log.Errorf("Failed to commit async outbox mail [%v] state: %v", mailReferenceId.String(), err)
 		return false

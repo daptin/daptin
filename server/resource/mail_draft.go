@@ -40,6 +40,14 @@ func mailDraftError(status int, message string) error {
 }
 func mailRevision(raw []byte) string { hash := sha256.Sum256(raw); return hex.EncodeToString(hash[:]) }
 
+func (dbResource *DbResource) mailAccountCanWrite(ref daptinid.DaptinReferenceId, caller *auth.SessionUser, tx *sqlx.Tx) bool {
+	crud := dbResource.Cruds["mail_account"]
+	table := crud.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", "mail_account", tx)
+	grant := GetObjectPermissionByReferenceIdWithTransaction("mail_account", ref, tx)
+	return grant.UserId == caller.UserReferenceId && table.CanPeek(caller.UserReferenceId, caller.Groups, crud.AdministratorGroupId) &&
+		grant.CanRead(caller.UserReferenceId, caller.Groups, crud.AdministratorGroupId) && grant.CanUpdate(caller.UserReferenceId, caller.Groups, crud.AdministratorGroupId)
+}
+
 // MailWriteAccount reloads the active identity and enforces owner scope plus
 // operation permission before locking the canonical account for draft changes.
 func (dbResource *DbResource) MailWriteAccount(ref string, active *auth.SessionUser, tx *sqlx.Tx) (map[string]interface{}, *auth.SessionUser, error) {
@@ -52,10 +60,7 @@ func (dbResource *DbResource) MailWriteAccount(ref string, active *auth.SessionU
 		return nil, nil, mailDraftError(400, "invalid mail account reference")
 	}
 	crud := dbResource.Cruds["mail_account"]
-	table := crud.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", "mail_account", tx)
-	grant := GetObjectPermissionByReferenceIdWithTransaction("mail_account", daptinid.DaptinReferenceId(id), tx)
-	if grant.UserId != caller.UserReferenceId || !table.CanPeek(caller.UserReferenceId, caller.Groups, crud.AdministratorGroupId) ||
-		!grant.CanRead(caller.UserReferenceId, caller.Groups, crud.AdministratorGroupId) || !grant.CanUpdate(caller.UserReferenceId, caller.Groups, crud.AdministratorGroupId) {
+	if !dbResource.mailAccountCanWrite(daptinid.DaptinReferenceId(id), caller, tx) {
 		return nil, nil, mailDraftError(403, "mail account does not permit this write")
 	}
 	account, _, err := crud.GetSingleRowByReferenceIdWithTransaction("mail_account", daptinid.DaptinReferenceId(id), nil, tx)

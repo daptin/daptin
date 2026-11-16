@@ -86,6 +86,66 @@ func TestNormalizeMailHTMLOnlyAndDeterministic(t *testing.T) {
 	}
 }
 
+func TestNormalizeMailChoosesThePreferredRelatedRepresentation(t *testing.T) {
+	raw := []byte(strings.Join([]string{
+		"Content-Type: multipart/mixed; boundary=outer", "", "--outer",
+		"Content-Type: multipart/alternative; boundary=alt", "", "--alt",
+		"Content-Type: text/plain", "", "readable fallback", "--alt",
+		"Content-Type: multipart/related; boundary=low; type=\"text/html\"", "", "--low",
+		"Content-Type: text/html", "", "<p>earlier rendition</p>", "--low",
+		"Content-Type: image/png", "Content-ID: <figure@test>", "", "wrong image", "--low--", "--alt",
+		"Content-Type: multipart/related; boundary=rich; type=\"text/html\"; start=\"<root@test>\"", "", "--rich",
+		"Content-Type: text/html", "", "<p>non-root HTML</p>", "--rich",
+		"Content-Type: image/png", "Content-ID: <figure@test>", "Content-Disposition: attachment; filename=right.png", "", "right image", "--rich",
+		"Content-Type: text/html", "Content-ID: <root@test>", "Content-Disposition: attachment", "", "<p>preferred rendition</p><img src=\"cid:figure@test\">", "--rich--", "--alt--", "--outer",
+		"Content-Type: image/png", "Content-ID: <figure@test>", "Content-Disposition: attachment; filename=independent.png", "", "independent attachment", "--outer--", "",
+	}, "\r\n"))
+	got, err := normalizeMail(raw, defaultMailUnpackLimits())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.PreferredTextBody != "readable fallback" || !strings.Contains(got.HTMLBody, "preferred rendition") {
+		t.Fatalf("selected bodies: plain=%q HTML=%q", got.PreferredTextBody, got.HTMLBody)
+	}
+	want := []string{"body", "unselected", "unselected", "unselected", "html-resource", "body", "attachment"}
+	if len(got.Parts) != len(want) {
+		t.Fatalf("wire parts changed: got %d, want %d", len(got.Parts), len(want))
+	}
+	for index, purpose := range want {
+		if part := got.Parts[index]; part.Presentation != purpose || part.Index != index {
+			t.Errorf("part %d = %q (index %d), want %q", index, part.Presentation, part.Index, purpose)
+		}
+	}
+}
+
+func TestNormalizeMailDoesNotBindAmbiguousRelatedResources(t *testing.T) {
+	for _, test := range []struct{ start, rootType, html string }{
+		{"root@test", "text/html", "<p>HTML root</p>"},
+		{"missing@test", "text/html", ""},
+		{"root@test", "text/plain", ""},
+	} {
+		raw := []byte(strings.Join([]string{
+			"Content-Type: multipart/alternative; boundary=alt", "", "--alt", "Content-Type: text/plain", "", "plain fallback", "--alt",
+			`Content-Type: multipart/related; boundary=rel; type="` + test.rootType + `"; start="<` + test.start + `>"`, "", "--rel",
+			"Content-Type: text/html", "Content-ID: <root@test>", "", "<p>HTML root</p>", "--rel",
+			"Content-Type: image/png", "Content-ID: <asset@test>", "", "first image", "--rel",
+			"Content-Type: image/png", "Content-ID: <asset@test>", "", "second image", "--rel--", "--alt--", "",
+		}, "\r\n"))
+		got, err := normalizeMail(raw, defaultMailUnpackLimits())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.PreferredTextBody != "plain fallback" || got.HTMLBody != test.html {
+			t.Fatalf("start=%q, type=%q: plain=%q HTML=%q", test.start, test.rootType, got.PreferredTextBody, got.HTMLBody)
+		}
+		for _, part := range got.Parts {
+			if part.Presentation == "html-resource" {
+				t.Fatal("ambiguous attachment was bound to HTML")
+			}
+		}
+	}
+}
+
 func TestNormalizeMailPlainTextWithoutAttachments(t *testing.T) {
 	raw := []byte("From: sender@example.com\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nplain only")
 	got, err := normalizeMail(raw, defaultMailUnpackLimits())
