@@ -12,6 +12,48 @@ import (
 	"github.com/emersion/go-message/mail"
 )
 
+func TestComposeAttachedMessageWireEncodingAndBytes(t *testing.T) {
+	header := "Subject: Original\r\n\r\n"
+	for _, tc := range []struct{ name, raw, media, enc string }{
+		{"wire message", header + ".body\r\n", "message/rfc822", "7bit"},
+		{"maximum line", header + strings.Repeat("a", 998) + "\r\n", "message/rfc822", "7bit"},
+		{"unterminated body", header + "body", "message/rfc822", "7bit"},
+		{"long line", header + strings.Repeat("a", 999), "application/octet-stream", "base64"},
+		{"local LF", "Subject: Original\n\nbody\n", "application/octet-stream", "base64"},
+		{"high bytes", header + "café", "application/octet-stream", "base64"},
+		{"NUL", header + "zero\x00", "application/octet-stream", "base64"},
+		{"not a message header", "To: no-subject@example.test\r\n\r\nbody", "application/octet-stream", "base64"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			composed, err := ComposeDraftMail("owner@example.test", "<test@example.test>", time.Now(), MailComposition{
+				Text: "Outer body", Parts: []MailComposePart{{Filename: "original.eml", MediaType: "Message/RFC822", Base64: base64.StdEncoding.EncodeToString([]byte(tc.raw))}},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			entity, err := message.Read(bytes.NewReader(composed))
+			if err != nil {
+				t.Fatal(err)
+			}
+			mixed := entity.MultipartReader()
+			if _, err := mixed.NextPart(); err != nil {
+				t.Fatal(err)
+			}
+			attached, err := mixed.NextPart()
+			if err != nil {
+				t.Fatal(err)
+			}
+			media, _, _ := attached.Header.ContentType()
+			encoding := attached.Header.Get("Content-Transfer-Encoding")
+			disposition, params, _ := attached.Header.ContentDisposition()
+			body, err := io.ReadAll(attached.Body)
+			if err != nil || string(body) != tc.raw || media != tc.media || encoding != tc.enc || disposition != "attachment" || params["filename"] != "original.eml" {
+				t.Fatalf("media=%s encoding=%s disposition=%s params=%v bytes=%q err=%v", media, encoding, disposition, params, body, err)
+			}
+		})
+	}
+}
+
 func TestComposeMailMIMEAndEnvelope(t *testing.T) {
 	value := MailComposition{
 		To: []MailRecipient{{Name: "Alice नमस्ते", Address: "alice@example.test"}}, Cc: []MailRecipient{{Address: "copy@example.test"}}, Bcc: []MailRecipient{{Address: "hidden@example.test"}},

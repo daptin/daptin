@@ -254,11 +254,21 @@ func composeMail(sender, messageID string, date time.Time, value MailComposition
 	writePart := func(parent *message.Writer, mediaType string, data []byte, part *MailComposePart) error {
 		var h message.Header
 		params := map[string]string{}
+		encoding := "base64"
+		if strings.EqualFold(mediaType, "message/rfc822") {
+			if isSevenBitAttachedMessage(data) {
+				mediaType, encoding = "message/rfc822", "7bit"
+			} else {
+				// RFC 2046 prohibits base64 on message/rfc822. Send bytes
+				// outside our 7-bit transport as a file without rewriting them.
+				mediaType = "application/octet-stream"
+			}
+		}
 		if strings.HasPrefix(mediaType, "text/") {
 			params["charset"] = "utf-8"
 		}
 		h.SetContentType(mediaType, params)
-		h.Set("Content-Transfer-Encoding", "base64")
+		h.Set("Content-Transfer-Encoding", encoding)
 		if part != nil {
 			disposition := "attachment"
 			if part.ContentID != "" {
@@ -323,4 +333,41 @@ func composeMail(sender, messageID string, date time.Time, value MailComposition
 		return nil, nil, fmt.Errorf("encoded message exceeds 25 MiB")
 	}
 	return output.Bytes(), envelope, nil
+}
+
+// RFC 2045 defines 7bit as CRLF lines of at most 998 octets without NUL
+// or high bytes. A nested message also needs a recognizable RFC 2046 header.
+func isSevenBitAttachedMessage(data []byte) bool {
+	end := bytes.Index(data, []byte("\r\n\r\n"))
+	if end < 0 {
+		return false
+	}
+	width := 0
+	for i := 0; i < len(data); i++ {
+		switch b := data[i]; {
+		case b == '\r':
+			if i+1 == len(data) || data[i+1] != '\n' {
+				return false
+			}
+			i++
+			width = 0
+		case b == '\n' || b == 0 || b >= 128:
+			return false
+		default:
+			width++
+			if width > 998 {
+				return false
+			}
+		}
+	}
+	nested, err := mail.ReadMessage(bytes.NewReader(data[:end+4]))
+	if err != nil {
+		return false
+	}
+	for _, key := range []string{"From", "Subject", "Date"} {
+		if _, ok := nested.Header[key]; ok {
+			return true
+		}
+	}
+	return false
 }
