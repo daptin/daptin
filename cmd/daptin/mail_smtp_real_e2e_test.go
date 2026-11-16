@@ -188,6 +188,7 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 		content := map[string]interface{}{"subject": subject, "text": "Local SMTP नमस्ते", "html": "<p>Local SMTP नमस्ते</p><img src=\"cid:proof@smtp\">", "to": []map[string]interface{}{{"address": "recipient@localhost"}},
 			"in_reply_to": "<original@test>", "references": []string{"<original@test>"}, "parts": []map[string]interface{}{{"filename": "proof.png", "media_type": "image/png", "content_id": "proof@smtp", "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aH2kAAAAASUVORK5CYII="}, {"filename": "résumé.txt", "media_type": "text/plain", "base64": "cHJvb2Y="}}}
 		if includeBCC {
+			content["cc"] = []map[string]interface{}{{"address": "Recipient@LOCALHOST"}, {"address": "recipient@LOCALHOST"}}
 			content["bcc"] = []map[string]interface{}{{"address": "hidden@localhost"}}
 			content["parts"] = append(content["parts"].([]map[string]interface{}), map[string]interface{}{
 				"filename": "original.eml", "media_type": "message/rfc822", "base64": base64.StdEncoding.EncodeToString([]byte(attachedWire)),
@@ -240,8 +241,11 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 	configurePort(smtpPort)
 	process()
 	recipients := map[string]bool{}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		receipt := receive()
+		if recipients[receipt.to] {
+			t.Fatalf("duplicate loopback recipient %q", receipt.to)
+		}
 		recipients[receipt.to] = true
 		if receipt.from != "smtp-alice@smtp.test" || !bytes.Equal(receipt.data, wire) || bytes.Contains(receipt.data, []byte("\r\nBcc:")) || !bytes.Contains(receipt.data, []byte("DKIM-Signature:")) {
 			t.Fatal("SMTP envelope or signed multipart MIME changed")
@@ -271,10 +275,10 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 			t.Fatalf("SMTP receiver did not recover the exact 7bit .eml: %v", err)
 		}
 	}
-	t.Log("Loopback SMTP recovered exact 7bit .eml bytes, including a dot-start line, for To and Bcc")
-	if !recipients["recipient@localhost"] || !recipients["hidden@localhost"] {
-		t.Fatal("To/Bcc envelope recipients missing")
+	if !recipients["recipient@localhost"] || !recipients["Recipient@localhost"] || !recipients["hidden@localhost"] {
+		t.Fatalf("case-sensitive To/Cc or Bcc envelope recipients missing: %v", recipients)
 	}
+	t.Log("Loopback SMTP received both case-distinct local parts and the hidden recipient, with exact 7bit .eml bytes")
 	status := action("submission_status", "submission", submission)
 	for _, value := range status["recipients"].([]interface{}) {
 		if value.(map[string]interface{})["state"] != "smtp_accepted" {
