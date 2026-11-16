@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	stdjson "encoding/json"
@@ -13,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/artpar/api2go/v2"
-	"github.com/artpar/ydb"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/resource"
@@ -25,7 +23,7 @@ import (
 const yjsStateMediaType = resource.YjsStateMediaType
 
 type daptinYjsStore struct {
-	standalone ydb.Store
+	standalone diskYjsStore
 	cruds      map[string]*resource.DbResource
 }
 
@@ -104,8 +102,8 @@ func yjsColumnFiles(value interface{}) ([]map[string]interface{}, error) {
 	}
 }
 
-func (s *daptinYjsStore) target(room ydb.YjsRoomName) (*resourceYjsTarget, bool, error) {
-	parts, canonical := canonicalYjsRoomParts(string(room))
+func (s *daptinYjsStore) target(room string) (*resourceYjsTarget, bool, error) {
+	parts, canonical := canonicalYjsRoomParts(room)
 	if !canonical {
 		return nil, false, nil
 	}
@@ -164,54 +162,41 @@ func (s *daptinYjsStore) resourceState(target *resourceYjsTarget) (map[string]in
 	return row, files, state, nil
 }
 
-func (s *daptinYjsStore) ReadFrom(room ydb.YjsRoomName, offset uint32) ([]byte, uint32, error) {
+func (s *daptinYjsStore) read(room string) ([]byte, error) {
 	target, canonical, err := s.target(room)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	if !canonical {
-		return s.standalone.ReadFrom(room, offset)
+		return s.standalone.read(room)
 	}
 	_, _, state, err := s.resourceState(target)
-	if err != nil {
-		return nil, 0, err
-	}
-	size := uint32(len(state))
-	if offset >= size {
-		return nil, size, nil
-	}
-	return bytes.Clone(state[offset:]), size, nil
+	return state, err
 }
 
-func (s *daptinYjsStore) Size(room ydb.YjsRoomName) (uint32, error) {
+func (s *daptinYjsStore) appendUpdate(ctx context.Context, room string, data []byte) error {
 	target, canonical, err := s.target(room)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	if !canonical {
-		return s.standalone.Size(room)
-	}
-	_, _, state, err := s.resourceState(target)
-	return uint32(len(state)), err
-}
-
-func (s *daptinYjsStore) Append(ctx context.Context, room ydb.YjsRoomName, data []byte) (uint32, error) {
-	target, canonical, err := s.target(room)
-	if err != nil {
-		return 0, err
-	}
-	if !canonical {
-		return s.standalone.Append(ctx, room, data)
+		return s.standalone.appendUpdate(ctx, room, data)
 	}
 	if user, ok := ctx.Value("user").(*auth.SessionUser); !ok || user == nil {
-		return 0, errors.New("authenticated YJS user is missing")
+		return errors.New("authenticated YJS user is missing")
 	}
 
 	const maxVersionAttempts = 4
 	for attempt := 0; attempt < maxVersionAttempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		row, files, state, readErr := s.resourceState(target)
 		if readErr != nil {
-			return 0, readErr
+			return readErr
+		}
+		if len(data) > yjsJournalLimit-len(state) {
+			return errors.New("YJS room storage limit reached")
 		}
 		state = append(state, data...)
 		updatedFiles := withYjsState(files, target.column, state)
@@ -220,7 +205,7 @@ func (s *daptinYjsStore) Append(ctx context.Context, room ydb.YjsRoomName, data 
 		if !target.columnInfo.IsForeignKey || target.columnInfo.ForeignKeyData.DataSource != "cloud_store" {
 			encodedFiles, encodeErr := stdjson.Marshal(updatedFiles)
 			if encodeErr != nil {
-				return 0, encodeErr
+				return encodeErr
 			}
 			columnValue = string(encodedFiles)
 		}
@@ -232,23 +217,12 @@ func (s *daptinYjsStore) Append(ctx context.Context, room ydb.YjsRoomName, data 
 		requestURL := &url.URL{Path: "/api/" + target.typeName + "/" + target.reference.String()}
 		request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch, URL: requestURL}).WithContext(ctx)}
 		if _, updateErr := target.crud.Update(model, request); updateErr == nil {
-			return uint32(len(state)), nil
+			return nil
 		} else if !errors.Is(updateErr, resource.ErrVersionConflict) {
-			return 0, updateErr
+			return updateErr
 		}
 	}
-	return 0, fmt.Errorf("%w: exhausted YJS update retries", resource.ErrVersionConflict)
-}
-
-func (s *daptinYjsStore) SetInitialContent(room ydb.YjsRoomName, data []byte) error {
-	_, canonical, err := s.target(room)
-	if err != nil {
-		return err
-	}
-	if !canonical {
-		return s.standalone.SetInitialContent(room, data)
-	}
-	return errors.New("resource-backed YJS content can only be changed by an authenticated update")
+	return fmt.Errorf("%w: exhausted YJS update retries", resource.ErrVersionConflict)
 }
 
 // PathExistsAndIsFolder checks if a path exists and is a folder
@@ -263,7 +237,7 @@ func PathExistsAndIsFolder(path string) bool {
 	return info.IsDir() // Check if it's a directory
 }
 
-func CreateYjsStore(configStore *resource.ConfigStore, transaction *sqlx.Tx, localStoragePath string, cruds map[string]*resource.DbResource) ydb.Store {
+func CreateYjsStore(configStore *resource.ConfigStore, transaction *sqlx.Tx, localStoragePath string, cruds map[string]*resource.DbResource) yjsStore {
 	logrus.Infof("YJS endpoint is enabled in config")
 	yjsDir := localStoragePath + "/yjs-documents"
 	configStore.SetConfigValueFor("yjs.storage.path", yjsDir, "backend", transaction)
@@ -275,6 +249,5 @@ func CreateYjsStore(configStore *resource.ConfigStore, transaction *sqlx.Tx, loc
 		}
 	}
 
-	standalone := ydb.NewDiskStore(yjsDir, ydb.WithMaxRoomSize(50*1024*1024))
-	return &daptinYjsStore{standalone: standalone, cruds: cruds}
+	return &daptinYjsStore{standalone: diskYjsStore{dir: yjsDir}, cruds: cruds}
 }

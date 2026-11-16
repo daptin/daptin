@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/artpar/ydb"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
@@ -76,36 +75,24 @@ func authorizeYjsRoom(cruds map[string]*resource.DbResource, user *auth.SessionU
 	return "", false, http.StatusNotFound, nil
 }
 
-func serveYjsRoom(ginContext *gin.Context, yjsConnectionHandler http.HandlerFunc,
-	roomName string, readOnly bool) {
-	requestContext := context.WithValue(ginContext.Request.Context(), "roomname", roomName)
-	if readOnly {
-		requestContext = ydb.WithReadOnlySession(requestContext)
+func prepareYjsRoom(store yjsStore, roomName string) ([][]byte, error) {
+	journal, err := store.read(roomName)
+	if err != nil {
+		return nil, err
 	}
-	ginContext.Request = ginContext.Request.WithContext(requestContext)
-	yjsConnectionHandler(ginContext.Writer, ginContext.Request)
-}
-
-func prepareYjsRoom(store ydb.Store, roomName string) error {
-	_, err := store.Size(ydb.YjsRoomName(roomName))
-	return err
+	return yjsReplay(journal)
 }
 
 type YjsRuntime struct {
-	database    *ydb.Ydb
-	broadcaster *olricYjsBroadcaster
+	relay *yjsRelay
 }
 
 func (r *YjsRuntime) Close() {
-	if r.database != nil {
-		r.database.Close()
-	}
-	if r.broadcaster != nil {
-		r.broadcaster.Close()
-	}
+	r.relay.cancel()
+	r.relay.broadcast.Close()
 }
 
-func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter *gin.Engine,
+func InitializeYjsResources(ctx context.Context, store yjsStore, defaultRouter *gin.Engine,
 	cruds map[string]*resource.DbResource) (*YjsRuntime, error) {
 	var err error
 
@@ -113,10 +100,9 @@ func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter 
 	if err != nil {
 		return nil, err
 	}
-	ydbInstance := ydb.InitYdb(store, broadcaster)
-	runtime := &YjsRuntime{database: ydbInstance, broadcaster: broadcaster}
-
-	yjsConnectionHandler := ydb.YdbWsConnectionHandler(ydbInstance)
+	relayCtx, cancel := context.WithCancel(ctx)
+	relay := &yjsRelay{ctx: relayCtx, cancel: cancel, store: store, broadcast: broadcaster}
+	runtime := &YjsRuntime{relay: relay}
 
 	defaultRouter.GET("/yjs/:documentName", func(ginContext *gin.Context) {
 
@@ -139,16 +125,11 @@ func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter 
 				ginContext.AbortWithStatus(status)
 				return
 			}
-			if err := prepareYjsRoom(store, roomName); err != nil {
-				logrus.Errorf("failed to prepare YJS room: %v", err)
-				ginContext.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-			serveYjsRoom(ginContext, yjsConnectionHandler, roomName, readOnly)
+			relay.serve(ginContext.Writer, ginContext.Request, roomName, readOnly)
 			return
 		}
 
-		serveYjsRoom(ginContext, yjsConnectionHandler, documentName, false)
+		relay.serve(ginContext.Writer, ginContext.Request, documentName, false)
 
 	})
 
@@ -184,13 +165,8 @@ func InitializeYjsResources(ctx context.Context, store ydb.Store, defaultRouter 
 						ginContext.AbortWithStatus(status)
 						return
 					}
-					if err := prepareYjsRoom(store, roomName); err != nil {
-						logrus.Errorf("failed to prepare YJS room: %v", err)
-						ginContext.AbortWithStatus(http.StatusInternalServerError)
-						return
-					}
 
-					serveYjsRoom(ginContext, yjsConnectionHandler, roomName, readOnly)
+					relay.serve(ginContext.Writer, ginContext.Request, roomName, readOnly)
 
 				}
 			}(typename, columnInfo.ColumnName))

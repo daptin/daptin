@@ -26,7 +26,6 @@ import (
 	"github.com/artpar/go-imap/server"
 	"github.com/artpar/rclone/fs"
 	"github.com/artpar/stats"
-	"github.com/artpar/ydb"
 	"github.com/aviddiviner/gin-limit"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/daptin/daptin/server/database"
@@ -372,7 +371,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		resource.CheckErr(err, "failed to store default value for yjs.enabled [true]")
 	}
 
-	var store ydb.Store
+	var store yjsStore
 
 	if enableYjs == "true" {
 		store = CreateYjsStore(configStore, transaction, localStoragePath, cruds)

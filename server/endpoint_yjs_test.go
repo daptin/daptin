@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/artpar/ydb"
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/permission"
@@ -14,16 +13,8 @@ import (
 
 type failingYjsStore struct{ err error }
 
-func (s failingYjsStore) Append(context.Context, ydb.YjsRoomName, []byte) (uint32, error) {
-	return 0, s.err
-}
-func (s failingYjsStore) ReadFrom(ydb.YjsRoomName, uint32) ([]byte, uint32, error) {
-	return nil, 0, s.err
-}
-func (s failingYjsStore) Size(ydb.YjsRoomName) (uint32, error) { return 0, s.err }
-func (s failingYjsStore) SetInitialContent(ydb.YjsRoomName, []byte) error {
-	return s.err
-}
+func (s failingYjsStore) appendUpdate(context.Context, string, []byte) error { return s.err }
+func (s failingYjsStore) read(string) ([]byte, error)                        { return nil, s.err }
 
 func yjsTestReferenceId() daptinid.DaptinReferenceId {
 	return daptinid.DaptinReferenceId(uuid.MustParse("11111111-1111-1111-1111-111111111111"))
@@ -57,7 +48,7 @@ func TestCanonicalYjsRoomParts(t *testing.T) {
 
 func TestPrepareYjsRoomRejectsUnreadableState(t *testing.T) {
 	want := errors.New("malformed resource state")
-	if err := prepareYjsRoom(failingYjsStore{err: want}, "document.room.content"); !errors.Is(err, want) {
+	if _, err := prepareYjsRoom(failingYjsStore{err: want}, "document.room.content"); !errors.Is(err, want) {
 		t.Fatalf("prepareYjsRoom error = %v, want %v", err, want)
 	}
 }
