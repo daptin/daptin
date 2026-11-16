@@ -32,13 +32,14 @@ type SubSite struct {
 	Name         string
 	Hostname     string
 	Path         string
-	CloudStoreId *int64 `db:"cloud_store_id"`
+	CloudStoreId daptinid.DaptinReferenceId `db:"cloud_store_id"`
 	Permission   permission.PermissionInstance
 	SiteType     string                     `db:"site_type"`
 	FtpEnabled   bool                       `db:"ftp_enabled"`
-	UserId       *int64                     `db:"user_account_id"`
+	UserId       daptinid.DaptinReferenceId `db:"user_account_id"`
 	ReferenceId  daptinid.DaptinReferenceId `db:"reference_id"`
-	Enable       bool                       `db:"enable"`
+	Headers      ResponseHeaders
+	Enable       bool `db:"enable"`
 }
 
 type HostRouterProvider interface {

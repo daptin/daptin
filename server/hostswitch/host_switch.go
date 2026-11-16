@@ -50,12 +50,12 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if handler := hs.HandlerMap[hostName]; handler != nil && !isAPIPath {
 
+		subSite := hs.SiteMap[hostName]
+		subSite.Headers.Apply(w, r)
 		ok, abort, modifiedRequest := hs.AuthMiddleware.AuthCheckMiddlewareWithHttp(r, w, true)
 		if ok {
 			r = modifiedRequest
 		}
-
-		subSite := hs.SiteMap[hostName]
 
 		permission := subSite.Permission
 		if abort {
@@ -90,6 +90,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			firstSubFolder := pathParts[1]
 			subSite, isSubSite := hs.SiteMap[firstSubFolder]
 			if isSubSite {
+				subSite.Headers.Apply(w, r)
 
 				permission := subSite.Permission
 				userI := r.Context().Value("user")

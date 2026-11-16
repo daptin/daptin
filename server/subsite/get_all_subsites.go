@@ -1,66 +1,62 @@
 package subsite
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/daptin/daptin/server/dbresourceinterface"
-	"github.com/daptin/daptin/server/statementbuilder"
-	"github.com/doug-martin/goqu/v9"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 )
 
+// GetAllSites adapts canonical resource rows to the runtime snapshot shared by
+// HTTP dispatch, TLS provisioning and FTP. Relationships retain public IDs.
 func GetAllSites(resourceInterface dbresourceinterface.DbResourceInterface, transaction *sqlx.Tx) ([]SubSite, error) {
-
-	var sites []SubSite
-
-	s, v, err := statementbuilder.Squirrel.Select(
-		goqu.I("s.name"), goqu.I("s.hostname"),
-		goqu.I("s.cloud_store_id"),
-		goqu.I("s."+"user_account_id"), goqu.I("s.path"),
-		goqu.I("s.reference_id"), goqu.I("s.id"), goqu.I("s.enable"),
-		goqu.I("s.site_type"), goqu.I("s.ftp_enabled")).Prepared(true).
-		From(goqu.T("site").As("s")).ToSQL()
+	rows, err := resourceInterface.GetAllObjects("site", transaction)
 	if err != nil {
-		return sites, err
-	}
-
-	stmt1, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[424] failed to prepare statment: %v", err)
 		return nil, err
 	}
-
-	rows, err := stmt1.Queryx(v...)
-	if err != nil {
-		return sites, err
-	}
-
-	for rows.Next() {
-		var site SubSite
-		err = rows.StructScan(&site)
-		if err != nil {
-			log.Errorf("Failed to scan site from db to struct: %v", err)
+	sites := make([]SubSite, 0, len(rows))
+	for _, row := range rows {
+		site := SubSite{
+			Name:         siteString(row["name"]),
+			Hostname:     siteString(row["hostname"]),
+			Path:         siteString(row["path"]),
+			SiteType:     siteString(row["site_type"]),
+			ReferenceId:  daptinid.InterfaceToDIR(row["reference_id"]),
+			CloudStoreId: daptinid.InterfaceToDIR(row["cloud_store_id"]),
+			UserId:       daptinid.InterfaceToDIR(row["user_account_id"]),
 		}
+		site.Id, err = strconv.ParseInt(fmt.Sprint(row["id"]), 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("site %q id: %w", site.Name, err)
+		}
+		site.Enable, err = siteBool(row["enable"])
+		if err != nil {
+			return nil, fmt.Errorf("site %q enable: %w", site.Name, err)
+		}
+		site.FtpEnabled, err = siteBool(row["ftp_enabled"])
+		if err != nil {
+			return nil, fmt.Errorf("site %q ftp_enabled: %w", site.Name, err)
+		}
+		site.Headers, err = ParseResponseHeaders(row["headers"])
+		if err != nil {
+			return nil, fmt.Errorf("site %q headers: %w", site.Name, err)
+		}
+		site.Permission = resourceInterface.GetObjectPermissionByReferenceId("site", site.ReferenceId, transaction)
 		sites = append(sites, site)
 	}
-
-	err = rows.Close()
-	if err != nil {
-		log.Error("Failed to close rows after getting all sites", err)
-		return nil, err
-	}
-
-	err = stmt1.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-		return nil, err
-	}
-
-	for i, site := range sites {
-		perm := resourceInterface.GetObjectPermissionByReferenceId("site", site.ReferenceId, transaction)
-		site.Permission = perm
-		sites[i] = site
-	}
-
 	return sites, nil
+}
 
+func siteString(value interface{}) string {
+	text, _ := value.(string)
+	return text
+}
+
+func siteBool(value interface{}) (bool, error) {
+	if value == nil {
+		return false, nil
+	}
+	return strconv.ParseBool(fmt.Sprint(value))
 }

@@ -540,8 +540,12 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		log.WithError(taskUserErr).Warn("scheduled system tasks have no administrator identity")
 	}
 	runtimeTasks := make([]task.Task, 0)
-	hostSwitch, subsiteCacheFolders := CreateSubSites(ctx, &initConfig, &runtimeTasks, transaction, cruds, authMiddleware, rateConfig,
+	hostSwitch, subsiteCacheFolders, err := CreateSubSites(ctx, &initConfig, &runtimeTasks, transaction, cruds, authMiddleware, rateConfig,
 		maxConnections, olricDb, rateCounter, adminTaskUserReferenceId, enableGzip == "true")
+	if err != nil {
+		_ = transaction.Rollback()
+		return nil, fmt.Errorf("load Site configuration: %w", err)
+	}
 	transaction.Commit()
 
 	log.Printf("[CALDAV INIT] Checking if CalDAV should be enabled: enableCaldav='%s'", enableCaldav)

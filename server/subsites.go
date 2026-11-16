@@ -37,7 +37,7 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeT
 	cruds map[string]*resource.DbResource, authMiddleware *auth.AuthMiddleware,
 	rateConfig RateConfig, max_connections int, olricClient *olric.EmbeddedClient, rateCounter olric.DMap,
 	adminTaskUserReferenceId daptinid.DaptinReferenceId,
-	gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache) {
+	gzipEnabled ...bool) (hostswitch.HostSwitch, map[daptinid.DaptinReferenceId]*assetcachepojo.AssetFolderCache, error) {
 	enableGzip := len(gzipEnabled) == 0 || gzipEnabled[0]
 
 	hs := hostswitch.HostSwitch{
@@ -48,10 +48,18 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeT
 	hs.SiteMap = make(map[string]subsite.SubSite)
 	hs.AuthMiddleware = authMiddleware
 
-	// Initialize the subsite cache with Olric client
+	sites, err := subsite.GetAllSites(cruds["site"], transaction)
+	if err != nil {
+		return hs, subsiteCacheFolders, err
+	}
+	stores, err := cloud_store.GetAllCloudStores(cruds["cloud_store"], transaction)
+	if err != nil {
+		return hs, subsiteCacheFolders, err
+	}
+
+	// Initialize coordination only after validating durable Site configuration.
 	if olricClient != nil {
-		err := InitSubsiteCache(ctx, olricClient)
-		if err != nil {
+		if err := InitSubsiteCache(ctx, olricClient); err != nil {
 			log.Errorf("Failed to initialize subsite cache: %v", err)
 		} else {
 			log.Infof("Subsite cache initialized with Olric")
@@ -60,27 +68,13 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeT
 		log.Warnf("Olric client is nil, subsite cache will not be available")
 	}
 
-	//log.Printf("Cruds before making sub sits: %v", cruds)
-	sites, err := subsite.GetAllSites(cruds["site"], transaction)
-	if err != nil {
-		log.Printf("Failed to get all sites 117: %v", err)
-	}
-	stores, err := cloud_store.GetAllCloudStores(cruds["cloud_store"], transaction)
-	if err != nil {
-		log.Printf("Failed to get all cloudstores 121: %v", err)
-	}
-	cloudStoreMap := make(map[int64]rootpojo.CloudStore)
+	cloudStoreMap := make(map[daptinid.DaptinReferenceId]rootpojo.CloudStore)
 
 	for _, store := range stores {
-		cloudStoreMap[store.Id] = store
+		cloudStoreMap[store.ReferenceId] = store
 	}
 
 	siteMap := make(map[string]resource.SubSiteInformation)
-
-	if err != nil {
-		log.Errorf("Failed to load sites from database: %v", err)
-		return hs, subsiteCacheFolders
-	}
 
 	//max_connections, err := configStore.GetConfigIntValueFor("limit.max_connections", "backend")
 	//rate_limit, err := configStore.GetConfigIntValueFor("limit.rate", "backend")
@@ -105,7 +99,7 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeT
 
 		subSiteInformation.SubSite = site
 
-		if site.CloudStoreId == nil {
+		if site.CloudStoreId == daptinid.NullReferenceId {
 			log.Printf("Site [%v] does not have a associated storage", site.Name)
 			continue
 		}
@@ -117,7 +111,7 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeT
 			continue
 		}
 		subSiteInformation.SourceRoot = tempDirectoryPath
-		cloudStore, ok := cloudStoreMap[*site.CloudStoreId]
+		cloudStore, ok := cloudStoreMap[site.CloudStoreId]
 		subSiteInformation.CloudStore = cloudStore
 		if !ok {
 			log.Warnf("Site [%v] does not have a associated storage", site.Name)
@@ -180,5 +174,5 @@ func CreateSubSites(ctx context.Context, cmsConfig *resource.CmsConfig, runtimeT
 
 	cmsConfig.SubSites = siteMap
 
-	return hs, subsiteCacheFolders
+	return hs, subsiteCacheFolders, nil
 }

@@ -72,6 +72,68 @@ curl -X PATCH "http://localhost:6336/api/site/$SITE_ID" \
   }'
 ```
 
+### Configure response headers
+
+A Site's optional `headers` JSON object defines its response-header policy.
+Configure it through the same permissioned `site` resource used for its hostname
+and storage relationship:
+
+```bash
+curl --fail-with-body -X PATCH "http://localhost:6336/api/site/$SITE_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "site",
+      "id": "'"$SITE_ID"'",
+      "attributes": {
+        "headers": {
+          "Content-Security-Policy": "default-src '\''self'\''; object-src '\''none'\''; base-uri '\''self'\''",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "strict-origin-when-cross-origin"
+        }
+      }
+    }
+  }'
+```
+
+Restart Daptin after changing Site configuration. Then verify the policy against
+the configured hostname (replace the example hostname with your Site's value):
+
+```bash
+curl -sS -D - -o /dev/null -H 'Host: www.example.com' http://localhost:6336/
+curl -sS -D - -o /dev/null -H 'Host: www.example.com' \
+  -H 'Accept-Encoding: gzip' http://localhost:6336/
+```
+
+Choose a CSP appropriate to your frontend; the example permits same-origin
+assets and blocks plugins and external base URLs. Daptin imposes no global CSP.
+Each Site has an independent policy. It applies to normal and cached content,
+gzip, HEAD and range responses, conditional 304 responses, SPA fallbacks, and
+Site authorization/storage errors. Requests dispatched to Daptin's API or
+dashboard retain their own policies.
+
+The value must be an object of string header values. Header names are
+case-insensitive; duplicate names, invalid names/values, newline injection,
+more than 32 entries, and policies larger than 16 KiB of encoded JSON are
+rejected with HTTP 400. Headers that control transport, content representation,
+caching, redirects, cookies or authentication are managed by Daptin and cannot
+be set here: `Connection`, `Content-Length`, `Transfer-Encoding`,
+`Content-Encoding`, `Content-Type`, `Content-Range`, `Accept-Ranges`, `Trailer`,
+`TE`, `Keep-Alive`, `Upgrade`, `Proxy-Authenticate`, `Proxy-Authorization`,
+`ETag`, `Last-Modified`, `Cache-Control`, `Expires`, `Vary`, `Set-Cookie`,
+`WWW-Authenticate`, and `Location`.
+
+For native HTTPS, you can explicitly add
+`"Strict-Transport-Security": "max-age=31536000"`. Daptin emits this header only
+on native TLS connections. Plain HTTP omits it even if a request supplies
+`X-Forwarded-Proto: https` or `Forwarded: proto=https`. When TLS terminates at a
+reverse proxy, configure HSTS at that HTTPS boundary. See [[TLS-Certificates]].
+
+Set `headers` to `{}` or `null` and restart to remove a Site policy. Existing
+Sites without a policy keep their previous behavior. An invalid stored policy
+prevents runtime initialization rather than silently serving without it.
+
 ### 3. Upload Website Files
 
 For local storage (default):

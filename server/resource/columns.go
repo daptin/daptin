@@ -3881,7 +3881,12 @@ var StandardTables = []table_info.TableInfo{
 		DefaultGroups: adminsGroup,
 		Icon:          "fa-sitemap",
 		IsHidden:      false,
+		Validations:   []columns.ColumnTag{{ColumnName: "headers", Tags: "omitempty,site_headers"}},
 		Columns: []api2go.ColumnInfo{
+			{
+				Name: "headers", ColumnName: "headers", ColumnType: "json", DataType: "text", IsNullable: true,
+				ColumnDescription: "Per-Site response headers as a JSON object of strings. Changes require restart; HSTS is emitted only over native TLS.",
+			},
 			{
 				Name:       "name",
 				ColumnName: "name",

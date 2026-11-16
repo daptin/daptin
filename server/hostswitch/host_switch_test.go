@@ -164,3 +164,44 @@ func TestIsWellDefinedAPIPathMatchesOnlyPathSegments(t *testing.T) {
 		})
 	}
 }
+
+func TestHostSwitchSiteHeadersAreScopedBeforeAuthorization(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	hs := testHostSwitch()
+	site := hs.SiteMap["site.example.test"]
+	site.Headers = subsite.ResponseHeaders{"Content-Security-Policy": "default-src 'self'", "X-Content-Type-Options": "nosniff"}
+	hs.SiteMap["site.example.test"] = site
+	hs.SiteMap["customer"] = site
+	for _, tc := range []struct {
+		host, path string
+		wantPolicy bool
+		status     int
+	}{
+		{"site.example.test", "/static/index.html", true, 200}, {"other.test", "/customer/", true, 200},
+		{"other.test", "/", false, 200}, {"site.example.test", "/api/items", false, 200},
+		{"site.example.test", "/.well-known/example", false, 200},
+	} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", tc.path, nil)
+		req.Host = tc.host
+		hs.ServeHTTP(rec, req)
+		if rec.Code != tc.status || (rec.Header().Get("Content-Security-Policy") != "") != tc.wantPolicy {
+			t.Fatalf("%s%s status=%d headers=%v", tc.host, tc.path, rec.Code, rec.Header())
+		}
+	}
+	site.Permission = permission.PermissionInstance{}
+	hs.SiteMap["site.example.test"] = site
+	hs.SiteMap["customer"] = site
+	for _, tc := range []struct {
+		host, path string
+		status     int
+	}{{"site.example.test", "/static/index.html", 401}, {"other.test", "/customer/", 403}} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", tc.path, nil)
+		req.Host = tc.host
+		hs.ServeHTTP(rec, req)
+		if rec.Code != tc.status || rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+			t.Fatalf("denied Site response missing policy: %d %v", rec.Code, rec.Header())
+		}
+	}
+}
