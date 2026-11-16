@@ -38,6 +38,7 @@ type DaptinImapMailBox struct {
 	info               imap.MailboxInfo
 	status             *imap.MailboxStatus
 	knownKeywords      map[string]bool
+	sequenceView       IMAPSequenceView
 }
 
 const imapResourceReadBatchSize = 200
@@ -90,8 +91,10 @@ func (dimb *DaptinImapMailBox) readIMAPMailRows(selections []MailSelection, call
 		}
 
 		referenceIDs := make([]string, 0, stop-start)
+		expectedUIDs := make(map[daptinid.DaptinReferenceId]uint32, stop-start)
 		for _, selection := range selections[start:stop] {
 			referenceIDs = append(referenceIDs, selection.ReferenceID.String())
+			expectedUIDs[selection.ReferenceID] = selection.UID
 		}
 
 		requestURL, _ := url.Parse("/api/mail")
@@ -111,7 +114,7 @@ func (dimb *DaptinImapMailBox) readIMAPMailRows(selections []MailSelection, call
 		}
 		request.QueryParams = map[string][]string{"query": {string(filters)}, "page[size]": {fmt.Sprint(imapResourceReadBatchSize)}, "page[number]": {"1"}}
 		if options.fields != "" {
-			request.QueryParams["fields"] = []string{options.fields}
+			request.QueryParams["fields"] = []string{options.fields + ",uid"}
 		}
 		if options.includeBody {
 			request.QueryParams["included_relations"] = []string{"mail"}
@@ -126,19 +129,21 @@ func (dimb *DaptinImapMailBox) readIMAPMailRows(selections []MailSelection, call
 		if !ok {
 			return nil, errors.New("native mail read returned invalid rows")
 		}
-		if options.requireAll && len(models) != len(referenceIDs) {
-			return nil, mailDraftError(403, "selected messages are no longer readable")
-		}
+		var matched int
 		for _, model := range models {
 			attributes := model.GetAttributes()
 			attributes["reference_id"] = model.GetID()
 
 			referenceID := daptinid.InterfaceToDIR(attributes["reference_id"])
-			if referenceID == daptinid.NullReferenceId {
+			if expected, ok := expectedUIDs[referenceID]; !ok || !sameIMAPTarget(attributes, expected) {
 				continue
 			}
+			matched++
 			attributes["reference_id"] = referenceID
 			result[referenceID] = attributes
+		}
+		if options.requireAll && matched != len(referenceIDs) {
+			return nil, mailDraftError(403, "selected messages are no longer readable")
 		}
 	}
 	return result, nil
@@ -335,7 +340,7 @@ func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items
 	}
 	defer transaction.Rollback()
 
-	selections, err := dimb.dbResource["mail"].SelectMailBoxCandidates(dimb.mailBoxId, uid, seqset, transaction)
+	selections, err := dimb.selectAnnouncedMessages(uid, seqset, transaction)
 	if err != nil {
 		return err
 	}
@@ -461,7 +466,7 @@ func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items
 					crud := dimb.dbResource["mail"]
 					ref := daptinid.InterfaceToDIR(mailContent["reference_id"])
 					if canMarkSeen && crud.mailRowPermission("mail", ref, seenCaller, false, transaction) == nil {
-						written, changed, err := crud.mutateMailFlags(ref, imap.AddFlags, []string{imap.SeenFlag}, seenCaller, transaction)
+						written, changed, err := crud.mutateMailFlags(ref, imap.AddFlags, []string{imap.SeenFlag}, seenCaller, transaction, dimb.mailBoxReferenceId, selection.UID)
 						if err != nil {
 							return err
 						}
@@ -499,7 +504,7 @@ func (dimb *DaptinImapMailBox) SearchMessages(uid bool, criteria *imap.SearchCri
 		return nil, err
 	}
 	crud := dimb.dbResource["mail"]
-	candidates, plan, err := crud.selectIMAPSearchCandidates(dimb.mailBoxId, criteria, transaction)
+	candidates, plan, err := crud.selectIMAPSearchCandidates(dimb.mailBoxId, criteria, transaction, &dimb.sequenceView)
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +660,7 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 	}
 	defer transaction.Rollback()
 
-	selections, err := dimb.dbResource["mail"].SelectMailBoxCandidates(dimb.mailBoxId, uid, seqset, transaction)
+	selections, err := dimb.selectAnnouncedMessages(uid, seqset, transaction)
 	if err != nil {
 		return err
 	}
@@ -668,8 +673,8 @@ func (dimb *DaptinImapMailBox) UpdateMessagesFlags(uid bool, seqset *imap.SeqSet
 		if !ok {
 			continue
 		}
-		err = dimb.dbResource["mail"].MutateMailFlags(
-			daptinid.InterfaceToDIR(mailRow["reference_id"]), operation, flags, dimb.sessionUser, transaction)
+		_, _, err = dimb.dbResource["mail"].mutateMailFlags(
+			daptinid.InterfaceToDIR(mailRow["reference_id"]), operation, flags, dimb.sessionUser, transaction, dimb.mailBoxReferenceId, selection.UID)
 		if err != nil {
 			return err
 		}
@@ -708,7 +713,7 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 		return imapDestinationError(dest, err, canCreate)
 	}
 
-	selections, err := dimb.dbResource["mail"].SelectMailBoxCandidates(dimb.mailBoxId, uid, seqset, transaction)
+	selections, err := dimb.selectAnnouncedMessages(uid, seqset, transaction)
 	if err != nil {
 		return err
 	}

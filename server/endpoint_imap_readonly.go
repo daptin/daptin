@@ -55,7 +55,8 @@ func (conn selectionIMAPResponse) WriteResp(response imap.WriterTo) error {
 			if len(uids) > 0 && selecting.Mailbox.UidNext <= uids[len(uids)-1] {
 				selecting.Mailbox.UidNext = uids[len(uids)-1] + 1
 			}
-			selected := &selectedIMAPMailbox{DaptinImapMailBox: box, uids: uids, conn: conn.Conn}
+			box.SetIMAPSequenceView(uids)
+			selected := &selectedIMAPMailbox{DaptinImapMailBox: box, conn: conn.Conn}
 			if ctx.MailboxReadOnly {
 				selecting.Mailbox.PermanentFlags = []string{}
 				ctx.Mailbox = &readOnlyIMAPMailbox{selectedIMAPMailbox: selected}

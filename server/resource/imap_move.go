@@ -36,7 +36,7 @@ func (box *DaptinImapMailBox) MoveSelectedMessages(uid bool, set *imap.SeqSet, n
 	if err = mail.mailRowPermission("mail_box", target, caller, false, tx); err != nil {
 		return err
 	}
-	selections, err := mail.SelectMailBoxCandidates(box.mailBoxId, uid, set, tx)
+	selections, err := box.selectAnnouncedMessages(uid, set, tx)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (box *DaptinImapMailBox) MoveSelectedMessages(uid bool, set *imap.SeqSet, n
 		if err != nil {
 			return err
 		}
-		if daptinid.InterfaceToDIR(row["mail_box_id"]) != source {
+		if daptinid.InterfaceToDIR(row["mail_box_id"]) != source || !sameIMAPTarget(row, selection.UID) {
 			return mailDraftError(409, "message moved before IMAP MOVE")
 		}
 		if err = mail.mailRowPermission("mail", selection.ReferenceID, active, true, tx); err != nil {

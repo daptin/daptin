@@ -164,16 +164,19 @@ func mailFlagsForRow(row map[string]interface{}) []string {
 // MutateMailFlags is shared by native STORE/FETCH and browser updates. Resolve
 // persisted permissions and lock the account before merging incremental flags.
 func (dbResource *DbResource) MutateMailFlags(ref daptinid.DaptinReferenceId, operation imap.FlagsOp, flags []string, active *auth.SessionUser, tx *sqlx.Tx) error {
-	_, _, err := dbResource.mutateMailFlags(ref, operation, flags, active, tx)
+	_, _, err := dbResource.mutateMailFlags(ref, operation, flags, active, tx, "", 0)
 	return err
 }
 
 // mutateMailFlags also returns the flags written and whether they differ from
 // the locked row, so FETCH can report an implicit change in the same response.
-func (dbResource *DbResource) mutateMailFlags(ref daptinid.DaptinReferenceId, operation imap.FlagsOp, flags []string, active *auth.SessionUser, tx *sqlx.Tx) ([]string, bool, error) {
+func (dbResource *DbResource) mutateMailFlags(ref daptinid.DaptinReferenceId, operation imap.FlagsOp, flags []string, active *auth.SessionUser, tx *sqlx.Tx, mailbox string, uid uint32) ([]string, bool, error) {
 	row, caller, err := dbResource.writableMailRow(ref, active, tx)
 	if err != nil {
 		return nil, false, err
+	}
+	if mailbox != "" && (daptinid.InterfaceToDIR(row["mail_box_id"]).String() != mailbox || !sameIMAPTarget(row, uid)) {
+		return nil, false, mailDraftError(409, "selected message changed before updating its flags")
 	}
 	current := mailFlagsForRow(row)
 	values := []string{}

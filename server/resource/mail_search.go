@@ -35,9 +35,9 @@ type imapSearchCandidate struct {
 // selectIMAPSearchCandidates projects metadata predicates and prunes rows that
 // cannot match. It never reads MIME. The protocol adapter applies authorization
 // before the residual content predicates are evaluated.
-func (dbResource *DbResource) selectIMAPSearchCandidates(mailboxID int64, criteria *imap.SearchCriteria, tx *sqlx.Tx) ([]imapSearchCandidate, *imapSearchNode, error) {
+func (dbResource *DbResource) selectIMAPSearchCandidates(mailboxID int64, criteria *imap.SearchCriteria, tx *sqlx.Tx, view *IMAPSequenceView) ([]imapSearchCandidate, *imapSearchNode, error) {
 	const alias = "searchable"
-	plan := planIMAPSearch(criteria, alias)
+	plan := planIMAPSearch(criteria, alias, view)
 	columns := []interface{}{alias + ".reference_id", alias + ".effective_uid", alias + ".sequence_number",
 		goqu.L("COALESCE(?, 0)", goqu.I(alias+".size"))}
 	var predicates []interface{}
@@ -46,6 +46,12 @@ func (dbResource *DbResource) selectIMAPSearchCandidates(mailboxID int64, criter
 	}
 	dataset := statementbuilder.Squirrel.Select(append(columns, predicates...)...).
 		From(imapMailboxRows(mailboxID, "internal_date", "sent_date", "size", "seen", "recent", "deleted", "flags").As(alias))
+	if view != nil {
+		if len(*view) == 0 {
+			return nil, plan, nil
+		}
+		dataset = dataset.Where(goqu.I(alias + ".effective_uid").Lte(int64((*view)[len(*view)-1])))
+	}
 	if plan.possible != nil {
 		dataset = dataset.Where(plan.possible)
 	}
@@ -68,6 +74,12 @@ func (dbResource *DbResource) selectIMAPSearchCandidates(mailboxID int64, criter
 		}
 		if err := rows.Scan(dest...); err != nil {
 			return nil, nil, err
+		}
+		if view != nil {
+			row.SequenceNumber = view.sequence(row.UID)
+			if row.SequenceNumber == 0 {
+				continue
+			}
 		}
 		candidates = append(candidates, row)
 	}
@@ -130,15 +142,23 @@ func effectiveUIDExpression(prefix string) exp.SQLFunctionExpression {
 	)
 }
 
-func imapSearchMetadata(criteria *imap.SearchCriteria, prefix string) goqu.Expression {
+func imapSearchMetadata(criteria *imap.SearchCriteria, prefix string, view *IMAPSequenceView) goqu.Expression {
 	column := func(name string) exp.IdentifierExpression { return goqu.I(prefix + "." + name) }
 	expressions := make([]goqu.Expression, 0)
 
 	if criteria.SeqNum != nil {
-		expressions = append(expressions, sequenceSetExpression(criteria.SeqNum, column("sequence_number"), column("message_count")))
+		if view != nil {
+			expressions = append(expressions, sequenceSetExpression(view.resolve(criteria.SeqNum, false), column("effective_uid"), column("maximum_uid")))
+		} else {
+			expressions = append(expressions, sequenceSetExpression(criteria.SeqNum, column("sequence_number"), column("message_count")))
+		}
 	}
 	if criteria.Uid != nil {
-		expressions = append(expressions, sequenceSetExpression(criteria.Uid, column("effective_uid"), column("maximum_uid")))
+		uids := criteria.Uid
+		if view != nil {
+			uids = view.resolve(uids, true)
+		}
+		expressions = append(expressions, sequenceSetExpression(uids, column("effective_uid"), column("maximum_uid")))
 	}
 	if !criteria.Since.IsZero() {
 		expressions = append(expressions, column("internal_date").Gte(criteria.Since))

@@ -503,6 +503,11 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		t.Fatal("native APPEND changed original MIME")
 	}
 	nativeState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": nativeRef})
+	neighbor := []byte("From: native-alice@native.test\r\nSubject: Retained draft neighbor\r\n\r\nThis message must not move or change.\r\n")
+	if err = native.Append("Native/2026", nil, nativeDate, bytes.NewReader(neighbor)); err != nil {
+		t.Fatal(err)
+	}
+	neighborRef := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Retained draft neighbor")
 	beforeEdit, err := native.Select("Native/2026", false)
 	if err != nil {
 		t.Fatal(err)
@@ -540,6 +545,49 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	draft["content"].(map[string]interface{})["subject"] = "Adopted native draft"
 	adopted := call("draft_save", "draft", draft)
 	adoptedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": nativeRef})
+	// The database has renumbered its rows, but the client has not received
+	// an EXPUNGE yet. Sequence 1 must never resolve to the former sequence 2.
+	first, second := new(imap.SeqSet), new(imap.SeqSet)
+	first.AddNum(1)
+	second.AddRange(2, 0)
+	if err := native.Store(first, imap.FormatFlagsOp(imap.AddFlags, true), []interface{}{imap.FlaggedFlag}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if adjacent := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": neighborRef}); adjacent["flagged"] != false {
+		t.Error("stale sequence STORE changed flags on its adjacent message")
+	}
+	section := &imap.BodySectionName{Peek: true}
+	missing := make(chan *imap.Message, 2)
+	if err := native.Fetch(first, []imap.FetchItem{section.FetchItem()}, missing); err != nil || len(missing) != 0 {
+		t.Fatalf("stale FETCH returned another message: %v, %d results", err, len(missing))
+	}
+	kept := make(chan *imap.Message, 2)
+	if err := native.Fetch(second, []imap.FetchItem{section.FetchItem()}, kept); err != nil || len(kept) != 1 {
+		t.Fatalf("FETCH of the surviving sequence did not return one message: %v, %d", err, len(kept))
+	}
+	msg := <-kept
+	literal := msg.GetBody(section)
+	if literal == nil {
+		t.Fatal("FETCH omitted the surviving message literal")
+	}
+	data, err := io.ReadAll(literal)
+	if err != nil || msg.SeqNum != 2 || !bytes.Equal(data, neighbor) {
+		t.Fatal("the surviving UID lost its announced sequence or returned incorrect content")
+	}
+	criteria := &imap.SearchCriteria{Not: []*imap.SearchCriteria{{SeqNum: first}}}
+	if got, err := native.Search(criteria); err != nil || !slices.Equal(got, []uint32{2}) {
+		t.Fatalf("SEARCH negation used unannounced sequence numbers: %v, %v", got, err)
+	}
+	if err := native.Create("Stale sequence destination"); err != nil {
+		t.Fatal(err)
+	}
+	if err := native.Copy(first, "Stale sequence destination"); err != nil {
+		t.Fatal(err)
+	}
+	if destination, err := native.Status("Stale sequence destination", []imap.StatusItem{imap.StatusMessages}); err != nil || destination.Messages != 0 {
+		t.Fatalf("COPY from a vanished sequence copied a different message: %v, %v", destination, err)
+	}
+	t.Log("Before NOOP, a vanished sequence could not FETCH, STORE or COPY a neighbor; the surviving sequence and nested SEARCH stayed stable")
 	updates := make(chan imapclient.Update, 20)
 	native.Updates = updates
 	if err := native.Noop(); err != nil {

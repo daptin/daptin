@@ -52,13 +52,13 @@ type imapSearchNode struct {
 // A content predicate has no SQL equivalent. For AND, keep every necessary
 // metadata condition. For OR, only restrict SQL if both branches can be
 // restricted. Negation can filter SQL only for an exact metadata subtree.
-func planIMAPSearch(criteria *imap.SearchCriteria, alias string) *imapSearchNode {
+func planIMAPSearch(criteria *imap.SearchCriteria, alias string, view *IMAPSequenceView) *imapSearchNode {
 	if criteria == nil {
 		criteria = imap.NewSearchCriteria()
 	}
 	n := &imapSearchNode{
 		criteria: criteria,
-		metadata: imapSearchMetadata(criteria, alias),
+		metadata: imapSearchMetadata(criteria, alias, view),
 		exact:    len(criteria.Header) == 0 && len(criteria.Body) == 0 && len(criteria.Text) == 0,
 		column:   -1,
 	}
@@ -67,7 +67,7 @@ func planIMAPSearch(criteria *imap.SearchCriteria, alias string) *imapSearchNode
 		possible = append(possible, n.metadata)
 	}
 	for _, child := range criteria.Not {
-		child := planIMAPSearch(child, alias)
+		child := planIMAPSearch(child, alias, view)
 		n.not = append(n.not, child)
 		if child.exact {
 			if child.possible == nil {
@@ -80,7 +80,7 @@ func planIMAPSearch(criteria *imap.SearchCriteria, alias string) *imapSearchNode
 		}
 	}
 	for _, pair := range criteria.Or {
-		left, right := planIMAPSearch(pair[0], alias), planIMAPSearch(pair[1], alias)
+		left, right := planIMAPSearch(pair[0], alias, view), planIMAPSearch(pair[1], alias, view)
 		n.or = append(n.or, [2]*imapSearchNode{left, right})
 		n.exact = n.exact && left.exact && right.exact
 		if left.possible != nil && right.possible != nil {

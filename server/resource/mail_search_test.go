@@ -348,7 +348,7 @@ func assertMailSearch(t *testing.T, crud *DbResource, uid bool, criteria *imap.S
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	selections, plan, err := crud.selectIMAPSearchCandidates(7, criteria, tx)
+	selections, plan, err := crud.selectIMAPSearchCandidates(7, criteria, tx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

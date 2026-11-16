@@ -12,7 +12,6 @@ import (
 // authoritative for membership and always supplies a fresh metadata view.
 type selectedIMAPMailbox struct {
 	*resource.DaptinImapMailBox
-	uids []uint32
 	conn server.Conn
 }
 
@@ -21,7 +20,8 @@ func (box *selectedIMAPMailbox) syncSelection(consumeRecent bool) error {
 	if err != nil {
 		return err
 	}
-	removed := missingIMAPSequences(box.uids, uids)
+	announced := box.IMAPSequenceView()
+	removed := missingIMAPSequences(announced, uids)
 	// Descending order leaves all remaining sequence numbers valid as each
 	// untagged EXPUNGE renumbers the mailbox.
 	for i := len(removed) - 1; i >= 0; i-- {
@@ -29,14 +29,14 @@ func (box *selectedIMAPMailbox) syncSelection(consumeRecent bool) error {
 			return err
 		}
 	}
-	if len(uids) > len(box.uids)-len(removed) {
+	if len(uids) > len(announced)-len(removed) {
 		status := imap.NewMailboxStatus(box.Name(), []imap.StatusItem{imap.StatusMessages, imap.StatusRecent})
 		status.Messages, status.Recent = uint32(len(uids)), recent
 		if err = box.conn.WriteResp(&responses.Select{Mailbox: status}); err != nil {
 			return err
 		}
 	}
-	box.uids = uids
+	box.SetIMAPSequenceView(uids)
 	return nil
 }
 
