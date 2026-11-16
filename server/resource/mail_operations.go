@@ -206,6 +206,14 @@ func (dbResource *DbResource) MoveMailMessage(ref daptinid.DaptinReferenceId, de
 	if destRef == daptinid.InterfaceToDIR(row["mail_box_id"]) {
 		return nil
 	}
+	flags := backendutil.UpdateFlags(canonicalMailFlags(strings.Split(StringOrEmpty(row["flags"]), ",")), imap.RemoveFlags, []string{imap.DeletedFlag, imap.RecentFlag})
+	return dbResource.placeMailMessage(row, destRef, mailFlagAttributes(flags), caller, tx)
+}
+
+// placeMailMessage updates the canonical row in place and allocates its new
+// mailbox UID. Callers authorize both mailboxes and lock the row first.
+func (dbResource *DbResource) placeMailMessage(row map[string]interface{}, destRef daptinid.DaptinReferenceId,
+	changes map[string]interface{}, caller *auth.SessionUser, tx *sqlx.Tx) error {
 	boxID, err := dbResource.GetReferenceIdToId("mail_box", destRef, tx)
 	if err != nil {
 		return err
@@ -214,8 +222,6 @@ func (dbResource *DbResource) MoveMailMessage(ref daptinid.DaptinReferenceId, de
 	if err != nil {
 		return err
 	}
-	flags := backendutil.UpdateFlags(canonicalMailFlags(strings.Split(StringOrEmpty(row["flags"]), ",")), imap.RemoveFlags, []string{imap.DeletedFlag, imap.RecentFlag})
-	changes := mailFlagAttributes(flags)
 	changes["mail_box_id"] = destRef
 	changes["uid"] = uid
 	return dbResource.updateMailOperationRow(row, changes, caller, tx)

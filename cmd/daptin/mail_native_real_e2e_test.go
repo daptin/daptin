@@ -20,6 +20,7 @@ import (
 
 	"github.com/artpar/go-imap"
 	imapclient "github.com/artpar/go-imap/client"
+	"github.com/artpar/go-imap/commands"
 	"github.com/daptin/daptin/server/auth"
 	"github.com/google/uuid"
 )
@@ -204,6 +205,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		return raw
 	}
 	raw := source(messageRef)
+	checkNativeMove(t, native, fixture, admin, accountRef, call, source)
 	draftMailbox, err := native.Select("Draft", false)
 	if err != nil {
 		t.Fatalf("native SELECT: %v", err)
@@ -688,6 +690,125 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	patchGrant("mail_account", accountRef, 0)
 	fetch(true)
 	list(true)
+}
+
+func checkNativeMove(t *testing.T, native *imapclient.Client, fixture *daptinE2EFixture, admin, accountRef string,
+	call func(string, string, map[string]interface{}) map[string]interface{}, source func(string) []byte) {
+	t.Helper()
+	const from, to = "NativeMoveSource", "NativeMoveTarget"
+	for _, name := range []string{from, to} {
+		if err := native.Create(name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	uidSet := func(uids ...uint32) *imap.SeqSet {
+		set := new(imap.SeqSet)
+		set.AddNum(uids...)
+		return set
+	}
+	state := func(ref string) map[string]interface{} {
+		return call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": ref})
+	}
+	appendMessage := func(folder, subject string) (string, string) {
+		raw := fmt.Sprintf("From: native-alice@native.test\r\nSubject: %s\r\n\r\nNative MOVE content.\r\n", subject)
+		if err := native.Append(folder, []string{imap.FlaggedFlag, "MoveKeyword"}, time.Now(), strings.NewReader(raw)); err != nil {
+			t.Fatal(err)
+		}
+		return accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", subject), raw
+	}
+	first, firstBody := appendMessage(from, "Native move first")
+	middle, _ := appendMessage(from, "Native move stays")
+	last, lastBody := appendMessage(from, "Native move last")
+	appendMessage(to, "Native move existing target")
+	fromRef := state(first)["mail_box_id"]
+	toRef := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail_box", "name", to)
+	if _, err := native.Select(from, false); err != nil {
+		t.Fatal(err)
+	}
+	updates := make(chan imapclient.Update, 32)
+	native.Updates = updates
+	defer func() { native.Updates = nil }()
+	checkExpunges := func(want ...uint32) {
+		t.Helper()
+		var got []uint32
+		for len(updates) > 0 {
+			if update, ok := (<-updates).(*imapclient.ExpungeUpdate); ok {
+				got = append(got, update.SeqNum)
+			}
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("MOVE EXPUNGE sequence numbers = %v, want %v", got, want)
+		}
+	}
+	if supported, err := native.Support("MOVE"); err != nil || !supported {
+		t.Fatalf("MOVE capability: supported=%v error=%v", supported, err)
+	}
+	status, err := native.Execute(&commands.Move{SeqSet: uidSet(1), Mailbox: "MoveMissing"}, nil)
+	if err != nil || status == nil || status.Type != imap.StatusRespNo || status.Code != imap.CodeTryCreate {
+		t.Errorf("MOVE to a missing mailbox = %v, %v; want NO [TRYCREATE]", status, err)
+	}
+	if _, err := native.Select(from, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := native.UidMove(uidSet(1), to); err == nil {
+		t.Error("EXAMINE permitted MOVE")
+	}
+	if _, err := native.Select(from, false); err != nil {
+		t.Fatal(err)
+	}
+	private := int64(auth.UserCRUD | auth.UserExecute)
+	setGrant := func(bits int64) {
+		accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail/"+last, admin,
+			accessGroupsE2ERecordPayload("mail", last, map[string]interface{}{"permission": bits}), http.StatusOK)
+	}
+	setGrant(private &^ int64(auth.UserDelete))
+	if err := native.UidMove(uidSet(1, 3), to); err == nil {
+		t.Error("MOVE succeeded without delete permission on a selected message")
+	}
+	setGrant(private)
+	checkExpunges()
+	if state(first)["mail_box_id"] != fromRef || state(last)["mail_box_id"] != fromRef {
+		t.Fatal("failed MOVE committed a partial move")
+	}
+	if err := native.UidMove(uidSet(1, 3), to); err != nil {
+		t.Fatalf("advertised UID MOVE: %v", err)
+	}
+	checkExpunges(3, 1)
+	for _, expected := range []struct {
+		ref, body string
+		uid       int
+	}{{first, firstBody, 2}, {last, lastBody, 3}} {
+		current := state(expected.ref)
+		if current["mail_box_id"] != toRef || current["uid"] != float64(expected.uid) ||
+			current["flagged"] != true || current["deleted"] != false || !bytes.Equal(source(expected.ref), []byte(expected.body)) {
+			t.Fatal("UID MOVE failed to preserve Office reference, original MIME, or flags at the new mailbox UID")
+		}
+	}
+	remaining, err := native.UidSearch(&imap.SearchCriteria{})
+	if err != nil || !slices.Equal(remaining, []uint32{2}) || state(middle)["mail_box_id"] != fromRef {
+		t.Fatalf("UID MOVE removed an unrelated message: %v, %v", remaining, err)
+	}
+	if err := native.Move(uidSet(1), to); err != nil {
+		t.Fatalf("advertised sequence MOVE: %v", err)
+	}
+	checkExpunges(1)
+	if current := state(middle); current["mail_box_id"] != toRef || current["uid"] != float64(4) {
+		t.Fatal("sequence MOVE did not use the renumbered source sequence")
+	}
+	if _, err := native.Select(to, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := native.UidMove(uidSet(2), to); err != nil {
+		t.Fatalf("MOVE within selected mailbox: %v", err)
+	}
+	checkExpunges(2)
+	if got, err := native.UidSearch(&imap.SearchCriteria{}); err != nil || !slices.Equal(got, []uint32{1, 3, 4, 5}) || native.Mailbox().Messages != 4 {
+		t.Fatalf("same-mailbox MOVE did not replace the source UID: %v, %v", got, err)
+	}
+	if current := state(first); current["uid"] != float64(5) || current["mail_box_id"] != toRef {
+		t.Fatal("same-mailbox MOVE lost the Office message reference")
+	}
+	t.Log("Native UID MOVE and MOVE preserved canonical identities, assigned destination UIDs and reported source EXPUNGE sequence numbers")
 }
 
 func checkNativeSimpleMultipart(t *testing.T, native *imapclient.Client, read func() (string, interface{}, interface{}), source func(string) []byte) {

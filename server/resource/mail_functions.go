@@ -137,18 +137,23 @@ func (dbResource *DbResource) GetUserMailAccountRowByEmail(username string, tran
 
 }
 
+var errMailBoxNotFound = errors.New("no such mail box")
+
 // Returns the user mail account box row of a user
 func (dbResource *DbResource) GetMailAccountBox(mailAccountId int64, mailBoxName string, transaction *sqlx.Tx) (map[string]interface{}, error) {
 
 	mailAccount, _, err := dbResource.Cruds["mail_box"].GetRowsByWhereClauseWithTransaction(
 		"mail_box", nil, transaction, goqu.Ex{"mail_account_id": mailAccountId}, goqu.Ex{"name": mailBoxName})
 
+	if err != nil {
+		return nil, err
+	}
 	if len(mailAccount) > 0 {
 
-		return mailAccount[0], err
+		return mailAccount[0], nil
 	}
 
-	return nil, errors.New("no such mail box")
+	return nil, errMailBoxNotFound
 
 }
 

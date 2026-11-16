@@ -133,10 +133,7 @@ func (cmd *noopPollHandler) Handle(conn server.Conn) error {
 	}
 
 	// Check if Poll() found new messages
-	dimb, ok := ctx.Mailbox.(*resource.DaptinImapMailBox)
-	if examined, readOnly := ctx.Mailbox.(*readOnlyIMAPMailbox); readOnly {
-		dimb, ok = examined.DaptinImapMailBox, true
-	}
+	dimb, ok := ctx.Mailbox.(interface{ ConsumePollUpdate() *imap.MailboxStatus })
 	if !ok {
 		return nil
 	}

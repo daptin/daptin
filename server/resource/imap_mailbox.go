@@ -785,13 +785,13 @@ func (dimb *DaptinImapMailBox) poll(readOnly bool) error {
 	}
 
 	// Only signal update when count increases to avoid backwards EXISTS (Issue 6)
+	dimb.lock.Lock()
 	if status.Messages > dimb.lastKnownMessages {
 		status.Name = dimb.name
-		dimb.lock.Lock()
 		dimb.pendingUpdate = status
 		dimb.status = status
-		dimb.lock.Unlock()
 	}
+	dimb.lock.Unlock()
 
 	// EXAMINE must not consume Recent. Recheck rights for sessions that
 	// selected a writable mailbox before their write grant was revoked.

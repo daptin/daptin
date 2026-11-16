@@ -34,6 +34,8 @@ func (cmd *readOnlyIMAPSelect) Handle(conn server.Conn) error {
 	ctx := conn.Context()
 	if box, ok := ctx.Mailbox.(*resource.DaptinImapMailBox); ok && ctx.MailboxReadOnly {
 		ctx.Mailbox = &readOnlyIMAPMailbox{DaptinImapMailBox: box}
+	} else if ok {
+		ctx.Mailbox = &moveIMAPMailbox{DaptinImapMailBox: box, conn: conn}
 	}
 	return err
 }
@@ -59,5 +61,34 @@ func (box *readOnlyIMAPMailbox) ListMessages(uid bool, seqset *imap.SeqSet, item
 
 func (box *readOnlyIMAPMailbox) Poll() error { return box.PollReadOnly() }
 
+func (*readOnlyIMAPMailbox) MoveMessages(bool, *imap.SeqSet, string) error {
+	return server.ErrMailboxReadOnly
+}
+
 // CLOSE deselects a mailbox but must not expunge any read-only selection.
 func (*readOnlyIMAPMailbox) Expunge() error { return nil }
+
+// The IMAP server exposes MOVE through backend.MoveMailbox. The selected
+// mailbox adapter adds the initiating client's wire responses after commit.
+type moveIMAPMailbox struct {
+	*resource.DaptinImapMailBox
+	conn server.Conn
+}
+
+func (box *moveIMAPMailbox) MoveMessages(uid bool, set *imap.SeqSet, name string) error {
+	removed, exists, err := box.MoveSelectedMessages(uid, set, name)
+	if err != nil {
+		return err
+	}
+	// Descending sequence numbers retain their original meaning as each
+	// EXPUNGE renumbers the remaining messages.
+	for i := len(removed) - 1; i >= 0; i-- {
+		if err = box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{removed[i], imap.RawString("EXPUNGE")})); err != nil {
+			return err
+		}
+	}
+	if exists != nil {
+		return box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{*exists, imap.RawString("EXISTS")}))
+	}
+	return nil
+}
