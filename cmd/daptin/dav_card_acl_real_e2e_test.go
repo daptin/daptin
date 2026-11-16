@@ -13,7 +13,10 @@ import (
 	"github.com/daptin/daptin/server/auth"
 )
 
-var davCardACLE2ESchema = fmt.Sprintf(`Tables:
+var davCardACLE2ESchema = davCardACLTestSchema(auth.GroupCRUD|auth.GroupExecute, auth.GroupCRUD)
+
+func davCardACLTestSchema(bookTableGrant, contactTableGrant auth.AuthPermission) string {
+	return fmt.Sprintf(`Tables:
   - TableName: address_book
     DefaultPermission: %d
     AccessGroups:
@@ -34,9 +37,10 @@ var davCardACLE2ESchema = fmt.Sprintf(`Tables:
     DefaultGroups:
       - Name: users
         Permission: %d
-`, auth.UserCRUD|auth.UserExecute, auth.GroupCRUD|auth.GroupExecute,
-	auth.UserCRUD, auth.GroupCRUD, auth.GuestRefer, auth.GuestRefer,
-	auth.GroupRefer, auth.GroupRefer)
+`, auth.UserCRUD|auth.UserExecute, bookTableGrant,
+		auth.UserCRUD, contactTableGrant, auth.GuestRefer, auth.GuestRefer,
+		auth.GroupRefer, auth.GroupRefer)
+}
 
 func TestDAVCardACLRealE2E(t *testing.T) {
 	requireRealE2E(t)
@@ -120,7 +124,41 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 		return davE2ERequest(client, http.MethodPost, base+"/action/address_book/share", ownerToken, "application/json",
 			fmt.Sprintf(`{"attributes":{"address_book_reference_id":%q,"usergroup_id":%q,"permission":%d}}`, bookID, groupID, grant), nil)
 	}
+	// Collection deletion must not turn read or update access into delete access.
+	contactURLs := []string{contactURL, bookURL + "two.vcf", bookURL + "three.vcf"}
+	for i, target := range contactURLs[1:] {
+		card := strings.Replace(davE2ECardA, "UID:dav-condition-test", fmt.Sprintf("UID:card-delete-%d", i), 1)
+		davE2EExpect(t, davE2ERequest(client, http.MethodPut, target, ownerToken, "text/vcard", card, nil), http.StatusCreated)
+	}
+	assertIntact := func() {
+		t.Helper()
+		davE2EExpect(t, davE2ERequest(client, "PROPFIND", bookURL, ownerToken, "application/xml",
+			`<D:propfind xmlns:D="DAV:"><D:prop><D:displayname/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
+		for _, target := range contactURLs {
+			davE2EExpect(t, davE2ERequest(client, http.MethodGet, target, ownerToken, "", "", nil), http.StatusOK)
+		}
+	}
+	assertDeleteDenied := func(token string, status int) {
+		t.Helper()
+		before := davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, ownerToken, "application/xml",
+			`<D:sync-collection xmlns:D="DAV:"><D:sync-token/><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, nil), http.StatusMultiStatus)
+		checkpoint := regexp.MustCompile(`<sync-token[^>]*>([^<]+)</sync-token>`).FindStringSubmatch(before.body)
+		if len(checkpoint) != 2 {
+			t.Fatalf("missing sync checkpoint before denied deletion: %s", before.body)
+		}
+		davE2EExpect(t, davE2ERequest(client, http.MethodDelete, contactURL, token, "", "", nil), status)
+		davE2EExpect(t, davE2ERequest(client, http.MethodDelete, bookURL, token, "", "", nil), status)
+		assertIntact()
+		after := davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, ownerToken, "application/xml",
+			fmt.Sprintf(`<D:sync-collection xmlns:D="DAV:"><D:sync-token>%s</D:sync-token><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, checkpoint[1]), nil), http.StatusMultiStatus)
+		if strings.Contains(after.body, ".vcf") {
+			t.Fatalf("denied deletion changed contact sync history: %s", after.body)
+		}
+	}
+	assertDeleteDenied(outsiderToken, http.StatusNotFound)
 	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek), http.StatusOK)
+	assertDeleteDenied(delegateToken, http.StatusForbidden)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+"/api/address_book/"+bookID, delegateToken, "", "", nil), http.StatusForbidden)
 	delegateACL := davE2EExpect(t, davE2ERequest(client, "PROPFIND", bookURL, delegateToken,
 		"application/xml", `<D:propfind xmlns:D="DAV:"><D:prop><D:acl/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
 	if !strings.Contains(delegateACL.body, "/carddav/groups/"+groupID+"/") {
@@ -197,6 +235,7 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 		t.Fatalf("read-only delegate replaced address-book ACL: %+v", response)
 	}
 	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek|auth.GroupUpdate), http.StatusOK)
+	assertDeleteDenied(delegateToken, http.StatusForbidden)
 	staleSync := fmt.Sprintf(`<D:sync-collection xmlns:D="DAV:"><D:sync-token>%s</D:sync-token><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, syncToken[1])
 	invalid := davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, delegateToken, "application/xml", staleSync, nil), http.StatusForbidden)
 	if !strings.Contains(invalid.body, "valid-sync-token") {
@@ -211,14 +250,22 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 			fmt.Sprintf(`{"attributes":{"address_book_reference_id":%q,"user_account_id":%q,"permission":%d}}`, bookID, delegateID, grant), nil)
 	}
 	davE2EExpect(t, shareUser(auth.GroupRead|auth.GroupPeek), http.StatusOK)
+	assertDeleteDenied(delegateToken, http.StatusForbidden)
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, contactURL, delegateToken, "", "", nil), http.StatusOK)
 	davE2EExpect(t, shareUser(0), http.StatusOK)
+	assertDeleteDenied(delegateToken, http.StatusNotFound)
+	readACL := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/carddav/groups/%s/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege></D:grant></D:ace></D:acl>`, groupID)
+	davE2EExpect(t, davE2ERequest(client, "ACL", bookURL, ownerToken, "application/xml", readACL, nil), http.StatusOK)
+	assertDeleteDenied(delegateToken, http.StatusForbidden)
 	acl := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/carddav/groups/%s/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege><D:privilege><D:write-content/></D:privilege><D:privilege><D:write-properties/></D:privilege><D:privilege><D:bind/></D:privilege><D:privilege><D:unbind/></D:privilege></D:grant></D:ace></D:acl>`, groupID)
 	davE2EExpect(t, davE2ERequest(client, "ACL", bookURL, ownerToken, "application/xml", acl, nil), http.StatusOK)
 	createdURL := bookURL + "delegate.vcf"
 	createdCard := strings.Replace(davE2ECardA, "UID:dav-condition-test", "UID:card-acl-delegate", 1)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken, "text/vcard", createdCard, nil), http.StatusCreated)
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusOK)
+	// An explicit delete grant permits a contact delete through the same backend.
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, createdURL, delegateToken, "", "", nil), http.StatusNoContent)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken, "text/vcard", createdCard, nil), http.StatusCreated)
 	davE2EExpect(t, davE2ERequest(client, "PROPPATCH", bookURL, delegateToken, "application/xml", patch, nil), http.StatusMultiStatus)
 	aclProps := davE2EExpect(t, davE2ERequest(client, "PROPFIND", bookURL, ownerToken, "application/xml",
 		`<D:propfind xmlns:D="DAV:"><D:prop><D:acl/><D:owner/><D:acl-restrictions/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
@@ -230,4 +277,74 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 		t.Fatalf("revoked delegate read its contact through CardDAV: %+v", response)
 	}
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusOK)
+	// A child without Delete blocks the whole operation, even when hidden from
+	// the deleting account. No earlier child or sync history may disappear.
+	patchPermission := func(table, ref string, grant auth.AuthPermission) {
+		t.Helper()
+		accessGroupsE2ERequestJSON(t, client, http.MethodPatch, base+"/api/"+table+"/"+ref, adminToken,
+			accessGroupsE2ERecordPayload(table, ref, map[string]interface{}{"permission": int64(grant)}), http.StatusOK)
+	}
+	lastContactID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "contact", "rpath", "/carddav/"+owner[1]+"/addressbooks/team/three.vcf")
+	patchPermission("contact", lastContactID, 0)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, bookURL, ownerToken, "", "", nil), http.StatusForbidden)
+	patchPermission("contact", lastContactID, auth.UserCRUD)
+	assertIntact()
+	patchPermission("contact", contactID, auth.UserRead|auth.UserPeek|auth.UserUpdate)
+	assertDeleteDenied(ownerToken, http.StatusForbidden)
+	patchPermission("contact", contactID, auth.UserCRUD)
+	patchPermission("address_book", bookID, (auth.UserCRUD|auth.UserExecute)&^auth.UserDelete)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, bookURL, ownerToken, "", "", nil), http.StatusForbidden)
+	assertIntact()
+	patchPermission("address_book", bookID, auth.UserCRUD|auth.UserExecute)
+	// Revocation of Delete takes effect immediately after an allowed delete.
+	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek|auth.GroupUpdate|auth.GroupDelete), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, contactURL, delegateToken, "", "", nil), http.StatusNoContent)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, contactURL, ownerToken, "text/vcard", davE2ECardA, nil), http.StatusCreated)
+	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek|auth.GroupUpdate), http.StatusOK)
+	assertDeleteDenied(delegateToken, http.StatusForbidden)
+	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek|auth.GroupUpdate|auth.GroupDelete), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, bookURL, delegateToken, "", "", nil), http.StatusNoContent)
+	for _, target := range append(contactURLs, createdURL) {
+		davE2EExpect(t, davE2ERequest(client, http.MethodGet, target, ownerToken, "", "", nil), http.StatusNotFound)
+	}
+	davE2EExpect(t, davE2ERequest(client, "PROPFIND", bookURL, ownerToken, "application/xml",
+		`<D:propfind xmlns:D="DAV:"><D:prop><D:displayname/></D:prop></D:propfind>`, nil), http.StatusNotFound)
+}
+
+func TestDAVCardDeleteTablePermissionRealE2E(t *testing.T) {
+	requireRealE2E(t)
+	for _, deniedTable := range []string{"address_book", "contact"} {
+		t.Run(deniedTable, func(t *testing.T) {
+			bookGrant, contactGrant := auth.GroupCRUD|auth.GroupExecute, auth.GroupCRUD
+			if deniedTable == "address_book" {
+				bookGrant &^= auth.GroupDelete
+			} else {
+				contactGrant &^= auth.GroupDelete
+			}
+			options := transportE2EDaptinOptions{
+				connectionString: filepath.Join(t.TempDir(), "table-delete.db"),
+				schema:           davCardACLTestSchema(bookGrant, contactGrant),
+			}
+			f := startDaptinE2E(t, options)
+			admin := f.SignupAdmin(t)
+			ftpE2ESetConfig(t, f.Client, f.URL, admin, "caldav.enable", "true")
+			f.Process.stopProcess()
+			f = startDaptinE2E(t, options)
+			ownerToken := accessGroupsE2ESignupSigninUser(t, f.Client, f.URL, admin, "delete-table-owner")
+			ownerID := accessGroupsE2EFindResourceID(t, f.Client, f.URL, admin, "user_account", "email", "delete-table-owner@test.local")
+			bookURL := f.URL + "/carddav/" + ownerID + "/addressbooks/team/"
+			contactURL := bookURL + "one.vcf"
+			mkcol := `<D:mkcol xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav"><D:set><D:prop><D:resourcetype><D:collection/><C:addressbook/></D:resourcetype></D:prop></D:set></D:mkcol>`
+			davE2EExpect(t, davE2ERequest(f.Client, "MKCOL", bookURL, ownerToken, "application/xml", mkcol, nil), http.StatusCreated)
+			davE2EExpect(t, davE2ERequest(f.Client, http.MethodPut, contactURL, ownerToken, "text/vcard", davE2ECardA, nil), http.StatusCreated)
+			davE2EExpect(t, davE2ERequest(f.Client, http.MethodDelete, bookURL, ownerToken, "", "", nil), http.StatusForbidden)
+			if deniedTable == "contact" {
+				davE2EExpect(t, davE2ERequest(f.Client, http.MethodDelete, contactURL, ownerToken, "", "", nil), http.StatusForbidden)
+			}
+			davE2EExpect(t, davE2ERequest(f.Client, http.MethodGet, contactURL, ownerToken, "", "", nil), http.StatusOK)
+			// Administrator authority still permits removal of the same rows.
+			davE2EExpect(t, davE2ERequest(f.Client, http.MethodDelete, bookURL, admin, "", "", nil), http.StatusNoContent)
+			davE2EExpect(t, davE2ERequest(f.Client, http.MethodGet, contactURL, ownerToken, "", "", nil), http.StatusNotFound)
+		})
+	}
 }

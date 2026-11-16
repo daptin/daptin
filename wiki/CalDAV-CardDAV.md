@@ -448,6 +448,13 @@ contacts in one transaction. A CardDAV `PUT` copies the book's current group
 grants to a new contact while leaving the signed-in creator as its owner.
 Setting `permission` to zero revokes those links.
 
+Deleting an address book requires Delete permission on both the `address_book`
+table and its row, and on the `contact` table and every contact in the book.
+If any contact cannot be deleted, the request returns 403 and leaves the book,
+contacts, and sync state intact. Deleting an individual contact also requires
+Update permission on the book and Delete permission on the contact table and
+row. Read-only and update-only shares do not allow deletion.
+
 For example, after creating a `usergroup` and adding the delegate through the
 normal account relationship, grant that group read access:
 

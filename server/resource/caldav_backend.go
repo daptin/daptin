@@ -1141,10 +1141,22 @@ func (b *DaptinDAVBackend) DeleteAddressBook(_ context.Context, requestPath stri
 	if err != nil {
 		return err
 	}
+	bookRef := daptinid.InterfaceToDIR(collection["reference_id"])
+	bookCRUD := b.cruds[addressBookTable]
+	bookTable := bookCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", addressBookTable, tx)
+	bookRow := GetObjectPermissionByReferenceIdWithTransaction(addressBookTable, bookRef, tx)
+	user, groups, admin := b.sessionUser.UserReferenceId, b.sessionUser.Groups, bookCRUD.AdministratorGroupId
+	if !bookTable.CanDelete(user, groups, admin) || !bookRow.CanDelete(user, groups, admin) {
+		return webdav.NewHTTPError(http.StatusForbidden, errors.New("address book deletion denied"))
+	}
+	contactCRUD := b.cruds[addressObjectTable]
+	contactTable := contactCRUD.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", addressObjectTable, tx)
+	if !contactTable.CanDelete(user, groups, contactCRUD.AdministratorGroupId) {
+		return webdav.NewHTTPError(http.StatusForbidden, errors.New("contact deletion denied"))
+	}
 	if err := b.lockAddressBook(collection, tx); err != nil {
 		return err
 	}
-	bookRef := daptinid.InterfaceToDIR(collection["reference_id"])
 	bookID, err := GetReferenceIdToIdWithTransaction(addressBookTable, bookRef, tx)
 	if err != nil {
 		return err
@@ -1153,6 +1165,14 @@ func (b *DaptinDAVBackend) DeleteAddressBook(_ context.Context, requestPath stri
 		goqu.Ex{"address_book_id": bookID})
 	if err != nil {
 		return err
+	}
+	// Authorize every child before any lifecycle side effects run, including
+	// contacts omitted by the caller's read permissions.
+	for _, object := range objects {
+		grant := GetObjectPermissionByReferenceIdWithTransaction(addressObjectTable, daptinid.InterfaceToDIR(object["reference_id"]), tx)
+		if !grant.CanDelete(user, groups, contactCRUD.AdministratorGroupId) {
+			return webdav.NewHTTPError(http.StatusForbidden, errors.New("contact deletion denied"))
+		}
 	}
 	for _, object := range objects {
 		if _, err := b.cruds[addressObjectTable].deleteAfterAuthorizationWithTransaction(
@@ -1371,6 +1391,11 @@ func (b *DaptinDAVBackend) DeleteAddressObject(_ context.Context, requestPath st
 		}
 	}
 	grant := GetObjectPermissionByReferenceIdWithTransaction(addressObjectTable, daptinid.InterfaceToDIR(row["reference_id"]), tx)
+	table := crud.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", addressObjectTable, tx)
+	user, groups, admin := b.sessionUser.UserReferenceId, b.sessionUser.Groups, crud.AdministratorGroupId
+	if !table.CanDelete(user, groups, admin) || !grant.CanDelete(user, groups, admin) {
+		return webdav.NewHTTPError(http.StatusForbidden, errors.New("contact deletion denied"))
+	}
 	if _, err := crud.deleteAfterAuthorizationWithTransaction(daptinid.InterfaceToDIR(row["reference_id"]), b.request(http.MethodDelete, requestPath), tx); err != nil {
 		return err
 	}
