@@ -107,6 +107,10 @@ multipart fixture from Inbox to Archive through its own move service. The
 driver checks that Thunderbird actually sent UID MOVE, removed the Inbox
 entry, and rendered the message at its Archive UID. Daptin HTTP compares that
 UID and the original canonical reference, flags and exact MIME bytes.
+The driver also opens Thunderbird's compose window and saves a new draft with
+a local binary file, then removes the original file and reopens the draft in
+the compose window. Daptin's authorized unpack action checks its mailbox UID,
+multilingual text, To and Bcc, and exact attachment bytes. No SMTP send runs.
 This option runs in place of the optional Mutt case.
 
 `TestMailLoopbackSMTPAndCrashRealE2E` binds an ephemeral unprivileged

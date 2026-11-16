@@ -331,7 +331,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		}
 		clearFlags(call("message_state", "message", message))
 		var passed bool
-		var thunderbirdSearchUID, thunderbirdArchiveUID uint32
+		var thunderbirdSearchUID, thunderbirdArchiveUID, thunderbirdComposedUID uint32
 		var archiveRef, archiveBox string
 		var beforeArchive map[string]interface{}
 		var archiveMIME []byte
@@ -355,7 +355,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 				t.Fatal("Thunderbird archive fixture was not stored unchanged in its source mailbox")
 			}
 			passed = t.Run("desktop_thunderbird_starttls", func(t *testing.T) {
-				thunderbirdSearchUID, thunderbirdArchiveUID = exerciseMailWithThunderbird(t, thunderbird, address, imapHostname, publicPEM)
+				thunderbirdSearchUID, thunderbirdArchiveUID, thunderbirdComposedUID = exerciseMailWithThunderbird(t, thunderbird, address, imapHostname, publicPEM)
 			})
 		} else {
 			passed = t.Run("desktop_mutt_starttls", func(t *testing.T) {
@@ -413,6 +413,41 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 				t.Fatal("Office adoption changed the Thunderbird draft identity")
 			}
 			t.Log("Daptin HTTP confirmed the online-search UID and attachment bytes, then adopted the same Thunderbird draft reference, mailbox and UID")
+			composed := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Thunderbird composer attachment")
+			composedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": composed})
+			if composedState["mail_box_id"] != state["mail_box_id"] || composedState["uid"] != float64(thunderbirdComposedUID) {
+				t.Fatal("Office did not find the draft reopened by Thunderbird at the same canonical mailbox and UID")
+			}
+			composedBody := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail/unpack", alice,
+				map[string]interface{}{"attributes": map[string]interface{}{"message_ref": composed}}, http.StatusOK)
+			composedUnpack := composedBody.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+			composedText, _ := composedUnpack["preferred_text_body"].(string)
+			envelope := composedUnpack["envelope"].(map[string]interface{})
+			for field, expected := range map[string]string{"to": "compose-recipient@example.test", "bcc": "compose-blind@example.test"} {
+				addresses, _ := envelope[field].([]interface{})
+				address, _ := accessGroupsE2EFindString(addresses, "address")
+				if len(addresses) != 1 || address != expected {
+					t.Fatalf("Thunderbird composer draft lost its %s recipient: %v", field, addresses)
+				}
+			}
+			if !strings.Contains(composedText, "Native compose proof — こんにちは") {
+				t.Fatalf("Office unpack lost the Thunderbird composer body: %q", composedText)
+			}
+			matches := 0
+			for _, part := range composedUnpack["parts"].([]interface{}) {
+				fields := part.(map[string]interface{})
+				if fields["filename"] == "native-compose.bin" && fields["kind"] == "attachment" {
+					data, _ := accessGroupsE2EFindString(fields, "contents")
+					if data != base64.StdEncoding.EncodeToString([]byte("\x00\xffnative compose proof\r\n")) {
+						t.Fatal("Office unpack changed the bytes of the Thunderbird composer attachment")
+					}
+					matches++
+				}
+			}
+			if matches != 1 {
+				t.Fatalf("Office unpack returned %d matches for the single Thunderbird composer attachment", matches)
+			}
+			t.Log("Daptin HTTP matched the reopened Thunderbird composer UID, multilingual body, To and Bcc, and exact binary attachment")
 		}
 	}
 	for _, flag := range []string{imap.AnsweredFlag, imap.FlaggedFlag, imap.DeletedFlag, imap.SeenFlag, imap.DraftFlag} {

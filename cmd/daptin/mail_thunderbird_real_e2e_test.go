@@ -64,7 +64,7 @@ func thunderbirdFixtureCertificate(t *testing.T, hostname string) (map[string]in
 	}, root
 }
 
-func exerciseMailWithThunderbird(t *testing.T, driver, address, hostname, root string) (searchUID, archiveUID uint32) {
+func exerciseMailWithThunderbird(t *testing.T, driver, address, hostname, root string) (searchUID, archiveUID, composedUID uint32) {
 	t.Helper()
 	ip, port, err := net.SplitHostPort(address)
 	if err != nil || ip != "127.0.0.1" || hostname != "localhost" || !filepath.IsAbs(driver) {
@@ -95,5 +95,5 @@ func exerciseMailWithThunderbird(t *testing.T, driver, address, hostname, root s
 		t.Fatalf("Thunderbird did not report %s", prefix)
 		return 0
 	}
-	return readUID("Thunderbird online HEADER UID: "), readUID("Thunderbird Archive UID: ")
+	return readUID("Thunderbird online HEADER UID: "), readUID("Thunderbird Archive UID: "), readUID("Thunderbird Composer Draft UID: ")
 }
