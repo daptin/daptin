@@ -357,7 +357,6 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 		mailAccountId:      diu.mailAccountId,
 		lock:               sync.Mutex{},
 		knownKeywords:      kwMap,
-		lastKnownMessages:  mbStatus.Messages,
 		mailBoxReferenceId: daptinid.InterfaceToDIR(box[0]["reference_id"]).String(),
 		info: imap.MailboxInfo{
 			Attributes: nativeMailboxAttributes(mbName, mbAttrs),

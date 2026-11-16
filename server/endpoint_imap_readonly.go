@@ -9,57 +9,71 @@ import (
 
 // Use the library's normal selection and protocol parser, and adapt its
 // read-only selection behavior at the server extension boundary.
-type readOnlyIMAPExtension struct{}
+type selectedIMAPExtension struct{}
 
-func (*readOnlyIMAPExtension) Capabilities(server.Conn) []string { return nil }
-func (*readOnlyIMAPExtension) Command(name string) server.HandlerFactory {
-	if name == "EXAMINE" || name == "SELECT" {
-		return func() server.Handler { return &readOnlyIMAPSelect{examine: name == "EXAMINE"} }
+func (*selectedIMAPExtension) Capabilities(server.Conn) []string { return nil }
+func (*selectedIMAPExtension) Command(name string) server.HandlerFactory {
+	switch name {
+	case "EXAMINE", "SELECT":
+		return func() server.Handler { return &selectedIMAPSelect{examine: name == "EXAMINE"} }
+	case "NOOP":
+		return func() server.Handler { return &selectedIMAPNoop{} }
+	case "APPEND":
+		return func() server.Handler { return &selectedIMAPAppend{} }
+	case "COPY":
+		return func() server.Handler { return &selectedIMAPCopy{} }
+	case "EXPUNGE":
+		return func() server.Handler { return &selectedIMAPExpunge{} }
 	}
 	return nil
 }
 
-type readOnlyIMAPSelect struct {
+type selectedIMAPSelect struct {
 	server.Select
 	examine bool
 }
 
-func (cmd *readOnlyIMAPSelect) Handle(conn server.Conn) error {
-	c := conn
-	if cmd.examine {
-		cmd.ReadOnly = true
-		c = readOnlyIMAPResponse{Conn: conn}
-	}
-	err := cmd.Select.Handle(c)
-	ctx := conn.Context()
-	if box, ok := ctx.Mailbox.(*resource.DaptinImapMailBox); ok && ctx.MailboxReadOnly {
-		ctx.Mailbox = &readOnlyIMAPMailbox{DaptinImapMailBox: box}
-	} else if ok {
-		ctx.Mailbox = &moveIMAPMailbox{DaptinImapMailBox: box, conn: conn}
-	}
-	return err
+func (cmd *selectedIMAPSelect) Handle(conn server.Conn) error {
+	cmd.ReadOnly = cmd.examine
+	return cmd.Select.Handle(selectionIMAPResponse{Conn: conn})
 }
 
-type readOnlyIMAPResponse struct{ server.Conn }
+type selectionIMAPResponse struct{ server.Conn }
 
-func (conn readOnlyIMAPResponse) WriteResp(response imap.WriterTo) error {
-	if selected, ok := response.(*responses.Select); ok {
-		// Daptin Status allocates a fresh response. An empty, non-nil list
-		// explicitly sends PERMANENTFLAGS () on the wire (RFC 3501 §6.3.2).
-		selected.Mailbox.PermanentFlags = []string{}
+func (conn selectionIMAPResponse) WriteResp(response imap.WriterTo) error {
+	if selecting, ok := response.(*responses.Select); ok {
+		ctx := conn.Context()
+		if box, ok := ctx.Mailbox.(*resource.DaptinImapMailBox); ok {
+			uids, recent, err := box.ReadIMAPSelection(false)
+			if err != nil {
+				ctx.Mailbox = nil
+				ctx.MailboxReadOnly = false
+				return err
+			}
+			selecting.Mailbox.Messages = uint32(len(uids))
+			selecting.Mailbox.Recent = recent
+			if len(uids) > 0 && selecting.Mailbox.UidNext <= uids[len(uids)-1] {
+				selecting.Mailbox.UidNext = uids[len(uids)-1] + 1
+			}
+			selected := &selectedIMAPMailbox{DaptinImapMailBox: box, uids: uids, conn: conn.Conn}
+			if ctx.MailboxReadOnly {
+				selecting.Mailbox.PermanentFlags = []string{}
+				ctx.Mailbox = &readOnlyIMAPMailbox{selectedIMAPMailbox: selected}
+			} else {
+				ctx.Mailbox = &moveIMAPMailbox{selectedIMAPMailbox: selected}
+			}
+		}
 	}
 	return conn.Conn.WriteResp(response)
 }
 
 // Preserve the concrete mailbox's read capabilities while suppressing
 // implicit writes for this read-only selection.
-type readOnlyIMAPMailbox struct{ *resource.DaptinImapMailBox }
+type readOnlyIMAPMailbox struct{ *selectedIMAPMailbox }
 
 func (box *readOnlyIMAPMailbox) ListMessages(uid bool, seqset *imap.SeqSet, items []imap.FetchItem, messages chan<- *imap.Message) error {
 	return box.ListMessagesReadOnly(uid, seqset, items, messages)
 }
-
-func (box *readOnlyIMAPMailbox) Poll() error { return box.PollReadOnly() }
 
 func (*readOnlyIMAPMailbox) MoveMessages(bool, *imap.SeqSet, string) error {
 	return server.ErrMailboxReadOnly
@@ -70,25 +84,11 @@ func (*readOnlyIMAPMailbox) Expunge() error { return nil }
 
 // The IMAP server exposes MOVE through backend.MoveMailbox. The selected
 // mailbox adapter adds the initiating client's wire responses after commit.
-type moveIMAPMailbox struct {
-	*resource.DaptinImapMailBox
-	conn server.Conn
-}
+type moveIMAPMailbox struct{ *selectedIMAPMailbox }
 
 func (box *moveIMAPMailbox) MoveMessages(uid bool, set *imap.SeqSet, name string) error {
-	removed, exists, err := box.MoveSelectedMessages(uid, set, name)
-	if err != nil {
+	if err := box.MoveSelectedMessages(uid, set, name); err != nil {
 		return err
 	}
-	// Descending sequence numbers retain their original meaning as each
-	// EXPUNGE renumbers the remaining messages.
-	for i := len(removed) - 1; i >= 0; i-- {
-		if err = box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{removed[i], imap.RawString("EXPUNGE")})); err != nil {
-			return err
-		}
-	}
-	if exists != nil {
-		return box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{*exists, imap.RawString("EXISTS")}))
-	}
-	return nil
+	return box.syncSelection(false)
 }

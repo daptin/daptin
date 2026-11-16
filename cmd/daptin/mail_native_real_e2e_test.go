@@ -540,7 +540,28 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	draft["content"].(map[string]interface{})["subject"] = "Adopted native draft"
 	adopted := call("draft_save", "draft", draft)
 	adoptedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": nativeRef})
-	afterEdit, err := native.Select("Native/2026", false)
+	updates := make(chan imapclient.Update, 20)
+	native.Updates = updates
+	if err := native.Noop(); err != nil {
+		t.Fatal(err)
+	}
+	var announced []string
+	for len(updates) > 0 {
+		switch update := (<-updates).(type) {
+		case *imapclient.ExpungeUpdate:
+			announced = append(announced, fmt.Sprintf("EXPUNGE %d", update.SeqNum))
+		case *imapclient.MailboxUpdate:
+			announced = append(announced, "MAILBOX UPDATE")
+		}
+	}
+	if len(announced) != 3 || announced[0] != "EXPUNGE 1" || announced[1] != "MAILBOX UPDATE" || announced[2] != "MAILBOX UPDATE" || native.Mailbox().Messages != beforeEdit.Messages {
+		t.Fatalf("selected draft replacement must announce EXPUNGE then EXISTS and RECENT without reselect: %v (messages %d)", announced, native.Mailbox().Messages)
+	}
+	if err := native.Noop(); err != nil || len(updates) != 0 {
+		t.Fatalf("a second NOOP repeated draft replacement updates: %v, %d", err, len(updates))
+	}
+	native.Updates = nil
+	afterEdit, err := native.Status("Native/2026", []imap.StatusItem{imap.StatusMessages, imap.StatusUidNext, imap.StatusUidValidity})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -561,7 +582,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if status, err := native.Status("Native/2026", []imap.StatusItem{imap.StatusUidNext}); err != nil || status.UidNext != afterEdit.UidNext {
 		t.Fatalf("draft replay changed mailbox UIDNEXT: %v, %v", status, err)
 	}
-	t.Logf("Office edit retired Draft UID %d, published replacement UID %d with exact MIME, and kept the canonical reference and UIDVALIDITY", oldUID, newUID)
+	t.Logf("NOOP announced EXPUNGE before EXISTS for Office draft replacement UID %d → %d, without reselect or replay; new UID returned exact MIME", oldUID, newUID)
 	// Empty TEXT is a valid literal; it must not make FETCH omit the message.
 	empty := []byte("From: native-alice@native.test\r\nTo: recipient@example.test\r\nSubject: Empty native body\r\n\r\n")
 	if err = native.Append("Native/2026", nil, nativeDate, bytes.NewReader(empty)); err != nil {

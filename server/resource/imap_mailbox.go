@@ -37,8 +37,6 @@ type DaptinImapMailBox struct {
 	mailBoxReferenceId string
 	info               imap.MailboxInfo
 	status             *imap.MailboxStatus
-	lastKnownMessages  uint32
-	pendingUpdate      *imap.MailboxStatus
 	knownKeywords      map[string]bool
 }
 
@@ -144,20 +142,6 @@ func (dimb *DaptinImapMailBox) readIMAPMailRows(selections []MailSelection, call
 		}
 	}
 	return result, nil
-}
-
-// ConsumePollUpdate returns the pending mailbox status if Poll() found new
-// messages, and clears the pending state. Returns nil if no update is pending.
-func (dimb *DaptinImapMailBox) ConsumePollUpdate() *imap.MailboxStatus {
-	dimb.lock.Lock()
-	defer dimb.lock.Unlock()
-	if dimb.pendingUpdate != nil {
-		st := dimb.pendingUpdate
-		dimb.pendingUpdate = nil
-		dimb.lastKnownMessages = st.Messages
-		return st
-	}
-	return nil
 }
 
 // Name returns this mailbox name.
@@ -783,47 +767,26 @@ func (dimb *DaptinImapMailBox) Expunge() error {
 	return err
 }
 
-// Poll implements backend.MailboxPoller. Called by go-imap on NOOP to check
-// for new messages and send EXISTS updates to the client.
-func (dimb *DaptinImapMailBox) Poll() error {
-	return dimb.poll(false)
-}
-
-// PollReadOnly reports arrivals without consuming Recent on EXAMINE.
-func (dimb *DaptinImapMailBox) PollReadOnly() error {
-	return dimb.poll(true)
-}
-
-func (dimb *DaptinImapMailBox) poll(readOnly bool) error {
+// ReadIMAPSelection reads the ordered mailbox UIDs and the Recent count from
+// one metadata query. The protocol connection owns its last announced view.
+func (dimb *DaptinImapMailBox) ReadIMAPSelection(consumeRecent bool) ([]uint32, uint32, error) {
 	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 	defer transaction.Rollback()
 	box, caller, err := dimb.authorizeRead(transaction)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
-	status, err := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, transaction)
+	uids, recent, err := dimb.dbResource["mail"].imapSelectionUIDs(dimb.mailBoxId, transaction)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
-
-	// Only signal update when count increases to avoid backwards EXISTS (Issue 6)
-	dimb.lock.Lock()
-	if status.Messages > dimb.lastKnownMessages {
-		status.Name = dimb.name
-		dimb.pendingUpdate = status
-		dimb.status = status
-	}
-	dimb.lock.Unlock()
-
-	// EXAMINE must not consume Recent. Recheck rights for sessions that
-	// selected a writable mailbox before their write grant was revoked.
-	if !readOnly && dimb.canUpdateMailbox(box, caller, transaction) && status.Recent > 0 {
+	if consumeRecent && recent > 0 && dimb.canUpdateMailbox(box, caller, transaction) {
 		if err = dimb.dbResource["mail_box"].ClearRecentFlags(dimb.mailBoxId, transaction); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
-	return transaction.Commit()
+	return uids, recent, transaction.Commit()
 }

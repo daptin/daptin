@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"database/sql"
 	"strings"
 	"time"
 
@@ -225,4 +226,34 @@ func flagExpression(prefix, flag string, present bool) goqu.Expression {
 		return expression
 	}
 	return goqu.L("NOT (?)", expression)
+}
+
+// imapSelectionUIDs projects only the metadata needed to announce precise
+// membership changes. Use the same effective UID and order as FETCH/SEARCH.
+func (dbResource *DbResource) imapSelectionUIDs(mailBoxID int64, tx *sqlx.Tx) ([]uint32, uint32, error) {
+	uid := effectiveUIDExpression("mail")
+	query, args, err := statementbuilder.Squirrel.Select(uid, goqu.I("mail.recent")).
+		From("mail").Where(goqu.Ex{"mail_box_id": mailBoxID}).Order(uid.Asc(), goqu.I("mail.id").Asc()).Prepared(true).ToSQL()
+	if err != nil {
+		return nil, 0, err
+	}
+	rows, err := tx.Queryx(query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	var uids []uint32
+	var recent uint32
+	for rows.Next() {
+		var uid uint32
+		var isRecent sql.NullBool
+		if err = rows.Scan(&uid, &isRecent); err != nil {
+			return nil, 0, err
+		}
+		uids = append(uids, uid)
+		if isRecent.Bool {
+			recent++
+		}
+	}
+	return uids, recent, rows.Err()
 }
