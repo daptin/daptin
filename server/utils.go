@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/artpar/api2go/v2"
-	"github.com/artpar/conform"
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/conformation"
 	"github.com/daptin/daptin/server/database"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/statementbuilder"
@@ -336,7 +336,7 @@ func EndsWith(str string, endsWith string) (string, bool) {
 }
 
 func SmallSnakeCaseText(str string) string {
-	transformed := conform.TransformString(str, "lower,snake")
+	transformed := conformation.TransformString(str, "lower,snake")
 	return transformed
 }
 

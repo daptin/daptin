@@ -1,8 +1,8 @@
 package actions
 
 import (
-	"github.com/artpar/conform"
 	"github.com/artpar/xlsx/v2"
+	"github.com/daptin/daptin/server/conformation"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -48,7 +48,7 @@ func isLocalCloudStore(inFields map[string]interface{}) (bool, error) {
 }
 
 func SmallSnakeCaseText(str string) string {
-	transformed := conform.TransformString(str, "lower,snake")
+	transformed := conformation.TransformString(str, "lower,snake")
 	return transformed
 }
 

@@ -12,7 +12,6 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/artpar/api2go-adapter v1.0.2
 	github.com/artpar/api2go/v2 v2.7.4
-	github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81
 	github.com/artpar/ftpserver v0.0.4-daptin.2
 	github.com/artpar/go-guerrilla v1.5.2
 	github.com/artpar/go-imap v1.0.5
@@ -199,7 +198,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.3 // indirect
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
-	github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac // indirect
 	github.com/evanw/esbuild v0.17.19 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/flynn/noise v1.0.1 // indirect

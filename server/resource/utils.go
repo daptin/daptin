@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/artpar/conform"
 	"github.com/artpar/xlsx/v2"
+	"github.com/daptin/daptin/server/conformation"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
@@ -127,7 +127,7 @@ func BeginsWithCheck(str string, beginsWith string) bool {
 }
 
 func SmallSnakeCaseText(str string) string {
-	transformed := conform.TransformString(str, "lower,snake")
+	transformed := conformation.TransformString(str, "lower,snake")
 	return transformed
 }
 

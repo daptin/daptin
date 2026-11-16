@@ -8,7 +8,7 @@ import (
 	"strings"
 	//"github.com/go-playground/validator"
 	"fmt"
-	"github.com/artpar/conform"
+	"github.com/daptin/daptin/server/conformation"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/universal-translator"
 	"gopkg.in/go-playground/validator.v9"
@@ -56,8 +56,8 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 					}
 				}
 			}
-			for _, conformation := range conformations {
-				colValue, ok := obj[conformation.ColumnName]
+			for _, columnTag := range conformations {
+				colValue, ok := obj[columnTag.ColumnName]
 				if !ok {
 					continue
 				}
@@ -66,8 +66,8 @@ func (dvm *DataValidationMiddleware) InterceptBefore(dr *DbResource, req *api2go
 				if !ok {
 					continue
 				}
-				transformedValue := conform.TransformString(colValueString, conformation.Tags)
-				objects[i][conformation.ColumnName] = transformedValue
+				transformedValue := conformation.TransformString(colValueString, columnTag.Tags)
+				objects[i][columnTag.ColumnName] = transformedValue
 			}
 
 			for _, validate := range validations {

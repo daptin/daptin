@@ -261,8 +261,6 @@ github.com/artpar/api2go/v2 v2.7.3 h1:Va0AoVanwBxfGETLviVDgBzjOfOdX4UB5o3+mOhgH0
 github.com/artpar/api2go/v2 v2.7.3/go.mod h1:Mk1Cov/Epc5E6mg/nHpw+ZQ1nK3+7ujFXg86yxBRs5k=
 github.com/artpar/api2go/v2 v2.7.4 h1:BgYzrrTJ4itYhdWz+InOy9t13z2jqR9qVKW2trov9B8=
 github.com/artpar/api2go/v2 v2.7.4/go.mod h1:Mk1Cov/Epc5E6mg/nHpw+ZQ1nK3+7ujFXg86yxBRs5k=
-github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81 h1:MLrwgsAnzSfOdTXNWYdOS2a3aRJk9uSyCarDMOW4S9U=
-github.com/artpar/conform v0.0.0-20180710100920-3c5c27338a81/go.mod h1:gTQE1bELgcZsb9xDvo0PSPOPGb5OQuhKRQ3zFZJDjLc=
 github.com/artpar/ftpserver v0.0.4-daptin.2 h1:bKtwuSSRLcZ508My5fk1GgP6hwjnMikQNDntM7BdBb8=
 github.com/artpar/ftpserver v0.0.4-daptin.2/go.mod h1:zTsaSKP1grcI3l+PJLLbYVfCnkP3b0sbfan9/0MDcFo=
 github.com/artpar/go-guerrilla v1.5.2 h1:L9G1LaXwddgtXXby21gRexoFGAZ6hNV5aUKcw9qNLRE=
@@ -584,8 +582,6 @@ github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad/go.m
 github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d/go.mod h1:cXg6YxExXjJnVBQHBLXeUAgxn2UodCpnH306RInaBQk=
 github.com/envoyproxy/go-control-plane v0.9.9-0.20210512163311-63b5d3c536b0/go.mod h1:hliV/p42l8fGbc6Y9bQ70uLwIvmJyVE5k4iMKlh8wCQ=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
-github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac h1:YFKhR0PR8mPI+6EdPhW9BXobntXx3v3F4/1Z9xmw8t8=
-github.com/etgryphon/stringUp v0.0.0-20121020160746-31534ccd8cac/go.mod h1:Vd+6pUuXoxJuiYG9i6uqoew9XOpXVE9w4OovDqwM8NY=
 github.com/evanw/esbuild v0.17.19 h1:JdzNCvfFEoUCXKHhdP326Vn2mhCu8PybXeBDHaSRyWo=
 github.com/evanw/esbuild v0.17.19/go.mod h1:iINY06rn799hi48UqEnaQvVfZWe6W9bET78LbvN8VWk=
 github.com/exoscale/egoscale v0.18.1/go.mod h1:Z7OOdzzTOz1Q1PjQXumlz9Wn/CddH0zSYdCF3rnBKXE=

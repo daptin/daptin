@@ -32,7 +32,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/artpar/conform"
+	"github.com/daptin/daptin/server/conformation"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -340,7 +340,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 		if !ok {
 			continue
 		}
-		newVal := conform.TransformString(valStr, conformations.Tags)
+		newVal := conformation.TransformString(valStr, conformations.Tags)
 		actionRequest.Attributes[conformations.ColumnName] = newVal
 	}
 

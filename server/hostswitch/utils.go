@@ -1,7 +1,7 @@
 package hostswitch
 
 import (
-	"github.com/artpar/conform"
+	"github.com/daptin/daptin/server/conformation"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
@@ -70,6 +70,6 @@ func EndsWith(str string, endsWith string) (string, bool) {
 }
 
 func SmallSnakeCaseText(str string) string {
-	transformed := conform.TransformString(str, "lower,snake")
+	transformed := conformation.TransformString(str, "lower,snake")
 	return transformed
 }
