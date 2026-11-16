@@ -38,6 +38,31 @@ import (
 
 var guestActions = map[string]actionresponse.Action{}
 
+type actionReservationContextKey struct{}
+
+type actionReservation struct {
+	service  *MeteringService
+	decision *MeteringDecision
+	owner    *auth.SessionUser
+}
+
+// EnsureActionReservationDeadline adapts a bounded performer to the original
+// action admission. Only HandleActionRequest can install this private binding.
+func EnsureActionReservationDeadline(request *http.Request, deadline time.Time, tx *sqlx.Tx) error {
+	if request == nil || IsMeteringInternalRequest(request) {
+		return nil
+	}
+	reservation, _ := request.Context().Value(actionReservationContextKey{}).(*actionReservation)
+	if reservation == nil {
+		return nil
+	}
+	if err := reservation.service.EnsureReservationDeadline(MeteringContext{User: reservation.owner}, reservation.decision, deadline, tx); err != nil {
+		log.WithError(err).Error("protect action metering reservation")
+		return api2go.NewHTTPError(nil, "action reservation unavailable", http.StatusServiceUnavailable)
+	}
+	return nil
+}
+
 func CreateGuestActionListHandler(initConfig *CmsConfig) func(*gin.Context) {
 
 	actionMap := make(map[string]actionresponse.Action)
@@ -416,6 +441,9 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 		if meteringErr != nil {
 			return nil, meteringErr
 		}
+		req.PlainRequest = req.PlainRequest.WithContext(context.WithValue(req.PlainRequest.Context(), actionReservationContextKey{},
+			&actionReservation{service: meteringService, decision: meteringDecision, owner: meteringCaller}))
+		inFieldMap["httpRequest"] = req.PlainRequest
 	}
 
 	// A performer may commit admission before external work and replace the

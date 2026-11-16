@@ -8,6 +8,7 @@ import (
 	stdjson "encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"mime"
 	"mime/multipart"
 	"net"
@@ -276,9 +277,6 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 	}
 
 	arguments = append(arguments, integrationTransportAuthArguments(transportAuth)...)
-	if httpRequest, ok := inFieldMap["httpRequest"].(*http.Request); ok && httpRequest != nil {
-		arguments = append(arguments, httpRequest.Context())
-	}
 
 	var graphqlBody map[string]interface{}
 	if transportConfig.Transport == integrationTransportGraphQL {
@@ -295,11 +293,30 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		return nil, nil, []error{fmt.Errorf("integration transport [%s] is not supported", transportConfig.Transport)}
 	}
 
+	parent := context.Background()
+	httpRequest, _ := inFieldMap["httpRequest"].(*http.Request)
+	if httpRequest != nil {
+		parent = httpRequest.Context()
+	}
+	workContext, cancel := context.WithTimeout(parent, transportConfig.Timeout)
+	defer cancel()
+	if err := workContext.Err(); err != nil {
+		return nil, nil, []error{integrationHTTPUpstreamError(err, "integration upstream unavailable")}
+	}
+	deadline, _ := workContext.Deadline()
+	if err := resource.EnsureActionReservationDeadline(httpRequest, deadline, transaction); err != nil {
+		return nil, nil, []error{err}
+	}
+	arguments = append(arguments, workContext)
+
 	if transaction != nil {
 		err = transaction.Commit()
 		if err != nil {
 			return nil, nil, []error{err}
 		}
+	}
+	if err := workContext.Err(); err != nil {
+		return nil, nil, []error{integrationHTTPUpstreamError(err, "integration upstream unavailable")}
 	}
 
 	switch transportConfig.Transport {
@@ -308,7 +325,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		resp, err = r.Post(url, arguments...)
 		method = "post"
 	case integrationTransportWebSocket:
-		res, statusCode, err := executeWebSocketIntegrationTransport(url, operation, transportConfig, inFieldMap, transportAuth)
+		res, statusCode, err := executeWebSocketIntegrationTransport(workContext, url, operation, transportConfig, inFieldMap, transportAuth)
 		if transaction != nil && d.cruds["world"] != nil {
 			newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
 			if beginErr != nil {
@@ -326,7 +343,7 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 			resource.NewActionResponse(d.integration.Name+"."+request.Method+".statusCode", statusCode),
 		}, nil
 	case integrationTransportGRPC:
-		res, statusCode, err := executeGRPCIntegrationTransport(basePath, operation, transportConfig, inFieldMap, transportAuth)
+		res, statusCode, err := executeGRPCIntegrationTransport(workContext, basePath, operation, transportConfig, inFieldMap, transportAuth)
 		if transaction != nil && d.cruds["world"] != nil {
 			newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
 			if beginErr != nil {
@@ -459,6 +476,9 @@ func integrationTransportConfigFromOperation(operation *openapi3.Operation, oper
 		return config, err
 	}
 	if timeoutMillis > 0 {
+		if int64(timeoutMillis) > math.MaxInt64/int64(time.Millisecond) {
+			return config, errors.New("x-daptin-timeout-ms exceeds the supported duration")
+		}
 		config.Timeout = time.Duration(timeoutMillis) * time.Millisecond
 	}
 
@@ -1094,6 +1114,7 @@ func integrationTransportAuthArguments(auth integrationTransportAuth) []interfac
 }
 
 func executeWebSocketIntegrationTransport(
+	ctx context.Context,
 	requestURL string,
 	operation *openapi3.Operation,
 	transportConfig integrationTransportConfig,
@@ -1109,23 +1130,26 @@ func executeWebSocketIntegrationTransport(
 		header.Set(key, value)
 	}
 	dialer := gorillawebsocket.Dialer{HandshakeTimeout: transportConfig.Timeout}
-	conn, _, err := dialer.Dial(websocketURL, header)
+	conn, _, err := dialer.DialContext(ctx, websocketURL, header)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer conn.Close()
+	stopCancellation := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	defer stopCancellation()
+	deadline, _ := ctx.Deadline()
 
 	message, err := createWebSocketIntegrationMessage(operation, transportConfig, inFieldMap, auth)
 	if err != nil {
 		return nil, 0, err
 	}
-	if err := conn.SetWriteDeadline(time.Now().Add(transportConfig.Timeout)); err != nil {
+	if err := conn.SetWriteDeadline(deadline); err != nil {
 		return nil, 0, err
 	}
 	if err := conn.WriteJSON(message); err != nil {
 		return nil, 0, err
 	}
-	if err := conn.SetReadDeadline(time.Now().Add(transportConfig.Timeout)); err != nil {
+	if err := conn.SetReadDeadline(deadline); err != nil {
 		return nil, 0, err
 	}
 	_, responseBytes, err := conn.ReadMessage()
@@ -1211,15 +1235,13 @@ func selectIntegrationResponseValue(response map[string]interface{}, selector st
 }
 
 func executeGRPCIntegrationTransport(
+	ctx context.Context,
 	basePath string,
 	operation *openapi3.Operation,
 	transportConfig integrationTransportConfig,
 	inFieldMap map[string]interface{},
 	auth integrationTransportAuth,
 ) (map[string]interface{}, int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), transportConfig.Timeout)
-	defer cancel()
-
 	target, secure, err := grpcTargetFromIntegrationBaseURL(basePath)
 	if err != nil {
 		return nil, 0, err

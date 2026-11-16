@@ -144,6 +144,12 @@ work (10 seconds by default). Request cancellation also cancels the outgoing
 HTTP request. Daptin adds no automatic retry, since an interrupted request may
 already have caused an external side effect.
 
+For metered actions, the shared action reservation is extended before each
+integration call to cover this bounded execution window and finalization.
+Provider-scoped HTTP, generated actions, GraphQL, wrappers and schedules use the
+same protection. See [[API-Metering#reservations-and-quota-state]] for quota and
+orphan-recovery behavior.
+
 ## Which User Supplies the Credential?
 
 For the wider product choice between personal connections, paid users, teams,

@@ -308,6 +308,55 @@ func (m *MeteringService) Cancel(ctx MeteringContext, decision *MeteringDecision
 	return m.terminalize(ctx, decision, meteringStateCancelled, nil, tx)
 }
 
+// EnsureReservationDeadline protects bounded external work and leaves the normal
+// reservation TTL for subsequent outcomes and finalization. It never re-admits
+// work or restores capacity that has already been released.
+func (m *MeteringService) EnsureReservationDeadline(ctx MeteringContext, decision *MeteringDecision, deadline time.Time, tx *sqlx.Tx) error {
+	if decision == nil || !decision.Enabled {
+		return nil
+	}
+	if tx == nil {
+		return errors.New("metering deadline protection requires a transaction")
+	}
+	usage, err := m.findUsageByToken(decision.ReservationToken, tx)
+	if err != nil {
+		return err
+	}
+	now := m.now()
+	if deadline.IsZero() || !deadline.After(now) {
+		return errors.New("metering work deadline must be in the future")
+	}
+	owner, err := m.usageOwner(ctx.User, tx)
+	if err != nil {
+		return err
+	}
+	ownerID, err := ResourceRowInt64(usage["user_account_id"])
+	if err != nil || ownerID != owner.UserId {
+		return errors.New("metering reservation belongs to another user")
+	}
+	if decision.RequestID == "" || decision.RequestID != StringOrEmpty(usage["request_id"]) {
+		return errors.New("metering reservation request_id does not match its usage record")
+	}
+	expires := toTime(usage["reservation_expires_at"])
+	if StringOrEmpty(usage["state"]) != meteringStateHeld || expires.IsZero() || !expires.After(now) {
+		return fmt.Errorf("%w: reservation is not live", errMeteringRequestTerminal)
+	}
+	protectedUntil := deadline.Add(defaultReservationTTL)
+	if !protectedUntil.After(expires) {
+		return nil
+	}
+	model := api2go.NewApi2GoModelWithData("api_usage", (*m.cruds)["api_usage"].TableInfo().Columns,
+		int64((*m.cruds)["api_usage"].TableInfo().DefaultPermission), (*m.cruds)["api_usage"].TableInfo().Relations, usage)
+	// Use the resource datetime input form: api2go's structural comparison does
+	// not distinguish time.Time values, whose fields are unexported.
+	model.SetAttributes(map[string]interface{}{"reservation_expires_at": protectedUntil.UTC().Format(time.RFC3339Nano)})
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPatch,
+		URL: &url.URL{Path: "/api_usage/" + daptinid.InterfaceToDIR(usage["reference_id"]).String()}}).
+		WithContext(context.WithValue(WithMeteringInternal(context.Background()), "user", m.internalUser(owner)))}
+	_, err = (*m.cruds)["api_usage"].UpdateWithoutFilters(model, request, tx)
+	return err
+}
+
 func (m *MeteringService) ExpireReservations(now time.Time, limit uint, tx *sqlx.Tx) (int, error) {
 	if tx == nil {
 		return 0, errors.New("metering expiry recovery requires a transaction")
@@ -334,22 +383,41 @@ func (m *MeteringService) ExpireReservations(now time.Time, limit uint, tx *sqlx
 	}
 	released := 0
 	for _, usage := range usages {
-		decision, err := m.decisionFromUsage(usage, nil, tx)
+		expired, err := m.expireReservation(StringOrEmpty(usage["reservation_token"]), now, tx)
 		if err != nil {
 			return released, err
 		}
-		if err := m.terminalize(
-			MeteringContext{ErrorMessage: "reservation expired"},
-			decision, meteringStateExpired, map[string]int64{}, tx,
-		); err != nil {
-			if errors.Is(err, errMeteringRequestTerminal) {
-				continue
-			}
-			return released, err
+		if expired {
+			released++
 		}
-		released++
 	}
 	return released, nil
+}
+
+func (m *MeteringService) expireReservation(token string, now time.Time, tx *sqlx.Tx) (bool, error) {
+	// Selection is only a hint: a worker may have extended or settled this row
+	// before recovery acquires its lock.
+	usage, err := m.findUsageByToken(token, tx)
+	if err != nil {
+		return false, err
+	}
+	if StringOrEmpty(usage["state"]) != meteringStateHeld {
+		return false, nil
+	}
+	expires := toTime(usage["reservation_expires_at"])
+	if expires.IsZero() {
+		return false, errors.New("invalid metering reservation expiry")
+	}
+	if expires.After(now) {
+		return false, nil
+	}
+	decision, err := m.decisionFromUsage(usage, nil, tx)
+	if err != nil {
+		return false, err
+	}
+	err = m.terminalizeUsage(MeteringContext{ErrorMessage: "reservation expired"}, decision,
+		meteringStateExpired, map[string]int64{}, usage, tx)
+	return err == nil, err
 }
 
 func (m *MeteringService) recoverExpiredReservations(now time.Time, limit uint) (int, error) {
@@ -379,6 +447,11 @@ func (m *MeteringService) terminalize(ctx MeteringContext, decision *MeteringDec
 	if err != nil {
 		return err
 	}
+	return m.terminalizeUsage(ctx, decision, terminalState, measures, usage, tx)
+}
+
+// terminalizeUsage requires the usage row to be locked in tx.
+func (m *MeteringService) terminalizeUsage(ctx MeteringContext, decision *MeteringDecision, terminalState string, measures map[string]int64, usage map[string]interface{}, tx *sqlx.Tx) error {
 	usageID, err := ResourceRowInt64(usage["id"])
 	if err != nil {
 		return fmt.Errorf("invalid api_usage id: %w", err)

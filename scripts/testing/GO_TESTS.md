@@ -175,3 +175,33 @@ PID/start time, preserved authentication, administrator-owned system tasks,
 no duplicate tasks after a persisted restart, an accepted request draining
 before replacement, and SIGTERM canceling a pending restart. Existing containers
 are not used. The database images must be available to Docker.
+
+## Long integration reservation acceptance
+
+`TestIntegrationReservationDeadlineRealE2E` deliberately waits for a real
+330-second provider with a 600-second timeout. It verifies that quota stays
+reserved beyond five minutes across both HTTP routes, GraphQL, a switched-user
+workflow and a scheduled action. Timeout/disconnect controls must stop provider
+work and settle zero successful-work units. The test does not shorten the server
+clock or lease. It is skipped unless both opt-ins are present:
+
+```bash
+DAPTIN_REAL_E2E=1 DAPTIN_LONG_INTEGRATION_E2E=1 \
+DAPTIN_E2E_RUNTIME=release DAPTIN_E2E_BINARY=/path/to/candidate \
+DAPTIN_TEST_POSTGRES_DSN='postgres://.../empty_disposable_database?sslmode=disable' \
+  go test ./cmd/daptin -run '^TestIntegrationReservationDeadlineRealE2E$' \
+    -count=1 -v -timeout=25m
+```
+
+Without the PostgreSQL DSN, that subtest skips. Each database takes over five
+minutes; run individual `/sqlite` and `/postgres` subtests separately when needed.
+
+For the metering row-lock race contract, use a separate empty PostgreSQL database:
+
+```bash
+DAPTIN_TEST_METERING_POSTGRES_DSN='postgres://.../empty_disposable_database?sslmode=disable' \
+  go test ./server/resource -run '^TestMeteringDeadlinePostgresLockRaces$' -count=1
+```
+
+This test observes actual PostgreSQL lock waits and verifies both orderings of
+extension versus recovery, plus completion/cancellation versus extension.

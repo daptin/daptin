@@ -312,6 +312,27 @@ these failed actions. For business quantities in an HTTP-success response, use
 a custom metric and `cost_expr`; HTTP 200 alone does not interpret business
 fields as a failed generation.
 
+Installed integration outcomes protect the action's existing reservation before
+external work is committed. The lease covers the operation's effective deadline
+(the backend provider timeout, bounded by any earlier request deadline), plus
+five minutes for subsequent outcomes and finalization. Each integration outcome
+can extend the same reservation; it does not create another charge. Successful
+completion and cancellation release it immediately. This also protects
+capture-only action usage without reserving plan quota.
+
+For a long synchronous integration, configure its OpenAPI operation normally:
+
+```yaml
+x-daptin-timeout-ms: 600000
+```
+
+No separate application lease setting is required. A worker that crashes after
+committing external work leaves its reservation held until the persisted
+`api_usage.reservation_expires_at`; normal recovery then releases it. A ten-minute
+provider budget can therefore retain abandoned capacity for approximately fifteen
+minutes. Recovery rechecks the current deadline under lock, and expired or
+terminal reservations cannot be extended or completed again.
+
 Hard-limit admission failure returns `402 Payment Required`. Deployment RPM,
 TPM, and concurrency protection are separate gateway controls and may return
 `429 Too Many Requests` or a provider-availability error.
