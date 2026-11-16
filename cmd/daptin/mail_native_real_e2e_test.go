@@ -842,8 +842,28 @@ func checkNativeFetchHydration(t *testing.T, native *imapclient.Client, fixture 
 	if err := native.UidFetch(one, []imap.FetchItem{section.FetchItem()}, unreadable); err == nil || len(unreadable) != 0 {
 		t.Error("unavailable MIME did not fail BODY.PEEK[] explicitly")
 	}
+	if _, err := native.Select(folder, false); err != nil {
+		t.Fatal(err)
+	}
+	stored := make(chan *imap.Message, 1)
+	if err := native.UidStore(one, imap.FormatFlagsOp(imap.AddFlags, false), []interface{}{imap.SeenFlag, imap.DeletedFlag}, stored); err != nil {
+		t.Fatalf("STORE on unavailable MIME: %v", err)
+	}
+	flags := <-stored
+	if flags == nil || flags.Uid != count+1 || !slices.Contains(flags.Flags, imap.SeenFlag) ||
+		!slices.Contains(flags.Flags, imap.DeletedFlag) || !slices.Contains(flags.Flags, imap.FlaggedFlag) {
+		t.Fatal("STORE did not return the new flags while preserving the star on unavailable MIME")
+	}
+	if err := native.Expunge(nil); err != nil {
+		t.Fatalf("EXPUNGE unavailable MIME: %v", err)
+	}
+	remaining, err := native.UidSearch(&imap.SearchCriteria{})
+	if err != nil || len(remaining) != count || slices.Contains(remaining, count+1) {
+		t.Fatalf("EXPUNGE unavailable MIME affected the wrong messages: %v, %v", remaining, err)
+	}
 	if !t.Failed() {
 		t.Log("UID FETCH FAST returned 37 metadata records including unavailable MIME; BODY.PEEK[] returned 36 exact ordered messages and rejected the unavailable MIME")
+		t.Log("Native STORE returned Seen, Deleted and retained Flagged for unavailable MIME; EXPUNGE removed only that message")
 	}
 }
 
