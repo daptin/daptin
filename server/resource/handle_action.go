@@ -445,6 +445,7 @@ func (dbResource *DbResource) HandleActionRequest(actionRequest actionresponse.A
 	}()
 
 	responses := make([]actionresponse.ActionResponse, 0)
+	actionStatusCode := http.StatusOK
 
 	sessionUser.Groups = append(sessionUser.Groups, auth.GroupPermission{
 		GroupReferenceId: dbResource.AdministratorGroupId,
@@ -656,6 +657,9 @@ OutFields:
 					break OutFields
 				}
 				if responder != nil {
+					if status := responder.StatusCode(); status > 0 {
+						actionStatusCode = status
+					}
 					api2GoResult := responder.Result().(api2go.Api2GoModel)
 					if api2GoResult.GetName() == "render" {
 						return []actionresponse.ActionResponse{
@@ -697,6 +701,11 @@ OutFields:
 			} else {
 				actionResponses = append(actionResponses, responses1...)
 				responseObjects = responder
+				if responder != nil {
+					if status := responder.StatusCode(); status > 0 {
+						actionStatusCode = status
+					}
+				}
 			}
 
 		}
@@ -731,7 +740,7 @@ OutFields:
 			EntityType:    actionRequest.Type,
 			ActionName:    actionRequest.Action,
 			RequestType:   "action",
-			StatusCode:    200,
+			StatusCode:    actionStatusCode,
 			LatencyMS:     int(time.Since(start).Milliseconds()),
 			RequestBytes:  len(actionRequest.RawBodyBytes),
 			ResponseBytes: len(responseJSON),

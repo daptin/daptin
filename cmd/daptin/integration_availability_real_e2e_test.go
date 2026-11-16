@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -25,6 +26,12 @@ func TestIntegrationAvailabilityRealE2E(t *testing.T) {
 			}
 			var calls atomic.Int64
 			var mode atomic.Int32
+			var followups atomic.Int64
+			followup := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				followups.Add(1)
+				transportE2EWriteJSON(w, map[string]interface{}{"ok": true})
+			}))
+			defer followup.Close()
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
 				switch mode.Load() {
@@ -40,6 +47,16 @@ func TestIntegrationAvailabilityRealE2E(t *testing.T) {
 					fmt.Fprint(w, `{"ok":`)
 					w.(http.Flusher).Flush()
 					<-r.Context().Done()
+					return
+				case 5, 6, 7, 8, 9:
+					status := map[int32]int{5: 201, 6: 202, 7: 400, 8: 422, 9: 500}[mode.Load()]
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(status)
+					if status >= 400 {
+						fmt.Fprint(w, `{"detail":"provider rejected input"}`)
+					} else {
+						fmt.Fprint(w, `{"ok":true}`)
+					}
 					return
 				case 3:
 					w.WriteHeader(http.StatusServiceUnavailable)
@@ -107,7 +124,7 @@ Tables:
     Metering:
       on_actions:
         availability.example/invoke: {enabled: true, meter_type: requests, cost_expr: "1"}
-        availability_workflow: {enabled: true, meter_type: requests, cost_expr: "1"}
+        availability_workflow: {enabled: true, meter_type: successful_generations, cost_expr: "request.status_code === 201 ? 2 : 1"}
 Actions:
   - Name: assign_availability_member
     OnType: integration
@@ -140,10 +157,15 @@ Actions:
           credential_id: %q
           record_id: record
           probe: fixture-provider-secret
-`, user, time.Now().UTC().Add(-time.Hour).Format(time.RFC3339), time.Now().UTC().Add(time.Hour).Format(time.RFC3339), auth.AuthenticatedExecute, serviceUser, serviceCredential)
+      - Type: $network.request
+        Method: EXECUTE
+        Attributes:
+          Url: %q
+          Method: POST
+`, user, time.Now().UTC().Add(-time.Hour).Format(time.RFC3339), time.Now().UTC().Add(time.Hour).Format(time.RFC3339), auth.AuthenticatedExecute, serviceUser, serviceCredential, followup.URL)
 			process.stopProcess()
 			process = startTransportE2EDaptin(t, port, httpsPort, base, options)
-			plan := accessGroupsE2ECreateRecord(t, client, base, admin, "api_plan", map[string]interface{}{"name": "Availability plan", "limits": `[{"metric":"requests","window":"day","maximum":100,"mode":"hard"}]`})
+			plan := accessGroupsE2ECreateRecord(t, client, base, admin, "api_plan", map[string]interface{}{"name": "Availability plan", "limits": `[{"metric":"requests","window":"day","maximum":100,"mode":"hard"},{"metric":"successful_generations","window":"day","maximum":100,"mode":"hard"}]`})
 			accessGroupsE2EAssertStatus(t, client, http.MethodPost, base+"/action/integration/assign_availability_member", admin, map[string]interface{}{"attributes": map[string]interface{}{"api_plan_id": plan}}, http.StatusOK)
 			attributes := map[string]interface{}{"credential_id": credential, "record_id": "record", "probe": "fixture-provider-secret"}
 			invoke := func(route int, want int) {
@@ -156,7 +178,7 @@ Actions:
 				}
 				if route == 2 {
 					response := transportE2EPostJSON(t, client, base+"/graphql", customer, map[string]interface{}{"query": fmt.Sprintf(`mutation { executeInvokeOnAvailabilityexample(credential_id: %q, record_id: "record", record_id_2: "record", probe: "fixture-provider-secret") { ResponseType } }`, credential)})
-					failed := want == 502 || want == 504
+					failed := want >= 400
 					if transportE2EGraphQLHasErrors(response) != failed {
 						t.Fatalf("GraphQL failed=%v, want %v: %#v", transportE2EGraphQLHasErrors(response), failed, response)
 					}
@@ -170,11 +192,24 @@ Actions:
 				}
 				status, body := postLLMActionForStatus(t, client, base+path, customer, payload)
 				expected := want
-				if route == 1 && want == 503 {
-					expected = 200
+				if route == 1 && want < 400 {
+					expected = http.StatusOK
 				}
 				if status != expected {
 					t.Fatalf("route=%d HTTP %d, want %d: %s", route, status, expected, body)
+				}
+				if route == 0 && (want == 400 || want == 422 || want == 500 || want == 503) {
+					var preserved map[string]interface{}
+					if err := json.Unmarshal(body, &preserved); err != nil {
+						t.Fatalf("provider rejection lost JSON: %s", body)
+					}
+					if want == 503 {
+						if preserved["error"] != "provider-maintenance" || len(preserved) != 1 {
+							t.Fatalf("provider rejection changed: %s", body)
+						}
+					} else if preserved["detail"] != "provider rejected input" || len(preserved) != 1 {
+						t.Fatalf("provider rejection changed: %s", body)
+					}
 				}
 				if want == 502 || want == 504 {
 					text := string(body)
@@ -210,8 +245,23 @@ Actions:
 			allRoutes("response body timeout", 504, 3)
 			mode.Store(2)
 			allRoutes("malformed upstream response", 502, 3)
-			mode.Store(3)
-			allRoutes("provider HTTP response preserved", 503, 3)
+			for _, test := range []struct {
+				mode   int32
+				status int
+			}{{5, 201}, {6, 202}, {7, 400}, {8, 422}, {9, 500}, {3, 503}} {
+				mode.Store(test.mode)
+				allRoutes(fmt.Sprintf("provider HTTP %d", test.status), test.status, 3)
+			}
+			mode.Store(8)
+			status, body = postLLMActionForStatus(t, client, base+"/action/integration/availability_workflow", customer, map[string]interface{}{"attributes": map[string]interface{}{}})
+			if status != 422 || followups.Load() != 0 {
+				t.Fatalf("rejected workflow ran follow-up: HTTP %d calls=%d body=%s", status, followups.Load(), body)
+			}
+			mode.Store(5)
+			status, body = postLLMActionForStatus(t, client, base+"/action/integration/availability_workflow", customer, map[string]interface{}{"attributes": map[string]interface{}{}})
+			if status != 200 || followups.Load() != 1 {
+				t.Fatalf("healthy switched workflow: HTTP %d calls=%d body=%s", status, followups.Load(), body)
+			}
 			mode.Store(0)
 			before := calls.Load()
 			accessGroupsE2EAssertStatus(t, client, http.MethodPost, base+"/integration/availability.example/invoke", "", map[string]interface{}{"credential_id": credential, "input": attributes}, http.StatusForbidden)
@@ -251,13 +301,34 @@ Actions:
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
+			if !scheduled {
+				t.Fatal("scheduled action did not terminalize transport failure")
+			}
+			mode.Store(8)
+			restartProvider()
+			deadline = time.Now().Add(15 * time.Second)
+			scheduled = false
+			for time.Now().Before(deadline) {
+				for _, row := range readUsage() {
+					a := row.(map[string]interface{})["attributes"].(map[string]interface{})
+					if a["method"] == "EXECUTE" && a["endpoint"] == "/action/integration" && a["state"] == "cancelled" && a["status_code"] == float64(422) {
+						scheduled = true
+					}
+				}
+				if scheduled {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
 			patch("task", task, map[string]interface{}{"active": false})
 			if !scheduled {
-				t.Fatal("scheduled action did not terminalize provider failure")
+				t.Fatal("scheduled action did not terminalize HTTP 422")
 			}
 			// Let an already claimed task finish before examining durable accounting.
 			time.Sleep(300 * time.Millisecond)
 			completed, cancelled := 0, 0
+			completedStatuses := map[int]int{}
+			cancelledStatuses := map[int]int{}
 			for _, row := range readUsage() {
 				a := row.(map[string]interface{})["attributes"].(map[string]interface{})
 				if a["action_name"] != "availability.example/invoke" && a["action_name"] != "availability_workflow" {
@@ -269,31 +340,50 @@ Actions:
 				switch a["state"] {
 				case "completed":
 					completed++
+					completedStatuses[int(a["status_code"].(float64))]++
 				case "cancelled":
 					cancelled++
-					if a["status_code"] != float64(502) && a["status_code"] != float64(504) {
+					cancelledStatuses[int(a["status_code"].(float64))]++
+					measures := a["measures"].(map[string]interface{})
+					for metric, value := range measures {
+						if value != float64(0) {
+							t.Fatalf("rejected work consumed %s=%v", metric, value)
+						}
+					}
+					if a["status_code"].(float64) < 400 {
 						t.Fatalf("wrong failure status: %#v", a)
 					}
 				default:
 					t.Fatalf("reservation not terminal: %#v", a)
 				}
 			}
-			if completed != 9 || cancelled < 14 {
-				t.Fatalf("completed/cancelled=%d/%d, want 9/at least 14", completed, cancelled)
+			if completed != 13 || cancelled < 28 {
+				t.Fatalf("completed/cancelled=%d/%d, want 13/at least 28", completed, cancelled)
+			}
+			if completedStatuses[200] != 6 || completedStatuses[201] != 4 || completedStatuses[202] != 3 {
+				t.Fatalf("successful provider statuses lost: %v", completedStatuses)
+			}
+			for status, count := range map[int]int{400: 3, 500: 3, 503: 3, 504: 6} {
+				if cancelledStatuses[status] != count {
+					t.Fatalf("cancelled status %d count=%d, want %d", status, cancelledStatuses[status], count)
+				}
+			}
+			if cancelledStatuses[422] < 5 || cancelledStatuses[502] < 8 {
+				t.Fatalf("scheduled failures lost: %v", cancelledStatuses)
 			}
 			quotas := accessGroupsE2EDataArray(t, accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/api_quota", admin, nil, http.StatusOK))
-			consumed := float64(0)
+			consumed := map[string]float64{}
 			for _, row := range quotas {
 				a := row.(map[string]interface{})["attributes"].(map[string]interface{})
 				if a["reserved"] != float64(0) {
 					t.Fatalf("held quota after failed requests: %#v", a)
 				}
-				consumed += a["consumed"].(float64)
+				consumed[a["metric"].(string)] += a["consumed"].(float64)
 			}
-			if consumed != 9 {
-				t.Fatalf("quota consumed=%v, want 9", consumed)
+			if consumed["requests"] != 13 || consumed["successful_generations"] != 2 {
+				t.Fatalf("quota consumed=%v, want requests=13 and successful_generations=2", consumed)
 			}
-			t.Logf("%s: %d completed and %d cancelled customer-owned usage rows; quota reserved=0 consumed=9", backend.name, completed, cancelled)
+			t.Logf("%s: %d completed and %d cancelled customer-owned usage rows; quota reserved=0 consumed=%v", backend.name, completed, cancelled, consumed)
 		})
 	}
 }

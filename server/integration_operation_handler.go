@@ -9,6 +9,7 @@ import (
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	"github.com/daptin/daptin/server/actions"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -61,6 +62,10 @@ func CreateIntegrationOperationHandler(cruds map[string]*resource.DbResource) fu
 		if err != nil {
 			status := integrationOperationErrorStatus(err)
 			log.Warnf("Integration operation execution failed provider=[%s] operation=[%s] status=[%d]: %v", providerName, operationName, status, err)
+			if body, ok := actions.IntegrationHTTPRejectionResponse(err, providerName, operationName); ok {
+				c.AbortWithStatusJSON(status, body)
+				return
+			}
 			message := err.Error()
 			if status == http.StatusInternalServerError {
 				message = "integration execution failed"

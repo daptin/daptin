@@ -372,6 +372,15 @@ func (d *integrationActionPerformer) DoAction(request actionresponse.Outcome, in
 		return nil, nil, []error{integrationHTTPUpstreamError(err, "invalid integration upstream response")}
 	}
 
+	status := resp.Response().StatusCode
+	if status >= http.StatusBadRequest {
+		failure := api2go.NewHTTPError(nil, "integration provider rejected request", status)
+		failure.Errors = []api2go.Error{{Title: "integration provider rejected request", Meta: map[string]interface{}{
+			"integration": d.integration.Name, "operation": request.Method, "response": res,
+		}}}
+		return nil, nil, []error{failure}
+	}
+
 	// Read and close the complete HTTP response before opening the next resource
 	// transaction; a slow body must not hold a database transaction either.
 	if transaction != nil && d.cruds["world"] != nil {
@@ -2053,4 +2062,25 @@ func integrationHTTPUpstreamError(err error, message string) error {
 		message = "integration upstream timed out"
 	}
 	return api2go.NewHTTPError(nil, message, status)
+}
+
+// IntegrationHTTPRejectionResponse adapts the server-created rejection to the
+// provider-scoped response contract. Other action surfaces expose only the
+// sanitized HTTPError message. This metadata never supplies identity or policy.
+func IntegrationHTTPRejectionResponse(err error, provider, operation string) (map[string]interface{}, bool) {
+	var failure api2go.HTTPError
+	if !errors.As(err, &failure) || failure.Status() < http.StatusBadRequest {
+		return nil, false
+	}
+	for _, detail := range failure.Errors {
+		metadata, ok := detail.Meta.(map[string]interface{})
+		if !ok || metadata["integration"] != provider || metadata["operation"] != operation {
+			continue
+		}
+		body, ok := metadata["response"].(map[string]interface{})
+		if ok {
+			return body, true
+		}
+	}
+	return nil, false
 }

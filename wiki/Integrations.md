@@ -124,14 +124,20 @@ provider addresses, URLs, credentials and raw response bodies.
 
 The provider-scoped and generated-action HTTP routes use the same classification.
 GraphQL reports the sanitized error in its normal `errors` envelope. These
-transport failures stop subsequent outcomes. A failed action's admitted usage
-is cancelled immediately, releasing reserved quota without consuming a successful
-work unit; ownership stays with the account that admitted the action, including
-when a later outcome uses `SWITCH_USER`. See [[API-Metering#reservations-and-quota-state]].
+transport failures and provider HTTP 4xx/5xx responses stop subsequent outcomes.
+A failed action's admitted usage is cancelled immediately, releasing reserved
+quota without consuming a successful work unit; ownership stays with the account
+that admitted the action, including when a later outcome uses `SWITCH_USER`. See [[API-Metering#reservations-and-quota-state]].
 
-A complete provider HTTP response keeps its existing status and action response
-contract. Provider-returned HTTP errors are distinct from a failure to reach the
-provider. Input and permission failures retain their normal 4xx behavior.
+The provider-scoped route preserves a provider HTTP 4xx/5xx status and its valid
+JSON object body. Generated action routes return an action error with the same
+status; GraphQL returns its normal error envelope. These failures cancel admitted
+usage with the provider status and zero successful-work measures.
+
+Successful JSON responses retain the provider status in usage records and the
+provider-scoped response. Generated actions retain their HTTP 200 action envelope
+and response/status outcomes. Input and permission failures retain their normal
+4xx behavior.
 
 Use the backend operation extension `x-daptin-timeout-ms` to bound HTTP provider
 work (10 seconds by default). Request cancellation also cancels the outgoing

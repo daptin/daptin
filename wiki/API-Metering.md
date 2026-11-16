@@ -300,7 +300,17 @@ record the request and any reported measures; expiry records no consumption.
 When an action fails after admission was committed for external work, its
 reservation is cancelled in a separate short transaction after failed resource
 work is rolled back. Failed actions report zero successful-work measures and
-retain the original admission owner. See [[Integrations#provider-availability-errors]].
+retain the original admission owner. Integration HTTP 4xx/5xx responses follow
+this failure path and store the provider status. Successful integration responses
+use the status supplied by the action performer, including 201 and 202, for
+usage and cost-expression facts. A later performer supplying a status replaces
+that fact; a performer without a status leaves it unchanged. See
+[[Integrations#provider-availability-errors]].
+
+The built-in `requests` measure remains one per completed action and zero for
+these failed actions. For business quantities in an HTTP-success response, use
+a custom metric and `cost_expr`; HTTP 200 alone does not interpret business
+fields as a failed generation.
 
 Hard-limit admission failure returns `402 Payment Required`. Deployment RPM,
 TPM, and concurrency protection are separate gateway controls and may return
