@@ -231,8 +231,21 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		sessionUser = user.(*auth.SessionUser)
 	}
 
+	mailRead := mailHasScopedReads(dbResource.model.GetTableName())
+	if mailRead && sessionUser.UserReferenceId != daptinid.NullReferenceId {
+		sessionUser, err = dbResource.MailSessionUser(sessionUser, transaction)
+		if err != nil {
+			return nil, nil, nil, false, err
+		}
+	}
+
 	start := time.Now()
-	isAdmin := IsAdminWithTransaction(sessionUser, transaction)
+	isAdmin := false
+	if mailRead {
+		isAdmin = dbResource.isMailReadAdministrator(sessionUser)
+	} else {
+		isAdmin = IsAdminWithTransaction(sessionUser, transaction)
+	}
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindAllIsAdminCheck %v", duration)
 

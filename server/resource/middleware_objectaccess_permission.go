@@ -41,7 +41,16 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	if IsAdminWithTransaction(sessionUser, transaction) {
+	mailRead := req.PlainRequest.Method == "GET" && mailHasScopedReads(dr.model.GetTableName())
+	if mailRead && sessionUser.UserReferenceId != daptinid.NullReferenceId {
+		var err error
+		sessionUser, err = dr.MailSessionUser(sessionUser, transaction)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if (mailRead && dr.isMailReadAdministrator(sessionUser)) || (!mailRead && IsAdminWithTransaction(sessionUser, transaction)) {
 		return results, nil
 	}
 
@@ -75,9 +84,13 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 		}
 
 		table := result["__type"].(string)
-		if req.PlainRequest.Method == "GET" && table != dr.model.GetName() && mailHasReadParents(table) &&
-			dr.checkMailResourceRead(table, referenceId, sessionUser, transaction) != nil {
-			notIncludedMapCache[referenceId] = true
+		if req.PlainRequest.Method == "GET" && table != dr.model.GetName() && mailHasScopedReads(table) {
+			if dr.checkMailResourceRead(table, referenceId, sessionUser, transaction) != nil {
+				notIncludedMapCache[referenceId] = true
+			} else {
+				returnMap = append(returnMap, result)
+				includedMapCache[referenceId] = true
+			}
 			continue
 		}
 		permission := dr.GetRowPermissionWithTransaction(result, transaction)
@@ -130,7 +143,8 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 		sessionUser = user.(*auth.SessionUser)
 	}
 
-	if IsAdminWithTransaction(sessionUser, transaction) {
+	// Direct Mail GETs below check persisted memberships before the row is loaded.
+	if !(req.PlainRequest.Method == "GET" && mailHasScopedReads(dr.model.GetTableName())) && IsAdminWithTransaction(sessionUser, transaction) {
 		return results, nil
 	}
 
@@ -165,6 +179,15 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 			continue
 		}
 
+		if table := result["__type"].(string); req.PlainRequest.Method == "GET" && mailHasScopedReads(table) {
+			if err := dr.checkMailResourceRead(table, referenceId, sessionUser, transaction); err != nil {
+				return nil, err
+			}
+			returnMap = append(returnMap, result)
+			includedMapCache[referenceId] = true
+			continue
+		}
+
 		originalRowReference := map[string]interface{}{
 			"__type":                result["__type"],
 			"reference_id":          referenceId,
@@ -176,12 +199,6 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 		if req.PlainRequest.Method == "GET" {
 			if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
-				table := result["__type"].(string)
-				if mailHasReadParents(table) {
-					if err := dr.checkMailResourceRead(table, referenceId, sessionUser, transaction); err != nil {
-						return nil, err
-					}
-				}
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {

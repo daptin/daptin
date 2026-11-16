@@ -13,28 +13,41 @@ func mailHasReadParents(table string) bool {
 	return table == "mail" || table == "mail_box"
 }
 
-func (db *DbResource) checkMailResourceRead(table string, ref daptinid.DaptinReferenceId, caller *auth.SessionUser, tx *sqlx.Tx) error {
-	if table == "mail" {
-		persisted, err := db.MailSessionUser(caller, tx)
-		if err != nil {
-			return err
+func mailHasScopedReads(table string) bool {
+	return table == "mail_account" || mailHasReadParents(table)
+}
+
+func (db *DbResource) isMailReadAdministrator(caller *auth.SessionUser) bool {
+	for _, group := range caller.Groups {
+		if group.GroupReferenceId != daptinid.NullReferenceId && group.GroupReferenceId == db.AdministratorGroupId {
+			return true
 		}
-		_, err = db.readMailMetadataForPersistedSession(ref, persisted, tx)
+	}
+	return false
+}
+
+func (db *DbResource) checkMailResourceRead(table string, ref daptinid.DaptinReferenceId, caller *auth.SessionUser, tx *sqlx.Tx) error {
+	if table == "mail_box" {
+		_, _, err := db.readMailBoxForSession(ref, caller, tx)
 		return err
 	}
-	_, _, err := db.readMailBoxForSession(ref, caller, tx)
+	persisted, err := db.MailSessionUser(caller, tx)
+	if err != nil {
+		return err
+	}
+	if table == "mail" {
+		_, err = db.readMailMetadataForPersistedSession(ref, persisted, tx)
+	} else {
+		_, err = db.readMailResourceForSession("mail_account", ref, persisted, tx)
+	}
 	return err
 }
 
 // mailParentReadFilter is applied before both page selection and counting.
 // Correlated EXISTS keeps group grants from duplicating message rows.
-func (db *DbResource) mailParentReadFilter(table string, active *auth.SessionUser, tx *sqlx.Tx) (exp.Expression, error) {
-	if active.UserReferenceId == daptinid.NullReferenceId {
+func (db *DbResource) mailParentReadFilter(table string, caller *auth.SessionUser, tx *sqlx.Tx) (exp.Expression, error) {
+	if caller.UserReferenceId == daptinid.NullReferenceId {
 		return goqu.L("1 = 0"), nil
-	}
-	caller, err := db.MailSessionUser(active, tx)
-	if err != nil {
-		return nil, err
 	}
 	var refs []daptinid.DaptinReferenceId
 	for _, group := range caller.Groups {
