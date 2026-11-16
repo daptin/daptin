@@ -40,9 +40,8 @@ func dialYJS(t testing.TB, url string, token string) *gorillaWs.Conn {
 	return nil
 }
 
-// --- YJS/ydb binary protocol helpers ---
-// ydb is a relay: it forwards binary messages between clients in the same room.
-// It does NOT respond to SyncStep1 itself — only other connected clients do.
+// --- YJS binary protocol helpers ---
+// The server relays peer frames and requests offline state from editable clients.
 // Message format: [messageType(uvarint), sub-type-specific data...]
 // For messageSync(0): [0, syncSubType(uvarint), payload(uvarint-length-prefixed)]
 
@@ -62,7 +61,7 @@ func buildYjsSyncStep1() []byte {
 	buf := &bytes.Buffer{}
 	yjsWriteUvarint(buf, 0) // messageSync
 	yjsWriteUvarint(buf, 0) // messageYjsSyncStep1
-	yjsWritePayload(buf, []byte{})
+	yjsWritePayload(buf, []byte{0})
 	return buf.Bytes()
 }
 
@@ -75,17 +74,16 @@ func buildYjsUpdate(payload []byte) []byte {
 	return buf.Bytes()
 }
 
-// buildYjsAwareness builds a minimal awareness message.
-// Format: messageAwareness(1) + clientId + clock + var1 + var2 + json_string(payload-prefixed)
+// buildYjsAwareness encodes one entry inside the awareness byte array.
 func buildYjsAwareness(clientId uint64) []byte {
+	payload := &bytes.Buffer{}
+	yjsWriteUvarint(payload, 1)
+	yjsWriteUvarint(payload, clientId)
+	yjsWriteUvarint(payload, 1)
+	yjsWritePayload(payload, []byte(`{"user":{"name":"test"}}`))
 	buf := &bytes.Buffer{}
-	yjsWriteUvarint(buf, 1)        // messageAwareness
-	yjsWriteUvarint(buf, clientId) // clientId
-	yjsWriteUvarint(buf, 1)        // clock
-	yjsWriteUvarint(buf, 1)        // var1
-	yjsWriteUvarint(buf, 0)        // var2
-	jsonStr := `{"user":{"name":"test"}}`
-	yjsWritePayload(buf, []byte(jsonStr))
+	yjsWriteUvarint(buf, 1)
+	yjsWritePayload(buf, payload.Bytes())
 	return buf.Bytes()
 }
 
@@ -99,13 +97,16 @@ func tryReadYJSMessage(conn *gorillaWs.Conn, timeout time.Duration) ([]byte, boo
 	return data, true
 }
 
-// connectAndSubscribe connects to a YJS document and waits for the subscription
-// goroutine in ydb to complete (subscribeRoom is async).
+// connectAndSubscribe consumes the initial server sync request before
+// scenarios which assert that the next frame came from another peer.
 func connectAndSubscribe(t testing.TB, docName string, token string) *gorillaWs.Conn {
 	t.Helper()
 	conn := dialYJS(t, yjsBaseURL+"/yjs/"+docName, token)
-	// subscribeRoom runs in a goroutine — give it time to add to room.subs
-	time.Sleep(100 * time.Millisecond)
+	frame, ok := tryReadYJSMessage(conn, 5*time.Second)
+	if !ok || !bytes.Equal(frame, buildYjsSyncStep1()) {
+		_ = conn.Close()
+		t.Fatalf("missing initial YJS sync request: %x", frame)
+	}
 	return conn
 }
 
@@ -134,7 +135,7 @@ func TestYJSAuthenticatedConnect(t *testing.T) {
 	conn := dialYJS(t, yjsBaseURL+"/yjs/auth-test-doc", token)
 	defer conn.Close()
 
-	// ydb is a relay — it won't respond to SyncStep1 unless there's another client.
+	// An editable connection can send a peer state request.
 	// Verify we can send without error (connection is alive).
 	err := conn.WriteMessage(gorillaWs.BinaryMessage, buildYjsSyncStep1())
 	if err != nil {
@@ -196,7 +197,7 @@ func TestYJSTwoClientRelay(t *testing.T) {
 	connB := connectAndSubscribe(t, docName, token)
 	defer connB.Close()
 
-	// Client A sends update — Client B should receive it via ydb relay
+	// Client A sends update — Client B should receive it via the relay
 	payload := []byte{0xDE, 0xAD}
 	connA.WriteMessage(gorillaWs.BinaryMessage, buildYjsUpdate(payload))
 
@@ -312,18 +313,14 @@ func TestYJSAwarenessRelay(t *testing.T) {
 	connB := connectAndSubscribe(t, docName, token)
 	defer connB.Close()
 
-	// ydb echoes awareness back to the sender's session (session.send),
-	// not to other sessions via updateRoom. So A should get its own awareness back.
-	connA.WriteMessage(gorillaWs.BinaryMessage, buildYjsAwareness(42))
-
-	data, ok := tryReadYJSMessage(connA, 5*time.Second)
-	if !ok {
-		t.Log("no awareness echo received (may depend on ydb version)")
-	} else if len(data) > 0 && data[0] == 1 {
-		t.Logf("received awareness echo (%d bytes)", len(data))
-	} else {
-		t.Logf("received non-awareness message type=%d (%d bytes)", data[0], len(data))
+	frame := buildYjsAwareness(42)
+	if err := connA.WriteMessage(gorillaWs.BinaryMessage, frame); err != nil {
+		t.Fatal(err)
 	}
+	if data, ok := tryReadYJSMessage(connB, 5*time.Second); !ok || !bytes.Equal(data, frame) {
+		t.Fatalf("other peer did not receive exact awareness frame: %x", data)
+	}
+
 }
 
 // ===== STRESS / SCALABILITY TESTS =====
@@ -458,7 +455,7 @@ func TestYJSHighThroughputUpdates(t *testing.T) {
 		t.Errorf("received zero messages — relay forwarding is broken")
 	}
 	if received > 0 && received < int64(numMessages/2) {
-		t.Logf("note: ydb may coalesce/drop under high throughput (received %d/%d)", received, numMessages)
+		t.Logf("peer did not keep up under high throughput (received %d/%d)", received, numMessages)
 	}
 }
 

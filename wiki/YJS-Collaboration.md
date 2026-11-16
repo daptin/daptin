@@ -64,7 +64,8 @@ An update is broadcast only after that resource update succeeds.
 
 The file column remains the durable state. Daptin preserves ordinary assets in
 the column and maintains exactly one reserved `x-crdt/yjs` asset containing the
-raw base64-encoded YJS update history. That state stays inline in the resource
+base64-encoded YJS journal. Each entry is a length-prefixed binary WebSocket
+frame, and replay sends the durable update frames in order. That state stays inline in the resource
 column even when ordinary assets use a cloud store. Malformed or duplicate
 state prevents the WebSocket upgrade instead of creating another state path.
 
@@ -113,6 +114,12 @@ Connected nodes distribute document updates and awareness through Daptin's
 Olric-backed YJS broadcaster. Durable truth remains the resource file column
 for canonical rooms and the configured disk store for standalone rooms. YJS
 clients can edit offline and exchange their missing updates after reconnecting.
+An editable peer is asked for its offline updates after replay; an authorized
+read-only peer can receive the journal and share presence without uploading edits.
+Presence is not written to the journal. A peer that cannot keep up is disconnected
+so it can recover durable updates on reconnect. The relay accepts binary frames
+up to 8 MiB and room journals up to 50 MiB. Browser upgrades use the same host as
+the requesting page; reverse proxies can keep both under a shared origin.
 
 See [Column Type Reference](Column-Type-Reference.md#file-type-patterns) for the file
 column grammar and [Permissions](Permissions.md) for resource access rules.
