@@ -11,13 +11,15 @@ import (
 // read-only selection behavior at the server extension boundary.
 type selectedIMAPExtension struct{}
 
+func (*selectedIMAPExtension) NewConn(conn server.Conn) server.Conn {
+	return &idleIMAPConn{Conn: conn}
+}
+
 func (*selectedIMAPExtension) Capabilities(server.Conn) []string { return nil }
 func (*selectedIMAPExtension) Command(name string) server.HandlerFactory {
 	switch name {
 	case "EXAMINE", "SELECT":
 		return func() server.Handler { return &selectedIMAPSelect{examine: name == "EXAMINE"} }
-	case "IDLE":
-		return func() server.Handler { return &selectedIMAPIdle{} }
 	case "NOOP":
 		return func() server.Handler { return &selectedIMAPNoop{} }
 	case "APPEND":

@@ -15,30 +15,65 @@ import (
 const imapIdlePollInterval = 2 * time.Second
 const imapIdleOperationLimit = 5 * time.Second
 
-type selectedIMAPIdle struct{}
+// The pinned server owns IDLE's parsing and tagged response; Enable
+// deliberately refuses overrides of that built-in. ConnExtension exposes
+// the continuation's reader and writer, where we can own the waiting phase.
+type idleIMAPConn struct {
+	server.Conn
+	waiting bool
+	pending []byte
+}
 
-func (*selectedIMAPIdle) Parse(args []interface{}) error {
-	if len(args) != 0 {
-		return errors.New("IDLE takes no arguments")
+func (conn *idleIMAPConn) WriteResp(response imap.WriterTo) error {
+	if continuation, ok := response.(*imap.ContinuationReq); ok && continuation.Info == "idling" {
+		if conn.Context().User == nil {
+			return server.ErrNotAuthenticated
+		}
+		conn.waiting = true
+	}
+	return conn.Conn.WriteResp(response)
+}
+
+func (conn *idleIMAPConn) Read(dst []byte) (int, error) {
+	if len(dst) == 0 {
+		return 0, nil
+	}
+	if conn.waiting {
+		conn.waiting = false
+		line, err := waitIMAPIdle(conn.Conn)
+		if err != nil {
+			return 0, err
+		}
+		conn.pending = line
+	}
+	if len(conn.pending) > 0 {
+		n := copy(dst, conn.pending)
+		conn.pending = conn.pending[n:]
+		return n, nil
+	}
+	return conn.Conn.Read(dst)
+}
+
+func (conn *idleIMAPConn) SetWriteDeadline(deadline time.Time) error {
+	if socket, ok := conn.Conn.(interface{ SetWriteDeadline(time.Time) error }); ok {
+		return socket.SetWriteDeadline(deadline)
 	}
 	return nil
 }
 
-func (*selectedIMAPIdle) Handle(conn server.Conn) error {
-	if conn.Context().User == nil {
-		return server.ErrNotAuthenticated
-	}
-	if err := conn.WriteResp(&imap.ContinuationReq{Info: "idling"}); err != nil {
-		return err
-	}
+type idleContinuation struct {
+	line []byte
+	err  error
+}
 
+func waitIMAPIdle(conn server.Conn) ([]byte, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	finished := make(chan error, 1)
+	finished := make(chan idleContinuation, 1)
 	go func() {
-		err := readIMAPIdleDone(conn)
+		line, err := readIMAPIdleDone(conn)
 		cancel()
-		finished <- err
+		finished <- idleContinuation{line, err}
 	}()
 	active := true
 	defer func() {
@@ -54,24 +89,24 @@ func (*selectedIMAPIdle) Handle(conn server.Conn) error {
 		pollIdle(context.Context, *resource.IMAPIdleUpdate) (*resource.IMAPIdleUpdate, error)
 	})
 	if !ok {
-		err := <-finished
+		result := <-finished
 		active = false
-		if err != nil {
+		if result.err != nil {
 			_ = conn.Close()
 		}
-		return err
+		return result.line, result.err
 	}
 	ticker := time.NewTicker(imapIdlePollInterval)
 	defer ticker.Stop()
 	var previous *resource.IMAPIdleUpdate
 	for {
 		select {
-		case err := <-finished:
+		case result := <-finished:
 			active = false
-			if err != nil {
+			if result.err != nil {
 				_ = conn.Close()
 			}
-			return err
+			return result.line, result.err
 		case <-ticker.C:
 			update, err := selected.pollIdle(ctx, previous)
 			if ctx.Err() != nil {
@@ -84,7 +119,7 @@ func (*selectedIMAPIdle) Handle(conn server.Conn) error {
 					_ = socket.SetWriteDeadline(time.Now().Add(imapIdleOperationLimit))
 				}
 				_ = conn.WriteResp(idleEndResponse{})
-				return err
+				return nil, err
 			}
 			if update != nil {
 				previous = update
@@ -121,18 +156,18 @@ func (box *selectedIMAPMailbox) pollIdle(parent context.Context, previous *resou
 
 // Read exactly the continuation line, preserving the connection's own parser
 // buffer for the next tagged command. The only valid continuation is DONE.
-func readIMAPIdleDone(conn io.Reader) error {
+func readIMAPIdleDone(conn io.Reader) ([]byte, error) {
 	var line [len("DONE\r\n")]byte
 	for i := range line {
 		if _, err := io.ReadFull(conn, line[i:i+1]); err != nil {
-			return err
+			return nil, err
 		}
 		if line[i] == '\n' {
 			break
 		}
 	}
 	if !strings.EqualFold(string(line[:]), "DONE\r\n") {
-		return errors.New("expected DONE continuation")
+		return nil, errors.New("expected DONE continuation")
 	}
-	return nil
+	return line[:], nil
 }
