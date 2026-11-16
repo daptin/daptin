@@ -423,14 +423,13 @@ func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items
 				if returnMail.BodyStructure != nil {
 					continue
 				}
-				bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-				header, err := textproto.ReadHeader(bodyReader)
+				part, err := readIMAPMIMEMessage(bytes.NewReader(bodyContents))
 				if err != nil {
 					log.Printf("Failed to fetch MIME header for email [%v]: %v", mailContent["id"], err)
 					skipMail = true
 					break
 				}
-				bs, err := backendutil.FetchBodyStructure(header, bodyReader, extendedBody)
+				bs, err := part.bodyStructure(extendedBody, 0)
 				if err != nil {
 					log.Printf("Failed to fetch body structure for email [%v] == %v", mailContent["id"], err)
 					skipMail = true
@@ -453,10 +452,15 @@ func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items
 					break
 				}
 
-				bodyReader := bufio.NewReader(bytes.NewReader(bodyContents))
-				header, _ := textproto.ReadHeader(bodyReader)
-
-				l, err := backendutil.FetchBodySection(header, bodyReader, section)
+				part, err := readIMAPMIMEMessage(bytes.NewReader(bodyContents))
+				if err != nil {
+					return err
+				}
+				l, err := part.bodySection(section)
+				if errors.Is(err, errIMAPNoSuchPart) {
+					returnMail.Body[section] = nil
+					continue
+				}
 				if err != nil {
 					log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
 					skipMail = true

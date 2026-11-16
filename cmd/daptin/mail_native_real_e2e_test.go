@@ -558,6 +558,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	}
 	_ = secure.SetDeadline(time.Now().Add(10 * time.Second))
 	checkNativeFetchStructure(t, secure, wireReader, uid)
+	checkNativeDigestFetch(t, native, secure, wireReader)
 	if _, err = io.WriteString(secure, "c APPEND Draft {27262976}\r\n"); err != nil {
 		t.Fatal(err)
 	}
