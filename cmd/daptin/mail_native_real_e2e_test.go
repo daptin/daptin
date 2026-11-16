@@ -553,6 +553,24 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 			t.Fatalf("passive IDLE draft replacement: got %q, want %q: %v", line, want, err)
 		}
 	}
+	neighborInput := map[string]interface{}{"account_ref": accountRef, "message_ref": neighborRef}
+	neighborState := call("message_state", "message", neighborInput)
+	neighborInput["expected_box_ref"], neighborInput["expected_version"] = neighborState["mail_box_id"], neighborState["version"]
+	neighborInput["seen"] = true
+	call("message_flags", "message", neighborInput)
+	_ = idling.SetDeadline(time.Now().Add(7 * time.Second))
+	wantFlags := fmt.Sprintf("* 1 FETCH (UID %.0f FLAGS (\\Seen \\Recent))\r\n", neighborState["uid"].(float64))
+	if line, err := idleRead.ReadString('\n'); err != nil || line != wantFlags {
+		t.Fatalf("passive IDLE flag-only update after EXPUNGE: got %q, want %q: %v", line, wantFlags, err)
+	}
+	patchIdleFixture := func(values map[string]interface{}) {
+		accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail/"+neighborRef, admin,
+			accessGroupsE2ERecordPayload("mail", neighborRef, values), http.StatusOK)
+	}
+	patchIdleFixture(map[string]interface{}{"permission": 0, "flags": "PrivateIdleKeyword"})
+	expectQuietMailIdle(t, idling, idleRead)
+	patchIdleFixture(map[string]interface{}{"permission": private, "flags": "\\Seen"})
+	t.Log("Read-only IDLE pushed the flag-only change at the renumbered sequence, then stayed quiet after the row became unreadable")
 	if _, err := io.WriteString(idling, "DONE\r\n"); err != nil {
 		t.Fatal(err)
 	}

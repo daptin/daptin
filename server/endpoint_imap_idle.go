@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -20,14 +21,22 @@ const imapIdleOperationLimit = 5 * time.Second
 // the continuation's reader and writer, where we can own the waiting phase.
 type idleIMAPConn struct {
 	server.Conn
-	waiting bool
-	pending []byte
+	waiting  bool
+	pending  []byte
+	baseline *resource.IMAPIdleUpdate
 }
 
 func (conn *idleIMAPConn) WriteResp(response imap.WriterTo) error {
 	if continuation, ok := response.(*imap.ContinuationReq); ok && continuation.Info == "idling" {
 		if conn.Context().User == nil {
 			return server.ErrNotAuthenticated
+		}
+		if selected, ok := conn.Context().Mailbox.(idleIMAPSelection); ok {
+			baseline, err := selected.idleBaseline()
+			if err != nil {
+				return err
+			}
+			conn.baseline = baseline
 		}
 		conn.waiting = true
 	}
@@ -40,7 +49,9 @@ func (conn *idleIMAPConn) Read(dst []byte) (int, error) {
 	}
 	if conn.waiting {
 		conn.waiting = false
-		line, err := waitIMAPIdle(conn.Conn)
+		baseline := conn.baseline
+		conn.baseline = nil
+		line, err := waitIMAPIdle(conn.Conn, baseline)
 		if err != nil {
 			return 0, err
 		}
@@ -66,7 +77,12 @@ type idleContinuation struct {
 	err  error
 }
 
-func waitIMAPIdle(conn server.Conn) ([]byte, error) {
+type idleIMAPSelection interface {
+	idleBaseline() (*resource.IMAPIdleUpdate, error)
+	pollIdle(context.Context, *resource.IMAPIdleUpdate) (*resource.IMAPIdleUpdate, error)
+}
+
+func waitIMAPIdle(conn server.Conn, previous *resource.IMAPIdleUpdate) ([]byte, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	finished := make(chan idleContinuation, 1)
@@ -85,9 +101,7 @@ func waitIMAPIdle(conn server.Conn) ([]byte, error) {
 		}
 	}()
 
-	selected, ok := conn.Context().Mailbox.(interface {
-		pollIdle(context.Context, *resource.IMAPIdleUpdate) (*resource.IMAPIdleUpdate, error)
-	})
+	selected, ok := conn.Context().Mailbox.(idleIMAPSelection)
 	if !ok {
 		result := <-finished
 		active = false
@@ -98,7 +112,6 @@ func waitIMAPIdle(conn server.Conn) ([]byte, error) {
 	}
 	ticker := time.NewTicker(imapIdlePollInterval)
 	defer ticker.Stop()
-	var previous *resource.IMAPIdleUpdate
 	for {
 		select {
 		case result := <-finished:
@@ -138,6 +151,12 @@ func (idleEndResponse) WriteTo(writer *imap.Writer) error {
 	return writer.Flush()
 }
 
+func (box *selectedIMAPMailbox) idleBaseline() (*resource.IMAPIdleUpdate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), imapIdleOperationLimit)
+	defer cancel()
+	return box.ReadIMAPIdleSelection(ctx, false, nil)
+}
+
 func (box *selectedIMAPMailbox) pollIdle(parent context.Context, previous *resource.IMAPIdleUpdate) (*resource.IMAPIdleUpdate, error) {
 	ctx, cancel := context.WithTimeout(parent, imapIdleOperationLimit)
 	defer cancel()
@@ -151,7 +170,28 @@ func (box *selectedIMAPMailbox) pollIdle(parent context.Context, previous *resou
 		}
 		defer conn.SetWriteDeadline(time.Time{})
 	}
-	return update, box.announceSelection(update.UIDs, update.Recent)
+	if err := box.announceSelection(update.UIDs, update.Recent); err != nil {
+		return nil, err
+	}
+	if previous != nil {
+		for index, uid := range update.UIDs {
+			before, wasReadable := previous.Flags[uid]
+			after, isReadable := update.Flags[uid]
+			if !wasReadable || !isReadable || slices.EqualFunc(before.Values, after.Values, strings.EqualFold) {
+				continue
+			}
+			message := imap.NewMessage(uint32(index+1), []imap.FetchItem{imap.FetchUid, imap.FetchFlags})
+			message.Uid = uid
+			message.Flags = after.Values
+			if after.Recent {
+				message.Flags = append(slices.Clone(after.Values), imap.RecentFlag)
+			}
+			if err := box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{message.SeqNum, imap.RawString("FETCH"), message.Format()})); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return update, nil
 }
 
 // Read exactly the continuation line, preserving the connection's own parser

@@ -776,9 +776,15 @@ func (dimb *DaptinImapMailBox) Expunge() error {
 // IMAPIdleUpdate holds one authorized membership snapshot and its store
 // marker. The marker lets an idle connection skip unchanged UID inventories.
 type IMAPIdleUpdate struct {
-	UIDs           []uint32
-	Recent         uint32
-	nextUID, count int64
+	UIDs                     []uint32
+	Recent                   uint32
+	Flags                    map[uint32]IMAPIdleFlags
+	nextUID, count, versions int64
+}
+
+type IMAPIdleFlags struct {
+	Values []string
+	Recent bool
 }
 
 func (dimb *DaptinImapMailBox) ReadIMAPSelection(consumeRecent bool) ([]uint32, uint32, error) {
@@ -826,16 +832,19 @@ func (dimb *DaptinImapMailBox) readIMAPSelection(ctx context.Context, consumeRec
 		if err != nil {
 			return nil, err
 		}
-		update.count, err = dimb.dbResource["mail"].imapSelectionCount(ctx, dimb.mailBoxId, transaction)
+		err = dimb.dbResource["mail"].imapSelectionMarker(ctx, dimb.mailBoxId, update, transaction)
 		if err != nil {
 			return nil, err
 		}
-		if previous != nil && previous.nextUID == update.nextUID && previous.count == update.count {
+		if previous != nil && previous.nextUID == update.nextUID && previous.count == update.count && previous.versions == update.versions {
 			return nil, transaction.Commit()
 		}
 	}
-	update.UIDs, update.Recent, err = dimb.dbResource["mail"].imapSelectionUIDs(ctx, dimb.mailBoxId, transaction)
-	if err != nil {
+	var flagReader *auth.SessionUser
+	if idle {
+		flagReader = caller
+	}
+	if err = dimb.dbResource["mail"].imapSelectionMetadata(ctx, dimb.mailBoxId, flagReader, update, transaction); err != nil {
 		return nil, err
 	}
 	if consumeRecent && update.Recent > 0 && dimb.canUpdateMailbox(box, caller, transaction) {

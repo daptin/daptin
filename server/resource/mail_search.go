@@ -3,10 +3,12 @@ package resource
 import (
 	"context"
 	"database/sql"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/artpar/go-imap"
+	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
@@ -249,43 +251,61 @@ func flagExpression(prefix, flag string, present bool) goqu.Expression {
 	return goqu.L("NOT (?)", expression)
 }
 
-// imapSelectionUIDs projects only the metadata needed to announce precise
-// membership changes. Use the same effective UID and order as FETCH/SEARCH.
-func (dbResource *DbResource) imapSelectionUIDs(ctx context.Context, mailBoxID int64, tx *sqlx.Tx) ([]uint32, uint32, error) {
+// imapSelectionMetadata keeps the mailbox-wide sequence order, but projects
+// flag data only for rows the selected principal may read.
+func (dbResource *DbResource) imapSelectionMetadata(ctx context.Context, mailBoxID int64, caller *auth.SessionUser, update *IMAPIdleUpdate, tx *sqlx.Tx) error {
 	uid := effectiveUIDExpression("mail")
-	query, args, err := statementbuilder.Squirrel.Select(uid, goqu.I("mail.recent")).
+	columns := []interface{}{uid, goqu.I("mail.recent")}
+	if caller != nil {
+		groups, err := mailReadGroupIDs(caller, tx)
+		if err != nil {
+			return err
+		}
+		readable := dbResource.mailRowReadPredicate("mail", "mail", caller, groups, tx)
+		columns = append(columns, goqu.L("CASE WHEN ? THEN COALESCE(?, '') ELSE NULL END", readable, goqu.I("mail.flags")))
+		update.Flags = make(map[uint32]IMAPIdleFlags)
+	}
+	query, args, err := statementbuilder.Squirrel.Select(columns...).
 		From("mail").Where(goqu.Ex{"mail_box_id": mailBoxID}).Order(uid.Asc(), goqu.I("mail.id").Asc()).Prepared(true).ToSQL()
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
 	rows, err := tx.QueryxContext(ctx, query, args...)
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
 	defer rows.Close()
-	var uids []uint32
-	var recent uint32
 	for rows.Next() {
 		var uid uint32
 		var isRecent sql.NullBool
-		if err = rows.Scan(&uid, &isRecent); err != nil {
-			return nil, 0, err
+		var stored sql.NullString
+		columns := []interface{}{&uid, &isRecent}
+		if caller != nil {
+			columns = append(columns, &stored)
 		}
-		uids = append(uids, uid)
+		if err = rows.Scan(columns...); err != nil {
+			return err
+		}
+		update.UIDs = append(update.UIDs, uid)
 		if isRecent.Bool {
-			recent++
+			update.Recent++
+		}
+		if stored.Valid {
+			flags := mailFlagsForRow(map[string]interface{}{"flags": stored.String})
+			slices.SortFunc(flags, func(a, b string) int { return strings.Compare(strings.ToLower(a), strings.ToLower(b)) })
+			update.Flags[uid] = IMAPIdleFlags{Values: flags, Recent: isRecent.Bool}
 		}
 	}
-	return uids, recent, rows.Err()
+	return rows.Err()
 }
 
-func (dbResource *DbResource) imapSelectionCount(ctx context.Context, mailBoxID int64, tx *sqlx.Tx) (int64, error) {
-	query, args, err := statementbuilder.Squirrel.Select(goqu.COUNT("*")).From("mail").
+func (dbResource *DbResource) imapSelectionMarker(ctx context.Context, mailBoxID int64, update *IMAPIdleUpdate, tx *sqlx.Tx) error {
+	// Versions only advance for writes to existing rows. UIDNEXT and COUNT
+	// cover insertion and removal, which can otherwise cancel out the sum.
+	query, args, err := statementbuilder.Squirrel.Select(goqu.COUNT("*"), goqu.L("COALESCE(SUM(COALESCE(version, 0)), 0)")).From("mail").
 		Where(goqu.Ex{"mail_box_id": mailBoxID}).Prepared(true).ToSQL()
 	if err != nil {
-		return 0, err
+		return err
 	}
-	var count int64
-	err = tx.GetContext(ctx, &count, query, args...)
-	return count, err
+	return tx.QueryRowxContext(ctx, query, args...).Scan(&update.count, &update.versions)
 }
