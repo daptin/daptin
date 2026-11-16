@@ -8,18 +8,27 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/daptin/daptin/server/auth"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/gin-gonic/gin"
 )
 
 const (
 	defaultBufferedRequestBodyLimit = 10 * 1024 * 1024
 	maxBufferedRequestBodyLimit     = 16 * 1024 * 1024
+	// A draft sends Base64 attachments plus JSON-escaped text/HTML. Its wire
+	// budget is separate from the decoded and serialized MIME limits.
+	maxMailDraftRequestBodyLimit = 48 * 1024 * 1024
 )
 
 func parseBufferedRequestBodyLimit(value string) (int, error) {
+	return parseRequestBodyLimit(value, "http.max_buffered_request_bytes", maxBufferedRequestBodyLimit)
+}
+
+func parseRequestBodyLimit(value, setting string, maximum int) (int, error) {
 	limit, err := strconv.Atoi(value)
-	if err != nil || limit < 1 || limit > maxBufferedRequestBodyLimit {
-		return 0, fmt.Errorf("http.max_buffered_request_bytes must be an integer from 1 to %d", maxBufferedRequestBodyLimit)
+	if err != nil || limit < 1 || limit > maximum {
+		return 0, fmt.Errorf("%s must be an integer from 1 to %d", setting, maximum)
 	}
 	return limit, nil
 }
@@ -59,10 +68,17 @@ func bufferedRequestPath(method, path string) bool {
 	return false
 }
 
-func bufferedRequestBodyMiddleware(limit int) gin.HandlerFunc {
+func bufferedRequestBodyMiddleware(limit, mailDraftLimit int) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if bufferedRequestPath(c.Request.Method, c.Request.URL.Path) {
-			_, status := readBoundedRequestBody(c.Request, limit)
+			requestLimit := limit
+			if c.Request.Method == http.MethodPost && c.Request.URL.Path == "/action/mail_account/draft_save" {
+				user, _ := c.Request.Context().Value("user").(*auth.SessionUser)
+				if user != nil && user.UserId > 0 && user.UserReferenceId != daptinid.NullReferenceId {
+					requestLimit = mailDraftLimit
+				}
+			}
+			_, status := readBoundedRequestBody(c.Request, requestLimit)
 			if status != 0 {
 				c.AbortWithStatus(status)
 				return

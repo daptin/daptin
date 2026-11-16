@@ -69,6 +69,13 @@ the mail account and hold its read/update permissions. Action executor
 privileges do not grant ownership. Account provisioners must grant the owner
 appropriate write rights; a read-only account remains read-only.
 
+Direct authenticated `POST /action/mail_account/draft_save` has a separate
+[48 MiB JSON request budget](Configuration.md) by default. Base64 bytes and
+JSON escaping count toward that budget. The composer still limits attachments
+to 16 MiB each and the decoded message and generated MIME to 20 MiB and
+25 MiB respectively. A request over the request budget, or a decoded or
+generated message over its limit, returns 413 without changing the saved draft.
+
 ```json
 {
   "attributes": {

@@ -323,6 +323,18 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 			return nil, err
 		}
 	}
+	const mailDraftRequestSetting = "mail.max_draft_request_bytes"
+	mailDraftRequestBodyLimit := maxMailDraftRequestBodyLimit
+	configuredMailDraftRequestBodyLimit, err := configStore.GetConfigValueFor(mailDraftRequestSetting, "backend", transaction)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = configStore.SetConfigValueFor(mailDraftRequestSetting, mailDraftRequestBodyLimit, "backend", transaction)
+	} else if err == nil {
+		mailDraftRequestBodyLimit, err = parseRequestBodyLimit(configuredMailDraftRequestBodyLimit, mailDraftRequestSetting, maxMailDraftRequestBodyLimit)
+	}
+	if err != nil {
+		transaction.Rollback()
+		return nil, fmt.Errorf("configure mail draft request limit: %w", err)
+	}
 
 	err = CheckSystemSecrets(configStore, transaction)
 	resource.CheckErr(err, "Failed to initialise system secrets")
@@ -344,7 +356,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	authMiddleware := auth.NewAuthMiddlewareBuilder(db, jwtTokenIssuer, olricDb)
 	auth.InitJwtMiddleware([]byte(jwtSecret), jwtTokenIssuer, olricDb)
 	defaultRouter.Use(authMiddleware.AuthCheckMiddleware)
-	defaultRouter.Use(bufferedRequestBodyMiddleware(bufferedRequestBodyLimit))
+	defaultRouter.Use(bufferedRequestBodyMiddleware(bufferedRequestBodyLimit, mailDraftRequestBodyLimit))
 
 	cruds := make(map[string]*resource.DbResource)
 	crudsInterface := make(map[string]dbresourceinterface.DbResourceInterface)

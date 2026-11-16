@@ -43,6 +43,7 @@ curl http://localhost:6336/_config/backend/graphql.enable \
 | `graphql.enable` | bool | false | Enable GraphQL endpoint |
 | `graphql.max_request_bytes` | integer | 10485760 | Maximum GraphQL POST body in bytes (1–67108864); restart after changing |
 | `http.max_buffered_request_bytes` | integer | 10485760 | Maximum body for actions, JSON:API writes, integration operations, and event starts in bytes (1–16777216); restart after changing. Oversized requests receive HTTP 413. Streaming asset uploads are unaffected. |
+| `mail.max_draft_request_bytes` | integer | 50331648 | Separate buffered JSON limit for authenticated `POST /action/mail_account/draft_save` (1–50331648); restart after changing. Guest requests and all other actions keep the general HTTP limit. Decoded and serialized MIME have separate limits. |
 | `gzip.enable` | bool | true | Enable negotiated GZIP compression for API, dashboard, and hosted-site responses; restart after changing |
 | `limit.rate` | JSON object | `{"version":"1","limits":{}}` | Per-path requests in a one-second UTC window; see [[Rate-Limiting]] |
 | `yjs.enabled` | bool | true | Enable YJS collaborative editing |
@@ -83,6 +84,12 @@ curl -X POST http://localhost:6336/_config/backend/http.max_buffered_request_byt
 The value must be a whole number from 1 through 16777216. An invalid stored
 value prevents the server from starting; check it with a GET request to
 `/_config/backend/http.max_buffered_request_bytes` before restarting.
+
+Authenticated `POST /action/mail_account/draft_save` uses `mail.max_draft_request_bytes`
+instead. Its default allows Base64 attachments and JSON escaping; it does not
+raise the size limit for a stored or sent message. A reverse proxy must also
+allow the required request size for this route. Lower `mail.max_draft_request_bytes`
+to apply a smaller draft request cap, then restart Daptin.
 
 ## Schema Configuration Files
 

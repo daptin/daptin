@@ -200,6 +200,9 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 	}
 	raw, err := ComposeDraftMail(sender, input.ComposeKey+sender[at:], time.Now().UTC(), input.Content)
 	if err != nil {
+		if errors.Is(err, errDecodedMailTooLarge) || errors.Is(err, errEncodedMailTooLarge) {
+			return nil, mailDraftError(413, err.Error())
+		}
 		return nil, mailDraftError(422, err.Error())
 	}
 	accountID, err := dbResource.Cruds["mail_account"].GetReferenceIdToId("mail_account", daptinid.InterfaceToDIR(account["reference_id"]), tx)

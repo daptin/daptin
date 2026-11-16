@@ -3,6 +3,7 @@ package resource
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -11,6 +12,18 @@ import (
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
 )
+
+func TestComposeDraftChecksEncodedMessageSize(t *testing.T) {
+	part := func(size int) MailComposePart {
+		return MailComposePart{Filename: "fixture.bin", Base64: base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{'A'}, size<<20))}
+	}
+	_, err := ComposeDraftMail("owner@example.test", "draft@example.test", time.Now(), MailComposition{
+		Parts: []MailComposePart{part(16), part(3)},
+	})
+	if !errors.Is(err, errEncodedMailTooLarge) {
+		t.Fatalf("19 MiB of attachments should exceed the 25 MiB encoded limit, got %v", err)
+	}
+}
 
 func TestComposeAttachedMessageWireEncodingAndBytes(t *testing.T) {
 	header := "Subject: Original\r\n\r\n"

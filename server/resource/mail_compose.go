@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"mime"
 	"net/mail"
 	"net/url"
@@ -16,6 +15,11 @@ import (
 	mailheader "github.com/emersion/go-message/mail"
 	"golang.org/x/net/html"
 	"golang.org/x/net/idna"
+)
+
+var (
+	errDecodedMailTooLarge = errors.New("decoded message exceeds 20 MiB")
+	errEncodedMailTooLarge = errors.New("encoded message exceeds 25 MiB")
 )
 
 type MailRecipient struct {
@@ -190,7 +194,7 @@ func composeMail(sender, messageID string, date time.Time, value MailComposition
 		decoded[i] = data
 		total += len(data)
 		if total > 20<<20 {
-			return nil, nil, errors.New("decoded message exceeds 20 MiB")
+			return nil, nil, errDecodedMailTooLarge
 		}
 		if part.ContentID != "" {
 			cid, err := composeContentID(part.ContentID)
@@ -330,7 +334,7 @@ func composeMail(sender, messageID string, date time.Time, value MailComposition
 		return nil, nil, err
 	}
 	if output.Len() > 25<<20 {
-		return nil, nil, fmt.Errorf("encoded message exceeds 25 MiB")
+		return nil, nil, errEncodedMailTooLarge
 	}
 	return output.Bytes(), envelope, nil
 }
