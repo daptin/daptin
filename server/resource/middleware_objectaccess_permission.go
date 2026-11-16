@@ -74,6 +74,12 @@ func (pc *ObjectAccessPermissionChecker) InterceptAfter(dr *DbResource, req *api
 			continue
 		}
 
+		table := result["__type"].(string)
+		if req.PlainRequest.Method == "GET" && table != dr.model.GetName() && mailHasReadParents(table) &&
+			dr.checkMailResourceRead(table, referenceId, sessionUser, transaction) != nil {
+			notIncludedMapCache[referenceId] = true
+			continue
+		}
 		permission := dr.GetRowPermissionWithTransaction(result, transaction)
 
 		//log.Printf("Row Permission for [%v] for [%v]", permission, result)
@@ -170,6 +176,12 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 		if req.PlainRequest.Method == "GET" {
 			if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
+				table := result["__type"].(string)
+				if mailHasReadParents(table) {
+					if err := dr.checkMailResourceRead(table, referenceId, sessionUser, transaction); err != nil {
+						return nil, err
+					}
+				}
 				returnMap = append(returnMap, result)
 				includedMapCache[referenceId] = true
 			} else {

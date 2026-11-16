@@ -1074,6 +1074,15 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 
 	}
 
+	if !isAdmin && mailHasReadParents(tableModel.GetTableName()) {
+		parents, err := dbResource.mailParentReadFilter(tableModel.GetTableName(), sessionUser, transaction)
+		if err != nil {
+			return nil, nil, nil, false, err
+		}
+		queryBuilder = queryBuilder.Where(parents)
+		countQueryBuilder = countQueryBuilder.Where(parents)
+	}
+
 	idsListQuery, args, err := queryBuilder.Order(orders...).ToSQL()
 	log.Tracef("[983] Id query: [%s]", err)
 	if err != nil {
@@ -2222,6 +2231,9 @@ func (dbResource *DbResource) paginatedFindAllWithTransaction(req api2go.Request
 
 	start := time.Now()
 	results, includes, pagination, finalResponseIsSingleObject, err := dbResource.PaginatedFindAllWithoutFilters(req, transaction)
+	if err != nil {
+		return 0, nil, err
+	}
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindAllWithoutFilters %v", duration)
 
