@@ -208,6 +208,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	checkNativeMove(t, native, fixture, admin, accountRef, call, source)
 	checkNativeFlagIndependence(t, native, fixture, admin, accountRef, call)
 	checkNativeFetchHydration(t, native, fixture, admin)
+	checkNativeRawSourceFetch(t, native, fixture, admin, source)
 	draftMailbox, err := native.Select("Draft", false)
 	if err != nil {
 		t.Fatalf("native SELECT: %v", err)

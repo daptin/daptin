@@ -452,19 +452,13 @@ func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items
 					break
 				}
 
-				part, err := readIMAPMIMEMessage(bytes.NewReader(bodyContents))
-				if err != nil {
-					return err
-				}
-				l, err := part.bodySection(section)
+				l, err := fetchIMAPBodySection(bodyContents, section)
 				if errors.Is(err, errIMAPNoSuchPart) {
 					returnMail.Body[section] = nil
 					continue
 				}
 				if err != nil {
-					log.Printf("Failed to fetch body section for email [%v] == %v", mailContent["id"], err)
-					skipMail = true
-					break
+					return fmt.Errorf("could not fetch MIME section for UID %d", selection.UID)
 				}
 
 				if !readOnly && !section.Peek && !HasFlag(flagList, imap.SeenFlag) {

@@ -142,7 +142,7 @@ func (part imapMIMEPart) numberedChild(number int, messageRoot bool) (imapMIMEPa
 	}
 }
 
-func (part imapMIMEPart) bodySection(section *imap.BodySectionName) (imap.Literal, error) {
+func fetchIMAPBodySection(raw []byte, section *imap.BodySectionName) (imap.Literal, error) {
 	if len(section.Path) > 32 {
 		return nil, errIMAPNoSuchPart
 	}
@@ -151,8 +151,17 @@ func (part imapMIMEPart) bodySection(section *imap.BodySectionName) (imap.Litera
 			return nil, errors.New("invalid IMAP FETCH partial range")
 		}
 	}
+	// The empty section is the stored message itself (also FETCH RFC822).
+	// Parsing and rewriting its headers would change the octet offsets and
+	// prevent access to original messages whose headers cannot be parsed.
+	if len(section.Path) == 0 && section.Specifier == imap.EntireSpecifier {
+		return bytes.NewReader(section.ExtractPartial(raw)), nil
+	}
+	part, err := readIMAPMIMEMessage(bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
 	messageRoot := true
-	var err error
 	for index, number := range section.Path {
 		if index != 0 && part.media == "message/rfc822" {
 			part, err = readIMAPMIMEMessage(part.body)
