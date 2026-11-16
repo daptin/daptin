@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -20,8 +19,6 @@ import (
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/doug-martin/goqu/v9"
-	"github.com/emersion/go-message"
-	_ "github.com/emersion/go-message/charset"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -378,12 +375,7 @@ func (dbResource *DbResource) appendMailMessageWithTransaction(box map[string]in
 }
 
 func (dbResource *DbResource) mailMessageAttributes(messageBytes []byte, sentBox map[string]interface{}, uid uint32) (map[string]interface{}, error) {
-	messageEntity, err := message.Read(bytes.NewReader(messageBytes))
-	if err != nil {
-		return nil, err
-	}
-
-	searchMetadata, err := mailSearchMetadataFromEntity(messageEntity)
+	searchMetadata, err := ExtractMailSearchMetadata(messageBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +407,7 @@ func (dbResource *DbResource) mailMessageAttributes(messageBytes []byte, sentBox
 		"hash":             hash,
 		"internal_date":    time.Now(),
 		"sent_date":        nullableMailDate(mailDate),
-		"content_type":     messageEntity.Header.Get("Content-Type"),
+		"content_type":     searchMetadata.ContentType,
 		"reply_to_address": searchMetadata.ReplyTo,
 		"recipient":        searchMetadata.To,
 		"has_attachment":   searchMetadata.HasAttachment,

@@ -24,19 +24,26 @@ type MailSearchMetadata struct {
 	ReplyTo       string
 	Subject       string
 	Body          string
+	ContentType   string
 	SentDate      time.Time
 	HasAttachment bool
 }
 
 func ExtractMailSearchMetadata(raw []byte) (MailSearchMetadata, error) {
 	entity, err := message.Read(bytes.NewReader(raw))
-	if err != nil {
+	if err != nil && !MailMIMEEncodingUnsupported(err) {
 		return MailSearchMetadata{}, err
 	}
-	return mailSearchMetadataFromEntity(entity)
+	return mailSearchMetadataFromEntity(entity, err)
 }
 
-func mailSearchMetadataFromEntity(entity *message.Entity) (MailSearchMetadata, error) {
+// go-message still provides a readable entity for these errors, but its body
+// is not decoded text. A MIME consumer must not render or index it as such.
+func MailMIMEEncodingUnsupported(err error) bool {
+	return message.IsUnknownCharset(err) || message.IsUnknownEncoding(err)
+}
+
+func mailSearchMetadataFromEntity(entity *message.Entity, rootErr error) (MailSearchMetadata, error) {
 	header := mailheader.Header{Header: entity.Header}
 	addresses := func(name string) string {
 		addressList, _ := header.AddressList(name)
@@ -52,7 +59,7 @@ func mailSearchMetadataFromEntity(entity *message.Entity) (MailSearchMetadata, e
 	metadata := MailSearchMetadata{
 		MessageID: messageID, From: addresses("From"), To: addresses("To"),
 		Cc: addresses("Cc"), Bcc: addresses("Bcc"), Sender: addresses("Sender"),
-		ReplyTo: addresses("Reply-To"), Subject: subject, SentDate: date,
+		ReplyTo: addresses("Reply-To"), Subject: subject, SentDate: date, ContentType: header.Get("Content-Type"),
 	}
 
 	var text strings.Builder
@@ -61,7 +68,11 @@ func mailSearchMetadataFromEntity(entity *message.Entity) (MailSearchMetadata, e
 	// to produce a list flag or summary body.
 	remaining := int64(64 << 20)
 	err := entity.Walk(func(path []int, part *message.Entity, walkErr error) error {
-		if walkErr != nil {
+		if len(path) == 0 {
+			walkErr = rootErr
+		}
+		opaque := MailMIMEEncodingUnsupported(walkErr)
+		if walkErr != nil && !opaque {
 			return walkErr
 		}
 		if len(path) > 32 {
@@ -84,7 +95,7 @@ func mailSearchMetadataFromEntity(entity *message.Entity) (MailSearchMetadata, e
 		if isAttachment {
 			metadata.HasAttachment = true
 		}
-		if isAttachment || mediaType != "text/plain" {
+		if opaque || isAttachment || mediaType != "text/plain" {
 			return nil
 		}
 		data, err := io.ReadAll(io.LimitReader(part.Body, remaining+1))

@@ -666,7 +666,7 @@ func checkNativeSimpleMultipart(t *testing.T, native *imapclient.Client, read fu
 	if err := native.Create(box); err != nil {
 		t.Fatal(err)
 	}
-	raw := "From: native-alice@native.test\r\nTo: recipient@example.test\r\nSubject: Native mixed plain fixture\r\nDate: Mon, 16 Nov 2026 12:00:00 +0000\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=mixed\r\n\r\n--mixed\r\nContent-Type: text/plain; charset=ISO-8859-1\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nPlain =E9mail body.\r\n--mixed\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=proof.bin\r\nContent-Transfer-Encoding: base64\r\n\r\nAP9wcm9vZg==\r\n--mixed--\r\n"
+	raw := "From: native-alice@native.test\r\nTo: recipient@example.test\r\nSubject: Native mixed plain fixture\r\nDate: Mon, 16 Nov 2026 12:00:00 +0000\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=mixed\r\n\r\n--mixed\r\nContent-Type: text/plain; charset=ISO-8859-1\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nPlain =E9mail body.\r\n--mixed\r\nContent-Type: text/plain; charset=x-unknown-fixture\r\n\r\nOpaqueTokenDoNotIndex\r\n--mixed\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=proof.bin\r\nContent-Transfer-Encoding: base64\r\n\r\nAP9wcm9vZg==\r\n--mixed--\r\n"
 	if err := native.Append(box, nil, time.Now(), strings.NewReader(raw)); err != nil {
 		t.Fatalf("APPEND direct mixed text and attachment: %v", err)
 	}
@@ -684,6 +684,15 @@ func checkNativeSimpleMultipart(t *testing.T, native *imapclient.Client, read fu
 	decoded, _ := accessGroupsE2EFindString(body, "preferred_text_body")
 	if decoded != "Plain émail body." {
 		t.Fatalf("mixed unpack body = %q", decoded)
+	}
+	if _, err := native.Select(box, true); err != nil {
+		t.Fatal(err)
+	}
+	for term, count := range map[string]int{"body.": 1, "OpaqueTokenDoNotIndex": 0} {
+		result, err := native.UidSearch(&imap.SearchCriteria{Body: []string{term}})
+		if err != nil || len(result) != count {
+			t.Fatalf("native BODY search %q: %v, %v", term, result, err)
+		}
 	}
 	fields := body.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
 	for _, value := range fields["parts"].([]interface{}) {

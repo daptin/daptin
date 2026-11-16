@@ -143,10 +143,11 @@ func (n *imapSearchNode) matches(predicates []int, content *imapSearchContent) (
 }
 
 type imapSearchContent struct {
-	load      func() ([]byte, error)
-	entity    *message.Entity
-	textParts []string
-	readBody  bool
+	load       func() ([]byte, error)
+	entity     *message.Entity
+	opaqueRoot bool
+	textParts  []string
+	readBody   bool
 }
 
 func (c *imapSearchContent) matches(criteria *imap.SearchCriteria) (bool, error) {
@@ -159,7 +160,8 @@ func (c *imapSearchContent) matches(criteria *imap.SearchCriteria) (bool, error)
 			return false, err
 		}
 		entity, err := message.Read(bytes.NewReader(raw))
-		if err != nil && !message.IsUnknownCharset(err) && !message.IsUnknownEncoding(err) {
+		c.opaqueRoot = MailMIMEEncodingUnsupported(err)
+		if err != nil && !c.opaqueRoot {
 			return false, err
 		}
 		c.entity = entity
@@ -210,6 +212,9 @@ func (c *imapSearchContent) inBody(value string) (bool, error) {
 	if value == "" {
 		return true, nil
 	}
+	if c.opaqueRoot {
+		return false, nil
+	}
 	if !c.readBody {
 		// Bound decoded text per message, including embedded messages. Binary
 		// attachments are never read into the search text.
@@ -238,7 +243,10 @@ func (c *imapSearchContent) collectText(entity *message.Entity, depth int, remai
 			if err == io.EOF {
 				return nil
 			}
-			if err != nil && !message.IsUnknownCharset(err) && !message.IsUnknownEncoding(err) {
+			if MailMIMEEncodingUnsupported(err) {
+				continue
+			}
+			if err != nil {
 				return err
 			}
 			if err := c.collectText(part, depth+1, remaining); err != nil {
@@ -249,7 +257,10 @@ func (c *imapSearchContent) collectText(entity *message.Entity, depth int, remai
 	kind, _, _ := entity.Header.ContentType()
 	if strings.EqualFold(kind, "message/rfc822") {
 		nested, err := message.Read(entity.Body)
-		if err != nil && !message.IsUnknownCharset(err) && !message.IsUnknownEncoding(err) {
+		if MailMIMEEncodingUnsupported(err) {
+			return nil
+		}
+		if err != nil {
 			return err
 		}
 		return c.collectText(nested, depth+1, remaining)

@@ -86,6 +86,38 @@ func TestNormalizeMailHTMLOnlyAndDeterministic(t *testing.T) {
 	}
 }
 
+func TestNormalizeMailKeepsSupportedAlternativesAndOpaqueLeaves(t *testing.T) {
+	raw := []byte("Content-Type: multipart/alternative; boundary=x\r\n\r\n" +
+		"--x\r\nContent-Type: text/plain\r\n\r\nplain fallback\r\n" +
+		"--x\r\nContent-Type: text/html\r\n\r\n<p>supported</p>\r\n" +
+		"--x\r\nContent-Type: text/html; charset=x-unknown-charset\r\nContent-Transfer-Encoding: base64\r\n\r\nPHNjcmlwdD4=\r\n" +
+		"--x\r\nContent-Type: text/html\r\nContent-Transfer-Encoding: x-unknown-encoding\r\n\r\nraw bytes\r\n--x--\r\n")
+	got, err := normalizeMail(raw, defaultMailUnpackLimits())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.PreferredTextBody != "plain fallback" || got.HTMLBody != "<p>supported</p>" || len(got.Parts) != 4 {
+		t.Fatalf("wrong bodies or part count: %q %q %d", got.PreferredTextBody, got.HTMLBody, len(got.Parts))
+	}
+	for i, expected := range []string{"<script>", "raw bytes"} {
+		part := got.Parts[i+2]
+		if part.Index != i+2 || part.MediaType != "application/octet-stream" || part.Presentation != "unselected" || string(part.Content) != expected {
+			t.Errorf("unsupported leaf = %#v, want preserved opaque bytes", part)
+		}
+	}
+}
+
+func TestNormalizeMailKeepsOpaqueRootWithoutPresentingIt(t *testing.T) {
+	raw := []byte("Subject: opaque\r\nContent-Type: text/html; charset=x-unknown-charset\r\n\r\n<p>do not show</p>")
+	got, err := normalizeMail(raw, defaultMailUnpackLimits())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.HTMLBody != "" || got.PreferredTextBody != "" || len(got.Parts) != 1 || got.Parts[0].Presentation != "unselected" {
+		t.Fatal("unsupported root became message content")
+	}
+}
+
 func TestNormalizeMailChoosesThePreferredRelatedRepresentation(t *testing.T) {
 	raw := []byte(strings.Join([]string{
 		"Content-Type: multipart/mixed; boundary=outer", "", "--outer",

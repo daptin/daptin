@@ -104,6 +104,11 @@ CID lookups, `attachment` identifies an independent downloadable part, and
 `unselected` preserves a MIME leaf that is not part of the chosen presentation.
 Use the related entity's declared root and alternative order when choosing the
 presentation. Duplicate IDs within the selected scope do not bind inline.
+Leaves with unsupported charsets or transfer encodings remain at their
+original indexes as `application/octet-stream`, with `presentation` set to
+`unselected`. Their available opaque bytes are never used as text or inline
+resources. Supported sibling bodies and attachments remain usable, and the
+original message source retains the exact transport bytes.
 
 The optional integer limits are `max_raw_size`, `max_decoded_size`,
 `max_part_size`, `max_header_size`, `max_parts`, and `max_nesting_depth`. They

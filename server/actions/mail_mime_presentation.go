@@ -9,7 +9,7 @@ import (
 // resource selection without changing the leaves or their download indices.
 type mailMIMEPart struct {
 	media, cid, start, rootType string
-	attached                    bool
+	attached, opaque            bool
 	index                       int
 	parent                      *mailMIMEPart
 	children                    []*mailMIMEPart
@@ -39,7 +39,7 @@ func (node *mailMIMEPart) relatedRoot() *mailMIMEPart {
 }
 
 func (m *normalizedMail) preferredBody(node *mailMIMEPart, media string, relatedRoot bool) *mailMIMEPart {
-	if node == nil || (node.attached && !relatedRoot) {
+	if node == nil || node.opaque || (node.attached && !relatedRoot) {
 		return nil
 	}
 	if node.index >= 0 {
@@ -120,6 +120,9 @@ func (m *normalizedMail) selectPresentation(tree *mailMIMEPart) {
 	inline := map[string]int{}
 	var visit func(*mailMIMEPart, bool, bool)
 	visit = func(node *mailMIMEPart, allowCID, isRelatedRoot bool) {
+		if node.opaque {
+			return
+		}
 		if node.index >= 0 {
 			part := &m.Parts[node.index]
 			if part.Presentation != "body" && (part.Kind == "attachment" || part.Filename != "" || part.ContentID != "") {

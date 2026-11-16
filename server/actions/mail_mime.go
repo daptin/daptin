@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/daptin/daptin/server/resource"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	mailheader "github.com/emersion/go-message/mail"
@@ -84,12 +85,12 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 		return nil, mailUnpackError("mail_headers_too_large", nil)
 	}
 
-	entity, err := message.ReadWithOptions(bytes.NewReader(messageBytes), &message.ReadOptions{MaxHeaderBytes: limits.MaxHeaderBytes})
-	if err != nil {
-		if strings.Contains(err.Error(), "header exceeds maximum size") {
-			return nil, mailUnpackError("mail_headers_too_large", err)
+	entity, rootErr := message.ReadWithOptions(bytes.NewReader(messageBytes), &message.ReadOptions{MaxHeaderBytes: limits.MaxHeaderBytes})
+	if rootErr != nil && !resource.MailMIMEEncodingUnsupported(rootErr) {
+		if strings.Contains(rootErr.Error(), "header exceeds maximum size") {
+			return nil, mailUnpackError("mail_headers_too_large", rootErr)
 		}
-		return nil, mailUnpackError("mail_malformed", err)
+		return nil, mailUnpackError("mail_malformed", rootErr)
 	}
 
 	normalized := &normalizedMail{
@@ -128,8 +129,12 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 	var headerTotal int64
 	var tree *mailMIMEPart
 	var ancestry [mailMaxNestingDepth + 1]*mailMIMEPart
-	err = entity.Walk(func(path []int, part *message.Entity, walkErr error) error {
-		if walkErr != nil {
+	err := entity.Walk(func(path []int, part *message.Entity, walkErr error) error {
+		if len(path) == 0 {
+			walkErr = rootErr
+		}
+		opaque := resource.MailMIMEEncodingUnsupported(walkErr)
+		if walkErr != nil && !opaque {
 			return mailUnpackError("mail_malformed", walkErr)
 		}
 		if len(path) > limits.MaxNestingDepth || len(path) >= len(ancestry) {
@@ -152,9 +157,12 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 			return mailUnpackError("mail_malformed", err)
 		}
 		mediaType = strings.ToLower(strings.TrimSpace(mediaType))
+		if opaque {
+			mediaType = "application/octet-stream"
+		}
 		disposition = strings.ToLower(strings.TrimSpace(disposition))
 		contentID := strings.Trim(strings.TrimSpace(part.Header.Get("Content-ID")), "<>")
-		node := &mailMIMEPart{media: mediaType, cid: contentID, start: contentTypeParams["start"], rootType: contentTypeParams["type"], attached: disposition == "attachment", index: -1}
+		node := &mailMIMEPart{media: mediaType, cid: contentID, start: contentTypeParams["start"], rootType: contentTypeParams["type"], attached: disposition == "attachment", opaque: opaque, index: -1}
 		if depth := len(path); depth == 0 {
 			tree = node
 		} else {

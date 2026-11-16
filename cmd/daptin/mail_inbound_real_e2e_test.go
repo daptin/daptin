@@ -66,7 +66,10 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 		"From: Sender <sender@example.test>", "To: inbound-alice@localhost", // Bob receives via the envelope only.
 		"Reply-To: reply@example.test", "Message-ID: <inbound-fixture@example.test>", "Subject: Inbound SMTP fixture",
 		"MIME-Version: 1.0", "Content-Type: multipart/mixed; boundary=fixture", "",
-		"--fixture", "Content-Type: text/plain; charset=utf-8", "", "Delivered body",
+		"--fixture", "Content-Type: multipart/alternative; boundary=alt", "",
+		"--alt", "Content-Type: text/plain; charset=utf-8", "", "Delivered body",
+		"--alt", "Content-Type: text/html; charset=utf-8", "Content-Transfer-Encoding: x-unknown-fixture",
+		"", "<p>Opaque branch</p>", "--alt--",
 		"--fixture", "Content-Type: application/octet-stream", "Content-Disposition: attachment; filename=proof.bin",
 		"Content-Transfer-Encoding: base64", "", "AP9wcm9vZg==", "--fixture--", "",
 	}, "\r\n")
@@ -132,15 +135,25 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 			t.Fatalf("decoded body missing: %q", text)
 		}
 		bodyAttrs := body.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
+		if bodyAttrs["optional_html_body"] != "" {
+			t.Fatal("unsupported HTML was presented as a decoded body")
+		}
+		opaqueFound := false
 		attachment := ""
 		for _, value := range bodyAttrs["parts"].([]interface{}) {
 			part := value.(map[string]interface{})
+			if part["presentation"] == "unselected" && part["media_type"] == "application/octet-stream" {
+				opaqueFound = true
+			}
 			if part["filename"] == "proof.bin" {
 				attachment, _ = accessGroupsE2EFindString(part, "contents")
 			}
 		}
 		if attachment != "AP9wcm9vZg==" {
 			t.Fatalf("attachment bytes differ: %q", attachment)
+		}
+		if !opaqueFound {
+			t.Fatal("unsupported alternative lost its stable unpack leaf")
 		}
 		return box, ref
 	}
