@@ -162,7 +162,8 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 		}
 		disposition = strings.ToLower(strings.TrimSpace(disposition))
 		contentID := strings.Trim(strings.TrimSpace(part.Header.Get("Content-ID")), "<>")
-		node := &mailMIMEPart{media: mediaType, cid: contentID, start: contentTypeParams["start"], rootType: contentTypeParams["type"], attached: disposition == "attachment", opaque: opaque, index: -1}
+		node := &mailMIMEPart{media: mediaType, cid: contentID, start: contentTypeParams["start"], rootType: contentTypeParams["type"], attached: disposition == "attachment", opaque: opaque, index: -1,
+			flowed: mediaType == "text/plain" && strings.EqualFold(contentTypeParams["format"], "flowed"), delSp: strings.EqualFold(contentTypeParams["delsp"], "yes")}
 		if depth := len(path); depth == 0 {
 			tree = node
 		} else {

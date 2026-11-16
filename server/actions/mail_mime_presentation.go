@@ -10,6 +10,7 @@ import (
 type mailMIMEPart struct {
 	media, cid, start, rootType string
 	attached, opaque            bool
+	flowed, delSp               bool
 	index                       int
 	parent                      *mailMIMEPart
 	children                    []*mailMIMEPart
@@ -110,6 +111,9 @@ func (m *normalizedMail) selectPresentation(tree *mailMIMEPart) {
 	if plain != nil {
 		m.Parts[plain.index].Presentation = "body"
 		m.PreferredTextBody = string(m.Parts[plain.index].Content)
+		if plain.flowed {
+			m.PreferredTextBody = unwrapFlowedMailText(m.PreferredTextBody, plain.delSp)
+		}
 	}
 	var scope *mailMIMEPart
 	if html != nil {

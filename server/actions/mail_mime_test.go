@@ -86,6 +86,28 @@ func TestNormalizeMailHTMLOnlyAndDeterministic(t *testing.T) {
 	}
 }
 
+func TestNormalizeFlowedPlainTextUsesDisplayTextOnly(t *testing.T) {
+	for _, tc := range []struct{ name, params, wire, want string }{
+		{"defaults to keeping the join space", "; format=flowed", "One two \r\nthree.\r\n", "One two three.\n"},
+		{"DelSp yes with UTF-8", "; FORMAT=Flowed; DELSP=Yes", "日本 \r\n語\r\nkeep  \r\nspace", "日本語\nkeep space"},
+		{"quotes and stuffing", "; format=flowed", "> one \r\n> two\r\n>> nested\r\n > literal greater\r\n From stuffed\r\n   indentation", "> one two\n>> nested\n> literal greater\nFrom stuffed\n  indentation"},
+		{"quote depth and signatures break a flow", "; format=flowed; delsp=yes", "> one \r\n>> two \r\n>> -- \r\n>> signature\r\n-- \r\nplain", "> one\n>> two\n>> -- \n>> signature\n-- \nplain"},
+		{"unterminated final line", "; format=flowed; delsp=yes", "One \r\nlast ", "Onelast "},
+		{"fixed MIME remains literal", "; format=fixed; delsp=yes", "One \r\n From fixed\r\n", "One \r\n From fixed\r\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := []byte("Content-Type: text/plain; charset=utf-8" + tc.params + "\r\n\r\n" + tc.wire)
+			got, err := normalizeMail(raw, defaultMailUnpackLimits())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.PreferredTextBody != tc.want || len(got.Parts) != 1 || string(got.Parts[0].Content) != tc.wire {
+				t.Fatalf("display = %q, want %q; parts = %#v", got.PreferredTextBody, tc.want, got.Parts)
+			}
+		})
+	}
+}
+
 func TestNormalizeMailKeepsSupportedAlternativesAndOpaqueLeaves(t *testing.T) {
 	raw := []byte("Content-Type: multipart/alternative; boundary=x\r\n\r\n" +
 		"--x\r\nContent-Type: text/plain\r\n\r\nplain fallback\r\n" +
