@@ -148,7 +148,11 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 		if headerTotal > limits.MaxHeaderBytes {
 			return mailUnpackError("mail_headers_too_large", nil)
 		}
-		mediaType, contentTypeParams, err := part.Header.ContentType()
+		var parentType string
+		if len(path) != 0 {
+			parentType = ancestry[len(path)-1].media
+		}
+		mediaType, contentTypeParams, err := resource.MailPartContentType(&part.Header, parentType)
 		if err != nil {
 			return mailUnpackError("mail_malformed", err)
 		}
@@ -184,6 +188,9 @@ func normalizeMail(messageBytes []byte, limits mailUnpackLimitsConfig) (*normali
 		filename := dispositionParams["filename"]
 		if filename == "" {
 			filename = contentTypeParams["name"]
+		}
+		if filename == "" && mediaType == "message/rfc822" {
+			filename = fmt.Sprintf("message-%d.eml", len(normalized.Parts)+1)
 		}
 
 		remainingTotal := limits.MaxDecodedBytes - decodedTotal

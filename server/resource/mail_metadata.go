@@ -44,6 +44,15 @@ func MailMIMEEncodingUnsupported(err error) bool {
 	return message.IsUnknownCharset(err) || message.IsUnknownEncoding(err)
 }
 
+// MailPartContentType supplies the RFC 2046 §5.1.5 default that go-message
+// cannot infer from a child header alone. It leaves the original header intact.
+func MailPartContentType(header *message.Header, parentType string) (string, map[string]string, error) {
+	if strings.EqualFold(parentType, "multipart/digest") && !header.Has("Content-Type") {
+		return "message/rfc822", nil, nil
+	}
+	return header.ContentType()
+}
+
 // IsDamagedMailBase64 distinguishes a corrupt leaf from MIME framing or I/O errors.
 func IsDamagedMailBase64(err error) bool {
 	var corrupt base64.CorruptInputError
@@ -74,6 +83,7 @@ func mailSearchMetadataFromEntity(entity *message.Entity, rootErr error) (MailSe
 	// order or media types of multipart children. Never materialize attachments
 	// to produce a list flag or summary body.
 	remaining := int64(64 << 20)
+	var mediaTypes [33]string
 	err := entity.Walk(func(path []int, part *message.Entity, walkErr error) error {
 		if len(path) == 0 {
 			walkErr = rootErr
@@ -82,13 +92,19 @@ func mailSearchMetadataFromEntity(entity *message.Entity, rootErr error) (MailSe
 		if walkErr != nil && !opaque {
 			return walkErr
 		}
-		if len(path) > 32 {
+		depth := len(path)
+		if depth >= len(mediaTypes) {
 			return errors.New("mail metadata MIME nesting limit exceeded")
 		}
-		mediaType, _, err := part.Header.ContentType()
+		var parentType string
+		if depth != 0 {
+			parentType = mediaTypes[depth-1]
+		}
+		mediaType, _, err := MailPartContentType(&part.Header, parentType)
 		if err != nil {
 			return err
 		}
+		mediaTypes[depth] = mediaType
 		disposition, _, err := part.Header.ContentDisposition()
 		if err != nil && part.Header.Get("Content-Disposition") != "" {
 			return err
@@ -97,7 +113,7 @@ func mailSearchMetadataFromEntity(entity *message.Entity, rootErr error) (MailSe
 			return nil
 		}
 		isText := strings.HasPrefix(mediaType, "text/")
-		isAttachment := disposition == "attachment" ||
+		isAttachment := mediaType == "message/rfc822" || disposition == "attachment" ||
 			(disposition != "inline" && !isText && strings.Trim(strings.TrimSpace(part.Header.Get("Content-ID")), "<>") == "")
 		if isAttachment {
 			metadata.HasAttachment = true

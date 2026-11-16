@@ -6,6 +6,22 @@ import (
 	"testing"
 )
 
+func TestNormalizeDigestKeepsImplicitMessageAsAttachment(t *testing.T) {
+	const nested = "From: sender@example.test\r\nSubject: Attached message\r\n\r\nInner body.\r\n"
+	const digest = "Content-Type: multipart/digest; boundary=digest\r\n\r\n--digest\r\n\r\n" + nested + "\r\n--digest--\r\n"
+	got, err := normalizeMail([]byte(digest), defaultMailUnpackLimits())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.PreferredTextBody != "" || got.HTMLBody != "" || len(got.Parts) != 1 {
+		t.Fatalf("digest selected an outer body: %#v", got)
+	}
+	part := got.Parts[0]
+	if part.MediaType != "message/rfc822" || part.Presentation != "attachment" || part.Filename != "message-1.eml" || string(part.Content) != nested {
+		t.Fatalf("incorrect digest attachment: %#v", part)
+	}
+}
+
 func TestNormalizeMailPartsAndBodies(t *testing.T) {
 	raw := strings.Join([]string{
 		"From: =?UTF-8?Q?Jos=C3=A9?= <jose@example.com>",

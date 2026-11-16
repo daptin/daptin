@@ -16,6 +16,27 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+func TestDigestMetadataAndIMAPSearchDecodeImplicitMessage(t *testing.T) {
+	raw := []byte("Content-Type: multipart/digest; boundary=parts\r\n\r\n--parts\r\n\r\n" +
+		"Subject: Inner header marker\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
+		"SW5uZXIgYm9keSBtYXJrZXI=\r\n--parts--\r\n")
+	metadata, err := ExtractMailSearchMetadata(raw)
+	if err != nil || metadata.Body != "" || !metadata.HasAttachment {
+		t.Fatalf("digest metadata: %#v, err=%v", metadata, err)
+	}
+	content := &imapSearchContent{load: func() ([]byte, error) { return raw, nil }}
+	for _, tc := range []struct {
+		text string
+		want bool
+	}{{"Inner body marker", true}, {"Inner header marker", false}} {
+		criteria := imap.NewSearchCriteria()
+		criteria.Body = []string{tc.text}
+		if match, err := content.matches(criteria); err != nil || match != tc.want {
+			t.Errorf("BODY %q = %v, err=%v, want %v", tc.text, match, err, tc.want)
+		}
+	}
+}
+
 func TestSearchMailBoxUsesMailboxSequenceAndUIDs(t *testing.T) {
 	db := newMailSearchTestDB(t)
 	crud := &DbResource{connection: db}

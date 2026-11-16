@@ -223,7 +223,7 @@ func (c *imapSearchContent) inBody(value string) (bool, error) {
 		// Bound decoded text per message, including embedded messages. Binary
 		// attachments are never read into the search text.
 		remaining := int64(64 << 20)
-		if err := c.collectText(c.entity, 0, &remaining); err != nil {
+		if err := c.collectText(c.entity, "", 0, &remaining); err != nil {
 			return false, err
 		}
 		c.readBody = true
@@ -237,10 +237,11 @@ func (c *imapSearchContent) inBody(value string) (bool, error) {
 	return false, nil
 }
 
-func (c *imapSearchContent) collectText(entity *message.Entity, depth int, remaining *int64) error {
+func (c *imapSearchContent) collectText(entity *message.Entity, parentType string, depth int, remaining *int64) error {
 	if depth > 32 {
 		return errors.New("IMAP search MIME nesting limit exceeded")
 	}
+	kind, _, _ := MailPartContentType(&entity.Header, parentType)
 	if multipart := entity.MultipartReader(); multipart != nil {
 		for {
 			part, err := multipart.NextPart()
@@ -253,12 +254,11 @@ func (c *imapSearchContent) collectText(entity *message.Entity, depth int, remai
 			if err != nil {
 				return err
 			}
-			if err := c.collectText(part, depth+1, remaining); err != nil {
+			if err := c.collectText(part, kind, depth+1, remaining); err != nil {
 				return err
 			}
 		}
 	}
-	kind, _, _ := entity.Header.ContentType()
 	if strings.EqualFold(kind, "message/rfc822") {
 		nested, err := message.Read(entity.Body)
 		if MailMIMEEncodingUnsupported(err) {
@@ -267,7 +267,7 @@ func (c *imapSearchContent) collectText(entity *message.Entity, depth int, remai
 		if err != nil {
 			return err
 		}
-		return c.collectText(nested, depth+1, remaining)
+		return c.collectText(nested, "", depth+1, remaining)
 	}
 	if !strings.HasPrefix(strings.ToLower(kind), "text/") {
 		return nil
