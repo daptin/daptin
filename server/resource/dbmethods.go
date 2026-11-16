@@ -1599,6 +1599,16 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 	referenceId = daptinid.InterfaceToDIR(row["reference_id"])
 	rowType := row["__type"].(string)
 
+	// A related-group result has a join ID and join permission for display.
+	// Authorize reading that result against the actual usergroup record.
+	rowPermission := row["permission"]
+	if rowType == "usergroup" {
+		if group := daptinid.InterfaceToDIR(row["relation_reference_id"]); group != daptinid.NullReferenceId {
+			referenceId = group
+			rowPermission = nil
+		}
+	}
+
 	cacheKey := fmt.Sprintf("row-permission-%v-%v", rowType, referenceId)
 	useCache := transaction == nil && OlricCache != nil
 
@@ -1644,14 +1654,11 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", referenceId[:])
 
 	} else if rowType == "usergroup" {
-		originalGroupId, _ := row["reference_id"]
-		originalGroupIdStr := referenceId
-		originalGroupIdStr = daptinid.InterfaceToDIR(originalGroupId)
 		pe := GetObjectPermissionByReferenceIdWithTransaction(rowType, referenceId, transaction)
 
 		perm.UserGroupId = auth.GroupPermissionList{
 			{
-				GroupReferenceId:    originalGroupIdStr,
+				GroupReferenceId:    referenceId,
 				ObjectReferenceId:   referenceId,
 				RelationReferenceId: referenceId,
 				Permission:          pe.Permission,
@@ -1669,7 +1676,6 @@ func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]int
 
 	}
 
-	rowPermission := row["permission"]
 	if rowPermission != nil {
 
 		var err error
