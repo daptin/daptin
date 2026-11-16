@@ -144,10 +144,6 @@ func canonicalMailFlags(flags []string) []string {
 }
 func mailFlagAttributes(flags []string) map[string]interface{} {
 	flags = canonicalMailFlags(flags)
-	if HasFlag(flags, imap.DeletedFlag) {
-		flags = backendutil.UpdateFlags(flags, imap.RemoveFlags, []string{imap.RecentFlag})
-		flags = backendutil.UpdateFlags(flags, imap.AddFlags, []string{imap.SeenFlag})
-	}
 	return map[string]interface{}{"flags": strings.Join(flags, ","), "seen": HasFlag(flags, imap.SeenFlag), "recent": HasFlag(flags, imap.RecentFlag), "deleted": HasFlag(flags, imap.DeletedFlag)}
 }
 

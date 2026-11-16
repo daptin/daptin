@@ -206,6 +206,7 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	}
 	raw := source(messageRef)
 	checkNativeMove(t, native, fixture, admin, accountRef, call, source)
+	checkNativeFlagIndependence(t, native, fixture, admin, accountRef, call)
 	draftMailbox, err := native.Select("Draft", false)
 	if err != nil {
 		t.Fatalf("native SELECT: %v", err)
@@ -722,6 +723,72 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	patchGrant("mail_account", accountRef, 0)
 	fetch(true)
 	list(true)
+}
+
+func checkNativeFlagIndependence(t *testing.T, native *imapclient.Client, fixture *daptinE2EFixture, admin, accountRef string,
+	call func(string, string, map[string]interface{}) map[string]interface{}) {
+	t.Helper()
+	const folder = "IndependentFlags"
+	const subject = "Independent IMAP flags fixture"
+	if err := native.Create(folder); err != nil {
+		t.Fatal(err)
+	}
+	if err := native.Append(folder, []string{imap.FlaggedFlag, "Project"}, time.Now(),
+		strings.NewReader("From: native-alice@native.test\r\nSubject: "+subject+"\r\n\r\nUnread message.\r\n")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := native.Select(folder, false); err != nil {
+		t.Fatal(err)
+	}
+	ref := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", subject)
+	state := func() map[string]interface{} {
+		return call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": ref})
+	}
+	set := new(imap.SeqSet)
+	set.AddNum(uint32(state()["uid"].(float64)))
+	check := func(label string, seen, deleted, flagged bool, keyword bool) {
+		t.Helper()
+		messages := make(chan *imap.Message, 2)
+		if err := native.UidFetch(set, []imap.FetchItem{imap.FetchFlags}, messages); err != nil {
+			t.Fatal(err)
+		}
+		message := <-messages
+		if message == nil {
+			t.Fatal("flag fixture disappeared before EXPUNGE")
+		}
+		got := strings.ToLower(strings.Join(message.Flags, ","))
+		for flag, expected := range map[string]bool{
+			imap.SeenFlag: seen, imap.DeletedFlag: deleted, imap.RecentFlag: true, imap.FlaggedFlag: flagged, "Project": keyword,
+		} {
+			if slices.Contains(strings.Split(got, ","), strings.ToLower(flag)) != expected {
+				t.Errorf("%s: native flags %q, want %s=%v", label, message.Flags, flag, expected)
+			}
+		}
+		web := state()
+		if web["seen"] != seen || web["deleted"] != deleted || web["flagged"] != flagged {
+			t.Errorf("%s: canonical state seen=%v deleted=%v flagged=%v", label, web["seen"], web["deleted"], web["flagged"])
+		}
+	}
+	change := func(operation imap.FlagsOp, flags ...interface{}) {
+		t.Helper()
+		if err := native.UidStore(set, imap.FormatFlagsOp(operation, true), flags, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	check("before STORE", false, false, true, true)
+	change(imap.AddFlags, imap.DeletedFlag)
+	check("after +FLAGS Deleted", false, true, true, true)
+	change(imap.RemoveFlags, imap.DeletedFlag)
+	check("after -FLAGS Deleted", false, false, true, true)
+	change(imap.SetFlags, imap.DeletedFlag)
+	check("after FLAGS replaced with Deleted", false, true, false, false)
+	change(imap.AddFlags, imap.SeenFlag)
+	check("after explicit +FLAGS Seen", true, true, false, false)
+	change(imap.RemoveFlags, imap.SeenFlag)
+	check("after explicit -FLAGS Seen", false, true, false, false)
+	if !t.Failed() {
+		t.Log("IMAP STORE preserved independent Seen, Deleted, Recent, Flagged and keyword state across add, remove and replacement")
+	}
 }
 
 func checkNativeDestinationRecovery(t *testing.T, native *imapclient.Client, seq *imap.SeqSet, raw []byte, setGrant func(int64), private int64) {
