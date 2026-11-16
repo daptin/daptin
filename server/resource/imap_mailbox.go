@@ -369,7 +369,7 @@ func (dimb *DaptinImapMailBox) listMessages(uid bool, seqset *imap.SeqSet, items
 
 		returnMail := imap.NewMessage(selection.SequenceNumber, items)
 		returnMail.Size = uint32(mailContent["size"].(int64))
-		flagList := strings.Split(mailContent["flags"].(string), ",")
+		flagList := mailFlagsForRow(mailContent)
 
 		skipMail := false
 
@@ -732,7 +732,7 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 		if err != nil {
 			return err
 		}
-		flags := canonicalMailFlags(strings.Split(StringOrEmpty(mail["flags"]), ","))
+		flags := mailFlagsForRow(mail)
 		flags = backendutil.UpdateFlags(flags, imap.AddFlags, []string{imap.RecentFlag})
 		date, _ := mail["internal_date"].(time.Time)
 		if date.IsZero() {

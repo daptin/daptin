@@ -366,10 +366,9 @@ func (dbResource *DbResource) appendMailMessageWithTransaction(box map[string]in
 		date = time.Now()
 	}
 	attrs["internal_date"] = date
-	attrs["flags"] = strings.Join(flags, ",")
-	attrs["seen"] = HasFlag(flags, imap.SeenFlag)
-	attrs["recent"] = HasFlag(flags, imap.RecentFlag)
-	attrs["deleted"] = HasFlag(flags, imap.DeletedFlag)
+	for key, value := range mailFlagAttributes(flags) {
+		attrs[key] = value
+	}
 	requestURL, _ := url.Parse("/api/mail")
 	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: requestURL}).WithContext(context.WithValue(context.Background(), "user", owner))}
 	response, err := dbResource.Cruds["mail"].createAfterAuthorizationWithTransaction(api2go.NewApi2GoModelWithData("mail", nil, 768, nil, attrs), request, transaction)

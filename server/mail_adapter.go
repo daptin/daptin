@@ -480,9 +480,9 @@ func DaptinSmtpDbResource(dbResource *resource.DbResource, certificateManager *r
 						}
 
 						spam := false
-						flags := "\\Recent"
+						flags := ""
 						if spamScore > 50 {
-							flags += ",Spam"
+							flags = "Spam"
 							spam = true
 						}
 

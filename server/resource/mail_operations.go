@@ -144,7 +144,20 @@ func canonicalMailFlags(flags []string) []string {
 }
 func mailFlagAttributes(flags []string) map[string]interface{} {
 	flags = canonicalMailFlags(flags)
-	return map[string]interface{}{"flags": strings.Join(flags, ","), "seen": HasFlag(flags, imap.SeenFlag), "recent": HasFlag(flags, imap.RecentFlag), "deleted": HasFlag(flags, imap.DeletedFlag)}
+	stored := backendutil.UpdateFlags(flags, imap.RemoveFlags, []string{imap.RecentFlag})
+	return map[string]interface{}{"flags": strings.Join(stored, ","), "seen": HasFlag(flags, imap.SeenFlag), "recent": HasFlag(flags, imap.RecentFlag), "deleted": HasFlag(flags, imap.DeletedFlag)}
+}
+
+// Recent is server-managed mailbox state, stored only in the recent column.
+// Its projection must agree with mailbox counts and SEARCH RECENT, even when
+// another flag is edited after a poll consumed it.
+func mailFlagsForRow(row map[string]interface{}) []string {
+	flags := canonicalMailFlags(strings.Split(StringOrEmpty(row["flags"]), ","))
+	flags = backendutil.UpdateFlags(flags, imap.RemoveFlags, []string{imap.RecentFlag})
+	if recent, _ := resourceRowBool(row["recent"]); recent {
+		flags = append(flags, imap.RecentFlag)
+	}
+	return flags
 }
 
 // MutateMailFlags is shared by native STORE/FETCH and browser updates. Resolve
@@ -161,22 +174,21 @@ func (dbResource *DbResource) mutateMailFlags(ref daptinid.DaptinReferenceId, op
 	if err != nil {
 		return nil, false, err
 	}
-	current := canonicalMailFlags(strings.Split(StringOrEmpty(row["flags"]), ","))
+	current := mailFlagsForRow(row)
 	values := []string{}
 	for _, flag := range canonicalMailFlags(flags) {
 		if !strings.EqualFold(flag, imap.RecentFlag) {
 			values = append(values, flag)
 		}
 	}
-	next := backendutil.UpdateFlags(current, operation, values)
-	if operation == imap.SetFlags && HasFlag(current, imap.RecentFlag) {
-		next = append(next, imap.RecentFlag)
-	}
+	next := backendutil.UpdateFlags(slices.Clone(current), operation, values)
 	attributes := mailFlagAttributes(next)
+	// STORE never writes Recent, including when a mailbox poll is concurrent.
+	delete(attributes, "recent")
 	if err = dbResource.updateMailOperationRow(row, attributes, caller, tx); err != nil {
 		return nil, false, err
 	}
-	written := canonicalMailFlags(strings.Split(StringOrEmpty(attributes["flags"]), ","))
+	written := mailFlagsForRow(map[string]interface{}{"flags": attributes["flags"], "recent": row["recent"]})
 	return written, !slices.Equal(current, written), nil
 }
 func (dbResource *DbResource) MoveMailMessage(ref daptinid.DaptinReferenceId, destination map[string]interface{}, active *auth.SessionUser, tx *sqlx.Tx) error {
@@ -202,7 +214,7 @@ func (dbResource *DbResource) MoveMailMessage(ref daptinid.DaptinReferenceId, de
 	if destRef == daptinid.InterfaceToDIR(row["mail_box_id"]) {
 		return nil
 	}
-	flags := backendutil.UpdateFlags(canonicalMailFlags(strings.Split(StringOrEmpty(row["flags"]), ",")), imap.RemoveFlags, []string{imap.DeletedFlag, imap.RecentFlag})
+	flags := backendutil.UpdateFlags(mailFlagsForRow(row), imap.RemoveFlags, []string{imap.DeletedFlag, imap.RecentFlag})
 	return dbResource.placeMailMessage(row, destRef, mailFlagAttributes(flags), caller, tx)
 }
 
@@ -261,7 +273,7 @@ func (dbResource *DbResource) CheckMailDeletion(ref daptinid.DaptinReferenceId, 
 	return rows.Err()
 }
 func mailMessageState(row map[string]interface{}) map[string]interface{} {
-	flags := canonicalMailFlags(strings.Split(StringOrEmpty(row["flags"]), ","))
+	flags := mailFlagsForRow(row)
 	return map[string]interface{}{"exists": true, "reference_id": daptinid.InterfaceToDIR(row["reference_id"]).String(), "mail_box_id": daptinid.InterfaceToDIR(row["mail_box_id"]).String(), "version": row["version"], "uid": row["uid"], "flags": flags, "seen": HasFlag(flags, imap.SeenFlag), "flagged": HasFlag(flags, imap.FlaggedFlag), "deleted": HasFlag(flags, imap.DeletedFlag)}
 }
 func (dbResource *DbResource) MailMessageOperation(input MailMessageOperation, active *auth.SessionUser, operation string, tx *sqlx.Tx) (map[string]interface{}, error) {

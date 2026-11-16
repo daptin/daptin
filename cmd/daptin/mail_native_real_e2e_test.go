@@ -720,6 +720,45 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if err != nil || selected.Recent != 0 {
 		t.Fatalf("writable NOOP did not consume RECENT: %v %v", selected, err)
 	}
+	checkRecentCleared := func(step string, reviewed bool) {
+		t.Helper()
+		ch := make(chan *imap.Message, 2)
+		if err := native.UidFetch(seq, []imap.FetchItem{imap.FetchFlags}, ch); err != nil {
+			t.Fatal(err)
+		}
+		observed := <-ch
+		if observed == nil || slices.Contains(observed.Flags, imap.RecentFlag) ||
+			!slices.Contains(observed.Flags, imap.FlaggedFlag) || !slices.Contains(observed.Flags, imap.SeenFlag) {
+			t.Errorf("%s: unexpected FLAGS after consuming RECENT: %v", step, observed)
+		}
+		if observed != nil {
+			keywords := strings.Split(strings.ToLower(strings.Join(observed.Flags, ",")), ",")
+			if !slices.Contains(keywords, "project") || slices.Contains(keywords, "reviewed") != reviewed {
+				t.Errorf("%s: unexpected keywords in %v", step, observed.Flags)
+			}
+		}
+		uids, err := native.UidSearch(&imap.SearchCriteria{WithFlags: []string{imap.RecentFlag}})
+		if err != nil || len(uids) != 0 {
+			t.Errorf("%s: SEARCH RECENT returned %v, %v", step, uids, err)
+		}
+		state := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": copyRef})
+		flags := state["flags"].([]interface{})
+		if slices.Contains(flags, interface{}(imap.RecentFlag)) {
+			t.Errorf("%s: Office flags included consumed Recent: %v", step, flags)
+		}
+	}
+	checkRecentCleared("after NOOP and fresh selection", false)
+	if err := native.UidStore(seq, imap.FormatFlagsOp(imap.AddFlags, true), []interface{}{"Reviewed"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	checkRecentCleared("after unrelated STORE", true)
+	selected, err = native.Select("Copies", false)
+	if err != nil || selected.Recent != 0 {
+		t.Errorf("unrelated STORE changed RECENT after polling: %v %v", selected, err)
+	}
+	if !t.Failed() {
+		t.Log("Consumed Recent stayed absent from mailbox status, FETCH, SEARCH and Office flags after an unrelated STORE")
+	}
 	patchGrant("mail_account", accountRef, 0)
 	fetch(true)
 	list(true)

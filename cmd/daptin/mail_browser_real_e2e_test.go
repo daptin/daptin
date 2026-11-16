@@ -175,7 +175,7 @@ func TestMailBrowserReadRevocationRealE2E(t *testing.T) {
 	nativeRaw := "From: mail-alice@browser.test\r\nTo: recipient@example.test\r\nBcc: hidden@example.test\r\nSubject: Native draft\r\n\r\nNative text"
 	nativeRef := seed("mail", map[string]interface{}{
 		"mail_box_id": nativeBox, "mail": base64.StdEncoding.EncodeToString([]byte(nativeRaw)), "message_id": "<native@test>", "mail_id": "native-draft", "from_address": "mail-alice@browser.test", "sender_address": "mail-alice@browser.test", "reply_to_address": "mail-alice@browser.test", "to_address": "recipient@example.test", "subject": "Native draft", "body": "Native text",
-		"internal_date": time.Now().UTC().Format(time.RFC3339), "spam_score": 0, "hash": "native-draft", "content_type": "text/plain", "recipient": "mail-alice@browser.test", "has_attachment": false, "ip_addr": "127.0.0.1", "return_path": "mail-alice@browser.test", "is_tls": false, "seen": false, "recent": true, "deleted": false, "uid": 9, "spam": false, "size": len(nativeRaw), "flags": "\\Draft,\\Recent,custom",
+		"internal_date": time.Now().UTC().Format(time.RFC3339), "spam_score": 0, "hash": "native-draft", "content_type": "text/plain", "recipient": "mail-alice@browser.test", "has_attachment": false, "ip_addr": "127.0.0.1", "return_path": "mail-alice@browser.test", "is_tls": false, "seen": false, "recent": true, "deleted": false, "uid": 9, "spam": false, "size": len(nativeRaw), "flags": "\\Draft,custom",
 	})
 	nativeSource := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail/source", alice, map[string]interface{}{"attributes": map[string]interface{}{"message_ref": nativeRef}}, http.StatusOK)
 	nativeRevision, _ := accessGroupsE2EFindString(nativeSource, "revision")
@@ -191,6 +191,9 @@ func TestMailBrowserReadRevocationRealE2E(t *testing.T) {
 	nativeRow := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/mail/"+nativeRef, admin, nil, http.StatusOK).(map[string]interface{})["data"].(map[string]interface{})["attributes"].(map[string]interface{})
 	if nativeRow["mail_box_id"] != nativeBox || nativeRow["uid"] != float64(9) || (nativeRow["recent"] != true && nativeRow["recent"] != float64(1)) || !strings.Contains(nativeRow["flags"].(string), "custom") {
 		t.Fatalf("native adoption lost mailbox/UID/flags: box=%v uid=%v recent=%v flags=%v", nativeRow["mail_box_id"], nativeRow["uid"], nativeRow["recent"], nativeRow["flags"])
+	}
+	if strings.Contains(strings.ToLower(nativeRow["flags"].(string)), "\\recent") {
+		t.Fatal("draft adoption duplicated the arrival state in mutable flags")
 	}
 	adoptedRevision, _ := accessGroupsE2EFindString(adopted, "revision")
 	draft["expected_revision"] = adoptedRevision

@@ -108,7 +108,7 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 			row["unseen"] != float64(1) || row["uidnext"] != float64(2) {
 			t.Fatalf("unexpected inbound mailbox status: %#v", row)
 		}
-		result := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/mail?fields=uid,has_attachment,subject", token, nil, http.StatusOK)
+		result := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet, fixture.URL+"/api/mail?fields=uid,has_attachment,subject,recent,flags", token, nil, http.StatusOK)
 		messages := accessGroupsE2EDataArray(t, result)
 		if len(messages) != 1 {
 			t.Fatalf("expected one private message in the metadata list, got %d", len(messages))
@@ -120,6 +120,10 @@ func TestMailInboundSMTPRealE2E(t *testing.T) {
 		if ref == "" || attrs["subject"] != "Inbound SMTP fixture" || attrs["uid"] != float64(1) ||
 			(attachmentFlag != true && attachmentFlag != float64(1)) {
 			t.Fatalf("unexpected inbound metadata: %#v", attrs)
+		}
+		storedFlags, _ := attrs["flags"].(string)
+		if (attrs["recent"] != true && attrs["recent"] != float64(1)) || strings.Contains(strings.ToLower(storedFlags), "\\recent") {
+			t.Fatalf("inbound SMTP did not store the arrival state only in recent: %v %q", attrs["recent"], storedFlags)
 		}
 		for _, field := range []string{"mail", "body"} {
 			if _, present := attrs[field]; present {

@@ -227,8 +227,7 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 	}
 	flags := []string{imap.DraftFlag, imap.SeenFlag}
 	if row != nil {
-		current, _ := row["flags"].(string)
-		flags = strings.Split(current, ",")
+		flags = mailFlagsForRow(row)
 		if !HasFlag(flags, imap.SeenFlag) {
 			flags = append(flags, imap.SeenFlag)
 		}
@@ -248,9 +247,12 @@ func (dbResource *DbResource) SaveMailDraft(input MailDraftRequest, active *auth
 	if err != nil {
 		return nil, err
 	}
-	changes["recent"] = HasFlag(flags, imap.RecentFlag)
+	for key, value := range mailFlagAttributes(flags) {
+		changes[key] = value
+	}
+	// Editing a draft does not change the server's arrival state.
+	delete(changes, "recent")
 	changes["internal_date"] = row["internal_date"]
-	changes["flags"] = strings.Join(flags, ",")
 	changes["compose_key"] = input.ComposeKey
 	changes["draft_write_key"] = input.WriteKey
 	changes["draft_write_hash"] = contentHash
