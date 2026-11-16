@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -183,7 +184,7 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 		return response.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
 	}
 	const attachedWire = "Subject: Attached original\r\nFrom: original@example.test\r\n\r\n.Dot-start line\r\nExact attached bytes.\r\n"
-	prepare := func(subject string, includeBCC bool) (map[string]interface{}, string, []byte) {
+	prepare := func(subject string, includeBCC bool, extraParts ...map[string]interface{}) (map[string]interface{}, string, []byte) {
 		key := uuid.NewString()
 		content := map[string]interface{}{"subject": subject, "text": "Local SMTP नमस्ते", "html": "<p>Local SMTP नमस्ते</p><img src=\"cid:proof@smtp\">", "to": []map[string]interface{}{{"address": "recipient@localhost"}},
 			"in_reply_to": "<original@test>", "references": []string{"<original@test>"}, "parts": []map[string]interface{}{{"filename": "proof.png", "media_type": "image/png", "content_id": "proof@smtp", "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aH2kAAAAASUVORK5CYII="}, {"filename": "résumé.txt", "media_type": "text/plain", "base64": "cHJvb2Y="}}}
@@ -194,10 +195,14 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 				"filename": "original.eml", "media_type": "message/rfc822", "base64": base64.StdEncoding.EncodeToString([]byte(attachedWire)),
 			})
 		}
+		content["parts"] = append(content["parts"].([]map[string]interface{}), extraParts...)
 		saved := action("draft_save", "draft", map[string]interface{}{"account_ref": accountRef, "compose_key": key, "write_key": uuid.NewString(), "content": content})
 		submission := map[string]interface{}{"account_ref": accountRef, "compose_key": key, "submission_key": uuid.NewString(), "expected_revision": saved["revision"]}
 		queued := action("submit", "submission", submission)
 		ref := queued["reference_id"].(string)
+		if ref != saved["reference_id"] {
+			t.Fatal("submission did not preserve the canonical draft reference")
+		}
 		source := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail/source", alice, map[string]interface{}{"attributes": map[string]interface{}{"message_ref": ref}}, http.StatusOK)
 		encoded, _ := accessGroupsE2EFindString(source, "raw_base64")
 		raw, err := base64.StdEncoding.DecodeString(encoded)
@@ -294,6 +299,61 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 			t.Fatalf("accepted SMTP not attributed: %#v", status)
 		}
 	}
+	// Match the file from the Office browser size-recovery qualification and
+	// verify both the signed wire source and the independently decoded file.
+	const largeFilename = "retained.bin"
+	largeAttachment := bytes.Repeat([]byte{'A'}, 16*1024*1024)
+	largeSubmission, largeRef, largeWire := prepare("Large attachment submission", false, map[string]interface{}{
+		"filename": largeFilename, "media_type": "application/octet-stream", "base64": base64.StdEncoding.EncodeToString(largeAttachment),
+	})
+	process()
+	largeReceipt := receive()
+	if largeReceipt.from != "smtp-alice@smtp.test" || largeReceipt.to != "recipient@localhost" || !bytes.Equal(largeReceipt.data, largeWire) {
+		t.Fatal("large submission changed the SMTP recipient or signed MIME bytes")
+	}
+	outer, err := message.Read(bytes.NewReader(largeReceipt.data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outer.Header.Get("DKIM-Signature") == "" {
+		t.Fatal("large SMTP submission is missing its DKIM signature")
+	}
+	expectedHash := sha256.Sum256(largeAttachment)
+	var largePartCount int
+	fileHash := sha256.New()
+	if err := outer.Walk(func(_ []int, part *message.Entity, err error) error {
+		if err != nil {
+			return err
+		}
+		disposition, params, _ := part.Header.ContentDisposition()
+		if params["filename"] != largeFilename {
+			return nil
+		}
+		media, _, _ := part.Header.ContentType()
+		if disposition != "attachment" || media != "application/octet-stream" {
+			return fmt.Errorf("wrong disposition or content type for %s", largeFilename)
+		}
+		largePartCount++
+		length, err := io.Copy(fileHash, part.Body)
+		if err != nil || length != int64(len(largeAttachment)) {
+			return fmt.Errorf("decoded %d attachment bytes, expected %d: %v", length, len(largeAttachment), err)
+		}
+		return nil
+	}); err != nil || largePartCount != 1 || !bytes.Equal(fileHash.Sum(nil), expectedHash[:]) {
+		t.Fatalf("SMTP receiver did not recover exactly one intact large attachment: count %d, error %v", largePartCount, err)
+	}
+	largeStatus := action("submission_status", "submission", largeSubmission)
+	largeStates := largeStatus["recipients"].([]interface{})
+	if largeStatus["reference_id"] != largeRef || len(largeStates) != 1 || largeStates[0].(map[string]interface{})["state"] != "smtp_accepted" {
+		t.Fatalf("large SMTP submission lost canonical acceptance: %#v", largeStatus)
+	}
+	process()
+	select {
+	case <-receipts:
+		t.Fatal("accepted large attachment was redelivered")
+	default:
+	}
+	t.Logf("Loopback SMTP accepted %d signed MIME bytes and recovered %d attachment bytes (SHA-256 %x), without replay", len(largeWire), len(largeAttachment), fileHash.Sum(nil))
 	// A stalled final acknowledgment must expire through the actual action's
 	// deadline, retain uncertainty and stay ineligible for another attempt.
 	holdAck.Store(true)
