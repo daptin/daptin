@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/daptin/daptin/server/auth"
+	"github.com/emersion/go-message"
 	"github.com/google/uuid"
 )
 
@@ -181,12 +182,16 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 		response := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/mail_account/"+name, alice, map[string]interface{}{"attributes": map[string]interface{}{family: input}}, http.StatusOK)
 		return response.([]interface{})[0].(map[string]interface{})["Attributes"].(map[string]interface{})
 	}
+	const attachedWire = "Subject: Attached original\r\nFrom: original@example.test\r\n\r\n.Dot-start line\r\nExact attached bytes.\r\n"
 	prepare := func(subject string, includeBCC bool) (map[string]interface{}, string, []byte) {
 		key := uuid.NewString()
 		content := map[string]interface{}{"subject": subject, "text": "Local SMTP नमस्ते", "html": "<p>Local SMTP नमस्ते</p><img src=\"cid:proof@smtp\">", "to": []map[string]interface{}{{"address": "recipient@localhost"}},
 			"in_reply_to": "<original@test>", "references": []string{"<original@test>"}, "parts": []map[string]interface{}{{"filename": "proof.png", "media_type": "image/png", "content_id": "proof@smtp", "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aH2kAAAAASUVORK5CYII="}, {"filename": "résumé.txt", "media_type": "text/plain", "base64": "cHJvb2Y="}}}
 		if includeBCC {
 			content["bcc"] = []map[string]interface{}{{"address": "hidden@localhost"}}
+			content["parts"] = append(content["parts"].([]map[string]interface{}), map[string]interface{}{
+				"filename": "original.eml", "media_type": "message/rfc822", "base64": base64.StdEncoding.EncodeToString([]byte(attachedWire)),
+			})
 		}
 		saved := action("draft_save", "draft", map[string]interface{}{"account_ref": accountRef, "compose_key": key, "write_key": uuid.NewString(), "content": content})
 		submission := map[string]interface{}{"account_ref": accountRef, "compose_key": key, "submission_key": uuid.NewString(), "expected_revision": saved["revision"]}
@@ -241,7 +246,32 @@ func TestMailLoopbackSMTPAndCrashRealE2E(t *testing.T) {
 		if receipt.from != "smtp-alice@smtp.test" || !bytes.Equal(receipt.data, wire) || bytes.Contains(receipt.data, []byte("\r\nBcc:")) || !bytes.Contains(receipt.data, []byte("DKIM-Signature:")) {
 			t.Fatal("SMTP envelope or signed multipart MIME changed")
 		}
+		outer, err := message.Read(bytes.NewReader(receipt.data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		attached := false
+		if err := outer.Walk(func(_ []int, part *message.Entity, err error) error {
+			if err != nil {
+				return err
+			}
+			media, _, _ := part.Header.ContentType()
+			if media != "message/rfc822" {
+				return nil
+			}
+			disposition, params, _ := part.Header.ContentDisposition()
+			payload, err := io.ReadAll(part.Body)
+			if err != nil || attached || disposition != "attachment" || params["filename"] != "original.eml" ||
+				part.Header.Get("Content-Transfer-Encoding") != "7bit" || string(payload) != attachedWire {
+				return fmt.Errorf("SMTP attached RFC822 bytes, disposition or transfer encoding changed")
+			}
+			attached = true
+			return nil
+		}); err != nil || !attached {
+			t.Fatalf("SMTP receiver did not recover the exact 7bit .eml: %v", err)
+		}
 	}
+	t.Log("Loopback SMTP recovered exact 7bit .eml bytes, including a dot-start line, for To and Bcc")
 	if !recipients["recipient@localhost"] || !recipients["hidden@localhost"] {
 		t.Fatal("To/Bcc envelope recipients missing")
 	}
