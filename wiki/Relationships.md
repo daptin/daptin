@@ -329,16 +329,21 @@ curl "http://localhost:6336/api/mail_account?include=mail_server_id,user_account
 ## Group relationships and permissions
 
 Membership (account → group), sharing (resource → group), and the resource's
-own row permission are separate data. The dashboard can create links and edit
-relation permissions, and those edits persist after refresh. Follow
-[[Permissions#share-with-a-group]] for the canonical procedure.
+own row permission are separate data. Use the parent relationship endpoints
+below for linking, reading, and removing relationships. See
+[[Permissions#share-with-a-group]] for the distinction between membership and
+resource grants.
 
-Generated join tables are internal storage. Some routes are currently exposed
-and the dashboard uses a relation-record PATCH internally, so claiming they are
-all inaccessible is inaccurate. Their collection CRUD is not a supported guide
-workflow. Applications should use parent relationships for linking and reading.
-A nested relationship attribute update is also not interchangeable with the
-dashboard's permission save; see [[Permissions#api-boundaries-and-verification]].
+Generated join tables are internal storage and have no public JSON:API routes.
+Collection, record, and nested requests under `/api/{generated-join-table}`
+return 404, including for administrators. Their `world` records remain schema
+metadata; they do not advertise a supported CRUD collection. Internal actions
+and relationship operations retain their normal resource lifecycle.
+
+Clients that previously PATCHed generated join-row URLs must use
+relationship-scoped operations. The permission on a related object and the
+permission on its relationship are distinct; do not substitute an object-row
+permission update for a relationship grant.
 
 ## Relationship Endpoints
 

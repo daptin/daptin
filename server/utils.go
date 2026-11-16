@@ -103,14 +103,11 @@ func AddResourcesToApi2Go(api *api2go.API, tables []table_info.TableInfo, db dat
 		}
 
 		cruds[table.TableName] = res
-		if resource.EndsWithCheck(table.TableName, "_audit") {
+		// Relationships and actions still need the internal resource, but join
+		// storage is not a public JSON:API entity.
+		if table.IsJoinTable || resource.EndsWithCheck(table.TableName, "_audit") {
 			continue
 		}
-
-		//if table.IsJoinTable {
-		//	we do expose join table as web api
-		//continue
-		//}
 
 		func() {
 			defer func() {

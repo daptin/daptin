@@ -228,39 +228,27 @@ relation's permissions instead controls access to the account record; it does
 not configure the group's access to the model. Remove membership to remove an
 account from a group; clearing permission checkboxes is not membership removal.
 
-#### Dashboard workflow
+#### Client workflow
 
-As an administrator:
+Create and remove memberships and sharing links through the parent relationship
+endpoints in [[Relationships#relationship-endpoints]]. Keep membership changes
+separate from permission edits on the shared resource or its group grant.
 
-1. Create a group under **Users & Access → Groups**.
-2. Open the account's details, select **Groups → Add Group**, and attach that group.
-3. Open the resource to share, select **Groups → Add Group**, and attach the same group.
-4. In that resource's **Groups** tab, set the group's **Relation Permissions**.
-   Changes save automatically. For an execute-only group grant, enable Execute
-   and disable the other six group operations on that relation.
-5. Hard-refresh the page and confirm the checkboxes retain the saved values.
-6. Test the operation as an ordinary member, a nonmember, and a guest. Test
-   revocation too: disable Execute and repeat the member request.
+Clients must not read or PATCH generated join-table URLs: those REST routes
+are absent, including for administrators. Older dashboard and CLI versions that
+save relation permissions by PATCHing join rows require migration to
+relationship-scoped operations. For schema-managed grants, use explicit
+`DefaultGroups` and `AccessGroups` permissions as described below.
 
-This was verified on a fresh Docker `v0.13.49` instance for account–group and
-LLM-model–group relations: disabling Execute persisted after a hard refresh;
-re-enabling it on the model relation also persisted. Normal resource permission
-edits do not require a server restart.
+A resource row's `permission` and a resource–group relationship's `permission`
+are separate grants. Setting the resource row's permission to `0` does not
+revoke group grants. Disabling a group's Execute grant does not revoke owner,
+guest, authenticated, administrator, or other group grants.
 
-The **Permissions** tab edits the resource row's own bitmask. The **Groups** tab
-edits each resource–group relation's bitmask. They are separate grants. Setting
-row `permission` to `0` does not revoke group grants, and disabling a group's
-Execute grant does not revoke owner, guest, authenticated, administrator, or
-other group grants.
-
-The seven relation checkboxes edit the **Group** bits of the stored bitmask;
-other bits can remain set. Only Execute checked therefore describes the group
-grant, not necessarily a complete stored value of `524288`. For example, starting
-from `2097151`, turning off GroupExecute saves `1572863`. Leaving only Execute
-checked saves `540671` (`524288` plus the preserved lower `16383` bits), as
-verified after refresh on `v0.13.49`. Inspect the saved value before claiming an
-exact numeric mask. PATCHing a raw `permission` value
-replaces that record's entire bitmask.
+Group grants use the **Group** bits of the relationship's stored bitmask. Other
+bits can remain set, so an execute-only group grant does not necessarily mean
+the entire stored bitmask equals `524288`. Replacing a raw `permission` value
+replaces that record's entire bitmask; it does not update another record's grant.
 
 | Value | Meaning for execution |
 |-------|-----------------------|
@@ -282,19 +270,14 @@ Create and inspect links through parent resource relationships; see
 [[Relationships#relationship-endpoints|Relationship Endpoints]]. Use public
 reference IDs, not internal numeric IDs or generated join-table names.
 
-Relationship storage exists internally, but its generated table names are not
-the application-facing CRUD contract. In `v0.13.49`, the dashboard internally
-PATCHes those relation records to save permission changes. That working
-implementation does **not** mean applications should list or manage generated
-join resources directly; their collection routes can fail. Use the dashboard
-workflow above for runtime group permission editing.
+Generated relationship storage is internal. Its collection, record, and nested
+REST routes return 404. A `world` metadata record does not make its storage table
+a public resource. Use the parent relationship APIs for links and related data.
 
-Do not treat a nested `attributes.permission` in a parent relationship request
-as equivalent to the dashboard save. In `v0.13.46`, a resource-to-group nested
-update returned success while discarding that field; the inverse group-to-resource
-update persisted it. This is a direction-specific nested-update inconsistency,
-not evidence that dashboard permission editing is broken. A success status
-alone is insufficient: read back the relation and test effective access.
+A relationship grant belongs to the link between a resource and a group. Editing
+the resource row's `permission` changes a different authority. Likewise, a
+nested `attributes.permission` must not be assumed to update the relationship:
+verify the saved grant and effective member/nonmember access.
 
 Creation uses configured defaults; supplying `permission` during resource
 creation does not select the initial bitmask. Defaults are not universally
