@@ -64,7 +64,7 @@ func thunderbirdFixtureCertificate(t *testing.T, hostname string) (map[string]in
 	}, root
 }
 
-func exerciseMailWithThunderbird(t *testing.T, driver, address, hostname, root string) uint32 {
+func exerciseMailWithThunderbird(t *testing.T, driver, address, hostname, root string) (searchUID, archiveUID uint32) {
 	t.Helper()
 	ip, port, err := net.SplitHostPort(address)
 	if err != nil || ip != "127.0.0.1" || hostname != "localhost" || !filepath.IsAbs(driver) {
@@ -82,14 +82,18 @@ func exerciseMailWithThunderbird(t *testing.T, driver, address, hostname, root s
 		t.Fatalf("Thunderbird fixture: %v\n%s", err, output)
 	}
 	t.Logf("%s", output)
-	for _, line := range strings.Split(string(output), "\n") {
-		if value, found := strings.CutPrefix(line, "Thunderbird online HEADER UID: "); found {
-			uid, err := strconv.ParseUint(value, 10, 32)
-			if err == nil && uid != 0 {
-				return uint32(uid)
+	readUID := func(prefix string) uint32 {
+		t.Helper()
+		for _, line := range strings.Split(string(output), "\n") {
+			if value, found := strings.CutPrefix(line, prefix); found {
+				uid, err := strconv.ParseUint(value, 10, 32)
+				if err == nil && uid != 0 {
+					return uint32(uid)
+				}
 			}
 		}
+		t.Fatalf("Thunderbird did not report %s", prefix)
+		return 0
 	}
-	t.Fatal("Thunderbird did not report the UID returned by online HEADER search")
-	return 0
+	return readUID("Thunderbird online HEADER UID: "), readUID("Thunderbird Archive UID: ")
 }

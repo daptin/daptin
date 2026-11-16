@@ -102,8 +102,12 @@ appends a mixed plain-text draft with a binary attachment, and uses its online
 search session to find the draft by a custom header. The driver requires the
 matching command in Thunderbird's IMAP trace. Daptin HTTP checks the returned
 UID and decoded attachment, then adopts the draft without changing the
-canonical reference, mailbox or UID. This option runs in place of the optional
-Mutt case.
+canonical reference, mailbox or UID. Finally, Thunderbird moves a flagged
+multipart fixture from Inbox to Archive through its own move service. The
+driver checks that Thunderbird actually sent UID MOVE, removed the Inbox
+entry, and rendered the message at its Archive UID. Daptin HTTP compares that
+UID and the original canonical reference, flags and exact MIME bytes.
+This option runs in place of the optional Mutt case.
 
 `TestMailLoopbackSMTPAndCrashRealE2E` binds an ephemeral unprivileged
 **127.0.0.1** SMTP port and configures the disposable server through the normal

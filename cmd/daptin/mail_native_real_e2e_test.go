@@ -324,10 +324,31 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		}
 		clearFlags(call("message_state", "message", message))
 		var passed bool
-		var thunderbirdSearchUID uint32
+		var thunderbirdSearchUID, thunderbirdArchiveUID uint32
+		var archiveRef, archiveBox string
+		var beforeArchive map[string]interface{}
+		var archiveMIME []byte
 		if thunderbird != "" {
+			archiveMIME = []byte("From: native-alice@native.test\r\nSubject: Thunderbird archive fixture\r\n" +
+				"Message-ID: <thunderbird-archive-fixture@test>\r\nMIME-Version: 1.0\r\n" +
+				"Content-Type: multipart/mixed; boundary=archive-proof\r\n\r\n" +
+				"--archive-proof\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nMove kept the original message body.\r\n" +
+				"--archive-proof\r\nContent-Type: application/octet-stream\r\n" +
+				"Content-Disposition: attachment; filename=archived.bin\r\nContent-Transfer-Encoding: base64\r\n\r\nAP9wcm9vZg==\r\n--archive-proof--\r\n")
+			if err := native.Append("INBOX", []string{imap.FlaggedFlag}, time.Now(), bytes.NewReader(archiveMIME)); err != nil {
+				t.Fatalf("seed Thunderbird Inbox fixture: %v", err)
+			}
+			if err := native.Append("Archive", nil, time.Now(), strings.NewReader("From: native-alice@native.test\r\nSubject: Archive existing message\r\n\r\nKeep this message.\r\n")); err != nil {
+				t.Fatalf("seed Thunderbird Archive: %v", err)
+			}
+			archiveRef = accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Thunderbird archive fixture")
+			archiveBox = accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail_box", "name", "Archive")
+			beforeArchive = call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": archiveRef})
+			if beforeArchive["mail_box_id"] == archiveBox || !bytes.Equal(source(archiveRef), archiveMIME) {
+				t.Fatal("Thunderbird archive fixture was not stored unchanged in its source mailbox")
+			}
 			passed = t.Run("desktop_thunderbird_starttls", func(t *testing.T) {
-				thunderbirdSearchUID = exerciseMailWithThunderbird(t, thunderbird, address, imapHostname, publicPEM)
+				thunderbirdSearchUID, thunderbirdArchiveUID = exerciseMailWithThunderbird(t, thunderbird, address, imapHostname, publicPEM)
 			})
 		} else {
 			passed = t.Run("desktop_mutt_starttls", func(t *testing.T) {
@@ -344,6 +365,13 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		t.Log("Daptin HTTP confirmed the desktop client updated Seen and Flagged on the same canonical draft UID")
 		clearFlags(state)
 		if thunderbird != "" {
+			archived := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": archiveRef})
+			if archived["reference_id"] != archiveRef || archived["mail_box_id"] != archiveBox || archived["uid"] != float64(thunderbirdArchiveUID) ||
+				archived["uid"] == beforeArchive["uid"] || archived["flagged"] != true || archived["deleted"] != false ||
+				!bytes.Equal(source(archiveRef), archiveMIME) {
+				t.Fatal("Office did not observe the original canonical message and MIME at Thunderbird's Archive UID")
+			}
+			t.Log("Daptin HTTP confirmed Thunderbird's Archive UID on the original reference, with the flagged state and exact multipart MIME")
 			appended := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "mail", "subject", "Thunderbird native draft")
 			appendedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": appended})
 			if appendedState["mail_box_id"] != state["mail_box_id"] || appendedState["uid"] == state["uid"] ||
