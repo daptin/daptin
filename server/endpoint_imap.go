@@ -7,7 +7,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/artpar/go-imap-idle"
 	"github.com/artpar/go-imap/server"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
@@ -32,7 +31,6 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 	imapServer.Debug = nil
 	imapServer.AllowInsecureAuth = false
 	imapServer.MaxLiteralSize = 25 * 1024 * 1024
-	imapServer.Enable(idle.NewExtension())
 	imapServer.Enable(&selectedIMAPExtension{})
 	imapServer.Enable(&bodyIMAPExtension{})
 

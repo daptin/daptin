@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
 	encodingjson "encoding/json"
 	"errors"
 	"fmt"
@@ -772,26 +773,78 @@ func (dimb *DaptinImapMailBox) Expunge() error {
 	return err
 }
 
-// ReadIMAPSelection reads the ordered mailbox UIDs and the Recent count from
-// one metadata query. The protocol connection owns its last announced view.
+// IMAPIdleUpdate holds one authorized membership snapshot and its store
+// marker. The marker lets an idle connection skip unchanged UID inventories.
+type IMAPIdleUpdate struct {
+	UIDs           []uint32
+	Recent         uint32
+	nextUID, count int64
+}
+
 func (dimb *DaptinImapMailBox) ReadIMAPSelection(consumeRecent bool) ([]uint32, uint32, error) {
-	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
+	update, err := dimb.readIMAPSelection(context.Background(), consumeRecent, false, nil)
 	if err != nil {
 		return nil, 0, err
+	}
+	return update.UIDs, update.Recent, nil
+}
+
+func (dimb *DaptinImapMailBox) ReadIMAPIdleSelection(ctx context.Context, consumeRecent bool, previous *IMAPIdleUpdate) (*IMAPIdleUpdate, error) {
+	return dimb.readIMAPSelection(ctx, consumeRecent, true, previous)
+}
+
+func (dimb *DaptinImapMailBox) readIMAPSelection(ctx context.Context, consumeRecent, idle bool, previous *IMAPIdleUpdate) (*IMAPIdleUpdate, error) {
+	conn := dimb.dbResource["mail_box"].Connection()
+	var transaction *sqlx.Tx
+	var err error
+	if idle {
+		starter, ok := conn.(interface {
+			BeginTxx(context.Context, *sql.TxOptions) (*sqlx.Tx, error)
+		})
+		if !ok {
+			return nil, errors.New("IMAP IDLE requires cancellable database transactions")
+		}
+		transaction, err = starter.BeginTxx(ctx, nil)
+	} else {
+		transaction, err = conn.Beginx()
+	}
+	if err != nil {
+		return nil, err
 	}
 	defer transaction.Rollback()
 	box, caller, err := dimb.authorizeRead(transaction)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	uids, recent, err := dimb.dbResource["mail"].imapSelectionUIDs(dimb.mailBoxId, transaction)
-	if err != nil {
-		return nil, 0, err
-	}
-	if consumeRecent && recent > 0 && dimb.canUpdateMailbox(box, caller, transaction) {
-		if err = dimb.dbResource["mail_box"].ClearRecentFlags(dimb.mailBoxId, transaction); err != nil {
-			return nil, 0, err
+
+	update := &IMAPIdleUpdate{}
+	if idle {
+		// UIDNEXT advances on insertion (including replacements). COUNT
+		// catches removal without insertion. Authorization is checked
+		// even when neither changes. Skip full UID scans while quiet.
+		update.nextUID, err = ResourceRowInt64(box["nextuid"])
+		if err != nil {
+			return nil, err
+		}
+		update.count, err = dimb.dbResource["mail"].imapSelectionCount(ctx, dimb.mailBoxId, transaction)
+		if err != nil {
+			return nil, err
+		}
+		if previous != nil && previous.nextUID == update.nextUID && previous.count == update.count {
+			return nil, transaction.Commit()
 		}
 	}
-	return uids, recent, transaction.Commit()
+	update.UIDs, update.Recent, err = dimb.dbResource["mail"].imapSelectionUIDs(ctx, dimb.mailBoxId, transaction)
+	if err != nil {
+		return nil, err
+	}
+	if consumeRecent && update.Recent > 0 && dimb.canUpdateMailbox(box, caller, transaction) {
+		if err = dimb.dbResource["mail_box"].ClearRecentFlags(dimb.mailBoxId, transaction); err != nil {
+			return nil, err
+		}
+	}
+	if err := transaction.Commit(); err != nil {
+		return nil, err
+	}
+	return update, nil
 }

@@ -543,8 +543,53 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	revision, _ := accessGroupsE2EFindString(parsed, "revision")
 	draft["draft_ref"], draft["compose_key"], draft["write_key"], draft["expected_revision"] = nativeRef, uuid.NewString(), uuid.NewString(), revision
 	draft["content"].(map[string]interface{})["subject"] = "Adopted native draft"
+	idling, idleRead := openMailIdleFixture(t, address, tlsConfig)
 	adopted := call("draft_save", "draft", draft)
 	adoptedState := call("message_state", "message", map[string]interface{}{"account_ref": accountRef, "message_ref": nativeRef})
+	_ = idling.SetDeadline(time.Now().Add(7 * time.Second))
+	for _, want := range []string{"* 1 EXPUNGE\r\n", fmt.Sprintf("* %d EXISTS\r\n", beforeEdit.Messages), fmt.Sprintf("* %d RECENT\r\n", beforeEdit.Recent)} {
+		if line, err := idleRead.ReadString('\n'); err != nil || line != want {
+			t.Fatalf("passive IDLE draft replacement: got %q, want %q: %v", line, want, err)
+		}
+	}
+	if _, err := io.WriteString(idling, "DONE\r\n"); err != nil {
+		t.Fatal(err)
+	}
+	if line, err := idleRead.ReadString('\n'); err != nil || !strings.HasPrefix(line, "i OK ") {
+		t.Fatalf("IDLE completion: %q %v", line, err)
+	}
+	if _, err := io.WriteString(idling, "n NOOP\r\n"); err != nil {
+		t.Fatal(err)
+	}
+	if line, err := idleRead.ReadString('\n'); err != nil || !strings.HasPrefix(line, "n OK ") {
+		t.Fatalf("NOOP after IDLE repeated updates or lost the parser boundary: %q %v", line, err)
+	}
+	if status, err := native.Status("Native/2026", []imap.StatusItem{imap.StatusRecent}); err != nil || beforeEdit.Recent == 0 || status.Recent != beforeEdit.Recent {
+		t.Fatalf("read-only IDLE consumed Recent: %v, %v", status, err)
+	}
+	t.Log("Read-only IDLE announced the replacement without polling, kept Recent, and DONE stopped duplicate updates")
+	func() {
+		_ = idling.SetDeadline(time.Now().Add(7 * time.Second))
+		if _, err := io.WriteString(idling, "r IDLE\r\n"); err != nil {
+			t.Fatal(err)
+		}
+		if line, err := idleRead.ReadString('\n'); err != nil || !strings.HasPrefix(line, "+ ") {
+			t.Fatalf("second IDLE continuation: %q %v", line, err)
+		}
+		permission := func(bits int64) {
+			accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail_account/"+accountRef, admin,
+				accessGroupsE2ERecordPayload("mail_account", accountRef, map[string]interface{}{"permission": bits}), http.StatusOK)
+		}
+		permission(0)
+		defer permission(private)
+		if line, err := idleRead.ReadString('\n'); err != nil || !strings.HasPrefix(line, "* BYE ") {
+			t.Fatalf("revoked IDLE must close before releasing mailbox data: %q %v", line, err)
+		}
+		if line, err := idleRead.ReadString('\n'); err != io.EOF || line != "" {
+			t.Fatalf("revoked IDLE connection did not close after BYE: %q %v", line, err)
+		}
+	}()
+	t.Log("IDLE checked authorization on an unchanged mailbox and disconnected the revoked session without mailbox updates")
 	// The database has renumbered its rows, but the client has not received
 	// an EXPUNGE yet. Sequence 1 must never resolve to the former sequence 2.
 	first, second := new(imap.SeqSet), new(imap.SeqSet)

@@ -16,6 +16,8 @@ func (*selectedIMAPExtension) Command(name string) server.HandlerFactory {
 	switch name {
 	case "EXAMINE", "SELECT":
 		return func() server.Handler { return &selectedIMAPSelect{examine: name == "EXAMINE"} }
+	case "IDLE":
+		return func() server.Handler { return &selectedIMAPIdle{} }
 	case "NOOP":
 		return func() server.Handler { return &selectedIMAPNoop{} }
 	case "APPEND":

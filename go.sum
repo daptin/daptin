@@ -267,8 +267,6 @@ github.com/artpar/go-guerrilla v1.5.2 h1:L9G1LaXwddgtXXby21gRexoFGAZ6hNV5aUKcw9q
 github.com/artpar/go-guerrilla v1.5.2/go.mod h1:sfKsJOlZNXa7BL0w5NPZIFvs+r1CYeqI521DZ+j9iGE=
 github.com/artpar/go-imap v1.0.5 h1:m73nUXjH2kwbYb5xkCdFJgxbjybriFWDy45aK9WYdJc=
 github.com/artpar/go-imap v1.0.5/go.mod h1:4Zwc4VDFgUo23eQTpRUZ1F2JMsgjgnaV+KsO2I8w8ss=
-github.com/artpar/go-imap-idle v1.0.2 h1:jvMquFXpidtAItwQEkmB6OtzxjV/5Jhu/Zik77iUimY=
-github.com/artpar/go-imap-idle v1.0.2/go.mod h1:WqQ0e132Pff2YVR0TIchrZ0mFpGFHjwObC6+nBCCALc=
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a h1:W3JRCnyixXReLtgazoi45+mXLosITx/juCTy9IPs5kE=
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a/go.mod h1:P/AQ+7EvskopP7BmztqwWtb8WLxGXlJnFpQWlru1cKg=
 github.com/artpar/parsemail v0.0.0-20260922110859-a096334436b5 h1:FiECA3DXiC6odW6JuqW1ok6boK4yyCtUAirMRKxX5wg=

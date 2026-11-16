@@ -20,19 +20,23 @@ func (box *selectedIMAPMailbox) syncSelection(consumeRecent bool) error {
 	if err != nil {
 		return err
 	}
+	return box.announceSelection(uids, recent)
+}
+
+func (box *selectedIMAPMailbox) announceSelection(uids []uint32, recent uint32) error {
 	announced := box.IMAPSequenceView()
 	removed := missingIMAPSequences(announced, uids)
 	// Descending order leaves all remaining sequence numbers valid as each
 	// untagged EXPUNGE renumbers the mailbox.
 	for i := len(removed) - 1; i >= 0; i-- {
-		if err = box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{removed[i], imap.RawString("EXPUNGE")})); err != nil {
+		if err := box.conn.WriteResp(imap.NewUntaggedResp([]interface{}{removed[i], imap.RawString("EXPUNGE")})); err != nil {
 			return err
 		}
 	}
 	if len(uids) > len(announced)-len(removed) {
 		status := imap.NewMailboxStatus(box.Name(), []imap.StatusItem{imap.StatusMessages, imap.StatusRecent})
 		status.Messages, status.Recent = uint32(len(uids)), recent
-		if err = box.conn.WriteResp(&responses.Select{Mailbox: status}); err != nil {
+		if err := box.conn.WriteResp(&responses.Select{Mailbox: status}); err != nil {
 			return err
 		}
 	}
