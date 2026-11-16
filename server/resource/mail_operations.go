@@ -144,8 +144,9 @@ func canonicalMailFlags(flags []string) []string {
 }
 func mailFlagAttributes(flags []string) map[string]interface{} {
 	flags = canonicalMailFlags(flags)
+	recent := HasFlag(flags, imap.RecentFlag)
 	stored := backendutil.UpdateFlags(flags, imap.RemoveFlags, []string{imap.RecentFlag})
-	return map[string]interface{}{"flags": strings.Join(stored, ","), "seen": HasFlag(flags, imap.SeenFlag), "recent": HasFlag(flags, imap.RecentFlag), "deleted": HasFlag(flags, imap.DeletedFlag)}
+	return map[string]interface{}{"flags": strings.Join(stored, ","), "seen": HasFlag(stored, imap.SeenFlag), "recent": recent, "deleted": HasFlag(stored, imap.DeletedFlag)}
 }
 
 // Recent is server-managed mailbox state, stored only in the recent column.
