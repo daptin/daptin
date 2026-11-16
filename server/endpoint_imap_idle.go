@@ -78,7 +78,12 @@ func (*selectedIMAPIdle) Handle(conn server.Conn) error {
 				continue // DONE or transport close; don't announce another update
 			}
 			if err != nil {
-				_ = conn.WriteResp(&imap.StatusResp{Type: imap.StatusRespBye, Info: "Cannot refresh selected mailbox"})
+				// The library acknowledges WriteResp before its final flush.
+				// Flush BYE before closing this transport and its reader.
+				if socket, ok := conn.(interface{ SetWriteDeadline(time.Time) error }); ok {
+					_ = socket.SetWriteDeadline(time.Now().Add(imapIdleOperationLimit))
+				}
+				_ = conn.WriteResp(idleEndResponse{})
 				return err
 			}
 			if update != nil {
@@ -86,6 +91,16 @@ func (*selectedIMAPIdle) Handle(conn server.Conn) error {
 			}
 		}
 	}
+}
+
+type idleEndResponse struct{}
+
+func (idleEndResponse) WriteTo(writer *imap.Writer) error {
+	bye := &imap.StatusResp{Type: imap.StatusRespBye, Info: "Cannot refresh selected mailbox"}
+	if err := bye.WriteTo(writer); err != nil {
+		return err
+	}
+	return writer.Flush()
 }
 
 func (box *selectedIMAPMailbox) pollIdle(parent context.Context, previous *resource.IMAPIdleUpdate) (*resource.IMAPIdleUpdate, error) {
