@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"encoding/base64"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -51,22 +54,19 @@ Tables:
 func TestMailUnpackActionCompositionRealE2E(t *testing.T) {
 	requireRealE2E(t)
 	t.Run("database-backed mail", func(t *testing.T) {
-		testMailUnpackActionCompositionRealE2E(t, mailUnpackE2ESchema, false, true)
+		testMailUnpackActionCompositionRealE2E(t, mailUnpackE2ESchema, false)
 	})
 	t.Run("cloud-store-backed mail", func(t *testing.T) {
-		testMailUnpackActionCompositionRealE2E(t, mailUnpackCloudStoreE2ESchema, true, false)
+		testMailUnpackActionCompositionRealE2E(t, mailUnpackCloudStoreE2ESchema, true)
 	})
 }
 
-func testMailUnpackActionCompositionRealE2E(t *testing.T, schema string, cloudStore bool, verifyDenial bool) {
+func testMailUnpackActionCompositionRealE2E(t *testing.T, schema string, cloudStore bool) {
 	t.Helper()
 	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: schema})
 	baseURL, client := fixture.URL, fixture.Client
 	adminToken := fixture.SignupAdmin(t)
-	var otherToken string
-	if verifyDenial {
-		otherToken = accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "mail-unpack-other")
-	}
+	otherToken := accessGroupsE2ESignupSigninUser(t, client, baseURL, adminToken, "mail-unpack-other")
 
 	mailWorldID := accessGroupsE2EFindResourceID(t, client, baseURL, adminToken, "world", "table_name", "mail")
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseURL+"/api/world/"+mailWorldID, adminToken,
@@ -139,6 +139,26 @@ func testMailUnpackActionCompositionRealE2E(t *testing.T, schema string, cloudSt
 		"permission":       int64(auth.UserRead | auth.UserExecute),
 	})
 
+	if cloudStore {
+		assetURL := baseURL + "/asset/mail/" + mailID + "/mail"
+		// Record creation queues the copy. Wait for the authorized asset route
+		// to serve the wire bytes before exercising the action exactly once.
+		waitForMailFixtureAsset(t, client, assetURL, adminToken, raw)
+		request, err := http.NewRequest(http.MethodGet, assetURL, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Authorization", "Bearer "+otherToken)
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != http.StatusForbidden && response.StatusCode != http.StatusNotFound {
+			t.Fatalf("second user received HTTP %d from the warm mail asset route", response.StatusCode)
+		}
+	}
+
 	response := accessGroupsE2ERequestJSON(t, client, http.MethodPost,
 		baseURL+"/action/mail/unpack_e2e?mail_id="+mailID, adminToken,
 		map[string]interface{}{"attributes": map[string]interface{}{}}, http.StatusOK)
@@ -147,9 +167,47 @@ func testMailUnpackActionCompositionRealE2E(t *testing.T, schema string, cloudSt
 		t.Fatalf("mail.unpack response body = %q, found=%v: %#v", body, ok, response)
 	}
 
-	if verifyDenial {
-		accessGroupsE2EAssertStatus(t, client, http.MethodPost,
-			baseURL+"/action/mail/unpack_e2e?mail_id="+mailID, otherToken,
-			map[string]interface{}{"attributes": map[string]interface{}{}}, http.StatusBadRequest)
+	accessGroupsE2EAssertStatus(t, client, http.MethodPost,
+		baseURL+"/action/mail/unpack_e2e?mail_id="+mailID, otherToken,
+		map[string]interface{}{"attributes": map[string]interface{}{}}, http.StatusBadRequest)
+}
+
+func waitForMailFixtureAsset(t *testing.T, client *http.Client, url, token string, expected []byte) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	ticker := time.NewTicker(25 * time.Millisecond)
+	defer ticker.Stop()
+	for attempts := 1; ; attempts++ {
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatalf("probe queued mail asset: %v", err)
+		}
+		status := response.StatusCode
+		data, err := io.ReadAll(io.LimitReader(response.Body, int64(len(expected))+1))
+		response.Body.Close()
+		if err != nil {
+			t.Fatalf("read queued mail asset: %v", err)
+		}
+		if status == http.StatusOK {
+			if !bytes.Equal(data, expected) {
+				t.Fatalf("mail asset returned %d unexpected bytes, want %d exact bytes", len(data), len(expected))
+			}
+			t.Logf("cloud mail bytes readable after %d asset request(s)", attempts)
+			return
+		}
+		if status != http.StatusNotFound {
+			t.Fatalf("probe queued mail asset: unexpected HTTP %d", status)
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("mail asset still missing after %d request(s): %v", attempts, ctx.Err())
+		case <-ticker.C:
+		}
 	}
 }
