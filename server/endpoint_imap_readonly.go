@@ -49,13 +49,15 @@ func (conn readOnlyIMAPResponse) WriteResp(response imap.WriterTo) error {
 	return conn.Conn.WriteResp(response)
 }
 
-// Preserve the concrete mailbox's polling and other read capabilities while
-// disabling the two implicit writes for this read-only selection.
+// Preserve the concrete mailbox's read capabilities while suppressing
+// implicit writes for this read-only selection.
 type readOnlyIMAPMailbox struct{ *resource.DaptinImapMailBox }
 
 func (box *readOnlyIMAPMailbox) ListMessages(uid bool, seqset *imap.SeqSet, items []imap.FetchItem, messages chan<- *imap.Message) error {
 	return box.ListMessagesReadOnly(uid, seqset, items, messages)
 }
+
+func (box *readOnlyIMAPMailbox) Poll() error { return box.PollReadOnly() }
 
 // CLOSE deselects a mailbox but must not expunge any read-only selection.
 func (*readOnlyIMAPMailbox) Expunge() error { return nil }

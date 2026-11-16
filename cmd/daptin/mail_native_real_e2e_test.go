@@ -265,6 +265,19 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if !readonly.ReadOnly || len(readonly.PermanentFlags) != 0 {
 		t.Errorf("EXAMINE advertised writable flag state: readOnly=%v permanent=%q", readonly.ReadOnly, readonly.PermanentFlags)
 	}
+	if readonly.Recent == 0 {
+		t.Fatal("readonly polling precondition: the mailbox has no recent messages")
+	}
+	if err = native.Noop(); err != nil {
+		t.Fatalf("read-only NOOP: %v", err)
+	}
+	polled, err := native.Select("Draft", true)
+	if err != nil {
+		t.Fatalf("EXAMINE after read-only NOOP: %v", err)
+	}
+	if polled.Recent != readonly.Recent {
+		t.Errorf("read-only NOOP changed RECENT from %d to %d", readonly.Recent, polled.Recent)
+	}
 	nonPeek := &imap.BodySectionName{}
 	read := make(chan *imap.Message, 2)
 	if err = native.UidFetch(seq, []imap.FetchItem{nonPeek.FetchItem()}, read); err != nil {
@@ -568,8 +581,12 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	}
 	// Keep the same authenticated connection while individual and parent grants
 	// are revoked. PEEK must not avoid reauthorization just because it is read-only.
-	if _, err = native.Select("Copies", false); err != nil {
+	beforeRevoke, err := native.Select("Copies", false)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if beforeRevoke.ReadOnly || beforeRevoke.Recent == 0 {
+		t.Fatal("polling revocation precondition: a writable mailbox with recent messages is required")
 	}
 	messageRef = copyRef
 	seq = new(imap.SeqSet)
@@ -588,6 +605,9 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 		t.Fatal("revoked mailbox STATUS succeeded")
 	}
 	patchGrant("mail_box", copyBox, int64(auth.UserPeek|auth.UserRead))
+	if err = native.Noop(); err != nil {
+		t.Errorf("NOOP after revoking selected mailbox writes: %v", err)
+	}
 	if err = native.Unsubscribe("Copies"); err == nil {
 		t.Fatal("read-only mailbox allowed subscription mutation")
 	}
@@ -636,6 +656,9 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	if !selected.ReadOnly || len(selected.PermanentFlags) != 0 {
 		t.Errorf("SELECT with a read-only mailbox grant advertised writable state: %v %q", selected.ReadOnly, selected.PermanentFlags)
 	}
+	if selected.Recent != beforeRevoke.Recent {
+		t.Errorf("NOOP after mailbox write revocation changed RECENT from %d to %d", beforeRevoke.Recent, selected.Recent)
+	}
 	checkSeenAfterFetch("SELECT with a read-only mailbox grant", false, false, false)
 	patchGrant("mail_box", copyBox, private)
 	patchGrant("mail_account", accountRef, int64(auth.UserPeek|auth.UserRead))
@@ -655,6 +678,13 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	checkSeenAfterFetch("PEEK FETCH after restoring writes", true, false, false)
 	checkSeenAfterFetch("non-PEEK FETCH after restoring writes", false, true, true)
 	checkSeenAfterFetch("non-PEEK FETCH for an already Seen message", false, true, false)
+	if err = native.Noop(); err != nil {
+		t.Fatalf("writable NOOP after restoring grants: %v", err)
+	}
+	selected, err = native.Select("Copies", false)
+	if err != nil || selected.Recent != 0 {
+		t.Fatalf("writable NOOP did not consume RECENT: %v %v", selected, err)
+	}
 	patchGrant("mail_account", accountRef, 0)
 	fetch(true)
 	list(true)

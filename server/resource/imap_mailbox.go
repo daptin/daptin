@@ -761,12 +761,22 @@ func (dimb *DaptinImapMailBox) Expunge() error {
 // Poll implements backend.MailboxPoller. Called by go-imap on NOOP to check
 // for new messages and send EXISTS updates to the client.
 func (dimb *DaptinImapMailBox) Poll() error {
+	return dimb.poll(false)
+}
+
+// PollReadOnly reports arrivals without consuming Recent on EXAMINE.
+func (dimb *DaptinImapMailBox) PollReadOnly() error {
+	return dimb.poll(true)
+}
+
+func (dimb *DaptinImapMailBox) poll(readOnly bool) error {
 	transaction, err := dimb.dbResource["mail_box"].Connection().Beginx()
 	if err != nil {
 		return err
 	}
 	defer transaction.Rollback()
-	if _, _, err = dimb.authorizeRead(transaction); err != nil {
+	box, caller, err := dimb.authorizeRead(transaction)
+	if err != nil {
 		return err
 	}
 	status, err := dimb.dbResource["mail_box"].GetMailBoxStatus(dimb.mailAccountId, dimb.mailBoxId, transaction)
@@ -783,9 +793,12 @@ func (dimb *DaptinImapMailBox) Poll() error {
 		dimb.lock.Unlock()
 	}
 
-	// Clear recent flags (write operation, uses db directly)
-	if err = dimb.dbResource["mail_box"].ClearRecentFlags(dimb.mailBoxId, transaction); err != nil {
-		return err
+	// EXAMINE must not consume Recent. Recheck rights for sessions that
+	// selected a writable mailbox before their write grant was revoked.
+	if !readOnly && dimb.canUpdateMailbox(box, caller, transaction) && status.Recent > 0 {
+		if err = dimb.dbResource["mail_box"].ClearRecentFlags(dimb.mailBoxId, transaction); err != nil {
+			return err
+		}
 	}
 	return transaction.Commit()
 }
