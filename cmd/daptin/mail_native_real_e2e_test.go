@@ -212,6 +212,10 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	}
 	seq := new(imap.SeqSet)
 	seq.AddNum(uid)
+	checkNativeDestinationRecovery(t, native, seq, raw, func(bits int64) {
+		accessGroupsE2EAssertStatus(t, fixture.Client, http.MethodPatch, fixture.URL+"/api/mail_account/"+accountRef, admin,
+			accessGroupsE2ERecordPayload("mail_account", accountRef, map[string]interface{}{"permission": bits}), http.StatusOK)
+	}, private)
 	fetch := func(wantError bool) *imap.Message {
 		channel := make(chan *imap.Message, 10)
 		section := &imap.BodySectionName{Peek: true}
@@ -718,6 +722,78 @@ func TestMailNativeRoundTripRealE2E(t *testing.T) {
 	patchGrant("mail_account", accountRef, 0)
 	fetch(true)
 	list(true)
+}
+
+func checkNativeDestinationRecovery(t *testing.T, native *imapclient.Client, seq *imap.SeqSet, raw []byte, setGrant func(int64), private int64) {
+	t.Helper()
+	appendCommand := func(name string) imap.Commander {
+		return &commands.Append{Mailbox: name, Message: bytes.NewReader(raw)}
+	}
+	first := new(imap.SeqSet)
+	first.AddNum(1)
+	copyCommand := func(name string) imap.Commander {
+		return &commands.Copy{SeqSet: first, Mailbox: name}
+	}
+	uidCopyCommand := func(name string) imap.Commander {
+		return &commands.Uid{Cmd: &commands.Copy{SeqSet: seq, Mailbox: name}}
+	}
+	checkNo := func(label string, command imap.Commander, tryCreate bool) {
+		t.Helper()
+		status, err := native.Execute(command, nil)
+		if err != nil || status == nil || status.Type != imap.StatusRespNo || (status.Code == imap.CodeTryCreate) != tryCreate {
+			t.Errorf("%s = %v, %v; want NO with TRYCREATE=%v", label, status, err, tryCreate)
+		}
+	}
+	for _, op := range []struct {
+		name    string
+		command func(string) imap.Commander
+	}{
+		{"NativeMissingAppend", appendCommand},
+		{"NativeMissingCopy", copyCommand},
+		{"NativeMissingUIDCopy", uidCopyCommand},
+	} {
+		checkNo(op.name, op.command(op.name), true)
+		if _, err := native.Status(op.name, []imap.StatusItem{imap.StatusMessages}); err == nil {
+			t.Fatalf("%s implicitly created its destination", op.name)
+		}
+		if err := native.Create(op.name); err != nil {
+			t.Fatal(err)
+		}
+		status, err := native.Execute(op.command(op.name), nil)
+		if err != nil || status == nil || status.Type != imap.StatusRespOk {
+			t.Fatalf("%s retry after explicit CREATE: %v, %v", op.name, status, err)
+		}
+		if dest, err := native.Status(op.name, []imap.StatusItem{imap.StatusMessages}); err != nil || dest.Messages != 1 {
+			t.Fatalf("%s has the wrong message count after retry: %v, %v", op.name, dest, err)
+		}
+		if _, err := native.Select(op.name, true); err != nil {
+			t.Fatal(err)
+		}
+		section := &imap.BodySectionName{Peek: true}
+		messages := make(chan *imap.Message, 2)
+		if err := native.Fetch(first, []imap.FetchItem{section.FetchItem()}, messages); err != nil {
+			t.Fatal(err)
+		}
+		message := <-messages
+		if message == nil || message.GetBody(section) == nil {
+			t.Fatalf("%s retry did not store a readable MIME body", op.name)
+		}
+		got, err := io.ReadAll(message.GetBody(section))
+		if err != nil || !bytes.Equal(got, raw) {
+			t.Fatalf("%s retry did not preserve the original MIME", op.name)
+		}
+		if _, err = native.Select("Draft", false); err != nil {
+			t.Fatal(err)
+		}
+		checkNo(op.name+" invalid destination", op.command("Native//Invalid"), false)
+	}
+	setGrant(int64(auth.UserPeek | auth.UserRead))
+	defer setGrant(private)
+	checkNo("APPEND without create authority", appendCommand("NativeMissingDenied"), false)
+	checkNo("UID COPY without create authority", uidCopyCommand("NativeMissingDenied"), false)
+	if !t.Failed() {
+		t.Log("Native APPEND, COPY and UID COPY reported TRYCREATE only for valid missing destinations with create authority; explicit CREATE and retry preserved the MIME")
+	}
 }
 
 func checkNativeMove(t *testing.T, native *imapclient.Client, fixture *daptinE2EFixture, admin, accountRef string,

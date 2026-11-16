@@ -1,9 +1,6 @@
 package resource
 
 import (
-	"errors"
-	"strings"
-
 	"github.com/artpar/go-imap"
 	daptinid "github.com/daptin/daptin/server/id"
 )
@@ -30,17 +27,10 @@ func (box *DaptinImapMailBox) MoveSelectedMessages(uid bool, set *imap.SeqSet, n
 	if err = mail.mailRowPermission("mail_box", source, caller, false, tx); err != nil {
 		return nil, nil, err
 	}
-	if strings.EqualFold(name, "INBOX") {
-		name = "INBOX"
-	}
+	name = imap.CanonicalMailboxName(name)
 	dest, err := box.dbResource["mail_box"].GetMailAccountBox(box.mailAccountId, name, tx)
-	if errors.Is(err, errMailBoxNotFound) && validateMailFolderName(name) == nil {
-		return nil, nil, &imap.ErrStatusResp{Resp: &imap.StatusResp{
-			Type: imap.StatusRespNo, Code: imap.CodeTryCreate, Info: "No such destination mailbox",
-		}}
-	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, imapDestinationError(name, err, true)
 	}
 	target := daptinid.InterfaceToDIR(dest["reference_id"])
 	if err = mail.mailRowPermission("mail_box", target, caller, false, tx); err != nil {

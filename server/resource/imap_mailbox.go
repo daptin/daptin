@@ -703,16 +703,23 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 	}
 	defer transaction.Rollback()
 
-	destinationMailBoxId, err := dimb.dbResource["mail_box"].GetMailAccountBox(dimb.mailAccountId, dest, transaction)
+	box, caller, err := dimb.authorizeRead(transaction)
 	if err != nil {
 		return err
+	}
+	dest = imap.CanonicalMailboxName(dest)
+	destinationMailBoxId, err := dimb.dbResource["mail_box"].GetMailAccountBox(dimb.mailAccountId, dest, transaction)
+	if err != nil {
+		canCreate := errors.Is(err, errMailBoxNotFound) &&
+			dimb.dbResource["mail"].mailAccountCanWrite(daptinid.InterfaceToDIR(box["mail_account_id"]), caller, transaction)
+		return imapDestinationError(dest, err, canCreate)
 	}
 
 	selections, err := dimb.dbResource["mail"].SelectMailBoxCandidates(dimb.mailBoxId, uid, seqset, transaction)
 	if err != nil {
 		return err
 	}
-	mails, err := dimb.readSelectedMails(selections, true, transaction)
+	mails, err := dimb.readIMAPMailRows(selections, caller, imapMailReadOptions{includeBody: true, requireAll: true}, transaction)
 	if err != nil {
 		return err
 	}
@@ -739,6 +746,15 @@ func (dimb *DaptinImapMailBox) CopyMessages(uid bool, seqset *imap.SeqSet, dest 
 
 	}
 	return transaction.Commit()
+}
+
+func imapDestinationError(name string, err error, canCreate bool) error {
+	if errors.Is(err, errMailBoxNotFound) && canCreate && validateMailFolderName(name) == nil {
+		return &imap.ErrStatusResp{Resp: &imap.StatusResp{
+			Type: imap.StatusRespNo, Code: imap.CodeTryCreate, Info: "No such destination mailbox",
+		}}
+	}
+	return err
 }
 
 // Expunge permanently removes all messages that have the \Deleted flag set

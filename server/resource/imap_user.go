@@ -297,7 +297,22 @@ func (diu *DaptinImapUser) GetMailboxWithTransaction(name string, transaction *s
 	}
 
 	if len(box) == 0 {
-		return nil, errors.New("no such mailbox")
+		// APPEND uses the backend sentinel to send NO [TRYCREATE]. A
+		// missing but invalid or unauthorized name is not a recovery hint.
+		if validateMailFolderName(name) == nil {
+			accountRef, err := mailReference(diu.mailAccountReferenceId)
+			if err != nil {
+				return nil, err
+			}
+			caller, err := diu.dbResource["mail"].MailSessionUser(diu.sessionUser, transaction)
+			if err != nil {
+				return nil, err
+			}
+			if diu.dbResource["mail"].mailAccountCanWrite(accountRef, caller, transaction) {
+				return nil, backend.ErrNoSuchMailbox
+			}
+		}
+		return nil, errMailBoxNotFound
 	}
 
 	_, caller, err := diu.dbResource["mail_box"].readMailBoxForSession(daptinid.InterfaceToDIR(box[0]["reference_id"]), diu.sessionUser, transaction)
