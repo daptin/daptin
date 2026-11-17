@@ -109,6 +109,9 @@ func outgoingDraft(sender string, raw []byte, at time.Time) ([]byte, []string, e
 // sender's canonical ownership is retained on every outbox recipient; no action
 // executor's temporary administrator membership enters this lifecycle.
 func (dbResource *DbResource) QueueOutgoingMail(account map[string]interface{}, sentRef daptinid.DaptinReferenceId, raw []byte, recipients []string, tx *sqlx.Tx) ([]daptinid.DaptinReferenceId, error) {
+	if isOfficeLocalMailbox(account) {
+		return nil, mailDraftError(422, "The local Office mailbox cannot send mail.")
+	}
 	owner, err := dbResource.MailAccountSessionUser(account, tx)
 	if err != nil {
 		return nil, err
@@ -156,6 +159,9 @@ func (dbResource *DbResource) SubmitMailDraft(input MailSubmissionRequest, activ
 	account, caller, err := dbResource.MailWriteAccount(input.AccountRef, active, tx)
 	if err != nil {
 		return nil, err
+	}
+	if isOfficeLocalMailbox(account) {
+		return nil, mailDraftError(422, "The local Office mailbox cannot send mail.")
 	}
 	row, err := dbResource.mailComposeRow(MailDraftRequest{AccountRef: input.AccountRef, ComposeKey: input.ComposeKey}, caller, tx, false)
 	if err != nil {
