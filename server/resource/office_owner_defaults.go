@@ -12,6 +12,7 @@ import (
 	"github.com/daptin/daptin/server/auth"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -31,14 +32,44 @@ func (dbResource *DbResource) ProvisionOfficeOwnerDefaults(userID int64, ref dap
 	if !IsAdminWithTransaction(owner, tx) {
 		return errors.New("Office defaults require the new administrator")
 	}
+	request := func(method, table string) api2go.Request {
+		r, _ := http.NewRequestWithContext(context.WithValue(context.Background(), "user", owner), method, "/api/"+table, nil)
+		return api2go.Request{PlainRequest: r}
+	}
+	makePrivate := func(table, ref string) error {
+		if _, err := uuid.Parse(ref); err != nil {
+			return fmt.Errorf("create %s returned no reference ID", table)
+		}
+		// The running resource model still has the bootstrap defaults; the
+		// administrator restart only reloads it after this claim commits.
+		model := api2go.NewApi2GoModelWithData(table, nil, 0, nil, map[string]interface{}{
+			"reference_id": ref, "permission": int64(auth.UserCRUD | auth.UserExecute),
+		})
+		if _, err := dbResource.Cruds[table].UpdateWithTransaction(model, request(http.MethodPatch, table), tx); err != nil {
+			return fmt.Errorf("make %s private: %w", table, err)
+		}
+		return nil
+	}
+	create := func(table string, attrs map[string]interface{}) (string, error) {
+		resp, err := dbResource.Cruds[table].CreateWithTransaction(api2go.NewApi2GoModelWithData(table, nil, 0, nil, attrs),
+			request(http.MethodPost, table), tx)
+		if err != nil {
+			return "", fmt.Errorf("create %s: %w", table, err)
+		}
+		model, ok := resp.Result().(api2go.Api2GoModel)
+		if !ok {
+			return "", fmt.Errorf("create %s returned an invalid resource", table)
+		}
+		ref := model.GetID()
+		return ref, makePrivate(table, ref)
+	}
 	owned := goqu.Ex{USER_ACCOUNT_ID_COLUMN: userID}
 	calendars, err := GetObjectByWhereClauseWithTransaction(calendarCollectionTable, tx, owned)
 	if err != nil {
 		return err
 	}
 	if len(calendars) == 0 {
-		dav := NewCalDAVBackend(dbResource.Cruds, owner, nil)
-		if err := dav.calendarCreate(calendarCollectionTable, dav.homePath()+"personal/",
+		if _, err := create(calendarCollectionTable,
 			map[string]interface{}{"name": "personal", "display_name": "Personal", "description": ""}, tx); err != nil {
 			return fmt.Errorf("create Personal calendar: %w", err)
 		}
@@ -47,23 +78,6 @@ func (dbResource *DbResource) ProvisionOfficeOwnerDefaults(userID int64, ref dap
 	accounts, err := GetObjectByWhereClauseWithTransaction("mail_account", tx, owned)
 	if err != nil || len(accounts) != 0 {
 		return err
-	}
-	create := func(resource string, attrs map[string]interface{}) (string, error) {
-		r, err := http.NewRequestWithContext(context.WithValue(context.Background(), "user", owner), http.MethodPost, "/api/"+resource, nil)
-		if err != nil {
-			return "", err
-		}
-		crud := dbResource.Cruds[resource]
-		resp, err := crud.CreateWithTransaction(api2go.NewApi2GoModelWithData(resource, nil, 0, nil, attrs),
-			api2go.Request{PlainRequest: r}, tx)
-		if err != nil {
-			return "", fmt.Errorf("create %s: %w", resource, err)
-		}
-		model, ok := resp.Result().(api2go.Api2GoModel)
-		if !ok || model.GetID() == "" {
-			return "", fmt.Errorf("create %s returned no reference ID", resource)
-		}
-		return model.GetID(), nil
 	}
 	server, err := create("mail_server", map[string]interface{}{
 		"hostname": officeLocalMailHost, "is_enabled": false, "listen_interface": "127.0.0.1:0",
@@ -82,6 +96,9 @@ func (dbResource *DbResource) ProvisionOfficeOwnerDefaults(userID int64, ref dap
 	if err != nil {
 		return err
 	}
-	_, err = dbResource.Cruds["mail_account"].CreateMailAccountBox(account, owner, "INBOX", tx)
-	return err
+	inbox, err := dbResource.Cruds["mail_account"].CreateMailAccountBox(account, owner, "INBOX", tx)
+	if err != nil {
+		return err
+	}
+	return makePrivate("mail_box", daptinid.InterfaceToDIR(inbox["reference_id"]).String())
 }
