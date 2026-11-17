@@ -1,8 +1,6 @@
 package actions
 
 import (
-	"os"
-
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -39,13 +37,6 @@ func (d *becomeAdminActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	var actionResponse actionresponse.ActionResponse
 	if d.cruds["world"].BecomeAdmin(user["id"].(int64), transaction) {
-		userRefId := daptinid.InterfaceToDIR(user["reference_id"])
-		if os.Getenv("DAPTIN_OFFICE_OWNER_DEFAULTS") == "true" {
-			if err := d.cruds["world"].ProvisionOfficeOwnerDefaults(user["id"].(int64), userRefId, transaction); err != nil {
-				_ = transaction.Rollback()
-				return nil, nil, []error{errors.Wrap(err, "provision Office owner defaults")}
-			}
-		}
 		commitError := transaction.Commit()
 		if commitError != nil {
 			return nil, nil, []error{commitError}
@@ -54,6 +45,7 @@ func (d *becomeAdminActionPerformer) DoAction(request actionresponse.Outcome, in
 		responseAttrs["window"] = "self"
 		responseAttrs["delay"] = 7000
 		actionResponse = resource.NewActionResponse("client.redirect", responseAttrs)
+		userRefId := daptinid.InterfaceToDIR(user["reference_id"])
 		resource.InvalidateAdminCacheForUser(userRefId)
 		d.requestRestart()
 	} else {
