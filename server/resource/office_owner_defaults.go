@@ -70,7 +70,7 @@ func (dbResource *DbResource) ProvisionOfficeOwnerDefaults(userID int64, ref dap
 	}
 	if len(calendars) == 0 {
 		if _, err := create(calendarCollectionTable,
-			map[string]interface{}{"name": "personal", "display_name": "Personal", "description": ""}, tx); err != nil {
+			map[string]interface{}{"name": "personal", "display_name": "Personal", "description": ""}); err != nil {
 			return fmt.Errorf("create Personal calendar: %w", err)
 		}
 	}
