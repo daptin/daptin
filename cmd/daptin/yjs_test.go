@@ -558,6 +558,14 @@ func TestYJSConcurrentPublishers(t *testing.T) {
 	connSub := connectAndSubscribe(t, docName, token)
 	defer connSub.Close()
 
+	// Finish every handshake before publishing. Otherwise later connections
+	// correctly receive persisted updates before their initial sync request.
+	publishers := make([]*gorillaWs.Conn, numPublishers)
+	for p := range publishers {
+		publishers[p] = connectAndSubscribe(t, docName, token)
+		defer publishers[p].Close()
+	}
+
 	// Launch concurrent publishers
 	var wg sync.WaitGroup
 	var sendErrors int64
@@ -568,7 +576,7 @@ func TestYJSConcurrentPublishers(t *testing.T) {
 		wg.Add(1)
 		go func(pubIdx int) {
 			defer wg.Done()
-			conn := connectAndSubscribe(t, docName, token)
+			conn := publishers[pubIdx]
 			defer conn.Close()
 
 			for m := 0; m < msgsPerPublisher; m++ {
