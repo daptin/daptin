@@ -23,7 +23,10 @@ curl -X POST http://localhost:6336/api/todo \
   }'
 ```
 
-**Response (201 Created):**
+**Response (201 Created):** This example assumes the deployed `todo` schema uses
+`DefaultPermission: 16256`. The server assigns initial row permissions from the
+loaded schema; there is no universal all-access default. See
+[[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]].
 ```json
 {
   "data": {
@@ -35,7 +38,7 @@ curl -X POST http://localhost:6336/api/todo \
       "reference_id": "abc123-def456-...",
       "created_at": "2026-01-24T10:30:00Z",
       "updated_at": "2026-01-24T10:30:00Z",
-      "permission": 2097151
+      "permission": 16256
     }
   }
 }

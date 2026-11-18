@@ -16,11 +16,13 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
 **Effects:**
 1. Creates `administrators` usergroup
 2. Adds requesting user to administrators
-3. Locks down all tables (admin-only access by default)
+3. Transitions generated bootstrap permissions to the post-bootstrap policy
 4. Disables action for future use
 
 Daptin restarts automatically after the claim; see [[First-Admin-Setup]] for
-the response and readiness procedure.
+the response and readiness procedure. Persistent YAML permissions are applied
+again on startup; onboarding does not make explicitly public deployment policy
+private. See [[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]].
 
 **Response:**
 ```json

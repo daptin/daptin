@@ -10,9 +10,16 @@
 
 Create `schema_product.yaml`:
 
+Complete [[First-Admin-Setup]] before creating application data. This example
+defines an administrator-managed table with owner-private records. See
+[[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]]
+for startup precedence, group access, and verification.
+
 ```yaml
 Tables:
   - TableName: product
+    Permission: 16256
+    DefaultPermission: 16256
     Columns:
       - Name: name
         DataType: varchar(500)
@@ -38,6 +45,7 @@ Tables:
 **Test it:**
 ```bash
 curl -X POST http://localhost:6336/api/product \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/vnd.api+json" \
   -d '{"data":{"type":"product","attributes":{"name":"Widget","price":19.99}}}'
 ```
@@ -218,6 +226,11 @@ Tables:
 
 Daptin loads all `schema_*.yaml` files from the working directory:
 
+Files in `DAPTIN_SCHEMA_FOLDER` are also loaded. Persistent files are reapplied
+on every restart, including their explicit permission declarations. See
+[[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]];
+database-only edits do not override a conflicting deployed declaration.
+
 ```
 your-app/
 ├── main.go
@@ -268,15 +281,20 @@ sleep 2
 
 ### Permission Denied
 
-**Check DefaultPermission** - Default (`2097151`) allows everything. For restricted access:
+**Check both permission gates.** `Permission` controls the table;
+`DefaultPermission` controls new rows. For an administrator-managed private table:
 
 ```yaml
 Tables:
   - TableName: sensitive
+    Permission: 16256
     DefaultPermission: 16256  # Only owner can access
 ```
 
-See [[Permissions|Permissions]] for permission calculator.
+Restart to load schema changes, then test a new row with the intended caller.
+Do not set `2097151` to fix a denial: it grants all operations and is reapplied
+from persistent YAML after restart. See
+[[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]].
 
 ---
 

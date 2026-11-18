@@ -10,12 +10,13 @@ Daptin uses a permission system to control who can access what data.
 
 ### Fresh Install
 
-On a fresh install, the system is **wide open** - anyone can do anything. This lets you:
+On a fresh install, generated bootstrap permissions grant broad access unless
+your schema explicitly restricts it. Keep the instance private while you:
 
 1. Sign up your first user
 2. Sign in
-3. Become administrator
-4. Explicitly lock and test public signup
+3. Become administrator and wait for the automatic restart
+4. Verify public signup is rejected and application permissions match your schema
 
 ### After Admin Setup
 
@@ -120,6 +121,99 @@ replace all previously stored permissions.
 
 ## Common Tasks
 
+### Deploy Permissions with Schema
+
+Declare application permissions explicitly in persistent YAML files. Treat
+these declarations as deployment policy, not as one-time defaults that onboarding
+will remove. For example, this administrator-managed table creates owner-private
+records:
+
+```yaml
+Tables:
+  - TableName: project
+    Permission: 16256
+    DefaultPermission: 16256
+    Columns:
+      - Name: name
+        DataType: varchar(100)
+        ColumnType: label
+```
+
+`Permission` controls the table/type gate. `DefaultPermission` supplies the
+initial permission of new rows. `16256` grants the owner all operations and
+grants no guest or group operations; administrators retain their administrator
+access. If ordinary users need table access, declare the appropriate
+`AccessGroups` separately; see [Schema Provisioning](#schema-provisioning-table-and-action-accessgroups).
+Changing a row to public does not by itself open a closed table gate.
+
+#### Startup Precedence
+
+Daptin loads built-in definitions and schema files, merges them with the stored
+`world` schema, and builds the runtime resources. For permission fields:
+
+| Configuration at startup | Effective value after restart |
+|---|---|
+| Explicit nonzero YAML permission | YAML value, including for built-in tables |
+| YAML omits the field; built-in definition supplies a nonzero value | Built-in value |
+| Both omit the field; an ordinary entity has a stored nonzero value | Stored value |
+| No configured or stored value | Bootstrap default before admin setup; post-bootstrap default afterward |
+
+Persistent `schema_*` files in the working directory or `DAPTIN_SCHEMA_FOLDER`
+are read on every startup. Do not leave an obsolete permission declaration in a
+deployed file and expect a database-only edit to override it. Avoid conflicting
+declarations for the same permission across files. Generated files whose names
+contain `_uploaded_` are removed after loading; they are not persistent deployment
+policy.
+
+The stored definitions of `world`, `action`, `usergroup`, generated relationship
+tables, and audit tables are not loaded through the ordinary entity-schema path.
+Use deployment schema declarations for their intended permissions rather than
+depending on database-only table-schema edits surviving restart. This concerns
+table definitions, not a wholesale reset of existing row or relationship grants.
+
+Omission and zero are not explicit deny-all declarations in the table-permission
+merge: zero does not override an existing nonzero value and can receive a default
+during schema initialization. Do not use `Permission: 0` or
+`DefaultPermission: 0` as a deployment recipe for closing a table. Action
+permissions have their own synchronization rules; see
+[[Actions-Overview#schema-managed-action-permissions|Schema-Managed Action Permissions]].
+
+#### Bootstrap Is Not Deployment Policy
+
+`2097151` grants every guest, owner, and group operation. It is the generated
+bootstrap value, but writing it explicitly in a persistent schema also declares
+an all-access deployment policy. Administrator onboarding transitions bootstrap
+values in the database and requests a restart; startup then applies the schema
+files again. An explicit YAML value of `2097151` can therefore make a table or
+its new rows all-access again. Do not use it to mean "open only until an
+administrator exists."
+
+If you omit permissions, built-in and stored definitions still participate in
+startup precedence. Declare the permissions required by your application instead
+of relying on a universal default. Audit tables have separate generated defaults.
+
+#### Apply and Verify
+
+1. Update the persistent schema files supplied to the deployment.
+2. Restart Daptin using [[Admin-Actions#restarting-daptin|the administrator restart action]]
+   or the deployment's normal process lifecycle. Observe readiness become
+   unavailable and then return to HTTP 200 before sending application traffic.
+   First-administrator onboarding requests this restart automatically.
+3. Read the entity's `world` resource. Confirm its `permission` and the
+   `DefaultPermission` inside `world_schema_json` match the intended policy.
+4. Create a new row through the normal resource API as an intended caller, then
+   read its `permission`. Test anonymous access and access from an unrelated
+   account; an administrator's successful read does not prove privacy.
+5. Inspect existing rows and sharing relationships separately. New defaults do
+   not repair previously stored row or relationship permissions.
+
+Table-schema changes, including `DefaultPermission`, require a restart to update
+the runtime model. Saving `world_schema_json` alone does not hot-reload it.
+Ordinary row-permission and group-relationship edits use the resource permission
+and cache-invalidation paths; they do not require a schema restart. For example,
+publish an individual row by explicitly changing its row permission and intended
+sharing grants, rather than broadening every future row's default.
+
 ### Account Visibility
 
 New accounts join the `users` group without granting that group read access to
@@ -141,7 +235,7 @@ separate:
 - `AccessGroups` opens the table/type gate for a usergroup.
 - Row `permission` and `DefaultPermission` decide which rows a caller can see.
 - Existing rows keep their current `permission`; changing `DefaultPermission`
-  only affects rows created after the schema change.
+  only affects rows created after the schema change is loaded by a restart.
 
 Example schema shape:
 
@@ -175,10 +269,10 @@ the request reach the table; the row permission should still keep each user's
 mail rows owner-scoped unless a mailbox is intentionally shared.
 
 If old mail rows were created with overly broad permissions, repair those rows
-explicitly after deploying the schema. For example, run an operator-controlled
-SQL or API migration that sets the row `permission` on the affected rows to the
-owner-only value you want. Verify with a normal user token, not only with an
-administrator token.
+explicitly after deploying the schema. Use permissioned JSON:API updates or a
+named action to set the affected rows' `permission` and revoke unintended sharing
+relationships. Verify with a normal user token, not only with an administrator
+token.
 
 ### Check Who Can Access a Table
 
@@ -338,7 +432,10 @@ curl -X POST http://localhost:6336/action/world/become_an_administrator \
   -d '{}'
 ```
 
-Server restarts. Sign in again to get admin token.
+Daptin restarts automatically. Wait for readiness to become unavailable and then
+return to HTTP 200. The existing token remains valid; signing in again is optional.
+See [Deploy Permissions with Schema](#deploy-permissions-with-schema) before
+creating application data.
 
 ### Add User to Admin Group
 

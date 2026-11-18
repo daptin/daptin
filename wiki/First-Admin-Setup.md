@@ -9,7 +9,9 @@ This guide covers the critical first 5 minutes with a fresh Daptin installation.
 
 ## Why This Matters
 
-**On a fresh install, Daptin is WIDE OPEN** - anyone can do anything.
+**Generated bootstrap permissions are broad.** Explicit schema permissions can
+restrict individual tables and actions, but a fresh deployment must still be
+kept private until administrator setup and access verification are complete.
 
 The first person to claim admin becomes the system administrator and transitions
 bootstrap permissions, including closing public signup. Verify that an
@@ -192,8 +194,17 @@ curl -s -X POST http://localhost:6336/action/world/become_an_administrator \
 
 **Daptin restarts automatically** after the claim commits. It drains active
 requests before restarting and initializes system tasks using the new
-administrator. Wait until `/ready` returns HTTP 200; no manual process or
-container restart is needed.
+administrator. Observe `/ready` become unavailable and then return to HTTP 200;
+no manual process or container restart is needed. A pre-restart HTTP 200 does
+not establish that the new runtime has loaded.
+
+The restart reapplies persistent schema files. Explicit YAML permissions remain
+deployment policy: `DefaultPermission: 2097151` does not mean "only before admin
+setup" and can restore all-access defaults after onboarding. Declare the intended
+table and new-row permissions, then verify a new row after readiness returns.
+See [[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]]
+for the configuration and verification procedure. Existing rows and sharing
+grants require separate inspection.
 
 **If you get "Unauthorized"**:
 
