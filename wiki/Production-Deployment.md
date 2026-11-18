@@ -174,16 +174,21 @@ iptables -A INPUT -p tcp --dport 5350 -j DROP
 
 #### Review Default Permissions
 
-```bash
-# Check default permission for new tables
-# Default: 2097151 (full access)
-# Production: Consider restrictive defaults
+Declare the table gate and new-row permissions explicitly in persistent schema
+files. This administrator-managed table creates owner-private rows:
 
-# In schema files:
+```yaml
 Tables:
   - TableName: sensitive_data
+    Permission: 16256
     DefaultPermission: 16256  # Owner-only by default
 ```
+
+Restart to load the schema and verify both new rows and existing sharing grants
+with the intended callers. Do not declare `2097151` as a temporary bootstrap
+setting: persistent files reapply it on every startup. Follow
+[[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]]
+for precedence and the verification procedure.
 
 #### Enable 2FA for Admins
 

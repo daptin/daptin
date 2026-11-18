@@ -1660,34 +1660,18 @@ if profile.verified_email != true {
 
 ### 8. Permission Model
 
-**New OAuth Users:** Created with default permission: `2097151`
+Do not assume every new account receives `2097151`. Account creation permissions
+must be checked against the deployed `user_account` schema and the resulting
+resource row. `2097151` grants all guest, owner, and group operations; it is not
+a safe application default or an administrator-role assignment.
 
-**What is 2097151?**
-
-Binary: `111111111111111111111` (21 bits set)
-
-Permissions:
-- Read: Yes
-- Write: Yes
-- Execute: Yes
-- Delete: Yes
-- ...all permissions...
-
-**Risk:** ⚠️ New OAuth users have FULL permissions by default
-
-**Solution:** Set restrictive default permissions:
-
-```sql
--- Update oauth_connect to specify permission level
--- (Not currently supported - would require code change)
-
--- OR manually adjust after creation
-UPDATE user_account
-SET permission = 1  -- Read-only
-WHERE email = 'newuser@gmail.com';
-```
-
-**Recommendation:** Implement role-based permissions with safe defaults
+Declare the intended table and new-account permissions in deployment YAML,
+restart to load the schema, and verify a newly created account with owner,
+unrelated-user, and anonymous access checks. Existing rows and group sharing
+grants require separate review through permissioned resource and relationship
+APIs. Follow [[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]]
+and [[Permissions#account-visibility|Account Visibility]]; do not repair accounts
+by editing database rows directly.
 
 ### 9. Rate Limiting
 

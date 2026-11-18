@@ -10,7 +10,8 @@ Reference for the fields in a Daptin resource definition.
 |----------|------|---------|----------|------------|-------------|
 | TableName | string | - | ✅ Yes | All | Table identifier (database name) |
 | Columns | array of objects | - | ✅ Yes | 1 | Column definitions |
-| DefaultPermission | int | 2097151 | No | All | Default access rights (octal) |
+| Permission | int bitmask | Startup policy | No | All | Table/type access gate |
+| DefaultPermission | int bitmask | Startup policy | No | All | Initial permissions for new rows |
 | Relations | array of objects | [] | No | Relationships.md | Foreign key relationships |
 | IsTopLevel | bool | true | No | 6 | Show in main navigation |
 | IsHidden | bool | false | No | 6 | Hide from /api/world listing |
@@ -101,34 +102,39 @@ Every table automatically gets:
 
 **Type:** `auth.AuthPermission` (int)
 **Required:** No
-**Default:** `2097151` (full access for all)
+**Default:** Determined by built-in, stored, and deployed schema configuration.
+Generated defaults depend on administrator setup; audit defaults are separate.
 
-Octal permission mask defining default access rights for new records.
+Integer bitmask defining the initial access rights of new records. YAML examples
+use decimal integers. It does not change the table gate or existing row grants.
+Declare it explicitly for deployed application tables, restart to load changes,
+and verify a newly created row. See
+[[Permissions#deploy-permissions-with-schema|Deploy Permissions with Schema]]
+for precedence, zero-value behavior, and the bootstrap boundary. `2097151` is
+all-access, not a safe universal application default or a temporary YAML setting.
 
 **Permission Calculation:**
 ```
 guest_perm | (owner_perm << 7) | (group_perm << 14)
 ```
 
-**Permission Values:**
-- 1 = Peek (read ID only)
-- 3 = Read
-- 7 = Read + Update
-- 15 = Read + Update + Delete
-- 31 = Read + Update + Delete + Create
-- 63 = Read + Update + Delete + Create + Refer
-- 127 = Full (all permissions)
+**Bits within each guest, owner, or group range:**
+- 1 = Peek
+- 2 = Read
+- 4 = Create
+- 8 = Update
+- 16 = Delete
+- 32 = Execute
+- 64 = Refer
+- 127 = All seven operations combined
 
 **Examples:**
 ```yaml
-# Everyone can read, owner can do everything, group can read+update
-DefaultPermission: 704385  # 1 | (127 << 7) | (42 << 14) = 704385
-
 # Only owner can do anything
 DefaultPermission: 16256   # 0 | (127 << 7) | (0 << 14)
 
-# Public read, owner full, group read
-DefaultPermission: 524419  # 3 | (127 << 7) | (3 << 14)
+# Guests can peek/read, owner has all operations, no group grant
+DefaultPermission: 16259   # 3 | (127 << 7) | (0 << 14)
 ```
 
 See [[Permissions|Permissions]] for detailed permission system.
@@ -763,7 +769,7 @@ Tables:
   - TableName: product
     TableDescription: "Product catalog with multi-language support"
     Icon: "shopping-cart"
-    DefaultPermission: 704385  # Guest=Read, Owner=Full, Group=Read+Update
+    DefaultPermission: 16259  # Guest=Peek+Read, Owner=Full, Group=None
     DefaultOrder: "-created_at"
     IsAuditEnabled: true       # Track price changes
     TranslationsEnabled: true  # Multi-language descriptions
