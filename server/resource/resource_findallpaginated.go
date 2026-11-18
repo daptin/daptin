@@ -1536,11 +1536,9 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 			if err != nil {
 				log.Warnf("[1334] failed to lookup foreign key value: %v => %v", refernceValueString, err)
 			} else {
-				refernceValueString = valueIds
-				refernceValueString, ok = valueIds[valuesArray[0]]
-				if !ok {
-					refernceValueString = valuesArray[0]
-				}
+				// A missing reference has no internal row ID. Keep the numeric
+				// zero value instead of passing a reference ID to an integer column.
+				refernceValueString = valueIds[valuesArray[0]]
 				filterQuery.Value = refernceValueString
 				log.Debugf("[FK] Final filter value for [%v]: %v", columnName, filterQuery.Value)
 			}

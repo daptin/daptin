@@ -66,6 +66,55 @@ func TestReferenceIDInFilter(t *testing.T) {
 	}
 }
 
+func TestForeignKeyFilterMissingReference(t *testing.T) {
+	statementbuilder.InitialiseStatementBuilder("sqlite3")
+	db := sqlx.MustOpen("sqlite3", ":memory:")
+	defer db.Close()
+	db.MustExec(`create table collection (id integer primary key, reference_id blob not null unique)`)
+	db.MustExec(`create table item (id integer primary key, collection_id integer)`)
+	existing := daptinid.DaptinReferenceId(uuid.New())
+	other := daptinid.DaptinReferenceId(uuid.New())
+	missing := daptinid.DaptinReferenceId(uuid.New())
+	db.MustExec(`insert into collection (id, reference_id) values (?, ?), (?, ?)`, 42, existing[:], 43, other[:])
+	db.MustExec(`insert into item (id, collection_id) values (1, 42), (2, 43), (3, null)`)
+	crud := &DbResource{
+		model: api2go.NewApi2GoModel("item", nil, 0, nil),
+		tableInfo: &table_info.TableInfo{TableName: "item", Columns: []api2go.ColumnInfo{{
+			ColumnName: "collection_id", IsForeignKey: true,
+			ForeignKeyData: api2go.ForeignKeyData{DataSource: "self", Namespace: "collection", KeyName: "id"},
+		}}},
+	}
+	tx := db.MustBegin()
+	defer tx.Rollback()
+	for _, test := range []struct {
+		name, operator, want string
+		reference            daptinid.DaptinReferenceId
+	}{
+		{"existing equal", "is", "[1]", existing},
+		{"existing unequal", "not", "[2]", existing},
+		{"missing equal", "is", "[]", missing},
+		{"missing unequal", "not", "[1 2]", missing},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			expression, err := crud.processQueryFilter(Query{ColumnName: "collection_id", Operator: test.operator, Value: test.reference.String()}, "item.", tx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			query, args, err := statementbuilder.Squirrel.Select("id").Prepared(true).From("item").Where(expression).Order(goqu.C("id").Asc()).ToSQL()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var ids []int
+			if err := tx.Select(&ids, query, args...); err != nil {
+				t.Fatal(err)
+			}
+			if fmt.Sprint(ids) != test.want {
+				t.Fatalf("IDs = %v, want %s", ids, test.want)
+			}
+		})
+	}
+}
+
 func TestLimitedReferenceIDLookupBoundsMatchingRows(t *testing.T) {
 	statementbuilder.InitialiseStatementBuilder("sqlite3")
 	db := sqlx.MustOpen("sqlite3", ":memory:")
