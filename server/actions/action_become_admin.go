@@ -37,7 +37,7 @@ func (d *becomeAdminActionPerformer) DoAction(request actionresponse.Outcome, in
 
 	var actionResponse actionresponse.ActionResponse
 	if d.cruds["world"].BecomeAdmin(user["id"].(int64), transaction) {
-		commitError := resource.CommitBecomeAdmin(transaction, d.cruds)
+		commitError := transaction.Commit()
 		if commitError != nil {
 			return nil, nil, []error{commitError}
 		}

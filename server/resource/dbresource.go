@@ -16,7 +16,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/artpar/api2go/v2"
@@ -37,7 +36,6 @@ type DbResource struct {
 	db                   sqlx.Ext
 	connection           database.DatabaseConnection
 	tableInfo            *table_info.TableInfo
-	liveTableInfo        atomic.Pointer[table_info.TableInfo]
 	Cruds                map[string]*DbResource
 	ms                   *MiddlewareSet
 	ActionHandlerMap     map[string]actionresponse.ActionPerformerInterface
@@ -495,21 +493,8 @@ func IsAdminWithTransaction(userReferenceId *auth.SessionUser, transaction *sqlx
 
 }
 
-// TableInfo returns the live table metadata published by
-// ApplyBecomeAdminLiveDefaults, falling back to the metadata built at startup.
 func (dbResource *DbResource) TableInfo() *table_info.TableInfo {
-	if live := dbResource.liveTableInfo.Load(); live != nil {
-		return live
-	}
 	return dbResource.tableInfo
-}
-
-// defaultPermission returns the live row default permission for this table.
-func (dbResource *DbResource) defaultPermission() int64 {
-	if table := dbResource.TableInfo(); table != nil {
-		return int64(table.DefaultPermission)
-	}
-	return dbResource.model.GetDefaultPermission()
 }
 
 func (dbResource *DbResource) ColumnMap() map[string]api2go.ColumnInfo {
