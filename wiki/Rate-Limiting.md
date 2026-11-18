@@ -17,7 +17,7 @@ The checks are cumulative. A request must pass the global limiter before it can 
 | Property | Global limiter | Metering plan limit |
 |---|---|---|
 | Scope | HTTP routes except `/ping` | Metering-enabled resource operations, actions, and LLM calls |
-| Identity | Client IP plus path | Active Daptin account, plan, metric, and window; guests share one account |
+| Identity | Connection peer IP plus path | Active Daptin account, plan, metric, and window; guests share one account |
 | Configuration | Versioned `limit.rate` JSON | `api_plan.limits` JSON array |
 | Window | One-second UTC window | UTC minute, hour, day, month, or membership period |
 | Storage | Olric DMap, with process-local fallback | Transactional `api_quota` rows |
@@ -25,10 +25,16 @@ The checks are cumulative. A request must pass the global limiter before it can 
 
 ## Global Request Limiter
 
-The global limiter runs before authentication. Its key is the resolved client
-IP plus request path; query parameters and the HTTP method are not part of the
-key. Different item paths therefore have different buckets, while `GET` and
-`POST` to the same path share one. Subsite routing uses host plus path.
+The global limiter runs before authentication. Its key is the connection peer
+IP from the remote address plus request path; query parameters and the HTTP
+method are not part of the key. Different item paths therefore have different
+buckets, while `GET` and `POST` to the same path share one. Subsite routing uses
+host plus path.
+
+Forwarding headers, including `X-Forwarded-For` and `X-Real-IP`, do not change
+the limiter identity. Behind a reverse proxy, clients using the same proxy IP
+share an allowance. Enforce individual client IP limits at the ingress proxy
+when needed, and size Daptin's route limits for the aggregate proxy traffic.
 
 The default is 500 requests in each one-second UTC window. When Olric is
 available, nodes share counters through the `http-rate-limit` DMap and entries

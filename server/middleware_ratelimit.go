@@ -101,7 +101,8 @@ func createRateLimiterMiddleware(rateConfig RateConfig, distributedCounter olric
 			limitValue = defaultRatePerSecond
 		}
 		window := now().UTC().Unix()
-		clientKey := c.ClientIP() + "\x00" + route
+		// Forwarding headers are caller-controlled; bind abuse protection to the connection peer.
+		clientKey := c.RemoteIP() + "\x00" + route
 		count, err := incrementDistributedRateCounter(c.Request.Context(), distributedCounter, clientKey, window)
 		if err != nil {
 			if distributedCounter != nil {

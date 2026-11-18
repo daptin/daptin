@@ -116,6 +116,61 @@ func TestRateLimiterSharesAllowanceThroughOlric(t *testing.T) {
 	}
 }
 
+func TestRateLimiterIgnoresForwardedClientIdentity(t *testing.T) {
+	for _, storage := range []string{"local", "olric"} {
+		t.Run(storage, func(t *testing.T) {
+			var counter olric.DMap
+			if storage == "olric" {
+				counter = startRateLimitTestOlric(t)
+			}
+			for _, subsite := range []bool{false, true} {
+				for _, header := range []string{"X-Forwarded-For", "X-Real-IP"} {
+					for _, peer := range []string{"192.0.2.1", "2001:db8::1"} {
+						t.Run(fmt.Sprintf("subsite=%t/%s/%s", subsite, header, peer), func(t *testing.T) {
+							path := fmt.Sprintf("/rate-test-forwarded/%t/%s", subsite, header)
+							route := path
+							if subsite {
+								route = "example.test" + path
+							}
+							router := gin.New() // Keep Gin's default trust of proxy headers.
+							router.Use(newTestRateLimiter(RateConfig{Version: "1", Limits: map[string]int{route: 2}}, counter, subsite))
+							calls := 0
+							router.GET(path, func(c *gin.Context) {
+								calls++
+								c.Status(http.StatusNoContent)
+							})
+							for i, want := range []int{http.StatusNoContent, http.StatusNoContent, http.StatusTooManyRequests, http.StatusTooManyRequests} {
+								request := httptest.NewRequest(http.MethodGet, path, nil)
+								request.Host = "example.test"
+								request.RemoteAddr = net.JoinHostPort(peer, strconv.Itoa(1234+i))
+								request.Header.Set(header, fmt.Sprintf("198.51.100.%d", i+1))
+								response := httptest.NewRecorder()
+								router.ServeHTTP(response, request)
+								if response.Code != want {
+									t.Fatalf("request %d with rotated header and source port: status=%d, want %d", i+1, response.Code, want)
+								}
+							}
+							if calls != 2 {
+								t.Fatalf("downstream calls=%d, want 2", calls)
+							}
+							// A distinct network peer gets its own allowance even with the same header.
+							request := httptest.NewRequest(http.MethodGet, path, nil)
+							request.Host = "example.test"
+							request.RemoteAddr = net.JoinHostPort("203.0.113.2", "1234")
+							request.Header.Set(header, "198.51.100.4")
+							response := httptest.NewRecorder()
+							router.ServeHTTP(response, request)
+							if response.Code != http.StatusNoContent {
+								t.Fatalf("distinct peer status=%d, want %d", response.Code, http.StatusNoContent)
+							}
+						})
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestRateLimiterConcurrentRequestsAcrossOlricMembers(t *testing.T) {
 	firstAddress, firstMembership, firstEmbedded := startRateLimitTestNode(t, "")
 	secondAddress, _, _ := startRateLimitTestNode(t, firstMembership)
