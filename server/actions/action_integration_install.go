@@ -235,8 +235,11 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 			contents := command.RequestBody.Value.Content
 
 			bodyMedia := contents.Get("application/json")
+			if bodyMedia == nil {
+				bodyMedia = contents.Get("application/x-www-form-urlencoded")
+			}
 			multipart := false
-			if bodyMedia == nil && contents.Get("application/x-www-form-urlencoded") == nil {
+			if bodyMedia == nil {
 				bodyMedia = contents.Get("multipart/form-data")
 				multipart = bodyMedia != nil
 			}
