@@ -249,6 +249,38 @@ your-app/
 
 ---
 
+## CSV data at startup
+
+Use the schema's top-level `Imports` list to load CSV data at startup:
+
+```yaml
+Imports:
+  - Entity: product
+    FileType: csv
+    FilePath: products.csv
+```
+
+Relative file paths are resolved under `DAPTIN_SCHEMA_FOLDER` when configured.
+Declare a stable lookup column with `IsUnique: true` in the table schema; for
+example, add it to the `product.name` column above. A file can then contain:
+
+```csv
+name,price
+Widget,24.99
+```
+
+The importer first attempts to create each row. If creation fails and a
+supplied single-column unique field matches an existing row, it updates that
+record through the normal resource lifecycle. The record keeps its public
+`reference_id`, supplied fields are updated, and omitted fields remain
+unchanged. A changed record advances its `version`, visible through the
+JSON:API resource.
+
+Choose one unambiguous unique lookup key for this workflow. For interactive
+file uploads through the `world/import_data` action, see
+[[Data-Actions#import_data|Data Actions]], which describes that action's
+validation and rollback behavior.
+
 ## Troubleshooting
 
 ### Tables Not Created
@@ -308,5 +340,5 @@ from persistent YAML after restart. See
 
 ---
 
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-11-19
 **Test Coverage:** Based on test suites 1-8
