@@ -48,3 +48,43 @@ func TestCalendarBusyIntervalsRecurrenceAndVisibility(t *testing.T) {
 		}
 	}
 }
+
+func TestCalendarBusyIntervalsHistoricalSeriesAndExpansionLimit(t *testing.T) {
+	for _, test := range []struct {
+		name, rule    string
+		wantIntervals int
+		wantError     bool
+	}{
+		{"ended history", "FREQ=DAILY;COUNT=3", 0, false},
+		{"old ongoing series", "FREQ=DAILY", 2, false},
+		{"dense ongoing series", "FREQ=MINUTELY", 0, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			input := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:old-series\r\nDTSTAMP:20200101T000000Z\r\nDTSTART:20200101T120000Z\r\nDTEND:20200101T130000Z\r\nRRULE:" + test.rule + "\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+			if test.wantError {
+				input = strings.ReplaceAll(input, "20200101T", "20261124T")
+			}
+			calendar, err := ical.NewDecoder(strings.NewReader(input)).Decode()
+			if err != nil {
+				t.Fatal(err)
+			}
+			start := time.Date(2026, 11, 24, 0, 0, 0, 0, time.UTC)
+			count := 0
+			intervals, err := calendarBusyIntervals(calendar, start, start.Add(48*time.Hour), &count)
+			if test.wantError {
+				if err == nil || !strings.Contains(err.Error(), "too many recurring free/busy instances") {
+					t.Fatalf("expected expansion limit, got %v", err)
+				}
+				return
+			}
+			if err != nil || len(intervals) != test.wantIntervals {
+				t.Fatalf("intervals=%v err=%v", intervals, err)
+			}
+			for _, interval := range intervals {
+				if interval.start.Before(start) || interval.end.After(start.Add(48*time.Hour)) {
+					t.Fatalf("interval outside requested window: %v", interval)
+				}
+			}
+		})
+	}
+}

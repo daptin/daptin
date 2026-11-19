@@ -823,7 +823,9 @@ full RFC 3744 ACL conformance.
 - `DAV:sync-token` discovery and `DAV:sync-collection` REPORT on calendar and
   address-book collections, including changed and removed objects;
 - calendar-query/calendar-multiget and addressbook-query/addressbook-multiget;
-- calendar free-busy-query REPORT with a bounded time range;
+- calendar free-busy-query REPORT with a bounded time range; the 1,000-object
+  limit counts only authorized objects contributing busy intervals in that range,
+  so unrelated calendar history does not consume it;
 - stable content ETags and conditional object PUT/DELETE protection;
 - per-row Daptin permissions for CalDAV and CardDAV, including direct access
   at an owner's URL when collection and object grants permit it;

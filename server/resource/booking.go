@@ -708,57 +708,59 @@ func (a *bookableAction) busy(page map[string]interface{}, calendars *bookingCal
 		if err != nil {
 			return nil, err
 		}
-		refs, err := GetLimitedReferenceIdByWhereClauseWithTransaction("calendar", tx, uint(calendarBusyMaxCandidates-candidates+1), goqu.Ex{"collection_id": id})
-		if err != nil {
-			return nil, err
-		}
-		candidates += len(refs)
-		if candidates > calendarBusyMaxCandidates {
-			return nil, bookingHTTP(http.StatusConflict, "required calendars exceed availability limit")
-		}
-		authorized := make([]daptinid.DaptinReferenceId, 0, len(refs))
-		crud := a.cruds["calendar"]
-		for _, ref := range refs {
-			if ignored[ref] {
-				continue
+		err = forEachCalendarBusyBatch(id, tx, func(refs []daptinid.DaptinReferenceId) error {
+			authorized := make([]daptinid.DaptinReferenceId, 0, len(refs))
+			crud := a.cruds["calendar"]
+			for _, ref := range refs {
+				if ignored[ref] {
+					continue
+				}
+				grant := GetObjectPermissionByReferenceIdWithTransaction("calendar", ref, tx)
+				if !grant.CanPeek(calendars.owner.UserReferenceId, calendars.owner.Groups, crud.AdministratorGroupId) &&
+					!grant.CanRead(calendars.owner.UserReferenceId, calendars.owner.Groups, crud.AdministratorGroupId) {
+					return bookingHTTP(http.StatusConflict, "required calendar contains an unreadable event")
+				}
+				authorized = append(authorized, ref)
 			}
-			grant := GetObjectPermissionByReferenceIdWithTransaction("calendar", ref, tx)
-			if !grant.CanPeek(calendars.owner.UserReferenceId, calendars.owner.Groups, crud.AdministratorGroupId) &&
-				!grant.CanRead(calendars.owner.UserReferenceId, calendars.owner.Groups, crud.AdministratorGroupId) {
-				return nil, bookingHTTP(http.StatusConflict, "required calendar contains an unreadable event")
+			if len(authorized) == 0 {
+				return nil
 			}
-			authorized = append(authorized, ref)
-		}
-		for offset := 0; offset < len(authorized); offset += 200 {
-			limit := offset + 200
-			if limit > len(authorized) {
-				limit = len(authorized)
-			}
-			rows, err := crud.readByReferenceIDsAfterAuthorizationWithTransaction(authorized[offset:limit], map[string]bool{"content": true},
+			rows, err := crud.readByReferenceIDsAfterAuthorizationWithTransaction(authorized, map[string]bool{"content": true},
 				a.request(http.MethodGet, "/api/calendar", calendars.owner), tx)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			if len(rows) != limit-offset {
-				return nil, errors.New("calendar availability rows are incomplete")
+			if len(rows) != len(authorized) {
+				return errors.New("calendar availability rows are incomplete")
 			}
 			for _, row := range rows {
 				data, err := calendars.backend.contentBytes("calendar", row)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				stored, err := ical.NewDecoder(bytes.NewReader(data)).Decode()
 				if err != nil {
-					return nil, err
+					return err
 				}
 				part, err := calendarBusyIntervals(stored, start, end, &instances)
 				if err != nil {
-					return nil, err
+					return err
+				}
+				if len(part) > 0 {
+					candidates++
+					if candidates > calendarBusyMaxCandidates {
+						return bookingHTTP(http.StatusConflict, "required calendars exceed availability limit")
+					}
 				}
 				intervals = append(intervals, part...)
 			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
 	}
+
 	return intervals, nil
 }
 

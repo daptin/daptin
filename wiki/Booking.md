@@ -37,6 +37,8 @@ Create a `bookable` through `/api/bookable` with these attributes:
 
 The override JSON is limited to 32 KiB and 366 dates. Replacement hours contain one to eight ordered, nonoverlapping local `HH:MM` windows; `closed:true` has no hours. Invalid overrides are rejected on create or update. Availability and reservation also validate the stored policy and fail closed if it is invalid. Times that do not exist or occur twice at a daylight-saving transition are not offered. Limits of zero mean no daily or weekly count limit. A bookable can include optional `questions` JSON for an external booking UI; Daptin does not render that UI.
 
+Availability allows up to 1,000 event objects contributing busy intervals across required calendars in the checked window. Unrelated calendar history does not consume this limit. Confirmed bookings for this offer are checked separately for capacity and booking limits.
+
 `event_class` accepts `PRIVATE`, `PUBLIC`, or `CONFIDENTIAL` and sets the iCalendar `CLASS` property on new booking events. Calendar table and row permissions still control access. Optional questions use objects such as `{"id":"topic","label":"Topic","required":true}`; reservation sends `answers` as a map from question ID to text.
 
 Add each required source calendar with `POST /action/bookable/set_calendar` as the offer owner:
