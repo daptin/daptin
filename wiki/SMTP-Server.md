@@ -41,6 +41,11 @@ curl -X POST http://localhost:6336/action/certificate/generate_self_certificate 
   -d "{\"attributes\":{}, \"certificate_id\": \"$CERT_ID\"}"
 ```
 
+For production SMTP TLS, use a trusted certificate as described in
+[[TLS-Certificates]]. Sending from `noreply@example.com` also requires a separate
+certificate/key for `example.com` for DKIM; see
+[[Production-Mail-Delivery#setup-order|Production mail setup order]].
+
 ### Step 2: Create Mail Server
 
 ```bash
@@ -54,7 +59,7 @@ curl -X POST http://localhost:6336/api/mail_server \
         "hostname": "mail.example.com",
         "is_enabled": true,
         "listen_interface": "0.0.0.0:465",
-        "always_on_tls": false,
+        "always_on_tls": true,
         "max_size": 10485760,
         "max_clients": 100
       }
@@ -152,7 +157,7 @@ curl -X POST http://localhost:6336/api/mail_server \
 | hostname | string | Server hostname |
 | is_enabled | bool | Enable/disable |
 | listen_interface | string | Bind address:port |
-| always_on_tls | bool | Require TLS |
+| always_on_tls | bool | Start TLS immediately on connection; use true for implicit TLS on port 465 |
 | max_size | int | Max message size (bytes) |
 | max_clients | int | Max concurrent connections |
 
@@ -226,7 +231,7 @@ To send emails externally, create a custom action with `mail.send` in its OutFie
 | subject | string | Yes | Subject line |
 | body | string | Yes | Email content |
 | mail_server_hostname | string | No | Assert the hostname of the sender account's related mail server |
-| send_immediately | boolean | No | Attempt outbox delivery before the action returns |
+| send_immediately | boolean | No | Start background outbox delivery without waiting for the scheduled task |
 | attempt_delivery | boolean | No | Alias for `send_immediately` |
 
 ### mail.send Delivery
@@ -259,7 +264,7 @@ For AWS SES, `aws.mail.send` expects a stored credential reference:
 | html | string | No* | HTML body |
 | credential | string | Yes | Name of stored AWS credential |
 
-*Either `text` or `html` is required.
+*Either `text` or `html` is required. If both are supplied, `text` is used; `body` is not supported.
 
 **Note:** Create an AWS credential first with `access_key`, `secret_key`, `region`, and `token` fields.
 
@@ -272,10 +277,9 @@ address. For `from: "login@example.com"` and
 
 ### Get DKIM Public Key
 
-```bash
-curl http://localhost:6336/api/mail_server/SERVER_ID \
-  -H "Authorization: Bearer $TOKEN"
-```
+Use the certificate for the `From` domain, not the mail-server resource.
+See [[Production-Mail-Delivery#extract-the-dkim-dns-key|Extract the DKIM DNS key]]
+for the resource API and OpenSSL command that produces the DNS `p=` value.
 
 ### DNS Configuration
 

@@ -829,13 +829,14 @@ Send email via SMTP.
 | subject | string | Yes |
 | from | string | Yes; must match `mail_account.username` |
 | body | string | Yes |
+| mail_server_hostname | string | No; must match sender account's related server |
+| send_immediately | bool | No; start background delivery after queueing |
+| attempt_delivery | bool | No; alias for `send_immediately` |
 
 Queues one `outbox` row per recipient and appends one copy to the sender's
 `Sent` mailbox at queue time. Scheduled outbox retries do not duplicate the
-`Sent` copy.
-| mail_server_hostname | string | No |
-| send_immediately | bool | No |
-| attempt_delivery | bool | No |
+`Sent` copy. The action does not wait for SMTP completion. See
+[[Production-Mail-Delivery]] for timing, DKIM, and retry behavior.
 
 ### aws.mail.send
 
@@ -855,7 +856,7 @@ Send email via AWS SES.
 | html | string | No* |
 | credential | string | Yes |
 
-*Either `text` or `html` is required.
+*Either `text` or `html` is required. If both are supplied, `text` is used; `body` is not supported.
 
 ### sync_mail_servers
 

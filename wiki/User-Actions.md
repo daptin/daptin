@@ -67,8 +67,10 @@ Token validity: **3 days**
 
 Request a password reset OTP. The built-in `reset-password` action uses
 `otp.generate` and then `mail.send` with `send_immediately: true`, so Daptin
-attempts outbox delivery before the action returns and leaves failed rows
-available for `process_outbox` retry.
+starts background outbox delivery without waiting for SMTP completion.
+Confirmed failures remain eligible for bounded `process_outbox` retries;
+uncertain outcomes stop automatic retries. See [[Production-Mail-Delivery]]
+for delivery states and recovery.
 
 ```bash
 curl -X POST http://localhost:6336/action/user_account/reset-password \

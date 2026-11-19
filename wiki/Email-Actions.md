@@ -136,7 +136,7 @@ Queue DKIM-signed email for direct delivery to each recipient's MX server.
 | `subject` | string | Yes | Email subject line |
 | `body` | string | Yes | Email body (plain text) |
 | `mail_server_hostname` | string | No | Assert the hostname of the sender account's related mail server |
-| `send_immediately` | boolean | No | Attempt outbox delivery before the action returns |
+| `send_immediately` | boolean | No | Start background outbox delivery without waiting for the scheduled task |
 | `attempt_delivery` | boolean | No | Alias for `send_immediately` |
 
 ### Sending Mail
@@ -210,7 +210,7 @@ Send email via AWS Simple Email Service (SES).
 | `bcc` | array of strings | No | BCC recipients |
 | `credential` | string | Yes | Name of stored AWS credential |
 
-*Either `text` or `html` is required
+*Either `text` or `html` is required. If both are supplied, `text` is used; `body` is not supported.
 
 ### Step 1: Create AWS Credential
 
