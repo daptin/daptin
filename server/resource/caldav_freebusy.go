@@ -12,12 +12,13 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/emersion/go-ical"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/teambition/rrule-go"
 )
 
 const (
 	calendarBusyLayout        = "20060102T150405Z"
-	calendarBusyMaxCandidates = 1000
+	calendarBusyMaxCandidates = 1000 // objects contributing busy intervals in the requested window
 	calendarBusyMaxInstances  = 2000
 )
 
@@ -84,43 +85,40 @@ func (b *DaptinDAVBackend) FreeBusy(_ context.Context, requestPath string, start
 	if err != nil {
 		return nil, err
 	}
-	references, err := GetLimitedReferenceIdByWhereClauseWithTransaction(calendarObjectTable, tx,
-		calendarBusyMaxCandidates+1, goqu.Ex{"collection_id": collectionID})
-	if err != nil {
-		return nil, err
-	}
-	if len(references) > calendarBusyMaxCandidates {
-		return nil, webdav.NewHTTPError(http.StatusInsufficientStorage, fmt.Errorf("too many calendar objects for free/busy report"))
-	}
-	authorized := make([]daptinid.DaptinReferenceId, 0, len(references))
-	for _, reference := range references {
-		if allowed(calendarObjectTable, reference) {
-			authorized = append(authorized, reference)
+	instances, candidates := 0, 0
+	err = forEachCalendarBusyBatch(collectionID, tx, func(references []daptinid.DaptinReferenceId) error {
+		authorized := make([]daptinid.DaptinReferenceId, 0, len(references))
+		for _, reference := range references {
+			if allowed(calendarObjectTable, reference) {
+				authorized = append(authorized, reference)
+			}
 		}
-	}
-	instances := 0
-	for offset := 0; offset < len(authorized); offset += 200 {
-		limit := offset + 200
-		if limit > len(authorized) {
-			limit = len(authorized)
+		if len(authorized) == 0 {
+			return nil
 		}
 		rows, err := b.cruds[calendarObjectTable].readByReferenceIDsAfterAuthorizationWithTransaction(
-			authorized[offset:limit], map[string]bool{"content": true}, b.request(http.MethodGet, requestPath), tx)
+			authorized, map[string]bool{"content": true}, b.request(http.MethodGet, requestPath), tx)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for _, row := range rows {
 			data, err := b.contentBytes(calendarObjectTable, row)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			stored, err := ical.NewDecoder(strings.NewReader(string(data))).Decode()
 			if err != nil {
-				return nil, err
+				return err
 			}
 			intervals, err := calendarBusyIntervals(stored, start, end, &instances)
 			if err != nil {
-				return nil, err
+				return err
+			}
+			if len(intervals) > 0 {
+				candidates++
+				if candidates > calendarBusyMaxCandidates {
+					return webdav.NewHTTPError(http.StatusInsufficientStorage, fmt.Errorf("too many calendar objects for free/busy report"))
+				}
 			}
 			for _, interval := range intervals {
 				prop := ical.NewProp(ical.PropFreeBusy)
@@ -131,8 +129,36 @@ func (b *DaptinDAVBackend) FreeBusy(_ context.Context, requestPath string, start
 				busy.Props.Add(prop)
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return calendar, nil
+}
+
+// Reuse the calendar reference iterator while keeping authorized content reads bounded.
+func forEachCalendarBusyBatch(collectionID int64, tx *sqlx.Tx, visit func([]daptinid.DaptinReferenceId) error) error {
+	const batchSize = 200
+	references := make([]daptinid.DaptinReferenceId, 0, batchSize)
+	err := forEachCalendarEvent(collectionID, tx, func(row map[string]interface{}) error {
+		references = append(references, daptinid.InterfaceToDIR(row["reference_id"]))
+		if len(references) < batchSize {
+			return nil
+		}
+		if err := visit(references); err != nil {
+			return err
+		}
+		references = references[:0]
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if len(references) > 0 {
+		return visit(references)
+	}
+	return nil
 }
 
 func calendarBusyIntervals(calendar *ical.Calendar, start, end time.Time, count *int) ([]calendarBusyInterval, error) {
