@@ -173,6 +173,13 @@ curl "http://localhost:6336/api/post/POST_ID?include=author_id"
 curl "http://localhost:6336/api/post/POST_ID/author_id"
 ```
 
+Create or reassign a `belongs_to` link on the subject resource using its
+foreign-key relationship, such as `post.author_id`. Parent-side to-many
+`belongs_to` linkage in a JSON:API `relationships` member is not currently
+applied; update each subject's foreign-key relationship instead. Updating a
+parent does not grant update access to its children or refer access to their
+new parent; those permissions are checked separately.
+
 ---
 
 ## has_one

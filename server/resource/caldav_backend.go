@@ -356,7 +356,8 @@ func (b *DaptinDAVBackend) calendarUpdate(table, requestPath string, row, attrs 
 	for key, value := range attrs {
 		updated[key] = value
 	}
-	model := api2go.NewApi2GoModelWithData(table, nil, 0, nil, updated)
+	model := api2go.NewApi2GoModelWithData(table, nil, 0, nil, row)
+	model.SetAttributes(updated)
 	_, err := b.cruds[table].UpdateWithTransaction(model, b.request(http.MethodPatch, requestPath), tx)
 	if err != nil {
 		return davResourceError(err)

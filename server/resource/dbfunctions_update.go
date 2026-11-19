@@ -1308,11 +1308,8 @@ func ImportDataStringArray(data [][]string, headers []string, entityName string,
 						continue
 					}
 
-					for _, key := range headers {
-						existingRow[key] = rowMap[key]
-					}
-
 					obj := api2go.NewApi2GoModelWithData(entityName, nil, 0, nil, existingRow)
+					obj.SetAttributes(rowMap)
 					_, err = crud.UpdateWithTransaction(obj, req, transaction)
 					if err != nil {
 						log.Errorf("Failed to update table 873 [%v] update row by unique column [%v]: %v", entityName, uniqueCol.ColumnName, err)

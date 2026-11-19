@@ -208,6 +208,11 @@ curl -X PUT "$CALENDAR_HOME/personal/event.ics" \
   --data-binary @event.ics
 ```
 
+A successful CalDAV update persists the changed event through the resource
+lifecycle before responding. A subsequent authorized `GET` returns the stored
+content and its matching ETag. This also applies when managed attachment
+operations change the event's `ATTACH` properties.
+
 A stale or incorrect `If-Match`, or a matching `If-None-Match`, returns HTTP
 412 without overwriting the stored object.
 Use `If-None-Match: *` when creating an object; if another client creates the

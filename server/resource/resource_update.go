@@ -864,9 +864,10 @@ func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.R
 						log.Errorf("Failed to fetch related row to update [%v] == %v", rel.GetSubject(), valMap)
 						continue
 					}
-					updateForeignRow[rel.GetSubjectName()] = updateObjectReferenceId
-
 					model := api2go.NewApi2GoModelWithData(rel.GetSubject(), nil, int64(auth.DEFAULT_PERMISSION), nil, updateForeignRow)
+					model.SetAttributes(map[string]interface{}{
+						rel.GetObjectName(): updateObjectReferenceId,
+					})
 
 					_, err := dbResource.Cruds[rel.GetSubject()].UpdateWithTransaction(model, req, updateTransaction)
 					if err != nil {

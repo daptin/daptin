@@ -75,6 +75,12 @@ Changing `date_overrides` does not move or cancel confirmed bookings. Confirmed 
 
 Successful reserve, status, cancel, and reschedule responses include the canonical `bookable_ref` and the offer's `time_zone`, along with the booking reference, state, start, end, and guest token. Use `booking_ref` and `token` with `POST /action/bookable/status`, `/cancel`, or `/reschedule`; reschedule also takes a new `start`. A guest can use the returned `bookable_ref` to request slots for the offer's local date. The offer owner may use the management actions while signed in without the guest token. The token grants access to that booking only. Status also reports whether the event's collection currently has a mail account and counts of the existing calendar-mail delivery states. Keep the token private.
 
+Rescheduling updates the booking's start and end and its calendar event in the
+same transaction. Cancellation changes the booking state to `cancelled` and
+the event to `STATUS:CANCELLED`. If either resource update fails, both changes
+are rolled back. After success, the booking status action and an authorized
+CalDAV `GET` reflect the same result.
+
 The destination collection's optional `scheduling_mail_account` relationship controls invitations and cancellations through the existing CalDAV scheduling path. Booking works without a connected mail account; then no email invitation is queued. A mail account remains an independent resource and has no booking-specific field.
 
 DAV clients may read booking events according to their normal grants. They cannot directly change, move, copy, overwrite, or delete a booking-linked event; cancellation and rescheduling use the booking actions. Direct JSON:API writes to resources are ordinary resource operations and do not invoke the booking protocol.
