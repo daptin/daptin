@@ -10,6 +10,9 @@
     <a href="https://goreportcard.com/report/github.com/daptin/daptin"><img src="https://goreportcard.com/badge/github.com/daptin/daptin?style=flat-square" alt="Go Report"></a>
     <a href="https://discord.gg/t564q8SQVk"><img src="https://img.shields.io/badge/chat-Discord-5865F2?style=flat-square&amp;logo=discord&amp;logoColor=white" alt="Discord"></a>
   </p>
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/daptin)
+
   <p>
     <a href="https://daptin.github.io/">Website</a> · <a href="#start-in-a-minute">Quickstart</a> · <a href="#the-complete-feature-map">Feature map</a> · <a href="#actions-scheduled-tasks-and-state-tracking">Automation explained</a> · <a href="https://github.com/daptin/daptin/wiki">Documentation</a>
   </p>
