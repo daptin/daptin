@@ -225,6 +225,28 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 	}
 	contactID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "contact", "rpath", "/carddav/"+owner[1]+"/addressbooks/team/one.vcf")
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, base+"/api/contact/"+contactID, delegateToken, "", "", nil), http.StatusOK)
+	// Revoke only this contact's shared group. Book access and sibling contacts
+	// remain readable; neither a known href nor multiget may bypass revocation.
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+"/api/contact/"+contactID+"/relationships/usergroup_id", adminToken,
+		"application/vnd.api+json", fmt.Sprintf(`{"data":[{"type":"usergroup","id":%q}]}`, groupID), nil), http.StatusNoContent)
+	davE2EExpect(t, davE2ERequest(client, "PROPFIND", bookURL, delegateToken, "application/xml",
+		`<D:propfind xmlns:D="DAV:"><D:prop><D:displayname/></D:prop></D:propfind>`, nil), http.StatusMultiStatus)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, contactURL, delegateToken, "", "", nil), http.StatusNotFound)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, bookURL+"two.vcf", delegateToken, "", "", nil), http.StatusOK)
+	queryResult = davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, delegateToken, "application/xml", query, nil), http.StatusMultiStatus)
+	if strings.Contains(queryResult.body, "one.vcf") || !strings.Contains(queryResult.body, "two.vcf") {
+		t.Fatalf("contact query did not enforce individual revocation: %s", queryResult.body)
+	}
+	mixedMultiget := strings.Replace(multiget, "</C:addressbook-multiget>",
+		fmt.Sprintf(`<D:href>/carddav/%s/addressbooks/team/two.vcf</D:href></C:addressbook-multiget>`, owner[1]), 1)
+	multigetResult = davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, delegateToken, "application/xml", mixedMultiget, nil), http.StatusMultiStatus)
+	if strings.Contains(multigetResult.body, "UID:dav-condition-test") || !strings.Contains(multigetResult.body, "UID:card-delete-0") || !strings.Contains(multigetResult.body, "404") {
+		t.Fatalf("multiget leaked revoked contact or omitted readable sibling: %s", multigetResult.body)
+	}
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, contactURL, ownerToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, contactURL, adminToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, contactURL, delegateToken, "", "", nil), http.StatusOK)
 	if response := davE2ERequest(client, http.MethodGet, contactURL, outsiderToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("share exposed contact to outsider: %+v", response)
 	}
@@ -262,7 +284,9 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 	createdURL := bookURL + "delegate.vcf"
 	createdCard := strings.Replace(davE2ECardA, "UID:dav-condition-test", "UID:card-acl-delegate", 1)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken, "text/vcard", createdCard, nil), http.StatusCreated)
-	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusOK)
+	// The book owner has no row grant on this delegate-owned contact.
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusNotFound)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, adminToken, "", "", nil), http.StatusOK)
 	// An explicit delete grant permits a contact delete through the same backend.
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, createdURL, delegateToken, "", "", nil), http.StatusNoContent)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken, "text/vcard", createdCard, nil), http.StatusCreated)
@@ -276,7 +300,7 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 	if response := davE2ERequest(client, http.MethodGet, createdURL, delegateToken, "", "", nil); response.err != nil || response.status == http.StatusOK {
 		t.Fatalf("revoked delegate read its contact through CardDAV: %+v", response)
 	}
-	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusOK)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusNotFound)
 	// A child without Delete blocks the whole operation, even when hidden from
 	// the deleting account. No earlier child or sync history may disappear.
 	patchPermission := func(table, ref string, grant auth.AuthPermission) {
@@ -286,6 +310,8 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 	}
 	lastContactID := accessGroupsE2EFindResourceID(t, client, base, adminToken, "contact", "rpath", "/carddav/"+owner[1]+"/addressbooks/team/three.vcf")
 	patchPermission("contact", lastContactID, 0)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, bookURL+"three.vcf", ownerToken, "", "", nil), http.StatusNotFound)
+	davE2EExpect(t, davE2ERequest(client, http.MethodGet, bookURL+"three.vcf", adminToken, "", "", nil), http.StatusOK)
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, bookURL, ownerToken, "", "", nil), http.StatusForbidden)
 	patchPermission("contact", lastContactID, auth.UserCRUD)
 	assertIntact()

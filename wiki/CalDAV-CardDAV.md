@@ -453,6 +453,11 @@ contacts in one transaction. A CardDAV `PUT` copies the book's current group
 grants to a new contact while leaving the signed-in creator as its owner.
 Setting `permission` to zero revokes those links.
 
+Reading a contact requires read access to both its address book and the contact
+itself, including table permissions. Direct GET and `addressbook-multiget` apply
+the same contact permissions as `addressbook-query`; a restricted contact is
+omitted from queries and returns 404 when fetched by its known URL.
+
 Deleting an address book requires Delete permission on both the `address_book`
 table and its row, and on the `contact` table and every contact in the book.
 If any contact cannot be deleted, the request returns 403 and leaves the book,

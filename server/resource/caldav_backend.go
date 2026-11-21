@@ -1209,19 +1209,33 @@ func (b *DaptinDAVBackend) addressObject(row map[string]interface{}) (carddav.Ad
 	return carddav.AddressObject{Path: fmt.Sprint(row["rpath"]), ModTime: davTime(row), ContentLength: int64(len(data)), ETag: GetMD5Hash(data), Card: card}, nil
 }
 
-func (b *DaptinDAVBackend) GetAddressObject(ctx context.Context, requestPath string, _ *carddav.AddressDataRequest) (*carddav.AddressObject, error) {
+func (b *DaptinDAVBackend) GetAddressObject(_ context.Context, requestPath string, _ *carddav.AddressDataRequest) (*carddav.AddressObject, error) {
 	if _, _, err := b.addressBookPath(requestPath, true); err != nil {
 		return nil, err
 	}
-	if _, err := b.GetAddressBook(ctx, path.Dir(requestPath)); err != nil {
+	tx, err := b.cruds[addressObjectTable].Connection().Beginx()
+	if err != nil {
 		return nil, err
 	}
-	row, err := b.objectRow(addressObjectTable, requestPath)
+	defer tx.Rollback()
+	book, err := b.addressBookWithTransaction(requestPath, true, tx)
+	if err != nil {
+		return nil, err
+	}
+	// Direct GET and multiget must enforce the same table and row read
+	// permissions as listing, including for contacts in shared books.
+	rows, err := b.calendarRowsWithTransaction(addressObjectTable, requestPath, tx,
+		Query{ColumnName: "rpath", Operator: "=", Value: path.Clean(requestPath)},
+		Query{ColumnName: "address_book_id", Operator: "=", Value: daptinid.InterfaceToDIR(book["reference_id"]).String()})
+	row, err := firstDAVObjectRow(rows, err)
 	if err != nil {
 		return nil, err
 	}
 	object, err := b.addressObject(row)
-	return &object, err
+	if err != nil {
+		return nil, err
+	}
+	return &object, tx.Commit()
 }
 
 func (b *DaptinDAVBackend) ListAddressObjects(_ context.Context, requestPath string, _ *carddav.AddressDataRequest) ([]carddav.AddressObject, error) {
