@@ -218,11 +218,55 @@ func (dbResource *DbResource) validateSortOrder(sortOrder []string) ([]string, e
 	return validSortOrder, nil
 }
 
+// relatedUsergroupRelation resolves the selector used to expose access-group
+// linkage metadata. SQL identifiers must come from the declared relationship.
+func (dbResource *DbResource) relatedUsergroupRelation(params map[string][]string) (*api2go.TableRelation, error) {
+	var selected *api2go.TableRelation
+	reverse := dbResource.model.GetName() == "usergroup"
+	for key, values := range params {
+		if reverse {
+			if !strings.HasSuffix(key, "Name") || len(values) == 0 || values[0] != "usergroup_id" {
+				continue
+			}
+		} else if key != "usergroupName" || params["usergroup_id"] == nil {
+			continue
+		}
+		if len(values) != 1 || selected != nil {
+			return nil, invalidRelationFilterError("usergroup_id")
+		}
+		for _, rel := range dbResource.model.GetRelations() {
+			if rel.GetObject() != "usergroup" || rel.GetObjectName() != "usergroup_id" || rel.Relation != "has_many" {
+				continue
+			}
+			parentKey := "usergroup_id"
+			matches := rel.GetSubject() == dbResource.model.GetName() && values[0] == rel.GetSubjectName()
+			if reverse {
+				parentKey = rel.GetSubject() + "_id"
+				matches = key == rel.GetSubject()+"Name"
+			}
+			if matches && len(params[parentKey]) > 0 && params[parentKey][0] != "" {
+				if selected != nil {
+					return nil, invalidRelationFilterError("usergroup_id")
+				}
+				resolved := rel
+				selected = &resolved
+			}
+		}
+		if selected == nil {
+			return nil, invalidRelationFilterError("usergroup_id")
+		}
+	}
+	return selected, nil
+}
+
 // PaginatedFindAll(req Request) (totalCount uint, response Responder, err error)
 func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request, transaction *sqlx.Tx) (
 	[]map[string]interface{}, [][]map[string]interface{}, *PaginationData, bool, error) {
 	log.Debugf("Find all row by params: [%v]: %v", dbResource.model.GetName(), req.QueryParams)
-	var err error
+	relatedGroup, err := dbResource.relatedUsergroupRelation(req.QueryParams)
+	if err != nil {
+		return nil, nil, nil, false, err
+	}
 
 	user := req.PlainRequest.Context().Value("user")
 	sessionUser := &auth.SessionUser{}
@@ -249,17 +293,7 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 	duration := time.Since(start)
 	log.Tracef("[TIMING] FindAllIsAdminCheck %v", duration)
 
-	isRelatedGroupRequest := false // to switch permissions to the join table later in select query
-	relatedTableName := ""
-	if dbResource.model.GetName() == "usergroup" && len(req.QueryParams) > 2 {
-		ok := false
-		for key := range req.QueryParams {
-			if relatedTableName, ok = EndsWith(key, "Name"); ok && len(req.QueryParams[key]) > 0 && req.QueryParams[key][0] == "usergroup_id" {
-				isRelatedGroupRequest = true
-				break
-			}
-		}
-	}
+	isRelatedGroupRequest := relatedGroup != nil
 
 	languagePreferences := make([]string, 0)
 	if dbResource.tableInfo.TranslationsEnabled {
@@ -433,26 +467,20 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		}
 	}
 
-	usergroupNameVals := req.QueryParams["usergroupName"]
-	if _, ok := req.QueryParams["usergroup_id"]; ok && len(usergroupNameVals) > 0 && usergroupNameVals[0] == dbResource.model.GetName()+"_id" {
-		isRelatedGroupRequest = true
-		if relatedTableName == "" {
-			relatedTableName = dbResource.model.GetTableName()
-		}
-	}
-
 	idColumn := fmt.Sprintf("%s.id", tableModel.GetTableName())
 	distinctIdColumn := goqu.L(fmt.Sprintf("distinct(%s.id)", tableModel.GetTableName()))
 	if isRelatedGroupRequest {
+		relatedTableName := relatedGroup.GetSubject()
+		relatedJoinTableName := relatedGroup.GetJoinTableName()
 		//log.Printf("Switch permission to join table j1 instead of %v%v", prefix, "permission")
 		if dbResource.model.GetName() == "usergroup" {
 			finalCols = append(finalCols, column{
-				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName)),
-				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName),
+				originalvalue: goqu.I(relatedJoinTableName + ".permission"),
+				reference:     relatedJoinTableName + ".permission",
 			})
 			finalCols = append(finalCols, column{
-				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName)).As("reference_id"),
-				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName),
+				originalvalue: goqu.I(relatedJoinTableName + ".reference_id").As("reference_id"),
+				reference:     relatedJoinTableName + ".reference_id",
 			})
 			finalCols = append(finalCols,
 				column{
@@ -463,8 +491,8 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 		} else {
 
 			finalCols = append(finalCols, column{
-				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName)),
-				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.permission", relatedTableName, relatedTableName),
+				originalvalue: goqu.I(relatedJoinTableName + ".permission"),
+				reference:     relatedJoinTableName + ".permission",
 			})
 
 			finalCols = append(finalCols, column{
@@ -472,12 +500,11 @@ func (dbResource *DbResource) PaginatedFindAllWithoutFilters(req api2go.Request,
 				reference:     fmt.Sprintf("%s.reference_id", relatedTableName),
 			})
 			finalCols = append(finalCols, column{
-				originalvalue: goqu.I(fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName)).As("reference_id"),
-				reference:     fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id.reference_id", relatedTableName, relatedTableName),
+				originalvalue: goqu.I(relatedJoinTableName + ".reference_id").As("reference_id"),
+				reference:     relatedJoinTableName + ".reference_id",
 			})
-			joinTableName := fmt.Sprintf("%s_%s_id_has_usergroup_usergroup_id", relatedTableName, relatedTableName)
-			distinctIdColumn = goqu.L(fmt.Sprintf("distinct(%s.id)", joinTableName))
-			idColumn = fmt.Sprintf("%s.id", joinTableName)
+			distinctIdColumn = goqu.L(fmt.Sprintf("distinct(%s.id)", relatedJoinTableName))
+			idColumn = relatedJoinTableName + ".id"
 		}
 		//		finalCols = append(finalCols, prefix+"reference_id as reference_id")
 	} else {

@@ -369,6 +369,10 @@ curl "http://localhost:6336/api/user_account/USER_UUID/usergroup_id"
 curl "http://localhost:6336/api/user_account/USER_UUID/usergroup_id?page[size]=10&page[number]=1"
 ```
 
+Group relationship selectors must match a schema-defined relationship and include
+its parent reference ID. Invalid, incomplete, or ambiguous selectors return HTTP
+400. Relationship behavior is the same with or without pagination parameters.
+
 ### Understanding IDs in Relationship Responses
 
 For to-many **related-resource** responses such as
