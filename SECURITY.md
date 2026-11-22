@@ -30,6 +30,7 @@ https://github.com/daptin/daptin/security/advisories
 
 | Advisory | CVE | Severity | Fixed In | Summary |
 |----------|-----|----------|----------|---------|
+| [GHSA-prjc-j9jh-g82q](https://github.com/daptin/daptin/security/advisories/GHSA-prjc-j9jh-g82q) | Pending | Medium (6.5) | v0.13.59 | Asset image processing resource exhaustion through unbounded dimensions and filter parameters (CWE-770, CWE-789) |
 | [GHSA-rw2c-8rfq-gwfv](https://github.com/daptin/daptin/security/advisories/GHSA-rw2c-8rfq-gwfv) | Pending | High (8.3) | v0.11.4 | SQL injection via unvalidated `goqu.L()` calls in aggregate API (CWE-89) |
 
 ## Scope

@@ -467,6 +467,29 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 For images accessed via the asset endpoint, Daptin provides on-the-fly image transformations using query parameters. Enable processing by adding `processImage=true` to the URL.
 
+Image processing is limited to **4096 pixels per side** for the source image and
+each transformation’s output. Requested resize dimensions must also be at
+most 4096; one dimension may be zero to preserve aspect ratio, provided the
+computed dimensions fit the limit. Invalid resize dimensions or images exceeding
+these limits return **HTTP 400** before pixel decoding or filtering. This limit
+applies only when processing is enabled; original assets remain downloadable.
+
+Radius/sigma values for `boxblur`, `gaussianblur`, `gaussianBlur`, `edgedetection`,
+`dilate`, `erode`, and `median` must be finite numbers from **0 through 32**.
+Zero is accepted. Padding required by these filters must also fit the 4096-pixel
+limit. Morphology filters (`dilate`, `erode`, `median`) reject fractional radii
+whose rounded kernel would exceed their padding; integer radii are supported
+throughout the range.
+
+These filters share a **67,108,864-unit work budget** per request. Work is estimated
+from pixel count and kernel size, including worst-case morphology sorting and
+both Gaussian passes, and conservatively charged at the largest transformation
+size. Combining filters, increasing image dimensions, or increasing radius can
+exceed this budget.
+Invalid parameters, excessive padding, or excessive work return **HTTP 400**
+before decoding or filtering. Reduce the image size, radius, or number of filters
+to stay within the limits.
+
 **Format:**
 ```
 GET /asset/{table}/{record_id}/{column}?processImage=true&{filter}={value}

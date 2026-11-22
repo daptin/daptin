@@ -11,15 +11,48 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"io"
+	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 )
 
+// maxImageProcessingDimension bounds decoded images, filter outputs and resize
+// scratch buffers (target width x source height). GIFT uses 8-byte pixels for
+// intermediate buffers, so a final-output-only check is insufficient.
+const (
+	maxImageProcessingDimension = 4096
+	maxImageProcessingRadius    = 32
+	// Bound cumulative neighborhood visits, including morphology sorting work.
+	maxImageProcessingKernelWork uint64 = 64 * 1024 * 1024
+)
+
+func imageProcessingBounds(bounds image.Rectangle, filters []gift.Filter, kernelWorkPerPixel uint64, padding int) (image.Rectangle, bool) {
+	valid := func(b image.Rectangle) bool {
+		return b.Dx() > 0 && b.Dy() > 0 &&
+			b.Dx() <= maxImageProcessingDimension && b.Dy() <= maxImageProcessingDimension &&
+			(kernelWorkPerPixel == 0 || uint64(b.Dx())*uint64(b.Dy()) <= maxImageProcessingKernelWork/kernelWorkPerPixel)
+	}
+	if !valid(bounds) || bounds.Dx()+2*padding > maxImageProcessingDimension || bounds.Dy()+2*padding > maxImageProcessingDimension {
+		return image.Rectangle{}, false
+	}
+	for _, filter := range filters {
+		bounds = filter.Bounds(bounds)
+		if !valid(bounds) {
+			return image.Rectangle{}, false
+		}
+	}
+	return bounds, true
+}
+
 func HandleImageProcessing(c *gin.Context, file *os.File) {
 
 	bildFilters := make([]func(image.Image) image.Image, 0)
 	filters := make([]gift.Filter, 0)
+	var kernelWorkPerPixel uint64
+	maxPadding := 0
 	for key, values := range c.Request.URL.Query() {
 		param := gin.Param{
 			Key:   key,
@@ -28,6 +61,48 @@ func HandleImageProcessing(c *gin.Context, file *os.File) {
 
 		valueFloat64, floatError := strconv.ParseFloat(param.Value, 32)
 		valueFloat32 := float32(valueFloat64)
+
+		// Validate before constructing filters. These libraries allocate kernels
+		// and padded images using the caller's radius, independent of output size.
+		switch param.Key {
+		case "boxblur", "gaussianblur", "edgedetection", "dilate", "erode", "median", "gaussianBlur":
+			valueFloat64, floatError = strconv.ParseFloat(param.Value, 64)
+			if floatError != nil || math.IsNaN(valueFloat64) || math.IsInf(valueFloat64, 0) ||
+				valueFloat64 < 0 || valueFloat64 > maxImageProcessingRadius {
+				c.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
+			valueFloat32 = float32(valueFloat64)
+			if valueFloat64 > 0 {
+				kernelSize := int(math.Ceil(2*valueFloat64 + 1))
+				padding := kernelSize / 2
+				work := uint64(kernelSize * kernelSize)
+				switch param.Key {
+				case "dilate", "erode", "median":
+					padding = int(valueFloat64 + 0.5)
+					kernelSize = int(2*valueFloat64 + 1 + 0.5)
+					// BILD rounds padding and kernels differently for some
+					// fractional radii, which would panic in its workers.
+					if padding < kernelSize/2 {
+						c.AbortWithStatus(http.StatusBadRequest)
+						return
+					}
+					work = uint64(kernelSize * kernelSize)
+					// All three BILD morphology filters sort every window
+					// with quicksort; account for its quadratic worst case.
+					work *= work
+				case "gaussianBlur":
+					// Match GIFT's float32 radius calculation and two passes.
+					kernelSize = 2*int(math.Ceil(float64(valueFloat32*3))) + 1
+					work = uint64(2 * kernelSize)
+					padding = 0
+				}
+				kernelWorkPerPixel += work
+				if padding > maxPadding {
+					maxPadding = padding
+				}
+			}
+		}
 
 		switch param.Key {
 
@@ -221,10 +296,16 @@ func HandleImageProcessing(c *gin.Context, file *os.File) {
 		case "resize":
 			vals := strings.Split(param.Value, ",")
 			if len(vals) != 3 {
-				continue
+				c.AbortWithStatus(http.StatusBadRequest)
+				return
 			}
-			height, _ := strconv.ParseInt(vals[0], 10, 32)
-			weight, _ := strconv.ParseInt(vals[1], 10, 32)
+			width, widthErr := strconv.ParseInt(vals[0], 10, 32)
+			height, heightErr := strconv.ParseInt(vals[1], 10, 32)
+			if widthErr != nil || heightErr != nil || width < 0 || height < 0 ||
+				(width == 0 && height == 0) || width > maxImageProcessingDimension || height > maxImageProcessingDimension {
+				c.AbortWithStatus(http.StatusBadRequest)
+				return
+			}
 			resampling := gift.NearestNeighborResampling
 
 			switch vals[2] {
@@ -244,7 +325,7 @@ func HandleImageProcessing(c *gin.Context, file *os.File) {
 				resampling = gift.LanczosResampling
 				break
 			}
-			filters = append(filters, gift.Resize(int(height), int(weight), resampling))
+			filters = append(filters, gift.Resize(int(width), int(height), resampling))
 			break
 		case "rotate":
 
@@ -320,7 +401,25 @@ func HandleImageProcessing(c *gin.Context, file *os.File) {
 		}
 
 	}
-	f := gift.New(filters...)
+	// Inspect dimensions and every intermediate before decoding pixels or running
+	// either filter library. BILD filters preserve the source dimensions. Charge
+	// all radius filters at every stage's size, conservatively bounding work even
+	// when GIFT runs after a resize; a later crop must not hide an expensive stage.
+	config, _, err := image.DecodeConfig(file)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	sourceBounds := image.Rect(0, 0, config.Width, config.Height)
+	bounds, ok := imageProcessingBounds(sourceBounds, filters, kernelWorkPerPixel, maxPadding)
+	if !ok {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	img, formatName, err := image.Decode(file)
 	if err != nil {
@@ -328,13 +427,22 @@ func HandleImageProcessing(c *gin.Context, file *os.File) {
 		return
 	}
 
+	// Some formats decode a frame whose bounds differ from the canvas metadata.
+	if img.Bounds() != sourceBounds {
+		bounds, ok = imageProcessingBounds(img.Bounds(), filters, kernelWorkPerPixel, maxPadding)
+		if !ok {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+	}
+
 	for _, f := range bildFilters {
 
 		img = f(img)
 	}
 
-	dst := image.NewNRGBA(f.Bounds(img.Bounds()))
-	f.Draw(dst, img)
+	dst := image.NewNRGBA(bounds)
+	gift.New(filters...).Draw(dst, img)
 
 	c.Writer.Header().Set("Content-Type", "image/"+formatName)
 	if formatName == "png" {

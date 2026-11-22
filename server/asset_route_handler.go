@@ -69,7 +69,8 @@ func AssetRouteHandler(cruds map[string]*resource.DbResource) func(c *gin.Contex
 			cacheKey = "markdown-escaped:" + cacheKey
 		}
 
-		if fileCache != nil {
+		// Cached originals must not bypass image processing or its size checks.
+		if fileCache != nil && c.Query("processImage") != "true" {
 			if cachedFile, found := fileCache.Get(cacheKey); found {
 				if !cachedAssetHasAuthz(cachedFile) {
 					fileCache.RemoveAsync(cacheKey)
