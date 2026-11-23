@@ -114,7 +114,11 @@ curl --get \
 
 ## Supported Operators
 
-All operators tested ✓
+Operators are accepted by exact name. Unsupported or empty operator names return
+HTTP 400 (`invalid query filter operator`). Names are case-sensitive and whitespace
+is not trimmed.
+
+`=` is also accepted for equality, and `not` for inequality.
 
 ### String Operators
 

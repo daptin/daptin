@@ -1443,6 +1443,12 @@ var OperatorMap = map[string]string{
 	"fuzzy":        "fuzzy",     // Single term fuzzy match
 	"fuzzy_any":    "fuzzy_any", // ANY keyword matches with fuzzy tolerance
 	"fuzzy_all":    "fuzzy_all", // ALL keywords must match with fuzzy tolerance
+
+	"=":                "=",
+	"not":              "neq",
+	"gt":               "gt",
+	"lt":               "lt",
+	"contains_literal": "contains_literal",
 }
 
 const invalidQueryFilterMessage = "invalid query filter column"
@@ -1525,6 +1531,13 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 		return nil, invalidQueryFilterError(dbResource.model.GetName(), columnName)
 	}
 
+	opValue, ok := OperatorMap[filterQuery.Operator]
+	if !ok {
+		return nil, api2go.NewHTTPError(
+			fmt.Errorf("unsupported query filter operator %q", filterQuery.Operator),
+			"invalid query filter operator", http.StatusBadRequest)
+	}
+
 	if filterQuery.Operator == "contains_literal" {
 		value, valid := filterQuery.Value.(string)
 		if !valid || value == "" || strings.ContainsRune(value, 0) || colInfo.IsForeignKey || columnName == "reference_id" {
@@ -1570,11 +1583,6 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 				log.Debugf("[FK] Final filter value for [%v]: %v", columnName, filterQuery.Value)
 			}
 		}
-	}
-
-	opValue, ok := OperatorMap[filterQuery.Operator]
-	if !ok {
-		opValue = filterQuery.Operator
 	}
 
 	var actualvalue interface{}
@@ -1656,7 +1664,11 @@ func (dbResource *DbResource) processQueryFilter(filterQuery Query, prefix strin
 	if opValue == "=" {
 		return goqu.Ex{prefix + filterQuery.ColumnName: actualvalue}, nil
 	} else if opValue == "#" {
-		return actualvalue.(goqu.Expression), nil
+		expression, ok := actualvalue.(goqu.Expression)
+		if !ok {
+			return nil, fmt.Errorf("invalid expression for query filter operator %q", filterQuery.Operator)
+		}
+		return expression, nil
 	} else {
 		return goqu.Ex{
 			prefix + filterQuery.ColumnName: goqu.Op{

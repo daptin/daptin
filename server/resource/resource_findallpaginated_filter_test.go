@@ -3,6 +3,7 @@ package resource
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/artpar/api2go/v2"
@@ -130,5 +131,81 @@ func TestLiteralSubstringFilterSharesScopeAndCount(t *testing.T) {
 				t.Fatalf("subject=%q, need %q: %v", subject, match, err)
 			}
 		})
+	}
+}
+
+func TestAddFiltersRejectsUnknownOperators(t *testing.T) {
+	columns := []api2go.ColumnInfo{
+		{ColumnName: "name"},
+		{ColumnName: "reference_id"},
+		{ColumnName: "parent_id", IsForeignKey: true, ForeignKeyData: api2go.ForeignKeyData{Namespace: "parent"}},
+	}
+	resource := &DbResource{
+		model:     api2go.NewApi2GoModel("filter_probe", columns, 0, nil),
+		tableInfo: &table_info.TableInfo{TableName: "filter_probe", Columns: columns},
+	}
+	for _, operator := range []string{"#", "", "unknown", "is invalid", "not invalid", "EQ", " eq", "eq ", "eq; DROP TABLE filter_probe"} {
+		for _, column := range []string{"name", "reference_id", "parent_id"} {
+			for _, group := range []string{"", "group1"} {
+				t.Run(operator+"/"+column+"/"+group, func(t *testing.T) {
+					// A valid UUID with no transaction proves rejection precedes FK lookup.
+					list, count, err := resource.addFilters(goqu.From("filter_probe"), goqu.From("filter_probe"),
+						[]Query{{ColumnName: column, Operator: operator, Value: "12345678-1234-1234-1234-123456789abc", LogicalGroup: group}}, "filter_probe.", nil)
+					httpError, ok := err.(api2go.HTTPError)
+					if !ok || httpError.Status() != http.StatusBadRequest {
+						t.Fatalf("expected HTTP 400, got %T: %v", err, err)
+					}
+					if list != nil || count != nil {
+						t.Fatal("invalid operator returned query builders")
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestAddFiltersSupportedOperators(t *testing.T) {
+	columns := []api2go.ColumnInfo{{ColumnName: "name"}}
+	resource := &DbResource{
+		model:     api2go.NewApi2GoModel("filter_probe", columns, 0, nil),
+		tableInfo: &table_info.TableInfo{TableName: "filter_probe", Columns: columns},
+	}
+	for _, test := range []struct {
+		operators []string
+		value     interface{}
+		predicate string
+	}{
+		{[]string{"=", "is", "eq"}, "value", `= 'value'`},
+		{[]string{"not", "neq"}, "value", `!= 'value'`},
+		{[]string{"is not"}, "value", `IS NOT 'value'`},
+		{[]string{"gt", "more than", "after"}, 10, `> 10`},
+		{[]string{"lt", "less than", "before"}, 10, `< 10`},
+		{[]string{"contains", "like", "begins with", "ends with"}, "%value%", `LIKE '%value%'`},
+		{[]string{"ilike"}, "%value%", `ILIKE '%value%'`},
+		{[]string{"not contains", "not like"}, "%value%", `NOT LIKE '%value%'`},
+		{[]string{"not ilike"}, "%value%", `NOT ILIKE '%value%'`},
+		{[]string{"in", "any of"}, []interface{}{"a", "b"}, `IN ('a', 'b')`},
+		{[]string{"none of"}, []interface{}{"a", "b"}, `NOT IN ('a', 'b')`},
+		{[]string{"is true"}, "ignored", `IS TRUE`},
+		{[]string{"is false"}, "ignored", `IS FALSE`},
+		{[]string{"is empty"}, "ignored", `IS NULL`},
+		{[]string{"is"}, nil, `IS NULL`},
+		{[]string{"contains_literal"}, "value", `LIKE '%value%' ESCAPE '!'`},
+	} {
+		for _, operator := range test.operators {
+			t.Run(operator+"/"+test.predicate, func(t *testing.T) {
+				list, count, err := resource.addFilters(goqu.From("filter_probe"), goqu.From("filter_probe"),
+					[]Query{{ColumnName: "name", Operator: operator, Value: test.value}}, "filter_probe.", nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, builder := range []*goqu.SelectDataset{list, count} {
+					statement, _, err := builder.ToSQL()
+					if err != nil || !strings.Contains(statement, test.predicate) {
+						t.Fatalf("operator %q: SQL = %s, error = %v; want %s", operator, statement, err, test.predicate)
+					}
+				}
+			})
+		}
 	}
 }

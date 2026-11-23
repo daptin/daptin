@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -20,6 +23,23 @@ Tables:
         IsNullable: false
 
 Actions:
+  - Name: query_filter_lookup
+    OnType: filter_probe
+    InstanceOptional: true
+    Permission: 0
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+    InFields:
+      - Name: query_filter
+        ColumnName: query_filter
+        ColumnType: label
+        IsNullable: false
+    OutFields:
+      - Type: filter_probe
+        Method: GET
+        Attributes:
+          query: ~query_filter
   - Name: relation_filter_lookup
     OnType: filter_probe
     InstanceOptional: true
@@ -173,4 +193,58 @@ func waitForQueryFilterE2EResource(t *testing.T, baseURL string, process *transp
 		time.Sleep(250 * time.Millisecond)
 	}
 	t.Fatalf("filter_probe resource was not registered\n%s", process.logs.String())
+}
+
+func TestQueryFilterOperatorValidationRealE2E(t *testing.T) {
+	fixture := startDaptinE2E(t, transportE2EDaptinOptions{schema: "EnableGraphQL: true\n" + queryFilterValidationRealE2ESchema})
+	waitForQueryFilterE2EResource(t, fixture.URL, fixture.Process)
+	admin := fixture.SignupAdmin(t)
+	user := accessGroupsE2ESignupSigninUser(t, fixture.Client, fixture.URL, admin, "operator-filter-user")
+	accessGroupsE2ECreateRecord(t, fixture.Client, fixture.URL, admin, "filter_probe", map[string]interface{}{"name": "visible"})
+
+	for _, operator := range []string{"#", "unknown", "", "is invalid"} {
+		for _, group := range []string{"", "group1"} {
+			for _, token := range []string{"", user} {
+				query, err := json.Marshal([]map[string]interface{}{{"column": "name", "operator": operator, "value": "visible", "logical_group": group}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				response := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet,
+					queryFilterE2EURL(fixture.URL+"/api/filter_probe", string(query)), token, nil, http.StatusBadRequest)
+				assertConstraintE2EError(t, response, "invalid query filter operator", "interface conversion")
+			}
+		}
+	}
+
+	for _, operator := range []string{"=", "is", "eq", "contains_literal", "fuzzy", "fuzzy_any", "fuzzy_all"} {
+		query := fmt.Sprintf(`[{"column":"name","operator":%q,"value":"visible"}]`, operator)
+		response := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodGet,
+			queryFilterE2EURL(fixture.URL+"/api/filter_probe", query), user, nil, http.StatusOK)
+		if got := len(accessGroupsE2EDataArray(t, response)); got != 1 {
+			t.Fatalf("operator %s returned %d rows, want 1: %#v", operator, got, response)
+		}
+	}
+
+	for _, operator := range []string{"is", "#"} {
+		graphQL := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/graphql", user,
+			map[string]interface{}{"query": fmt.Sprintf(`{ filter_probe(query: [{column: "name", operator: %q, value: "visible"}]) { name } }`, operator)}, http.StatusOK)
+		if got := transportE2EGraphQLHasErrors(graphQL); got != (operator == "#") {
+			t.Fatalf("GraphQL operator %q errors=%v: %#v", operator, got, graphQL)
+		}
+		query := fmt.Sprintf(`[{"column":"name","operator":%q,"value":"visible"}]`, operator)
+		wantStatus := http.StatusOK
+		if operator == "#" {
+			wantStatus = http.StatusBadRequest
+		}
+		action := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost,
+			fixture.URL+"/action/filter_probe/query_filter_lookup", user,
+			map[string]interface{}{"attributes": map[string]interface{}{"query_filter": query}}, wantStatus)
+		if operator == "#" {
+			if !strings.Contains(fmt.Sprint(action), "invalid query filter operator") {
+				t.Fatalf("action did not report invalid operator: %#v", action)
+			}
+		} else if got := relationFilterActionRowCount(t, action); got != 1 {
+			t.Fatalf("action returned %d rows, want 1: %#v", got, action)
+		}
+	}
 }
