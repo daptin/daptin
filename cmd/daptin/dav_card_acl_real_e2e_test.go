@@ -155,6 +155,7 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 			t.Fatalf("denied deletion changed contact sync history: %s", after.body)
 		}
 	}
+	assertDAVCardPutDenied(t, client, bookURL, contactURL, adminToken, outsiderToken, http.StatusNotFound)
 	assertDeleteDenied(outsiderToken, http.StatusNotFound)
 	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek), http.StatusOK)
 	assertDeleteDenied(delegateToken, http.StatusForbidden)
@@ -257,6 +258,13 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 		t.Fatalf("read-only delegate replaced address-book ACL: %+v", response)
 	}
 	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek|auth.GroupUpdate), http.StatusOK)
+	// Book Update does not authorize a contact after its own group is revoked.
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, contactURL, delegateToken, "text/vcard", davE2ECardB, nil), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+"/api/contact/"+contactID+"/relationships/usergroup_id", adminToken,
+		"application/vnd.api+json", fmt.Sprintf(`{"data":[{"type":"usergroup","id":%q}]}`, groupID), nil), http.StatusNoContent)
+	assertDAVCardPutDenied(t, client, bookURL, contactURL, adminToken, delegateToken, http.StatusForbidden)
+	davE2EExpect(t, davE2ERequest(client, http.MethodPut, contactURL, ownerToken, "text/vcard", davE2ECardA, nil), http.StatusCreated)
+	davE2EExpect(t, share(auth.GroupRead|auth.GroupPeek|auth.GroupUpdate), http.StatusOK)
 	assertDeleteDenied(delegateToken, http.StatusForbidden)
 	staleSync := fmt.Sprintf(`<D:sync-collection xmlns:D="DAV:"><D:sync-token>%s</D:sync-token><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, syncToken[1])
 	invalid := davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, delegateToken, "application/xml", staleSync, nil), http.StatusForbidden)
@@ -281,12 +289,18 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 	assertDeleteDenied(delegateToken, http.StatusForbidden)
 	acl := fmt.Sprintf(`<D:acl xmlns:D="DAV:"><D:ace><D:principal><D:href>/carddav/groups/%s/</D:href></D:principal><D:grant><D:privilege><D:read/></D:privilege><D:privilege><D:write-content/></D:privilege><D:privilege><D:write-properties/></D:privilege><D:privilege><D:bind/></D:privilege><D:privilege><D:unbind/></D:privilege></D:grant></D:ace></D:acl>`, groupID)
 	davE2EExpect(t, davE2ERequest(client, "ACL", bookURL, ownerToken, "application/xml", acl, nil), http.StatusOK)
+	// The same row boundary applies when book Update comes from a grant-only ACL.
+	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, base+"/api/contact/"+contactID+"/relationships/usergroup_id", adminToken,
+		"application/vnd.api+json", fmt.Sprintf(`{"data":[{"type":"usergroup","id":%q}]}`, groupID), nil), http.StatusNoContent)
+	assertDAVCardPutDenied(t, client, bookURL, contactURL, adminToken, delegateToken, http.StatusForbidden)
 	createdURL := bookURL + "delegate.vcf"
 	createdCard := strings.Replace(davE2ECardA, "UID:dav-condition-test", "UID:card-acl-delegate", 1)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken, "text/vcard", createdCard, nil), http.StatusCreated)
 	// The book owner has no row grant on this delegate-owned contact.
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, ownerToken, "", "", nil), http.StatusNotFound)
 	davE2EExpect(t, davE2ERequest(client, http.MethodGet, createdURL, adminToken, "", "", nil), http.StatusOK)
+	// A grant-only ACL also cannot authorize updates to a row hidden from the book owner.
+	assertDAVCardPutDenied(t, client, bookURL, createdURL, adminToken, ownerToken, http.StatusForbidden)
 	// An explicit delete grant permits a contact delete through the same backend.
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, createdURL, delegateToken, "", "", nil), http.StatusNoContent)
 	davE2EExpect(t, davE2ERequest(client, http.MethodPut, createdURL, delegateToken, "text/vcard", createdCard, nil), http.StatusCreated)
@@ -315,6 +329,8 @@ func runDAVCardACLRealE2E(t *testing.T, databaseType, connectionString string) {
 	davE2EExpect(t, davE2ERequest(client, http.MethodDelete, bookURL, ownerToken, "", "", nil), http.StatusForbidden)
 	patchPermission("contact", lastContactID, auth.UserCRUD)
 	assertIntact()
+	patchPermission("contact", contactID, auth.UserRead|auth.UserPeek)
+	assertDAVCardPutDenied(t, client, bookURL, contactURL, adminToken, ownerToken, http.StatusForbidden)
 	patchPermission("contact", contactID, auth.UserRead|auth.UserPeek|auth.UserUpdate)
 	assertDeleteDenied(ownerToken, http.StatusForbidden)
 	patchPermission("contact", contactID, auth.UserCRUD)
@@ -372,5 +388,61 @@ func TestDAVCardDeleteTablePermissionRealE2E(t *testing.T) {
 			davE2EExpect(t, davE2ERequest(f.Client, http.MethodDelete, bookURL, admin, "", "", nil), http.StatusNoContent)
 			davE2EExpect(t, davE2ERequest(f.Client, http.MethodGet, contactURL, ownerToken, "", "", nil), http.StatusNotFound)
 		})
+	}
+}
+
+// Check both authorization ordering and the absence of content or sync side effects.
+func assertDAVCardPutDenied(t *testing.T, client *http.Client, bookURL, contactURL, adminToken, token string, status int) {
+	t.Helper()
+	before := davE2EExpect(t, davE2ERequest(client, http.MethodGet, contactURL, adminToken, "", "", nil), http.StatusOK)
+	sync := davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, adminToken, "application/xml",
+		`<D:sync-collection xmlns:D="DAV:"><D:sync-token/><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, nil), http.StatusMultiStatus)
+	checkpoint := regexp.MustCompile(`<sync-token[^>]*>([^<]+)</sync-token>`).FindStringSubmatch(sync.body)
+	if len(checkpoint) != 2 {
+		t.Fatalf("missing sync checkpoint before denied PUT: %s", sync.body)
+	}
+	for _, headers := range []http.Header{
+		nil,
+		{"If-Match": {before.header.Get("ETag")}},
+		{"If-Match": {`"wrong-etag"`}},
+		{"If-None-Match": {"*"}},
+	} {
+		davE2EExpect(t, davE2ERequest(client, http.MethodPut, contactURL, token, "text/vcard", davE2ECardB, headers), status)
+	}
+	after := davE2EExpect(t, davE2ERequest(client, http.MethodGet, contactURL, adminToken, "", "", nil), http.StatusOK)
+	if after.body != before.body || after.header.Get("ETag") != before.header.Get("ETag") {
+		t.Fatalf("denied PUT changed contact content or ETag: before=%+v after=%+v", before, after)
+	}
+	sync = davE2EExpect(t, davE2ERequest(client, "REPORT", bookURL, adminToken, "application/xml",
+		fmt.Sprintf(`<D:sync-collection xmlns:D="DAV:"><D:sync-token>%s</D:sync-token><D:sync-level>1</D:sync-level><D:prop><D:getetag/></D:prop></D:sync-collection>`, checkpoint[1]), nil), http.StatusMultiStatus)
+	if strings.Contains(sync.body, ".vcf") {
+		t.Fatalf("denied PUT changed contact sync history: %s", sync.body)
+	}
+}
+
+func TestDAVCardUpdateTablePermissionRealE2E(t *testing.T) {
+	requireRealE2E(t)
+	options := transportE2EDaptinOptions{
+		connectionString: filepath.Join(t.TempDir(), "table-update.db"),
+		schema:           davCardACLTestSchema(auth.GroupCRUD|auth.GroupExecute, auth.GroupCRUD&^auth.GroupUpdate),
+	}
+	f := startDaptinE2E(t, options)
+	admin := f.SignupAdmin(t)
+	ftpE2ESetConfig(t, f.Client, f.URL, admin, "caldav.enable", "true")
+	f.Process.stopProcess()
+	f = startDaptinE2E(t, options)
+	ownerToken := accessGroupsE2ESignupSigninUser(t, f.Client, f.URL, admin, "update-table-owner")
+	ownerID := accessGroupsE2EFindResourceID(t, f.Client, f.URL, admin, "user_account", "email", "update-table-owner@test.local")
+	bookURL := f.URL + "/carddav/" + ownerID + "/addressbooks/team/"
+	contactURL := bookURL + "one.vcf"
+	mkcol := `<D:mkcol xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav"><D:set><D:prop><D:resourcetype><D:collection/><C:addressbook/></D:resourcetype></D:prop></D:set></D:mkcol>`
+	davE2EExpect(t, davE2ERequest(f.Client, "MKCOL", bookURL, ownerToken, "application/xml", mkcol, nil), http.StatusCreated)
+	davE2EExpect(t, davE2ERequest(f.Client, http.MethodPut, contactURL, ownerToken, "text/vcard", davE2ECardA, nil), http.StatusCreated)
+	assertDAVCardPutDenied(t, f.Client, bookURL, contactURL, admin, ownerToken, http.StatusForbidden)
+	// Administrator-group authority applies to both table and row checks.
+	davE2EExpect(t, davE2ERequest(f.Client, http.MethodPut, contactURL, admin, "text/vcard", davE2ECardB, nil), http.StatusCreated)
+	updated := davE2EExpect(t, davE2ERequest(f.Client, http.MethodGet, contactURL, ownerToken, "", "", nil), http.StatusOK)
+	if !strings.Contains(updated.body, "FN:Second") {
+		t.Fatalf("authorized administrator update was not persisted: %s", updated.body)
 	}
 }

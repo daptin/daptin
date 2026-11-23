@@ -1309,6 +1309,12 @@ func (b *DaptinDAVBackend) PutAddressObject(_ context.Context, requestPath strin
 	}
 	etag := ""
 	if exists {
+		grant := GetObjectPermissionByReferenceIdWithTransaction(addressObjectTable, daptinid.InterfaceToDIR(existing["reference_id"]), tx)
+		table := crud.GetObjectPermissionByWhereClauseWithTransaction("world", "table_name", addressObjectTable, tx)
+		user, groups, admin := b.sessionUser.UserReferenceId, b.sessionUser.Groups, crud.AdministratorGroupId
+		if !table.CanUpdate(user, groups, admin) || !grant.CanUpdate(user, groups, admin) {
+			return nil, webdav.NewHTTPError(http.StatusForbidden, errors.New("contact update denied"))
+		}
 		current, err := b.contentBytes(addressObjectTable, existing)
 		if err != nil {
 			return nil, err

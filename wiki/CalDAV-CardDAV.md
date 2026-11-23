@@ -458,6 +458,12 @@ itself, including table permissions. Direct GET and `addressbook-multiget` apply
 the same contact permissions as `addressbook-query`; a restricted contact is
 omitted from queries and returns 404 when fetched by its known URL.
 
+Replacing an existing contact with CardDAV `PUT` requires Update permission on
+its address book and on both the `contact` table and the contact row. A book
+share or ACL does not override a restricted contact. When the book is accessible,
+missing contact Update permission returns 403 before ETag preconditions are
+evaluated and leaves content and sync state intact.
+
 Deleting an address book requires Delete permission on both the `address_book`
 table and its row, and on the `contact` table and every contact in the book.
 If any contact cannot be deleted, the request returns 403 and leaves the book,
