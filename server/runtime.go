@@ -28,6 +28,7 @@ type Runtime struct {
 	RestartRequests <-chan struct{}
 
 	mailDaemon              *guerrilla.Daemon
+	mailStatus              *mailServiceRuntimeStatus
 	scheduler               *resource.DefaultTaskScheduler
 	ftpServer               *ftpserver.FtpServer
 	ftpConnections          *ConnectionTracker
@@ -62,7 +63,13 @@ func (r *Runtime) Quiesce() error {
 			r.mailDaemon.Shutdown()
 		}
 		if r.imapServer != nil {
+			r.mailStatus.imapState("stopping", "")
 			r.quiesceErr = r.imapServer.Close()
+			if r.quiesceErr != nil {
+				r.mailStatus.imapState("failed", "close_failed")
+			} else {
+				r.mailStatus.imapState("stopped", "")
+			}
 		}
 	})
 	return r.quiesceErr

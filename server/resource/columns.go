@@ -1582,6 +1582,16 @@ var SystemActions = []actionresponse.Action{
 		},
 	},
 	{
+		Name:             "mail_service_status",
+		Label:            "Mail Service Status",
+		OnType:           "world",
+		InstanceOptional: true,
+		Permission:       &adminOnlyActionPermission,
+		AccessGroups:     adminOnlyActionAccessGroups,
+		InFields:         []api2go.ColumnInfo{},
+		OutFields:        []actionresponse.Outcome{{Type: "mail.service.status", Method: "EXECUTE", Attributes: map[string]interface{}{}}},
+	},
+	{
 		Name:             "restart_daptin",
 		Label:            "Restart Daptin",
 		InstanceOptional: true,

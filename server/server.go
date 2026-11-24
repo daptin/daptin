@@ -439,16 +439,25 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	AddStreamsToApi2Go(api, streamProcessors, db, &ms, configStore)
 	feedHandler := CreateFeedHandler(cruds, streamProcessors, transaction)
 
+	integrationRuntimeInstanceID := uuid.NewString()
+	mailStatus := newMailServiceRuntimeStatus(integrationRuntimeInstanceID)
 	mailDaemon, err := StartSMTPMailServer(cruds["mail"], certificateManager, hostname, transaction)
 	transaction.Commit()
+	mailStatus.daemon = mailDaemon
 
 	if err == nil {
+		mailStatus.smtp.ConfiguredEnabled = len(mailDaemon.Config.Servers) > 0
 		disableSmtp := os.Getenv("DAPTIN_DISABLE_SMTP")
 		if disableSmtp != "true" && len(mailDaemon.Config.Servers) > 0 {
 			log.Infof("Starting SMTP server at port: [%v], set DAPTIN_DISABLE_SMTP=true in environment to disable SMTP server",
 				mailDaemon.Config.Servers)
+			mailStatus.smtp.Enabled = true
+			mailStatus.smtp.State, mailStatus.smtp.Reason = "starting", ""
 			err = mailDaemon.Start()
 		} else {
+			if disableSmtp == "true" {
+				mailStatus.smtp.Reason = "environment_disabled"
+			}
 			log.Infof("SMTP server is disabled since DAPTIN_DISABLE_SMTP=true or no servers configured")
 		}
 
@@ -458,6 +467,8 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 			log.Printf("Started mail server")
 		}
 	} else {
+		mailStatus.smtp.State, mailStatus.smtp.Reason, mailStatus.smtp.ErrorCode = "failed", "", "configuration_failed"
+		mailStatus.smtp.ChangedAt = time.Now().UTC()
 		log.Errorf("Failed to start mail daemon: %s", err)
 	}
 
@@ -471,7 +482,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 
 	enableImapServer, err := configStore.GetConfigValueFor("imap.enabled", "backend", transaction)
 	if err == nil && enableImapServer == "true" {
-		imapServer, err = InitializeImapResources(configStore, transaction, cruds, imapServer, certificateManager, runtimeErrors)
+		imapServer, err = InitializeImapResources(configStore, transaction, cruds, imapServer, certificateManager, runtimeErrors, mailStatus)
 		if err != nil {
 			_ = transaction.Rollback()
 			imapServer = nil
@@ -591,7 +602,6 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		}
 	}()
 
-	integrationRuntimeInstanceID := uuid.NewString()
 	restartRequests := make(chan struct{}, 1)
 	requestRestart := func() {
 		select {
@@ -600,6 +610,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		}
 	}
 	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID, llmGateway, requestRestart)
+	actionPerformers = append(actionPerformers, &mailServiceStatusActionPerformer{status: mailStatus, world: cruds["world"]})
 	initConfig.ActionPerformers = actionPerformers
 	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -777,6 +788,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		ConfigStore:             configStore,
 		CertificateManager:      certificateManager,
 		mailDaemon:              mailDaemon,
+		mailStatus:              mailStatus,
 		scheduler:               taskScheduler,
 		ftpServer:               ftpServer,
 		ftpConnections:          ftpConnections,

@@ -574,6 +574,55 @@ curl --get \
   "http://localhost:6336/api/mail_box"
 ```
 
+## Mail service runtime status
+
+Administrators can inspect SMTP and IMAP in the current runtime with:
+
+```bash
+curl -X POST "$DAPTIN_URL/action/world/mail_service_status" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"attributes":{}}'
+```
+
+The `mail.service.status` action response contains `runtime_id`, `observed_at`,
+`smtp`, and `imap`. Its performer also requires persisted membership in Daptin's
+administrator group, including when called by a custom wrapper action. Revoking
+that membership removes access. The action takes no credentials and performs
+no mail delivery or account authentication.
+
+Each protocol reports `state`, `changed_at`, `configured_enabled`, and `enabled`.
+These flags describe the configuration loaded by this runtime and whether startup
+was permitted; `state` describes the observed lifecycle. States are `disabled`,
+`starting`, `running`, `failed`, `stopping`, and `stopped`. A disabled service has
+a `reason`, such as `no_enabled_listeners`, `environment_disabled` (SMTP), or
+`backend_disabled` (IMAP). Failed services expose a sanitized `error_code` and
+`error_message`; inspect server logs for full failure details.
+
+SMTP's `listeners` array reports each daemon-owned listener's configured
+`listen_interface`, actual `bound_address` while serving, `hostname`, `enabled`,
+`state`, `changed_at`, TLS mode, `certificate_loaded`,
+`authentication_required`, and `authentication_mechanisms`. Each failed listener
+has an `error_code`, including `listen_failed`, `tls_configuration_failed`, or
+`accept_failed`. The SMTP summary reports `failed` if an enabled listener failed,
+even when another listener is running. IMAP reports its listener metadata directly
+under `imap`; its SASL mechanism is `PLAIN`, and native IMAP `LOGIN` remains
+available over TLS.
+
+For example, an occupied IMAP port produces `imap.state="failed"` with
+`imap.error_code="listen_failed"`. HTTP `/ready` can still return 200 because it
+checks web lifecycle readiness and database connectivity independently. A saved
+`imap.enabled=true` setting also does not establish that a listener started.
+
+Settings become active through restart or the existing SMTP
+`sync_mail_servers` action. Status reports actual listener observations after
+those operations; a successful SMTP reload response alone does not establish
+that every listener bound successfully. A new runtime has a new `runtime_id`
+and fresh lifecycle state. `running` confirms a bound serving listener; account
+passwords, DNS, external reachability, and outbound delivery require their own
+checks. TLS mode is `starttls`, `implicit`, or `none` for SMTP configurations
+without TLS; no keys or certificate PEM are included in status.
+
 ## SMTP Authentication
 
 The SMTP server supports LOGIN authentication. Credentials are base64-encoded.

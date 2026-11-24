@@ -13,7 +13,7 @@ require (
 	github.com/artpar/api2go-adapter v1.0.2
 	github.com/artpar/api2go/v2 v2.7.4
 	github.com/artpar/ftpserver v0.0.4-daptin.2
-	github.com/artpar/go-guerrilla v1.5.2
+	github.com/artpar/go-guerrilla v1.5.3
 	github.com/artpar/go-imap v1.0.5
 	github.com/artpar/parsemail v0.0.0-20260922110859-a096334436b5
 	github.com/artpar/rclone v1.71.2

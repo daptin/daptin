@@ -14,7 +14,7 @@ import (
 )
 
 func InitializeImapResources(configStore *resource.ConfigStore, transaction *sqlx.Tx, cruds map[string]*resource.DbResource,
-	imapServer *server.Server, certificateManager *resource.CertificateManager, runtimeErrors chan<- error) (*server.Server, error) {
+	imapServer *server.Server, certificateManager *resource.CertificateManager, runtimeErrors chan<- error, status *mailServiceRuntimeStatus) (*server.Server, error) {
 	imapListenInterface, err := configStore.GetConfigValueFor("imap.listen_interface", "backend", transaction)
 	if err != nil {
 		err = configStore.SetConfigValueFor("imap.listen_interface", ":1143", "backend", transaction)
@@ -23,6 +23,13 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 	}
 
 	hostname := resolveIMAPHostname(configStore, transaction)
+	observation := mailProtocolStatus{State: "starting", ConfiguredEnabled: true, Enabled: true,
+		ListenInterface: imapListenInterface, Hostname: hostname, TLSMode: "starttls", AuthenticationRequired: true,
+		AuthenticationMechanisms: []string{"PLAIN"}}
+	if EndsWithCheck(imapListenInterface, ":993") {
+		observation.TLSMode = "implicit"
+	}
+	status.setIMAP(observation)
 	imapBackend := resource.NewImapServer(cruds)
 
 	// Create a new server
@@ -36,22 +43,30 @@ func InitializeImapResources(configStore *resource.ConfigStore, transaction *sql
 
 	cert, err := certificateManager.GetTLSConfig(hostname, true, transaction)
 	if err != nil {
+		status.imapState("failed", "certificate_failed")
 		logrus.Printf("Failed to get certificate for IMAP [%v]: %v — IMAP server will not start", hostname, err)
 		return nil, err
 	}
 	imapServer.TLSConfig = cert.TLSConfig
+	observation.CertificateLoaded = len(cert.TLSConfig.Certificates) > 0 && len(cert.TLSConfig.Certificates[0].Certificate) > 0 && cert.TLSConfig.Certificates[0].PrivateKey != nil
+	status.setIMAP(observation)
 
 	logrus.Printf("Starting IMAP server at %s: %v", imapListenInterface, hostname)
 
 	listener, err := net.Listen("tcp", imapListenInterface)
 	if err != nil {
+		status.imapState("failed", "listen_failed")
 		return nil, err
 	}
+	observation.State, observation.BoundAddress = "running", listener.Addr().String()
+	status.setIMAP(observation)
 	if EndsWithCheck(imapListenInterface, ":993") {
 		listener = tls.NewListener(listener, imapServer.TLSConfig)
 	}
 	go func() {
-		if serveErr := imapServer.Serve(listener); serveErr != nil && !errors.Is(serveErr, net.ErrClosed) {
+		serveErr := imapServer.Serve(listener)
+		status.imapStopped()
+		if serveErr != nil && !errors.Is(serveErr, net.ErrClosed) {
 			select {
 			case runtimeErrors <- fmt.Errorf("IMAP server: %w", serveErr):
 			default:

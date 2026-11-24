@@ -265,6 +265,8 @@ github.com/artpar/ftpserver v0.0.4-daptin.2 h1:bKtwuSSRLcZ508My5fk1GgP6hwjnMikQN
 github.com/artpar/ftpserver v0.0.4-daptin.2/go.mod h1:zTsaSKP1grcI3l+PJLLbYVfCnkP3b0sbfan9/0MDcFo=
 github.com/artpar/go-guerrilla v1.5.2 h1:L9G1LaXwddgtXXby21gRexoFGAZ6hNV5aUKcw9qNLRE=
 github.com/artpar/go-guerrilla v1.5.2/go.mod h1:sfKsJOlZNXa7BL0w5NPZIFvs+r1CYeqI521DZ+j9iGE=
+github.com/artpar/go-guerrilla v1.5.3 h1:J9hEVBMmocd168XtOlKjqoYL5FARu+9bGhm0/XNocJQ=
+github.com/artpar/go-guerrilla v1.5.3/go.mod h1:sfKsJOlZNXa7BL0w5NPZIFvs+r1CYeqI521DZ+j9iGE=
 github.com/artpar/go-imap v1.0.5 h1:m73nUXjH2kwbYb5xkCdFJgxbjybriFWDy45aK9WYdJc=
 github.com/artpar/go-imap v1.0.5/go.mod h1:4Zwc4VDFgUo23eQTpRUZ1F2JMsgjgnaV+KsO2I8w8ss=
 github.com/artpar/parsemail v0.0.0-20190115161936-abc648830b9a h1:W3JRCnyixXReLtgazoi45+mXLosITx/juCTy9IPs5kE=

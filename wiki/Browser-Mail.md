@@ -266,6 +266,10 @@ or deletion. No operation above invokes SMTP.
 
 ## Native IMAP agreement
 
+After configuring or restarting IMAP, administrators can use
+[[SMTP-Server#mail-service-runtime-status|mail service runtime status]] to inspect
+the active listener and startup failures independently of HTTP `/ready`.
+
 Native reads reload persisted memberships and check mailbox/account grants on
 every operation, including an already selected mailbox. FETCH/SEARCH/COPY use
 bounded normal resource reads so current message permissions apply before MIME
