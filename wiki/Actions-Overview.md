@@ -2,6 +2,8 @@
 
 Actions are named operations you can invoke via API to perform specific tasks. Unlike CRUD operations (create, read, update, delete) which work on individual records, actions execute business logic - sending emails, uploading files, generating tokens, or calling external APIs.
 
+For document extraction and DOCX/PDF/SF/text conversion outcomes, see [[Document-Processing]].
+
 ---
 
 ## Quick Start

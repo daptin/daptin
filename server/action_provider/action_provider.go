@@ -23,6 +23,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	defer transaction.Commit()
 
 	performers := make([]actionresponse.ActionPerformerInterface, 0)
+	performers = append(performers, actions.NewDocumentActionPerformers()...)
 	performers = append(performers, resource.NewRequireCurrentMembershipAction())
 	performers = append(performers, resource.NewCalendarShareAction(cruds))
 	for _, name := range []string{"set_calendar", "resolve", "slots", "reserve", "resolve_booking", "status", "cancel", "reschedule"} {

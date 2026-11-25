@@ -57,6 +57,31 @@ For a focused run while developing:
 DAPTIN_REAL_E2E=1 go test -count=1 -run '^TestExampleRealE2E$' ./cmd/daptin
 ```
 
+## Document processing acceptance
+
+`TestDocumentActionsRealE2E` runs the published document schema on an empty
+database, including private-record conversion, REST/GraphQL, revocation,
+scheduled execution and metering ownership. `TestDocumentActionsQualificationRealE2E`
+adds the complete format matrix, malformed inputs, wire/decoded/output/archive
+limits, independent Poppler PDF reading and the pinned Manifold corpus.
+`TestDocumentActionsQuotaRealE2E` proves failed conversions release quota and
+exhausted quota denies work before parsing or writes.
+
+```bash
+go build -o /tmp/daptin-document-test ./cmd/daptin
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-document-test \
+DAPTIN_DOCUMENT_CORPUS_DIR="$(go list -m -f '{{.Dir}}' github.com/artpar/manifold)/testdata/corpus" \
+DAPTIN_E2E_MAIL_POSTGRES_BIN=/path/to/postgresql/bin \
+go test ./cmd/daptin -run '^TestDocumentActions' -count=1 -v -timeout=10m
+```
+
+The PostgreSQL setting reuses the existing private-cluster fixture; it never
+connects to an installed database. `TestDocumentActionsConcurrencyPostgresRealE2E`
+uses it to test shared admission, disconnect recovery and the real 30-second
+deadline. SQLite serializes database transactions, so renderer saturation is
+qualified on PostgreSQL. Corpus and PostgreSQL checks skip when their settings
+are absent; install Poppler for the independent PDF reader checks.
+
 ## Browser Mail protocol acceptance
 
 `TestMailNativeRoundTripRealE2E` reuses the shared executable harness with a

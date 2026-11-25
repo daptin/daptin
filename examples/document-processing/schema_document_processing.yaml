@@ -1,0 +1,138 @@
+EnableGraphQL: true
+
+Tables:
+  - TableName: conversion_document
+    DefaultPermission: 16256
+    metering:
+      on_actions:
+        save_pdf:
+          enabled: true
+          meter_type: requests
+          cost_expr: "1"
+    AccessGroups:
+      - Name: users
+        Permission: 606208
+    Columns:
+      - Name: title
+        ColumnType: label
+        DataType: varchar(200)
+      - Name: source_format
+        ColumnType: label
+        DataType: varchar(10)
+      - Name: source_base64
+        ColumnType: content
+        DataType: text
+      - Name: output_base64
+        ColumnType: content
+        DataType: text
+        IsNullable: true
+
+Actions:
+  - Name: extract_document
+    Label: Extract document content
+    OnType: conversion_document
+    InstanceOptional: true
+    Permission: 0
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+    InFields:
+      - Name: file
+        ColumnName: file
+        ColumnType: json
+        IsNullable: false
+      - Name: source_format
+        ColumnName: source_format
+        ColumnType: label
+        IsNullable: false
+    OutFields:
+      - Type: document.extract
+        Method: EXECUTE
+        Reference: extracted
+        Attributes:
+          file: ~file
+          source_format: ~source_format
+      - Type: document.extracted
+        Method: ACTIONRESPONSE
+        Attributes:
+          document: ~extracted.document
+          text: ~extracted.text
+          metadata: ~extracted.metadata
+          diagnostics: ~extracted.diagnostics
+
+  - Name: convert_document
+    Label: Convert and download a document
+    OnType: conversion_document
+    InstanceOptional: true
+    Permission: 0
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+    InFields:
+      - Name: file
+        ColumnName: file
+        ColumnType: json
+        IsNullable: false
+      - Name: source_format
+        ColumnName: source_format
+        ColumnType: label
+        IsNullable: false
+      - Name: target_format
+        ColumnName: target_format
+        ColumnType: label
+        IsNullable: false
+    OutFields:
+      - Type: document.convert
+        Method: EXECUTE
+        Reference: converted
+        Attributes:
+          file: ~file
+          source_format: ~source_format
+          target_format: ~target_format
+      - Type: client.file.download
+        Method: ACTIONRESPONSE
+        Attributes:
+          content: "!converted.file[0].contents"
+          name: "!converted.file[0].name"
+          contentType: "!converted.file[0].type"
+          diagnostics: ~converted.diagnostics
+
+  # The action subject is read and authorized before outcomes run. A caller
+  # cannot substitute a different resource or attachment path in the performer.
+  - Name: save_pdf
+    Label: Extract, convert and save a private document
+    OnType: conversion_document
+    InstanceOptional: false
+    Permission: 0
+    AccessGroups:
+      - Name: users
+        Permission: 524288
+    OutFields:
+      - Type: document.extract
+        Method: EXECUTE
+        Reference: extracted
+        Attributes:
+          source_format: ~subject.source_format
+          file:
+            - name: source
+              contents: ~subject.source_base64
+      - Type: document.convert
+        Method: EXECUTE
+        Reference: converted
+        Attributes:
+          source_format: sf
+          document: ~extracted.document
+          target_format: pdf
+      - Type: conversion_document
+        Method: PATCH
+        SkipInResponse: true
+        Attributes:
+          reference_id: ~subject.reference_id
+          output_base64: "!converted.file[0].contents"
+      - Type: client.file.download
+        Method: ACTIONRESPONSE
+        Attributes:
+          content: "!converted.file[0].contents"
+          name: "!converted.file[0].name"
+          contentType: "!converted.file[0].type"
+          diagnostics: ~converted.diagnostics
