@@ -62,7 +62,8 @@ DAPTIN_REAL_E2E=1 go test -count=1 -run '^TestExampleRealE2E$' ./cmd/daptin
 `TestDocumentActionsRealE2E` runs the published document schema on an empty
 database, including private-record conversion, REST/GraphQL, revocation,
 scheduled execution and metering ownership. `TestDocumentActionsQualificationRealE2E`
-adds the complete format matrix, malformed inputs, wire/decoded/output/archive
+adds the five-format matrix (including expected unsupported pairs), PPTX native
+part preservation and loss checks, malformed inputs, wire/decoded/output/archive
 limits, independent Poppler PDF reading and the pinned Manifold corpus.
 `TestDocumentActionsQuotaRealE2E` proves failed conversions release quota and
 exhausted quota denies work before parsing or writes.

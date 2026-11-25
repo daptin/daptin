@@ -121,6 +121,7 @@ func (p *documentActionPerformer) process(ctx context.Context, input map[string]
 	name := "document." + string(target)
 	mediaTypes := map[manifold.Format]string{
 		manifold.DOCX: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		manifold.PPTX: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 		manifold.PDF:  "application/pdf", manifold.SF: "application/json", manifold.Text: "text/plain; charset=utf-8",
 	}
 	file := map[string]interface{}{"name": name, "type": mediaTypes[target], "size": output.Len(), "contents": base64.StdEncoding.EncodeToString(output.Bytes())}
@@ -131,6 +132,8 @@ func documentFormat(value interface{}) (manifold.Format, error) {
 	switch value {
 	case "docx":
 		return manifold.DOCX, nil
+	case "pptx":
+		return manifold.PPTX, nil
 	case "pdf":
 		return manifold.PDF, nil
 	case "sf":
@@ -138,7 +141,7 @@ func documentFormat(value interface{}) (manifold.Format, error) {
 	case "txt":
 		return manifold.Text, nil
 	default:
-		return "", errors.New("format must be one of docx, pdf, sf, txt")
+		return "", errors.New("format must be one of docx, pptx, pdf, sf, txt")
 	}
 }
 
@@ -205,7 +208,7 @@ func readActionDocument(ctx context.Context, input map[string]interface{}) (*man
 	if len(raw) > documentMaxInput {
 		return nil, errDocumentSize
 	}
-	if format == manifold.DOCX {
+	if format == manifold.DOCX || format == manifold.PPTX {
 		if err := validateDocumentArchive(ctx, raw); err != nil {
 			return nil, err
 		}
@@ -218,7 +221,7 @@ func readActionDocument(ctx context.Context, input map[string]interface{}) (*man
 func validateDocumentArchive(ctx context.Context, raw []byte) error {
 	archive, err := zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
 	if err != nil {
-		return fmt.Errorf("invalid DOCX archive: %w", err)
+		return fmt.Errorf("invalid document archive: %w", err)
 	}
 	if len(archive.File) > documentMaxParts {
 		return errDocumentSize

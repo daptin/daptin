@@ -102,8 +102,8 @@ func TestDocumentActionsQualificationRealE2E(t *testing.T) {
 	}
 	text := []byte("Document qualification\nHello world, κόσμος, Привет.\nTable content and footnotes.")
 	sources := map[string][]byte{"txt": text}
-	for _, target := range []string{"sf", "docx", "pdf"} {
-		sources[target] = convert(t, "txt", target, text, false)
+	for _, target := range []string{"sf", "docx", "pptx", "pdf"} {
+		sources[target] = convert(t, "txt", target, text, target == "pptx")
 	}
 	t.Run("anonymous_denial", func(t *testing.T) {
 		for _, operation := range []string{"extract", "convert"} {
@@ -114,9 +114,15 @@ func TestDocumentActionsQualificationRealE2E(t *testing.T) {
 		}
 	})
 	t.Run("all_format_pairs", func(t *testing.T) {
-		for _, source := range []string{"txt", "sf", "docx", "pdf"} {
-			for _, target := range []string{"txt", "sf", "docx", "pdf"} {
+		for _, source := range []string{"txt", "sf", "docx", "pptx", "pdf"} {
+			for _, target := range []string{"txt", "sf", "docx", "pptx", "pdf"} {
 				t.Run(source+"_to_"+target, func(t *testing.T) {
+					if source == "pptx" && target == "docx" {
+						fields := input(source, sources[source])
+						fields["target_format"], fields["allow_lossy"] = target, true
+						call(t, "convert", fields, 422)
+						return
+					}
 					raw := convert(t, source, target, sources[source], true)
 					extracted := call(t, "extract", input(target, raw), http.StatusOK)
 					for _, want := range []string{"Document qualification", "Hello world", "κόσμος", "Привет", "Table content"} {
@@ -153,11 +159,51 @@ func TestDocumentActionsQualificationRealE2E(t *testing.T) {
 		fields["target_format"], fields["allow_lossy"] = "pdf", true
 		call(t, "convert", fields, 422)
 	})
+	t.Run("presentation_preservation_and_losses", func(t *testing.T) {
+		deck, err := os.ReadFile("server/actions/testdata/document_presentation.pptx")
+		if err != nil {
+			t.Fatal(err)
+		}
+		extracted := call(t, "extract", input("pptx", deck), 200)
+		for _, want := range []string{"Document presentation", "Second slide Ελληνικά", "Private speaker notes"} {
+			if !strings.Contains(extracted["text"].(string), want) {
+				t.Fatalf("missing presentation text %q", want)
+			}
+		}
+		structured := extracted["document"].(map[string]interface{})
+		presentation := structured["attrs"].(map[string]interface{})["presentation"].(map[string]interface{})
+		if len(presentation["slides"].([]interface{})) != 2 {
+			t.Fatal("slide count changed")
+		}
+		sf := convert(t, "pptx", "sf", deck, false)
+		reopened := call(t, "extract", input("sf", sf), 200)
+		if !reflect.DeepEqual(extracted["document"], reopened["document"]) {
+			t.Fatal("SF lost slide content or native resources")
+		}
+		roundtrip := convert(t, "sf", "pptx", sf, false)
+		if !reflect.DeepEqual(documentQualificationParts(t, deck), documentQualificationParts(t, roundtrip)) {
+			t.Fatal("native PPTX package parts changed")
+		}
+		fields := input("pptx", deck)
+		fields["target_format"] = "pdf"
+		call(t, "convert", fields, 422)
+		pdf := convert(t, "pptx", "pdf", deck, true)
+		visible := call(t, "extract", input("pdf", pdf), 200)["text"].(string)
+		if strings.Contains(visible, "Private speaker notes") || !strings.Contains(visible, "Second slide Ελληνικά") {
+			t.Fatal("visible PDF content and notes were confused")
+		}
+		// The published wrapper action must forward the optional boolean too.
+		fields["allow_lossy"] = true
+		response := accessGroupsE2ERequestJSON(t, fixture.Client, http.MethodPost, fixture.URL+"/action/conversion_document/convert_document", member,
+			map[string]interface{}{"attributes": fields}, 200)
+		assertDocumentE2EPDF(t, response)
+	})
 	t.Run("empty_documents", func(t *testing.T) {
 		call(t, "extract", input("txt", nil), 200)
 		for _, target := range []string{"txt", "sf", "docx", "pdf"} {
 			convert(t, "txt", target, nil, false)
 		}
+		convert(t, "txt", "pptx", nil, true)
 	})
 	t.Run("action_permission_revocation", func(t *testing.T) {
 		id := accessGroupsE2EFindResourceID(t, fixture.Client, fixture.URL, admin, "action", "action_name", "qualify_extract")
@@ -191,6 +237,9 @@ func TestDocumentActionsQualificationRealE2E(t *testing.T) {
 			{"wrong_file_json", map[string]interface{}{"source_format": "txt", "file": "{}"}, 400},
 			{"invalid_pdf", input("pdf", []byte("%PDF-1.7\ntruncated")), 400},
 			{"invalid_docx", input("docx", []byte("PKtruncated")), 400},
+			{"invalid_pptx", input("pptx", []byte("PKtruncated")), 400},
+			{"legacy_ppt", input("ppt", sources["pptx"]), 400},
+			{"wrong_pptx_package", input("pptx", sources["docx"]), 422},
 			{"invalid_sf", input("sf", []byte("{")), 400},
 			{"unknown_sf", input("sf", []byte(`{"type":"doc","content":[]}`)), 422},
 			{"multiple_sf_values", input("sf", append(bytes.Clone(sources["sf"]), sources["sf"]...)), 400},
@@ -224,12 +273,14 @@ func TestDocumentActionsQualificationRealE2E(t *testing.T) {
 			fields := input("txt", bytes.Repeat([]byte("x"), (8<<20)+1))
 			fields["target_format"] = "txt"
 			call(t, operation, fields, 413)
-			fields = input("docx", documentQualificationZip(t, 1, (32<<20)+1))
-			fields["target_format"] = "txt"
-			call(t, operation, fields, 413)
-			fields = input("docx", documentQualificationZip(t, 2049, 0))
-			fields["target_format"] = "txt"
-			call(t, operation, fields, 413)
+			for _, format := range []string{"docx", "pptx"} {
+				fields = input(format, documentQualificationZip(t, 1, (32<<20)+1))
+				fields["target_format"] = "txt"
+				call(t, operation, fields, 413)
+				fields = input(format, documentQualificationZip(t, 2049, 0))
+				fields["target_format"] = "txt"
+				call(t, operation, fields, 413)
+			}
 		}
 		atLimit := bytes.Repeat([]byte("x"), 8<<20)
 		convert(t, "txt", "txt", atLimit, false)
@@ -252,7 +303,7 @@ func TestDocumentActionsQualificationRealE2E(t *testing.T) {
 	})
 	t.Run("deterministic_malformed_samples", func(t *testing.T) {
 		random := rand.New(rand.NewSource(20261125))
-		for _, format := range []string{"docx", "pdf", "sf"} {
+		for _, format := range []string{"docx", "pptx", "pdf", "sf"} {
 			for i := 0; i < 20; i++ {
 				raw := make([]byte, 16+random.Intn(2048))
 				random.Read(raw)
@@ -265,10 +316,29 @@ func TestDocumentActionsQualificationRealE2E(t *testing.T) {
 		}
 		call(t, "extract", input("txt", text), 200)
 	})
+	t.Run("original_powerpoint_packages", func(t *testing.T) {
+		dir := os.Getenv("DAPTIN_DOCUMENT_CORPUS_DIR")
+		if dir == "" {
+			t.Skip("set DAPTIN_DOCUMENT_CORPUS_DIR for original-source PPTX fixtures")
+		}
+		for _, name := range []string{"poi-SampleShow.pptx", "poi-smartart-simple.pptx"} {
+			t.Run(name, func(t *testing.T) {
+				raw, err := os.ReadFile(filepath.Join(dir, "..", "real", name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				sf := convert(t, "pptx", "sf", raw, false)
+				roundtrip := convert(t, "sf", "pptx", sf, false)
+				if !reflect.DeepEqual(documentQualificationParts(t, raw), documentQualificationParts(t, roundtrip)) {
+					t.Fatal("original package parts were rewritten or discarded")
+				}
+			})
+		}
+	})
 	t.Run("pinned_upstream_corpus", func(t *testing.T) {
 		dir := os.Getenv("DAPTIN_DOCUMENT_CORPUS_DIR")
 		if dir == "" {
-			t.Skip("set DAPTIN_DOCUMENT_CORPUS_DIR to Manifold v0.1.0 testdata/corpus")
+			t.Skip("set DAPTIN_DOCUMENT_CORPUS_DIR to the pinned Manifold module's testdata/corpus")
 		}
 		raw, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
 		if err != nil {
@@ -499,6 +569,28 @@ func createDocumentQualificationAction(t *testing.T, fixture *daptinE2EFixture, 
 
 func documentQualificationInput(format string, raw []byte) map[string]interface{} {
 	return map[string]interface{}{"source_format": format, "file": []interface{}{map[string]interface{}{"name": "source." + format, "contents": base64.StdEncoding.EncodeToString(raw)}}}
+}
+
+func documentQualificationParts(t *testing.T, raw []byte) map[string][]byte {
+	t.Helper()
+	archive, err := zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts := make(map[string][]byte, len(archive.File))
+	for _, part := range archive.File {
+		reader, err := part.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		content, err := io.ReadAll(reader)
+		reader.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		parts[part.Name] = content
+	}
+	return parts
 }
 
 func documentQualificationZip(t *testing.T, count, expanded int) []byte {

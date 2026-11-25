@@ -15,7 +15,7 @@ require (
 	github.com/artpar/ftpserver v0.0.4-daptin.2
 	github.com/artpar/go-guerrilla v1.5.3
 	github.com/artpar/go-imap v1.0.5
-	github.com/artpar/manifold v0.1.0
+	github.com/artpar/manifold v0.4.1
 	github.com/artpar/parsemail v0.0.0-20260922110859-a096334436b5
 	github.com/artpar/rclone v1.71.2
 	github.com/artpar/resty v1.0.3
@@ -80,12 +80,12 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.9.1
-	golang.org/x/crypto v0.43.0
-	golang.org/x/net v0.45.0
+	github.com/spf13/cobra v1.10.2
+	golang.org/x/crypto v0.47.0
+	golang.org/x/net v0.49.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.17.0
-	golang.org/x/text v0.30.0
+	golang.org/x/sync v0.19.0
+	golang.org/x/text v0.34.0
 	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/go-playground/validator.v9 v9.30.2
@@ -222,6 +222,7 @@ require (
 	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/go-resty/resty/v2 v2.11.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
+	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
@@ -355,7 +356,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/fsync v0.9.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/t3rm1n4l/go-mega v0.0.0-20241213151442-a19cff0ec7b5 // indirect
 	github.com/tdewolff/minify/v2 v2.12.9 // indirect
@@ -391,15 +392,16 @@ require (
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	gocloud.dev v0.24.0 // indirect
 	golang.org/x/arch v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/image v0.32.0 // indirect
-	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/term v0.36.0 // indirect
+	golang.org/x/image v0.36.0 // indirect
+	golang.org/x/mod v0.32.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
-	golang.org/x/tools v0.37.0 // indirect
+	golang.org/x/tools v0.41.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/api v0.223.0 // indirect

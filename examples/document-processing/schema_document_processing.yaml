@@ -81,6 +81,10 @@ Actions:
         ColumnName: target_format
         ColumnType: label
         IsNullable: false
+      - Name: allow_lossy
+        ColumnName: allow_lossy
+        ColumnType: truefalse
+        IsNullable: true
     OutFields:
       - Type: document.convert
         Method: EXECUTE
@@ -89,6 +93,7 @@ Actions:
           file: ~file
           source_format: ~source_format
           target_format: ~target_format
+          allow_lossy: "!allow_lossy === true"
       - Type: client.file.download
         Method: ACTIONRESPONSE
         Attributes:

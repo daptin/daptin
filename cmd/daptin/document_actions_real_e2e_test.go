@@ -41,9 +41,19 @@ func TestDocumentActionsRealE2E(t *testing.T) {
 	response = accessGroupsE2ERequestJSON(t, client, http.MethodPost, base+"/action/conversion_document/convert_document", owner, payload, http.StatusOK)
 	assertDocumentE2EPDF(t, response)
 	accessGroupsE2EAssertStatus(t, client, http.MethodPost, base+"/action/conversion_document/convert_document", "", payload, http.StatusForbidden)
+	attrs["target_format"], attrs["allow_lossy"] = "pptx", true
+	response = accessGroupsE2ERequestJSON(t, client, http.MethodPost, base+"/action/conversion_document/convert_document", owner, payload, http.StatusOK)
+	presentation, found := accessGroupsE2EFindString(response, "content")
+	if !found {
+		t.Fatalf("missing PPTX download: %#v", response)
+	}
+	contentType, _ := accessGroupsE2EFindString(response, "contentType")
+	if contentType != "application/vnd.openxmlformats-officedocument.presentationml.presentation" {
+		t.Fatalf("incorrect PPTX content type: %s", contentType)
+	}
 
 	documentID := accessGroupsE2ECreateRecord(t, client, base, owner, "conversion_document", map[string]interface{}{
-		"title": "Private source", "source_format": "txt", "source_base64": encoded,
+		"title": "Private source", "source_format": "pptx", "source_base64": presentation,
 	})
 	savedPayload := map[string]interface{}{"attributes": map[string]interface{}{"conversion_document_id": documentID}}
 	saveURL := base + "/action/conversion_document/save_pdf"
@@ -75,13 +85,15 @@ func TestDocumentActionsRealE2E(t *testing.T) {
 	}
 
 	// GraphQL must reach the same named action and performer.
-	graph := transportE2EPostJSON(t, client, base+"/graphql", owner, map[string]interface{}{
-		"query": fmt.Sprintf(`mutation { executeConvertDocumentOnConversionDocument(source_format: "txt", target_format: "pdf", file: %q) { ResponseType } }`, `[{"name":"source.txt","contents":"`+encoded+`"}]`),
-	})
-	graphMap, valid := graph.(map[string]interface{})
-	responseType, _ := accessGroupsE2EFindString(graph, "ResponseType")
-	if !valid || graphMap["errors"] != nil || responseType != "client.file.download" {
-		t.Fatalf("GraphQL conversion: %#v", graph)
+	for _, target := range []string{"pdf", "pptx"} {
+		graph := transportE2EPostJSON(t, client, base+"/graphql", owner, map[string]interface{}{
+			"query": fmt.Sprintf(`mutation { executeConvertDocumentOnConversionDocument(source_format: "txt", target_format: %q, allow_lossy: true, file: %q) { ResponseType } }`, target, `[{"name":"source.txt","contents":"`+encoded+`"}]`),
+		})
+		graphMap, valid := graph.(map[string]interface{})
+		responseType, _ := accessGroupsE2EFindString(graph, "ResponseType")
+		if !valid || graphMap["errors"] != nil || responseType != "client.file.download" {
+			t.Fatalf("GraphQL conversion: %#v", graph)
+		}
 	}
 
 	// An invalid conversion must stop before the persisted PATCH outcome.
@@ -96,7 +108,7 @@ func TestDocumentActionsRealE2E(t *testing.T) {
 
 	// Persist a normal task and restart to load it through Daptin's scheduler.
 	scheduledID := accessGroupsE2ECreateRecord(t, client, base, owner, "conversion_document", map[string]interface{}{
-		"title": "Scheduled private source", "source_format": "txt", "source_base64": encoded,
+		"title": "Scheduled private source", "source_format": "pptx", "source_base64": presentation,
 	})
 	taskAttrs, err := json.Marshal(map[string]interface{}{"conversion_document_id": scheduledID})
 	if err != nil {

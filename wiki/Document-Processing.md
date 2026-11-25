@@ -13,7 +13,7 @@ Scheduled tasks invoke the same actions.
 | `document.extract` | `source_format` and `file` or `document` | `document` (versioned SF tree), `text`, `metadata`, `diagnostics` |
 | `document.convert` | `source_format`, `target_format` and `file` or `document` | `file` (one attachment), `diagnostics` |
 
-Use `Method: EXECUTE`. Formats are exactly `docx`, `pdf`, `sf` and `txt`.
+Use `Method: EXECUTE`. Formats are exactly `docx`, `pptx`, `pdf`, `sf` and `txt`.
 SF is Manifold's `manydoc-prosemirror/1` ProseMirror profile, not arbitrary
 ProseMirror JSON, HTML or Markdown. Unknown nodes and unsupported features reject.
 `document` accepts an SF object with `source_format: sf`; it cannot be combined
@@ -76,7 +76,9 @@ curl "$DAPTIN_URL/action/conversion_document/extract_document" \
 ```
 
 Use `convert_document` with the same attributes plus `target_format: pdf` to
-download a PDF. Its conversion defaults to strict fidelity.
+download a PDF, or `target_format: pptx` to create a presentation. The example
+accepts the optional boolean `allow_lossy`, which defaults to false. Creating
+slides from flowing text requires `allow_lossy: true` to acknowledge reflow.
 
 For persistence, create a `conversion_document` through `/api/conversion_document`
 with `title`, `source_format`, and `source_base64`. Then invoke `save_pdf` with
@@ -100,7 +102,7 @@ Extraction reports import diagnostics without hiding them. DOCX/PDF conversion
 rejects losses with HTTP 422 through the usual action error response. Run
 extraction to review diagnostics before conversion. After reviewing them, an action may pass the
 boolean `allow_lossy: true` to `document.convert`. It defaults to false and does
-not authorize unsupported output. The example actions keep that strict default.
+not authorize unsupported output. The example actions keep that strict default unless explicitly acknowledged.
 
 PDF input reconstructs recoverable structure; it does not perform OCR. PDF/DOCX
 output reflows content and does not promise source-identical pagination. PDF
@@ -112,8 +114,8 @@ PDF input optionally accepts a string `password`. Keep passwords in transient
 inputs and disable request-body capture for actions handling secrets. Do not
 enable `LogToConsole` on document outcomes containing sensitive content.
 
-Backend limits are fixed: 8 MiB decoded input, 32 MiB expanded DOCX members,
-2,048 DOCX members, 16 MiB serialized performer result and 30 seconds per operation.
+Backend limits are fixed: 8 MiB decoded input, 32 MiB expanded DOCX/PPTX members,
+2,048 DOCX/PPTX members, 16 MiB serialized performer result and 30 seconds per operation.
 Two document operations may run concurrently per Daptin runtime; saturation
 returns HTTP 503 immediately. Oversized inputs/results return HTTP 413;
 cancellation/deadline returns HTTP 408. No partial output is returned on failure.
@@ -137,3 +139,30 @@ There is no separate document counter or billing store. A later `$llm.chat`
 outcome retains its own model permission and metering checks. Extraction can
 supply context for chat or summarization; conversation storage, retrieval and
 context-window management belong to the application workflow.
+
+## PowerPoint presentations
+
+Modern `.pptx` files use the same `document.extract` and `document.convert`
+performers, attachment inputs, action permissions and metering. Extraction
+returns slide text and notes in `text`, plus typed slide objects, positions,
+images, notes and native package resources in the SF `document`. Supported SF
+edits can be converted back to PPTX; unchanged native parts are preserved.
+Presentation SF has an explicit feature marker that older SF readers reject.
+
+| Source | Supported targets | Boundary |
+| --- | --- | --- |
+| PPTX / presentation SF | PPTX, SF, PDF, TXT | DOCX output rejects; slide structure is not silently flattened into Word flow |
+| PDF | PPTX | Supported physical text/image placement is recovered; loss acknowledgement is required |
+| DOCX / flowing SF / TXT | PPTX | Supported flow reflows into slide text boxes with `allow_lossy: true`; complex unsupported layouts reject |
+
+Speaker notes remain in SF/PPTX and extracted text. A visible-page PDF omits
+speaker notes, so a deck containing notes requires `allow_lossy: true` for PDF
+export. Acknowledgement does not bypass unsupported effects, groups, graphic
+frames, overflowing text or missing fonts. PDF conversion uses the backend's
+built-in fonts and does not promise full PowerPoint visual equivalence.
+
+For example, call `convert_document` with `source_format: pptx`,
+`target_format: pdf`, the inline `file` attachment and, after reviewing the
+extraction, `allow_lossy: true` when required. `save_pdf` keeps its strict
+backend definition; applications can define an explicitly acknowledged workflow
+when appropriate. Legacy binary `.ppt` is unsupported.

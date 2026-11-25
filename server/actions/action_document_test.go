@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -223,4 +225,137 @@ func TestDocumentAcknowledgementDoesNotBypassUnsupportedOutput(t *testing.T) {
 	if result != nil || len(responses) != 0 || len(errs) != 1 || !errors.As(errs[0], &httpErr) || httpErr.Status() != 422 {
 		t.Fatalf("unsupported output published: %v", errs)
 	}
+}
+
+func TestDocumentPresentationComposition(t *testing.T) {
+	raw, err := os.ReadFile("testdata/document_presentation.pptx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	performers := NewDocumentActionPerformers()
+	extracted := documentTestResult(t, performers[0], documentTestInput("pptx", raw))
+	for _, want := range []string{"Document presentation", "Second slide Ελληνικά", "Private speaker notes"} {
+		if !strings.Contains(extracted["text"].(string), want) {
+			t.Fatalf("extraction omitted %q", want)
+		}
+	}
+	doc, err := manifold.FromStructured(extracted["document"].(*manifold.StructuredDocument))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc.Presentation == nil || len(doc.Presentation.Slides) != 2 || len(doc.Presentation.Slides[0].Notes) == 0 || len(doc.Presentation.Slides[0].Objects) != 2 {
+		t.Fatalf("incomplete presentation extraction: %+v", doc.Presentation)
+	}
+	first := doc.Presentation.Slides[0].Objects[0]
+	if first.X != 40 || first.Y != 40 || first.Width != 500 || first.Height != 70 {
+		t.Fatalf("geometry changed: %+v", first)
+	}
+	convert := func(source, target string, content []byte, allow bool) []byte {
+		input := documentTestInput(source, content)
+		input["target_format"], input["allow_lossy"] = target, allow
+		return documentTestOutput(t, documentTestResult(t, performers[1], input), target)
+	}
+	sf := convert("pptx", "sf", raw, false)
+	reopened := documentTestResult(t, performers[0], documentTestInput("sf", sf))
+	if !reflect.DeepEqual(extracted["document"], reopened["document"]) {
+		t.Fatal("SF changed presentation content or native resources")
+	}
+	roundtrip := convert("sf", "pptx", sf, false)
+	if !reflect.DeepEqual(documentTestArchive(t, raw), documentTestArchive(t, roundtrip)) {
+		t.Fatal("unchanged native PPTX parts were rewritten or dropped")
+	}
+	// Typed SF edits must reach the original deck rather than a separate export.
+	doc.Presentation.Slides[0].Objects[0].X = 88
+	doc.Presentation.Slides[0].Objects[0].Content[0].Runs[0].Text = "Edited through Daptin"
+	structured, err := manifold.ToStructured(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edited := documentTestResult(t, performers[1], map[string]interface{}{"source_format": "sf", "document": structured, "target_format": "pptx"})
+	back := documentTestResult(t, performers[0], documentTestInput("pptx", documentTestOutput(t, edited, "pptx")))
+	if !strings.Contains(back["text"].(string), "Edited through Daptin") {
+		t.Fatal("SF text edit was ignored")
+	}
+	changed, err := manifold.FromStructured(back["document"].(*manifold.StructuredDocument))
+	if err != nil || changed.Presentation.Slides[0].Objects[0].X != 88 {
+		t.Fatalf("SF geometry edit was ignored: %v", err)
+	}
+	pdf := convert("pptx", "pdf", raw, true)
+	pdfDoc := documentTestResult(t, performers[0], documentTestInput("pdf", pdf))
+	if strings.Contains(pdfDoc["text"].(string), "Private speaker notes") || !strings.Contains(pdfDoc["text"].(string), "Second slide Ελληνικά") {
+		t.Fatal("PDF did not distinguish visible content from notes")
+	}
+	convert("pdf", "pptx", pdf, true)
+	text := convert("pptx", "txt", raw, false)
+	if !bytes.Contains(text, []byte("Private speaker notes")) {
+		t.Fatal("text extraction lost notes")
+	}
+}
+
+func TestDocumentPresentationDenialsReturnNoOutput(t *testing.T) {
+	raw, err := os.ReadFile("testdata/document_presentation.pptx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := NewDocumentActionPerformers()[1]
+	for _, test := range []struct {
+		name, source, target string
+		raw                  []byte
+		allow                bool
+		status               int
+	}{
+		{"notes require acknowledgement", "pptx", "pdf", raw, false, 422},
+		{"slides cannot silently become Word flow", "pptx", "docx", raw, true, 422},
+		{"flow needs acknowledgement", "txt", "pptx", []byte("New slide"), false, 422},
+		{"legacy PPT", "ppt", "pptx", raw, true, 400},
+		{"malformed PPTX", "pptx", "sf", []byte("bad"), false, 400},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fields := documentTestInput(test.source, test.raw)
+			fields["target_format"], fields["allow_lossy"] = test.target, test.allow
+			result, responses, errs := p.DoAction(actionresponse.Outcome{}, fields, nil)
+			var httpErr api2go.HTTPError
+			if result != nil || len(responses) != 0 || len(errs) != 1 || !errors.As(errs[0], &httpErr) || httpErr.Status() != test.status {
+				t.Fatalf("denial returned output or wrong error: %v", errs)
+			}
+		})
+	}
+}
+
+func documentTestOutput(t *testing.T, result map[string]interface{}, target string) []byte {
+	t.Helper()
+	file := result["file"].([]interface{})[0].(map[string]interface{})
+	if file["name"] != "document."+target {
+		t.Fatalf("incorrect output filename: %#v", file["name"])
+	}
+	if target == "pptx" && file["type"] != "application/vnd.openxmlformats-officedocument.presentationml.presentation" {
+		t.Fatalf("incorrect PPTX MIME type: %#v", file["type"])
+	}
+	raw, err := base64.StdEncoding.Strict().DecodeString(file["contents"].(string))
+	if err != nil || file["size"] != len(raw) {
+		t.Fatalf("invalid output attachment: %v", err)
+	}
+	return raw
+}
+
+func documentTestArchive(t *testing.T, raw []byte) map[string][]byte {
+	t.Helper()
+	archive, err := zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts := make(map[string][]byte, len(archive.File))
+	for _, part := range archive.File {
+		reader, err := part.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		content, err := io.ReadAll(reader)
+		reader.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		parts[part.Name] = content
+	}
+	return parts
 }
