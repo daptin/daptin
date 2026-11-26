@@ -607,7 +607,7 @@ Daptin uses Olric for distributed caching. These flags configure clustering acro
 
 **Default:** Auto-detect an interface address.
 
-**Purpose:** Bind both the embedded Olric TCP listener and its membership listener to the given IP address. Use `127.0.0.1` with a loopback HTTP address for a local-only deployment. For a cluster, use each node's reachable interface address; peers must be able to reach its Olric and membership ports.
+**Purpose:** Bind both the embedded Olric TCP listener and its membership listener to the given IP address. Use `127.0.0.1` with a loopback HTTP address for a local-only deployment. For a cluster, use each node's private interface address and restrict both ports to trusted peers. HTTP bind settings do not change the Olric bind address. See [[Clustering#network-trust-boundary|Network Trust Boundary]]; the listeners do not provide client authentication.
 
 ### olric_seed
 
@@ -628,22 +628,22 @@ When set, `-olric_peers` is not required -- peers are discovered dynamically via
 ```
 
 **Options:**
-- `local` - Single node (default)
-- `lan` - Local area network cluster
-- `wan` - Wide area network cluster
+- `local` - Local testing timing profile (default)
+- `lan` - Local area network timing profile
+- `wan` - Wide area network timing profile
 
-**Effect:** Adjusts timeouts and retry behavior for network latency.
+**Effect:** Adjusts timeouts and retry behavior for network latency. These settings do not enable authentication or encryption, and `local` does not imply a loopback bind. Configure `-olric_bind_addr` and follow [[Clustering#network-trust-boundary|Network Trust Boundary]].
 
 **Example multi-node setup:**
 
 **Node 1:**
 ```bash
-./daptin -olric_peers "192.168.1.11:5337" -olric_port 5336 -olric_env lan
+./daptin -olric_bind_addr 192.168.1.10 -olric_peers "192.168.1.11:5337" -olric_port 5336 -olric_env lan
 ```
 
 **Node 2:**
 ```bash
-./daptin -olric_peers "192.168.1.10:5337" -olric_port 5336 -olric_env lan
+./daptin -olric_bind_addr 192.168.1.11 -olric_peers "192.168.1.10:5337" -olric_port 5336 -olric_env lan
 ```
 
 **Logs show:** `olric peers: [192.168.1.11:5337]`

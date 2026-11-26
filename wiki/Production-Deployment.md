@@ -156,20 +156,32 @@ an actual burst. `/ping` is outside this limiter.
 
 #### Configure Firewall
 
+Olric is trusted application infrastructure and must not accept connections
+from untrusted clients. For a single node, use `-olric_bind_addr 127.0.0.1`.
+For clusters, permit only trusted peers before denying other sources. Follow
+[[Clustering#network-trust-boundary|Network Trust Boundary]] for the isolation
+requirements, including container and Kubernetes networks.
+
+The following denies Olric access for a single node using the default ports.
+Adjust these rules for your configured `olric_port`; membership uses
+`olric_port + 1`. These deny rules alone do not configure a cluster.
+
 ```bash
 # UFW (Ubuntu)
 sudo ufw allow 80/tcp      # HTTP (for Let's Encrypt)
 sudo ufw allow 443/tcp     # HTTPS
 sudo ufw allow 6336/tcp    # Daptin HTTP (if not using nginx)
 sudo ufw deny 5336/tcp     # Block Olric (internal only)
-sudo ufw deny 5350/tcp     # Block Olric membership
+sudo ufw deny 5337/tcp     # Block Olric membership
+sudo ufw deny 5337/udp     # Block Olric gossip
 sudo ufw enable
 
 # iptables
 iptables -A INPUT -p tcp --dport 80 -j ACCEPT
 iptables -A INPUT -p tcp --dport 443 -j ACCEPT
 iptables -A INPUT -p tcp --dport 5336 -j DROP   # Block external Olric
-iptables -A INPUT -p tcp --dport 5350 -j DROP
+iptables -A INPUT -p tcp --dport 5337 -j DROP
+iptables -A INPUT -p udp --dport 5337 -j DROP
 ```
 
 #### Review Default Permissions
@@ -351,7 +363,8 @@ See [[Database-Setup#connection-pool]] for pool defaults and idle-time settings.
 # Default: enabled
 # For multi-server: configure peers
 
-export DAPTIN_OLRIC_PEERS="server1:5336,server2:5336"
+export DAPTIN_OLRIC_BIND_ADDR="10.0.1.12"
+export DAPTIN_OLRIC_PEERS="10.0.1.10:5337,10.0.1.11:5337"
 ```
 
 #### Enable Compression
@@ -391,16 +404,10 @@ backend daptin_backend
 
 #### Olric Cluster
 
-```bash
-# Server 1
-./daptin -olric_peers="server2:5336,server3:5336"
-
-# Server 2
-./daptin -olric_peers="server1:5336,server3:5336"
-
-# Server 3
-./daptin -olric_peers="server1:5336,server2:5336"
-```
+Use each node's private bind address and the peers' membership ports
+(`olric_port + 1`), with access restricted to trusted nodes. Follow the
+[[Clustering#node-configuration|node configuration examples]] and
+[[Clustering#network-trust-boundary|network trust boundary]].
 
 #### Database Replication
 
@@ -514,7 +521,7 @@ After deployment, verify:
 - [ ] Health check (`/ping`) returns "pong"
 - [ ] Monitoring is configured
 - [ ] Backups are running
-- [ ] Firewall blocks Olric ports (5336, 5350)
+- [ ] Cache TCP and membership TCP/UDP ports accept only trusted peers (defaults: 5336 and 5337); single-node Olric listeners bind to loopback
 - [ ] JWT secret is set (not default)
 - [ ] Encryption secret is set
 - [ ] Rate limiting is enabled

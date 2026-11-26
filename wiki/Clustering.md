@@ -35,7 +35,42 @@ Daptin supports clustering for:
 1. **Shared Database** — All nodes connect to the same database; the documented cluster setup uses PostgreSQL
 2. **Load Balancer** — Distribute HTTP traffic across nodes
 3. **Shared Storage** — For file assets (use cloud storage)
-4. **Network** — Olric ports (olric_port and olric_port+1 for membership) must be reachable between all nodes
+4. **Network** — Olric ports (`olric_port` and `olric_port + 1` for membership) must be reachable between trusted Daptin nodes only; see the network trust boundary below
+
+## Network Trust Boundary
+
+Daptin's embedded Olric listeners have no client authentication configured.
+Olric holds security-sensitive session and authorization cache data. Anyone
+who can read or write it must be trusted as application infrastructure. HTTP
+JWT authentication and resource permissions do not protect the Olric protocol.
+Exposing these listeners to untrusted clients is outside the supported
+deployment trust boundary; a reachable cache must not be treated as a public
+Daptin API.
+
+For a single-node deployment, bind both Olric listeners to loopback using the
+existing CLI flag (or `DAPTIN_OLRIC_BIND_ADDR` environment variable):
+
+```bash
+./daptin -port :6336 -olric_bind_addr 127.0.0.1
+```
+
+The HTTP and Olric bind addresses are independent. Without `-olric_bind_addr`,
+Daptin auto-detects an interface address; `-olric_env local` does not restrict
+listeners to loopback. The `local`, `lan`, and `wan` settings tune networking
+behavior; they do not enable authentication or encryption.
+
+For a cluster, bind each node to its private interface address and use host
+firewalls, security groups, or container-network policies to allow only the
+other trusted Daptin nodes. A private address or shared network alone does not
+exclude untrusted hosts or workloads. Allow the cache port over TCP and the
+membership port over TCP and UDP. For the default HTTP port these are `5336`
+and `5337`; when `-olric_port` is set, membership is always `olric_port + 1`.
+
+Do not expose either Olric port through a public load balancer, Kubernetes
+NodePort, or published container host port. The container examples below
+publish only HTTP. Restrict access within their networks too: a Kubernetes
+headless service provides discovery, not access control. Limit ingress to the
+Daptin pods with a NetworkPolicy enforced by the cluster's network provider.
 
 ## CLI Flags
 
@@ -46,9 +81,9 @@ Daptin supports clustering for:
 | `-db_connection_string` | Database DSN | `host=... port=5432 ...` |
 | `-olric_peers` | Comma-separated peer list (ip:membership_port) | `10.0.0.1:5337,10.0.0.2:5339` |
 | `-olric_port` | Olric port (membership is automatically olric_port+1) | `5336` |
-| `-olric_bind_addr` | Bind Olric and membership listeners to this node's reachable IP; see [[Server-Configuration|Server-Configuration.md]] | auto-detected |
+| `-olric_bind_addr` | Bind both Olric listeners; use loopback for a single node or a private node IP for a cluster | `10.0.0.1` |
 | `-olric_seed` | DNS hostname for peer discovery | `daptin-headless.default.svc.cluster.local` |
-| `-olric_env` | Discovery mode: `local`, `lan`, `wan` | `local` |
+| `-olric_env` | Network timing profile: `local`, `lan`, `wan`; does not control access | `local` |
 
 ## Node Configuration
 
@@ -61,6 +96,7 @@ go run ./cmd/daptin \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
   -olric_peers "10.0.0.1:5337,10.0.0.2:5339,10.0.0.3:5341" \
   -olric_port 5336 \
+  -olric_bind_addr 10.0.0.1 \
   -olric_env lan
 ```
 
@@ -73,6 +109,7 @@ go run ./cmd/daptin \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
   -olric_peers "10.0.0.1:5337,10.0.0.2:5339,10.0.0.3:5341" \
   -olric_port 5338 \
+  -olric_bind_addr 10.0.0.2 \
   -olric_env lan
 ```
 
@@ -85,6 +122,7 @@ go run ./cmd/daptin \
   -db_connection_string "host=db.example.com port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
   -olric_peers "10.0.0.1:5337,10.0.0.2:5339,10.0.0.3:5341" \
   -olric_port 5340 \
+  -olric_bind_addr 10.0.0.3 \
   -olric_env lan
 ```
 
@@ -102,7 +140,9 @@ Each node uses 3 ports:
 
 The membership port is always `olric_port + 1` and is derived automatically. You only need to set `-olric_port`.
 
-**All three ports must be reachable between nodes.**
+The Olric TCP port and membership TCP/UDP port must be reachable only between
+trusted nodes. Expose HTTP to the intended API clients or load balancer. See
+[Network Trust Boundary](#network-trust-boundary) for isolation requirements.
 
 ## Distributed Features
 
@@ -153,7 +193,9 @@ spec:
     app: daptin
 ```
 
-Then configure each Daptin pod to use the headless service for discovery:
+Then configure each Daptin pod to use the headless service for discovery.
+In this command, `POD_IP` is the pod's IP supplied through the Kubernetes
+Downward API:
 
 ```bash
 ./daptin \
@@ -161,6 +203,7 @@ Then configure each Daptin pod to use the headless service for discovery:
   -db_type postgres \
   -db_connection_string "host=postgres port=5432 user=daptin password=pass dbname=daptin sslmode=disable" \
   -olric_seed "daptin-headless.default.svc.cluster.local" \
+  -olric_bind_addr "$POD_IP" \
   -olric_port 5336 \
   -olric_env lan
 ```
@@ -260,6 +303,11 @@ spec:
             - containerPort: 6336
             - containerPort: 5336
             - containerPort: 5337
+          env:
+            - name: DAPTIN_OLRIC_BIND_ADDR
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           args:
             - "-port=:6336"
             - "-db_type=postgres"
