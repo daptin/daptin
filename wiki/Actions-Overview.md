@@ -397,6 +397,10 @@ Tables:
             Value: "shipped"
 ```
 
+For optimistic concurrency, include the expected record revision in a PATCH
+outcome's `Attributes.version`. See [[CRUD-Operations#prevent-stale-updates|Prevent stale updates]]
+for version validation and action transaction behavior.
+
 ### Constrained Record Edits
 
 Use a named action when callers should change selected fields without receiving

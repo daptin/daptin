@@ -188,6 +188,39 @@ with HTTP 409 and leaves the stored record unchanged. Its existing conditional
 SQL update also detects a competing change during the request. Invalid revision
 values return HTTP 422.
 
+Schema action `PATCH` outcomes use the same version precondition through the
+outcome's `Attributes.version`. Declare an action input and explicitly map it
+to that attribute. `expected_version` below is an example input name defined by
+the action schema; Daptin does not provide or automatically check a parameter
+with that name.
+
+For example, an instance action on a `todo` table with a `completed` column can
+include these fields:
+
+```yaml
+InFields:
+  - Name: expected_version
+    ColumnName: expected_version
+    ColumnType: measurement
+    IsNullable: false
+OutFields:
+  - Type: todo
+    Method: PATCH
+    Attributes:
+      reference_id: "~todo_id"
+      version: "~expected_version"
+      completed: true
+```
+
+The caller supplies `todo_id` and `expected_version` in the action request's
+`attributes`. The mapping `version: "~expected_version"` passes that input to
+the resource version check. You can instead name the input `revision` and map
+it with `version: "~revision"`; the resource attribute remains `version`.
+
+A conflict stops later outcomes and rolls back earlier resource writes in the
+action transaction. This also applies to `ForEach` PATCH outcomes: a conflict
+in any item rolls back the action's writes.
+
 After a successful update, GET the record for its new revision before the next
 edit. The PATCH response may echo the submitted revision. A PATCH omitting
 `version` does not protect the caller's earlier read from a later overwrite.

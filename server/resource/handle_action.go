@@ -998,8 +998,28 @@ func (dbResource *DbResource) executeActionCRUDOutcome(
 		createdRow := responseObject.(api2go.Response).Result().(api2go.Api2GoModel).GetAttributes()
 		return responseObject, []actionresponse.ActionResponse{NewActionResponse(createdRow["__type"].(string), createdRow)}, nil
 	case "PATCH":
+		referenceID := daptinid.InterfaceToDIR(model.GetID())
+		if referenceID == daptinid.NullReferenceId {
+			return nil, nil, errors.New("PATCH outcome requires a valid reference_id")
+		}
+		// BuildOutcome contains proposed attributes, not a stored baseline.
+		// Initialize change tracking exactly as a resource PATCH does, keeping
+		// the caller's revision distinct from the version used by the SQL guard.
+		original, err := crud.GetReferenceIdToObjectWithTransaction(outcome.Type, referenceID, transaction)
+		if err != nil {
+			return nil, nil, err
+		}
+		attributes := model.GetAllAsAttributes()
+		model = api2go.NewApi2GoModelWithData(outcome.Type, nil, 0, nil, original)
+		model.SetAttributes(attributes)
+		if err := validateUpdateVersion(model); err != nil {
+			return nil, nil, err
+		}
 		responseObject, err := crud.UpdateWithTransaction(model, request, transaction)
 		CheckErr(err, "[532] Failed to update inside action")
+		if errors.Is(err, ErrVersionConflict) {
+			return nil, nil, api2go.NewHTTPError(err, "resource version conflict", http.StatusConflict)
+		}
 		if err != nil {
 			return nil, nil, err
 		}
