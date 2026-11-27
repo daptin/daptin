@@ -25,6 +25,7 @@ stack as a sidecar for the backend features you are missing.
 - **[[Authorization-Scenarios]]** - choose a public, subscription, team, or service-account access pattern
 - **[[Daptin-Application-Server-Feature-Map]]** - source-grounded architecture and capability map
 - **[[LLM-Providers]]** - OpenAI-compatible provider routing
+- **[[Agents]]** - durable agents using resource CRUD, relationships, and named actions
 - **[[API-Metering]]** - plans, quotas, credits, and usage logs
 - **[[Integrations]]** - personal external API connections and trusted service-account workflows
 - **[[Payments-and-Checkout]]** - turn a verified provider checkout into Daptin plan membership
@@ -43,6 +44,7 @@ stack as a sidecar for the backend features you are missing.
 
 - **[[Walkthrough-Product-Catalog]]** (30-45 min, tested end-to-end)
 - **[[Build an LLM Router with Daptin|Walkthrough-LLM-Router]]** — providers, permissions, fallback routing, conversations, and budgets
+- **[[Run a Durable Agent|Agents#run-the-example-from-start-to-finish]]** — configure tools, start a run, and verify its saved result
 
 ### Troubleshooting And Reference
 
@@ -92,6 +94,8 @@ stack as a sidecar for the backend features you are missing.
   image generation, and model discovery.
 - Priority/weighted and fallback routing through `llm_provider`, `llm_model`,
   and `llm_deployment`.
+- Durable agents through `agent`, `agentrun`, `agentstp`, and `agenttry`, with
+  CRUD/action tools, saved conversations, decisions, timed waits, and cluster recovery.
 - OpenAPI-backed third-party integrations under `/integration/{provider}/{operation}`.
 - OAuth-token and custom-credential integration execution.
 - API plans, members, usage logs, quotas, rate limits, and credit hooks.
@@ -189,6 +193,7 @@ See **[[Production-Deployment]]**, **[[Database-Setup]]**, and
 ### LLM, Integrations, And Metering
 
 - [[LLM-Providers]]
+- [[Agents]]
 - [[Integrations]]
 - [[Credentials]]
 - [[API-Metering]]

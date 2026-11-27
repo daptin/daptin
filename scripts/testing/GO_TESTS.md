@@ -259,6 +259,37 @@ DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-agent-test \
 See [Durable agents](../../wiki/Agents.md) for the public configuration and recovery
 contract, including performer cancellation and external-effect boundaries.
 
+### CPU and memory load measurement
+
+`TestPermissionLoadRealE2E` is an opt-in macOS measurement using the same isolated
+HTTP/process fixture. Four ordinary users read 50 group-shared records through
+single-record and 25-row list requests. It records validated throughput,
+latency, process CPU time and RSS sampled every 500 ms. CPU 100% means one core;
+three-node figures sum Daptin processes, including embedded Olric, and exclude
+PostgreSQL and the load generator. It asserts correctness, not a hardware-specific
+performance threshold. The private instance's measured route rate limits are
+raised so the test measures resource work rather than rate-limit rejection.
+
+```bash
+GOWORK=off go build -o /tmp/daptin-agent-test ./cmd/daptin
+DAPTIN_REAL_E2E=1 DAPTIN_PERMISSION_LOAD=1 \
+  DAPTIN_E2E_BINARY=/tmp/daptin-agent-test \
+  DAPTIN_E2E_MAIL_POSTGRES_BIN=/path/to/postgresql/bin \
+  DAPTIN_LOAD_VARIANT=cached DAPTIN_LOAD_SECONDS=10 \
+  DAPTIN_LOAD_AGENT=1 DAPTIN_LOAD_RESULTS=/tmp/daptin-load.json \
+  GOWORK=off go test ./cmd/daptin -run '^TestPermissionLoadRealE2E$' \
+    -count=1 -v -timeout=8m
+```
+
+Set `DAPTIN_LOAD_CLUSTER=1` for three nodes sharing private PostgreSQL and Olric.
+Set `DAPTIN_LOAD_ONLY_AGENT=1` with `DAPTIN_LOAD_AGENT=1` to measure agents on a
+fresh process without preceding read saturation. Each agent uses a local mock
+provider, performs two model calls and one real tool read, and persists its
+history. Agent timing includes admission, scheduling and status polling. RSS
+includes retained heap; a short cooldown does not establish a memory leak.
+
+### Live provider qualification
+
 The `live` build-tag test uses real provider credentials and makes billable model
 calls with synthetic records in a disposable Daptin database. The credentials
 file has a `providers` map keyed by `google`, `openrouter`, or `lilac`, each with

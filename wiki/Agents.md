@@ -31,7 +31,7 @@ JSON object (or JSON text in a JSON:API client):
 ```
 
 The model must have its `tools` capability enabled. Model execution, routing,
-credentials and quota remain governed by the [LLM gateway](LLM-Providers.md).
+credentials and quota remain governed by the [LLM gateway](https://github.com/daptin/daptin/wiki/LLM-Providers).
 `resources` accepts exact entity names or `*`; `actions` accepts exact
 `entity.action` names or `*`. These selectors expose capabilities without granting
 permissions. Use narrower selectors when an application needs a smaller toolset.
@@ -46,8 +46,8 @@ logical-operation reference; caller-supplied create references are rejected.
 Named actions use the existing action dispatcher, including its distinct action
 and subject checks and trusted outcome behavior. Validate the targets and scope
 of application action inputs. An action grant is not a blanket grant to models,
-credentials or arbitrary records. See [Actions](Actions-Overview.md) and
-[Permissions](Permissions.md).
+credentials or arbitrary records. See [Actions](https://github.com/daptin/daptin/wiki/Actions-Overview) and
+[Permissions](https://github.com/daptin/daptin/wiki/Permissions).
 
 For a stable application tool name, add a binding to `tools`:
 
@@ -79,9 +79,62 @@ minItems, maxItems, pattern and nullable. Unsupported keywords and remote
 references are rejected. Both local schema validation and normal action
 validations apply.
 
-The [example application schema](../examples/agent/schema.yaml) defines an
+The [example application schema](https://github.com/daptin/daptin/blob/master/examples/agent/schema.yaml) defines an
 `artifact` resource and its verification action. All application behavior stays
 in that schema; no application-specific Go code is required.
+
+## Run the example from start to finish
+
+Start with an authenticated administrator token and a working `assistant` model
+from the [LLM router walkthrough](https://github.com/daptin/daptin/wiki/Walkthrough-LLM-Router).
+Enable `tools` in that model's `capabilities`, preserving any other capabilities.
+Install the example schema in the server's schema folder and restart each node,
+as described in [Schema definition](https://github.com/daptin/daptin/wiki/Schema-Definition).
+Use the administrator for this first example; choose the intended execution
+account and sharing grants before running an application workflow.
+
+Save the configuration at the start of this guide as `agent-config.json`. With
+`curl` and `jq` installed, create the definition:
+
+```bash
+export BASE=http://localhost:6336
+# TOKEN is the administrator JWT obtained during sign-in.
+jq -n --slurpfile config agent-config.json \
+  '{data:{type:"agent",attributes:{name:"artifact-helper",config:$config[0]}}}' \
+  > agent-create.json
+
+AGENT_REF=$(curl --fail-with-body -sS "$BASE/api/agent" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  --data-binary @agent-create.json | jq -er '.data.id')
+
+jq -n --arg agent "$AGENT_REF" \
+  '{attributes:{agent_id:$agent,messages:[{role:"user",content:"Create an artifact titled Agent demo with non-empty content explaining this workflow. Call artifact.verify on the saved record and report the verification result."}]}}' \
+  > agent-start.json
+
+RUN_REF=$(curl --fail-with-body -sS "$BASE/action/agent/start" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  --data-binary @agent-start.json | jq -er '.[0].Attributes.reference_id')
+
+curl --fail-with-body -sS "$BASE/api/agentrun/$RUN_REF" \
+  -H "Authorization: Bearer $TOKEN" \
+  | jq '.data.attributes | {status,state}'
+```
+
+Repeat the last request until the run reaches a terminal state or waits for a
+decision. Inspect `state.result` and verify the saved application data separately:
+
+```bash
+curl --fail-with-body -sS "$BASE/api/artifact?page[size]=25" \
+  -H "Authorization: Bearer $TOKEN" | jq '.data'
+```
+
+The agent should create a record through ordinary CRUD, pass its public reference
+as `artifact_id` to the named action, receive the verifier's result, and finish.
+Inspect `state.messages` for the model's tool calls and returned results. The
+control and recovery examples below cover decisions, cancellation and uncertain
+effects. To manage the whole Daptin instance, retain the `*` selectors and run
+as an administrator; selectors expose operations while the account's existing
+permissions decide what each operation may do.
 
 ## Design an application workflow
 
@@ -119,7 +172,7 @@ replacement. Supporting a first tool call does not establish continuation
 support. Opaque provider continuation state, including Gemini thought signatures,
 is retained on each tool call in the persisted conversation and replayed through
 the shared gateway. See the live qualification command in
-[Go tests](../scripts/testing/GO_TESTS.md).
+[Go tests](https://github.com/daptin/daptin/blob/master/scripts/testing/GO_TESTS.md#durable-agent-qualification).
 
 ## Start and inspect
 
@@ -213,7 +266,7 @@ and five attempts. Encoded results/arguments are bounded to 1 MiB and run histor
 accept `page`; resource discovery returns `resources` and an optional `next_page`.
 Action discovery identifies `instance_optional` and the required subject input. Timed waits must precede the run
 deadline. Run-wide hard token/cost ceilings are not provided; customer quota and
-usage continue through [API metering](API-Metering.md).
+usage continue through [API metering](https://github.com/daptin/daptin/wiki/API-Metering).
 
 Arbitrary existing performers may not honor cancellation or have their own
 network/transaction boundaries. Configure bounded application actions for long

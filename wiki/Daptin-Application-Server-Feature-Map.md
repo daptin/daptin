@@ -240,6 +240,10 @@ LLM capabilities:
   Daptin file reference IDs under the `files` capability.
 - Function tools, namespaces, and Responses web search share the `tools`
   capability; provider output must conform to the canonical Responses shape.
+- [[Agents]] compose that gateway with the same CRUD and named-action paths.
+  The `agent`, `agentrun`, `agentstp`, and `agenttry` resources retain definitions,
+  conversations, steps and attempts. SQL persists decisions, timed waits and
+  uncertain effects; Olric coordinates workers across stateless nodes.
 
 Metering capabilities:
 

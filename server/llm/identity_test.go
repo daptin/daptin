@@ -2,9 +2,11 @@ package llm
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
@@ -184,7 +186,7 @@ func updateLLMAuthorizationResource(t *testing.T, cruds map[string]*resource.DbR
 	return updated
 }
 
-func TestModelGrantMoveRevokesPreviousModel(t *testing.T) {
+func TestModelGrantMoveRevokesPreviousModelAfterCacheExpiry(t *testing.T) {
 	database, cruds, _, bootstrapReference := newCatalogTestResources(t)
 	administrator := &auth.SessionUser{UserId: 1, UserReferenceId: bootstrapReference,
 		Groups: auth.GroupPermissionList{{GroupReferenceId: cruds["user_account"].AdministratorGroupId}}}
@@ -235,6 +237,10 @@ func TestModelGrantMoveRevokesPreviousModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	oldModelID, err := resource.GetReferenceIdToIdWithTransaction("llm_model", allowedModelReference, transaction)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := transaction.Commit(); err != nil {
 		t.Fatal(err)
 	}
@@ -257,10 +263,24 @@ func TestModelGrantMoveRevokesPreviousModel(t *testing.T) {
 	if err := move.Commit(); err != nil {
 		t.Fatal(err)
 	}
-	oldErr := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(allowedModelReference.String())})
 	newErr := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(deniedModelReference.String())})
-	if oldErr == nil || newErr != nil {
-		t.Fatalf("moved grant did not follow SQL: old=%v new=%v", oldErr, newErr)
+	if newErr != nil {
+		t.Fatalf("moved grant did not authorize the new model: %v", newErr)
 	}
-	t.Log("moving the execution grant revokes the previous model and authorizes the new model")
+	// Existing permission snapshots may remain until their normal TTL. Expire
+	// just these entries to verify the subsequent refresh without a five-minute wait.
+	for _, key := range []string{
+		"object-permission-llm_model-" + allowedModelReference.String(),
+		fmt.Sprintf("object-groups-llm_model-%d", oldModelID),
+	} {
+		if err := resource.OlricCache.Expire(context.Background(), key, -time.Second); err != nil {
+			t.Fatalf("expire old model permission snapshot: %v", err)
+		}
+		if _, err := resource.OlricCache.Get(context.Background(), key); err == nil {
+			t.Fatalf("expired permission snapshot remains cached: %s", key)
+		}
+	}
+	if err := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err == nil {
+		t.Fatal("old model remained authorized after permission cache expiry")
+	}
 }

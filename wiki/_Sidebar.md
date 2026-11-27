@@ -65,6 +65,7 @@
 - [[Data-Exchange]]
 - [[Integrations]]
 - [[LLM-Providers]]
+- [[Durable Agents|Agents]]
 - [[API-Metering]]
 - [[Payments-and-Checkout]]
 

@@ -6,6 +6,19 @@ Call actions at `/action/{entity}/{action_name}`. "Instance Required" means
 the action needs an existing record's public reference ID in
 `attributes.{entity}_id`; the record ID is not part of the URL.
 
+## Agent Actions
+
+All four actions require an existing subject reference and the normal action,
+table and subject permissions. See the [agent guide](https://github.com/daptin/daptin/wiki/Agents)
+for configuration, execution identity, examples and recovery behavior.
+
+| Entity | Action | Required attributes | Result |
+|--------|--------|---------------------|--------|
+| `agent` | `start` | `agent_id`, `messages` | Returns the durable run reference and status |
+| `agentrun` | `cancel` | `agentrun_id` | Requests cancellation of further execution |
+| `agentrun` | `decide` | `agentrun_id`, `decision` | Supplies a pending decision as a tool result |
+| `agentrun` | `reconcile` | `agentrun_id`, `attempt`, `result` | Records an outcome after checking an uncertain effect |
+
 ## User Account Actions
 
 ### signup

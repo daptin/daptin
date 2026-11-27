@@ -11,6 +11,12 @@ Daptin exposes one OpenAI-compatible gateway backed by the reusable
 actions share the same catalog, authorization, routing, provider adapters,
 reliability controls, cost calculation, and generic metering lifecycle.
 
+[Durable agents](https://github.com/daptin/daptin/wiki/Agents) use this same gateway
+to continue model/tool conversations in the background. Their tools expose normal
+resource CRUD, relationships and named actions, with saved progress, decisions,
+timed waits and cluster recovery. Follow the agent guide after configuring a
+tool-capable model here.
+
 Configuration uses ordinary Daptin resources and relationships:
 
 - `llm_provider` describes one provider account and links to a `credential`;
