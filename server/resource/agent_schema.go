@@ -15,10 +15,20 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// AgentDatabaseTime uses the same database clock and decoding as scheduled claims.
+// AgentDatabaseTime shares the SQL clock across workers with fractional precision
+// for active-time accounting. Scheduled claims supply the common time decoder.
 func AgentDatabaseTime(tx *sqlx.Tx) (time.Time, error) {
 	var value interface{}
-	if err := tx.QueryRowx("SELECT CURRENT_TIMESTAMP").Scan(&value); err != nil {
+	query := "SELECT CURRENT_TIMESTAMP"
+	switch tx.DriverName() {
+	case "sqlite3":
+		query = "SELECT strftime('%Y-%m-%d %H:%M:%f', 'now')"
+	case "mysql":
+		query = "SELECT UTC_TIMESTAMP(3)"
+	case "postgres":
+		query = "SELECT clock_timestamp()"
+	}
+	if err := tx.QueryRowx(query).Scan(&value); err != nil {
 		return time.Time{}, err
 	}
 	instant, err := taskDatabaseTime(value)
@@ -63,7 +73,9 @@ func init() {
 		api2go.NewTableRelation("agentrun", "belongs_to", "agent"),
 		api2go.NewTableRelation("agentstp", "belongs_to", "agentrun"),
 		api2go.NewTableRelation("agenttry", "belongs_to", "agentrun"),
-		api2go.NewTableRelation("agenttry", "belongs_to", "agentstp"))
+		api2go.NewTableRelation("agenttry", "belongs_to", "agentstp"),
+		api2go.NewTableRelation("api_quota", "has_one", "agentrun"),
+		api2go.NewTableRelation("api_usage", "has_one", "agenttry"))
 	// Callers execute controls; only the backend performer writes execution rows.
 	for _, control := range []struct {
 		name, table string
@@ -131,7 +143,7 @@ func (dr *DbResource) AgentRunCandidates(ctx context.Context, limit int) ([]map[
 	query, args, err := statementbuilder.Squirrel.Select("reference_id").From("agentrun").Prepared(true).
 		Where(goqu.Or(
 			goqu.And(goqu.Ex{"status": []string{"queued", "running"}}, goqu.Or(goqu.Ex{"wake_at": nil}, goqu.C("wake_at").Lte(now))),
-			goqu.And(goqu.Ex{"status": []string{"waiting_decision", "unknown"}}, goqu.C("deadline_at").Lte(now)),
+			goqu.And(goqu.Ex{"status": []string{"queued", "running", "waiting_decision", "unknown"}}, goqu.C("deadline_at").Lte(now)),
 		)).Where(goqu.Or(goqu.Ex{"lease_until": nil}, goqu.C("lease_until").Lte(now))).
 		Order(goqu.C("created_at").Asc()).Limit(uint(limit)).ToSQL()
 	if err != nil {

@@ -18,6 +18,11 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	ErrBudgetUnbounded = errors.New("run budget requires bounded text inference")
+	ErrBudgetUnpriced  = errors.New("run cost budget requires explicit input/output or total-token prices")
+)
+
 const olricCoordinationTimeout = 5 * time.Second
 
 type daptinSecrets struct {
@@ -83,12 +88,21 @@ type daptinMetering struct {
 
 func (metering daptinMetering) Admit(ctx context.Context, admission contract.Admission) (contract.ReservationToken, error) {
 	user := daptinSessionUser(ctx)
+	budget := resource.MeteringBudgetFromContext(ctx)
+	if budget != nil {
+		if !admission.TokensBounded {
+			return contract.ReservationToken{}, fmt.Errorf("%w: %w", gateway.ErrAdmissionDenied, ErrBudgetUnbounded)
+		}
+		if budget.CostMicros > 0 && !admission.PricesKnown {
+			return contract.ReservationToken{}, fmt.Errorf("%w: %w", gateway.ErrAdmissionDenied, ErrBudgetUnpriced)
+		}
+	}
 	requestBody, err := json.Marshal(admission.Request)
 	if err != nil {
 		return contract.ReservationToken{}, err
 	}
 	requestBytes := len(requestBody)
-	metadata := map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation, "payload_format": "llm.canonical.v1"}
+	metadata := map[string]interface{}{"model_id": admission.ModelID, "operation": admission.Operation, "payload_format": "llm.canonical.v1", "pricing_revision": admission.PricingRevision, "exposure_quotes": admission.Quotes}
 	transaction, err := metering.cruds["api_usage"].Connection().Beginx()
 	if err != nil {
 		return contract.ReservationToken{}, fmt.Errorf("begin metering admission: %w", err)
@@ -101,7 +115,7 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 		RequestBody:       requestBody,
 		RequestBytes:      requestBytes,
 		EstimatedMeasures: admission.EstimatedUsage.AllMeasures(), Metering: config,
-		Metadata: metadata,
+		Metadata: metadata, Budget: budget,
 	}, transaction)
 	if err != nil {
 		var httpError api2go.HTTPError
@@ -109,6 +123,11 @@ func (metering daptinMetering) Admit(ctx context.Context, admission contract.Adm
 			return contract.ReservationToken{}, fmt.Errorf("%w: %v", gateway.ErrAdmissionDenied, err)
 		}
 		return contract.ReservationToken{}, err
+	}
+	if deadline, ok := ctx.Deadline(); ok {
+		if err := metering.service.EnsureReservationDeadline(resource.MeteringContext{User: user}, decision, deadline, transaction); err != nil {
+			return contract.ReservationToken{}, err
+		}
 	}
 	if err := transaction.Commit(); err != nil {
 		return contract.ReservationToken{}, fmt.Errorf("commit metering admission: %w", err)
@@ -136,7 +155,7 @@ func (metering daptinMetering) Complete(ctx context.Context, completion contract
 
 	return metering.terminalize(ctx, completion.Token, "", completion.HTTPStatus, completion.Usage, map[string]interface{}{
 		"status": completion.Status, "error_code": completion.ErrorCode, "cache_status": completion.CacheStatus,
-		"attempts": completion.Attempts, "first_byte_at": completion.FirstByteAt, "ended_at": completion.EndedAt,
+		"usage_estimated": completion.Usage.Estimated, "attempts": completion.Attempts, "first_byte_at": completion.FirstByteAt, "ended_at": completion.EndedAt,
 	}, true, body, count)
 }
 
@@ -147,7 +166,7 @@ func (metering daptinMetering) Cancel(ctx context.Context, cancellation contract
 	}
 
 	return metering.terminalize(ctx, cancellation.Token, cancellation.Reason, 499, cancellation.Usage, map[string]interface{}{
-		"status": "cancelled", "attempts": cancellation.Attempts, "ended_at": cancellation.EndedAt,
+		"status": "cancelled", "usage_estimated": cancellation.Usage.Estimated, "attempts": cancellation.Attempts, "ended_at": cancellation.EndedAt,
 	}, false, body, max(len(body), cancellation.StreamBytes))
 }
 

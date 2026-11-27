@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"reflect"
 	"strings"
 	"time"
@@ -24,11 +25,14 @@ const (
 )
 
 type Limits struct {
-	Turns        int   `json:"turns"`
-	ToolCalls    int   `json:"tool_calls"`
-	Seconds      int   `json:"seconds"`
-	OutputTokens int64 `json:"output_tokens"`
-	Attempts     int   `json:"attempts"`
+	Turns         int   `json:"turns"`
+	ToolCalls     int   `json:"tool_calls"`
+	Seconds       int   `json:"seconds"`
+	OutputTokens  int64 `json:"output_tokens"`
+	Attempts      int   `json:"attempts"`
+	ActiveSeconds int64 `json:"active_seconds,omitempty"`
+	Tokens        int64 `json:"tokens,omitempty"`
+	CostMicros    int64 `json:"cost_micros,omitempty"`
 }
 type Binding struct {
 	Name        string          `json:"name"`
@@ -54,16 +58,22 @@ type Config struct {
 	Limits       Limits  `json:"limits"`
 }
 type runState struct {
-	Config   Config              `json:"config"`
-	Messages []contract.Message  `json:"messages"`
-	Started  time.Time           `json:"started"`
-	Turns    int                 `json:"turns"`
-	Calls    int                 `json:"calls"`
-	Sequence int                 `json:"sequence"`
-	Active   string              `json:"active,omitempty"`
-	Pending  []contract.ToolCall `json:"pending,omitempty"`
-	Error    string              `json:"error,omitempty"`
-	Result   string              `json:"result,omitempty"`
+	Config            Config                 `json:"config"`
+	Messages          []contract.Message     `json:"messages"`
+	Started           time.Time              `json:"started"`
+	Turns             int                    `json:"turns"`
+	Calls             int                    `json:"calls"`
+	Sequence          int                    `json:"sequence"`
+	Active            string                 `json:"active,omitempty"`
+	Pending           []contract.ToolCall    `json:"pending,omitempty"`
+	Error             string                 `json:"error,omitempty"`
+	Result            string                 `json:"result,omitempty"`
+	ErrorCode         string                 `json:"error_code,omitempty"`
+	ActiveMS          int64                  `json:"active_ms"`
+	ActiveRemainingMS *int64                 `json:"active_remaining_ms,omitempty"`
+	ProgressAt        time.Time              `json:"progress_at"`
+	ActiveSince       time.Time              `json:"active_since,omitempty"`
+	Budget            map[string]interface{} `json:"budget,omitempty"`
 }
 type intent struct {
 	Kind      string            `json:"kind"`
@@ -133,7 +143,7 @@ func (c *Config) validate() error {
 	if c.Limits.Attempts == 0 {
 		c.Limits.Attempts = 3
 	}
-	if c.Limits.Turns < 1 || c.Limits.Turns > 100 || c.Limits.ToolCalls < 1 || c.Limits.ToolCalls > 1000 || c.Limits.Seconds < 1 || c.Limits.Seconds > 86400 || c.Limits.OutputTokens < 1 || c.Limits.OutputTokens > 32768 || c.Limits.Attempts < 1 || c.Limits.Attempts > 5 {
+	if c.Limits.Turns < 1 || c.Limits.Turns > 100 || c.Limits.ToolCalls < 1 || c.Limits.ToolCalls > 1000 || c.Limits.Seconds < 1 || int64(c.Limits.Seconds) > math.MaxInt64/int64(time.Second) || c.Limits.OutputTokens < 1 || c.Limits.OutputTokens > 32768 || c.Limits.Attempts < 1 || c.Limits.Attempts > 5 || c.Limits.ActiveSeconds < 0 || c.Limits.ActiveSeconds > math.MaxInt64/int64(time.Second) || c.Limits.Tokens < 0 || c.Limits.CostMicros < 0 {
 		return errors.New("invalid agent execution limits")
 	}
 	operations := map[string]bool{}

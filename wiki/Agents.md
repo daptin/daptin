@@ -258,15 +258,113 @@ expire and reconciles an unfinished attempt before proceeding. SQL transactions
 are not held across controller inference calls; tool actions retain the transaction
 boundaries of their existing performers.
 
-Limits default to 20 model turns, 50 tool calls, 900 wall-clock seconds (including
-waits), 2048 output tokens per inference, and three recovery attempts per logical
-operation. Maximums are 100 turns, 1000 calls, 86400 seconds, 32768 output tokens
-and five attempts. Encoded results/arguments are bounded to 1 MiB and run history to
-4 MiB. Lists and relationships return at most 100 rows per page. Relationship tools
-accept `page`; resource discovery returns `resources` and an optional `next_page`.
-Action discovery identifies `instance_optional` and the required subject input. Timed waits must precede the run
-deadline. Run-wide hard token/cost ceilings are not provided; customer quota and
-usage continue through [API metering](https://github.com/daptin/daptin/wiki/API-Metering).
+## Execution limits and budgets
+
+Limits live in the agent definition's `config.limits`. Effective values are copied
+into each run at start; later edits to the definition affect subsequent runs.
+Defaults are 20 model turns, 50 tool calls, 900 wall-clock seconds (including waits),
+2048 output tokens per inference, and three recovery attempts per logical operation.
+Maximums remain 100 turns, 1000 calls, 32768 output tokens and five attempts.
+`seconds` accepts finite lifetimes beyond 24 hours, within the supported duration
+and database timestamp range.
+
+Optional limits add independent active-time and cumulative inference allowances:
+
+```json
+{
+  "seconds": 2592000,
+  "active_seconds": 3600,
+  "tokens": 500000,
+  "cost_micros": 2000000
+}
+```
+
+These are fields inside `config.limits`: a 30-day lifetime, one hour of active
+execution, 500,000 cumulative tokens and $2 of configured inference cost. Omit
+an optional limit, or set it to zero, to leave that allowance disabled. Negative
+values are rejected. There is no separate policy resource to configure.
+
+To apply these limits to the tutorial, update the saved configuration before
+creating the agent, then use the same create/start commands above:
+
+```bash
+jq '.limits += {seconds:2592000, active_seconds:3600, tokens:500000, cost_micros:2000000}' \
+  agent-config.json > agent-config-bounded.json
+mv agent-config-bounded.json agent-config.json
+```
+
+Configure USD-micro prices on each eligible deployment first, following
+[LLM deployment pricing](https://github.com/daptin/daptin/wiki/LLM-Providers).
+For example, `{"input_tokens":1000000,"output_tokens":2000000}` means $1 per
+million input tokens and $2 per million output tokens. Omit `cost_micros` to use
+only time/token bounds when a deployment has no configured prices.
+
+After starting a run, inspect the limits, remaining budget and result through the
+normal resource API:
+
+```bash
+curl --fail-with-body -sS "$BASE/api/agentrun/$RUN_REF" \
+  -H "Authorization: Bearer $TOKEN" \
+  | jq '.data.attributes | {status,deadline_at,state:(.state | {limits:.config.limits,active_ms,active_remaining_ms,progress_at,budget,error_code,error,result})}'
+```
+
+Absolute lifetime includes queueing and all waits. Active time covers inference
+(including gateway retries/backoff) and tool execution. Persisted timers, approval
+waits, worker queueing and scheduled agent retry delays do not consume active time.
+For example, a five-day approval wait consumes five days of lifetime and no active
+allowance. Timed waits must precede the absolute deadline, independently of the
+remaining active allowance. Execution stops when either time allowance is exhausted.
+Application performers must honor cancellation for the execution deadline to stop
+an operation already in progress.
+
+Token and cost ceilings apply cumulatively to inference performed by the run,
+including synchronous LLM action outcomes invoked by its tools. They are separate
+from account quotas. `SWITCH_USER` changes the active account for authorization and
+account metering while preserving the enclosing run budget. Work separately queued
+for later execution is not automatically part of the originating run's budget.
+Total tokens include input plus output; cached input and reasoning subcategories
+are not added again.
+
+Daptin automatically uses existing `api_quota` buckets for enabled run ceilings and
+links inference `api_usage` to the executing `agenttry`. No additional budget rows
+are needed for runs without ceilings, and users do not create these rows manually.
+Before inference, shared metering reserves exposure for the gateway's complete
+retry/fallback plan. Settlement releases unused reservation and records aggregate
+usage across attempts. Admission can reject a request even when some allowance
+remains, if that allowance cannot cover the proposed inference.
+
+Budgeted inference currently supports text chat and function tools. Reservations
+use UTF-8 payload bytes plus message/tool framing allowance as a conservative token
+estimate, and the normalized completion-token cap. Media and native external tools
+are rejected because their exposure cannot be bounded this way. These are bounds
+against configured gateway accounting, not a guarantee about undisclosed provider
+billing or hidden tokenization overhead.
+
+All cost budgets and deployment prices use USD micros: 1,000,000 micros is $1.
+A cost ceiling requires explicit `input_tokens` and `output_tokens` prices, or a
+single `total_tokens` price, on every possible route. Explicit zero prices mean
+free; missing prices are rejected. Mixed or category-specific price schedules are
+not accepted for cost-bounded runs. Each admission retains its pricing revision and
+route quotes; changing prices does not reprice earlier usage. Missing provider
+usage is conservatively settled using the reservation estimate and marked
+`usage_estimated` in the usage metadata.
+
+Normal `agentrun` reads expose effective limits in `state.config.limits`, accumulated
+`active_ms`, the current interval's `active_since`, `active_remaining_ms` when
+configured, and `progress_at`. Budget snapshots under `state.budget` contain
+`maximum`, `consumed`, `reserved` and `remaining` for enabled metrics. Snapshots
+refresh at execution checkpoints; `api_quota` exposes current reservations during
+inference without copying the conversation on every heartbeat. The top-level
+`deadline_at` is the absolute deadline. Failures include `state.error_code`, such as
+`lifetime_exceeded`, `active_time_exceeded`, `turns_exceeded`,
+`tool_calls_exceeded`, `attempts_exceeded`, `budget_unpriced`, `budget_unbounded`,
+or `quota_exceeded`; recorded attempt results remain available. Account limits and usage continue through
+[API metering](https://github.com/daptin/daptin/wiki/API-Metering).
+
+Encoded results/arguments remain bounded to 1 MiB and run history to 4 MiB. Lists
+and relationships return at most 100 rows per page. Relationship tools accept
+`page`; resource discovery returns `resources` and an optional `next_page`. Action
+discovery identifies `instance_optional` and the required subject input.
 
 Arbitrary existing performers may not honor cancellation or have their own
 network/transaction boundaries. Configure bounded application actions for long

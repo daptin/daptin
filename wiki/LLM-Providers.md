@@ -660,9 +660,11 @@ missing models reject the candidate catalog. Supported parameter policies are:
 - `passthrough`: preserve typed fields when the selected adapter supports them.
 
 Unknown wire fields are always rejected. Deployment `pricing` maps usage measures
-to fixed-point cost in micros per one million units, for example `input_tokens`,
+to fixed-point cost in USD micros per one million units, for example `input_tokens`,
 `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, and `reasoning_tokens`.
-Empty pricing records quantities without adding configured token cost. See
+Empty pricing records quantities without adding configured token cost. Cost-bounded
+agent runs require explicit prices in USD micros; their supported price schedules
+are described in [Agents](https://github.com/daptin/daptin/wiki/Agents). See
 [[API-Metering]] for quota and billing setup.
 
 ## HTTP API

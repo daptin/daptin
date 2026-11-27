@@ -271,3 +271,16 @@ func TestDaptinOlricPortsImplementGatewayContract(t *testing.T) {
 		t.Fatalf("cache delete left entry: found=%v err=%v", found, err)
 	}
 }
+
+func TestRunBudgetRejectsUnknownExposureAndPricesBeforeAdmission(t *testing.T) {
+	// No resource map is supplied: unsupported exposure must fail before any
+	// database admission or provider work.
+	metering := daptinMetering{}
+	ctx := resource.WithMeteringBudget(context.Background(), resource.MeteringBudget{CostMicros: 1})
+	if _, err := metering.Admit(ctx, contract.Admission{}); !errors.Is(err, ErrBudgetUnbounded) || !errors.Is(err, gateway.ErrAdmissionDenied) {
+		t.Fatalf("unbounded exposure: %v", err)
+	}
+	if _, err := metering.Admit(ctx, contract.Admission{TokensBounded: true}); !errors.Is(err, ErrBudgetUnpriced) || !errors.Is(err, gateway.ErrAdmissionDenied) {
+		t.Fatalf("missing price: %v", err)
+	}
+}

@@ -66,6 +66,7 @@
 - [[Integrations]]
 - [[LLM-Providers]]
 - [[Durable Agents|Agents]]
+- [[Agent Limits and Budgets|Agents#execution-limits-and-budgets]]
 - [[API-Metering]]
 - [[Payments-and-Checkout]]
 

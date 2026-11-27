@@ -518,6 +518,8 @@ github.com/daptin/llmgateway v0.1.0-dev.36 h1:MxdD7Ozbr10JrRUK1ph2a7KqViB4aL41LU
 github.com/daptin/llmgateway v0.1.0-dev.36/go.mod h1:6ZzDyGrqvA5TLHQnDVvr/WI8UBha8+4qeWGbUbbp1T8=
 github.com/daptin/llmgateway v0.1.0-dev.36.0.20261127134649-84f4b8a3ed93 h1:HUKBgqJYsY6rQ3Eg36JV7evIqPzNHNe4CbyRFRGF5l0=
 github.com/daptin/llmgateway v0.1.0-dev.36.0.20261127134649-84f4b8a3ed93/go.mod h1:6ZzDyGrqvA5TLHQnDVvr/WI8UBha8+4qeWGbUbbp1T8=
+github.com/daptin/llmgateway v0.1.0-dev.37 h1:wdtZwqxt7LDPn6fPr8QxNMTp4N6RYqtMV1Z6JEvIM98=
+github.com/daptin/llmgateway v0.1.0-dev.37/go.mod h1:6ZzDyGrqvA5TLHQnDVvr/WI8UBha8+4qeWGbUbbp1T8=
 github.com/daptin/olric v0.5.7-daptin.1 h1:9x8uoZt6313CkcQHL4f2mLD3LMGhIekaF7OuBkzhqpc=
 github.com/daptin/olric v0.5.7-daptin.1/go.mod h1:S1R+9Zt7P9TCbvQZvY/RYuRehLLRPDfbJNkukQsLJ4k=
 github.com/davecgh/go-spew v0.0.0-20161028175848-04cdfd42973b/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

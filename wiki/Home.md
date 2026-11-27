@@ -45,6 +45,7 @@ stack as a sidecar for the backend features you are missing.
 - **[[Walkthrough-Product-Catalog]]** (30-45 min, tested end-to-end)
 - **[[Build an LLM Router with Daptin|Walkthrough-LLM-Router]]** — providers, permissions, fallback routing, conversations, and budgets
 - **[[Run a Durable Agent|Agents#run-the-example-from-start-to-finish]]** — configure tools, start a run, and verify its saved result
+- **[[Bound Agent Time and Spending|Agents#execution-limits-and-budgets]]** — long lifetimes, active time, and per-run token/cost ceilings
 
 ### Troubleshooting And Reference
 

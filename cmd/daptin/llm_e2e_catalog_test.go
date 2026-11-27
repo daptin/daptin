@@ -132,6 +132,8 @@ type llmE2ECatalog struct {
 	maxConcurrency   int
 	requestTimeoutMS int
 	connectTimeoutMS int
+	pricing          string
+	capabilities     string
 }
 
 func createLLME2ECatalog(t testing.TB, client *http.Client, baseURL string, token string, specification llmE2ECatalog) string {
@@ -169,9 +171,13 @@ func createLLME2ECatalog(t testing.TB, client *http.Client, baseURL string, toke
 		}},
 	})
 	providerReference := transportE2EReferenceID(t, provider)
+	capabilities := specification.capabilities
+	if capabilities == "" {
+		capabilities = `{}`
+	}
 	model := transportE2EPostJSON(t, client, baseURL+"/api/llm_model", token, map[string]interface{}{
 		"data": map[string]interface{}{"type": "llm_model", "attributes": map[string]interface{}{
-			"name": specification.name, "operations": string(operations), "capabilities": `{}`,
+			"name": specification.name, "operations": string(operations), "capabilities": capabilities,
 			"routing_strategy": "priority_weighted", "fallback_models": `[]`, "default_parameters": `{}`,
 			"unsupported_parameter_policy": "reject", "enable": true,
 		}},
@@ -185,12 +191,16 @@ func createLLME2ECatalog(t testing.TB, client *http.Client, baseURL string, toke
 	if connectTimeout == 0 {
 		connectTimeout = 1000
 	}
+	pricing := specification.pricing
+	if pricing == "" {
+		pricing = `{}`
+	}
 	transportE2EPostJSON(t, client, baseURL+"/api/llm_deployment", token, map[string]interface{}{
 		"data": map[string]interface{}{"type": "llm_deployment", "attributes": map[string]interface{}{
 			"name": specification.name, "llm_model_id": modelReference, "llm_provider_id": providerReference,
 			"upstream_model": specification.upstreamModel, "operations": string(operations), "priority": 0, "weight": 1,
 			"request_timeout_ms": requestTimeout, "connect_timeout_ms": connectTimeout, "max_concurrency": specification.maxConcurrency, "rpm": -1, "tpm": -1,
-			"pricing": `{}`, "parameters": `{}`, "health_check": `{}`, "enable": true,
+			"pricing": pricing, "parameters": `{}`, "health_check": `{}`, "enable": true,
 		}},
 	})
 	return credentialReference

@@ -40,6 +40,18 @@ Actions:
         Method: ACTIONRESPONSE
         Attributes:
           message: verified
+  - Name: infer
+    OnType: agitem
+    InstanceOptional: true
+    OutFields:
+      - Type: $llm.chat
+        Method: EXECUTE
+        Attributes:
+          model: agent-priced
+          max_tokens: 32
+          messages:
+            - role: user
+              content: budget-finish
   - Name: effect
     OnType: agitem
     InstanceOptional: false
@@ -232,6 +244,17 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 			if len(results) == 0 {
 				tool("agent_decision", map[string]interface{}{"question": "Continue?"})
 			}
+		case "nested-inference":
+			if len(results) == 0 {
+				tool("daptin_action", map[string]interface{}{"entity": "agitem", "action": "infer", "attributes": map[string]interface{}{}})
+			}
+		case "budget-finish":
+		case "active-slow":
+			select {
+			case <-r.Context().Done():
+				return
+			case <-time.After(3 * time.Second):
+			}
 		case "timer":
 			if len(results) == 0 {
 				tool("agent_wait", map[string]interface{}{"until": time.Now().UTC().Add(3 * time.Second).Format(time.RFC3339)})
@@ -335,7 +358,7 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		t.Fatalf("gateway coordination at %s did not become ready: %d %s", base, lastStatus, lastBody)
 	}
 
-	config := map[string]interface{}{"instructions": "Use the configured tools.", "model": "agent-model", "toolset": map[string]interface{}{"resources": []string{"*"}, "operations": []string{"list", "read", "create", "update", "delete", "relations"}, "actions": []string{"agitem.verify", "agitem.effect"}}, "limits": map[string]interface{}{"turns": 10, "tool_calls": 10, "seconds": 180, "output_tokens": 256}}
+	config := map[string]interface{}{"instructions": "Use the configured tools.", "model": "agent-model", "toolset": map[string]interface{}{"resources": []string{"*"}, "operations": []string{"list", "read", "create", "update", "delete", "relations"}, "actions": []string{"agitem.verify", "agitem.effect", "agitem.infer"}}, "limits": map[string]interface{}{"turns": 10, "tool_calls": 10, "seconds": 180, "output_tokens": 256}}
 	definition := accessGroupsE2ECreateRecord(t, client, baseA, admin, "agent", map[string]interface{}{"name": "e2e-agent", "config": string(mustAgentJSON(config))})
 	accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseA+"/api/agent/"+definition, admin, accessGroupsE2ERecordPayload("agent", definition, map[string]interface{}{"permission": int64(auth.GuestPeek | auth.GuestRead | auth.GuestRefer | auth.AuthenticatedExecute)}), 200)
 	submit := func(t *testing.T, base, token, mode string) string {
@@ -366,6 +389,73 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		t.Fatalf("run %s wanted %s got %#v\n%s", ref, status, attrs, nodes[base].logs.String())
 		return nil
 	}
+
+	// Each test changes definition data; start snapshots it into its own run.
+	configureLimits := func(t *testing.T, limits map[string]interface{}, modelName string) {
+		t.Helper()
+		copyConfig := map[string]interface{}{}
+		if err := json.Unmarshal(mustAgentJSON(config), &copyConfig); err != nil {
+			t.Fatal(err)
+		}
+		for key, value := range limits {
+			copyConfig["limits"].(map[string]interface{})[key] = value
+		}
+		if modelName != "" {
+			copyConfig["model"] = modelName
+		}
+		accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseA+"/api/agent/"+definition, admin, accessGroupsE2ERecordPayload("agent", definition, map[string]interface{}{"config": string(mustAgentJSON(copyConfig))}), 200)
+		t.Cleanup(func() {
+			accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseA+"/api/agent/"+definition, admin, accessGroupsE2ERecordPayload("agent", definition, map[string]interface{}{"config": string(mustAgentJSON(config))}), 200)
+		})
+	}
+	t.Run("token denial happens before inference", func(t *testing.T) {
+		configureLimits(t, map[string]interface{}{"tokens": 1}, "")
+		before := inferenceCalls.Load()
+		row := wait(t, baseA, submit(t, baseA, admin, "budget-finish"), "failed")
+		if inferenceCalls.Load() != before || row["state"].(map[string]interface{})["error_code"] != "quota_exceeded" {
+			t.Fatalf("denial: %+v calls=%d", row, inferenceCalls.Load()-before)
+		}
+	})
+	t.Run("unpriced inference is rejected for a cost ceiling", func(t *testing.T) {
+		configureLimits(t, map[string]interface{}{"cost_micros": 100000}, "")
+		before := inferenceCalls.Load()
+		row := wait(t, baseA, submit(t, baseA, admin, "budget-finish"), "failed")
+		if row["state"].(map[string]interface{})["error_code"] != "budget_unpriced" {
+			t.Fatalf("unpriced error: %+v", row)
+		}
+		if inferenceCalls.Load() != before {
+			t.Fatal("unpriced request reached provider")
+		}
+	})
+	t.Run("long lifetime and active allowance exclude timer waits", func(t *testing.T) {
+		configureLimits(t, map[string]interface{}{"seconds": 30 * 86400, "active_seconds": 2}, "")
+		row := wait(t, baseA, submit(t, baseA, admin, "timer"), "completed")
+		state := row["state"].(map[string]interface{})
+		if state["active_ms"].(float64) >= 2000 || state["config"].(map[string]interface{})["limits"].(map[string]interface{})["seconds"].(float64) != 30*86400 {
+			t.Fatalf("time accounting: %+v", state)
+		}
+	})
+	t.Run("active allowance cancels slow inference", func(t *testing.T) {
+		configureLimits(t, map[string]interface{}{"active_seconds": 1}, "")
+		row := wait(t, baseA, submit(t, baseA, admin, "active-slow"), "failed")
+		if row["state"].(map[string]interface{})["error_code"] != "active_time_exceeded" {
+			t.Fatalf("active limit: %+v", row)
+		}
+	})
+	t.Run("combined budgets settle through shared metering", func(t *testing.T) {
+		createLLME2ECatalog(t, client, baseA, admin, llmE2ECatalog{name: "agent-priced", upstreamURL: upstream.URL, apiKey: "agent-key", upstreamModel: "agent-upstream", operations: []string{"chat"}, maxConcurrency: 4, capabilities: `{"tools":true}`, pricing: `{"input_tokens":1000000,"output_tokens":1000000}`})
+		waitForLLME2EModel(t, client, baseA, admin, "agent-priced")
+		configureLimits(t, map[string]interface{}{"tokens": 100000, "cost_micros": 100000}, "agent-priced")
+		row := wait(t, baseA, submit(t, baseA, admin, "nested-inference"), "completed")
+		budget := row["state"].(map[string]interface{})["budget"].(map[string]interface{})
+		for _, metric := range []string{"total_tokens", "cost_micros"} {
+			counts := budget[metric].(map[string]interface{})
+			if counts["consumed"].(float64) != 45 || counts["reserved"].(float64) != 0 || counts["remaining"].(float64) != 99955 {
+				t.Fatalf("%s: %+v", metric, counts)
+			}
+		}
+	})
+
 	t.Run("CRUD and action results feed subsequent model turns", func(t *testing.T) {
 		run := submit(t, baseA, admin, "happy")
 		wait(t, baseA, run, "completed")
@@ -476,11 +566,16 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 			t.Skip("set DAPTIN_E2E_MAIL_POSTGRES_BIN for the PostgreSQL/Olric cluster")
 		}
 		baseB, baseC := clusterB, clusterC
+		configureLimits(t, map[string]interface{}{"tokens": 100000}, "")
 		ready(t, baseA)
 		ready(t, baseB)
 		ready(t, baseC)
 		run := submit(t, baseA, admin, "happy")
-		wait(t, baseB, run, "completed")
+		completed := wait(t, baseB, run, "completed")
+		budget := completed["state"].(map[string]interface{})["budget"].(map[string]interface{})["total_tokens"].(map[string]interface{})
+		if budget["consumed"].(float64) != 60 || budget["reserved"].(float64) != 0 {
+			t.Fatalf("cluster budget: %+v", budget)
+		}
 		t.Run("lease renewals persist during inference", func(t *testing.T) {
 			before := inferenceCalls.Load()
 			longRun := submit(t, baseB, admin, "heartbeat")

@@ -394,3 +394,12 @@ membership before protected work, opt into the native
 [[Actions-Overview#require-a-current-api-membership|membership preflight]] or the
 [[Integrations#require-a-current-membership|OpenAPI operation extension]].
 Eligibility and quota accounting remain separate decisions.
+
+## Agent run ceilings
+
+Agents can configure optional cumulative token and USD-micro cost ceilings in their
+own definition. The controller creates run-linked `api_quota` buckets automatically;
+inference `api_usage` records link to `agenttry`. Shared admission enforces these
+alongside account quotas, including when account metering is disabled. See
+[Agents](https://github.com/daptin/daptin/wiki/Agents) for configuration, supported
+inference and progress fields.

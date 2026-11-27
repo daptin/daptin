@@ -114,6 +114,9 @@ func (gatewayHost *Gateway) Invoke(ctx context.Context, user *auth.SessionUser, 
 		user = &auth.SessionUser{}
 	}
 	ctx = context.WithValue(ctx, "user", user)
+	if resource.MeteringBudgetFromContext(ctx) != nil {
+		ctx = contract.WithBoundedTokenExposure(ctx)
+	}
 	return gatewayHost.engine.Invoke(ctx, gatewayPrincipal(user), request)
 }
 

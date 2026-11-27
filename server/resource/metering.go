@@ -69,6 +69,7 @@ type MeteringContext struct {
 	ReservationTTL    time.Duration
 	Metering          *table_info.MeteringConfig
 	Metadata          map[string]interface{}
+	Budget            *MeteringBudget
 	Response          map[string]interface{}
 	ErrorMessage      string
 }
@@ -156,11 +157,19 @@ func IsMeteringSystemTable(tableName string) bool {
 func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDecision, error) {
 	decision := &MeteringDecision{}
 	config := normalizeMeteringConfig(ctx.Metering)
-	if !MeteringConfigActive(config) {
+	if !MeteringConfigActive(config) && ctx.Budget == nil {
 		return decision, nil
 	}
 	if tx == nil {
 		return nil, errors.New("metering admission requires a transaction")
+	}
+	if config == nil {
+		config = &table_info.MeteringConfig{MeterType: "requests", CostExpr: "1"}
+	}
+	if ctx.Budget != nil {
+		if err := m.lockBudget(ctx.Budget, tx); err != nil {
+			return nil, err
+		}
 	}
 	owner, err := m.usageOwner(ctx.User, tx)
 	if err != nil {
@@ -280,6 +289,11 @@ func (m *MeteringService) Admit(ctx MeteringContext, tx *sqlx.Tx) (*MeteringDeci
 			return nil, reserveErr
 		}
 		decision.reservation[reservation.BucketKey] = reservation
+	}
+	if ctx.Budget != nil {
+		if err := m.reserveBudget(ctx.Budget, decision, ctx.User, tx); err != nil {
+			return nil, err
+		}
 	}
 	reservationJSON, err := json.MarshalToString(decision.reservation)
 	if err != nil {
@@ -685,6 +699,9 @@ func (m *MeteringService) insertAdmission(ctx MeteringContext, decision *Meterin
 		"state": meteringStateHeld, "reservation_expires_at": now.Add(lease),
 		"reserved_measures": reservedJSON, "reservation_buckets": reservationJSON, "measures": "{}", "metadata": metadata,
 	}
+	if ctx.Budget != nil {
+		record["agenttry_id"] = ctx.Budget.Attempt
+	}
 	if ctx.RequestBody != nil {
 		record["request_body"], record["request_body_encoding"] = encodeMeteringBody(ctx.RequestBody)
 	}
@@ -787,6 +804,10 @@ func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimi
 	} else if err != nil {
 		return meteringReservation{}, err
 	}
+	return m.reserveQuota(quota, bucketKey, limit.Metric, amount, limit.Mode == "hard", user, tx)
+}
+
+func (m *MeteringService) reserveQuota(quota map[string]interface{}, bucketKey, metric string, amount int64, hard bool, user *auth.SessionUser, tx *sqlx.Tx) (meteringReservation, error) {
 	maximum, err := ResourceRowInt64(quota["maximum"])
 	if err != nil {
 		return meteringReservation{}, fmt.Errorf("invalid api_quota maximum: %w", err)
@@ -803,8 +824,8 @@ func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimi
 	if overflow {
 		return meteringReservation{}, errors.New("metering quota reservation overflow")
 	}
-	if limit.Mode == "hard" && maximum >= 0 && (consumed > maximum || updatedReserved > maximum-consumed) {
-		message := fmt.Sprintf("%s limit exceeded", limit.Metric)
+	if hard && maximum >= 0 && (consumed > maximum || updatedReserved > maximum-consumed) {
+		message := fmt.Sprintf("%s limit exceeded", metric)
 		return meteringReservation{}, api2go.NewHTTPError(errors.New(message), "insufficient_quota", http.StatusPaymentRequired)
 	}
 	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodPost, URL: &url.URL{Path: "/api_quota"}}).
@@ -825,7 +846,7 @@ func (m *MeteringService) reserve(decision *MeteringDecision, limit meteringLimi
 			return meteringReservation{}, fmt.Errorf("update metering quota: %w", err)
 		}
 	}
-	return meteringReservation{BucketKey: bucketKey, Metric: limit.Metric, Amount: amount}, nil
+	return meteringReservation{BucketKey: bucketKey, Metric: metric, Amount: amount}, nil
 }
 
 func (m *MeteringService) existingDecision(usage map[string]interface{}, config *table_info.MeteringConfig, tx *sqlx.Tx) (*MeteringDecision, error) {

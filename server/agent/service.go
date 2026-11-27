@@ -378,7 +378,7 @@ func (s *Service) claim(ctx context.Context, ref, token string) (map[string]inte
 	if expiry, ok := row["lease_until"].(time.Time); ok && expiry.After(now) {
 		return nil, nil
 	}
-	if wake, ok := row["wake_at"].(time.Time); ok && wake.After(now) {
+	if wake, ok := row["wake_at"].(time.Time); ok && wake.After(now) && row["deadline_at"].(time.Time).After(now) {
 		return nil, nil
 	}
 	row, err = s.update(ctx, "agentrun", row, map[string]interface{}{"status": "running", "claim": token, "lease_until": now.Add(leaseDuration)}, tx)
@@ -433,6 +433,16 @@ func (s *Service) owned(ref, token string, tx *sqlx.Tx) (map[string]interface{},
 	return row, nil
 }
 func (s *Service) save(ctx context.Context, row map[string]interface{}, state *runState, status string, tx *sqlx.Tx) error {
+	if status != "running" {
+		now, err := s.clock(tx)
+		if err != nil {
+			return err
+		}
+		state.finishActive(now)
+	}
+	if err := s.progress(row, state, tx); err != nil {
+		return err
+	}
 	_, err := encodeBounded(state, maxHistory)
 	if err != nil && !errors.Is(err, errPayloadLimit) {
 		return err
@@ -456,8 +466,33 @@ func (s *Service) save(ctx context.Context, row map[string]interface{}, state *r
 	_, err = s.update(ctx, "agentrun", row, attrs, tx)
 	return err
 }
+
+func (s *Service) progress(row map[string]interface{}, state *runState, tx *sqlx.Tx) error {
+	now, err := s.clock(tx)
+	if err != nil {
+		return err
+	}
+	state.ProgressAt = now
+	if seconds := state.Config.Limits.ActiveSeconds; seconds > 0 {
+		used := state.ActiveMS
+		if !state.ActiveSince.IsZero() && now.After(state.ActiveSince) {
+			used += now.Sub(state.ActiveSince).Milliseconds()
+		}
+		remaining := seconds*1000 - used
+		if remaining < 0 {
+			remaining = 0
+		}
+		state.ActiveRemainingMS = &remaining
+	}
+	if state.Config.Limits.Tokens > 0 || state.Config.Limits.CostMicros > 0 {
+		state.Budget, err = resource.NewMeteringService(&s.cruds).BudgetProgress(state.budget(reference(row), ""), tx)
+	}
+	return err
+}
+
 func (s *Service) fail(ctx context.Context, row map[string]interface{}, state *runState, cause error, tx *sqlx.Tx) error {
 	state.Error = cause.Error()
+	state.ErrorCode = errorCode(cause)
 	if err := s.save(ctx, row, state, "failed", tx); err != nil {
 		return err
 	}
@@ -478,7 +513,11 @@ func (s *Service) release(ref, token string) {
 	if err != nil {
 		return
 	}
-	if _, err := s.update(ctx, "agentrun", row, map[string]interface{}{"status": "queued", "claim": nil, "lease_until": nil}, tx); err == nil {
+	var state runState
+	if decode(row["state"], &state) != nil {
+		return
+	}
+	if err := s.save(ctx, row, &state, "queued", tx); err == nil {
 		_ = tx.Commit()
 	}
 }

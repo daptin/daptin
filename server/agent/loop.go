@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/llmgateway/contract"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -35,9 +36,10 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		return true, err
 	}
 	ctx = userContext(ctx, user)
-	remaining := state.Started.Add(time.Duration(state.Config.Limits.Seconds) * time.Second).Sub(now)
-	if remaining <= 0 {
-		return true, s.fail(ctx, row, &state, errors.New("execution time limit reached"), tx)
+	state.finishActive(now)
+	remaining, _, limitErr := state.remaining(now)
+	if limitErr != nil {
+		return true, s.fail(ctx, row, &state, limitErr, tx)
 	}
 	var operation intent
 	var attempt map[string]interface{}
@@ -82,7 +84,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 				return true, tx.Commit()
 			}
 			if operation.Number >= state.Config.Limits.Attempts {
-				return true, s.fail(ctx, row, &state, errors.New("attempt limit reached"), tx)
+				return true, s.fail(ctx, row, &state, &executionLimit{"attempts_exceeded", "attempt limit reached"}, tx)
 			}
 			if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "interrupted"}, tx); err != nil {
 				return true, err
@@ -95,14 +97,14 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		operation = intent{Operation: uuid.NewString(), Number: 1}
 		if len(state.Pending) > 0 {
 			if state.Calls >= state.Config.Limits.ToolCalls {
-				return true, s.fail(ctx, row, &state, errors.New("tool call limit reached"), tx)
+				return true, s.fail(ctx, row, &state, &executionLimit{"tool_calls_exceeded", "tool call limit reached"}, tx)
 			}
 			operation.Kind = "tool"
 			operation.Call = state.Pending[0]
 			state.Calls++
 		} else {
 			if state.Turns >= state.Config.Limits.Turns {
-				return true, s.fail(ctx, row, &state, errors.New("model turn limit reached"), tx)
+				return true, s.fail(ctx, row, &state, &executionLimit{"turns_exceeded", "model turn limit reached"}, tx)
 			}
 			operation.Kind = "model"
 			state.Turns++
@@ -129,7 +131,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		status := "waiting_decision"
 		if operation.Call.Function.Name == "agent_wait" {
 			until, err := time.Parse(time.RFC3339, args["until"].(string))
-			if err != nil || !until.After(now) || until.After(now.Add(remaining)) {
+			if err != nil || !until.After(now) || until.After(state.Started.Add(time.Duration(state.Config.Limits.Seconds)*time.Second)) {
 				return s.reject(ctx, row, &state, attempt, errors.New("wait time must precede the run deadline and follow current time"), tx)
 			}
 			status = "queued"
@@ -149,6 +151,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		}
 		return true, tx.Commit()
 	}
+	state.ActiveSince = now
 	if err := s.save(ctx, row, &state, "running", tx); err != nil {
 		return true, err
 	}
@@ -156,16 +159,20 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		return true, err
 	}
 	// The intent is durable. No checkpoint transaction spans inference or tool I/O.
+	// Revalidate identity, ownership and remaining time immediately before I/O.
+	user, remaining, timeCode, err := s.beforeDispatch(ctx, ref, token)
+	if err != nil {
+		return true, s.terminal(ctx, ref, token, "failed", err)
+	}
 	work, cancel := context.WithTimeout(userContext(ctx, user), remaining)
 	defer cancel()
-	// Revalidate immediately before dispatch; no saved principal or transient
-	// action privilege is carried into the next independent operation.
-	user, err = s.beforeDispatch(work, ref, token)
-	if err != nil {
-		return true, err
+	if state.Config.Limits.Tokens > 0 || state.Config.Limits.CostMicros > 0 {
+		work = resource.WithMeteringBudget(work, state.budget(ref, token))
 	}
-	work = userContext(work, user)
 	result, err := s.execute(work, user, &state, operation)
+	if err != nil && errors.Is(work.Err(), context.DeadlineExceeded) {
+		err = &executionLimit{timeCode, "execution time limit reached"}
+	}
 	var rejected *toolRejection
 	if errors.As(err, &rejected) {
 		result = map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}}
@@ -217,18 +224,32 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 	}
 	return false, nil
 }
-func (s *Service) beforeDispatch(ctx context.Context, ref, token string) (*auth.SessionUser, error) {
+func (s *Service) beforeDispatch(ctx context.Context, ref, token string) (*auth.SessionUser, time.Duration, string, error) {
 	tx, err := s.begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, "", err
 	}
 	defer tx.Rollback()
 	row, err := s.owned(ref, token, tx)
 	if err != nil {
-		return nil, err
+		return nil, 0, "", err
 	}
-	return s.authorizeRun(ctx, row, tx)
+	user, err := s.authorizeRun(ctx, row, tx)
+	if err != nil {
+		return nil, 0, "", err
+	}
+	var state runState
+	if err := decode(row["state"], &state); err != nil {
+		return nil, 0, "", err
+	}
+	now, err := s.clock(tx)
+	if err != nil {
+		return nil, 0, "", err
+	}
+	remaining, code, err := state.remaining(now)
+	return user, remaining, code, err
 }
+
 func (s *Service) evidence(ctx context.Context, ref, status string, result interface{}) error {
 	tx, err := s.begin(ctx)
 	if err != nil {
@@ -263,6 +284,7 @@ func (s *Service) terminal(ctx context.Context, ref, token, status string, cause
 		return err
 	}
 	state.Error = cause.Error()
+	state.ErrorCode = errorCode(cause)
 	if err := s.save(ctx, row, &state, status, tx); err != nil {
 		return err
 	}
@@ -285,7 +307,7 @@ func (s *Service) accept(ctx context.Context, row map[string]interface{}, state 
 		}
 		seen := map[string]bool{}
 		if state.Calls+len(message.ToolCalls) > state.Config.Limits.ToolCalls {
-			return true, s.fail(ctx, row, state, errors.New("tool call limit reached"), tx)
+			return true, s.fail(ctx, row, state, &executionLimit{"tool_calls_exceeded", "tool call limit reached"}, tx)
 		}
 		for _, call := range message.ToolCalls {
 			if seen[call.ID] {
@@ -333,6 +355,7 @@ func (s *Service) accept(ctx context.Context, row map[string]interface{}, state 
 	}
 	state.Active = ""
 	state.Error = ""
+	state.ErrorCode = ""
 	if err := s.save(ctx, row, state, status, tx); err != nil {
 		return true, err
 	}
@@ -371,6 +394,7 @@ func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, caus
 	if cause.RetryAfter > delay {
 		delay = cause.RetryAfter
 	}
+	state.finishActive(now)
 	wake := now.Add(delay)
 	deadline := state.Started.Add(time.Duration(state.Config.Limits.Seconds) * time.Second)
 	// Wake at the deadline only to terminalize; never dispatch sooner than a
@@ -378,7 +402,11 @@ func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, caus
 	if wake.After(deadline) {
 		wake = deadline
 	}
-	if _, err := s.update(ctx, "agentrun", row, map[string]interface{}{"state": state, "status": "queued", "claim": nil, "lease_until": nil, "wake_at": wake}, tx); err != nil {
+	row, err = s.update(ctx, "agentrun", row, map[string]interface{}{"wake_at": wake}, tx)
+	if err != nil {
+		return err
+	}
+	if err := s.save(ctx, row, &state, "queued", tx); err != nil {
 		return err
 	}
 	return tx.Commit()
