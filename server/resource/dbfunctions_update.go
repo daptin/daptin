@@ -821,7 +821,6 @@ func syncDefaultUsergroupRelationsForObject(entityName string, objectRow map[str
 
 func invalidateSchemaManagedActionCaches(actionOnType string, actionName string, actionRow map[string]interface{}) {
 	InvalidateActionCache(actionOnType, actionName)
-	InvalidateObjectPermissionWhereCache("action", "action_name", actionName)
 	if actionRow == nil {
 		return
 	}
@@ -832,7 +831,6 @@ func invalidateSchemaManagedActionCaches(actionOnType string, actionName string,
 	if referenceId, ok := actionRow["reference_id"]; ok {
 		actionRefId := daptinid.InterfaceToDIR(referenceId)
 		InvalidateObjectPermissionCache("action", actionRefId)
-		InvalidateRowPermissionCache("action", actionRefId)
 	}
 }
 

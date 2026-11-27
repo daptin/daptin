@@ -1,0 +1,33 @@
+Tables:
+  - TableName: artifact
+    DefaultPermission: 16256 # owner CRUD and execute
+    AccessGroups:
+      - Name: users
+        Permission: 2080768 # table group CRUD and execute
+    Columns:
+      - Name: title
+        ColumnName: title
+        ColumnType: label
+        DataType: varchar(200)
+        IsNullable: false
+      - Name: content
+        ColumnName: content
+        ColumnType: content
+        DataType: text
+        IsNullable: false
+Actions:
+  - Name: verify
+    Permission: 2097152 # authenticated execute; subject permission still applies
+    OnType: artifact
+    InstanceOptional: false
+    InFields:
+      - Name: artifact_id
+        ColumnName: artifact_id
+        ColumnType: alias
+        IsNullable: false
+    OutFields:
+      - Type: verification
+        Method: ACTIONRESPONSE
+        Attributes:
+          reference_id: ~subject.reference_id
+          valid: "!subject.content.length > 0"

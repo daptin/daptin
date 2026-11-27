@@ -19,7 +19,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestGetObjectPermissionByReferenceIdWithTransactionIgnoresStaleCache(t *testing.T) {
+func TestPermissionLookupsShareCacheAndInvalidation(t *testing.T) {
 	dm, cleanup := testOlric(t, "test-tx-permission-read")
 	defer cleanup()
 	restore := swapOlricCache(dm)
@@ -77,13 +77,52 @@ func TestGetObjectPermissionByReferenceIdWithTransactionIgnoresStaleCache(t *tes
 	}
 	defer tx.Rollback()
 
+	crud := &DbResource{}
+	cached := crud.GetRowPermissionWithTransaction(map[string]interface{}{
+		"__type": "user_account", "reference_id": userRef,
+	}, tx)
+	if cached.Permission != auth.DEFAULT_PERMISSION {
+		t.Fatalf("row lookup did not reuse canonical cache: %#v", cached)
+	}
+	InvalidateObjectPermissionCache("user_account", userRef)
+
 	perm := GetObjectPermissionByReferenceIdWithTransaction("user_account", userRef, tx)
 	if perm.Permission != auth.UserRefer {
-		t.Fatalf("permission came from stale cache: got %d, want %d", perm.Permission, auth.UserRefer)
+		t.Fatalf("permission was not refreshed after invalidation: got %d, want %d", perm.Permission, auth.UserRefer)
 	}
 	if perm.UserId != userRef {
-		t.Fatalf("owner came from stale cache: got %s, want %s", perm.UserId, userRef)
+		t.Fatalf("owner was not refreshed after invalidation: got %s, want %s", perm.UserId, userRef)
 	}
+	fromRow := crud.GetRowPermissionWithTransaction(map[string]interface{}{
+		"__type": "user_account", "reference_id": userRef,
+		"permission": int64(auth.DEFAULT_PERMISSION),
+	}, tx)
+	fromWhere := crud.GetObjectPermissionByWhereClauseWithTransaction("user_account", "id", "1", tx)
+	fromMethod := crud.GetObjectPermissionByReferenceId("user_account", userRef, tx)
+	for _, value := range []permission.PermissionInstance{fromRow, fromWhere, fromMethod} {
+		if value.Permission != perm.Permission || value.UserId != perm.UserId {
+			t.Fatalf("permission paths diverged: %#v vs %#v", value, perm)
+		}
+	}
+	if _, err := dm.Get(context.Background(), "row-permission-user_account-"+userRef.String()); err == nil {
+		t.Fatal("row lookup wrote a second permission entry")
+	}
+	if _, err := dm.Get(context.Background(), "object-permission-user_account_id_1"); err == nil {
+		t.Fatal("where lookup wrote a second permission entry")
+	}
+
+	groupRef := makeRefId()
+	if _, err := tx.Exec(`insert into usergroup (id, reference_id, permission) values (?, ?, ?)`, 1, groupRef[:], int64(auth.GroupRead)); err != nil {
+		t.Fatal(err)
+	}
+	group := crud.GetRowPermissionWithTransaction(map[string]interface{}{
+		"__type": "usergroup", "reference_id": makeRefId(),
+		"relation_reference_id": groupRef, "permission": int64(auth.DEFAULT_PERMISSION),
+	}, tx)
+	if group.Permission != auth.GroupRead || len(group.UserGroupId) != 1 || group.UserGroupId[0].GroupReferenceId != groupRef {
+		t.Fatalf("related group used join permissions instead of group permissions: %#v", group)
+	}
+
 }
 
 func TestUpdateWithoutFiltersReturnsErrorWhenVersionMatchesNoRows(t *testing.T) {

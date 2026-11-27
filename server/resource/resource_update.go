@@ -515,7 +515,6 @@ func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.R
 	// Invalidate permission caches for the updated object
 	updatedRefId := daptinid.DaptinReferenceId(updateObjectReferenceId)
 	InvalidateObjectPermissionCache(dbResource.model.GetName(), updatedRefId)
-	InvalidateRowPermissionCache(dbResource.model.GetName(), updatedRefId)
 
 	// Invalidate auth + admin caches when user-group membership is updated
 	if dbResource.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
@@ -555,9 +554,14 @@ func (dbResource *DbResource) updateWithoutFilters(obj interface{}, req api2go.R
 		parentType := doubledEntity[:len(doubledEntity)/2]
 		parentIdCol := parentType + "_id"
 		if parentId, ok := data.GetAllAsAttributes()[parentIdCol]; ok && parentId != nil {
-			if pid, ok := parentId.(int64); ok {
-				InvalidateObjectUsergroupRelationPermissionCaches(parentType, pid, updateTransaction)
+			pid, internalID := parentId.(int64)
+			if !internalID {
+				pid, err = GetReferenceIdToIdWithTransaction(parentType, daptinid.InterfaceToDIR(parentId), updateTransaction)
+				if err != nil {
+					return nil, err
+				}
 			}
+			InvalidateObjectUsergroupRelationPermissionCaches(parentType, pid, updateTransaction)
 		}
 	}
 

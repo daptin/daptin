@@ -770,9 +770,10 @@ The user's group has permission on the record, but not on the table itself.
 
 **2. Stale Olric permission cache**
 
-Normal resource updates invalidate the relevant permission caches. A restart is
-not a required step for dashboard group-permission editing. First hard-refresh
-the Groups tab, verify the saved relation permissions and membership, and test
+Record permission checks by reference, loaded row, or lookup column use the same
+cached permission snapshot. Normal resource updates invalidate that snapshot. A
+restart is not a required step for dashboard group-permission editing. First
+hard-refresh the Groups tab, verify the saved grants and membership, and test
 with the intended account. Distinguish a value that was never saved from a saved
 grant whose effective access is denied by another gate.
 

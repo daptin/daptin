@@ -236,3 +236,67 @@ DAPTIN_TEST_METERING_POSTGRES_DSN='postgres://.../empty_disposable_database?sslm
 
 This test observes actual PostgreSQL lock waits and verifies both orderings of
 extension versus recovery, plus completion/cancellation versus extension.
+
+## Durable agent qualification
+
+`TestAgentDurableInterfaceRealE2E` uses a fake model with real resource CRUD,
+relationship reads, named actions, REST/GraphQL controls, model permission
+revocation, persisted waits, and process-crash recovery. With the existing
+private PostgreSQL fixture enabled it also starts three Daptin/Olric nodes and
+checks competing wakes, cross-node controls and persisted lease renewal.
+Interrupted inference may retry; an effect dispatched before a crash must become
+unknown and require reconciliation without redispatch.
+
+```bash
+go build -o /tmp/daptin-agent-test ./cmd/daptin
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-agent-test \
+  go test ./cmd/daptin -run '^TestAgentDurableInterfaceRealE2E$' -count=1 -timeout=6m
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-agent-test \
+  DAPTIN_E2E_MAIL_POSTGRES_BIN=/path/to/postgresql/bin \
+  go test ./cmd/daptin -run '^TestAgentDurableInterfaceRealE2E$' -count=1 -timeout=6m
+```
+
+See [Durable agents](../../wiki/Agents.md) for the public configuration and recovery
+contract, including performer cancellation and external-effect boundaries.
+
+The `live` build-tag test uses real provider credentials and makes billable model
+calls with synthetic records in a disposable Daptin database. The credentials
+file has a `providers` map keyed by `google`, `openrouter`, or `lilac`, each with
+an `api_key` field. Keys are read in process. The optional report includes
+provider request bodies, sanitized rejections, conversations, usage, and assertions,
+without credential headers or keys.
+Every provider HTTP exchange retains its status, content type, content encoding,
+and complete received body as base64 bytes, including non-JSON errors and empty
+bodies. Text and JSON views are derived from those bytes; gzip bodies also have
+a decoded view. Bodies are not capped or substituted before forwarding. Known
+keys are redacted in retained data only. A read failure retains the received
+prefix with `complete: false`; a transport failure explicitly records that no
+HTTP response was received. Each response stays paired with its request.
+When a report path is set, exchanges are also appended synchronously to its
+`.http.jsonl` journal before the response is forwarded, so a later test failure
+cannot discard already captured bodies. Journal write failures fail qualification.
+A local recording HTTP transport forwards requests to each provider's normal
+HTTPS endpoint; execution still enters through Daptin's gateway.
+
+```bash
+DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-agent-test \
+  DAPTIN_AGENT_CREDENTIALS="$HOME/.pragma/credentials.yml" \
+  DAPTIN_AGENT_MODELS=google-flash,router-mini,router-haiku \
+  DAPTIN_AGENT_REPORT=/tmp/daptin-agent-live.json \
+  go test -tags live ./cmd/daptin -run '^TestAgentLiveWorkflows$' \
+    -count=1 -v -timeout=20m
+```
+
+`DAPTIN_AGENT_SCENARIOS` optionally selects a comma-separated subset of `crud`,
+`triage`, `decision`, `wait`, `scope`, and `repair`. These check stored changes, action
+invocation, deletion, relationship reads, hostile ticket text, a decision across
+process replacement, timer resumption, and row denial with the whole CRUD/action
+interface exposed. Denial is expected in `scope`; provider failures and false
+claims of task completion fail qualification. Select `google-three` with
+`DAPTIN_AGENT_SCENARIOS=crud,decision,repair` to qualify Gemini 3 tool continuation,
+persisted signatures across process replacement, and backend-guided repair.
+Omit the model selector to probe all configured models, including Lilac.
+`repair` changes the backend verifier through the ordinary action resource API,
+requires an initial rejection, then checks that the agent updates the draft and
+obtains a successful verification result. This application policy stays in the
+action definition.

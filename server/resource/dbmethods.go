@@ -203,86 +203,27 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
 func (dbResource *DbResource) GetObjectPermissionByReferenceId(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) permission.PermissionInstance {
-
-	var selectQuery string
-	var queryParameters []interface{}
-	var err error
-	var perm permission.PermissionInstance
-	if referenceId == daptinid.NullReferenceId {
-		return perm
-	}
-	if objectType == "usergroup" {
-		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select("permission", "id").Prepared(true).
-			From(objectType).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
-	} else {
-		selectQuery, queryParameters, err = statementbuilder.Squirrel.
-			Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").Prepared(true).
-			From(objectType).Where(goqu.Ex{"reference_id": referenceId[:]}).ToSQL()
-
-	}
-
-	if err != nil {
-		log.Errorf("Failed to create sql: %v", err)
-		return perm
-	}
-
-	stmt, err := transaction.Preparex(selectQuery)
-	if err != nil {
-		log.Errorf("[263] failed to prepare statment: %v", err)
-		return perm
-	}
-
-	resultObject := make(map[string]interface{})
-	errScan := stmt.QueryRowx(queryParameters...).MapScan(resultObject)
-	err = stmt.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-	}
-	if errScan != nil {
-		log.Errorf("Failed to scan permission 1 [%v]: %v", referenceId, err)
-	}
-	//log.Printf("permi map: %v", resultObject)
-	if resultObject[USER_ACCOUNT_ID_COLUMN] != nil {
-
-		user, err := dbResource.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, resultObject[USER_ACCOUNT_ID_COLUMN].(int64), transaction)
-		if err == nil {
-			perm.UserId = user
-		}
-
-	}
-
-	i, ok := resultObject["id"].(int64)
-	if !ok {
-		return perm
-	}
-	perm.UserGroupId = dbResource.GetObjectGroupsByObjectId(objectType, i, transaction)
-
-	perm.Permission = auth.AuthPermission(resultObject["permission"].(int64))
-	if err != nil {
-		log.Errorf("Failed to scan permission 2: %v", err)
-	}
-
-	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
-	return perm
+	return GetObjectPermissionByReferenceIdWithTransaction(objectType, referenceId, transaction)
 }
 
 // GetObjectPermissionByReferenceId Gets permission of an Object by typeName and string referenceId
 // Loads the owner, usergroup and guest permission of the action from the database
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
+// The caller supplies an active transaction, including when Olric is enabled.
 func GetObjectPermissionByReferenceIdWithTransaction(objectType string, referenceId daptinid.DaptinReferenceId, transaction *sqlx.Tx) permission.PermissionInstance {
 
 	cacheKey := fmt.Sprintf("object-permission-%v-%v", objectType, referenceId)
-	useCache := transaction == nil && OlricCache != nil
+	useCache := OlricCache != nil
 
 	if useCache {
 
 		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
-		if err == nil {
+		if err == nil && cachedValue != nil {
 			var pi permission.PermissionInstance
-			cachedValue.Scan(&pi)
-			return pi
+			if err := cachedValue.Scan(&pi); err == nil {
+				return pi
+			}
 		}
 	}
 
@@ -497,24 +438,6 @@ func InvalidateObjectPermissionCache(objectType string, referenceId daptinid.Dap
 	}
 }
 
-// InvalidateObjectPermissionWhereCache removes permission caches keyed by a where clause.
-func InvalidateObjectPermissionWhereCache(objectType string, colName string, colValue string) {
-	if OlricCache == nil {
-		return
-	}
-
-	cacheKeys := []string{
-		fmt.Sprintf("%s_%s_%s", objectType, colName, colValue),
-		fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue),
-	}
-	for _, cacheKey := range cacheKeys {
-		_, err := OlricCache.Delete(context.Background(), cacheKey)
-		if err != nil {
-			log.Warnf("failed to invalidate object permission where cache for %s: %v", cacheKey, err)
-		}
-	}
-}
-
 // InvalidateActionCache removes the cached action schema row.
 func InvalidateActionCache(typeName string, actionName string) {
 	if OlricCache == nil {
@@ -524,18 +447,6 @@ func InvalidateActionCache(typeName string, actionName string) {
 	_, err := OlricCache.Delete(context.Background(), cacheKey)
 	if err != nil {
 		log.Warnf("failed to invalidate action cache for %s: %v", cacheKey, err)
-	}
-}
-
-// InvalidateRowPermissionCache removes the cached row-level permission for a specific object.
-func InvalidateRowPermissionCache(objectType string, referenceId daptinid.DaptinReferenceId) {
-	if OlricCache == nil {
-		return
-	}
-	cacheKey := fmt.Sprintf("row-permission-%v-%v", objectType, referenceId)
-	_, err := OlricCache.Delete(context.Background(), cacheKey)
-	if err != nil {
-		log.Warnf("failed to invalidate row permission cache for %s: %v", cacheKey, err)
 	}
 }
 
@@ -561,7 +472,6 @@ func InvalidateObjectUsergroupRelationPermissionCaches(objectType string, object
 		return
 	}
 	InvalidateObjectPermissionCache(objectType, parentRefId)
-	InvalidateRowPermissionCache(objectType, parentRefId)
 }
 
 // InvalidateAdminCacheForUser removes both the bulk administrator reference ID cache
@@ -587,140 +497,22 @@ func InvalidateAdminCacheForUser(userReferenceId daptinid.DaptinReferenceId) {
 // Return a PermissionInstance
 // Return a NoPermissionToAnyone if no such object exist
 func (dbResource *DbResource) GetObjectPermissionByWhereClause(objectType string, colName string, colValue string, transaction *sqlx.Tx) permission.PermissionInstance {
-	if OlricCache == nil {
-		OlricCache, _ = dbResource.OlricDb.NewDMap("default-cache")
-	}
-
-	cacheKey := ""
-	if OlricCache != nil {
-		cacheKey = fmt.Sprintf("%s_%s_%s", objectType, colName, colValue)
-		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
-		if cachedPermission != nil && err == nil {
-			var perm permission.PermissionInstance
-			err := cachedPermission.Scan(&perm)
-			if err == nil {
-				return perm
-			}
-		}
-	}
-
-	var perm permission.PermissionInstance
-	s, q, err := statementbuilder.Squirrel.
-		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
-		Where(goqu.Ex{colName: colValue}).ToSQL()
-	if err != nil {
-		log.Errorf("[542] Failed to create sql: %v", err)
-		return perm
-	}
-
-	stmt, err := transaction.Preparex(s)
-	if err != nil {
-		log.Errorf("[548] failed to prepare statment: %v", err)
-		return perm
-	}
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("[554] failed to close prepared statement: %v", err)
-		}
-	}(stmt)
-
-	m := make(map[string]interface{})
-	errScan := stmt.QueryRowx(q...).MapScan(m)
-	err = stmt.Close()
-	if err != nil {
-		log.Errorf("failed to close prepared statement: %v", err)
-	}
-	if errScan != nil {
-
-		log.Errorf("[566] Failed to scan permission: %v", err)
-		return perm
-	}
-
-	//log.Printf("permi map: %v", m)
-	if m["user_account_id"] != nil {
-
-		user, err := dbResource.GetIdToReferenceId(USER_ACCOUNT_TABLE_NAME, m[USER_ACCOUNT_ID_COLUMN].(int64), transaction)
-		if err == nil {
-			perm.UserId = user
-		}
-
-	}
-
-	perm.UserGroupId = dbResource.GetObjectGroupsByObjectId(objectType, m["id"].(int64), transaction)
-
-	perm.Permission = auth.AuthPermission(m["permission"].(int64))
-
-	//log.Printf("PermissionInstance for [%v]: %v", typeName, perm)
-
-	if OlricCache != nil {
-		err = OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(10*time.Second), olric.NX())
-		CheckErr(err, "[2099] Failed to set object permission id in olric cache")
-	}
-	return perm
+	return dbResource.GetObjectPermissionByWhereClauseWithTransaction(objectType, colName, colValue, transaction)
 }
 
 func (dbResource *DbResource) GetObjectPermissionByWhereClauseWithTransaction(objectType string, colName string, colValue string, transaction *sqlx.Tx) permission.PermissionInstance {
-	if transaction == nil && OlricCache == nil && dbResource.OlricDb != nil {
-		OlricCache, _ = dbResource.OlricDb.NewDMap("default-cache")
-	}
-
-	cacheKey := ""
-	cacheKey = fmt.Sprintf("object-permission-%s_%s_%s", objectType, colName, colValue)
-	useCache := transaction == nil && OlricCache != nil
-	if useCache {
-		cachedPermission, err := OlricCache.Get(context.Background(), cacheKey)
-		if cachedPermission != nil && err == nil {
-			var pi permission.PermissionInstance
-			err = cachedPermission.Scan(&pi)
-			if err == nil {
-				return pi
-			} else {
-				log.Errorf("Failed to GetObjectPermissionByWhereClauseWithTransaction [%s][%s][%s]: %v", objectType, colName, colValue, err)
-			}
-		}
-	}
-
-	var perm permission.PermissionInstance
-	s, q, err := statementbuilder.Squirrel.
-		Select(USER_ACCOUNT_ID_COLUMN, "permission", "id").From(objectType).Prepared(true).
+	query, args, err := statementbuilder.Squirrel.Select("reference_id").From(objectType).Prepared(true).
 		Where(goqu.Ex{colName: colValue}).ToSQL()
 	if err != nil {
-		log.Errorf("[618 failed to create sql: %v", err)
-		return perm
+		log.WithError(err).Error("build permission reference lookup")
+		return permission.PermissionInstance{}
 	}
-
-	m := make(map[string]interface{})
-	errScan := transaction.QueryRowx(s, q...).MapScan(m)
-	if errScan != nil {
-
-		log.Errorf("[636] failed to scan permission: %v", errScan)
-		return perm
+	var referenceID daptinid.DaptinReferenceId
+	if err := transaction.QueryRowx(query, args...).Scan(&referenceID); err != nil {
+		log.WithError(err).Error("resolve permission reference")
+		return permission.PermissionInstance{}
 	}
-
-	//log.Printf("permi map: %v", m)
-	if m["user_account_id"] != nil {
-
-		user, err := GetIdToReferenceIdWithTransaction(USER_ACCOUNT_TABLE_NAME, m[USER_ACCOUNT_ID_COLUMN].(int64), transaction)
-		if err == nil {
-			perm.UserId = user
-		} else {
-			log.Errorf("Failed GetIdToReferenceIdWithTransaction [%v] [%v]", m, err)
-		}
-
-	}
-
-	perm.UserGroupId = GetObjectGroupsByObjectIdWithTransaction(objectType, m["id"].(int64), transaction)
-
-	perm.Permission = auth.AuthPermission(m["permission"].(int64))
-
-	log.Debugf("PermissionInstance for [%v]: %v", objectType, perm)
-
-	if useCache {
-		OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(10*time.Minute), olric.NX())
-		CheckErr(err, "[617] Failed to set id to reference id in olric cache")
-	}
-	return perm
+	return GetObjectPermissionByReferenceIdWithTransaction(objectType, referenceID, transaction)
 }
 
 //// GetObjectUserGroupsByWhere Get list of group permissions for objects of typeName where colName=colValue
@@ -969,7 +761,7 @@ func (dbResource *DbResource) GetObjectGroupsByObjectId(objType string, objectId
 func GetObjectGroupsByObjectIdWithTransaction(objectType string, objectId int64, transaction *sqlx.Tx) auth.GroupPermissionList {
 
 	cacheKey := fmt.Sprintf("object-groups-%v-%v", objectType, objectId)
-	useCache := transaction == nil && OlricCache != nil
+	useCache := OlricCache != nil
 
 	if useCache {
 
@@ -1292,6 +1084,27 @@ func (dbResource *DbResource) BecomeAdmin(userId int64, transaction *sqlx.Tx) bo
 		log.Errorf("Failed to update default_permission in schema json: %v", err)
 	}
 
+	// Bootstrap changes ownership and permissions in bulk, outside row updates.
+	// Discard permission snapshots created before that transition.
+	if OlricCache != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		iterator, err := OlricCache.Scan(ctx, olric.Match("^object-permission-"))
+		if err != nil {
+			log.WithError(err).Error("invalidate bootstrap permissions")
+			return false
+		}
+		defer iterator.Close()
+		for iterator.Next() {
+			if _, err := OlricCache.Delete(ctx, iterator.Key()); err != nil {
+				log.WithError(err).Error("invalidate bootstrap permissions")
+				return false
+			}
+		}
+		if ctx.Err() != nil {
+			return false
+		}
+	}
 	return true
 }
 
@@ -1499,213 +1312,29 @@ func schemaJSONDefaultPermission(tabInfo map[string]interface{}) (auth.AuthPermi
 }
 
 func (dbResource *DbResource) GetRowPermission(row map[string]interface{}, transaction *sqlx.Tx) permission.PermissionInstance {
-
-	refId := daptinid.InterfaceToDIR(row["reference_id"])
-	if refId == daptinid.NullReferenceId {
-		refId = daptinid.InterfaceToDIR(row["id"])
-	}
-	rowType := row["__type"].(string)
-
-	var perm permission.PermissionInstance
-
-	if rowType != "usergroup" {
-		if row[USER_ACCOUNT_ID_COLUMN] != nil {
-			perm.UserId = daptinid.InterfaceToDIR(row[USER_ACCOUNT_ID_COLUMN])
-		} else {
-			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, refId, USER_ACCOUNT_ID_COLUMN, transaction)
-			if u != nil {
-				perm.UserId = daptinid.InterfaceToDIR(u)
-			}
-		}
-
-	}
-
-	loc := strings.Index(rowType, "_has_")
-	//log.Printf("Location [%v]: %v", dbResource.model.GetName(), loc)
-
-	if BeginsWith(rowType, "file.") || rowType == "none" {
-		perm.UserGroupId = auth.GroupPermissionList{
-			{
-				GroupReferenceId:    daptinid.NullReferenceId,
-				ObjectReferenceId:   daptinid.NullReferenceId,
-				RelationReferenceId: daptinid.NullReferenceId,
-				Permission:          auth.GuestRead,
-			},
-		}
-		return perm
-	}
-
-	if loc == -1 && dbResource.Cruds[rowType].model.HasMany("usergroup") {
-
-		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", refId[:])
-
-	} else if rowType == "usergroup" {
-		originalGroupId, _ := row["reference_id"]
-		originalGroupIdStr := refId
-		if originalGroupId != nil {
-			originalGroupIdStr = daptinid.InterfaceToDIR(originalGroupId)
-		}
-
-		perm.UserGroupId = auth.GroupPermissionList{
-			{
-				GroupReferenceId:    originalGroupIdStr,
-				ObjectReferenceId:   refId,
-				RelationReferenceId: refId,
-				Permission:          auth.AuthPermission(dbResource.Cruds["usergroup"].model.GetDefaultPermission()),
-			},
-		}
-	} else if loc > -1 {
-		// this is a something belongs to a usergroup row
-		//for colName, colValue := range row {
-		//	if EndsWithCheck(colName, "_id") && colName != "reference_id" {
-		//		if colName != "usergroup_id" {
-		//			return dbResource.GetObjectPermissionByReferenceId(strings.Split(rowType, "_"+colName)[0], colValue.(string))
-		//		}
-		//	}
-		//}
-
-	}
-
-	rowPermission := row["permission"]
-	if rowPermission != nil {
-
-		var err error
-		i64, ok := rowPermission.(int64)
-		if !ok {
-			f64, ok := rowPermission.(float64)
-			if !ok {
-				i64, err = strconv.ParseInt(rowPermission.(string), 10, 64)
-				//p, err := int64(row["permission"].(int))
-				if err != nil {
-					log.Errorf("Invalid cast :%v", err)
-				}
-			} else {
-				i64 = int64(f64)
-			}
-		}
-
-		perm.Permission = auth.AuthPermission(i64)
-	} else {
-		pe := dbResource.GetObjectPermissionByReferenceId(rowType, refId, transaction)
-		perm.Permission = pe.Permission
-	}
-	//log.Printf("Row permission: %v  ---------------- %v", perm, row)
-	return perm
+	return dbResource.GetRowPermissionWithTransaction(row, transaction)
 }
 
 func (dbResource *DbResource) GetRowPermissionWithTransaction(row map[string]interface{}, transaction *sqlx.Tx) permission.PermissionInstance {
-
-	var referenceId daptinid.DaptinReferenceId
-	referenceId = daptinid.InterfaceToDIR(row["reference_id"])
 	rowType := row["__type"].(string)
-
-	// A related-group result has a join ID and join permission for display.
-	// Authorize reading that result against the actual usergroup record.
-	rowPermission := row["permission"]
+	if BeginsWith(rowType, "file.") || rowType == "none" {
+		return permission.PermissionInstance{
+			UserId:      daptinid.InterfaceToDIR(row[USER_ACCOUNT_ID_COLUMN]),
+			UserGroupId: auth.GroupPermissionList{{Permission: auth.GuestRead}},
+		}
+	}
+	referenceID := daptinid.InterfaceToDIR(row["reference_id"])
+	if referenceID == daptinid.NullReferenceId {
+		referenceID = daptinid.InterfaceToDIR(row["id"])
+	}
+	// Related usergroup results carry the join reference as reference_id.
+	// Their permissions belong to the actual usergroup record.
 	if rowType == "usergroup" {
 		if group := daptinid.InterfaceToDIR(row["relation_reference_id"]); group != daptinid.NullReferenceId {
-			referenceId = group
-			rowPermission = nil
+			referenceID = group
 		}
 	}
-
-	cacheKey := fmt.Sprintf("row-permission-%v-%v", rowType, referenceId)
-	useCache := transaction == nil && OlricCache != nil
-
-	if useCache {
-
-		cachedValue, err := OlricCache.Get(context.Background(), cacheKey)
-		if err == nil {
-			var cv permission.PermissionInstance
-			cachedValue.Scan(&cv)
-			return cv
-		}
-	}
-
-	var perm permission.PermissionInstance
-
-	loc := strings.Index(rowType, "_has_")
-	if rowType != "usergroup" && loc == -1 {
-		if row[USER_ACCOUNT_ID_COLUMN] != nil {
-			perm.UserId = daptinid.InterfaceToDIR(row[USER_ACCOUNT_ID_COLUMN])
-		} else {
-			u, _ := dbResource.GetReferenceIdToObjectColumnWithTransaction(rowType, referenceId, USER_ACCOUNT_ID_COLUMN, transaction)
-			perm.UserId = daptinid.InterfaceToDIR(u)
-		}
-
-	}
-
-	//log.Printf("Location [%v]: %v", dbResource.model.GetName(), loc)
-
-	if BeginsWith(rowType, "file.") || rowType == "none" {
-		perm.UserGroupId = auth.GroupPermissionList{
-			{
-				GroupReferenceId:    daptinid.NullReferenceId,
-				ObjectReferenceId:   daptinid.NullReferenceId,
-				RelationReferenceId: daptinid.NullReferenceId,
-				Permission:          auth.GuestRead,
-			},
-		}
-		return perm
-	}
-
-	if loc == -1 && dbResource.Cruds[rowType].model.HasMany("usergroup") {
-
-		perm.UserGroupId = dbResource.GetObjectUserGroupsByWhereWithTransaction(rowType, transaction, "reference_id", referenceId[:])
-
-	} else if rowType == "usergroup" {
-		pe := GetObjectPermissionByReferenceIdWithTransaction(rowType, referenceId, transaction)
-
-		perm.UserGroupId = auth.GroupPermissionList{
-			{
-				GroupReferenceId:    referenceId,
-				ObjectReferenceId:   referenceId,
-				RelationReferenceId: referenceId,
-				Permission:          pe.Permission,
-			},
-		}
-	} else if loc > -1 {
-		// this is a something belongs to a usergroup row
-		//for colName, colValue := range row {
-		//	if EndsWithCheck(colName, "_id") && colName != "reference_id" {
-		//		if colName != "usergroup_id" {
-		//			return dbResource.GetObjectPermissionByReferenceId(strings.Split(rowType, "_"+colName)[0], colValue.(string))
-		//		}
-		//	}
-		//}
-
-	}
-
-	if rowPermission != nil {
-
-		var err error
-		i64, ok := rowPermission.(int64)
-		if !ok {
-			f64, ok := rowPermission.(float64)
-			if !ok {
-				i64, err = strconv.ParseInt(rowPermission.(string), 10, 64)
-				//p, err := int64(row["permission"].(int))
-				if err != nil {
-					log.Errorf("Invalid cast :%v", err)
-				}
-			} else {
-				i64 = int64(f64)
-			}
-		}
-
-		perm.Permission = auth.AuthPermission(i64)
-	} else {
-		pe := GetObjectPermissionByReferenceIdWithTransaction(rowType, referenceId, transaction)
-		perm.Permission = pe.Permission
-	}
-	//log.Printf("Row permission: %v  ---------------- %v", perm, row)
-
-	if useCache {
-		cachePutErr := OlricCache.Put(context.Background(), cacheKey, perm, olric.EX(1*time.Minute), olric.NX())
-		CheckErr(cachePutErr, "failed to store object permission in cache [%v]", cacheKey)
-	}
-
-	return perm
+	return GetObjectPermissionByReferenceIdWithTransaction(rowType, referenceID, transaction)
 }
 
 func (dbResource *DbResource) GetRowsByWhereClause(typeName string, includedRelations map[string]bool, transaction *sqlx.Tx, where ...goqu.Ex) (

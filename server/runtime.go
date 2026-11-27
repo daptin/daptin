@@ -10,6 +10,7 @@ import (
 	"github.com/artpar/go-guerrilla"
 	imapserver "github.com/artpar/go-imap/server"
 	"github.com/buraksezer/olric"
+	"github.com/daptin/daptin/server/agent"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
 	"github.com/daptin/daptin/server/subsite"
@@ -36,6 +37,7 @@ type Runtime struct {
 	websocketServer         *websockets.Server
 	yjs                     *YjsRuntime
 	llmGateway              *llm.Gateway
+	agentService            *agent.Service
 	rateLimitClient         *olric.ClusterClient
 	tableSubscription       *redis.PubSub
 	integrationSubscription *redis.PubSub
@@ -53,6 +55,9 @@ func (r *Runtime) Errors() <-chan error {
 // leaving shared handler dependencies available to requests already in flight.
 func (r *Runtime) Quiesce() error {
 	r.quiesceOnce.Do(func() {
+		if r.agentService != nil {
+			r.agentService.Quiesce()
+		}
 		if r.scheduler != nil {
 			r.scheduler.Quiesce()
 		}
@@ -89,6 +94,9 @@ func (r *Runtime) Drain(ctx context.Context) error {
 	}
 	if r.websocketServer != nil {
 		errs = append(errs, r.websocketServer.Shutdown(ctx))
+	}
+	if r.agentService != nil {
+		errs = append(errs, r.agentService.Drain(ctx))
 	}
 	if r.llmGateway != nil {
 		errs = append(errs, r.llmGateway.Drain(ctx))

@@ -4,6 +4,7 @@ import (
 	"github.com/artpar/go-guerrilla"
 	"github.com/daptin/daptin/server/actionresponse"
 	"github.com/daptin/daptin/server/actions"
+	"github.com/daptin/daptin/server/agent"
 	"github.com/daptin/daptin/server/hostswitch"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
@@ -13,7 +14,8 @@ import (
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
 	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
 	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager, integrationRuntimeInstanceID string,
-	llmGateway *llm.Gateway, requestRestart func()) []actionresponse.ActionPerformerInterface {
+	llmGateway *llm.Gateway, requestRestart func(),
+	mailStatusSnapshot func() interface{}, agentService *agent.Service) []actionresponse.ActionPerformerInterface {
 	log.Tracef("GetActionPerformers")
 	transaction, err := cruds["world"].Connection().Beginx()
 	resource.CheckErr(err, "Failed to begin transaction [14]")
@@ -305,6 +307,10 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 	publishToTopicPerformer, err := actions.NewPublishToTopicPerformer(initConfig, cruds)
 	resource.CheckErr(err, "Failed to create publish to topic performer")
 	performers = append(performers, publishToTopicPerformer)
+	mailStatusPerformer, err := actions.NewMailServiceStatusActionPerformer(cruds, mailStatusSnapshot)
+	resource.CheckErr(err, "Failed to create mail service status performer")
+	performers = append(performers, mailStatusPerformer)
+	performers = append(performers, agentService.Performers()...)
 
 	log.Tracef("Completed GetActionPerformers")
 

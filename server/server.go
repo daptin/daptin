@@ -9,6 +9,7 @@ import (
 	"github.com/buraksezer/olric"
 	"github.com/daptin/daptin/server/action_provider"
 	"github.com/daptin/daptin/server/actions"
+	"github.com/daptin/daptin/server/agent"
 	"github.com/daptin/daptin/server/dbresourceinterface"
 	"github.com/daptin/daptin/server/fsm"
 	daptinid "github.com/daptin/daptin/server/id"
@@ -609,8 +610,15 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		default:
 		}
 	}
-	actionPerformers := action_provider.GetActionPerformers(&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager, integrationRuntimeInstanceID, llmGateway, requestRestart)
-	actionPerformers = append(actionPerformers, &mailServiceStatusActionPerformer{status: mailStatus, world: cruds["world"]})
+	agentService, err := agent.New(cruds, llmGateway, rateLimitClient)
+	if err != nil {
+		return nil, fmt.Errorf("initialize agent service: %w", err)
+	}
+	actionPerformers := action_provider.GetActionPerformers(
+		&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager,
+		integrationRuntimeInstanceID, llmGateway, requestRestart,
+		func() interface{} { return mailStatus.snapshot() }, agentService,
+	)
 	initConfig.ActionPerformers = actionPerformers
 	transaction, err = db.Beginx()
 	encryptionSecret, _ := configStore.GetConfigValueFor("encryption.secret", "backend", transaction)
@@ -763,6 +771,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		}
 		log.WithError(templateErr).Error("Template HTTP routes not mounted; repair template url_pattern configuration and restart")
 	}
+	agentService.Start(ctx)
 	llmGateway.StartBatchProcessing(ctx)
 	taskScheduler.Start()
 	go websocketServer.Listen()
@@ -796,6 +805,7 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		websocketServer:         websocketServer,
 		yjs:                     yjsRuntime,
 		llmGateway:              llmGateway,
+		agentService:            agentService,
 		rateLimitClient:         rateLimitClient,
 		tableSubscription:       tableTopicSubscription,
 		integrationSubscription: integrationSubscription,

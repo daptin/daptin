@@ -264,53 +264,6 @@ func TestInvalidateObjectPermissionCache_KeyFormat(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// InvalidateRowPermissionCache
-// ---------------------------------------------------------------------------
-
-func TestInvalidateRowPermissionCache_NilCache(t *testing.T) {
-	restore := swapOlricCache(nil)
-	defer restore()
-	InvalidateRowPermissionCache("task", makeRefId())
-}
-
-func TestInvalidateRowPermissionCache_RemovesEntry(t *testing.T) {
-	dm, cleanup := testOlric(t, "test-row-perm")
-	defer cleanup()
-	restore := swapOlricCache(dm)
-	defer restore()
-
-	refId := makeRefId()
-	cacheKey := fmt.Sprintf("row-permission-%v-%v", "task", refId)
-
-	perm := permission.PermissionInstance{Permission: auth.UserRead}
-	err := dm.Put(context.Background(), cacheKey, perm)
-	if err != nil {
-		t.Fatalf("failed to seed cache: %v", err)
-	}
-
-	val, err := dm.Get(context.Background(), cacheKey)
-	if err != nil || val == nil {
-		t.Fatalf("expected cache hit before invalidation")
-	}
-
-	InvalidateRowPermissionCache("task", refId)
-
-	_, err = dm.Get(context.Background(), cacheKey)
-	if err == nil {
-		t.Error("expected cache miss after invalidation")
-	}
-}
-
-func TestInvalidateRowPermissionCache_NonExistentKey(t *testing.T) {
-	dm, cleanup := testOlric(t, "test-row-perm-missing")
-	defer cleanup()
-	restore := swapOlricCache(dm)
-	defer restore()
-
-	InvalidateRowPermissionCache("task", makeRefId())
-}
-
-// ---------------------------------------------------------------------------
 // InvalidateObjectGroupsCache
 // ---------------------------------------------------------------------------
 
@@ -654,44 +607,6 @@ func TestNX_InvalidateThenRecache(t *testing.T) {
 // Cross-invalidation: different types don't interfere
 // ---------------------------------------------------------------------------
 
-func TestInvalidation_OnlyAffectsTargetedCache(t *testing.T) {
-	dm, cleanup := testOlric(t, "test-isolation")
-	defer cleanup()
-	restore := swapOlricCache(dm)
-	defer restore()
-
-	refId := makeRefId()
-
-	// Seed three different cache types for the same refId
-	objPermKey := fmt.Sprintf("object-permission-%v-%v", "task", refId)
-	rowPermKey := fmt.Sprintf("row-permission-%v-%v", "task", refId)
-
-	perm := permission.PermissionInstance{Permission: auth.UserRead}
-	dm.Put(context.Background(), objPermKey, perm)
-	dm.Put(context.Background(), rowPermKey, perm)
-
-	// Invalidate only object-permission
-	InvalidateObjectPermissionCache("task", refId)
-
-	_, err := dm.Get(context.Background(), objPermKey)
-	if err == nil {
-		t.Error("object-permission should be invalidated")
-	}
-
-	// row-permission must still be present
-	val, err := dm.Get(context.Background(), rowPermKey)
-	if err != nil || val == nil {
-		t.Error("row-permission should NOT be affected by object-permission invalidation")
-	}
-
-	// Now invalidate row-permission
-	InvalidateRowPermissionCache("task", refId)
-	_, err = dm.Get(context.Background(), rowPermKey)
-	if err == nil {
-		t.Error("row-permission should be invalidated")
-	}
-}
-
 func TestInvalidateObjectUsergroupRelationPermissionCaches_RemovesParentCaches(t *testing.T) {
 	dm, cleanup := testOlric(t, "test-relation-parent-perm")
 	defer cleanup()
@@ -726,7 +641,6 @@ func TestInvalidateObjectUsergroupRelationPermissionCaches_RemovesParentCaches(t
 	keys := []string{
 		fmt.Sprintf("object-groups-%v-%v", "oauth_connect", objectId),
 		fmt.Sprintf("object-permission-%v-%v", "oauth_connect", refId),
-		fmt.Sprintf("row-permission-%v-%v", "oauth_connect", refId),
 	}
 	for _, key := range keys {
 		if err := dm.Put(context.Background(), key, perm); err != nil {

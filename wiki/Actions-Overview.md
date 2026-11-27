@@ -788,3 +788,6 @@ Common errors:
 - [[Authentication|Authentication]] - Auth action details
 - [[State-Machines|State-Machines]] - Trigger actions on state changes
 - [[Task-Scheduling|Task-Scheduling]] - Run actions on schedule
+
+For durable model-driven workflows using resource CRUD and named actions as tools,
+see [Durable agents](Agents.md).

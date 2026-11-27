@@ -113,6 +113,37 @@ func TestLLMModelAuthorizationUsesActiveDaptinSession(t *testing.T) {
 	if err := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err == nil {
 		t.Fatal("model relation without group execute permission was accepted")
 	}
+
+	grantTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	modelGroup = updateLLMAuthorizationResource(t, cruds, administrator, grantTransaction,
+		"llm_model_llm_model_id_has_usergroup_usergroup_id", modelGroup,
+		map[string]interface{}{"permission": int64(auth.GroupExecute)})
+	if err := grantTransaction.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err != nil {
+		t.Fatalf("restored group execution was denied: %v", err)
+	}
+	deleteTransaction, err := database.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer deleteTransaction.Rollback()
+	reference := daptinid.InterfaceToDIR(modelGroup["reference_id"])
+	request := api2go.Request{PlainRequest: (&http.Request{Method: http.MethodDelete}).
+		WithContext(context.WithValue(context.Background(), "user", administrator))}
+	if err := cruds["llm_model_llm_model_id_has_usergroup_usergroup_id"].DeleteWithoutFilters(reference, request, deleteTransaction); err != nil {
+		t.Fatal(err)
+	}
+	if err := deleteTransaction.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := authorizer.Authorize(memberContext, contract.Principal{}, catalog.Model{ID: contract.ID(allowedModelReference.String())}); err == nil {
+		t.Fatal("deleted group execution grant remained cached")
+	}
 }
 
 func createLLMAuthorizationResource(t *testing.T, cruds map[string]*resource.DbResource, administrator *auth.SessionUser,

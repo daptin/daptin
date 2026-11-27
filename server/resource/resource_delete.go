@@ -124,7 +124,6 @@ func (dbResource *DbResource) deleteWithoutFiltersWithData(id daptinid.DaptinRef
 
 	// Invalidate permission caches for the deleted object
 	InvalidateObjectPermissionCache(dbResource.model.GetName(), id)
-	InvalidateRowPermissionCache(dbResource.model.GetName(), id)
 
 	// Invalidate auth + admin caches when user-group membership is removed
 	if dbResource.model.GetName() == "user_account_user_account_id_has_usergroup_usergroup_id" {
@@ -148,9 +147,14 @@ func (dbResource *DbResource) deleteWithoutFiltersWithData(id daptinid.DaptinRef
 		parentType := doubledEntity[:len(doubledEntity)/2]
 		parentIdCol := parentType + "_id"
 		if parentIdVal, ok := data[parentIdCol]; ok && parentIdVal != nil {
-			if pid, ok := parentIdVal.(int64); ok {
-				InvalidateObjectUsergroupRelationPermissionCaches(parentType, pid, transaction)
+			pid, internalID := parentIdVal.(int64)
+			if !internalID {
+				pid, err = GetReferenceIdToIdWithTransaction(parentType, daptinid.InterfaceToDIR(parentIdVal), transaction)
+				if err != nil {
+					return err
+				}
 			}
+			InvalidateObjectUsergroupRelationPermissionCaches(parentType, pid, transaction)
 		}
 	}
 
