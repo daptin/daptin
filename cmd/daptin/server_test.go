@@ -151,7 +151,10 @@ Relations:
         DataType: varchar(100)
         ColumnType: label
 Imports:
-  - FilePath: initial_data.json
+  - FilePath: cloud_store_data.json
+    Entity: cloud_store
+    FileType: json
+  - FilePath: site_data.json
     Entity: site
     FileType: json`
 
@@ -183,13 +186,27 @@ func createServer() {
 	}
 
 	err = json.Unmarshal([]byte(data), &m)
-	log.Printf("Err: %v", err)
+	if err != nil {
+		panic(fmt.Errorf("decode server fixture data: %w", err))
+	}
 
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery", 0777)
 	_ = os.Mkdir(tempDir+string(os.PathSeparator)+"gallery"+string(os.PathSeparator)+"images", 0777)
 
-	_ = ioutil.WriteFile(tempDir+string(os.PathSeparator)+"schema_test_daptin.yaml", []byte(schema), os.ModePerm)
-	_ = ioutil.WriteFile(tempDir+string(os.PathSeparator)+"initial_data.json", []byte(data), os.ModePerm)
+	if err := ioutil.WriteFile(tempDir+string(os.PathSeparator)+"schema_test_daptin.yaml", []byte(schema), os.ModePerm); err != nil {
+		panic(err)
+	}
+	// JSON object keys do not define import order. Each file contains one entity;
+	// the ordered Imports above create the store before its dependent site.
+	for _, entity := range []string{"cloud_store", "site"} {
+		contents, err := json.Marshal(map[string]interface{}{entity: m[entity]})
+		if err != nil {
+			panic(err)
+		}
+		if err := ioutil.WriteFile(tempDir+string(os.PathSeparator)+entity+"_data.json", contents, os.ModePerm); err != nil {
+			panic(err)
+		}
+	}
 
 	_ = os.Setenv("DAPTIN_SCHEMA_FOLDER", tempDir)
 
@@ -294,6 +311,17 @@ func createServer() {
 func TestServerApis(t *testing.T) {
 
 	ensureServer()
+	// Verify bootstrap imports before exercising unrelated API and FTP behavior.
+	client := &http.Client{Timeout: 5 * time.Second}
+	storeReference := "ca122915-4dbb-42cf-aa19-c89a14e6fa9a"
+	store := transportE2EGetJSON(t, client, "http://localhost:6337/api/cloud_store/"+storeReference, "")
+	assertTransportE2EString(t, store, "data.id", storeReference)
+	sites := transportE2EGetJSON(t, client, "http://localhost:6337/api/site", "")
+	if rows := accessGroupsE2EDataArray(t, sites); len(rows) != 1 {
+		t.Fatalf("server fixture import failed: expected one site, got %d", len(rows))
+	}
+	assertTransportE2EString(t, sites, "data.0.attributes.hostname", "site.daptin.com")
+	assertTransportE2EString(t, sites, "data.0.relationships.cloud_store_id.data.id", storeReference)
 	//_, _, _, _, _, _, _, _ := createServer()
 	err := runTests(t)
 	log.Printf("Test ended")
