@@ -176,7 +176,9 @@ start_postgres() {
 
     log "Waiting for PostgreSQL..."
     for i in $(seq 1 30); do
-        if docker exec "$PG_CONTAINER" pg_isready -U "$PG_USER" > /dev/null 2>&1; then
+        # The image's temporary initialization server accepts Unix sockets only.
+        # Nodes need the final server's TCP listener before they can start.
+        if docker exec "$PG_CONTAINER" pg_isready -h 127.0.0.1 -U "$PG_USER" -d "$PG_DB" > /dev/null 2>&1; then
             log "PostgreSQL ready"
             return 0
         fi
