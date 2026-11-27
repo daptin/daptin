@@ -1277,3 +1277,14 @@ func (dbResource *DbResource) UpdateAssetColumnWithPendingUpload(resourceUuid da
 	return err
 
 }
+
+// BeginTransaction binds transaction lifetime to its owning operation.
+func (dbResource *DbResource) BeginTransaction(ctx context.Context) (*sqlx.Tx, error) {
+	starter, ok := dbResource.Connection().(interface {
+		BeginTxx(context.Context, *sql.TxOptions) (*sqlx.Tx, error)
+	})
+	if !ok {
+		return nil, errors.New("database requires context-aware transactions")
+	}
+	return starter.BeginTxx(ctx, nil)
+}

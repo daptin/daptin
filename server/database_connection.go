@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/daptin/daptin/server/database"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -32,7 +33,7 @@ func GetDbConnection(dbType string, connectionString string) (*sqlx.DB, error) {
 		}
 	}
 
-	db, e := sqlx.Open(dbType, connectionString)
+	db, e := database.Open(dbType, connectionString)
 
 	if e != nil {
 		return nil, e

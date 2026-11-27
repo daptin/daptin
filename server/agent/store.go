@@ -26,8 +26,8 @@ func request(ctx context.Context, method, path string, query url.Values) api2go.
 func userContext(ctx context.Context, user *auth.SessionUser) context.Context {
 	return context.WithValue(ctx, "user", user)
 }
-func (s store) admin(ctx context.Context) context.Context {
-	return userContext(ctx, &auth.SessionUser{Groups: auth.GroupPermissionList{{GroupReferenceId: s.cruds["world"].AdministratorGroupId}}})
+func (s store) begin(ctx context.Context) (*sqlx.Tx, error) {
+	return s.cruds["world"].BeginTransaction(ctx)
 }
 func (s store) load(table, ref string, tx *sqlx.Tx) (map[string]interface{}, error) {
 	id := daptinid.InterfaceToDIR(ref)
@@ -51,13 +51,20 @@ func (s store) read(ctx context.Context, table, ref string, tx *sqlx.Tx) (map[st
 func (s store) create(ctx context.Context, table string, attrs map[string]interface{}, tx *sqlx.Tx) (map[string]interface{}, error) {
 	t := s.cruds[table].TableInfo()
 	response, err := s.cruds[table].CreateAgentExecution(api2go.NewApi2GoModelWithData(table, t.Columns, int64(t.DefaultPermission), t.Relations, attrs),
-		request(ctx, "POST", "/"+table, nil), tx)
+		request(resource.WithMeteringInternal(ctx), "POST", "/"+table, nil), tx)
 	if err != nil {
 		return nil, err
 	}
 	return response.Result().(api2go.Api2GoModel).GetAllAsAttributes(), nil
 }
 func (s store) update(ctx context.Context, table string, row, attrs map[string]interface{}, tx *sqlx.Tx) (map[string]interface{}, error) {
+	if user, _ := ctx.Value("user").(*auth.SessionUser); user == nil {
+		owner, err := s.user(daptinid.InterfaceToDIR(row["user_account_id"]).String(), tx)
+		if err != nil {
+			return nil, err
+		}
+		ctx = userContext(ctx, owner)
+	}
 	t := s.cruds[table].TableInfo()
 	model := api2go.NewApi2GoModelWithData(table, t.Columns, int64(t.DefaultPermission), t.Relations, row)
 	// The resource model's structural comparison cannot distinguish time.Time
@@ -69,7 +76,7 @@ func (s store) update(ctx context.Context, table string, row, attrs map[string]i
 		}
 	}
 	model.SetAttributes(attrs)
-	response, err := s.cruds[table].UpdateAgentExecution(model, request(ctx, "PATCH", "/"+table+"/"+reference(row), nil), tx)
+	response, err := s.cruds[table].UpdateAgentExecution(model, request(resource.WithMeteringInternal(ctx), "PATCH", "/"+table+"/"+reference(row), nil), tx)
 	if err != nil {
 		return nil, err
 	}

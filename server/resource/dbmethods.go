@@ -135,7 +135,7 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 	sql, args, err := statementbuilder.Squirrel.Select(
 		goqu.I("a.action_name").As("name"),
 		goqu.I("w.table_name").As("ontype"),
-		goqu.I("a.label"),
+		goqu.COALESCE(goqu.I("a.label"), "").As("label"),
 		goqu.I("action_schema"),
 		goqu.I("instance_optional"),
 		goqu.I("a.reference_id").As("referenceid"),
@@ -176,14 +176,12 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 
 		var act actionresponse.Action
 		var a ActionRow
-		err := rows.StructScan(&a)
-		CheckErr(err, "Failed to struct scan action row")
-
-		if len(a.Label) < 1 {
-			continue
+		if err := rows.StructScan(&a); err != nil {
+			return nil, err
 		}
-		err = json.Unmarshal([]byte(a.ActionSchema), &act)
-		CheckErr(err, "failed to unmarshal ActionSchema")
+		if err := json.Unmarshal([]byte(a.ActionSchema), &act); err != nil {
+			return nil, err
+		}
 
 		act.Name = a.Name
 		act.Label = a.Label
@@ -195,7 +193,7 @@ func (dbResource *DbResource) GetActionsByType(typeName string, transaction *sql
 
 	}
 
-	return action, nil
+	return action, rows.Err()
 }
 
 // GetObjectPermissionByReferenceId Gets permission of an Object by typeName and string referenceId

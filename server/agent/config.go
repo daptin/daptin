@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"time"
 
@@ -101,7 +102,10 @@ func decode(value interface{}, target interface{}) error {
 	}
 	return nil
 }
-func encode(value interface{}) string { data, _ := json.Marshal(value); return string(data) }
+func encode(value interface{}) (string, error) {
+	data, err := json.Marshal(value)
+	return string(data), err
+}
 func contains(values []string, value string) bool {
 	for _, v := range values {
 		if v == "*" || v == value {
@@ -132,10 +136,12 @@ func (c *Config) validate() error {
 	if c.Limits.Turns < 1 || c.Limits.Turns > 100 || c.Limits.ToolCalls < 1 || c.Limits.ToolCalls > 1000 || c.Limits.Seconds < 1 || c.Limits.Seconds > 86400 || c.Limits.OutputTokens < 1 || c.Limits.OutputTokens > 32768 || c.Limits.Attempts < 1 || c.Limits.Attempts > 5 {
 		return errors.New("invalid agent execution limits")
 	}
+	operations := map[string]bool{}
 	for _, op := range c.Toolset.Operations {
-		if !contains([]string{"discover", "list", "read", "create", "update", "delete", "relations"}, op) || op == "*" {
-			return fmt.Errorf("unknown resource operation %q", op)
+		if operations[op] || !contains([]string{"discover", "list", "read", "create", "update", "delete", "relations"}, op) || op == "*" {
+			return fmt.Errorf("unknown or duplicate resource operation %q", op)
 		}
+		operations[op] = true
 	}
 	if len(c.Toolset.Tools) > 64 || len(c.Toolset.Resources) > 500 || len(c.Toolset.Actions) > 500 {
 		return errors.New("agent toolset exceeds configuration limits")
@@ -215,4 +221,75 @@ func validateArguments(raw string, schema json.RawMessage) (map[string]interface
 		return nil, fmt.Errorf("invalid tool arguments: %w", err)
 	}
 	return args, nil
+}
+
+var errPayloadLimit = errors.New("result exceeds payload limit")
+
+// Reject oversized structures before json.Marshal allocates an encoded copy.
+// The final byte check accounts for escaping and custom JSON representations.
+func encodeBounded(value interface{}, limit int) (string, error) {
+	budget := limit
+	var visit func(reflect.Value, int) error
+	visit = func(v reflect.Value, depth int) error {
+		if !v.IsValid() {
+			return nil
+		}
+		budget--
+		if budget < 0 || depth > 1000 {
+			return errPayloadLimit
+		}
+		switch v.Kind() {
+		case reflect.Interface, reflect.Pointer:
+			if !v.IsNil() {
+				return visit(v.Elem(), depth+1)
+			}
+		case reflect.String:
+			budget -= v.Len()
+		case reflect.Slice, reflect.Array:
+			if v.Type().Elem().Kind() == reflect.Uint8 {
+				budget -= v.Len()
+				break
+			}
+			for i := 0; i < v.Len(); i++ {
+				if err := visit(v.Index(i), depth+1); err != nil {
+					return err
+				}
+			}
+		case reflect.Map:
+			iter := v.MapRange()
+			for iter.Next() {
+				if err := visit(iter.Key(), depth+1); err != nil {
+					return err
+				}
+				if err := visit(iter.Value(), depth+1); err != nil {
+					return err
+				}
+			}
+		case reflect.Struct:
+			for i := 0; i < v.NumField(); i++ {
+				field := v.Type().Field(i)
+				if field.PkgPath != "" || field.Tag.Get("json") == "-" {
+					continue
+				}
+				if err := visit(v.Field(i), depth+1); err != nil {
+					return err
+				}
+			}
+		}
+		if budget < 0 {
+			return errPayloadLimit
+		}
+		return nil
+	}
+	if err := visit(reflect.ValueOf(value), 0); err != nil {
+		return "", err
+	}
+	encoded, err := encode(value)
+	if err != nil {
+		return "", err
+	}
+	if len(encoded) > limit {
+		return "", errPayloadLimit
+	}
+	return encoded, nil
 }

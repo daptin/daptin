@@ -97,6 +97,7 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		}
 		mode := "happy"
 		var results []map[string]interface{}
+		var toolTexts []string
 		for _, raw := range messages {
 			message := raw.(map[string]interface{})
 			if message["role"] == "user" {
@@ -107,6 +108,7 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 			if message["role"] == "tool" {
 				var result map[string]interface{}
 				text, _ := message["content"].(string)
+				toolTexts = append(toolTexts, text)
 				_ = json.Unmarshal([]byte(text), &result)
 				results = append(results, result)
 			}
@@ -136,7 +138,35 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		if strings.HasPrefix(mode, "ready:") {
 			mode = "ready"
 		}
+		modeText := mode
+		if strings.HasPrefix(mode, "writeonly:") {
+			mode = "writeonly"
+		}
+		conflictReference := ""
+		if strings.HasPrefix(mode, "conflict:") {
+			conflictReference = strings.TrimPrefix(mode, "conflict:")
+			mode = "conflict"
+		}
 		switch mode {
+		case "writeonly":
+			parts := strings.Split(modeText, ":")
+			if len(results) == 0 {
+				tool("daptin_update", map[string]interface{}{"entity": "agitem", "reference": parts[1], "attributes": map[string]interface{}{"version": json.Number(parts[2]), "name": "agent-updated-without-read"}})
+			}
+		case "conflict":
+			if len(results) == 0 {
+				tool("daptin_update", map[string]interface{}{"entity": "agitem", "reference": conflictReference, "attributes": map[string]interface{}{"version": 999, "name": "not-written"}})
+			} else {
+				message["content"] = toolTexts[len(toolTexts)-1]
+			}
+		case "catalog":
+			if len(results) == 0 {
+				tool("daptin_discover", map[string]interface{}{})
+			} else if page, ok := results[len(results)-1]["next_page"]; ok {
+				tool("daptin_discover", map[string]interface{}{"page": page})
+			} else {
+				message["content"] = toolTexts[len(toolTexts)-1]
+			}
 		case "ready":
 
 		case "history":
@@ -178,12 +208,20 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 			case 0:
 				tool("daptin_discover", map[string]interface{}{"entity": "agitem"})
 			case 1:
+				if !strings.Contains(toolTexts[0], `"instance_optional":false`) || !strings.Contains(toolTexts[0], `"subject_input":"agitem_id"`) {
+					http.Error(w, "action subject metadata missing", 500)
+					return
+				}
 				tool("daptin_create", map[string]interface{}{"entity": "agitem", "attributes": map[string]interface{}{"name": "temporary"}})
 			case 2:
 				tool("daptin_read", map[string]interface{}{"entity": "agitem", "reference": results[1]["reference_id"]})
 			case 3:
 				tool("daptin_update", map[string]interface{}{"entity": "agitem", "reference": results[1]["reference_id"], "attributes": map[string]interface{}{"name": "updated", "version": results[2]["version"]}})
 			case 4:
+				if !strings.Contains(toolTexts[3], `"reference_id"`) {
+					http.Error(w, "relationship attributes lost", 500)
+					return
+				}
 				tool("daptin_relations", map[string]interface{}{"entity": "agitem", "reference": results[1]["reference_id"], "relation": "user_account_id"})
 			case 5:
 				tool("daptin_list", map[string]interface{}{"entity": "agitem", "query": map[string]interface{}{"page[size]": "10"}})
@@ -348,6 +386,56 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		}
 	})
 
+	t.Run("decision wait expires without a control request", func(t *testing.T) {
+		copyConfig := map[string]interface{}{}
+		if err := json.Unmarshal(mustAgentJSON(config), &copyConfig); err != nil {
+			t.Fatal(err)
+		}
+		copyConfig["limits"].(map[string]interface{})["seconds"] = 3
+		accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseA+"/api/agent/"+definition, admin, accessGroupsE2ERecordPayload("agent", definition, map[string]interface{}{"config": string(mustAgentJSON(copyConfig))}), 200)
+		defer accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseA+"/api/agent/"+definition, admin, accessGroupsE2ERecordPayload("agent", definition, map[string]interface{}{"config": string(mustAgentJSON(config))}), 200)
+		run := submit(t, baseA, admin, "decision")
+		wait(t, baseA, run, "waiting_decision")
+		attrs := wait(t, baseA, run, "failed")
+		state := attrs["state"].(map[string]interface{})
+		if state["error"] != "execution time limit reached" {
+			t.Fatalf("unexpected timeout: %#v", state)
+		}
+	})
+	t.Run("rejected updates return a tool error instead of an unknown effect", func(t *testing.T) {
+		record := accessGroupsE2EFindResourceID(t, client, baseA, admin, "agitem", "name", "agent-created")
+		run := submit(t, baseA, admin, "conflict:"+record)
+		attrs := wait(t, baseA, run, "completed")
+		if !strings.Contains(fmt.Sprint(attrs["state"].(map[string]interface{})["result"]), "version conflict") {
+			t.Fatalf("model did not receive rejected update: %#v", attrs)
+		}
+	})
+	t.Run("discovery exposes a paged catalog", func(t *testing.T) {
+		run := submit(t, baseA, admin, "catalog")
+		attrs := wait(t, baseA, run, "completed")
+		result := fmt.Sprint(attrs["state"].(map[string]interface{})["result"])
+		if !strings.Contains(result, `"resources"`) {
+			t.Fatalf("catalog missing resources: %s", result)
+		}
+	})
+
+	t.Run("updates use update permission without an extra read gate", func(t *testing.T) {
+		writer := accessGroupsE2ESignupSigninUser(t, client, baseA, admin, "agent-writer")
+		record := accessGroupsE2ECreateRecord(t, client, baseA, writer, "agitem", map[string]interface{}{"name": "write-only"})
+		defer accessGroupsE2EAssertStatus(t, client, http.MethodDelete, baseA+"/api/agitem/"+record, admin, nil, 200)
+		accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseA+"/api/agitem/"+record, admin, accessGroupsE2ERecordPayload("agitem", record, map[string]interface{}{"permission": int64(auth.UserPeek | auth.UserUpdate), "usergroup": []interface{}{}}), 200)
+		accessGroupsE2EAssertStatus(t, client, http.MethodGet, baseA+"/api/agitem/"+record, writer, nil, 403)
+		accessGroupsE2EAssertStatus(t, client, http.MethodPatch, baseA+"/api/agitem/"+record, writer, accessGroupsE2ERecordPayload("agitem", record, map[string]interface{}{"name": "direct-updated-without-read"}), 200)
+		row := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseA+"/api/agitem/"+record, admin, nil, 200)
+		version, _ := transportE2EPath(row, "data.attributes.version")
+		run := submit(t, baseA, writer, "writeonly:"+record+":"+fmt.Sprint(version))
+		wait(t, baseA, run, "completed")
+		row = accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseA+"/api/agitem/"+record, admin, nil, 200)
+		name, _ := transportE2EPath(row, "data.attributes.name")
+		if name != "agent-updated-without-read" {
+			t.Fatalf("agent update diverged from REST: %#v", row)
+		}
+	})
 	t.Run("retryable inference is checkpointed and resumed", func(t *testing.T) {
 		run := submit(t, baseA, admin, "retry")
 		wait(t, baseA, run, "completed")

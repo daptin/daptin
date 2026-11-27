@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return true, err
 	}
@@ -34,6 +34,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
+	ctx = userContext(ctx, user)
 	remaining := state.Started.Add(time.Duration(state.Config.Limits.Seconds) * time.Second).Sub(now)
 	if remaining <= 0 {
 		return true, s.fail(ctx, row, &state, errors.New("execution time limit reached"), tx)
@@ -56,7 +57,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 			if operation.Call.Function.Name != "agent_wait" {
 				return true, errors.New("decision has no submitted result")
 			}
-			if _, err = s.update(s.admin(ctx), "agenttry", attempt, map[string]interface{}{"status": "completed", "result": encode(map[string]interface{}{"resumed": true})}, tx); err != nil {
+			if _, err = s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "completed", "result": map[string]interface{}{"resumed": true}}, tx); err != nil {
 				return true, err
 			}
 			return false, tx.Commit()
@@ -71,7 +72,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 			return true, s.fail(ctx, row, &state, errors.New("saved attempt failed"), tx)
 		case "dispatched":
 			if operation.Kind == "tool" && !repeatable(state.Config, operation.Call.Function.Name) {
-				if _, err := s.update(s.admin(ctx), "agenttry", attempt, map[string]interface{}{"status": "unknown"}, tx); err != nil {
+				if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "unknown"}, tx); err != nil {
 					return true, err
 				}
 				state.Error = "tool effect is unknown; reconcile this attempt before continuing"
@@ -83,7 +84,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 			if operation.Number >= state.Config.Limits.Attempts {
 				return true, s.fail(ctx, row, &state, errors.New("attempt limit reached"), tx)
 			}
-			if _, err := s.update(s.admin(ctx), "agenttry", attempt, map[string]interface{}{"status": "interrupted"}, tx); err != nil {
+			if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "interrupted"}, tx); err != nil {
 				return true, err
 			}
 			operation.Number++
@@ -107,7 +108,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 			state.Turns++
 		}
 		state.Sequence++
-		step, err := s.create(userContext(ctx, user), "agentstp", map[string]interface{}{"agentrun_id": ref, "number": state.Sequence, "kind": operation.Kind, "payload": encode(operation)}, tx)
+		step, err := s.create(userContext(ctx, user), "agentstp", map[string]interface{}{"agentrun_id": ref, "number": state.Sequence, "kind": operation.Kind, "payload": operation}, tx)
 		if err != nil {
 			return true, err
 		}
@@ -115,7 +116,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 	}
 	attemptRef := uuid.NewString()
 	operation.RequestID = attemptRef
-	attempt, err = s.create(userContext(ctx, user), "agenttry", map[string]interface{}{"reference_id": attemptRef, "agentrun_id": ref, "agentstp_id": operation.Step, "status": "dispatched", "intent": encode(operation)}, tx)
+	attempt, err = s.create(userContext(ctx, user), "agenttry", map[string]interface{}{"reference_id": attemptRef, "agentrun_id": ref, "agentstp_id": operation.Step, "status": "dispatched", "intent": operation}, tx)
 	if err != nil {
 		return true, err
 	}
@@ -123,16 +124,16 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 	if operation.Kind == "tool" && (operation.Call.Function.Name == "agent_decision" || operation.Call.Function.Name == "agent_wait") {
 		args, err := validateCall(state.Config, operation.Call)
 		if err != nil {
-			return true, s.fail(ctx, row, &state, err, tx)
+			return s.reject(ctx, row, &state, attempt, err, tx)
 		}
 		status := "waiting_decision"
 		if operation.Call.Function.Name == "agent_wait" {
 			until, err := time.Parse(time.RFC3339, args["until"].(string))
 			if err != nil || !until.After(now) || until.After(now.Add(remaining)) {
-				return true, s.fail(ctx, row, &state, errors.New("wait time must precede the run deadline and follow current time"), tx)
+				return s.reject(ctx, row, &state, attempt, errors.New("wait time must precede the run deadline and follow current time"), tx)
 			}
 			status = "queued"
-			if _, err := s.update(s.admin(ctx), "agentrun", row, map[string]interface{}{"wake_at": until}, tx); err != nil {
+			if _, err := s.update(ctx, "agentrun", row, map[string]interface{}{"wake_at": until}, tx); err != nil {
 				return true, err
 			}
 			row, err = s.load("agentrun", ref, tx)
@@ -140,7 +141,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 				return true, err
 			}
 		}
-		if _, err := s.update(s.admin(ctx), "agenttry", attempt, map[string]interface{}{"status": "waiting"}, tx); err != nil {
+		if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "waiting"}, tx); err != nil {
 			return true, err
 		}
 		if err := s.save(ctx, row, &state, status, tx); err != nil {
@@ -164,14 +165,11 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		return true, err
 	}
 	work = userContext(work, user)
-	var result interface{}
-	if operation.Kind == "model" {
-		response, invokeErr := s.gateway.Invoke(work, user, contract.Request{ID: contract.ID(operation.RequestID), Operation: contract.OperationChat, PublicModel: state.Config.Model, MaxOutputTokens: state.Config.Limits.OutputTokens,
-			Chat: &contract.ChatRequest{Messages: state.Messages, Tools: tools(state.Config), N: 1, MaxCompletionTokens: state.Config.Limits.OutputTokens}})
-		result = response
-		err = invokeErr
-	} else {
-		result, err = s.dispatch(work, &state, operation.Operation, operation.Call)
+	result, err := s.execute(work, user, &state, operation)
+	var rejected *toolRejection
+	if errors.As(err, &rejected) {
+		result = map[string]interface{}{"error": map[string]interface{}{"message": err.Error()}}
+		err = nil
 	}
 	// Persist late evidence with a fresh bounded context, even after cancellation
 	// or ownership loss. It never authorizes advancement of the run.
@@ -199,20 +197,28 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		}
 		return true, s.terminal(evidenceCtx, ref, token, "failed", err)
 	}
-	if len(encode(result)) > maxPayload {
-		cause := errors.New("tool/model result exceeds payload limit")
-		if saveErr := s.evidence(evidenceCtx, state.Active, "unknown", map[string]interface{}{"error": cause.Error()}); saveErr != nil {
-			return true, saveErr
+	if _, encodeErr := encodeBounded(result, maxPayload); encodeErr != nil {
+		if operation.Kind == "tool" && repeatable(state.Config, operation.Call.Function.Name) {
+			result = map[string]interface{}{"error": map[string]interface{}{"message": encodeErr.Error()}}
+		} else {
+			status := "failed"
+			if operation.Kind == "tool" {
+				status = "unknown"
+			}
+			if saveErr := s.evidence(evidenceCtx, state.Active, status, map[string]interface{}{"error": encodeErr.Error()}); saveErr != nil {
+				return true, saveErr
+			}
+			return true, s.terminal(evidenceCtx, ref, token, status, encodeErr)
 		}
-		return true, s.terminal(evidenceCtx, ref, token, "unknown", cause)
 	}
+
 	if err := s.evidence(evidenceCtx, state.Active, "completed", result); err != nil {
 		return true, err
 	}
 	return false, nil
 }
 func (s *Service) beforeDispatch(ctx context.Context, ref, token string) (*auth.SessionUser, error) {
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +230,7 @@ func (s *Service) beforeDispatch(ctx context.Context, ref, token string) (*auth.
 	return s.authorizeRun(ctx, row, tx)
 }
 func (s *Service) evidence(ctx context.Context, ref, status string, result interface{}) error {
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -237,13 +243,13 @@ func (s *Service) evidence(ctx context.Context, ref, status string, result inter
 	if row["status"] == "completed" {
 		return nil
 	}
-	if _, err = s.update(s.admin(ctx), "agenttry", row, map[string]interface{}{"status": status, "result": encode(result)}, tx); err != nil {
+	if _, err = s.update(ctx, "agenttry", row, map[string]interface{}{"status": status, "result": result}, tx); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 func (s *Service) terminal(ctx context.Context, ref, token, status string, cause error) error {
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -286,8 +292,8 @@ func (s *Service) accept(ctx context.Context, row map[string]interface{}, state 
 				return true, s.fail(ctx, row, state, errors.New("duplicate tool call identity"), tx)
 			}
 			seen[call.ID] = true
-			if _, err := validateCall(state.Config, call); err != nil {
-				return true, s.fail(ctx, row, state, err, tx)
+			if call.ID == "" || call.Type != "function" {
+				return true, s.fail(ctx, row, state, errors.New("invalid tool call identity or type"), tx)
 			}
 		}
 		state.Messages = append(state.Messages, message)
@@ -308,7 +314,11 @@ func (s *Service) accept(ctx context.Context, row map[string]interface{}, state 
 		if err := decode(result, &value); err != nil {
 			return true, err
 		}
-		state.Messages = append(state.Messages, contract.Message{Role: "tool", ToolCallID: operation.Call.ID, Content: []contract.ContentPart{{Type: "text", Text: encode(value)}}})
+		encoded, err := encode(value)
+		if err != nil {
+			return true, err
+		}
+		state.Messages = append(state.Messages, contract.Message{Role: "tool", ToolCallID: operation.Call.ID, Content: []contract.ContentPart{{Type: "text", Text: encoded}}})
 		if len(state.Pending) == 0 || state.Pending[0].ID != operation.Call.ID {
 			return true, errors.New("tool result does not match pending operation")
 		}
@@ -318,7 +328,7 @@ func (s *Service) accept(ctx context.Context, row map[string]interface{}, state 
 	if err != nil {
 		return true, err
 	}
-	if _, err := s.update(s.admin(ctx), "agentstp", step, map[string]interface{}{"payload": encode(map[string]interface{}{"operation": operation, "result": result})}, tx); err != nil {
+	if _, err := s.update(ctx, "agentstp", step, map[string]interface{}{"payload": map[string]interface{}{"operation": operation, "result": result}}, tx); err != nil {
 		return true, err
 	}
 	state.Active = ""
@@ -332,7 +342,7 @@ func (s *Service) accept(ctx context.Context, row map[string]interface{}, state 
 // The run owns retry admission. Only the gateway's explicit retryable contract
 // admits another inference attempt, with a durable wake and bounded attempts.
 func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, cause *contract.Error, number int) error {
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -345,7 +355,7 @@ func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, caus
 	if err != nil {
 		return err
 	}
-	if _, err := s.update(s.admin(ctx), "agenttry", attempt, map[string]interface{}{"result": encode(map[string]interface{}{"retryable": true, "error": cause.Error()})}, tx); err != nil {
+	if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"result": map[string]interface{}{"retryable": true, "error": cause.Error()}}, tx); err != nil {
 		return err
 	}
 	var state runState
@@ -368,8 +378,32 @@ func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, caus
 	if wake.After(deadline) {
 		wake = deadline
 	}
-	if _, err := s.update(s.admin(ctx), "agentrun", row, map[string]interface{}{"state": encode(state), "status": "queued", "claim": nil, "lease_until": nil, "wake_at": wake}, tx); err != nil {
+	if _, err := s.update(ctx, "agentrun", row, map[string]interface{}{"state": state, "status": "queued", "claim": nil, "lease_until": nil, "wake_at": wake}, tx); err != nil {
 		return err
 	}
 	return tx.Commit()
+}
+
+// A performer failure is confined to this attempt, just as HTTP recovery confines
+// it to one request. A mutation panic remains an uncertain effect.
+func (s *Service) execute(ctx context.Context, user *auth.SessionUser, state *runState, operation intent) (result interface{}, err error) {
+	defer func() {
+		if value := recover(); value != nil {
+			err = fmt.Errorf("execution panic: %v", value)
+		}
+	}()
+	if operation.Kind == "model" {
+		return s.gateway.Invoke(ctx, user, contract.Request{ID: contract.ID(operation.RequestID), Operation: contract.OperationChat, PublicModel: state.Config.Model, MaxOutputTokens: state.Config.Limits.OutputTokens, Chat: &contract.ChatRequest{Messages: state.Messages, Tools: tools(state.Config), N: 1, MaxCompletionTokens: state.Config.Limits.OutputTokens}})
+	}
+	return s.dispatch(ctx, state, operation.Operation, operation.Call)
+}
+
+func (s *Service) reject(ctx context.Context, row map[string]interface{}, state *runState, attempt map[string]interface{}, cause error, tx *sqlx.Tx) (bool, error) {
+	if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "completed", "result": map[string]interface{}{"error": map[string]interface{}{"message": cause.Error()}}}, tx); err != nil {
+		return true, err
+	}
+	if err := s.save(ctx, row, state, "running", tx); err != nil {
+		return true, err
+	}
+	return false, tx.Commit()
 }

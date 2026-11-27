@@ -1,7 +1,11 @@
 package resource
 
 import (
+	"context"
 	"fmt"
+	daptinid "github.com/daptin/daptin/server/id"
+	"github.com/daptin/daptin/server/statementbuilder"
+	"github.com/doug-martin/goqu/v9"
 	"time"
 
 	"github.com/artpar/api2go/v2"
@@ -26,7 +30,7 @@ func AgentDatabaseTime(tx *sqlx.Tx) (time.Time, error) {
 
 func init() {
 	col := func(name, kind, datatype string, nullable bool) api2go.ColumnInfo {
-		return api2go.ColumnInfo{Name: name, ColumnName: name, ColumnType: kind, DataType: datatype, IsNullable: nullable, IsIndexed: name == "status" || name == "wake_at" || name == "lease_until"}
+		return api2go.ColumnInfo{Name: name, ColumnName: name, ColumnType: kind, DataType: datatype, IsNullable: nullable, IsIndexed: name == "status" || name == "wake_at" || name == "lease_until" || name == "deadline_at"}
 	}
 	StandardTables = append(StandardTables, table_info.TableInfo{
 		TableName:         "agent",
@@ -42,6 +46,7 @@ func init() {
 			Columns: []api2go.ColumnInfo{col("status", "label", "varchar(30)", false),
 				col("state", "json", "longtext", false),
 				col("auth_version", "measurement", "bigint", false),
+				col("deadline_at", "datetime", "timestamp", false),
 				col("claim", "label", "varchar(64)", true),
 				col("lease_until", "datetime", "timestamp", true),
 				col("wake_at", "datetime", "timestamp", true)}}, table_info.TableInfo{TableName: "agentstp", DefaultGroups: adminQueueGroup, DefaultPermission: auth.UserRead | auth.UserPeek,
@@ -106,4 +111,44 @@ func (dr *DbResource) UpdateAgentExecution(model api2go.Api2GoModel, req api2go.
 		return nil, fmt.Errorf("not an agent execution resource")
 	}
 	return dr.updateAfterAuthorizationWithTransaction(model, req, tx)
+}
+
+// AgentRunCandidates is the backend queue scan, like the scheduler's due-task
+// lookup. It returns identities only; claims and writes use the resource lifecycle.
+func (dr *DbResource) AgentRunCandidates(ctx context.Context, limit int) ([]map[string]interface{}, error) {
+	if dr.tableInfo.TableName != "agentrun" || limit < 1 || limit > 100 {
+		return nil, fmt.Errorf("invalid agent queue scan")
+	}
+	tx, err := dr.BeginTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	now, err := AgentDatabaseTime(tx)
+	if err != nil {
+		return nil, err
+	}
+	query, args, err := statementbuilder.Squirrel.Select("reference_id").From("agentrun").Prepared(true).
+		Where(goqu.Or(
+			goqu.And(goqu.Ex{"status": []string{"queued", "running"}}, goqu.Or(goqu.Ex{"wake_at": nil}, goqu.C("wake_at").Lte(now))),
+			goqu.And(goqu.Ex{"status": []string{"waiting_decision", "unknown"}}, goqu.C("deadline_at").Lte(now)),
+		)).Where(goqu.Or(goqu.Ex{"lease_until": nil}, goqu.C("lease_until").Lte(now))).
+		Order(goqu.C("created_at").Asc()).Limit(uint(limit)).ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.QueryxContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []map[string]interface{}
+	for rows.Next() {
+		var ref daptinid.DaptinReferenceId
+		if err := rows.Scan(&ref); err != nil {
+			return nil, err
+		}
+		result = append(result, map[string]interface{}{"reference_id": ref})
+	}
+	return result, rows.Err()
 }

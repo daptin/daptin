@@ -24,7 +24,11 @@ func object(properties map[string]interface{}, required ...string) json.RawMessa
 	if required == nil {
 		required = []string{}
 	}
-	return json.RawMessage(encode(map[string]interface{}{"type": "object", "properties": properties, "required": required, "additionalProperties": false}))
+	encoded, err := encode(map[string]interface{}{"type": "object", "properties": properties, "required": required, "additionalProperties": false})
+	if err != nil {
+		panic(err)
+	} // These schemas contain only backend JSON literals.
+	return json.RawMessage(encoded)
 }
 func stringField() interface{}     { return map[string]interface{}{"type": "string", "minLength": 1} }
 func attributesField() interface{} { return map[string]interface{}{"type": "object"} }
@@ -37,7 +41,7 @@ func tools(config Config) []contract.Tool {
 		result = append(result, contract.Tool{Type: "function", Function: contract.FunctionDefinition{Name: name, Description: description, Parameters: schema}})
 	}
 	if len(config.Toolset.Resources) > 0 || len(config.Toolset.Actions) > 0 || len(config.Toolset.Tools) > 0 {
-		add("daptin_discover", "Inspect accessible resource schema, relationships, and actions. Omit entity to list resources.", object(map[string]interface{}{"entity": stringField()}))
+		add("daptin_discover", "Inspect accessible resource schema, relationships, and actions. Omit entity to list resources; follow next_page until absent.", object(map[string]interface{}{"entity": stringField(), "page": map[string]interface{}{"type": "integer", "minimum": 1, "maximum": 1 << 30}}))
 	}
 	if len(config.Toolset.Resources) > 0 {
 		for _, op := range config.Toolset.Operations {
@@ -61,6 +65,7 @@ func tools(config Config) []contract.Tool {
 			case "relations":
 				properties["reference"] = referenceField()
 				properties["relation"] = stringField()
+				properties["page"] = map[string]interface{}{"type": "integer", "minimum": 1, "maximum": 1 << 30}
 				required = append(required, "reference", "relation")
 			}
 			add("daptin_"+op, "Use Daptin's permissioned "+op+" resource operation. Updates require attributes.version. Relationship writes use update attributes or relation-resource CRUD.", object(properties, required...))
@@ -129,7 +134,7 @@ func exposesAction(config Config, entity, name string) bool {
 	}
 	return false
 }
-func (s store) discover(ctx context.Context, state *runState, entity string, tx *sqlx.Tx) (interface{}, error) {
+func (s store) discover(ctx context.Context, state *runState, entity string, page int, tx *sqlx.Tx) (interface{}, error) {
 	user, _ := ctx.Value("user").(*auth.SessionUser)
 	if user == nil {
 		return nil, errors.New("missing execution account")
@@ -141,8 +146,20 @@ func (s store) discover(ctx context.Context, state *runState, entity string, tx 
 		}
 	}
 	sort.Strings(names)
-	if len(names) > 500 {
-		return nil, errors.New("specify an entity for discovery")
+	nextPage := 0
+	if entity == "" {
+		start := (page - 1) * 100
+		if start >= len(names) {
+			names = nil
+		} else {
+			end := start + 100
+			if end > len(names) {
+				end = len(names)
+			} else if end < len(names) {
+				nextPage = page + 1
+			}
+			names = names[start:end]
+		}
 	}
 	var result []interface{}
 	for _, name := range names {
@@ -167,7 +184,7 @@ func (s store) discover(ctx context.Context, state *runState, entity string, tx 
 				}
 				permission := crud.GetObjectPermissionByReferenceId("action", action.ReferenceId, tx)
 				if permission.CanExecute(user.UserReferenceId, user.Groups, crud.AdministratorGroupId) {
-					actions = append(actions, map[string]interface{}{"name": action.Name, "inputs": action.InFields, "validations": action.Validations})
+					actions = append(actions, map[string]interface{}{"name": action.Name, "inputs": action.InFields, "validations": action.Validations, "instance_optional": action.InstanceOptional, "subject_input": name + "_id"})
 				}
 			}
 		}
@@ -187,10 +204,25 @@ func (s store) discover(ctx context.Context, state *runState, entity string, tx 
 		}
 		result = append(result, map[string]interface{}{"entity": name, "columns": columns, "relations": relations, "actions": actions})
 	}
+	if entity == "" {
+		response := map[string]interface{}{"resources": result}
+		if nextPage > 0 {
+			response["next_page"] = nextPage
+		}
+		return response, nil
+	}
 	return result, nil
 }
 
-func (s store) dispatch(ctx context.Context, state *runState, operation string, call contract.ToolCall) (interface{}, error) {
+type toolRejection struct{ error }
+
+func (s store) dispatch(ctx context.Context, state *runState, operation string, call contract.ToolCall) (result interface{}, err error) {
+	started := false
+	defer func() {
+		if err != nil && !started {
+			err = &toolRejection{err}
+		}
+	}()
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -217,13 +249,13 @@ func (s store) dispatch(ctx context.Context, state *runState, operation string, 
 			break
 		}
 	}
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 	if name == "daptin_discover" {
-		result, err := s.discover(ctx, state, entity, tx)
+		result, err := s.discover(ctx, state, entity, toolPage(args), tx)
 		if err != nil {
 			return nil, err
 		}
@@ -237,6 +269,7 @@ func (s store) dispatch(ctx context.Context, state *runState, operation string, 
 		return nil, errors.New("unknown entity")
 	}
 	if name == "daptin_action" {
+		started = true
 		result, err := crud.HandleActionRequest(actionresponse.ActionRequest{Type: entity, Action: actionName, Attributes: attrs}, request(ctx, "EXECUTE", "/action/"+entity+"/"+actionName, nil), tx)
 		if err != nil {
 			return nil, err
@@ -296,6 +329,7 @@ func (s store) dispatch(ctx context.Context, state *runState, operation string, 
 		}
 		attrs["reference_id"] = operation
 		table := crud.TableInfo()
+		started = true
 		response, err = crud.CreateWithTransaction(api2go.NewApi2GoModelWithData(entity, table.Columns, int64(table.DefaultPermission), table.Relations, attrs), request(ctx, "POST", "/"+entity, nil), tx)
 	case "daptin_update":
 		if _, supplied := attrs["reference_id"]; supplied {
@@ -307,10 +341,11 @@ func (s store) dispatch(ctx context.Context, state *runState, operation string, 
 		if _, ok := attrs["version"]; !ok {
 			return nil, errors.New("update requires attributes.version")
 		}
-		original, readErr := s.read(ctx, entity, ref, tx)
+		loaded, readErr := crud.FindOneWithTransaction(daptinid.InterfaceToDIR(ref), request(ctx, "PATCH", "/"+entity+"/"+ref, nil), tx)
 		if readErr != nil {
 			return nil, readErr
 		}
+		original := loaded.Result().(api2go.Api2GoModel).GetAllAsAttributes()
 		table := crud.TableInfo()
 		model := api2go.NewApi2GoModelWithData(entity, table.Columns, int64(table.DefaultPermission), table.Relations, original)
 		model.SetAttributes(attrs)
@@ -325,8 +360,10 @@ func (s store) dispatch(ctx context.Context, state *runState, operation string, 
 			return nil, api2go.NewHTTPError(nil, "resource version conflict", 409)
 		}
 		attrs["version"] = wanted
+		started = true
 		response, err = crud.UpdateWithTransaction(model, request(ctx, "PATCH", "/"+entity+"/"+ref, nil), tx)
 	case "daptin_delete":
+		started = true
 		response, err = crud.DeleteWithTransaction(daptinid.InterfaceToDIR(ref), request(ctx, "DELETE", "/"+entity+"/"+ref, nil), tx)
 	case "daptin_relations":
 		// FindRelationship owns its transaction and performs both parent and row checks.
@@ -343,7 +380,7 @@ func (s store) dispatch(ctx context.Context, state *runState, operation string, 
 				break
 			}
 		}
-		_, response, err = crud.FindRelationship(ref, relation, request(ctx, "GET", "/"+entity+"/"+ref+"/relationships/"+relationName, url.Values{"page[size]": {"100"}}))
+		_, response, err = crud.FindRelationship(ref, relation, request(ctx, "GET", "/"+entity+"/"+ref+"/relationships/"+relationName, url.Values{"page[size]": {"100"}, "page[number]": {strconv.Itoa(toolPage(args))}}))
 		if err != nil {
 			return nil, err
 		}
@@ -366,6 +403,12 @@ func publicResult(response api2go.Responder) interface{} {
 	switch value := response.Result().(type) {
 	case api2go.Api2GoModel:
 		return value.GetAllAsAttributes()
+	case []api2go.Api2GoModel:
+		rows := make([]map[string]interface{}, len(value))
+		for i := range value {
+			rows[i] = value[i].GetAllAsAttributes()
+		}
+		return rows
 	default:
 		return value
 	}
@@ -392,4 +435,11 @@ func boundedPageSize(raw string) (int, error) {
 		return 0, errors.New("page size must be between 1 and 100")
 	}
 	return size, nil
+}
+
+func toolPage(args map[string]interface{}) int {
+	if value, ok := args["page"].(float64); ok && value >= 1 && value <= 1<<30 {
+		return int(value)
+	}
+	return 1
 }

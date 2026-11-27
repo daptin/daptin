@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"errors"
-	"net/url"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -77,7 +76,11 @@ func (s *Service) Start(parent context.Context) {
 				if s.stopping.Load() {
 					continue
 				}
-				rows, err := s.candidates(ctx)
+				capacity := cap(slots) - len(slots)
+				if capacity == 0 {
+					continue
+				}
+				rows, err := s.candidates(ctx, capacity)
 				if err != nil {
 					if ctx.Err() == nil {
 						log.WithError(err).Error("[agent] reconcile runs")
@@ -90,6 +93,11 @@ func (s *Service) Start(parent context.Context) {
 						workers.Add(1)
 						go func(ref string) {
 							defer workers.Done()
+							defer func() {
+								if value := recover(); value != nil {
+									log.WithField("run", ref).Errorf("[agent] worker panic: %v", value)
+								}
+							}()
 							defer func() { <-slots }()
 							if err := s.advance(ctx, ref); err != nil && ctx.Err() == nil {
 								log.WithError(err).WithField("run", ref).Error("[agent] advance interrupted")
@@ -196,7 +204,11 @@ func (s *Service) control(name string, input map[string]interface{}, tx *sqlx.Tx
 		if config.Instructions != "" {
 			messages = append([]map[string]interface{}{{"role": "system", "content": config.Instructions}}, messages...)
 		}
-		payload := []byte(encode(map[string]interface{}{"model": config.Model, "messages": messages, "max_tokens": config.Limits.OutputTokens}))
+		encoded, err := encode(map[string]interface{}{"model": config.Model, "messages": messages, "max_tokens": config.Limits.OutputTokens})
+		if err != nil {
+			return nil, err
+		}
+		payload := []byte(encoded)
 		canonical, err := openai.DecodeChatRequest(contract.ID(uuid.NewString()), payload)
 		if err != nil {
 			return nil, err
@@ -206,10 +218,10 @@ func (s *Service) control(name string, input map[string]interface{}, tx *sqlx.Tx
 			return nil, err
 		}
 		state := runState{Config: config, Messages: canonical.Chat.Messages, Started: now}
-		if len(encode(state)) > maxHistory {
-			return nil, errors.New("initial agent history exceeds limit")
+		if _, err := encodeBounded(state, maxHistory); err != nil {
+			return nil, err
 		}
-		row, err := s.create(ctx, "agentrun", map[string]interface{}{"agent_id": reference(definition), "status": "queued", "state": encode(state), "auth_version": user.AuthVersion}, tx)
+		row, err := s.create(ctx, "agentrun", map[string]interface{}{"agent_id": reference(definition), "status": "queued", "state": state, "auth_version": user.AuthVersion, "deadline_at": now.Add(time.Duration(config.Limits.Seconds) * time.Second)}, tx)
 		if err != nil {
 			return nil, err
 		}
@@ -257,11 +269,11 @@ func (s *Service) control(name string, input map[string]interface{}, tx *sqlx.Tx
 		if err := decode(value, &decoded); err != nil {
 			return nil, err
 		}
-		if len(encode(decoded)) > maxPayload {
-			return nil, errors.New("decision exceeds limit")
+		if _, err := encodeBounded(decoded, maxPayload); err != nil {
+			return nil, err
 		}
 		if attempt["status"] != "completed" {
-			if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "completed", "result": encode(decoded)}, tx); err != nil {
+			if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"status": "completed", "result": decoded}, tx); err != nil {
 				return nil, err
 			}
 		}
@@ -272,28 +284,8 @@ func (s *Service) control(name string, input map[string]interface{}, tx *sqlx.Tx
 	_, err = s.update(ctx, "agentrun", row, map[string]interface{}{"status": status, "claim": nil, "lease_until": nil, "wake_at": nil}, tx)
 	return controlResult(reference(row), status), err
 }
-func (s *Service) candidates(ctx context.Context) ([]map[string]interface{}, error) {
-	tx, err := s.cruds["world"].Connection().Beginx()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-	now, err := s.clock(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	filter := []resource.Query{
-		{ColumnName: "status", Operator: "in", Value: []string{"queued", "running"}},
-		{ColumnName: "wake_at", Operator: "is empty", LogicalGroup: "wake"},
-		{ColumnName: "wake_at", Operator: "before", Value: now, LogicalGroup: "wake"},
-		{ColumnName: "lease_until", Operator: "is empty", LogicalGroup: "lease"},
-		{ColumnName: "lease_until", Operator: "before", Value: now, LogicalGroup: "lease"},
-	}
-	// Exclude live claims in the database so they cannot fill a page and starve
-	// queued work when a cluster has more runs than the reconciliation page size.
-	return s.list(s.admin(ctx), "agentrun", url.Values{"query": {encode(filter)}, "sort": {"+created_at"}, "page[size]": {"100"}}, tx)
-
+func (s *Service) candidates(ctx context.Context, limit int) ([]map[string]interface{}, error) {
+	return s.cruds["agentrun"].AgentRunCandidates(ctx, limit)
 }
 func (s *Service) advance(parent context.Context, ref string) error {
 	if s.stopping.Load() {
@@ -360,7 +352,7 @@ func (s *Service) advance(parent context.Context, ref string) error {
 	return nil
 }
 func (s *Service) claim(ctx context.Context, ref, token string) (map[string]interface{}, error) {
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -370,12 +362,18 @@ func (s *Service) claim(ctx context.Context, ref, token string) (map[string]inte
 		return nil, err
 	}
 	status := resource.StringOrEmpty(row["status"])
-	if status != "queued" && status != "running" {
+	if status != "queued" && status != "running" && status != "waiting_decision" && status != "unknown" {
 		return nil, nil
 	}
 	now, err := s.clock(tx)
 	if err != nil {
 		return nil, err
+	}
+	if status == "waiting_decision" || status == "unknown" {
+		deadline, ok := row["deadline_at"].(time.Time)
+		if !ok || deadline.After(now) {
+			return nil, nil
+		}
 	}
 	if expiry, ok := row["lease_until"].(time.Time); ok && expiry.After(now) {
 		return nil, nil
@@ -383,7 +381,7 @@ func (s *Service) claim(ctx context.Context, ref, token string) (map[string]inte
 	if wake, ok := row["wake_at"].(time.Time); ok && wake.After(now) {
 		return nil, nil
 	}
-	row, err = s.update(s.admin(ctx), "agentrun", row, map[string]interface{}{"status": "running", "claim": token, "lease_until": now.Add(leaseDuration)}, tx)
+	row, err = s.update(ctx, "agentrun", row, map[string]interface{}{"status": "running", "claim": token, "lease_until": now.Add(leaseDuration)}, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +391,7 @@ func (s *Service) claim(ctx context.Context, ref, token string) (map[string]inte
 	return row, nil
 }
 func (s *Service) heartbeat(ctx context.Context, ref, token string) error {
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -402,14 +400,16 @@ func (s *Service) heartbeat(ctx context.Context, ref, token string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := s.authorizeRun(ctx, row, tx); err != nil {
+	user, err := s.authorizeRun(ctx, row, tx)
+	if err != nil {
 		return err
 	}
+	ctx = userContext(ctx, user)
 	now, err := s.clock(tx)
 	if err != nil {
 		return err
 	}
-	if _, err = s.update(s.admin(ctx), "agentrun", row, map[string]interface{}{"lease_until": now.Add(leaseDuration)}, tx); err != nil {
+	if _, err = s.update(ctx, "agentrun", row, map[string]interface{}{"lease_until": now.Add(leaseDuration)}, tx); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -433,7 +433,11 @@ func (s *Service) owned(ref, token string, tx *sqlx.Tx) (map[string]interface{},
 	return row, nil
 }
 func (s *Service) save(ctx context.Context, row map[string]interface{}, state *runState, status string, tx *sqlx.Tx) error {
-	if len(encode(state)) > maxHistory {
+	_, err := encodeBounded(state, maxHistory)
+	if err != nil && !errors.Is(err, errPayloadLimit) {
+		return err
+	}
+	if errors.Is(err, errPayloadLimit) {
 		// Preserve the last admitted conversation. The completed step/attempt keeps
 		// the new result; do not endlessly reaccept it or dispatch with a full history.
 		var previous runState
@@ -444,12 +448,12 @@ func (s *Service) save(ctx context.Context, row map[string]interface{}, state *r
 		state = &previous
 		status = "failed"
 	}
-	attrs := map[string]interface{}{"state": encode(state), "status": status}
+	attrs := map[string]interface{}{"state": state, "status": status}
 	if status != "running" {
 		attrs["claim"] = nil
 		attrs["lease_until"] = nil
 	}
-	_, err := s.update(s.admin(ctx), "agentrun", row, attrs, tx)
+	_, err = s.update(ctx, "agentrun", row, attrs, tx)
 	return err
 }
 func (s *Service) fail(ctx context.Context, row map[string]interface{}, state *runState, cause error, tx *sqlx.Tx) error {
@@ -465,7 +469,7 @@ func (s *Service) fail(ctx context.Context, row map[string]interface{}, state *r
 func (s *Service) release(ref, token string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	tx, err := s.cruds["world"].Connection().Beginx()
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return
 	}
@@ -474,7 +478,7 @@ func (s *Service) release(ref, token string) {
 	if err != nil {
 		return
 	}
-	if _, err := s.update(s.admin(ctx), "agentrun", row, map[string]interface{}{"status": "queued", "claim": nil, "lease_until": nil}, tx); err == nil {
+	if _, err := s.update(ctx, "agentrun", row, map[string]interface{}{"status": "queued", "claim": nil, "lease_until": nil}, tx); err == nil {
 		_ = tx.Commit()
 	}
 }

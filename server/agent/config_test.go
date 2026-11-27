@@ -1,9 +1,13 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
+	"math"
+	"strings"
 	"testing"
 
+	"github.com/artpar/api2go/v2"
 	"github.com/daptin/llmgateway/contract"
 )
 
@@ -83,5 +87,53 @@ func TestResourcePaginationBoundsBothNativeStyles(t *testing.T) {
 		if _, err := boundedPageSize(raw); err != nil {
 			t.Errorf("rejected page size %s: %v", raw, err)
 		}
+	}
+}
+
+func TestDuplicateOperationsAndPagedTools(t *testing.T) {
+	config := Config{Model: "test", Toolset: Toolset{Resources: []string{"*"}, Operations: []string{"read", "read"}}}
+	if err := config.validate(); err == nil {
+		t.Fatal("duplicate operations accepted")
+	}
+	config.Toolset.Operations = []string{"relations"}
+	for _, name := range []string{"daptin_discover", "daptin_relations"} {
+		arguments := `{"page":2}`
+		if name == "daptin_relations" {
+			arguments = `{"entity":"item","reference":"00000000-0000-4000-8000-000000000001","relation":"usergroup","page":2}`
+		}
+		args, err := validateCall(config, contract.ToolCall{ID: "page", Type: "function", Function: contract.FunctionCall{Name: name, Arguments: arguments}})
+		if err != nil || toolPage(args) != 2 {
+			t.Fatalf("%s pagination: %v %v", name, args, err)
+		}
+	}
+}
+func TestBoundedEncodingRejectsLargeAndInvalidResults(t *testing.T) {
+	for _, value := range []interface{}{map[string]interface{}{"value": math.NaN()}, map[string]interface{}{"value": strings.Repeat("x", maxPayload+1)}} {
+		if _, err := encodeBounded(value, maxPayload); err == nil {
+			t.Fatal("invalid or oversized result accepted")
+		}
+	}
+	cycle := map[string]interface{}{}
+	cycle["self"] = cycle
+	if _, err := encodeBounded(cycle, maxPayload); err == nil {
+		t.Fatal("cyclic result accepted")
+	}
+	if value, err := encodeBounded(map[string]interface{}{"ok": true}, maxPayload); err != nil || value != `{"ok":true}` {
+		t.Fatalf("valid result rejected: %s %v", value, err)
+	}
+}
+func TestExecutionContainsPanics(t *testing.T) {
+	service := &Service{}
+	_, err := service.execute(context.Background(), nil, &runState{}, intent{Kind: "model"})
+	if err == nil || !strings.Contains(err.Error(), "execution panic") {
+		t.Fatalf("panic escaped execution boundary: %v", err)
+	}
+}
+
+func TestRelationshipResultsRetainResourceAttributes(t *testing.T) {
+	model := api2go.NewApi2GoModelWithData("item", nil, 0, nil, map[string]interface{}{"name": "related", "reference_id": "00000000-0000-4000-8000-000000000001"})
+	result := publicResult(api2go.Response{Res: []api2go.Api2GoModel{model}}).([]map[string]interface{})
+	if len(result) != 1 || result[0]["name"] != "related" {
+		t.Fatalf("resource attributes lost: %#v", result)
 	}
 }

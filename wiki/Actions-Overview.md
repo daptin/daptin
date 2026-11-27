@@ -791,3 +791,7 @@ Common errors:
 
 For durable model-driven workflows using resource CRUD and named actions as tools,
 see [Durable agents](Agents.md).
+
+The `$network.request` performer honors the active request context, has a
+30-second timeout, and reads at most 1 MiB of response data. These bounds apply
+through HTTP, tasks, and agents.

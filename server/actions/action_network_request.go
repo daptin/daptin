@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"github.com/artpar/api2go/v2"
@@ -9,8 +10,11 @@ import (
 	"github.com/daptin/daptin/server/resource"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
+	"io"
+	"net/http"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type networkRequestActionPerformer struct {
@@ -27,9 +31,16 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 	headers, isHeader := inFieldMap["Headers"]
 	headerMap := make(map[string]string)
 	if isHeader {
-		headerMapInterface := headers.(map[string]interface{})
+		headerMapInterface, ok := headers.(map[string]interface{})
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("Headers must be an object")}
+		}
 		for key, val := range headerMapInterface {
-			headerMap[key] = val.(string)
+			text, ok := val.(string)
+			if !ok {
+				return nil, nil, []error{fmt.Errorf("header %s must be a string", key)}
+			}
+			headerMap[key] = text
 		}
 
 	}
@@ -37,7 +48,11 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 	url, isUrlPresent := inFieldMap["Url"]
 	var urlString string
 	if isUrlPresent {
-		urlString = url.(string)
+		var ok bool
+		urlString, ok = url.(string)
+		if !ok || urlString == "" {
+			return nil, nil, []error{fmt.Errorf("Url must be a nonempty string")}
+		}
 	} else {
 		return nil, nil, []error{fmt.Errorf("URL not present in action attributes")}
 	}
@@ -54,16 +69,27 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 	formDataMap := make(map[string]string)
 	if isFormData {
 		log.Printf("FormData: %v", formData)
-		formDataMap = ToURLQuery(formData.(map[string]interface{}))
+		form, ok := formData.(map[string]interface{})
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("FormData must be an object")}
+		}
+		formDataMap = ToURLQuery(form)
 		log.Debugf("Form values: %v", resource.ToJson(formDataMap))
 	}
 
 	queryParams, isQueryParams := inFieldMap["Query"]
 	queryParamsMap := make(map[string]string)
 	if isQueryParams {
-		queryParamsMapInterface := queryParams.(map[string]interface{})
+		queryParamsMapInterface, ok := queryParams.(map[string]interface{})
+		if !ok {
+			return nil, nil, []error{fmt.Errorf("Query must be an object")}
+		}
 		for key, val := range queryParamsMapInterface {
-			queryParamsMap[key] = val.(string)
+			text, ok := val.(string)
+			if !ok {
+				return nil, nil, []error{fmt.Errorf("query %s must be a string", key)}
+			}
+			queryParamsMap[key] = text
 		}
 	}
 
@@ -71,16 +97,23 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 	if !isMethodPresent {
 		method = "GET"
 	}
-	methodString := strings.ToUpper(method.(string))
+	methodText, ok := method.(string)
+	if !ok {
+		return nil, nil, []error{fmt.Errorf("Method must be a string")}
+	}
+	methodString := strings.ToUpper(methodText)
 
-	client := resty.New().R()
+	ctx := context.Background()
+	if request, ok := inFieldMap["httpRequest"].(*http.Request); ok && request != nil {
+		ctx = request.Context()
+	}
+	bounded, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	client := resty.New().SetTimeout(30 * time.Second).R().SetContext(bounded).SetDoNotParseResponse(true)
 	resty.DetectContentType(false)
 
 	if isBody {
-		var bodyMapM []interface{}
-		s, _ := json.Marshal(bodyMap)
-		json.Unmarshal(s, &bodyMapM)
-		client.SetBody(bodyMapM)
+		client.SetBody(bodyMap)
 
 	}
 	if isFormData {
@@ -101,8 +134,17 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 
 	response, err = client.Execute(methodString, urlString)
 
+	var responseBody []byte
+	if response != nil && err == nil {
+		responseBody, err = io.ReadAll(io.LimitReader(response.RawBody(), (1<<20)+1))
+		_ = response.RawBody().Close()
+		if err == nil && len(responseBody) > 1<<20 {
+			err = fmt.Errorf("network response exceeds 1 MiB")
+		}
+	}
+
 	if transaction != nil {
-		newTransaction, beginErr := d.cruds["world"].Connection().Beginx()
+		newTransaction, beginErr := d.cruds["world"].BeginTransaction(ctx)
 		if beginErr != nil {
 			return nil, nil, []error{beginErr}
 		}
@@ -116,7 +158,6 @@ func (d *networkRequestActionPerformer) DoAction(request actionresponse.Outcome,
 
 	responseHeaders := response.Header()
 	responseContentType := responseHeaders.Get("Content-Type")
-	responseBody := response.Body()
 	if strings.Index(responseContentType, "application/json") > -1 {
 		m := make(map[string]interface{})
 		err = json.Unmarshal(responseBody, &m)

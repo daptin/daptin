@@ -69,7 +69,7 @@ func (dbResource *DbResource) FindRelationship(id string, relation jsonapi.Refer
 		return 0, nil, api2go.NewHTTPError(nil, "related resource unavailable", http.StatusNotFound)
 	}
 
-	tx, err := dbResource.Connection().Beginx()
+	tx, err := dbResource.BeginTransaction(req.PlainRequest.Context())
 	if err != nil {
 		return 0, nil, err
 	}

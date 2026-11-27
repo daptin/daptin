@@ -143,6 +143,8 @@ use controls.
 
 Run states are `queued`, `running`, `waiting_decision`, `unknown`, `completed`,
 `cancelled` and `failed`. `queued` with `wake_at` is a persisted timed wait.
+Rejected tool inputs and version conflicts are returned as tool errors so the
+agent can correct them. Uncertain mutation effects still require reconciliation.
 Models request a decision with `agent_decision` or a time with `agent_wait`.
 Submit a decision through `/action/agentrun/decide`:
 
@@ -193,7 +195,8 @@ Every stateless node runs bounded workers. Renewable Olric locks coordinate live
 ownership; version-checked resource writes and persisted claim tokens fence
 checkpoints. A heartbeat renews ownership independently of model/tool execution.
 PubSub messages are wake hints; periodic database scans recover lost messages.
-Progress and waiting state live in the shared SQL database. An Olric failure stops
+Progress, deadlines, and waiting state live in the shared SQL database.
+Decision waits and unresolved attempts expire at the run deadline. An Olric failure stops
 new work requiring a lock and cancels work whose ownership cannot be renewed.
 
 The default worker bound is four per node. Ownership leases last 30 seconds and
@@ -205,8 +208,10 @@ boundaries of their existing performers.
 Limits default to 20 model turns, 50 tool calls, 900 wall-clock seconds (including
 waits), 2048 output tokens per inference, and three recovery attempts per logical
 operation. Maximums are 100 turns, 1000 calls, 86400 seconds, 32768 output tokens
-and five attempts. Each result/argument is bounded to 1 MiB and run history to
-4 MiB. Lists return at most 100 rows per page. Timed waits must precede the run
+and five attempts. Encoded results/arguments are bounded to 1 MiB and run history to
+4 MiB. Lists and relationships return at most 100 rows per page. Relationship tools
+accept `page`; resource discovery returns `resources` and an optional `next_page`.
+Action discovery identifies `instance_optional` and the required subject input. Timed waits must precede the run
 deadline. Run-wide hard token/cost ceilings are not provided; customer quota and
 usage continue through [API metering](API-Metering.md).
 

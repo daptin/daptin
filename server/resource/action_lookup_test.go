@@ -9,6 +9,7 @@ import (
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/actionresponse"
+	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -38,6 +39,16 @@ func TestActionLookupDistinguishesMissingActionFromLookupFailure(t *testing.T) {
 	}
 	defer tx.Rollback()
 
+	if _, err := tx.Exec(`update action set label=NULL`); err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := crud.GetActionsByType("cloud_store", tx)
+	if err != nil || len(catalog) != 1 || catalog[0].Name != "upload_file" || !catalog[0].InstanceOptional || catalog[0].ReferenceId == daptinid.NullReferenceId {
+		t.Fatalf("unlabelled action lost from catalog: %#v %v", catalog, err)
+	}
+	if _, err := tx.Exec(`update action set label='Upload file'`); err != nil {
+		t.Fatal(err)
+	}
 	action, err := crud.GetActionByName("cloud_store", "upload_file", tx)
 	if err != nil || action.Name != "upload_file" {
 		t.Fatalf("known action = %#v, %v", action, err)
