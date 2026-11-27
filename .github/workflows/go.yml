@@ -30,7 +30,8 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.x'
+          # Keep baseline vet coverage: Go 1.26 printf analysis panics on Hugo's Page interface.
+          go-version: '1.25.x'
           cache: true
 
       - name: Install system libraries

@@ -64,7 +64,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.x'
+          go-version: '1.26.11'
           cache: true
 
       - name: Set up QEMU
@@ -79,6 +79,24 @@ jobs:
           go install github.com/crazy-max/xgo@v0.41.0
           go install github.com/ahmetb/govvv@v0.3.0
 
+      - name: Test with the release compiler
+        # The build workflow retains full Go 1.25 vet coverage. Go 1.26's printf
+        # analyzer panics while inspecting the existing Hugo Page interface.
+        run: go test -vet=off ./...
+
+      - name: Prepare patched cross compiler
+        # The cross SDK image currently embeds Go 1.26.10. Replace only Go so
+        # released binaries include the standard-library fixes in 1.26.11.
+        run: |
+          docker build --tag daptin-xgo:release - <<'EOF'
+          FROM golang:1.26.11 AS toolchain
+          FROM ghcr.io/crazy-max/xgo:1.26.x
+          RUN rm -rf /usr/local/go
+          COPY --from=toolchain /usr/local/go /usr/local/go
+          ENV GO_VERSION=1.26.11
+          EOF
+          docker run --rm --entrypoint go daptin-xgo:release version | grep 'go1.26.11'
+
       - name: Build dashboard assets
         run: |
           wget -q https://github.com/artpar/dashboard3/releases/latest/download/shadcn-admin.zip
@@ -90,9 +108,9 @@ jobs:
         shell: bash
         run: |
           release_ldflags="-linkmode external -s -w $("$(go env GOPATH)/bin/govvv" -flags -version "${RELEASE_TAG}")"
-          "$(go env GOPATH)/bin/xgo" -go 1.26.x -targets=linux/amd64,linux/arm64,linux/arm-7 \
+          "$(go env GOPATH)/bin/xgo" -docker-image daptin-xgo:release -go 1.26.11 -targets=linux/amd64,linux/arm64,linux/arm-7 \
             --tags netgo -ldflags "${release_ldflags}" -dest build -pkg cmd/daptin -out daptin .
-          "$(go env GOPATH)/bin/xgo" -go 1.26.x -targets=darwin/amd64,darwin/arm64,windows/amd64 \
+          "$(go env GOPATH)/bin/xgo" -docker-image daptin-xgo:release -go 1.26.11 -targets=darwin/amd64,darwin/arm64,windows/amd64 \
             --tags netgo -ldflags "${release_ldflags}" -dest build -pkg cmd/daptin -out daptin .
 
       - name: Verify binaries
