@@ -207,7 +207,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 			}
 		} else if req.PlainRequest.Method == "PUT" || req.PlainRequest.Method == "PATCH" {
-			if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
+			if req.PlainRequest.URL != nil && strings.Index(req.PlainRequest.URL.Path, "/relationships/") > -1 {
 				if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 					returnMap = append(returnMap, result)
 					includedMapCache[referenceId] = true
@@ -226,7 +226,7 @@ func (pc *ObjectAccessPermissionChecker) InterceptBefore(dr *DbResource, req *ap
 
 			}
 		} else if req.PlainRequest.Method == "DELETE" {
-			if strings.Index(req.PlainRequest.URL.String(), "/relationships/") > -1 {
+			if req.PlainRequest.URL != nil && strings.Index(req.PlainRequest.URL.Path, "/relationships/") > -1 {
 				if permission.CanPeek(sessionUser.UserReferenceId, sessionUser.Groups, dr.AdministratorGroupId) {
 					returnMap = append(returnMap, result)
 					includedMapCache[referenceId] = true
