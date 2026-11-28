@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -173,15 +174,25 @@ func TestRateLimiterIgnoresForwardedClientIdentity(t *testing.T) {
 
 func TestRateLimiterConcurrentRequestsAcrossOlricMembers(t *testing.T) {
 	firstAddress, firstMembership, firstEmbedded := startRateLimitTestNode(t, "")
-	secondAddress, _, _ := startRateLimitTestNode(t, firstMembership)
+	secondAddress, _, secondEmbedded := startRateLimitTestNode(t, firstMembership)
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		members, err := firstEmbedded.Members(context.Background())
 		if err == nil && len(members) == 2 {
-			break
+			firstRouting, firstErr := firstEmbedded.RoutingTable(context.Background())
+			secondRouting, secondErr := secondEmbedded.RoutingTable(context.Background())
+			owners := make(map[string]bool)
+			for _, route := range firstRouting {
+				if len(route.PrimaryOwners) > 0 {
+					owners[route.PrimaryOwners[len(route.PrimaryOwners)-1]] = true
+				}
+			}
+			if firstErr == nil && secondErr == nil && owners[firstAddress] && owners[secondAddress] && reflect.DeepEqual(firstRouting, secondRouting) {
+				break
+			}
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("Olric members did not join: %v", err)
+			t.Fatalf("Olric membership/routing did not converge: %v", err)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}

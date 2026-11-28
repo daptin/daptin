@@ -173,7 +173,7 @@ func connectRuntimeCache(parent context.Context, address string) (*olric.Cluster
 		if err := ctx.Err(); err != nil {
 			return nil, errors.Join(err, last)
 		}
-		client, err := olric.NewClusterClient([]string{address}, olric.WithRoutingTableFetchInterval(time.Second))
+		client, err := olric.NewClusterClientContext(ctx, []string{address}, olric.WithRoutingTableFetchInterval(time.Second))
 		if err == nil {
 			return client, nil
 		}

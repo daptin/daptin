@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/daptin/daptin/server/auth"
@@ -11,6 +12,7 @@ import (
 	"github.com/daptin/llmgateway/contract"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 )
 
 func (s *Service) tick(ctx context.Context, ref, token string, config Config) (bool, error) {
@@ -446,6 +448,7 @@ func (s *Service) execute(ctx context.Context, user *auth.SessionUser, state *ru
 	defer func() {
 		if value := recover(); value != nil {
 			err = fmt.Errorf("execution panic: %v", value)
+			log.WithError(err).WithField("stack", string(debug.Stack())).Error("[agent] execution panic")
 		}
 	}()
 	if operation.Kind == "model" {

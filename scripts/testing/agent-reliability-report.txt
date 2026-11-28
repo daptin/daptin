@@ -1,27 +1,59 @@
-DAPTIN RELIABILITY QUALIFICATION
+DAPTIN RELIABILITY QUALIFICATION — 2026-11-28
 
-NOT QUALIFIED: repeated cluster restart can partition Olric or terminate a node during startup
+QUALIFIED for the tested 50-cycle, three-node PostgreSQL restart scenario and the reliability checks listed below. This is a bounded qualification, not a long-duration production capacity guarantee.
 
-The 50-cycle test did not complete. The longest attempt completed three cycles before membership failed to converge. The final attempt completed two cycles; cycle two split the cache cluster, and a node exited during cycle three startup. No manual restarts were used to make the test appear successful.
+Base: 0bdeba79 (Coordinate schema restarts and qualify agent reliability).
+With the user's explicit narrow exception, the Olric fork was committed on daptin-fixes and published as v0.5.7-daptin.2, commit c9d212b5e71c447f469e67353192fda230db2ea8. Daptin go.mod/go.sum pin that published version; no local-path replacement is required. All 188 published Go/module files match the tested fork checkout byte-for-byte.
 
-Fixed during testing: concurrent schema upload lost updates; batch creation with omitted optional metadata.
+Root cause and corrections
 
-Passed: rollback, keyed imports and partial-schema merges on SQLite/PostgreSQL/MariaDB; concurrent compatible tables/columns/relations/actions and rejection of conflicting columns; active agent/action/batch drain with one external effect each; forced inference cancellation and continuation; permission and ownership regressions; ordinary Go suite, agent/LLM race detector, affected-package vet.
+The NUL corruption came from gopsutil v4.25.1's Darwin native string conversion: it allocated n bytes but advertised n+1 to CoreFoundation. A terminating NUL could overwrite adjacent Go memory. The isolated native canary observed allocated=3, advertised=4, adjacent byte changed to 0x00 on the old version. On the updated version it observed allocated=3, advertised=3 and the adjacent byte remained 0x7f; the undersized conversion safely returned false. Daptin now uses gopsutil v4.26.7 and required transitive updates, including purego v0.10.2. The update includes upstream Darwin library-lifetime and pointer-handling corrections. No schema-copying or toolchain workaround was added.
 
-Measured 289,095 operations with 0 errors, including 850 completed agent runs. Read measurements below are the repeat with other server suites finished. Providers were deterministic local HTTP servers.
+Upstream sources:
+https://github.com/shirou/gopsutil/commit/983da0753b7a
+https://github.com/shirou/gopsutil/commit/76137fe32da7
 
-Workload     Workers  Ops/sec  p95 ms  CPU percent  Mean RSS MiB
-record            16   5250.4    4.52        538.6         712.3
-list25            16   1716.3   12.63        581.0         717.7
-record            64   5884.7   20.04        424.8         774.9
-list25            64   1822.7   60.34        485.5        1024.2
-agent_read         1      9.1  110.45         46.6         825.0
-agent_read         8     33.0  425.56        174.3         809.7
+Olric now rejoins configured seeds through discovery, bounds bootstrap by the supplied context and endpoint, fails metadata reads over to known peers, and closes failed/stale client connections. Initial routing publication uses normal reconciliation; failed publication schedules a coalesced retry at the existing join retry interval. Returned storage values own their bytes, and HKey uses a valid zero-copy string-to-byte conversion. Regression tests cover these paths.
 
-CPU and RSS are sums across three Daptin processes. 100% CPU is one logical core. Database/client/provider CPU is excluded. Host: macOS ARM64, 10 logical CPUs, 32 GiB RAM, Go 1.25.0.
+Daptin's production code changes pass the existing startup context to Olric, preserve reference-lookup database errors without nil-handle cleanup panics, and log recovered agent execution panics with backend stack traces. Resource/action/transaction authorities and permission/usergroup caching are preserved. No identity, permission, credential, metering, or routing-policy authority was added.
 
-Mixed/agent trial RSS: about 720 MiB idle, about 812 MiB after a 10-second cooldown. Long-term stability is unqualified because the soak failed. Goroutine and reliable descriptor counts were not available; thread, network and SQL-pool samples are retained.
+Verified checks
 
-Next release gate: fix Olric seed rejoining and bootstrap in its existing discovery/routing lifecycle, then complete the full 50-cycle test. Increasing the client startup wait alone has not resolved the observed split.
+PASS: real three-node PostgreSQL qualification, all 50 schema/restart cycles (398.53 seconds of test execution). Every cycle checked schema visibility, identical membership/coordinator views, actual primary ownership, shared counters, PubSub delivery, and durable agent continuation without duplicate logical effects. No detected NUL corruption or crashes. Stable traffic windows completed 223,400 requests with zero failures. Background traffic recorded 8,534 successes, 6,416 expected restart-window drain/connection errors, and zero unexpected errors. Restart durations: median 3.67 seconds, range 2.87–10.22 seconds. The successful soak was retained rather than repeated after publishing identical source.
 
-Raw evidence is retained locally under /tmp/daptin-reliability-run (report.json and evidence.tar.gz). Reproduction commands and opt-in settings are documented in scripts/testing/GO_TESTS.md.
+PASS: single-server and cluster agent-driven world/upload schema changes and restart continuation; inference cancellation at the drain deadline; SQLite, PostgreSQL and MariaDB schema rollback; concurrent schema uploads; active agent/action/batch draining.
+
+The initial MariaDB setup and Linux build failed because the disposable Docker filesystem was full. Complete MariaDB logs show errno 28 while writing ddl_recovery.log. MariaDB was recreated with task-owned tmpfs storage, then its failed matrix case passed. Linux build temporary files/cache were moved to task-owned host-mounted directories; the final build uses writable module-cache access and the published Olric pin. These environment failures were not application assertion failures.
+
+PASS: full Daptin Go suite with Go 1.26.11 and the real published dependency pin (go test -vet=off ./... -count=1).
+PASS: affected-package vet (server, server/agent, server/resource), Go 1.25.14.
+PASS: full Olric suite with strict pointer checks; targeted Olric race checks.
+PASS: Linux ARM64 CGO build in office-release-builder:go1.25-node22 (Go 1.25.0), using the real go.mod, -mod=readonly and published Olric pin. CGO_ENABLED=0 is outside this qualification because the existing SQLite integration requires CGO.
+PASS: go mod verify; published-source comparison; both repository diff checks.
+
+Fresh isolated measurements
+
+Workload     Workers  Ops/sec  p50 ms  p95 ms  p99 ms  CPU %  Mean RSS MiB  Peak RSS MiB  Errors
+record            16   4260.9    3.35    5.80   11.94  506.0         779.9         782.2       0
+list25            16   1480.4   10.39   14.53   19.16  565.1         784.9         786.4       0
+record            64   4596.2   11.53   29.88   57.41  384.4         794.6         803.3       0
+list25            64   1418.1   40.63   80.45  115.06  432.9         887.6         969.8       0
+agent_read         1      9.3  107.90  109.26  110.89   40.7         966.5         979.3       0
+agent_read         8     36.2  210.83  212.65  215.16  176.9         920.9         949.5       0
+
+Total: 118,752 operations, including 950 completed agent runs; zero errors.
+Idle: CPU 2.8%; mean/peak/end RSS 768.9/768.9/768.9 MiB.
+Cooldown: CPU 2.8%; mean/peak/end RSS 879.7/887.1/854.2 MiB.
+
+CPU and RSS are summed across the three Daptin processes. 100% CPU is one logical core. Database, client and provider CPU/RSS are excluded. Host: macOS ARM64, 10 logical CPUs, 32 GiB RAM. Binary and load driver: Go 1.26.11. Providers are deterministic local HTTP servers. Other task build/test jobs had finished before measurement. Record/list windows are 10 seconds each; agent windows use the harness's fixed 20 seconds each; idle/cooldown windows are 5/10 seconds. These short runs do not establish long-term memory stability or production provider capacity.
+
+Evidence retained locally under /tmp/daptin-olric-fix:
+- soak-fixed.log and soak-fixed/TestAgentClusterReliabilityRealE2E/ (cycles, routing/primary ownership, membership, runtime samples, provider bodies, run/step/attempt rows, schema snapshots, background errors).
+- e2e-fixed.log and e2e-fixed/; e2e-mysql.log and e2e-mysql/; mariadb-startup.log and mariadb-rerun-startup.log.
+- cstr-original.log, cstr-fixed.log; canary source: gopsutil-fixed/internal/common/cstr_capacity_darwin_test.go.
+- unit-pinned.log, vet-pinned.log, olric-final.log, olric-final-race.log.
+- build-pinned.log, binary-pinned.txt, build-linux-cgo.log (initial disk failure), build-linux-cgo-rerun.log, build-linux-pinned.log (final published-pin success).
+- load-fixed and load-fixed.log (fresh raw measurement JSON and test output).
+- olric-pin.json, module-verify.log, published-source-verification.json, diff-review.json, final-checks.log.
+
+Reproduction settings and shared harness commands: scripts/testing/GO_TESTS.md. The temporary go.mod used for the load run is now a copy of the real go.mod and contains the same published pin. Only task-owned test containers were removed; unrelated containers were untouched.

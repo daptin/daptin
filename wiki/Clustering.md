@@ -472,6 +472,30 @@ The following features have been verified working across a 3-node cluster:
 - **Olric PubSub (user topics)** — Messages published on Node B reach user topic subscribers on Node A
 - **Olric DMap (topic metadata)** — Topics created on Node A are visible on Node B
 
+## Rejoining after process replacement
+
+Configured membership peers remain seed addresses after startup. Olric
+periodically synchronizes with those seeds, trying one seed per existing join
+retry interval, including when a seed is already known. This repairs differing
+membership views after nodes replace their processes together. Initial routing
+updates rejected during membership changes are retried by normal reconciliation.
+Seeds must
+remain reachable on their membership ports; HTTP readiness alone does not
+prove that every node has the same cluster view.
+
+Daptin bootstraps its cache client through its local Olric member. Client
+initialization follows the runtime startup deadline, closes failed connections,
+and reads initial membership and routing from that same local endpoint before
+adding discovered peers. Later metadata reads can try another known member
+when a peer departs.
+
+Use authenticated `GET /statistics` on every node to compare `olric.members`,
+`olric.coordinator`, `olric.routing_available`, and
+`olric.partitions.without_primary`. All members should agree, routing should be
+available, and no partition should lack a primary. `/ready` describes process
+readiness; it does not certify that an uploaded schema matches an application's
+expectations.
+
 ## Troubleshooting
 
 ### Olric Cluster Not Forming

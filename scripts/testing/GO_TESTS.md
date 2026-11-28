@@ -360,16 +360,18 @@ take about a minute because an interrupted run may await its existing lease.
 
 ## Agent reliability qualification
 
+Use Go 1.26.11 for release qualification, matching the release workflow.
+
 `cmd/daptin/agent_reliability_real_e2e_test.go` uses the shared process harness,
 normal resource/action APIs, and deterministic local providers. Set
 `DAPTIN_RELIABILITY_RESULTS` to retain provider bodies, node logs, restart and
 membership observations, transaction responses, and resource measurements.
 
 ```bash
-GOWORK=off DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-candidate \
+GOTOOLCHAIN=go1.26.11 GOWORK=off DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-candidate \
 DAPTIN_E2E_MAIL_POSTGRES_BIN=/path/to/postgresql/bin \
 DAPTIN_RELIABILITY_RESULTS=/tmp/daptin-reliability \
-go test ./cmd/daptin \
+go test -vet=off ./cmd/daptin \
   -run '^(TestSchemaUploadTransactionRollbackRealE2E|TestConcurrentSchemaUploadsRealE2E|TestActiveAgentActionBatchDrainRealE2E)$' \
   -count=1 -v -timeout=10m
 ```
@@ -385,8 +387,15 @@ three-node PostgreSQL/Olric cluster, rotates the initiating node, resumes a
 waiting run after each restart, checks the new column on every node, and checks
 for duplicate effects. Background reads continue through restart windows;
 separate stable traffic windows measure throughput, latency, process CPU and
-RSS. SQL pool, OS thread, network connection, and Olric snapshots accompany
-each completed cycle. OS thread counts are not Go goroutine counts.
+RSS. Each cycle also requires identical membership/coordinator views, routed
+partitions, matching current primary ownership on every member, one shared
+atomic counter across all nodes, and PubSub delivery to
+every node. SQL pool, OS thread, network connection, and Olric snapshots
+accompany each completed cycle. Go runtime snapshots include goroutine counts
+and heap statistics; OS thread counts are recorded separately. Saved run,
+step, attempt, and result records retain the conversation alongside full
+provider request/response bodies. Failed HTTP response bodies and direct cache
+metadata are also retained for diagnosis.
 
 Membership failures are recorded as test failures while observation continues.
 A process that exits or fails to replace exactly once stops the experiment;

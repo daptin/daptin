@@ -155,7 +155,7 @@ func TestAgentSchemaRestartRealE2E(t *testing.T) {
 				}
 				initialBoots := make([]int, len(processes))
 				for i, process := range processes {
-					initialBoots[i] = strings.Count(process.logs.String(), "Setting timezone")
+					initialBoots[i] = strings.Count(process.logs.String(), "GitCommit:")
 				}
 				config := map[string]interface{}{"model": "restart-model", "instructions": "Use tools.", "toolset": map[string]interface{}{"resources": []string{"*"}, "operations": []string{"create", "read"}, "actions": []string{"world.restart_daptin", "world.upload_system_schema"}}, "limits": map[string]interface{}{"turns": 10, "tool_calls": 10, "seconds": 180, "output_tokens": 256, "attempts": 3}}
 				definition := accessGroupsE2ECreateRecord(t, client, bases[0], admin, "agent", map[string]interface{}{"name": "restart-test", "config": string(mustAgentJSON(config))})
@@ -207,7 +207,7 @@ func TestAgentSchemaRestartRealE2E(t *testing.T) {
 					}
 				}
 				for i, process := range processes {
-					boots := strings.Count(process.logs.String(), "Setting timezone")
+					boots := strings.Count(process.logs.String(), "GitCommit:")
 					if boots != initialBoots[i]+1 {
 						t.Fatalf("node %d boot count=%d, expected %d", i, boots, initialBoots[i]+1)
 					}

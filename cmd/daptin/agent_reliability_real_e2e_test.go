@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,12 +12,15 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/buraksezer/olric"
+	"github.com/go-redis/redis/v8"
 	"github.com/shirou/gopsutil/v4/process"
 )
 
@@ -129,11 +133,12 @@ func TestSchemaUploadTransactionRollbackRealE2E(t *testing.T) {
 }
 
 type reliabilityCluster struct {
-	nodes  []*transportE2EDaptinProcess
-	bases  []string
-	client *http.Client
-	token  string
-	dir    string
+	nodes          []*transportE2EDaptinProcess
+	bases          []string
+	cacheAddresses []string
+	client         *http.Client
+	token          string
+	dir            string
 }
 
 func startReliabilityCluster(t *testing.T, schema string) *reliabilityCluster {
@@ -154,6 +159,7 @@ func startReliabilityCluster(t *testing.T, schema string) *reliabilityCluster {
 		base := fmt.Sprintf("http://127.0.0.1:%d", port)
 		c.nodes = append(c.nodes, startTransportE2EDaptin(t, port, freeTransportE2EPort(t, ports), base, node))
 		c.bases = append(c.bases, base)
+		c.cacheAddresses = append(c.cacheAddresses, fmt.Sprintf("127.0.0.1:%d", node.olricPort))
 		if i == 0 {
 			c.token = transportE2ESignupSigninAdmin(t, c.client, base)
 		}
@@ -163,6 +169,18 @@ func startReliabilityCluster(t *testing.T, schema string) *reliabilityCluster {
 	}
 	t.Cleanup(func() {
 		c.client.CloseIdleConnections()
+		for i, addr := range c.cacheAddresses {
+			client := redis.NewClient(&redis.Options{Addr: addr, ReadTimeout: time.Second, WriteTimeout: time.Second, MaxRetries: -1})
+			var metadata []map[string]interface{}
+			for _, command := range []string{"cluster.members", "cluster.routingtable"} {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				value, err := client.Do(ctx, command).Result()
+				cancel()
+				metadata = append(metadata, map[string]interface{}{"command": command, "response": value, "error": fmt.Sprint(err)})
+			}
+			_ = client.Close()
+			reliabilitySave(t, c.dir, fmt.Sprintf("cache-metadata-%d.json", i), metadata)
+		}
 		for i, node := range c.nodes {
 			_ = os.WriteFile(filepath.Join(c.dir, fmt.Sprintf("node%d.log", i)), []byte(node.logs.String()), 0600)
 		}
@@ -178,7 +196,7 @@ func (c *reliabilityCluster) ready(t *testing.T, expectedBoots []int) {
 		last = nil
 		for i, base := range c.bases {
 			status, body, err := reliabilityHTTP(c.client, http.MethodGet, base+"/ready", c.token, nil)
-			boots := strings.Count(c.nodes[i].logs.String(), "Setting timezone")
+			boots := strings.Count(c.nodes[i].logs.String(), "GitCommit:")
 			state := map[string]interface{}{"node": i, "status": status, "body": string(body), "error": fmt.Sprint(err), "boots": boots, "expected_boots": expectedBoots}
 			if err != nil || status != 200 {
 				ready = false
@@ -207,7 +225,7 @@ func (c *reliabilityCluster) restartProcesses(t *testing.T, node int) float64 {
 	t.Helper()
 	boots := make([]int, 3)
 	for i, p := range c.nodes {
-		boots[i] = strings.Count(p.logs.String(), "Setting timezone") + 1
+		boots[i] = strings.Count(p.logs.String(), "GitCommit:") + 1
 	}
 	start := time.Now()
 	status, body, err := reliabilityHTTP(c.client, http.MethodPost, c.bases[node]+"/action/world/restart_daptin", c.token, map[string]interface{}{"attributes": map[string]interface{}{}})
@@ -217,7 +235,7 @@ func (c *reliabilityCluster) restartProcesses(t *testing.T, node int) float64 {
 	reliabilityWait(t, func() bool {
 		for i, base := range c.bases {
 			status, _, err := reliabilityHTTP(c.client, http.MethodGet, base+"/ready", c.token, nil)
-			if err != nil || status != 200 || strings.Count(c.nodes[i].logs.String(), "Setting timezone") != boots[i] {
+			if err != nil || status != 200 || strings.Count(c.nodes[i].logs.String(), "GitCommit:") != boots[i] {
 				return false
 			}
 		}
@@ -237,15 +255,33 @@ func (c *reliabilityCluster) observeMembership(t *testing.T, cycle int) bool {
 	for {
 		states = nil
 		healthy := true
+		var roster interface{}
+		var coordinator interface{}
 		for i, base := range c.bases {
 			status, body, err := reliabilityHTTP(c.client, http.MethodGet, base+"/statistics", c.token, nil)
 			var stats map[string]interface{}
 			_ = json.Unmarshal(body, &stats)
 			count, _ := transportE2EPath(stats, "olric.member_count")
+			members, _ := transportE2EPath(stats, "olric.members")
+			leader, _ := transportE2EPath(stats, "olric.coordinator")
+			missing, _ := transportE2EPath(stats, "olric.partitions.without_primary")
+			routed, _ := transportE2EPath(stats, "olric.routing_available")
+			if i == 0 {
+				roster = members
+				coordinator = leader
+			} else if !reflect.DeepEqual(roster, members) || coordinator != leader {
+				healthy = false
+			}
+			if missing != float64(0) || routed != true {
+				healthy = false
+			}
 			states = append(states, map[string]interface{}{"node": i, "status": status, "error": fmt.Sprint(err), "olric": stats["olric"]})
 			if err != nil || status != 200 || count != float64(3) {
 				healthy = false
 			}
+		}
+		if healthy {
+			healthy = c.routingConverged(t, cycle)
 		}
 		if healthy || time.Now().After(deadline) {
 			reliabilitySave(t, c.dir, fmt.Sprintf("membership-%02d.json", cycle), states)
@@ -253,6 +289,61 @@ func (c *reliabilityCluster) observeMembership(t *testing.T, cycle int) bool {
 		}
 		time.Sleep(150 * time.Millisecond)
 	}
+}
+
+// Membership can agree before every member has accepted the latest ownership
+// table. Keep that convergence window inside the measured restart window.
+func (c *reliabilityCluster) routingConverged(t *testing.T, cycle int) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	actual := make(map[uint64]string)
+	var expected olric.RoutingTable
+	var snapshots []interface{}
+	defer func() { reliabilitySave(t, c.dir, fmt.Sprintf("routing-%02d.json", cycle), snapshots) }()
+	for _, addr := range c.cacheAddresses {
+		client, err := olric.NewClusterClientContext(ctx, []string{addr}, olric.WithRoutingTableFetchInterval(time.Hour))
+		if err != nil {
+			snapshots = append(snapshots, map[string]interface{}{"address": addr, "error": err.Error()})
+			return false
+		}
+		local, statsErr := client.Stats(ctx, addr)
+		routing, routingErr := client.RoutingTable(ctx)
+		_ = client.Close(context.Background())
+		snapshots = append(snapshots, map[string]interface{}{"address": addr, "stats": local, "routing": routing, "stats_error": fmt.Sprint(statsErr), "routing_error": fmt.Sprint(routingErr)})
+		if statsErr != nil || routingErr != nil {
+			return false
+		}
+		if expected == nil {
+			expected = routing
+		} else if !reflect.DeepEqual(expected, routing) {
+			return false
+		}
+		for id, part := range local.Partitions {
+			previous := false
+			for _, owner := range part.PreviousOwners {
+				if owner.ID == local.Member.ID {
+					previous = true
+					break
+				}
+			}
+			if previous {
+				continue
+			}
+			if _, exists := actual[uint64(id)]; exists {
+				return false
+			}
+			actual[uint64(id)] = local.Member.Name
+		}
+	}
+	if len(actual) != len(expected) {
+		return false
+	}
+	for id, route := range expected {
+		if len(route.PrimaryOwners) == 0 || actual[id] != route.PrimaryOwners[len(route.PrimaryOwners)-1] {
+			return false
+		}
+	}
+	return true
 }
 func (c *reliabilityCluster) runStatus(t *testing.T, ref, desired string) map[string]interface{} {
 	t.Helper()
@@ -361,6 +452,8 @@ func TestAgentClusterReliabilityRealE2E(t *testing.T) {
 	createLLME2ECatalog(t, c.client, c.bases[0], c.token, llmE2ECatalog{name: "reliability", upstreamURL: upstream.URL, apiKey: "test-key", upstreamModel: "reliability", operations: []string{"chat"}, maxConcurrency: 16, requestTimeoutMS: 10000, capabilities: `{"tools":true}`})
 	config := map[string]interface{}{"model": "reliability", "instructions": "Use tools.", "toolset": map[string]interface{}{"resources": []string{"rlitem"}, "operations": []string{"create", "read"}}, "limits": map[string]interface{}{"turns": 10, "tool_calls": 10, "seconds": 180, "output_tokens": 128, "attempts": 3}}
 	definition := accessGroupsE2ECreateRecord(t, c.client, c.bases[0], c.token, "agent", map[string]interface{}{"name": "reliability", "config": string(mustAgentJSON(config))})
+	var probes []map[string]interface{}
+	t.Cleanup(func() { reliabilitySave(t, c.dir, "model-probes.json", probes) })
 	var cycles []map[string]interface{}
 	var samples []map[string]interface{}
 	t.Cleanup(func() {
@@ -371,11 +464,15 @@ func TestAgentClusterReliabilityRealE2E(t *testing.T) {
 		reliabilitySave(t, c.dir, "provider-turns.json", turns)
 	})
 	samples = append(samples, c.sample(t, 0))
+	c.checkCoordination(t, 0)
+	t.Cleanup(func() { c.archiveRuns(t); c.archiveSchema(t) })
 	pids := []int{c.nodes[0].processGroupID, c.nodes[1].processGroupID, c.nodes[2].processGroupID}
 	var restarting atomic.Bool
 	var backgroundOK, backgroundRestartErrors, backgroundUnexpected atomic.Int64
 	stopLoad := make(chan struct{})
 	var background sync.WaitGroup
+	var backgroundMu sync.Mutex
+	var backgroundErrors []map[string]interface{}
 	for worker := 0; worker < 2; worker++ {
 		background.Add(1)
 		go func(worker int) {
@@ -388,7 +485,12 @@ func TestAgentClusterReliabilityRealE2E(t *testing.T) {
 					return
 				case <-ticker.C:
 					during := restarting.Load()
-					status, _, err := reliabilityHTTP(c.client, http.MethodGet, c.bases[worker%3]+"/api/rlitem", c.token, nil)
+					status, body, err := reliabilityHTTP(c.client, http.MethodGet, c.bases[worker%3]+"/api/rlitem", c.token, nil)
+					if err != nil || status != 200 {
+						backgroundMu.Lock()
+						backgroundErrors = append(backgroundErrors, map[string]interface{}{"node": worker % 3, "status": status, "body": string(body), "error": fmt.Sprint(err), "restart_window": during || restarting.Load()})
+						backgroundMu.Unlock()
+					}
 					if err == nil && status == 200 {
 						backgroundOK.Add(1)
 					} else if during || restarting.Load() {
@@ -403,13 +505,14 @@ func TestAgentClusterReliabilityRealE2E(t *testing.T) {
 	defer func() {
 		close(stopLoad)
 		background.Wait()
-		reliabilitySave(t, c.dir, "background-load.json", map[string]interface{}{"successes": backgroundOK.Load(), "restart_window_errors": backgroundRestartErrors.Load(), "unexpected_errors": backgroundUnexpected.Load()})
+		reliabilitySave(t, c.dir, "background-load.json", map[string]interface{}{"successes": backgroundOK.Load(), "restart_window_errors": backgroundRestartErrors.Load(), "unexpected_errors": backgroundUnexpected.Load(), "errors": backgroundErrors})
 	}()
 	for cycle := 1; cycle <= 50; cycle++ {
 		base := c.bases[(cycle-1)%3]
 		// Wait for model routing after previous process replacement.
 		reliabilityWait(t, func() bool {
-			status, _, err := reliabilityHTTP(c.client, http.MethodPost, base+"/v1/chat/completions", c.token, map[string]interface{}{"model": "reliability", "max_tokens": 16, "messages": []interface{}{map[string]interface{}{"role": "user", "content": "ready"}}})
+			status, body, err := reliabilityHTTP(c.client, http.MethodPost, base+"/v1/chat/completions", c.token, map[string]interface{}{"model": "reliability", "max_tokens": 16, "messages": []interface{}{map[string]interface{}{"role": "user", "content": "ready"}}})
+			probes = append(probes, map[string]interface{}{"cycle": cycle, "node": (cycle - 1) % 3, "status": status, "body": string(body), "error": fmt.Sprint(err)})
 			return err == nil && status == 200
 		}, "model ready")
 		start := transportE2EPostJSON(t, c.client, base+"/action/agent/start", c.token, map[string]interface{}{"attributes": map[string]interface{}{"agent_id": definition, "messages": []interface{}{map[string]interface{}{"role": "user", "content": fmt.Sprintf("cycle-%02d", cycle)}}}})
@@ -418,16 +521,23 @@ func TestAgentClusterReliabilityRealE2E(t *testing.T) {
 		c.runStatus(t, ref, "waiting_decision")
 		column := fmt.Sprintf("c%02d", cycle)
 		schema := mustAgentJSON(map[string]interface{}{"Tables": []interface{}{map[string]interface{}{"TableName": "rlitem", "Columns": []interface{}{map[string]interface{}{"Name": column, "ColumnType": "label", "DataType": "varchar(100)", "IsNullable": true}}}}})
-		transportE2EPostJSON(t, c.client, base+"/action/world/upload_system_schema", c.token, reliabilityUpload(schema))
 		restarting.Store(true)
+		transportE2EPostJSON(t, c.client, base+"/action/world/upload_system_schema", c.token, reliabilityUpload(schema))
 		elapsed := c.restartProcesses(t, (cycle-1)%3)
 		converged := c.observeMembership(t, cycle)
 		if !converged {
-			t.Errorf("cycle %d: Olric cluster split after restart; continuing observation", cycle)
+			t.Errorf("cycle %d: cluster coordination unavailable after restart; continuing observation", cycle)
 		}
 		restarting.Store(false)
 		transportE2EPostJSON(t, c.client, c.bases[cycle%3]+"/action/agentrun/decide", c.token, map[string]interface{}{"attributes": map[string]interface{}{"agentrun_id": ref, "decision": map[string]interface{}{"approved": true}}})
 		run := c.runStatus(t, ref, "completed")
+		reliabilitySave(t, c.dir, fmt.Sprintf("run-%02d.json", cycle), run)
+		calls, _ := transportE2EPath(run, "data.attributes.state.calls")
+		accepted, _ := transportE2EPath(run, "data.attributes.state.accepted")
+		if calls != float64(3) || accepted != float64(7) {
+			t.Fatalf("run repeated or lost logical steps: %s", mustAgentJSON(run))
+		}
+		c.checkCoordination(t, cycle)
 		claim, _ := transportE2EPath(run, "data.attributes.claim")
 		if claim != nil {
 			t.Fatalf("completed run retained claim: %s", mustAgentJSON(run))
@@ -665,7 +775,7 @@ func TestActiveAgentActionBatchDrainRealE2E(t *testing.T) {
 	}
 	boots := make([]int, 3)
 	for i, node := range c.nodes {
-		boots[i] = strings.Count(node.logs.String(), "Setting timezone") + 1
+		boots[i] = strings.Count(node.logs.String(), "GitCommit:") + 1
 	}
 	transportE2EPostJSON(t, c.client, c.bases[2]+"/action/world/restart_daptin", c.token, map[string]interface{}{"attributes": map[string]interface{}{}})
 	reliabilityWait(t, func() bool {
@@ -704,4 +814,116 @@ func TestActiveAgentActionBatchDrainRealE2E(t *testing.T) {
 		t.Fatalf("batch lost result: %s", output)
 	}
 	_ = os.WriteFile(filepath.Join(c.dir, "batch-output.jsonl"), output, 0600)
+}
+
+// Query the existing Olric diagnostics to measure the server's Go runtime;
+// no application instrumentation or additional listener is required.
+func (c *reliabilityCluster) checkCoordination(t *testing.T, cycle int) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var clients []*olric.ClusterClient
+	var subscriptions []*redis.PubSub
+	defer func() {
+		for _, sub := range subscriptions {
+			_ = sub.Close()
+		}
+		for _, client := range clients {
+			_ = client.Close(context.Background())
+		}
+	}()
+	var publishers []*olric.PubSub
+	var snapshots []interface{}
+	topic := fmt.Sprintf("reliability-%d-%d", time.Now().UnixNano(), cycle)
+	key := topic
+	for _, base := range c.bases {
+		stats := transportE2EGetJSON(t, c.client, base+"/statistics", c.token)
+		addr, _ := transportE2EPath(stats, "olric.member")
+		client, err := olric.NewClusterClientContext(ctx, []string{addr.(string)}, olric.WithRoutingTableFetchInterval(time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		clients = append(clients, client)
+		runtime, err := client.Stats(ctx, addr.(string), olric.CollectRuntime())
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshots = append(snapshots, runtime.Runtime)
+		ps, err := client.NewPubSub(olric.ToAddress(addr.(string)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		publishers = append(publishers, ps)
+		sub := ps.Subscribe(ctx, topic)
+		subscriptions = append(subscriptions, sub)
+		if _, err := sub.Receive(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i, client := range clients {
+		counter, err := client.NewDMap("reliability-counters")
+		if err != nil {
+			t.Fatal(err)
+		}
+		value, err := counter.Incr(ctx, key, 1)
+		if err != nil || value != i+1 {
+			t.Fatalf("counter not shared: node=%d value=%d err=%v", i, value, err)
+		}
+	}
+	counter, _ := clients[0].NewDMap("reliability-counters")
+	_, _ = counter.Delete(ctx, key)
+	if _, err := publishers[0].Publish(ctx, topic, "verified"); err != nil {
+		t.Fatal(err)
+	}
+	for i, sub := range subscriptions {
+		select {
+		case message := <-sub.Channel():
+			if message.Payload != "verified" {
+				t.Fatalf("unexpected PubSub payload on node %d", i)
+			}
+		case <-ctx.Done():
+			t.Fatalf("PubSub did not reach node %d: %v", i, ctx.Err())
+		}
+	}
+	reliabilitySave(t, c.dir, fmt.Sprintf("go-runtime-%02d.json", cycle), snapshots)
+}
+
+func (c *reliabilityCluster) archiveRuns(t *testing.T) {
+	for _, entity := range []string{"agentrun", "agentstp", "agenttry", "rlitem"} {
+		for page := 1; page <= 50; page++ {
+			status, body, err := reliabilityHTTP(c.client, http.MethodGet, c.bases[0]+fmt.Sprintf("/api/%s?page[size]=100&page[number]=%d", entity, page), c.token, nil)
+			reliabilitySave(t, c.dir, fmt.Sprintf("%s-page-%02d.json", entity, page), map[string]interface{}{"status": status, "body": string(body), "error": fmt.Sprint(err)})
+			if err != nil || status != 200 {
+				break
+			}
+			var decoded map[string]interface{}
+			_ = json.Unmarshal(body, &decoded)
+			rows, _ := decoded["data"].([]interface{})
+			if len(rows) < 100 {
+				break
+			}
+		}
+	}
+}
+
+func (c *reliabilityCluster) archiveSchema(t *testing.T) {
+	for i, base := range c.bases {
+		for _, entity := range []string{"api_usage", "user_account", "agentrun", "agentstp", "agenttry", "rlitem"} {
+			status, body, err := reliabilityHTTP(c.client, http.MethodGet, base+"/jsmodel/"+entity, c.token, nil)
+			reliabilitySave(t, c.dir, fmt.Sprintf("runtime-%d-%s.json", i, entity), map[string]interface{}{"status": status, "body": string(body), "error": fmt.Sprint(err)})
+			if status == 200 && (bytes.Contains(body, []byte(`\u0000`)) || bytes.ContainsRune(body, 0)) {
+				t.Errorf("node %d %s runtime metadata contains NUL bytes", i, entity)
+			}
+		}
+	}
+	for page := 1; page <= 10; page++ {
+		status, body, err := reliabilityHTTP(c.client, http.MethodGet, c.bases[0]+fmt.Sprintf("/api/world?page[size]=100&page[number]=%d", page), c.token, nil)
+		reliabilitySave(t, c.dir, fmt.Sprintf("world-page-%02d.json", page), map[string]interface{}{"status": status, "body": string(body), "error": fmt.Sprint(err)})
+		var decoded map[string]interface{}
+		_ = json.Unmarshal(body, &decoded)
+		rows, _ := decoded["data"].([]interface{})
+		if err != nil || status != 200 || len(rows) < 100 {
+			break
+		}
+	}
 }

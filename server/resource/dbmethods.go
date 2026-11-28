@@ -2373,33 +2373,24 @@ func (dbResource *DbResource) GetReferenceIdToObjectWithTransaction(typeName str
 	}
 
 	stmt1, err := transaction.Preparex(s)
-	defer func(stmt1 *sqlx.Stmt) {
-		err := stmt1.Close()
-		if err != nil {
-			log.Errorf("failed to close prepared statement: %v", err)
-		}
-	}(stmt1)
-
 	if err != nil {
-		log.Errorf("[1423] failed to prepare statment - [%v]: %v", s, err)
 		return nil, err
 	}
-
-	//log.Printf("Get object by reference id sql: %v", s)
+	defer stmt1.Close()
 	row, err := stmt1.Queryx(q...)
-	defer func() {
-		err = row.Close()
-		CheckErr(err, "[1314] Failed to close row after querying single row")
-	}()
-
 	if err != nil {
 		return nil, err
 	}
+	defer row.Close()
 
 	start := time.Now()
 	responseArray, err := RowsToMap(row, dbResource.model.GetName())
-	err = stmt1.Close()
-	err = row.Close()
+	if err != nil {
+		return nil, err
+	}
+	if err := row.Err(); err != nil {
+		return nil, err
+	}
 
 	results, _, err := dbResource.ResultToArrayOfMapWithTransaction(responseArray, dbResource.Cruds[typeName].model.GetColumnMap(), nil, transaction)
 	duration := time.Since(start)
