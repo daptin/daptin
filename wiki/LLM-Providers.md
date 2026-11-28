@@ -17,6 +17,10 @@ resource CRUD, relationships and named actions, with saved progress, decisions,
 timed waits and cluster recovery. Follow the agent guide after configuring a
 tool-capable model here.
 
+To supply your own tools and execute the model/tool loop in a WebUI or application,
+follow [[Walkthrough-Client-Tool-Calling]]. The client executes its functions while
+the gateway handles model access, routing and inference metering.
+
 Configuration uses ordinary Daptin resources and relationships:
 
 - `llm_provider` describes one provider account and links to a `credential`;

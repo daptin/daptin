@@ -10,6 +10,7 @@
 
 ## Walkthroughs
 - [[Build an LLM Router with Daptin|Walkthrough-LLM-Router]]
+- [[Use Your Own LLM Tools|Walkthrough-Client-Tool-Calling]]
 - [[Walkthrough-Product-Catalog]]
 - [[Walkthrough-WebSocket-Real-Time]]
 - [[Walkthrough-YJS-Collaborative-Editing]]
