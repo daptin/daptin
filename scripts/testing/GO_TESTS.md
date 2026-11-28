@@ -331,3 +331,64 @@ Omit the model selector to probe all configured models, including Lilac.
 requires an initial rejection, then checks that the agent updates the draft and
 obtains a successful verification result. This application policy stays in the
 action definition.
+
+## Agent schema restart acceptance
+
+`TestAgentSchemaRestartRealE2E` runs a deterministic provider against real Daptin
+processes. It covers SQLite and a three-node PostgreSQL/Olric cluster, schema
+created through `world`, schema uploads larger than 5 KiB installed into canonical records, denied
+non-administrator actions, one restart request, saved-run continuation, and reads
+of the resulting record on every node without operator restarts.
+
+```bash
+GOWORK=off go build -o /tmp/daptin-restart-test ./cmd/daptin
+GOWORK=off DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-restart-test \
+DAPTIN_E2E_MAIL_POSTGRES_BIN=/path/to/postgresql/bin \
+go test ./cmd/daptin -run '^TestAgentSchemaRestartRealE2E$' -count=1 -v -timeout=8m
+```
+
+`TestAgentSchemaRestartLive`, with the `live` build tag, repeats the workflow
+using OpenRouter `openai/gpt-4.1-mini`. Set `DAPTIN_AGENT_CREDENTIALS` to the provider
+credentials YAML path. Each trial prints a separate retained evidence directory
+containing sanitized complete provider bodies, run/step/attempt rows, per-node
+results and process logs. No authentication headers are recorded.
+
+`TestAgentRestartCancelsInferenceAtDrainDeadlineRealE2E` holds an inference past
+the configured drain deadline and verifies that process replacement still
+happens and the same run resumes. It uses the normal shutdown timeout and can
+take about a minute because an interrupted run may await its existing lease.
+
+## Agent reliability qualification
+
+`cmd/daptin/agent_reliability_real_e2e_test.go` uses the shared process harness,
+normal resource/action APIs, and deterministic local providers. Set
+`DAPTIN_RELIABILITY_RESULTS` to retain provider bodies, node logs, restart and
+membership observations, transaction responses, and resource measurements.
+
+```bash
+GOWORK=off DAPTIN_REAL_E2E=1 DAPTIN_E2E_BINARY=/tmp/daptin-candidate \
+DAPTIN_E2E_MAIL_POSTGRES_BIN=/path/to/postgresql/bin \
+DAPTIN_RELIABILITY_RESULTS=/tmp/daptin-reliability \
+go test ./cmd/daptin \
+  -run '^(TestSchemaUploadTransactionRollbackRealE2E|TestConcurrentSchemaUploadsRealE2E|TestActiveAgentActionBatchDrainRealE2E)$' \
+  -count=1 -v -timeout=10m
+```
+
+The rollback and import/merge database matrices additionally use MariaDB when
+`DAPTIN_RELIABILITY_MYSQL_CONTAINER` identifies a disposable `mariadb:10.11`
+container with root password `test-only` and port 3306 published on loopback.
+The fixture creates a separate empty database for each case.
+
+`TestAgentClusterReliabilityRealE2E` additionally requires
+`DAPTIN_RELIABILITY_SOAK=1`. It targets 50 schema/restart cycles on the same
+three-node PostgreSQL/Olric cluster, rotates the initiating node, resumes a
+waiting run after each restart, checks the new column on every node, and checks
+for duplicate effects. Background reads continue through restart windows;
+separate stable traffic windows measure throughput, latency, process CPU and
+RSS. SQL pool, OS thread, network connection, and Olric snapshots accompany
+each completed cycle. OS thread counts are not Go goroutine counts.
+
+Membership failures are recorded as test failures while observation continues.
+A process that exits or fails to replace exactly once stops the experiment;
+successful HTTP readiness alone does not qualify cluster convergence. Use
+`-run '^TestAgentClusterReliabilityRealE2E$' -timeout=30m` for this case.

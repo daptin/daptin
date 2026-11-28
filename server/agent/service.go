@@ -24,22 +24,25 @@ import (
 
 type Service struct {
 	store
-	gateway  *llm.Gateway
-	locks    olric.DMap
-	cancel   context.CancelFunc
-	done     chan struct{}
-	stopping atomic.Bool
+	gateway     *llm.Gateway
+	locks       olric.DMap
+	restart     *resource.RuntimeRestart
+	quiesced    chan struct{}
+	quiesceOnce sync.Once
+	cancel      context.CancelFunc
+	done        chan struct{}
+	stopping    atomic.Bool
 }
 
-func New(cruds map[string]*resource.DbResource, gateway *llm.Gateway, client *olric.ClusterClient) (*Service, error) {
-	if gateway == nil || client == nil {
+func New(cruds map[string]*resource.DbResource, gateway *llm.Gateway, client *olric.ClusterClient, restart *resource.RuntimeRestart) (*Service, error) {
+	if gateway == nil || client == nil || restart == nil {
 		return nil, errors.New("agent service requires gateway and Olric")
 	}
 	locks, err := client.NewDMap("agent-runs")
 	if err != nil {
 		return nil, err
 	}
-	return &Service{store: store{cruds}, gateway: gateway, locks: locks}, nil
+	return &Service{store: store{cruds}, gateway: gateway, locks: locks, restart: restart, quiesced: make(chan struct{})}, nil
 }
 func (s *Service) Start(parent context.Context) {
 	ctx, cancel := context.WithCancel(parent)
@@ -47,6 +50,7 @@ func (s *Service) Start(parent context.Context) {
 	s.done = make(chan struct{})
 	go func() {
 		defer close(s.done)
+		defer cancel()
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 		var events <-chan *redis.Message
@@ -62,6 +66,8 @@ func (s *Service) Start(parent context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				return
+			case <-s.quiesced:
 				return
 			case _, open := <-events:
 				if !open {
@@ -112,9 +118,7 @@ func (s *Service) Start(parent context.Context) {
 }
 func (s *Service) Quiesce() {
 	s.stopping.Store(true)
-	if s.cancel != nil {
-		s.cancel()
-	}
+	s.quiesceOnce.Do(func() { close(s.quiesced) })
 }
 func (s *Service) Drain(ctx context.Context) error {
 	s.Quiesce()
@@ -125,6 +129,9 @@ func (s *Service) Drain(ctx context.Context) error {
 	case <-s.done:
 		return nil
 	case <-ctx.Done():
+		if s.cancel != nil {
+			s.cancel()
+		}
 		return ctx.Err()
 	}
 }
@@ -331,9 +338,13 @@ func (s *Service) advance(parent context.Context, ref string) error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := lock.Lease(ctx, leaseDuration); err != nil {
-					cancel()
-					return
+				// During drain, peers may already have stopped embedded Olric.
+				// Keep the authoritative SQL claim alive until this operation yields.
+				if !s.stopping.Load() {
+					if err := lock.Lease(ctx, leaseDuration); err != nil {
+						cancel()
+						return
+					}
 				}
 				if err := s.heartbeat(ctx, ref, token); err != nil {
 					cancel()

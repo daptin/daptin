@@ -74,6 +74,14 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	PrintCliBanner()
 	runtimeErrors := make(chan error, 8)
 
+	configStore, err := resource.NewConfigStore(db)
+	if err != nil {
+		return nil, err
+	}
+	restartState, err := resource.NewRuntimeRestart(db, configStore)
+	if err != nil {
+		return nil, err
+	}
 	/// Start system initialise
 	log.Printf("Load config files")
 	initConfig, errs := LoadConfigFiles()
@@ -124,8 +132,6 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		log.Infof("ENV[DAPTIN_SKIP_INITIALISE_RESOURCES] value: %v", skipResourceInitialise)
 		InitialiseServerResources(&initConfig, db)
 	}
-	configStore, err := resource.NewConfigStore(db)
-	resource.CheckErr(err, "Failed to get config store")
 	diskFileCache, err = lru.New(cacheSize)
 
 	transaction, err := db.Beginx()
@@ -233,12 +239,12 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	var rateLimitClient *olric.ClusterClient
 	var rateCounter olric.DMap
 	if localOlricAddr != "" {
-		rateLimitClient, err = olric.NewClusterClient([]string{localOlricAddr}, olric.WithRoutingTableFetchInterval(time.Second))
+		rateLimitClient, err = connectRuntimeCache(ctx, localOlricAddr)
 		if err == nil {
 			rateCounter, err = rateLimitClient.NewDMap(rateLimitDMapName)
 		}
 		if err != nil {
-			log.Errorf("Failed to initialize distributed HTTP rate limiter; using process-local fallback: %v", err)
+			return nil, fmt.Errorf("initialize runtime coordination: %w", err)
 		}
 	}
 	rateLimitClientTransferred := false
@@ -604,19 +610,24 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	}()
 
 	restartRequests := make(chan struct{}, 1)
-	requestRestart := func() {
-		select {
-		case restartRequests <- struct{}{}:
-		default:
+	requestRestart := func(tx *sqlx.Tx) error {
+		if err := restartState.Request(tx); err != nil {
+			return err
 		}
+		wakeCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		// The marker is committed by the action owner. A notification is only a hint.
+		_, _ = tablesPubSub.Publish(wakeCtx, restartTopic, "restart")
+		return nil
 	}
-	agentService, err := agent.New(cruds, llmGateway, rateLimitClient)
+
+	agentService, err := agent.New(cruds, llmGateway, rateLimitClient, restartState)
 	if err != nil {
 		return nil, fmt.Errorf("initialize agent service: %w", err)
 	}
 	actionPerformers := action_provider.GetActionPerformers(
 		&initConfig, configStore, cruds, mailDaemon, hostSwitch, certificateManager,
-		integrationRuntimeInstanceID, llmGateway, requestRestart,
+		integrationRuntimeInstanceID, llmGateway, requestRestart, schemaInstaller(cruds, configStore),
 		func() interface{} { return mailStatus.snapshot() }, agentService,
 	)
 	initConfig.ActionPerformers = actionPerformers
@@ -771,8 +782,10 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 		}
 		log.WithError(templateErr).Error("Template HTTP routes not mounted; repair template url_pattern configuration and restart")
 	}
-	agentService.Start(ctx)
-	llmGateway.StartBatchProcessing(ctx)
+	restartCancel, restartDone := monitorRuntimeRestart(ctx, restartState, tablesPubSub, restartRequests)
+	workCtx, cancelWork := context.WithCancel(context.WithoutCancel(ctx))
+	agentService.Start(workCtx)
+	llmGateway.StartBatchProcessing(workCtx)
 	taskScheduler.Start()
 	go websocketServer.Listen()
 
@@ -793,6 +806,10 @@ func NewRuntime(ctx context.Context, boxRoot http.FileSystem, db database.Databa
 	rateLimitClientTransferred = true
 	return &Runtime{
 		Handler:                 &hostSwitch,
+		restartState:            restartState,
+		cancelWork:              cancelWork,
+		restartCancel:           restartCancel,
+		restartDone:             restartDone,
 		RestartRequests:         restartRequests,
 		ConfigStore:             configStore,
 		CertificateManager:      certificateManager,

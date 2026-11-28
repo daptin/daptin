@@ -322,6 +322,9 @@ func (d *integrationInstallationPerformer) DoAction(request actionresponse.Outco
 		return nil, []actionresponse.ActionResponse{}, []error{err}
 	}
 
+	if err := transaction.Commit(); err != nil {
+		return nil, nil, []error{err}
+	}
 	err = RefreshIntegrationRuntimeByReferenceID(d.cruds, d.configStore, referenceId)
 	if err != nil {
 		log.Errorf("install_integration failed refreshing runtime mappings provider=[%v]: %v", integration["name"], err)

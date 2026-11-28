@@ -20,7 +20,7 @@ import (
 
 //import "github.com/daptin/daptin/datastore"
 
-// Load config files which have the naming of the form schema_*_daptin.json/yaml
+// Load local schema files through the same parser as transactional uploads.
 func LoadConfigFiles() (resource.CmsConfig, []error) {
 
 	var err error
@@ -71,6 +71,12 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 	}
 
 	for _, fileName := range files {
+		switch strings.ToLower(filepath.Ext(fileName)) {
+		case ".json", ".yaml", ".yml":
+		default:
+			log.Infof("Skipping unsupported schema file: %v", fileName)
+			continue
+		}
 		log.Printf("Process file: %v", fileName)
 
 		fileBytes, err := os.ReadFile(fileName)
@@ -79,81 +85,11 @@ func LoadConfigFiles() (resource.CmsConfig, []error) {
 			continue
 		}
 
-		initConfig := resource.CmsConfig{}
-		initConfigRaw := map[string]interface{}{}
-		//fmt.Printf("Loaded config: \n%v", string(fileBytes))
-
-		switch {
-		case EndsWithCheck(fileName, "yml"):
-			fallthrough
-		case EndsWithCheck(fileName, "yaml"):
-			jsonBytes, err := yaml2.YAMLToJSON(fileBytes)
-			log.Debugf("YAML: %v: %v", string(jsonBytes), err)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			err = json1.Unmarshal(jsonBytes, &initConfig)
-			if err == nil {
-				_ = json1.Unmarshal(jsonBytes, &initConfigRaw)
-			}
-			log.Debugf("JSON: %v: %v", string(jsonBytes), err)
-			//err = yaml.UnmarshalStrict(fileBytes, &initConfig)
-		case EndsWithCheck(fileName, "json"):
-			err = json1.Unmarshal(fileBytes, &initConfig)
-			if err == nil {
-				_ = json1.Unmarshal(fileBytes, &initConfigRaw)
-			}
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-		default:
-			log.Infof("Skipping unsupported schema file: %v", fileName)
-			continue
-		}
-
-		//js, _ := json.Marshal(initConfig)
-		//log.Printf("Loaded config: %v", string(js))
-
+		initConfig, err := parseSchemaDocument(fileName, fileBytes)
 		if err != nil {
-			log.Errorf("Failed to load config file: %v", err)
 			errs = append(errs, err)
 			continue
 		}
-
-		tables := make([]table_info.TableInfo, 0)
-		for i, table := range initConfig.Tables {
-			table.TableName = flect.Underscore(table.TableName)
-			if len(table.TableName) < 1 {
-				errs = append(errs, fmt.Errorf("schema file %s contains a table without a name", fileName))
-				continue
-			}
-
-			if err := normalizeSchemaTableColumns(&table); err != nil {
-				errs = append(errs, fmt.Errorf("schema file %s: %w", fileName, err))
-				continue
-			}
-			if err := validateSchemaEventHandlers(table); err != nil {
-				errs = append(errs, eventHandlerSchemaError{fmt.Errorf("schema file %s: %w", fileName, err)})
-				continue
-			}
-			rawTablesValue := initConfigRaw["Tables"]
-			if rawTablesValue == nil {
-				rawTablesValue = initConfigRaw["tables"]
-			}
-			if rawTables, ok := rawTablesValue.([]interface{}); ok && len(rawTables) > i {
-				if rawTable, ok := rawTables[i].(map[string]interface{}); ok {
-					table.ExplicitFields = make(map[string]bool)
-					for key := range rawTable {
-						table.ExplicitFields[key] = true
-						table.ExplicitFields[flect.Underscore(key)] = true
-					}
-				}
-			}
-			tables = append(tables, table)
-		}
-		initConfig.Tables = tables
 
 		globalInitConfig.Tables = append(globalInitConfig.Tables, initConfig.Tables...)
 
@@ -338,4 +274,66 @@ func schemaEventExchanges(table table_info.TableInfo) []resource.ExchangeContrac
 		exchanges = append(exchanges, exchange)
 	}
 	return exchanges
+}
+
+// parseSchemaDocument is shared by startup files and transactional uploads.
+func parseSchemaDocument(fileName string, body []byte) (resource.CmsConfig, error) {
+	var initConfig resource.CmsConfig
+	switch strings.ToLower(filepath.Ext(fileName)) {
+	case ".yaml", ".yml":
+		var err error
+		body, err = yaml2.YAMLToJSON(body)
+		if err != nil {
+			return initConfig, err
+		}
+	case ".json":
+	default:
+		return initConfig, fmt.Errorf("unsupported schema format: %s", filepath.Ext(fileName))
+	}
+	if strings.TrimSpace(string(body)) == "null" {
+		return initConfig, fmt.Errorf("schema must be an object")
+	}
+	if err := json1.Unmarshal(body, &initConfig); err != nil {
+		return initConfig, err
+	}
+	var initConfigRaw map[string]interface{}
+	if err := json1.Unmarshal(body, &initConfigRaw); err != nil {
+		return initConfig, err
+	}
+	for _, item := range initConfig.Imports {
+		if item.FilePath == "" {
+			return initConfig, fmt.Errorf("import file path is required for %s", item.Entity)
+		}
+	}
+	tables := make([]table_info.TableInfo, 0)
+	for i, table := range initConfig.Tables {
+		table.TableName = flect.Underscore(table.TableName)
+		if len(table.TableName) < 1 {
+			return initConfig, fmt.Errorf("schema file %s contains a table without a name", fileName)
+		}
+
+		if err := normalizeSchemaTableColumns(&table); err != nil {
+			return initConfig, fmt.Errorf("schema file %s: %w", fileName, err)
+		}
+		if err := validateSchemaEventHandlers(table); err != nil {
+			return initConfig, eventHandlerSchemaError{fmt.Errorf("schema file %s: %w", fileName, err)}
+		}
+		rawTablesValue := initConfigRaw["Tables"]
+		if rawTablesValue == nil {
+			rawTablesValue = initConfigRaw["tables"]
+		}
+		if rawTables, ok := rawTablesValue.([]interface{}); ok && len(rawTables) > i {
+			if rawTable, ok := rawTables[i].(map[string]interface{}); ok {
+				table.ExplicitFields = make(map[string]bool)
+				for key := range rawTable {
+					table.ExplicitFields[key] = true
+					table.ExplicitFields[flect.Underscore(key)] = true
+				}
+			}
+		}
+		tables = append(tables, table)
+	}
+	initConfig.Tables = tables
+
+	return initConfig, nil
 }

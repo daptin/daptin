@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	ftpserver "github.com/artpar/ftpserver/server"
 	"github.com/artpar/go-guerrilla"
@@ -41,6 +43,11 @@ type Runtime struct {
 	rateLimitClient         *olric.ClusterClient
 	tableSubscription       *redis.PubSub
 	integrationSubscription *redis.PubSub
+	cancelWork              context.CancelFunc
+	stopWorkDeadline        func() bool
+	restartState            *resource.RuntimeRestart
+	restartCancel           context.CancelFunc
+	restartDone             <-chan struct{}
 	errors                  chan error
 	quiesceOnce             sync.Once
 	quiesceErr              error
@@ -53,8 +60,18 @@ func (r *Runtime) Errors() <-chan error {
 
 // Quiesce stops non-HTTP services from accepting or scheduling new work while
 // leaving shared handler dependencies available to requests already in flight.
-func (r *Runtime) Quiesce() error {
+// workCtx bounds active work; Drain receives the remaining finalization budget.
+func (r *Runtime) Quiesce(workCtx context.Context) error {
 	r.quiesceOnce.Do(func() {
+		if r.cancelWork != nil {
+			r.stopWorkDeadline = context.AfterFunc(workCtx, r.cancelWork)
+		}
+		if r.llmGateway != nil {
+			r.llmGateway.Quiesce()
+		}
+		if r.restartCancel != nil {
+			r.restartCancel()
+		}
 		if r.agentService != nil {
 			r.agentService.Quiesce()
 		}
@@ -85,7 +102,22 @@ func (r *Runtime) Quiesce() error {
 // calling Drain. Database and Olric remain usable until Drain returns.
 func (r *Runtime) Drain(ctx context.Context) error {
 	var errs []error
-	errs = append(errs, r.Quiesce())
+	errs = append(errs, r.Quiesce(ctx))
+	defer func() {
+		if r.stopWorkDeadline != nil {
+			r.stopWorkDeadline()
+		}
+		if r.cancelWork != nil {
+			r.cancelWork()
+		}
+	}()
+	if r.restartDone != nil {
+		select {
+		case <-r.restartDone:
+		case <-ctx.Done():
+			errs = append(errs, ctx.Err())
+		}
+	}
 	if r.scheduler != nil {
 		errs = append(errs, r.scheduler.Stop(ctx))
 	}
@@ -118,4 +150,38 @@ func (r *Runtime) Drain(ctx context.Context) error {
 	ShutdownSubsiteCache()
 	subsite.ShutdownTemplateCache()
 	return errors.Join(errs...)
+}
+
+// CheckReady includes the generation loaded before resource initialization.
+func (r *Runtime) CheckReady(ctx context.Context) error {
+	if err := r.restartState.Check(ctx); err != nil {
+		return err
+	}
+	_, err := r.rateLimitClient.RoutingTable(ctx)
+	return err
+}
+
+// A started local member may still advertise peers replacing their processes.
+// Wait for a usable cluster client before composing services that require it.
+func connectRuntimeCache(parent context.Context, address string) (*olric.ClusterClient, error) {
+	ctx, cancel := context.WithTimeout(parent, 30*time.Second)
+	defer cancel()
+	retry := time.NewTicker(500 * time.Millisecond)
+	defer retry.Stop()
+	var last error
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, errors.Join(err, last)
+		}
+		client, err := olric.NewClusterClient([]string{address}, olric.WithRoutingTableFetchInterval(time.Second))
+		if err == nil {
+			return client, nil
+		}
+		last = fmt.Errorf("connect Olric: %w", err)
+		select {
+		case <-ctx.Done():
+			return nil, errors.Join(ctx.Err(), last)
+		case <-retry.C:
+		}
+	}
 }

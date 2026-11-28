@@ -34,6 +34,8 @@ type Gateway struct {
 	batchCancel        context.CancelFunc
 	maintenanceDone    chan struct{}
 	batchDone          chan struct{}
+	batchQuiesced      chan struct{}
+	quiesceOnce        sync.Once
 	reloadSubscription *redis.PubSub
 	drainOnce          sync.Once
 	drainErr           error
@@ -97,12 +99,23 @@ func NewGateway(ctx context.Context, cruds map[string]*resource.DbResource, olri
 
 func (gatewayHost *Gateway) StartBatchProcessing(ctx context.Context) {
 	gatewayHost.batchDone = make(chan struct{})
+	gatewayHost.batchQuiesced = make(chan struct{})
 	batchContext, cancel := context.WithCancel(ctx)
 	gatewayHost.batchCancel = cancel
 	go func() {
 		defer close(gatewayHost.batchDone)
-		gatewayHost.batchProcessor.Run(batchContext)
+		defer cancel()
+		gatewayHost.batchProcessor.Run(batchContext, gatewayHost.batchQuiesced)
 	}()
+}
+
+// Quiesce stops batch admission without interrupting the current items.
+func (gatewayHost *Gateway) Quiesce() {
+	gatewayHost.quiesceOnce.Do(func() {
+		if gatewayHost.batchQuiesced != nil {
+			close(gatewayHost.batchQuiesced)
+		}
+	})
 }
 
 func (gatewayHost *Gateway) Handler() http.Handler {
@@ -135,12 +148,10 @@ func (gatewayHost *Gateway) Status() gateway.Status {
 }
 
 func (gatewayHost *Gateway) Drain(ctx context.Context) error {
+	gatewayHost.Quiesce()
 	gatewayHost.drainOnce.Do(func() {
 		if gatewayHost.maintenanceCancel != nil {
 			gatewayHost.maintenanceCancel()
-		}
-		if gatewayHost.batchCancel != nil {
-			gatewayHost.batchCancel()
 		}
 		if gatewayHost.reloadSubscription != nil {
 			gatewayHost.drainErr = gatewayHost.reloadSubscription.Close()
@@ -158,6 +169,9 @@ func (gatewayHost *Gateway) Drain(ctx context.Context) error {
 		select {
 		case <-gatewayHost.batchDone:
 		case <-ctx.Done():
+			if gatewayHost.batchCancel != nil {
+				gatewayHost.batchCancel()
+			}
 			err = errors.Join(err, ctx.Err())
 		}
 	}

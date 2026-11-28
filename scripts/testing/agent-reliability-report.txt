@@ -1,0 +1,27 @@
+DAPTIN RELIABILITY QUALIFICATION
+
+NOT QUALIFIED: repeated cluster restart can partition Olric or terminate a node during startup
+
+The 50-cycle test did not complete. The longest attempt completed three cycles before membership failed to converge. The final attempt completed two cycles; cycle two split the cache cluster, and a node exited during cycle three startup. No manual restarts were used to make the test appear successful.
+
+Fixed during testing: concurrent schema upload lost updates; batch creation with omitted optional metadata.
+
+Passed: rollback, keyed imports and partial-schema merges on SQLite/PostgreSQL/MariaDB; concurrent compatible tables/columns/relations/actions and rejection of conflicting columns; active agent/action/batch drain with one external effect each; forced inference cancellation and continuation; permission and ownership regressions; ordinary Go suite, agent/LLM race detector, affected-package vet.
+
+Measured 289,095 operations with 0 errors, including 850 completed agent runs. Read measurements below are the repeat with other server suites finished. Providers were deterministic local HTTP servers.
+
+Workload     Workers  Ops/sec  p95 ms  CPU percent  Mean RSS MiB
+record            16   5250.4    4.52        538.6         712.3
+list25            16   1716.3   12.63        581.0         717.7
+record            64   5884.7   20.04        424.8         774.9
+list25            64   1822.7   60.34        485.5        1024.2
+agent_read         1      9.1  110.45         46.6         825.0
+agent_read         8     33.0  425.56        174.3         809.7
+
+CPU and RSS are sums across three Daptin processes. 100% CPU is one logical core. Database/client/provider CPU is excluded. Host: macOS ARM64, 10 logical CPUs, 32 GiB RAM, Go 1.25.0.
+
+Mixed/agent trial RSS: about 720 MiB idle, about 812 MiB after a 10-second cooldown. Long-term stability is unqualified because the soak failed. Goroutine and reliable descriptor counts were not available; thread, network and SQL-pool samples are retained.
+
+Next release gate: fix Olric seed rejoining and bootstrap in its existing discovery/routing lifecycle, then complete the full 50-cycle test. Increasing the client startup wait alone has not resolved the observed split.
+
+Raw evidence is retained locally under /tmp/daptin-reliability-run (report.json and evidence.tar.gz). Reproduction commands and opt-in settings are documented in scripts/testing/GO_TESTS.md.

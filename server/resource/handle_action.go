@@ -2,14 +2,11 @@ package resource
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/daptin/daptin/server/actionresponse"
 	daptinid "github.com/daptin/daptin/server/id"
 	"github.com/jmoiron/sqlx"
-	"os"
-	"path/filepath"
 
 	"github.com/artpar/api2go/v2"
 	"github.com/daptin/daptin/server/auth"
@@ -1234,73 +1231,6 @@ func BuildOutcome(inFieldMap map[string]interface{},
 	attrs := attrInterface.(map[string]interface{})
 
 	switch outcome.Type {
-	case "system_json_schema_update":
-
-		ur, _ := url.Parse("/")
-		returnRequest := api2go.Request{
-			PlainRequest: &http.Request{
-				Method: "ACTIONRESPONSE",
-				URL:    ur,
-			},
-		}
-
-		files1, ok := attrs["json_schema"]
-		if !ok {
-			return nil, returnRequest, errors.New("no files uploaded")
-		}
-		log.Printf("Files [%v]: %v", attrs, files1)
-		files, ok := files1.([]interface{})
-		if !ok || len(files) < 1 {
-			return nil, returnRequest, errors.New("no files uploaded")
-		}
-		for _, file := range files {
-			f := file.(map[string]interface{})
-			fileName := filepath.Base(filepath.Clean(f["name"].(string)))
-			if fileName == "." || fileName == ".." {
-				log.Errorf("Invalid schema upload filename rejected: %v", f["name"])
-				continue
-			}
-			log.Printf("File name: %v", fileName)
-			fileNameParts := strings.Split(fileName, ".")
-			fileFormat := fileNameParts[len(fileNameParts)-1]
-			contents := f["file"]
-			if contents == nil {
-				contents = f["contents"]
-			}
-			if contents == nil {
-				log.Printf("Contents are missing in the update schema request: %v", f)
-				continue
-			}
-			fileContentsBase64 := contents.(string)
-			var fileBytes []byte
-			contentParts := strings.Split(fileContentsBase64, ",")
-			if len(contentParts) > 1 {
-				fileBytes, err = base64.StdEncoding.DecodeString(contentParts[1])
-			} else {
-				fileBytes, err = base64.StdEncoding.DecodeString(fileContentsBase64)
-			}
-			if err != nil {
-				return nil, returnRequest, err
-			}
-
-			jsonFileName := fmt.Sprintf("schema_uploaded_%v_daptin.%v", fileName, fileFormat)
-			err = os.WriteFile(jsonFileName, fileBytes, 0644)
-			if err != nil {
-				log.Errorf("Failed to write json file: %v", jsonFileName)
-				return nil, returnRequest, err
-			}
-
-		}
-
-		log.Printf("Written all schema files; a process restart is required to apply them")
-		responseModel := api2go.NewApi2GoModelWithData("client.notify", nil, int64(auth.DEFAULT_PERMISSION), nil, map[string]interface{}{
-			"type":    "success",
-			"title":   "Schema uploaded",
-			"message": "Schema files were stored. Restart the Daptin process to apply them.",
-		})
-
-		return &responseModel, returnRequest, nil
-
 	case "__download_cms_config":
 		fallthrough
 	case "__become_admin":

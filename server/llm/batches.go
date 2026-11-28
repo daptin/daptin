@@ -34,6 +34,9 @@ func (store daptinBatches) Create(ctx context.Context, _ contract.Principal, req
 	if contract.FilePurpose(resource.StringOrEmpty(input["purpose"])) != contract.FilePurposeBatch {
 		return contract.Batch{}, &contract.Error{Code: contract.ErrorInvalidRequest, Message: "input file purpose must be batch", HTTPStatus: http.StatusBadRequest}
 	}
+	if request.Metadata == nil {
+		request.Metadata = map[string]string{}
+	}
 	metadata, err := json.Marshal(request.Metadata)
 	if err != nil {
 		return contract.Batch{}, fmt.Errorf("encode batch metadata: %w", err)

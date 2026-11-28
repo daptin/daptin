@@ -8,13 +8,14 @@ import (
 	"github.com/daptin/daptin/server/hostswitch"
 	"github.com/daptin/daptin/server/llm"
 	"github.com/daptin/daptin/server/resource"
+	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
 
 func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.ConfigStore,
 	cruds map[string]*resource.DbResource, mailDaemon *guerrilla.Daemon,
 	hostSwitch hostswitch.HostSwitch, certificateManager *resource.CertificateManager, integrationRuntimeInstanceID string,
-	llmGateway *llm.Gateway, requestRestart func(),
+	llmGateway *llm.Gateway, requestRestart func(*sqlx.Tx) error, installSchema func(string, []byte, *sqlx.Tx) error,
 	mailStatusSnapshot func() interface{}, agentService *agent.Service) []actionresponse.ActionPerformerInterface {
 	log.Tracef("GetActionPerformers")
 	transaction, err := cruds["world"].Connection().Beginx()
@@ -26,6 +27,7 @@ func GetActionPerformers(initConfig *resource.CmsConfig, configStore *resource.C
 
 	performers := make([]actionresponse.ActionPerformerInterface, 0)
 	performers = append(performers, actions.NewDocumentActionPerformers()...)
+	performers = append(performers, resource.NewSchemaUploadAction(installSchema, cruds["world"]))
 	performers = append(performers, resource.NewRequireCurrentMembershipAction())
 	performers = append(performers, resource.NewCalendarShareAction(cruds))
 	for _, name := range []string{"set_calendar", "resolve", "slots", "reserve", "resolve_booking", "status", "cancel", "reschedule"} {

@@ -16,6 +16,7 @@ import (
 	"github.com/daptin/llmgateway/catalog"
 	"github.com/daptin/llmgateway/contract"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -240,7 +241,8 @@ func (store olricCounterStore) addLocked(ctx context.Context, key string, amount
 	return int64(value), err
 }
 
-func (store olricCounterStore) Get(ctx context.Context, key string) (int64, bool, error) {
+func (store olricCounterStore) Get(ctx context.Context, key string) (valueResult int64, foundResult bool, resultErr error) {
+	defer reportCounterFailure("get", &resultErr)
 	response, err := store.values.Get(ctx, key)
 	if errors.Is(err, olric.ErrKeyNotFound) {
 		return 0, false, nil
@@ -252,7 +254,8 @@ func (store olricCounterStore) Get(ctx context.Context, key string) (int64, bool
 	return value, err == nil, err
 }
 
-func (store olricCounterStore) Acquire(ctx context.Context, key string, maximum int64, ttl time.Duration) (string, error) {
+func (store olricCounterStore) Acquire(ctx context.Context, key string, maximum int64, ttl time.Duration) (tokenResult string, resultErr error) {
+	defer reportCounterFailure("acquire", &resultErr)
 	if maximum <= 0 {
 		return "", gateway.ErrCounterLimit
 	}
@@ -272,7 +275,10 @@ func (store olricCounterStore) Acquire(ctx context.Context, key string, maximum 
 	if err != nil {
 		return "", err
 	}
-	if err := store.values.Expire(ctx, key, ttl); err != nil {
+	// Keep count and TTL together under the existing distributed lock. Olric's
+	// TTL-only forwarding path can replace the value with empty bytes when the
+	// request reaches a former/non-owner during routing changes.
+	if err := store.values.Put(ctx, key, value, olric.EX(ttl)); err != nil {
 		store.rollbackIncrement(ctx, key, value)
 		return "", err
 	}
@@ -365,4 +371,12 @@ func (cache olricResponseCache) Set(ctx context.Context, key string, value []byt
 func (cache olricResponseCache) Delete(ctx context.Context, key string) error {
 	_, err := cache.values.Delete(ctx, key)
 	return err
+}
+
+// Counter failures contain coordination details only; provider credentials and
+// request bodies never enter this adapter. Keep public gateway errors sanitized.
+func reportCounterFailure(operation string, result *error) {
+	if *result != nil && !errors.Is(*result, gateway.ErrCounterLimit) && !errors.Is(*result, context.Canceled) {
+		log.WithError(*result).WithField("operation", operation).Error("[llm] Olric counter unavailable")
+	}
 }

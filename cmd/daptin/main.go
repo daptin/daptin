@@ -500,7 +500,7 @@ func main() {
 	}
 	configStore := runtimeInstance.ConfigStore
 	certManager := runtimeInstance.CertificateManager
-	gate := newReadinessGate(runtimeInstance.Handler, db.PingContext)
+	gate := newReadinessGate(runtimeInstance.Handler, runtimeInstance.CheckReady)
 
 	if *runtimeMode == "profile" {
 
@@ -686,18 +686,24 @@ func main() {
 
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), *shutdownTimeout)
 	defer cancelShutdown()
-	_ = runtimeInstance.Quiesce() // Drain reports any quiesce error below.
+	// Keep finalization within the configured shutdown budget. Short budgets
+	// reserve half; normal budgets reserve five seconds for evidence and cleanup.
+	reserve := min(5*time.Second, *shutdownTimeout/2)
+	workDeadline, _ := shutdownCtx.Deadline()
+	workCtx, cancelWork := context.WithDeadline(shutdownCtx, workDeadline.Add(-reserve))
+	defer cancelWork()
+	_ = runtimeInstance.Quiesce(workCtx) // Drain reports any quiesce error below.
 
 	delay := time.NewTimer(*shutdownReadinessDelay)
 	select {
 	case <-delay.C:
-	case <-shutdownCtx.Done():
+	case <-workCtx.Done():
 		delay.Stop()
 	}
 
 	serverShutdownErrors := make(chan error, len(httpServers))
 	for _, httpServer := range httpServers {
-		go func(srv *http.Server) { serverShutdownErrors <- srv.Shutdown(shutdownCtx) }(httpServer)
+		go func(srv *http.Server) { serverShutdownErrors <- srv.Shutdown(workCtx) }(httpServer)
 	}
 	for range httpServers {
 		if shutdownErr := <-serverShutdownErrors; shutdownErr != nil {
@@ -723,7 +729,11 @@ func main() {
 	}
 	if lifecycleErr != nil {
 		log.Errorf("Shutdown failed: %v", lifecycleErr)
-		os.Exit(1)
+		// An accepted restart still replaces the process after a bounded drain.
+		// Otherwise a drain deadline would turn restart into permanent shutdown.
+		if !restarting {
+			os.Exit(1)
+		}
 	}
 	if restarting && processCtx.Err() == nil {
 		if err := restartProcess(); err != nil {

@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/artpar/api2go/v2"
 	"github.com/buraksezer/olric"
@@ -196,7 +197,9 @@ func (configStore *ConfigStore) GetConfigValueFor(key string, configtype string,
 	defer stmt1.Close()
 	err = stmt1.QueryRowx(v...).Scan(&val)
 	if err != nil {
-		log.Printf("[198] No config value set for [%v]: %v", key, err)
+		if !errors.Is(err, sql.ErrNoRows) {
+			log.Printf("[198] No config value set for [%v]: %v", key, err)
+		}
 		return "", err
 	}
 	return fmt.Sprintf("%s", val), err
@@ -351,7 +354,7 @@ func (configStore *ConfigStore) SetConfigValueFor(key string, val interface{}, c
 	stmt1, err := transaction.Preparex(s)
 	if err != nil {
 		log.Errorf("[280] failed to prepare statment: %v", err)
-		return nil
+		return err
 	}
 
 	errScan := stmt1.QueryRowx(v...).Scan(&previousValue)

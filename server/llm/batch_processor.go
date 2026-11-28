@@ -40,17 +40,26 @@ type daptinBatchProcessor struct {
 	coordination gateway.CounterStore
 }
 
-func (processor *daptinBatchProcessor) Run(ctx context.Context) {
+func (processor *daptinBatchProcessor) Run(ctx context.Context, quiesced <-chan struct{}) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	slots := make(chan struct{}, batchWorkers)
 	var workers sync.WaitGroup
 	for {
 		select {
+		case <-quiesced:
+			workers.Wait()
+			return
 		case <-ctx.Done():
 			workers.Wait()
 			return
 		case <-ticker.C:
+			select {
+			case <-quiesced:
+				workers.Wait()
+				return
+			default:
+			}
 			select {
 			case slots <- struct{}{}:
 				workers.Add(1)

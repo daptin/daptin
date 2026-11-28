@@ -77,6 +77,21 @@ func TestUpdateActionTableSyncsSchemaPermissionAndDefaultGroups(t *testing.T) {
 	if err != nil {
 		t.Fatalf("update action table: %v", err)
 	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	rollbackTx, err := db.Beginx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	changedPermission := auth.AuthPermission(64)
+	if err := UpdateActionTable(&CmsConfig{Actions: []actionresponse.Action{{Name: "post_gig", OnType: "gig", Permission: &changedPermission}}}, rollbackTx); err != nil {
+		t.Fatal(err)
+	}
+	if err := rollbackTx.Rollback(); err != nil {
+		t.Fatalf("schema synchronizer took transaction ownership: %v", err)
+	}
 
 	var storedActionPermission int64
 	err = db.QueryRow(`select permission from action where action_name = 'post_gig'`).Scan(&storedActionPermission)
@@ -187,6 +202,9 @@ func TestUpdateActionTableSyncsSpecificActionAccessGroups(t *testing.T) {
 	if err != nil {
 		t.Fatalf("update action table: %v", err)
 	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
 
 	var privateRelationCount int
 	var privateRelationPermission int64
@@ -281,6 +299,9 @@ func TestUpdateActionTableAccessGroupsOverrideBroadDefaultGroups(t *testing.T) {
 	}, tx)
 	if err != nil {
 		t.Fatalf("update action table: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
 	}
 
 	var relationCount int

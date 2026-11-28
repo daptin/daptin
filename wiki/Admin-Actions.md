@@ -51,6 +51,15 @@ unavailable, accepted HTTP requests drain, runtime services shut down, and Dapti
 starts again with the same arguments and environment. On Unix, process replacement
 preserves the PID, including PID 1 in Docker. No Docker restart policy is required.
 
+Processes sharing the configured SQL database observe one committed restart
+marker. Olric PubSub wakes peers promptly; a short database poll also observes
+committed requests if the notification arrived before commit or was missed.
+Each process uses the same readiness, drain and replacement lifecycle. Startup
+waits for Olric coordination to become usable while peers rejoin. An old
+runtime cannot dispatch another agent operation after observing the new marker.
+The active agent operation may finish and retain its result before yielding.
+This is a cluster restart with a readiness interruption, not a rolling deployment.
+
 The action has no broad execution grant and is shared with `administrators`.
 Guests and ordinary accounts receive HTTP 403. First-administrator onboarding
 uses the same lifecycle after committing its changes.
@@ -59,11 +68,19 @@ During restart, `/ready` can return 503 or the connection can be unavailable.
 Wait for the new runtime to become ready before sending application traffic;
 check the configuration you changed to confirm it was loaded. The restart
 request acknowledges the request, not completion of the restart.
+If the configured drain deadline expires, active work is cancelled and the
+accepted process restart still proceeds. Interrupted agent attempts use the
+normal saved-run recovery and reconciliation behavior.
 
 For example, startup-loaded `limit.rate` needs a restart. Normal plan, model
 catalog, and relationship permission edits do not. Process supervisors can still
 restart Daptin through its normal shutdown signal. There is no bare `/restart`
 route; use the named action above.
+
+Quiesce stops new agent and batch work. Active operations may finish within
+`-shutdown_timeout`; the final five seconds (half for timeouts under ten seconds)
+are reserved for cancellation, saving results, and releasing claims before
+shared connections close. This applies to both API restarts and shutdown signals.
 
 ## Enable GraphQL
 
@@ -75,10 +92,30 @@ curl -X POST http://localhost:6336/_config/backend/graphql.enable \
   --data 'true'
 ```
 
-Restart Daptin with its process supervisor because GraphQL routes are composed
-at startup. There is no public `__enable_graphql` action.
+Invoke `world/restart_daptin` because GraphQL routes are composed at startup. There is no public `__enable_graphql` action.
 
 GraphQL endpoint: `http://localhost:6336/graphql`
+
+## upload_system_schema
+
+Administrators install JSON or YAML schema configuration through
+`POST /action/world/upload_system_schema`:
+
+```json
+{"attributes":{"schema_file":[{"name":"features.yaml","file":"<base64 file contents>"}]}}
+```
+
+Uploads install definitions into the canonical `world`, action, task, stream,
+and other schema-managed records within the action transaction. Documents are
+not retained in ConfigStore or replayed at startup, so later CRUD edits remain
+authoritative. Concurrent uploads merge atomically without losing each other's
+compatible additions. Call `world/restart_daptin` to reload the runtimes on all nodes,
+then verify the changed resource on each node. Local startup schema files remain
+supported.
+
+An upload's `Imports` execute once on the receiving node for entities already
+available there. For a new entity, install its schema, restart, then use the data
+import action. Empty import paths are rejected.
 
 ## download_system_schema
 

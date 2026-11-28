@@ -405,24 +405,28 @@ func CheckTable(tableInfo *table_info.TableInfo, db database.DatabaseConnection)
 	log.Debugf("Sql: %v", s)
 	stmt1, err := db.Preparex(s)
 	log.Debugf("Prepared Sql: %v", s)
-	var columns []string
-	if err != nil {
-		// expected error, no need to log
-		log.Tracef("Failed to select * from %v: %v", tableInfo.TableName, err)
-		err = CreateTable(tableInfo, db)
-		return err
-	} else {
-		defer stmt1.Close()
-		rowx := stmt1.QueryRowx()
-		columns, err = rowx.Columns()
 
-		// this is required
-		// dont remove this
-		// else p
-		dest := make(map[string]interface{})
-		err = rowx.MapScan(dest)
-		//CheckErr(err, "Failed to scan query result to map")
+	if err != nil {
+		createErr := CreateTable(tableInfo, db)
+		if createErr == nil {
+			return nil
+		}
+		// A peer may have created the table after our initial check. Inspect it
+		// through the same column reconciliation path used for an existing table.
+		stmt1, err = db.Preparex(s)
+		if err != nil {
+			return createErr
+		}
 	}
+	defer stmt1.Close()
+	rowx := stmt1.QueryRowx()
+	columns, err := rowx.Columns()
+	if err != nil {
+		return err
+	}
+	// Consume the row so the connection is released before issuing DDL.
+	dest := make(map[string]interface{})
+	_ = rowx.MapScan(dest)
 
 	for _, col := range columns {
 		_, ok := columnsWeWant[col]
@@ -450,6 +454,25 @@ func CheckTable(tableInfo *table_info.TableInfo, db database.DatabaseConnection)
 			log.Printf("Alter query: %v", query)
 			_, err := db.Exec(query)
 			if err != nil {
+				// Another node may have completed the same additive change.
+				rows, inspectErr := db.Queryx("SELECT * FROM " + tableInfo.TableName + " LIMIT 0")
+				if inspectErr == nil {
+					actual, columnsErr := rows.Columns()
+					_ = rows.Close()
+					if columnsErr == nil {
+						found := false
+						for _, name := range actual {
+							if name == col {
+								found = true
+								break
+							}
+						}
+						if found {
+							continue
+						}
+					}
+				}
+
 				log.Errorf("Failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)
 				return fmt.Errorf("failed to add column [%s] to table [%v]: %v", col, tableInfo.TableName, err)
 			}

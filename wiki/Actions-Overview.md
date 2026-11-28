@@ -214,7 +214,7 @@ See [[Authentication|Authentication]] for OAuth setup.
 | Action | Entity | Description |
 |--------|--------|-------------|
 | `become_an_administrator` | world | First user claims admin role |
-| `restart_daptin` | world | Administrator requests a graceful runtime restart |
+| `restart_daptin` | world | Administrator requests a graceful cluster restart |
 | `download_system_schema` | world | Export full schema as JSON |
 | `upload_csv_to_system_schema` | world | Create/update tables from CSV |
 

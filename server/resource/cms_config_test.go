@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/daptin/daptin/server/statementbuilder"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -46,6 +47,8 @@ func TestConfigUpdatePreservesLongPreviousValue(t *testing.T) {
 }
 
 func TestConfigStoreWidensLegacyPostgresPreviousValue(t *testing.T) {
+	statementbuilder.InitialiseStatementBuilder("postgres")
+	t.Cleanup(func() { statementbuilder.InitialiseStatementBuilder("sqlite3") })
 	dsn := os.Getenv("DAPTIN_TEST_POSTGRES_DSN")
 	if dsn == "" {
 		t.Skip("set DAPTIN_TEST_POSTGRES_DSN to run the PostgreSQL schema migration test")
@@ -89,7 +92,7 @@ func TestConfigStoreWidensLegacyPostgresPreviousValue(t *testing.T) {
 		t.Fatalf("upgrade legacy config table: %v", err)
 	}
 
-	oldValue := strings.Repeat("x", 101)
+	oldValue := strings.Repeat("x", 3000)
 	setConfigValue(t, db, store, "long.config", oldValue)
 	setConfigValue(t, db, store, "long.config", "replacement")
 

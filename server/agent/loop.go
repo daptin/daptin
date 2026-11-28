@@ -19,6 +19,9 @@ func (s *Service) tick(ctx context.Context, ref, token string, config Config) (b
 		return true, err
 	}
 	defer tx.Rollback()
+	if err := s.restart.CheckTransaction(tx); err != nil {
+		return true, err
+	}
 	row, err := s.owned(ref, token, tx)
 	if err != nil {
 		return true, err

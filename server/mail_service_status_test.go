@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net"
 	"sync"
 	"testing"
@@ -101,7 +102,7 @@ func TestMailServiceStatusQuiesce(t *testing.T) {
 	connection.Close()
 	status.setIMAP(mailProtocolStatus{State: "running", BoundAddress: listener.Addr().String()})
 	runtime := &Runtime{imapServer: imap, mailStatus: status}
-	if err := runtime.Quiesce(); err != nil {
+	if err := runtime.Quiesce(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -112,7 +113,7 @@ func TestMailServiceStatusQuiesce(t *testing.T) {
 	if got := status.snapshot().IMAP; got.State != "stopped" || got.BoundAddress != "" || got.ErrorCode != "" {
 		t.Fatalf("quiesced: %#v", got)
 	}
-	if err := runtime.Quiesce(); err != nil {
+	if err := runtime.Quiesce(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }

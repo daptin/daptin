@@ -267,7 +267,8 @@ streams do not have a server-wide deadline.
 ### Restart ownership
 
 The administrator-only `world/restart_daptin` action requests a graceful restart
-through the process-owned readiness and drain lifecycle. See
+of processes sharing its configured database, through their existing readiness
+and drain lifecycle. See
 [[Admin-Actions#restarting-daptin]] for the curl command and readiness checks.
 A supervisor restart through the normal shutdown signal remains available.
 

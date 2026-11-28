@@ -843,22 +843,16 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 	currentActions, err := GetActionMapByTypeName(transaction)
 	if err != nil {
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "Failed to rollback")
 		return err
 	}
 
 	actionDefaultGroups, err := schemaSyncTableDefaultGroups("action", transaction)
 	if err != nil {
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "Failed to rollback")
 		return err
 	}
 
 	worldTableMap, err := GetWorldTableMapBy("table_name", transaction)
 	if err != nil {
-		rollbackErr := transaction.Rollback()
-		CheckErr(rollbackErr, "Failed to rollback")
 		return err
 	}
 
@@ -902,8 +896,6 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 			_, err = transaction.Exec(s, v...)
 			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
 				log.Errorf("[650] Failed to insert action [%v]: %v", action.Name, err)
 				return err
 			}
@@ -912,22 +904,16 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 			if !ok {
 				existingAction, err = getSchemaManagedActionRow(action.Name, worldId, transaction)
 				if err != nil {
-					rollbackErr := transaction.Rollback()
-					CheckErr(rollbackErr, "Failed to rollback")
 					return err
 				}
 			}
 
 			err = syncDefaultUsergroupRelationsForObject("action", existingAction, actionDefaultGroups, transaction)
 			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
 			err = syncDefaultUsergroupRelationsForObject("action", existingAction, action.AccessGroups, transaction)
 			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
 			invalidateSchemaManagedActionCaches(action.OnType, action.Name, existingAction)
@@ -961,38 +947,26 @@ func UpdateActionTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {
 
 			_, err = transaction.Exec(s, v...)
 			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
 				log.Errorf("[681] Failed to insert action [%v]: %v", action.Name, err)
 				return err
 			}
 
 			createdAction, err := getSchemaManagedActionRow(action.Name, worldId, transaction)
 			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
 			err = syncDefaultUsergroupRelationsForObject("action", createdAction, actionDefaultGroups, transaction)
 			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
 			err = syncDefaultUsergroupRelationsForObject("action", createdAction, action.AccessGroups, transaction)
 			if err != nil {
-				rollbackErr := transaction.Rollback()
-				CheckErr(rollbackErr, "Failed to rollback")
 				return err
 			}
 			invalidateSchemaManagedActionCaches(action.OnType, action.Name, createdAction)
 		}
 	}
-	commitErr := transaction.Commit()
-	CheckErr(commitErr, "failed to commit")
-	//log.Printf("Checked %d actions", actionCheckCount)
-
-	return commitErr
+	return nil
 }
 
 func ImportDataFiles(imports []rootpojo.DataFileImport, transaction *sqlx.Tx, cruds map[string]*DbResource) {
@@ -1030,7 +1004,7 @@ func ImportDataFiles(imports []rootpojo.DataFileImport, transaction *sqlx.Tx, cr
 	if !ok {
 		schemaFolderDefinedByEnv = ""
 	} else {
-		if schemaFolderDefinedByEnv[len(schemaFolderDefinedByEnv)-1] != os.PathSeparator {
+		if len(schemaFolderDefinedByEnv) > 0 && schemaFolderDefinedByEnv[len(schemaFolderDefinedByEnv)-1] != os.PathSeparator {
 			schemaFolderDefinedByEnv = schemaFolderDefinedByEnv + string(os.PathSeparator)
 		}
 	}
@@ -1039,6 +1013,10 @@ func ImportDataFiles(imports []rootpojo.DataFileImport, transaction *sqlx.Tx, cr
 
 		log.Printf("Process import file %v", importFile.String())
 		filePath := importFile.FilePath
+		if filePath == "" {
+			log.Errorf("Import file path is required for [%s]", importFile.Entity)
+			continue
+		}
 		if strings.Index(filePath, ":") == -1 {
 			if filePath[0] != '/' {
 				filePath = schemaFolderDefinedByEnv + filePath
@@ -1200,127 +1178,82 @@ func newImportAdminSessionUser(adminUserId int64, adminUserRefId daptinid.Daptin
 	}
 }
 
+// ImportDataMapArray resolves supplied primary/unique keys before writing. A
+// duplicate insert aborts PostgreSQL transactions, so it cannot be used as an
+// existence probe before an update.
 func ImportDataMapArray(data []map[string]interface{}, crud *DbResource, req api2go.Request, transaction *sqlx.Tx) []error {
-	errs := make([]error, 0)
-
-	uniqueColumns := make([]api2go.ColumnInfo, 0)
-
-	for _, col := range crud.TableInfo().Columns {
-
-		if col.IsUnique {
-			uniqueColumns = append(uniqueColumns, col)
-		}
-
-	}
-
-	log.Printf("Process [%d] row import for table %v", len(data), crud.tableInfo.TableName)
+	var errs []error
 	for _, row := range data {
-
-		model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
-		_, err := crud.CreateWithTransaction(model, req, transaction)
-		if err != nil {
-			log.Printf(" [%v] Error while importing insert data row: %v == %v", crud.tableInfo.TableName, err, row)
-			errs = append(errs, err)
-
-			if len(uniqueColumns) > 0 {
-				for _, uniqueCol := range uniqueColumns {
-					log.Infof("[901] Try to update data by unique column: [%v] => [%v]", uniqueCol.ColumnName, row[uniqueCol.ColumnName])
-					uniqueColumnValue, ok := row[uniqueCol.ColumnName]
-					if !ok || uniqueColumnValue == nil {
-						continue
-					}
-					stringVal, isString := uniqueColumnValue.(string)
-					if isString && len(stringVal) == 0 {
-						continue
-					}
-					existingRow, err := crud.GetObjectByWhereClause(crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue, transaction)
-					if err != nil {
-						continue
-					}
-					log.Printf("Existing [%v] found by unique column: %v = %v", crud.tableInfo.TableName, uniqueCol.ColumnName, uniqueColumnValue)
-
-					//for key, val := range row {
-					//	existingRow[key] = val
-					//}
-
-					obj := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existingRow)
-
-					obj.SetAttributes(row)
-
-					_, err = crud.UpdateWithTransaction(obj, req, transaction)
-					if err != nil {
-						log.Errorf("Failed to update table 809 [%v] update row by unique column [%v]: %v", crud.tableInfo.TableName, uniqueCol.ColumnName, err)
-					}
-					break
-
-				}
-
+		var existing map[string]interface{}
+		var lookupErr error
+		for _, column := range crud.TableInfo().Columns {
+			if !column.IsPrimaryKey && !column.IsUnique {
+				continue
 			}
+			value, supplied := row[column.ColumnName]
+			if !supplied || value == nil {
+				continue
+			}
+			if text, ok := value.(string); ok && text == "" {
+				continue
+			}
+			if column.ColumnName == "reference_id" {
+				ref := daptinid.InterfaceToDIR(value)
+				if ref == daptinid.NullReferenceId {
+					lookupErr = errors.New("invalid import reference_id")
+					break
+				}
+				value = ref[:]
+			}
+			rows, err := GetObjectByWhereClauseWithTransaction(crud.tableInfo.TableName, transaction, goqu.Ex{column.ColumnName: value})
+			if err != nil {
+				lookupErr = err
+				break
+			}
+			if len(rows) == 0 {
+				continue
+			}
+			rows, _, err = crud.ResultToArrayOfMapWithTransaction(rows, crud.model.GetColumnMap(), nil, transaction)
+			if err != nil {
+				lookupErr = err
+				break
+			}
+			existing = rows[0]
+			break
+		}
+		if lookupErr != nil {
+			errs = append(errs, lookupErr)
+			continue
+		}
+		var err error
+		if existing != nil {
+			model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, 0, nil, existing)
+			model.SetAttributes(row)
+			_, err = crud.UpdateWithTransaction(model, req, transaction)
+		} else {
+			model := api2go.NewApi2GoModelWithData(crud.tableInfo.TableName, nil, int64(crud.TableInfo().DefaultPermission), nil, row)
+			_, err = crud.CreateWithTransaction(model, req, transaction)
+		}
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
 	return errs
 }
 
 func ImportDataStringArray(data [][]string, headers []string, entityName string, crud *DbResource, req api2go.Request, transaction *sqlx.Tx) []error {
-	errs := make([]error, 0)
-
-	uniqueColumns := make([]api2go.ColumnInfo, 0)
-
-	for _, col := range crud.TableInfo().Columns {
-
-		if col.IsUnique {
-			uniqueColumns = append(uniqueColumns, col)
+	rows := make([]map[string]interface{}, 0, len(data))
+	for _, values := range data {
+		if len(values) != len(headers) {
+			return []error{fmt.Errorf("invalid column count for import into %s", entityName)}
 		}
-
-	}
-
-	for _, rowArray := range data {
-
-		rowMap := make(map[string]interface{})
-
+		row := make(map[string]interface{}, len(headers))
 		for i, header := range headers {
-			rowMap[header] = rowArray[i]
+			row[header] = values[i]
 		}
-		model := api2go.NewApi2GoModelWithData(entityName, nil, int64(crud.TableInfo().DefaultPermission), nil, rowMap)
-		_, err := crud.CreateWithTransaction(model, req, transaction)
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		if err != nil {
-			// create row failed, try to update row by unique columns
-
-			if len(uniqueColumns) > 0 {
-				for _, uniqueCol := range uniqueColumns {
-					log.Printf("Try to update data by unique column: %v", uniqueCol.ColumnName)
-					uniqueColumnValue, ok := rowMap[uniqueCol.ColumnName]
-					if !ok || uniqueColumnValue == nil {
-						continue
-					}
-					stringVal, isString := uniqueColumnValue.(string)
-					if isString && len(stringVal) == 0 {
-						continue
-					}
-					existingRow, err := crud.GetObjectByWhereClauseWithTransaction(entityName, uniqueCol.ColumnName, uniqueColumnValue, transaction)
-					if err != nil {
-						continue
-					}
-
-					obj := api2go.NewApi2GoModelWithData(entityName, nil, 0, nil, existingRow)
-					obj.SetAttributes(rowMap)
-					_, err = crud.UpdateWithTransaction(obj, req, transaction)
-					if err != nil {
-						log.Errorf("Failed to update table 873 [%v] update row by unique column [%v]: %v", entityName, uniqueCol.ColumnName, err)
-					}
-					break
-
-				}
-			}
-
-		}
-
+		rows = append(rows, row)
 	}
-	return errs
+	return ImportDataMapArray(rows, crud, req, transaction)
 }
 
 func UpdateWorldTable(initConfig *CmsConfig, transaction *sqlx.Tx) error {

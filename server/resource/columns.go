@@ -1414,6 +1414,8 @@ var SystemActions = []actionresponse.Action{
 	},
 	{
 		Name:             "upload_system_schema",
+		Permission:       &adminOnlyActionPermission,
+		AccessGroups:     adminOnlyActionAccessGroups,
 		Label:            "Upload features",
 		OnType:           "world",
 		InstanceOptional: true,
@@ -1428,7 +1430,7 @@ var SystemActions = []actionresponse.Action{
 		OutFields: []actionresponse.Outcome{
 			{
 				Type:   "system_json_schema_update",
-				Method: "ACTIONRESPONSE",
+				Method: "EXECUTE",
 				Attributes: map[string]interface{}{
 					"json_schema": "~schema_file",
 				},

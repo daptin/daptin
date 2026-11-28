@@ -69,17 +69,15 @@ For a stable application tool name, add a binding to `tools`:
 
 Each run stores its agent configuration and invokes actions through the normal
 Daptin action handler. Normal action, subject, and resource permission checks
-apply. Restart Daptin processes after changing action definitions or schemas;
-in a cluster, restart every node.
+apply. After changing action definitions or schemas, invoke
+`world.restart_daptin` to restart the processes sharing the configured database.
 
-An administrator agent can create schema through the `world` resource, invoke
-`world.restart_daptin`, and continue the same persisted run after the process
-restarts. The restart action currently affects only the executing node. Shared
-SQL schema definitions do not refresh another node's in-memory resources: that
-node can still return `404` for a newly added entity, and a run handed to it can
-receive an unknown-entity tool result. Restart each node before treating a
-schema change as applied throughout the cluster. Schema uploads also write a
-local file; restarting peers does not distribute that file.
+An administrator agent can create schema through `world`, or install a schema
+with `world.upload_system_schema`, then call `world.restart_daptin` and continue
+its persisted run. Stale runtimes yield before dispatching another operation;
+an operation already executing saves its result before graceful shutdown. The
+new runtime reconstructs conversation from accepted steps and saved results.
+See [[Admin-Actions#restarting-daptin]] for cluster restart and readiness behavior.
 
 Arguments map directly to action inputs. The locally validated schema dialect is
 the structural OpenAPI 3 subset: type, description, properties, required,

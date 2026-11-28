@@ -241,18 +241,26 @@ func TestAgentSchemaRestartLive(t *testing.T) {
 			report["final_run"] = last
 			observations := []interface{}{}
 			verified := false
-			var stale []string
 			for _, base := range bases {
-				status, body := request(base, "/api/agnew")
+				deadline := time.Now().Add(40 * time.Second)
+				var status int
+				var body interface{}
+				for {
+					status, body = request(base, "/api/agnew")
+					name, _ := transportE2EPath(body, "data.0.attributes.name")
+					if status == 200 && name == "restart-verified" {
+						verified = true
+						break
+					}
+					if time.Now().After(deadline) {
+						t.Errorf("node %s did not load schema and record: %d", base, status)
+						break
+					}
+					time.Sleep(200 * time.Millisecond)
+				}
 				observations = append(observations, map[string]interface{}{"node": base, "status": status, "body": body})
-				if status == 404 {
-					stale = append(stale, base)
-				}
-				name, _ := transportE2EPath(body, "data.0.attributes.name")
-				if status == 200 && name == "restart-verified" {
-					verified = true
-				}
 			}
+
 			report["entity_observations"] = observations
 			for _, entity := range []string{"agentstp", "agenttry"} {
 				_, body := request(bases[0], "/api/"+entity+"?page%5Bsize%5D=100")
@@ -268,28 +276,6 @@ func TestAgentSchemaRestartLive(t *testing.T) {
 				t.Error("no node returned the verified record")
 				return
 			}
-			// A separate operator intervention documents what the local-only
-			// restart action leaves outstanding; it is not part of agent success.
-			var rolled []interface{}
-			for _, base := range stale {
-				result := transportE2EPostJSON(t, client, base+"/action/world/restart_daptin", admin, map[string]interface{}{"attributes": map[string]interface{}{}})
-				deadline := time.Now().Add(40 * time.Second)
-				var status int
-				var body interface{}
-				for time.Now().Before(deadline) {
-					status, body = request(base, "/api/agnew")
-					if status == 200 {
-						break
-					}
-					time.Sleep(200 * time.Millisecond)
-				}
-				rolled = append(rolled, map[string]interface{}{"node": base, "restart_response": result, "status": status, "body": body})
-				name, _ := transportE2EPath(body, "data.0.attributes.name")
-				if status != 200 || name != "restart-verified" {
-					t.Errorf("node %s did not apply persisted schema after restart", base)
-				}
-			}
-			report["operator_restarted_stale_nodes"] = rolled
 		})
 	}
 }
