@@ -18,7 +18,7 @@ timed waits and cluster recovery. Follow the agent guide after configuring a
 tool-capable model here.
 
 To supply your own tools and execute the model/tool loop in a WebUI or application,
-follow [[Walkthrough-Client-Tool-Calling]]. The client executes its functions while
+follow [Use your own tools](https://github.com/daptin/daptin/wiki/Walkthrough-Client-Tool-Calling). The client executes its functions while
 the gateway handles model access, routing and inference metering.
 
 Configuration uses ordinary Daptin resources and relationships:

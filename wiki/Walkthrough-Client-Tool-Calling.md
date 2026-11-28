@@ -12,7 +12,7 @@ record or Daptin action registration.
 
 ## 1. Prepare a tool-capable model
 
-Follow [[LLM-Providers#configure-the-gateway]] to configure a provider, credential,
+Follow [Configure the gateway](https://github.com/daptin/daptin/wiki/LLM-Providers#configure-the-gateway) to configure a provider, credential,
 public model and deployment. Use the public model name `assistant` below, or
 substitute your own. The model and deployment must allow the `chat` operation,
 and the upstream model must support function tool calling.
@@ -31,7 +31,7 @@ capabilities object; include any other capabilities you already use. Allow the
 catalog to reload before making requests.
 
 Grant the account used by your client execute permission on the public model,
-following [[LLM-Providers#5-allow-an-application-user-to-invoke-the-model]]. Use
+following [Allow an application user to invoke the model](https://github.com/daptin/daptin/wiki/LLM-Providers#5-allow-an-application-user-to-invoke-the-model). Use
 that account's Daptin JWT for inference. The provider API key stays in Daptin's
 credential resource.
 
@@ -200,8 +200,8 @@ execute it. Partial argument JSON is not ready for execution.
 
 Client tools may also call Daptin resource or action APIs. Those requests use
 their own normal authentication and resource/action permissions; a model's tool
-proposal grants no additional access. See [[CRUD-Operations]] and
-[[Actions-Overview]].
+proposal grants no additional access. See [CRUD operations](https://github.com/daptin/daptin/wiki/CRUD-Operations) and
+[Actions](https://github.com/daptin/daptin/wiki/Actions-Overview).
 
 ## 5. Decide who owns execution and recovery
 
@@ -213,12 +213,12 @@ before retrying.
 
 Each inference is independently authorized and metered by Daptin. The example's
 turn and tool-call limits are client controls. Account quotas remain governed by
-[[API-Metering]]; local tool execution does not automatically become Daptin LLM
-usage. See [[LLM-Providers#stored-responses-and-conversation-history]] if you want
+[API metering](https://github.com/daptin/daptin/wiki/API-Metering); local tool execution does not automatically become Daptin LLM
+usage. See [Stored Responses and conversation history](https://github.com/daptin/daptin/wiki/LLM-Providers#stored-responses-and-conversation-history) if you want
 gateway-stored conversation continuation; storing history does not execute tools
 or keep a client loop running.
 
-For a loop that continues after the client disconnects, use [[Agents]]. Its
+For a loop that continues after the client disconnects, use [Durable agents](https://github.com/daptin/daptin/wiki/Agents). Its
 tools execute Daptin resource operations and named actions on the server. The
 durable agent currently has no interface for handing arbitrary browser tools
 to a client and resuming from submitted tool results.
@@ -229,7 +229,7 @@ to a client and resuming from submitted tool results.
 |---|---|
 | Model/capability rejection | Enable `tools`, allow `chat`, and use an upstream that supports function tools. |
 | HTTP 403 | Check the calling Daptin account's execute permission on the public model. |
-| Quota rejection | Inspect the calling account's plan, quota and usage through [[API-Metering]]. |
+| Quota rejection | Inspect the calling account's plan, quota and usage through [API metering](https://github.com/daptin/daptin/wiki/API-Metering). |
 | Tool history rejected | Preserve assistant messages and provide a matching result for every proposed call. |
 | Empty search results | Search uses literal substring matching; try `export` in the example. |
 | Browser fetch fails | Check origin/CORS configuration, mixed HTTP/HTTPS content and token handling. |
