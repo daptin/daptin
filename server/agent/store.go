@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/artpar/api2go/v2"
@@ -34,6 +35,9 @@ func (s store) load(table, ref string, tx *sqlx.Tx) (map[string]interface{}, err
 	if id == daptinid.NullReferenceId {
 		return nil, errors.New("invalid reference_id")
 	}
+	if table == "agentrun" || table == "agentstp" || table == "agenttry" {
+		return s.cruds[table].AgentExecutionRow(id, executionFields(table), tx)
+	}
 	row, _, err := s.cruds[table].GetSingleRowByReferenceIdWithTransaction(table, id, nil, tx)
 	return row, err
 }
@@ -47,6 +51,23 @@ func (s store) read(ctx context.Context, table, ref string, tx *sqlx.Tx) (map[st
 		return nil, fmt.Errorf("invalid %s response", table)
 	}
 	return model.GetAllAsAttributes(), nil
+}
+
+// Controls use the normal resource permission chain with a sparse projection;
+// initial input and attempt bodies are not part of a control request.
+func (s store) controlRun(ctx context.Context, ref string, tx *sqlx.Tx) (map[string]interface{}, error) {
+	filter, err := encode([]map[string]interface{}{{"column": "reference_id", "operator": "is", "value": ref}})
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.list(ctx, "agentrun", url.Values{"query": {filter}, "fields": {strings.Join(append(executionFields("agentrun"), "config"), ",")}, "page[size]": {"1"}}, tx)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) != 1 {
+		return nil, errors.New("agent run is not readable")
+	}
+	return rows[0], nil
 }
 func (s store) create(ctx context.Context, table string, attrs map[string]interface{}, tx *sqlx.Tx) (map[string]interface{}, error) {
 	t := s.cruds[table].TableInfo()

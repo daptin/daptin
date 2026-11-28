@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"reflect"
 	"strings"
 	"time"
 
@@ -21,7 +20,6 @@ const (
 	leaseDuration     = 30 * time.Second
 	heartbeatInterval = 5 * time.Second
 	maxPayload        = 1 << 20
-	maxHistory        = 4 << 20
 )
 
 type Limits struct {
@@ -58,16 +56,18 @@ type Config struct {
 	Limits       Limits  `json:"limits"`
 }
 type runState struct {
-	Config            Config                 `json:"config"`
-	Messages          []contract.Message     `json:"messages"`
+	Config            Config                 `json:"-"`
+	Messages          []contract.Message     `json:"-"`
 	Started           time.Time              `json:"started"`
 	Turns             int                    `json:"turns"`
 	Calls             int                    `json:"calls"`
 	Sequence          int                    `json:"sequence"`
-	Active            string                 `json:"active,omitempty"`
-	Pending           []contract.ToolCall    `json:"pending,omitempty"`
+	Active            string                 `json:"-"`
+	Current           string                 `json:"-"`
+	Source            string                 `json:"-"`
+	Accepted          int                    `json:"accepted"`
+	NextCall          int                    `json:"next_call"`
 	Error             string                 `json:"error,omitempty"`
-	Result            string                 `json:"result,omitempty"`
 	ErrorCode         string                 `json:"error_code,omitempty"`
 	ActiveMS          int64                  `json:"active_ms"`
 	ActiveRemainingMS *int64                 `json:"active_remaining_ms,omitempty"`
@@ -97,10 +97,6 @@ func decode(value interface{}, target interface{}) error {
 		if err != nil {
 			return err
 		}
-	}
-	// Terminal metadata may add a small error envelope to an already full history.
-	if len(data) > maxHistory+1024 {
-		return errors.New("agent payload exceeds history limit")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -231,75 +227,4 @@ func validateArguments(raw string, schema json.RawMessage) (map[string]interface
 		return nil, fmt.Errorf("invalid tool arguments: %w", err)
 	}
 	return args, nil
-}
-
-var errPayloadLimit = errors.New("result exceeds payload limit")
-
-// Reject oversized structures before json.Marshal allocates an encoded copy.
-// The final byte check accounts for escaping and custom JSON representations.
-func encodeBounded(value interface{}, limit int) (string, error) {
-	budget := limit
-	var visit func(reflect.Value, int) error
-	visit = func(v reflect.Value, depth int) error {
-		if !v.IsValid() {
-			return nil
-		}
-		budget--
-		if budget < 0 || depth > 1000 {
-			return errPayloadLimit
-		}
-		switch v.Kind() {
-		case reflect.Interface, reflect.Pointer:
-			if !v.IsNil() {
-				return visit(v.Elem(), depth+1)
-			}
-		case reflect.String:
-			budget -= v.Len()
-		case reflect.Slice, reflect.Array:
-			if v.Type().Elem().Kind() == reflect.Uint8 {
-				budget -= v.Len()
-				break
-			}
-			for i := 0; i < v.Len(); i++ {
-				if err := visit(v.Index(i), depth+1); err != nil {
-					return err
-				}
-			}
-		case reflect.Map:
-			iter := v.MapRange()
-			for iter.Next() {
-				if err := visit(iter.Key(), depth+1); err != nil {
-					return err
-				}
-				if err := visit(iter.Value(), depth+1); err != nil {
-					return err
-				}
-			}
-		case reflect.Struct:
-			for i := 0; i < v.NumField(); i++ {
-				field := v.Type().Field(i)
-				if field.PkgPath != "" || field.Tag.Get("json") == "-" {
-					continue
-				}
-				if err := visit(v.Field(i), depth+1); err != nil {
-					return err
-				}
-			}
-		}
-		if budget < 0 {
-			return errPayloadLimit
-		}
-		return nil
-	}
-	if err := visit(reflect.ValueOf(value), 0); err != nil {
-		return "", err
-	}
-	encoded, err := encode(value)
-	if err != nil {
-		return "", err
-	}
-	if len(encoded) > limit {
-		return "", errPayloadLimit
-	}
-	return encoded, nil
 }

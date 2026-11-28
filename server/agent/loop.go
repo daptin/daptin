@@ -13,7 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
+func (s *Service) tick(ctx context.Context, ref, token string, config Config) (bool, error) {
 	tx, err := s.begin(ctx)
 	if err != nil {
 		return true, err
@@ -23,8 +23,8 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	var state runState
-	if err := decode(row["state"], &state); err != nil {
+	state, err := readState(row, config)
+	if err != nil {
 		return true, err
 	}
 	user, err := s.authorizeRun(ctx, row, tx)
@@ -48,12 +48,21 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		if err != nil {
 			return true, err
 		}
-		if err := decode(attempt["intent"], &operation); err != nil {
+		step, err := s.load("agentstp", refValue(attempt["agentstp_id"]), tx)
+		if err != nil {
+			return true, err
+		}
+		operation, err = s.operation(step, attempt, tx)
+		if err != nil {
 			return true, err
 		}
 		switch attempt["status"] {
 		case "completed":
-			return s.accept(ctx, row, &state, operation, attempt["result"], tx)
+			saved, err := s.result(state.Active, tx)
+			if err != nil {
+				return true, err
+			}
+			return s.accept(ctx, row, &state, operation, saved["result"], tx)
 		case "waiting":
 			// Only timer waits are runnable without a submitted decision.
 			if operation.Call.Function.Name != "agent_wait" {
@@ -95,12 +104,19 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		}
 	} else {
 		operation = intent{Operation: uuid.NewString(), Number: 1}
-		if len(state.Pending) > 0 {
+		if state.Source != "" {
 			if state.Calls >= state.Config.Limits.ToolCalls {
 				return true, s.fail(ctx, row, &state, &executionLimit{"tool_calls_exceeded", "tool call limit reached"}, tx)
 			}
 			operation.Kind = "tool"
-			operation.Call = state.Pending[0]
+			calls, err := s.stepCalls(ref, state.Source, tx)
+			if err != nil {
+				return true, err
+			}
+			if state.NextCall < 0 || state.NextCall >= len(calls) {
+				return true, errors.New("invalid pending tool position")
+			}
+			operation.Call = calls[state.NextCall]
 			state.Calls++
 		} else {
 			if state.Turns >= state.Config.Limits.Turns {
@@ -110,15 +126,22 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 			state.Turns++
 		}
 		state.Sequence++
-		step, err := s.create(userContext(ctx, user), "agentstp", map[string]interface{}{"agentrun_id": ref, "number": state.Sequence, "kind": operation.Kind, "payload": operation}, tx)
+		step, err := s.create(userContext(ctx, user), "agentstp", map[string]interface{}{"agentrun_id": ref, "number": state.Sequence, "kind": operation.Kind, "operation": operation.Operation, "source_step_id": nullableRef(state.Source), "call_id": operation.Call.ID}, tx)
 		if err != nil {
 			return true, err
 		}
 		operation.Step = reference(step)
+		state.Current = operation.Step
+	}
+	if operation.Kind == "model" {
+		state.Messages, err = s.conversation(ref, &state, tx)
+		if err != nil {
+			return true, s.fail(ctx, row, &state, err, tx)
+		}
 	}
 	attemptRef := uuid.NewString()
 	operation.RequestID = attemptRef
-	attempt, err = s.create(userContext(ctx, user), "agenttry", map[string]interface{}{"reference_id": attemptRef, "agentrun_id": ref, "agentstp_id": operation.Step, "status": "dispatched", "intent": operation}, tx)
+	attempt, err = s.create(userContext(ctx, user), "agenttry", map[string]interface{}{"reference_id": attemptRef, "agentrun_id": ref, "agentstp_id": operation.Step, "status": "dispatched", "number": operation.Number}, tx)
 	if err != nil {
 		return true, err
 	}
@@ -160,9 +183,9 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 	}
 	// The intent is durable. No checkpoint transaction spans inference or tool I/O.
 	// Revalidate identity, ownership and remaining time immediately before I/O.
-	user, remaining, timeCode, err := s.beforeDispatch(ctx, ref, token)
+	user, remaining, timeCode, err := s.beforeDispatch(ctx, ref, token, config)
 	if err != nil {
-		return true, s.terminal(ctx, ref, token, "failed", err)
+		return true, s.terminal(ctx, ref, token, "failed", err, config)
 	}
 	work, cancel := context.WithTimeout(userContext(ctx, user), remaining)
 	defer cancel()
@@ -191,20 +214,20 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 		}
 		var gatewayError *contract.Error
 		if operation.Kind == "model" && errors.As(err, &gatewayError) && gatewayError.Retryable && operation.Number < state.Config.Limits.Attempts {
-			return true, s.retry(evidenceCtx, ref, token, state.Active, gatewayError, operation.Number)
+			return true, s.retry(evidenceCtx, ref, token, state.Active, gatewayError, operation.Number, config)
 		}
 		if operation.Kind == "tool" && !repeatable(state.Config, operation.Call.Function.Name) {
 			if saveErr := s.evidence(evidenceCtx, state.Active, "unknown", map[string]interface{}{"error": err.Error()}); saveErr != nil {
 				return true, saveErr
 			}
-			return true, s.terminal(evidenceCtx, ref, token, "unknown", err)
+			return true, s.terminal(evidenceCtx, ref, token, "unknown", err, config)
 		}
 		if saveErr := s.evidence(evidenceCtx, state.Active, "failed", map[string]interface{}{"error": err.Error()}); saveErr != nil {
 			return true, saveErr
 		}
-		return true, s.terminal(evidenceCtx, ref, token, "failed", err)
+		return true, s.terminal(evidenceCtx, ref, token, "failed", err, config)
 	}
-	if _, encodeErr := encodeBounded(result, maxPayload); encodeErr != nil {
+	if _, encodeErr := encode(result); encodeErr != nil {
 		if operation.Kind == "tool" && repeatable(state.Config, operation.Call.Function.Name) {
 			result = map[string]interface{}{"error": map[string]interface{}{"message": encodeErr.Error()}}
 		} else {
@@ -215,7 +238,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 			if saveErr := s.evidence(evidenceCtx, state.Active, status, map[string]interface{}{"error": encodeErr.Error()}); saveErr != nil {
 				return true, saveErr
 			}
-			return true, s.terminal(evidenceCtx, ref, token, status, encodeErr)
+			return true, s.terminal(evidenceCtx, ref, token, status, encodeErr, config)
 		}
 	}
 
@@ -224,7 +247,7 @@ func (s *Service) tick(ctx context.Context, ref, token string) (bool, error) {
 	}
 	return false, nil
 }
-func (s *Service) beforeDispatch(ctx context.Context, ref, token string) (*auth.SessionUser, time.Duration, string, error) {
+func (s *Service) beforeDispatch(ctx context.Context, ref, token string, config Config) (*auth.SessionUser, time.Duration, string, error) {
 	tx, err := s.begin(ctx)
 	if err != nil {
 		return nil, 0, "", err
@@ -238,8 +261,8 @@ func (s *Service) beforeDispatch(ctx context.Context, ref, token string) (*auth.
 	if err != nil {
 		return nil, 0, "", err
 	}
-	var state runState
-	if err := decode(row["state"], &state); err != nil {
+	state, err := readState(row, config)
+	if err != nil {
 		return nil, 0, "", err
 	}
 	now, err := s.clock(tx)
@@ -269,7 +292,7 @@ func (s *Service) evidence(ctx context.Context, ref, status string, result inter
 	}
 	return tx.Commit()
 }
-func (s *Service) terminal(ctx context.Context, ref, token, status string, cause error) error {
+func (s *Service) terminal(ctx context.Context, ref, token, status string, cause error, config Config) error {
 	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
@@ -279,8 +302,8 @@ func (s *Service) terminal(ctx context.Context, ref, token, status string, cause
 	if err != nil {
 		return err
 	}
-	var state runState
-	if err := decode(row["state"], &state); err != nil {
+	state, err := readState(row, config)
+	if err != nil {
 		return err
 	}
 	state.Error = cause.Error()
@@ -291,68 +314,70 @@ func (s *Service) terminal(ctx context.Context, ref, token, status string, cause
 	return tx.Commit()
 }
 func (s *Service) accept(ctx context.Context, row map[string]interface{}, state *runState, operation intent, result interface{}, tx *sqlx.Tx) (bool, error) {
-	status := "running"
-	if operation.Kind == "model" {
-		var response contract.Response
-		if err := decode(result, &response); err != nil {
-			return true, s.fail(ctx, row, state, err, tx)
-		}
-		if response.Chat == nil || len(response.Chat.Choices) != 1 {
-			return true, s.fail(ctx, row, state, errors.New("model must return one chat choice"), tx)
-		}
-		choice := response.Chat.Choices[0]
-		message := choice.Message
-		if message.Role != "assistant" {
-			return true, s.fail(ctx, row, state, errors.New("model returned invalid message role"), tx)
-		}
-		seen := map[string]bool{}
-		if state.Calls+len(message.ToolCalls) > state.Config.Limits.ToolCalls {
-			return true, s.fail(ctx, row, state, &executionLimit{"tool_calls_exceeded", "tool call limit reached"}, tx)
-		}
-		for _, call := range message.ToolCalls {
-			if seen[call.ID] {
-				return true, s.fail(ctx, row, state, errors.New("duplicate tool call identity"), tx)
-			}
-			seen[call.ID] = true
-			if call.ID == "" || call.Type != "function" {
-				return true, s.fail(ctx, row, state, errors.New("invalid tool call identity or type"), tx)
-			}
-		}
-		state.Messages = append(state.Messages, message)
-		state.Pending = message.ToolCalls
-		if len(message.ToolCalls) == 0 {
-			if choice.FinishReason != "stop" {
-				return true, s.fail(ctx, row, state, fmt.Errorf("model stopped with %s", choice.FinishReason), tx)
-			}
-			status = "completed"
-			for _, part := range message.Content {
-				if part.Type == "text" || part.Type == "output_text" {
-					state.Result += part.Text
-				}
-			}
-		}
-	} else {
-		var value interface{}
-		if err := decode(result, &value); err != nil {
-			return true, err
-		}
-		encoded, err := encode(value)
-		if err != nil {
-			return true, err
-		}
-		state.Messages = append(state.Messages, contract.Message{Role: "tool", ToolCallID: operation.Call.ID, Content: []contract.ContentPart{{Type: "text", Text: encoded}}})
-		if len(state.Pending) == 0 || state.Pending[0].ID != operation.Call.ID {
-			return true, errors.New("tool result does not match pending operation")
-		}
-		state.Pending = state.Pending[1:]
-	}
 	step, err := s.load("agentstp", operation.Step, tx)
 	if err != nil {
 		return true, err
 	}
-	if _, err := s.update(ctx, "agentstp", step, map[string]interface{}{"payload": map[string]interface{}{"operation": operation, "result": result}}, tx); err != nil {
+	number, err := resource.ResourceRowInt64(step["number"])
+	if err != nil {
 		return true, err
 	}
+	if refValue(step["agentrun_id"]) != reference(row) || operation.Step != state.Current {
+		return true, errors.New("step belongs to a different execution")
+	}
+	if selected := refValue(step["accepted_try_id"]); selected != "" {
+		if selected != state.Active || int(number) != state.Accepted {
+			return true, errors.New("step already has a different accepted attempt")
+		}
+		state.Active = ""
+		if err := s.save(ctx, row, state, resource.StringOrEmpty(row["status"]), tx); err != nil {
+			return true, err
+		}
+		return row["status"] != "running", tx.Commit()
+	}
+	if int(number) != state.Accepted+1 {
+		return true, errors.New("step acceptance is out of order")
+	}
+	status := "running"
+	if operation.Kind == "model" {
+		message, finish, err := modelMessage(result)
+		if err != nil {
+			return true, s.fail(ctx, row, state, err, tx)
+		}
+		if state.Calls+len(message.ToolCalls) > state.Config.Limits.ToolCalls {
+			return true, s.fail(ctx, row, state, &executionLimit{"tool_calls_exceeded", "tool call limit reached"}, tx)
+		}
+		state.NextCall = 0
+		if len(message.ToolCalls) > 0 {
+			state.Source = operation.Step
+		} else {
+			if finish != "stop" {
+				return true, s.fail(ctx, row, state, fmt.Errorf("model stopped with %s", finish), tx)
+			}
+			state.Source = ""
+			status = "completed"
+		}
+	} else {
+		if state.Source == "" || state.Source != refValue(step["source_step_id"]) {
+			return true, errors.New("tool result has a different source")
+		}
+		calls, err := s.stepCalls(reference(row), state.Source, tx)
+		if err != nil {
+			return true, err
+		}
+		if state.NextCall >= len(calls) || calls[state.NextCall].ID != operation.Call.ID {
+			return true, errors.New("tool result does not match pending operation")
+		}
+		state.NextCall++
+		if state.NextCall == len(calls) {
+			state.Source = ""
+			state.NextCall = 0
+		}
+	}
+	if _, err := s.update(ctx, "agentstp", step, map[string]interface{}{"accepted_try_id": state.Active}, tx); err != nil {
+		return true, err
+	}
+	state.Accepted = int(number)
 	state.Active = ""
 	state.Error = ""
 	state.ErrorCode = ""
@@ -364,7 +389,7 @@ func (s *Service) accept(ctx context.Context, row map[string]interface{}, state 
 
 // The run owns retry admission. Only the gateway's explicit retryable contract
 // admits another inference attempt, with a durable wake and bounded attempts.
-func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, cause *contract.Error, number int) error {
+func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, cause *contract.Error, number int, config Config) error {
 	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
@@ -381,8 +406,8 @@ func (s *Service) retry(ctx context.Context, ref, token, attemptRef string, caus
 	if _, err := s.update(ctx, "agenttry", attempt, map[string]interface{}{"result": map[string]interface{}{"retryable": true, "error": cause.Error()}}, tx); err != nil {
 		return err
 	}
-	var state runState
-	if err := decode(row["state"], &state); err != nil {
+	state, err := readState(row, config)
+	if err != nil {
 		return err
 	}
 	state.Error = cause.Error()

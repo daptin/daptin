@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/daptin/daptin/server/auth"
+	"github.com/daptin/llmgateway/contract"
 )
 
 const agentE2ESchema = `
@@ -182,8 +183,12 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		case "ready":
 
 		case "history":
-			tool("daptin_read", map[string]interface{}{"entity": "agitem", "reference": historyReference})
-			message["content"] = strings.Repeat("h", 600*1024)
+			if len(results) < 8 {
+				tool("daptin_read", map[string]interface{}{"entity": "agitem", "reference": historyReference})
+				message["content"] = strings.Repeat("h", 600*1024)
+			} else {
+				message["content"] = "history-complete"
+			}
 		case "privilege":
 			if len(results) == 0 {
 				tool("daptin_action", map[string]interface{}{"entity": "agitem", "action": "verify", "attributes": map[string]interface{}{"agitem_id": privilegeReference}})
@@ -248,6 +253,8 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 			if len(results) == 0 {
 				tool("daptin_action", map[string]interface{}{"entity": "agitem", "action": "infer", "attributes": map[string]interface{}{}})
 			}
+		case "large-answer":
+			message["content"] = strings.Repeat("L", 2<<20)
 		case "budget-finish":
 		case "active-slow":
 			select {
@@ -390,6 +397,23 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		return nil
 	}
 
+	answer := func(t *testing.T, base string, row map[string]interface{}) string {
+		t.Helper()
+		step := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/agentstp/"+row["current_step_id"].(string), admin, nil, 200)
+		selected, _ := transportE2EPath(step, "data.attributes.accepted_try_id")
+		attempt := accessGroupsE2ERequestJSON(t, client, http.MethodGet, base+"/api/agenttry/"+selected.(string), admin, nil, 200)
+		result, _ := transportE2EPath(attempt, "data.attributes.result")
+		var response contract.Response
+		if err := json.Unmarshal(mustAgentJSON(result), &response); err != nil {
+			t.Fatal(err)
+		}
+		var text strings.Builder
+		for _, part := range response.Chat.Choices[0].Message.Content {
+			text.WriteString(part.Text)
+		}
+		return text.String()
+	}
+
 	// Each test changes definition data; start snapshots it into its own run.
 	configureLimits := func(t *testing.T, limits map[string]interface{}, modelName string) {
 		t.Helper()
@@ -431,7 +455,7 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		configureLimits(t, map[string]interface{}{"seconds": 30 * 86400, "active_seconds": 2}, "")
 		row := wait(t, baseA, submit(t, baseA, admin, "timer"), "completed")
 		state := row["state"].(map[string]interface{})
-		if state["active_ms"].(float64) >= 2000 || state["config"].(map[string]interface{})["limits"].(map[string]interface{})["seconds"].(float64) != 30*86400 {
+		if state["active_ms"].(float64) >= 2000 || row["config"].(map[string]interface{})["limits"].(map[string]interface{})["seconds"].(float64) != 30*86400 {
 			t.Fatalf("time accounting: %+v", state)
 		}
 	})
@@ -496,14 +520,14 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		record := accessGroupsE2EFindResourceID(t, client, baseA, admin, "agitem", "name", "agent-created")
 		run := submit(t, baseA, admin, "conflict:"+record)
 		attrs := wait(t, baseA, run, "completed")
-		if !strings.Contains(fmt.Sprint(attrs["state"].(map[string]interface{})["result"]), "version conflict") {
+		if !strings.Contains(answer(t, baseA, attrs), "version conflict") {
 			t.Fatalf("model did not receive rejected update: %#v", attrs)
 		}
 	})
 	t.Run("discovery exposes a paged catalog", func(t *testing.T) {
 		run := submit(t, baseA, admin, "catalog")
 		attrs := wait(t, baseA, run, "completed")
-		result := fmt.Sprint(attrs["state"].(map[string]interface{})["result"])
+		result := answer(t, baseA, attrs)
 		if !strings.Contains(result, `"resources"`) {
 			t.Fatalf("catalog missing resources: %s", result)
 		}
@@ -534,15 +558,31 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 		}
 	})
 
-	t.Run("history limit terminalizes without repeating completed work", func(t *testing.T) {
-		record := accessGroupsE2EFindResourceID(t, client, baseA, admin, "agitem", "name", "agent-created")
-		run := submit(t, baseA, admin, "history:"+record)
-		attrs := wait(t, baseA, run, "failed")
-		state := attrs["state"].(map[string]interface{})
-		if state["error"] != "agent history limit exceeded" {
-			t.Fatalf("unexpected limit outcome: %v", state["error"])
+	t.Run("large result is retained on the selected attempt", func(t *testing.T) {
+		attrs := wait(t, baseA, submit(t, baseA, admin, "large-answer"), "completed")
+		if body := answer(t, baseA, attrs); len(body) != 2<<20 || strings.Trim(body, "L") != "" {
+			t.Fatalf("large response was changed: %d bytes", len(body))
+		}
+		t.Logf("result_bytes=%d checkpoint_bytes=%d", 2<<20, len(mustAgentJSON(attrs["state"])))
+		if len(mustAgentJSON(attrs["state"])) > 2048 {
+			t.Fatal("large answer entered checkpoint")
 		}
 	})
+
+	t.Run("history beyond four MiB uses accepted attempts and a small checkpoint", func(t *testing.T) {
+		record := accessGroupsE2EFindResourceID(t, client, baseA, admin, "agitem", "name", "agent-created")
+		run := submit(t, baseA, admin, "history:"+record)
+		attrs := wait(t, baseA, run, "completed")
+		state := attrs["state"].(map[string]interface{})
+		if len(mustAgentJSON(state)) > 2048 || state["messages"] != nil || state["config"] != nil || state["result"] != nil {
+			t.Fatalf("checkpoint contains history: %d bytes", len(mustAgentJSON(state)))
+		}
+		t.Logf("history_text_bytes=%d checkpoint_bytes=%d accepted_steps=%v", 8*600*1024, len(mustAgentJSON(state)), state["accepted"])
+		if answer(t, baseA, attrs) != "history-complete" {
+			t.Fatal("large history did not finish")
+		}
+	})
+
 	t.Run("unknown tools fail before effects", func(t *testing.T) { run := submit(t, baseA, admin, "invalid"); wait(t, baseA, run, "failed") })
 
 	t.Run("GraphQL uses the same start and cancel controls", func(t *testing.T) {
@@ -631,7 +671,7 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 			t.Fatal("run belongs to the wrong execution account")
 		}
 		assertLLMUsageOwnedBy(t, client, baseB, admin, memberReference, 1)
-		attemptReference := deniedState["state"].(map[string]interface{})["active"].(string)
+		attemptReference := deniedState["active_try_id"].(string)
 		attempt := accessGroupsE2ERequestJSON(t, client, http.MethodGet, baseB+"/api/agenttry/"+attemptReference, member, nil, 200)
 		owner, _ := transportE2EPath(attempt, "data.attributes.user_account_id")
 		if owner != memberReference {
@@ -719,8 +759,7 @@ func TestAgentDurableInterfaceRealE2E(t *testing.T) {
 			baseC, nodeC := start("")
 			defer nodeC.stopProcess()
 			attrs := wait(t, baseC, run, "unknown")
-			state := attrs["state"].(map[string]interface{})
-			attempt := state["active"].(string)
+			attempt := attrs["active_try_id"].(string)
 			transportE2EPostJSON(t, client, baseC+"/action/agentrun/reconcile", admin, map[string]interface{}{"attributes": map[string]interface{}{"agentrun_id": run, "attempt": attempt, "result": map[string]interface{}{"sent": true}}})
 			wait(t, baseC, run, "completed")
 			if effects.Load() != 1 {

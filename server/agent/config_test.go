@@ -107,21 +107,26 @@ func TestDuplicateOperationsAndPagedTools(t *testing.T) {
 		}
 	}
 }
-func TestBoundedEncodingRejectsLargeAndInvalidResults(t *testing.T) {
-	for _, value := range []interface{}{map[string]interface{}{"value": math.NaN()}, map[string]interface{}{"value": strings.Repeat("x", maxPayload+1)}} {
-		if _, err := encodeBounded(value, maxPayload); err == nil {
-			t.Fatal("invalid or oversized result accepted")
-		}
+func TestResultEncodingRetainsLargeValuesAndRejectsInvalidJSON(t *testing.T) {
+	large := strings.Repeat("x", 5<<20)
+	body, err := encode(map[string]interface{}{"value": large})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result map[string]interface{}
+	if err := decode(body, &result); err != nil || result["value"] != large {
+		t.Fatal("large result was not retained", err)
+	}
+	if _, err := encode(math.NaN()); err == nil {
+		t.Fatal("invalid JSON accepted")
 	}
 	cycle := map[string]interface{}{}
 	cycle["self"] = cycle
-	if _, err := encodeBounded(cycle, maxPayload); err == nil {
+	if _, err := encode(cycle); err == nil {
 		t.Fatal("cyclic result accepted")
 	}
-	if value, err := encodeBounded(map[string]interface{}{"ok": true}, maxPayload); err != nil || value != `{"ok":true}` {
-		t.Fatalf("valid result rejected: %s %v", value, err)
-	}
 }
+
 func TestExecutionContainsPanics(t *testing.T) {
 	service := &Service{}
 	_, err := service.execute(context.Background(), nil, &runState{}, intent{Kind: "model"})

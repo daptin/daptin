@@ -54,7 +54,9 @@ func init() {
 			DefaultGroups:     adminQueueGroup,
 			DefaultPermission: auth.UserRead | auth.UserPeek | auth.UserExecute,
 			Columns: []api2go.ColumnInfo{col("status", "label", "varchar(30)", false),
-				col("state", "json", "longtext", false),
+				col("state", "json", "text", false),
+				col("config", "json", "longtext", false),
+				col("input", "json", "longtext", false),
 				col("auth_version", "measurement", "bigint", false),
 				col("deadline_at", "datetime", "timestamp", false),
 				col("claim", "label", "varchar(64)", true),
@@ -64,16 +66,22 @@ func init() {
 			Columns: []api2go.ColumnInfo{
 				col("number", "measurement", "bigint", false),
 				col("kind", "label", "varchar(30)", false),
-				col("payload", "json", "longtext", false)}}, table_info.TableInfo{TableName: "agenttry", DefaultGroups: adminQueueGroup, DefaultPermission: auth.UserRead | auth.UserPeek,
+				col("operation", "alias", "varchar(40)", false),
+				col("call_id", "label", "text", true)}}, table_info.TableInfo{TableName: "agenttry", CompositeKeys: [][]string{{"agentstp_id", "number"}}, DefaultGroups: adminQueueGroup, DefaultPermission: auth.UserRead | auth.UserPeek,
 			Columns: []api2go.ColumnInfo{
 				col("status", "label", "varchar(30)", false),
-				col("intent", "json", "longtext", false),
+				col("number", "measurement", "bigint", false),
 				col("result", "json", "longtext", true)}})
 	StandardRelations = append(StandardRelations,
 		api2go.NewTableRelation("agentrun", "belongs_to", "agent"),
 		api2go.NewTableRelation("agentstp", "belongs_to", "agentrun"),
 		api2go.NewTableRelation("agenttry", "belongs_to", "agentrun"),
 		api2go.NewTableRelation("agenttry", "belongs_to", "agentstp"),
+		api2go.NewTableRelationWithNames("agentrun", "active_run", "has_one", "agenttry", "active_try_id"),
+		api2go.NewTableRelationWithNames("agentrun", "current_run", "has_one", "agentstp", "current_step_id"),
+		api2go.NewTableRelationWithNames("agentrun", "pending_run", "has_one", "agentstp", "source_step_id"),
+		api2go.NewTableRelationWithNames("agentstp", "accepted_step", "has_one", "agenttry", "accepted_try_id"),
+		api2go.NewTableRelationWithNames("agentstp", "tool_step", "has_one", "agentstp", "source_step_id"),
 		api2go.NewTableRelation("api_quota", "has_one", "agentrun"),
 		api2go.NewTableRelation("api_usage", "has_one", "agenttry"))
 	// Callers execute controls; only the backend performer writes execution rows.

@@ -50,9 +50,9 @@ func TestRunBudgetsReserveAndSettleWithoutAccountPlan(t *testing.T) {
 				return created.GetID()
 			}
 			agent := create("agent", map[string]interface{}{"name": "budget-test", "config": "{}"})
-			run := create("agentrun", map[string]interface{}{"agent_id": agent, "status": "running", "claim": "worker", "state": "{}", "auth_version": 1, "deadline_at": now.Add(time.Hour), "lease_until": now.Add(time.Minute)})
-			step := create("agentstp", map[string]interface{}{"agentrun_id": run, "number": 1, "kind": "model", "payload": "{}"})
-			attempt := create("agenttry", map[string]interface{}{"agentrun_id": run, "agentstp_id": step, "status": "dispatched", "intent": "{}"})
+			run := create("agentrun", map[string]interface{}{"agent_id": agent, "status": "running", "claim": "worker", "state": "{}", "config": "{}", "input": "[]", "auth_version": 1, "deadline_at": now.Add(time.Hour), "lease_until": now.Add(time.Minute)})
+			step := create("agentstp", map[string]interface{}{"agentrun_id": run, "number": 1, "kind": "model", "operation": uuid.NewString()})
+			attempt := create("agenttry", map[string]interface{}{"agentrun_id": run, "agentstp_id": step, "status": "dispatched", "number": 1})
 			budget := &MeteringBudget{Run: run, Attempt: attempt, Claim: "worker", Tokens: limits.tokens, CostMicros: limits.cost, Started: now, Deadline: now.Add(time.Hour)}
 			admit := func(id string, amount int64) (*MeteringDecision, error) {
 				return service.Admit(MeteringContext{RequestID: id, User: user, Budget: budget, EstimatedMeasures: map[string]int64{"total_tokens": amount, "cost_micros": amount}}, tx)

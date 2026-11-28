@@ -201,9 +201,6 @@ func (s *Service) control(name string, input map[string]interface{}, tx *sqlx.Tx
 				return nil, errors.New("initial messages must have user role")
 			}
 		}
-		if config.Instructions != "" {
-			messages = append([]map[string]interface{}{{"role": "system", "content": config.Instructions}}, messages...)
-		}
 		encoded, err := encode(map[string]interface{}{"model": config.Model, "messages": messages, "max_tokens": config.Limits.OutputTokens})
 		if err != nil {
 			return nil, err
@@ -217,27 +214,28 @@ func (s *Service) control(name string, input map[string]interface{}, tx *sqlx.Tx
 		if err != nil {
 			return nil, err
 		}
-		state := runState{Config: config, Messages: canonical.Chat.Messages, Started: now}
-		if _, err := encodeBounded(state, maxHistory); err != nil {
-			return nil, err
-		}
-		row, err := s.create(ctx, "agentrun", map[string]interface{}{"agent_id": reference(definition), "status": "queued", "state": state, "auth_version": user.AuthVersion, "deadline_at": now.Add(time.Duration(config.Limits.Seconds) * time.Second)}, tx)
+		state := runState{Config: config, Started: now}
+		row, err := s.create(ctx, "agentrun", map[string]interface{}{"agent_id": reference(definition), "status": "queued", "state": state, "config": config, "input": canonical.Chat.Messages, "auth_version": user.AuthVersion, "deadline_at": now.Add(time.Duration(config.Limits.Seconds) * time.Second)}, tx)
 		if err != nil {
 			return nil, err
 		}
 		return controlResult(reference(row), "queued"), nil
 	}
-	row, err := s.read(ctx, "agentrun", reference(subject), tx)
+	row, err := s.controlRun(ctx, reference(subject), tx)
 	if err != nil {
 		return nil, err
 	}
 	permission := s.cruds["agentrun"].GetObjectPermissionByReferenceId("agentrun", daptinid.InterfaceToDIR(row["reference_id"]), tx)
-	if !permission.CanExecute(user.UserReferenceId, user.Groups, s.cruds["agentrun"].AdministratorGroupId) {
+	if !permission.CanRead(user.UserReferenceId, user.Groups, s.cruds["agentrun"].AdministratorGroupId) || !permission.CanExecute(user.UserReferenceId, user.Groups, s.cruds["agentrun"].AdministratorGroupId) {
 		return nil, errors.New("run control is forbidden")
 	}
 	status := resource.StringOrEmpty(row["status"])
-	var state runState
-	if err := decode(row["state"], &state); err != nil {
+	var config Config
+	if err := decode(row["config"], &config); err != nil {
+		return nil, err
+	}
+	state, err := readState(row, config)
+	if err != nil {
 		return nil, err
 	}
 	switch name {
@@ -269,7 +267,7 @@ func (s *Service) control(name string, input map[string]interface{}, tx *sqlx.Tx
 		if err := decode(value, &decoded); err != nil {
 			return nil, err
 		}
-		if _, err := encodeBounded(decoded, maxPayload); err != nil {
+		if _, err := encode(decoded); err != nil {
 			return nil, err
 		}
 		if attempt["status"] != "completed" {
@@ -307,6 +305,17 @@ func (s *Service) advance(parent context.Context, ref string) error {
 	if err != nil || row == nil {
 		return err
 	}
+	configTx, err := s.begin(parent)
+	if err != nil {
+		s.release(ref, token, Config{})
+		return err
+	}
+	config, err := s.snapshot(ref, configTx)
+	configTx.Rollback()
+	if err != nil {
+		s.release(ref, token, Config{})
+		return err
+	}
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 	heartbeatDone := make(chan struct{})
@@ -333,7 +342,7 @@ func (s *Service) advance(parent context.Context, ref string) error {
 			}
 		}
 	}()
-	defer func() { close(stopHeartbeat); <-heartbeatDone; s.release(ref, token) }()
+	defer func() { close(stopHeartbeat); <-heartbeatDone; s.release(ref, token, config) }()
 	for turns := 0; turns < 200; turns++ {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -341,7 +350,7 @@ func (s *Service) advance(parent context.Context, ref string) error {
 		if s.stopping.Load() {
 			return nil
 		}
-		stop, err := s.tick(ctx, ref, token)
+		stop, err := s.tick(ctx, ref, token, config)
 		if err != nil {
 			return err
 		}
@@ -443,27 +452,12 @@ func (s *Service) save(ctx context.Context, row map[string]interface{}, state *r
 	if err := s.progress(row, state, tx); err != nil {
 		return err
 	}
-	_, err := encodeBounded(state, maxHistory)
-	if err != nil && !errors.Is(err, errPayloadLimit) {
-		return err
-	}
-	if errors.Is(err, errPayloadLimit) {
-		// Preserve the last admitted conversation. The completed step/attempt keeps
-		// the new result; do not endlessly reaccept it or dispatch with a full history.
-		var previous runState
-		if err := decode(row["state"], &previous); err != nil {
-			return err
-		}
-		previous.Error = "agent history limit exceeded"
-		state = &previous
-		status = "failed"
-	}
-	attrs := map[string]interface{}{"state": state, "status": status}
+	attrs := map[string]interface{}{"state": state, "status": status, "active_try_id": nullableRef(state.Active), "current_step_id": nullableRef(state.Current), "source_step_id": nullableRef(state.Source)}
 	if status != "running" {
 		attrs["claim"] = nil
 		attrs["lease_until"] = nil
 	}
-	_, err = s.update(ctx, "agentrun", row, attrs, tx)
+	_, err := s.update(ctx, "agentrun", row, attrs, tx)
 	return err
 }
 
@@ -501,7 +495,7 @@ func (s *Service) fail(ctx context.Context, row map[string]interface{}, state *r
 
 // Yield only our own live claim after owned work has stopped. A different node
 // can recover immediately on graceful shutdown or after a bounded work slice.
-func (s *Service) release(ref, token string) {
+func (s *Service) release(ref, token string, config Config) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	tx, err := s.begin(ctx)
@@ -513,8 +507,8 @@ func (s *Service) release(ref, token string) {
 	if err != nil {
 		return
 	}
-	var state runState
-	if decode(row["state"], &state) != nil {
+	state, err := readState(row, config)
+	if err != nil {
 		return
 	}
 	if err := s.save(ctx, row, &state, "queued", tx); err == nil {

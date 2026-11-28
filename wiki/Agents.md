@@ -72,6 +72,15 @@ Daptin action handler. Normal action, subject, and resource permission checks
 apply. Restart Daptin processes after changing action definitions or schemas;
 in a cluster, restart every node.
 
+An administrator agent can create schema through the `world` resource, invoke
+`world.restart_daptin`, and continue the same persisted run after the process
+restarts. The restart action currently affects only the executing node. Shared
+SQL schema definitions do not refresh another node's in-memory resources: that
+node can still return `404` for a newly added entity, and a run handed to it can
+receive an unknown-entity tool result. Restart each node before treating a
+schema change as applied throughout the cluster. Schema uploads also write a
+local file; restarting peers does not distribute that file.
+
 Arguments map directly to action inputs. The locally validated schema dialect is
 the structural OpenAPI 3 subset: type, description, properties, required,
 additionalProperties, items, enum, minimum, maximum, minLength, maxLength,
@@ -121,7 +130,19 @@ curl --fail-with-body -sS "$BASE/api/agentrun/$RUN_REF" \
 ```
 
 Repeat the last request until the run reaches a terminal state or waits for a
-decision. Inspect `state.result` and verify the saved application data separately:
+decision. A completed run points to its final model step; that step identifies
+the accepted attempt containing the answer:
+
+```bash
+STEP_REF=$(curl --fail-with-body -sS "$BASE/api/agentrun/$RUN_REF" \
+  -H "Authorization: Bearer $TOKEN" | jq -er '.data.attributes.current_step_id')
+TRY_REF=$(curl --fail-with-body -sS "$BASE/api/agentstp/$STEP_REF" \
+  -H "Authorization: Bearer $TOKEN" | jq -er '.data.attributes.accepted_try_id')
+curl --fail-with-body -sS "$BASE/api/agenttry/$TRY_REF" \
+  -H "Authorization: Bearer $TOKEN" | jq '.data.attributes.result'
+```
+
+Verify the saved application data separately:
 
 ```bash
 curl --fail-with-body -sS "$BASE/api/artifact?page[size]=25" \
@@ -130,7 +151,8 @@ curl --fail-with-body -sS "$BASE/api/artifact?page[size]=25" \
 
 The agent should create a record through ordinary CRUD, pass its public reference
 as `artifact_id` to the named action, receive the verifier's result, and finish.
-Inspect `state.messages` for the model's tool calls and returned results. The
+Inspect ordered `agentstp` records and their selected `agenttry.result` values
+for the model's tool calls and returned results. The
 control and recovery examples below cover decisions, cancellation and uncertain
 effects. To manage the whole Daptin instance, retain the `*` selectors and run
 as an administrator; selectors expose operations while the account's existing
@@ -188,10 +210,18 @@ curl -X POST "$BASE/action/agent/start" \
 ```
 
 The action response contains `reference_id` and `status`. Poll
-`/api/agentrun/RUN_REFERENCE`. `state` contains the submitted configuration,
-conversation, current operation, counters, final result and error. `agentstp`
-and `agenttry` provide step/attempt evidence governed by normal entity and row
-permissions. General caller writes to execution rows are denied by default;
+`/api/agentrun/RUN_REFERENCE`. `config` and `input` hold the configuration snapshot and initial user messages,
+written once at start. `state` is a small execution checkpoint containing counters,
+accepted sequence, the next tool-call position, timing, budget progress and errors.
+`current_step_id`, `active_try_id` and `source_step_id` identify execution records.
+
+`agentstp` owns operation order and its stable logical-operation identity.
+`accepted_try_id` selects exactly one attempt as that step's accepted result.
+For a tool step, `source_step_id` and `call_id` identify the original call in an
+accepted model response; arguments are not copied into each attempt.
+`agenttry` owns attempt number, status and the complete result. Results and
+conversation history are not copied into run checkpoints or step payloads.
+All records use normal entity and row permissions. General caller writes to execution rows are denied by default;
 use controls.
 
 Run states are `queued`, `running`, `waiting_decision`, `unknown`, `completed`,
@@ -305,7 +335,7 @@ normal resource API:
 ```bash
 curl --fail-with-body -sS "$BASE/api/agentrun/$RUN_REF" \
   -H "Authorization: Bearer $TOKEN" \
-  | jq '.data.attributes | {status,deadline_at,state:(.state | {limits:.config.limits,active_ms,active_remaining_ms,progress_at,budget,error_code,error,result})}'
+  | jq '.data.attributes | {status,deadline_at,limits:.config.limits,current_step_id,active_try_id,state}'
 ```
 
 Absolute lifetime includes queueing and all waits. Active time covers inference
@@ -349,7 +379,7 @@ route quotes; changing prices does not reprice earlier usage. Missing provider
 usage is conservatively settled using the reservation estimate and marked
 `usage_estimated` in the usage metadata.
 
-Normal `agentrun` reads expose effective limits in `state.config.limits`, accumulated
+Normal `agentrun` reads expose effective limits in `config.limits`, accumulated
 `active_ms`, the current interval's `active_since`, `active_remaining_ms` when
 configured, and `progress_at`. Budget snapshots under `state.budget` contain
 `maximum`, `consumed`, `reserved` and `remaining` for enabled metrics. Snapshots
@@ -361,8 +391,31 @@ inference without copying the conversation on every heartbeat. The top-level
 or `quota_exceeded`; recorded attempt results remain available. Account limits and usage continue through
 [API metering](https://github.com/daptin/daptin/wiki/API-Metering).
 
-Encoded results/arguments remain bounded to 1 MiB and run history to 4 MiB. Lists
-and relationships return at most 100 rows per page. Relationship tools accept
+## Stored history and inference context
+
+Accepted steps and attempts are the authoritative conversation history. Before
+inference, the worker reconstructs system instructions, initial user input, and
+ordered accepted model/tool results. Tool-call identifiers and provider continuation
+metadata remain attached to their original messages. Other attempts remain
+inspectable evidence and are not replayed into the conversation.
+
+Claims, heartbeats and tool dispatch read projected control/operation fields;
+they do not load the whole conversation. Configuration is loaded once per worker
+execution slice, and history is read in ordered batches only for model inference.
+Step acceptance and checkpoint advancement commit atomically.
+
+There is no aggregate 4 MiB history limit or 1 MiB stored-result limit. The 1 MiB
+tool-argument admission bound remains separate from result retention. Context sent
+to a provider remains subject to that provider/gateway's constraints and the run's
+inference budgets. A rejected inference does not delete or truncate stored history.
+Gateway usage capture retains its existing independent policy; it is not the agent
+conversation authority.
+
+This schema uses separate run input/configuration, step selections and attempt
+results. It does not include readers or migration for the older embedded-history
+format.
+
+Lists and relationships return at most 100 rows per page. Relationship tools accept
 `page`; resource discovery returns `resources` and an optional `next_page`. Action
 discovery identifies `instance_optional` and the required subject input.
 
